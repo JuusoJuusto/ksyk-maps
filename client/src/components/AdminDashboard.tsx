@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import RoomManagement from "@/components/RoomManagement";
+import FloorManagement from "@/components/FloorManagement";
+import HallwayManagement from "@/components/HallwayManagement";
 import type { Staff, Building, Room } from "@shared/schema";
 
 export default function AdminDashboard() {
@@ -52,9 +54,11 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="rooms">Room Management</TabsTrigger>
+          <TabsTrigger value="rooms">Rooms</TabsTrigger>
+          <TabsTrigger value="floors">Floors</TabsTrigger>
+          <TabsTrigger value="hallways">Hallways</TabsTrigger>
           <TabsTrigger value="buildings">Buildings</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
         </TabsList>
@@ -183,6 +187,14 @@ export default function AdminDashboard() {
         
         <TabsContent value="rooms">
           <RoomManagement />
+        </TabsContent>
+        
+        <TabsContent value="floors">
+          <FloorManagement />
+        </TabsContent>
+        
+        <TabsContent value="hallways">
+          <HallwayManagement />
         </TabsContent>
         
         <TabsContent value="buildings">

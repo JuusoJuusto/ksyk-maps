@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertBuildingSchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
+import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -91,6 +91,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting building:", error);
       res.status(500).json({ message: "Failed to delete building" });
+    }
+  });
+
+  // Floor routes
+  app.get('/api/floors', async (req, res) => {
+    try {
+      const buildingId = req.query.buildingId as string;
+      const floors = await storage.getFloors(buildingId);
+      res.json(floors);
+    } catch (error) {
+      console.error("Error fetching floors:", error);
+      res.status(500).json({ message: "Failed to fetch floors" });
+    }
+  });
+
+  app.get('/api/floors/:id', async (req, res) => {
+    try {
+      const floor = await storage.getFloor(req.params.id);
+      if (!floor) {
+        return res.status(404).json({ message: "Floor not found" });
+      }
+      res.json(floor);
+    } catch (error) {
+      console.error("Error fetching floor:", error);
+      res.status(500).json({ message: "Failed to fetch floor" });
+    }
+  });
+
+  app.post('/api/floors', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertFloorSchema.parse(req.body);
+      const floor = await storage.createFloor(validatedData);
+      res.status(201).json(floor);
+    } catch (error) {
+      console.error("Error creating floor:", error);
+      res.status(500).json({ message: "Failed to create floor" });
+    }
+  });
+
+  app.put('/api/floors/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertFloorSchema.partial().parse(req.body);
+      const floor = await storage.updateFloor(req.params.id, validatedData);
+      res.json(floor);
+    } catch (error) {
+      console.error("Error updating floor:", error);
+      res.status(500).json({ message: "Failed to update floor" });
+    }
+  });
+
+  app.delete('/api/floors/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteFloor(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting floor:", error);
+      res.status(500).json({ message: "Failed to delete floor" });
+    }
+  });
+
+  // Hallway routes
+  app.get('/api/hallways', async (req, res) => {
+    try {
+      const buildingId = req.query.buildingId as string;
+      const floorId = req.query.floorId as string;
+      const hallways = await storage.getHallways(buildingId, floorId);
+      res.json(hallways);
+    } catch (error) {
+      console.error("Error fetching hallways:", error);
+      res.status(500).json({ message: "Failed to fetch hallways" });
+    }
+  });
+
+  app.get('/api/hallways/:id', async (req, res) => {
+    try {
+      const hallway = await storage.getHallway(req.params.id);
+      if (!hallway) {
+        return res.status(404).json({ message: "Hallway not found" });
+      }
+      res.json(hallway);
+    } catch (error) {
+      console.error("Error fetching hallway:", error);
+      res.status(500).json({ message: "Failed to fetch hallway" });
+    }
+  });
+
+  app.post('/api/hallways', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertHallwaySchema.parse(req.body);
+      const hallway = await storage.createHallway(validatedData);
+      res.status(201).json(hallway);
+    } catch (error) {
+      console.error("Error creating hallway:", error);
+      res.status(500).json({ message: "Failed to create hallway" });
+    }
+  });
+
+  app.put('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertHallwaySchema.partial().parse(req.body);
+      const hallway = await storage.updateHallway(req.params.id, validatedData);
+      res.json(hallway);
+    } catch (error) {
+      console.error("Error updating hallway:", error);
+      res.status(500).json({ message: "Failed to update hallway" });
+    }
+  });
+
+  app.delete('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteHallway(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting hallway:", error);
+      res.status(500).json({ message: "Failed to delete hallway" });
     }
   });
 

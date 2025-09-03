@@ -1,6 +1,8 @@
 import {
   users,
   buildings,
+  floors,
+  hallways,
   rooms,
   staff,
   events,
@@ -9,6 +11,10 @@ import {
   type UpsertUser,
   type Building,
   type InsertBuilding,
+  type Floor,
+  type InsertFloor,
+  type Hallway,
+  type InsertHallway,
   type Room,
   type InsertRoom,
   type Staff,
@@ -33,6 +39,20 @@ export interface IStorage {
   createBuilding(building: InsertBuilding): Promise<Building>;
   updateBuilding(id: string, building: Partial<InsertBuilding>): Promise<Building>;
   deleteBuilding(id: string): Promise<void>;
+  
+  // Floor operations
+  getFloors(buildingId?: string): Promise<Floor[]>;
+  getFloor(id: string): Promise<Floor | undefined>;
+  createFloor(floor: InsertFloor): Promise<Floor>;
+  updateFloor(id: string, floor: Partial<InsertFloor>): Promise<Floor>;
+  deleteFloor(id: string): Promise<void>;
+  
+  // Hallway operations
+  getHallways(buildingId?: string, floorId?: string): Promise<Hallway[]>;
+  getHallway(id: string): Promise<Hallway | undefined>;
+  createHallway(hallway: InsertHallway): Promise<Hallway>;
+  updateHallway(id: string, hallway: Partial<InsertHallway>): Promise<Hallway>;
+  deleteHallway(id: string): Promise<void>;
   
   // Room operations
   getRooms(buildingId?: string): Promise<Room[]>;
@@ -113,6 +133,74 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBuilding(id: string): Promise<void> {
     await db.update(buildings).set({ isActive: false }).where(eq(buildings.id, id));
+  }
+
+  // Floor operations
+  async getFloors(buildingId?: string): Promise<Floor[]> {
+    if (buildingId) {
+      return await db.select().from(floors).where(and(eq(floors.isActive, true), eq(floors.buildingId, buildingId)));
+    }
+    return await db.select().from(floors).where(eq(floors.isActive, true));
+  }
+
+  async getFloor(id: string): Promise<Floor | undefined> {
+    const [floor] = await db.select().from(floors).where(eq(floors.id, id));
+    return floor;
+  }
+
+  async createFloor(floor: InsertFloor): Promise<Floor> {
+    const [newFloor] = await db.insert(floors).values(floor).returning();
+    return newFloor;
+  }
+
+  async updateFloor(id: string, floor: Partial<InsertFloor>): Promise<Floor> {
+    const [updatedFloor] = await db
+      .update(floors)
+      .set({ ...floor, updatedAt: new Date() })
+      .where(eq(floors.id, id))
+      .returning();
+    return updatedFloor;
+  }
+
+  async deleteFloor(id: string): Promise<void> {
+    await db.update(floors).set({ isActive: false }).where(eq(floors.id, id));
+  }
+
+  // Hallway operations
+  async getHallways(buildingId?: string, floorId?: string): Promise<Hallway[]> {
+    let conditions = [eq(hallways.isActive, true)];
+    
+    if (buildingId) {
+      conditions.push(eq(hallways.buildingId, buildingId));
+    }
+    if (floorId) {
+      conditions.push(eq(hallways.floorId, floorId));
+    }
+    
+    return await db.select().from(hallways).where(and(...conditions));
+  }
+
+  async getHallway(id: string): Promise<Hallway | undefined> {
+    const [hallway] = await db.select().from(hallways).where(eq(hallways.id, id));
+    return hallway;
+  }
+
+  async createHallway(hallway: InsertHallway): Promise<Hallway> {
+    const [newHallway] = await db.insert(hallways).values(hallway).returning();
+    return newHallway;
+  }
+
+  async updateHallway(id: string, hallway: Partial<InsertHallway>): Promise<Hallway> {
+    const [updatedHallway] = await db
+      .update(hallways)
+      .set({ ...hallway, updatedAt: new Date() })
+      .where(eq(hallways.id, id))
+      .returning();
+    return updatedHallway;
+  }
+
+  async deleteHallway(id: string): Promise<void> {
+    await db.update(hallways).set({ isActive: false }).where(eq(hallways.id, id));
   }
 
   // Room operations

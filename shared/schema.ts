@@ -133,6 +133,48 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Floors table
+export const floors = pgTable("floors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  buildingId: varchar("building_id").references(() => buildings.id).notNull(),
+  floorNumber: integer("floor_number").notNull(),
+  name: varchar("name"),
+  nameEn: varchar("name_en"),
+  nameFi: varchar("name_fi"),
+  description: text("description"),
+  descriptionEn: text("description_en"),
+  descriptionFi: text("description_fi"),
+  mapImageUrl: varchar("map_image_url"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Hallways table  
+export const hallways = pgTable("hallways", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  buildingId: varchar("building_id").references(() => buildings.id).notNull(),
+  floorId: varchar("floor_id").references(() => floors.id),
+  name: varchar("name").notNull(),
+  nameEn: varchar("name_en"),
+  nameFi: varchar("name_fi"),
+  description: text("description"),
+  descriptionEn: text("description_en"),
+  descriptionFi: text("description_fi"),
+  startX: integer("start_x"),
+  startY: integer("start_y"),
+  endX: integer("end_x"),
+  endY: integer("end_y"),
+  width: integer("width").default(2),
+  colorCode: varchar("color_code").default("#9CA3AF"),
+  emergencyRoute: boolean("emergency_route").default(false),
+  accessibilityInfo: text("accessibility_info"),
+  isPublic: boolean("is_public").default(true),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Announcements table
 export const announcements = pgTable("announcements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -153,6 +195,27 @@ export const announcements = pgTable("announcements", {
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),
+  floors: many(floors),
+  hallways: many(hallways),
+}));
+
+export const floorsRelations = relations(floors, ({ one, many }) => ({
+  building: one(buildings, {
+    fields: [floors.buildingId],
+    references: [buildings.id],
+  }),
+  hallways: many(hallways),
+}));
+
+export const hallwaysRelations = relations(hallways, ({ one }) => ({
+  building: one(buildings, {
+    fields: [hallways.buildingId],
+    references: [buildings.id],
+  }),
+  floor: one(floors, {
+    fields: [hallways.floorId],
+    references: [floors.id],
+  }),
 }));
 
 export const roomsRelations = relations(rooms, ({ one, many }) => ({
@@ -220,6 +283,18 @@ export const insertEventSchema = createInsertSchema(events).omit({
   updatedAt: true,
 });
 
+export const insertFloorSchema = createInsertSchema(floors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertHallwaySchema = createInsertSchema(hallways).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   id: true,
   createdAt: true,
@@ -231,6 +306,10 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Building = typeof buildings.$inferSelect;
 export type InsertBuilding = z.infer<typeof insertBuildingSchema>;
+export type Floor = typeof floors.$inferSelect;
+export type InsertFloor = z.infer<typeof insertFloorSchema>;
+export type Hallway = typeof hallways.$inferSelect;
+export type InsertHallway = z.infer<typeof insertHallwaySchema>;
 export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Staff = typeof staff.$inferSelect;
