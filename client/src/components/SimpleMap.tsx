@@ -1,16 +1,38 @@
 import { useState } from "react";
 
-// Simple hardcoded campus data
+// KSYK Campus Data - Complete Layout
 const BUILDINGS = [
-  { id: 1, name: "M", fullName: "Music Building", x: 200, y: 100, color: "#9333EA" },
-  { id: 2, name: "K", fullName: "Central Hall", x: 400, y: 150, color: "#DC2626" },
-  { id: 3, name: "L", fullName: "Gymnasium", x: 600, y: 120, color: "#059669" },
+  { id: 1, name: "M", fullName: "Music Building", x: 150, y: 200, color: "#9333EA" },
+  { id: 2, name: "K", fullName: "Central Hall", x: 400, y: 180, color: "#DC2626" },
+  { id: 3, name: "L", fullName: "Gymnasium", x: 650, y: 220, color: "#059669" },
+  { id: 4, name: "R", fullName: "R Building", x: 300, y: 350, color: "#F59E0B" },
+  { id: 5, name: "A", fullName: "A Building", x: 500, y: 320, color: "#8B5CF6" },
+  { id: 6, name: "U", fullName: "U Building", x: 200, y: 80, color: "#3B82F6" },
+  { id: 7, name: "OG", fullName: "Old Gymnasium", x: 550, y: 100, color: "#06B6D4" },
 ];
 
 const ROOMS = [
-  { id: 1, name: "M12", building: "M", x: 220, y: 120, floor: 1 },
-  { id: 2, name: "K15", building: "K", x: 420, y: 170, floor: 1 },
-  { id: 3, name: "Gym 1", building: "L", x: 620, y: 140, floor: 1 },
+  // Floor 1 Rooms
+  { id: 1, name: "M12", building: "M", x: 170, y: 220, floor: 1 },
+  { id: 2, name: "K15", building: "K", x: 420, y: 200, floor: 1 },
+  { id: 3, name: "Gym 1", building: "L", x: 670, y: 240, floor: 1 },
+  { id: 4, name: "R10", building: "R", x: 320, y: 370, floor: 1 },
+  { id: 5, name: "A20", building: "A", x: 520, y: 340, floor: 1 },
+  { id: 6, name: "U30", building: "U", x: 220, y: 100, floor: 1 },
+  { id: 7, name: "OG5", building: "OG", x: 570, y: 120, floor: 1 },
+  
+  // Floor 2 Rooms
+  { id: 8, name: "M22", building: "M", x: 170, y: 220, floor: 2 },
+  { id: 9, name: "K25", building: "K", x: 420, y: 200, floor: 2 },
+  { id: 10, name: "R20", building: "R", x: 320, y: 370, floor: 2 },
+  { id: 11, name: "A25", building: "A", x: 520, y: 340, floor: 2 },
+  { id: 12, name: "U35", building: "U", x: 220, y: 100, floor: 2 },
+  
+  // Floor 3 Rooms
+  { id: 13, name: "M32", building: "M", x: 170, y: 220, floor: 3 },
+  { id: 14, name: "K35", building: "K", x: 420, y: 200, floor: 3 },
+  { id: 15, name: "A35", building: "A", x: 520, y: 340, floor: 3 },
+  { id: 16, name: "U40", building: "U", x: 220, y: 100, floor: 3 },
 ];
 
 export default function SimpleMap() {
@@ -62,21 +84,26 @@ export default function SimpleMap() {
           />
         </div>
 
-        {/* Floor Selector */}
+        {/* Floor Selector - 3 Floors */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Floor ({filteredRooms.length} rooms)
           </label>
-          <button
-            onClick={() => setCurrentFloor(1)}
-            className={`px-4 py-2 rounded-md font-medium ${
-              currentFloor === 1
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Floor 1
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            {[1, 2, 3].map(floor => (
+              <button
+                key={floor}
+                onClick={() => setCurrentFloor(floor)}
+                className={`px-3 py-2 rounded-md font-medium min-w-[44px] ${
+                  currentFloor === floor
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Floor {floor}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Navigation Status */}
@@ -106,8 +133,9 @@ export default function SimpleMap() {
         {/* Instructions */}
         <div className="text-sm text-gray-600 space-y-1">
           <div>• Click rooms to start navigation</div>
-          <div>• First click = start, second = destination</div>
-          <div>• Search to find specific rooms</div>
+          <div>• Switch floors to see different levels</div>
+          <div>• Search: M12, K15, A20, U30, R10, etc.</div>
+          <div>• Buildings: M, K, L, R, A, U, OG</div>
         </div>
 
         {/* Found Rooms */}
@@ -153,13 +181,13 @@ export default function SimpleMap() {
             />
           )}
 
-          {/* Buildings */}
+          {/* Buildings - All 7 Buildings */}
           {BUILDINGS.map(building => (
             <g key={building.id}>
               <rect
-                x={building.x - 40}
-                y={building.y - 30}
-                width="120"
+                x={building.x - 50}
+                y={building.y - 40}
+                width="100"
                 height="80"
                 fill={building.color + "20"}
                 stroke={building.color}
@@ -168,11 +196,19 @@ export default function SimpleMap() {
               />
               <text
                 x={building.x}
-                y={building.y - 40}
+                y={building.y - 50}
                 textAnchor="middle"
                 className="text-sm font-bold fill-gray-800"
               >
-                {building.name} - {building.fullName}
+                {building.name}
+              </text>
+              <text
+                x={building.x}
+                y={building.y - 35}
+                textAnchor="middle"
+                className="text-xs fill-gray-600"
+              >
+                {building.fullName}
               </text>
             </g>
           ))}
