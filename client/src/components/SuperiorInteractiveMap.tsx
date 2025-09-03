@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Navigation, 
@@ -18,9 +19,10 @@ import {
   Home,
   ArrowRight,
   Clock,
-  Building
+  Building,
+  Layers
 } from "lucide-react";
-import type { Room, Building as BuildingType, Hallway } from "@shared/schema";
+import type { Room, Building as BuildingType, Hallway, Floor } from "@shared/schema";
 
 interface NavigationState {
   from: Room | null;
@@ -59,6 +61,7 @@ export default function SuperiorInteractiveMap() {
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredRoom, setHoveredRoom] = useState<Room | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [currentFloor, setCurrentFloor] = useState(1);
 
   // Data fetching
   const { data: buildings = [] } = useQuery<BuildingType[]>({
@@ -73,12 +76,24 @@ export default function SuperiorInteractiveMap() {
     queryKey: ["/api/hallways"],
   });
 
-  // Filter rooms based on search
-  const filteredRooms = rooms.filter(room =>
-    room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.nameFi?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: floors = [] } = useQuery<Floor[]>({
+    queryKey: ["/api/floors"],
+  });
+
+  // Filter rooms based on search and current floor
+  const filteredRooms = rooms.filter(room => {
+    const matchesSearch = room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.nameFi?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFloor = room.floor === currentFloor;
+    return matchesSearch && matchesFloor;
+  });
+
+  // Get available floors for floor selector
+  const availableFloors = [...new Set(rooms.map(room => room.floor).filter(Boolean))].sort();
+  
+  // Get floors by building for the current floor
+  const currentFloorData = floors.filter(floor => floor.floorNumber === currentFloor);
 
   // Fixed room click handler that doesn't interfere with dragging
   const handleRoomClick = (room: Room, event: React.MouseEvent) => {
@@ -383,7 +398,7 @@ export default function SuperiorInteractiveMap() {
     <TooltipProvider>
       <div className="relative h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         
-        {/* Enhanced Navigation Panel */}
+        {/* Enhanced Navigation Panel with Floor Selector */}
         <div className="absolute top-4 left-4 z-50 space-y-4">
           <Card className="w-80 shadow-xl">
             <CardHeader className="pb-3">
@@ -403,6 +418,48 @@ export default function SuperiorInteractiveMap() {
                   className="pl-10"
                   data-testid="input-room-search"
                 />
+              </div>
+
+              {/* Floor Selector */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Layers className="w-4 h-4" />
+                  Floor Level ({filteredRooms.length} rooms)
+                </Label>
+                <div className="flex gap-2 flex-wrap">
+                  {availableFloors.map(floor => (
+                    <Button
+                      key={floor}
+                      variant={currentFloor === floor ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentFloor(floor)}
+                      className={`h-8 px-3 text-xs font-medium ${
+                        currentFloor === floor 
+                          ? 'bg-blue-600 text-white' 
+                          : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      }`}
+                      data-testid={`floor-selector-${floor}`}
+                    >
+                      Floor {floor}
+                    </Button>
+                  ))}
+                </div>
+                
+                {/* Current Floor Info */}
+                {currentFloorData.length > 0 && (
+                  <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                    📍 Currently viewing Floor {currentFloor}
+                    <br />
+                    {currentFloorData.map(floor => {
+                      const building = buildings.find(b => b.id === floor.buildingId);
+                      return (
+                        <span key={floor.id} className="block">
+                          • {building?.name} ({building?.nameEn}): {floor.nameEn}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Navigation Status */}
@@ -734,6 +791,11 @@ export default function SuperiorInteractiveMap() {
                       </div>
                     )}
                     
+                    {/* Floor indicator */}
+                    <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {room.floor || 1}
+                    </div>
+                    
                     {/* Capacity indicator */}
                     {room.capacity && mapState.zoom > 1.2 && (
                       <div className="text-[8px] text-gray-500 mt-1">
@@ -794,7 +856,7 @@ export default function SuperiorInteractiveMap() {
                     </div>
                   )}
                   <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                    👆 Click to {navigation.isNavigating ? 'navigate here' : 'start navigation'}
+                    📍 Floor {room.floor || 1} • 👆 Click to {navigation.isNavigating ? 'navigate here' : 'start navigation'}
                   </div>
                 </div>
               </TooltipContent>
