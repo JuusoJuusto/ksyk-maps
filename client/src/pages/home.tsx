@@ -1,10 +1,5 @@
-import SuperiorInteractiveMap from "@/components/SuperiorInteractiveMap";
+import CampusMap from "@/components/CampusMap";
 
 export default function Home() {
-  return (
-    <div className="h-screen w-screen">
-      {/* Full-Screen Interactive Map Only */}
-      <SuperiorInteractiveMap />
-    </div>
-  );
+  return <CampusMap />;
 }
