@@ -63,22 +63,32 @@ export default function HallwayManagement() {
 
   const { data: floors = [] } = useQuery<Floor[]>({
     queryKey: ["/api/floors", selectedBuilding],
-    queryFn: async () => {
-      if (!selectedBuilding) return [];
-      const response = await apiRequest(`/api/floors?buildingId=${selectedBuilding}`);
-      return response;
+    queryFn: async (): Promise<Floor[]> => {
+      try {
+        if (!selectedBuilding) return [];
+        const response = await apiRequest(`/api/floors?buildingId=${selectedBuilding}`);
+        return response as Floor[];
+      } catch (error) {
+        console.error("Error fetching floors:", error);
+        return [];
+      }
     },
     enabled: !!selectedBuilding,
   });
 
   const { data: hallways = [] } = useQuery<Hallway[]>({
     queryKey: ["/api/hallways", selectedBuilding, selectedFloor],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedBuilding) params.append("buildingId", selectedBuilding);
-      if (selectedFloor) params.append("floorId", selectedFloor);
-      const response = await apiRequest(`/api/hallways${params.toString() ? `?${params.toString()}` : ""}`);
-      return response;
+    queryFn: async (): Promise<Hallway[]> => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedBuilding) params.append("buildingId", selectedBuilding);
+        if (selectedFloor) params.append("floorId", selectedFloor);
+        const response = await apiRequest(`/api/hallways${params.toString() ? `?${params.toString()}` : ""}`);
+        return response as Hallway[];
+      } catch (error) {
+        console.error("Error fetching hallways:", error);
+        return [];
+      }
     },
   });
 
@@ -234,7 +244,7 @@ export default function HallwayManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">No specific floor</SelectItem>
-                        {(floors as Floor[]).map((floor) => (
+                        {floors.map((floor: Floor) => (
                           <SelectItem key={floor.id} value={floor.id}>
                             {floor.name || `Floor ${floor.floorNumber}`}
                           </SelectItem>
@@ -445,7 +455,7 @@ export default function HallwayManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Floors</SelectItem>
-                {floors.map((floor) => (
+                {floors.map((floor: Floor) => (
                   <SelectItem key={floor.id} value={floor.id}>
                     {floor.name || `Floor ${floor.floorNumber}`}
                   </SelectItem>
@@ -456,7 +466,7 @@ export default function HallwayManagement() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {(hallways as Hallway[]).map((hallway) => (
+          {hallways.map((hallway) => (
             <Card key={hallway.id} data-testid={`card-hallway-${hallway.id}`}>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -534,7 +544,7 @@ export default function HallwayManagement() {
           ))}
         </div>
 
-        {(hallways as Hallway[]).length === 0 && (
+        {hallways.length === 0 && (
           <div className="text-center py-12">
             <Route className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">No hallways found</h3>

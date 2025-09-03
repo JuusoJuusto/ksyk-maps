@@ -249,7 +249,7 @@ export default function InteractiveMapEditor() {
                 key={building.id}
                 className="map-building absolute rounded-md shadow-lg flex items-center justify-center text-white font-semibold hover:shadow-xl cursor-pointer transition-all hover:scale-105"
                 style={{
-                  backgroundColor: building.colorCode,
+                  backgroundColor: building.colorCode || '#3B82F6',
                   top: `${building.mapPositionY || (index * 80 - 120)}px`,
                   left: `${building.mapPositionX || (index * 100 - 300)}px`,
                   width: '120px',
