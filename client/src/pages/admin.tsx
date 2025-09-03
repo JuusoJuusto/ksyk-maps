@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
 import { useTranslation } from "react-i18next";
@@ -14,31 +13,12 @@ export default function Admin() {
   // Check if user is admin
   const isAdmin = (user as any)?.role === 'admin';
 
-  // Handle authentication for admin features
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: t('unauthorized'),
-        description: "Please log in to access admin features.",
-        variant: "destructive",
-      });
-    }
-
-    if (!isLoading && isAuthenticated && !isAdmin) {
-      toast({
-        title: "Access Denied",
-        description: "Admin privileges required to access this page.",
-        variant: "destructive",
-      });
-    }
-  }, [isAuthenticated, isLoading, isAdmin, toast, t]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">{t('loading')}</p>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -51,42 +31,44 @@ export default function Admin() {
         <Header />
         <div className="max-w-md mx-auto mt-20 p-6">
           <div className="bg-card rounded-lg shadow-sm border border-border p-8 text-center">
-            <i className="fas fa-lock text-4xl text-muted-foreground mb-4"></i>
-            <h2 className="text-2xl font-bold mb-4">Admin Access Required</h2>
+            <div className="text-4xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold mb-4">Admin Login Required</h2>
             <p className="text-muted-foreground mb-6">Please log in to access the admin panel.</p>
-            <div className="space-y-3">
+            
+            <div className="space-y-4">
               <button 
                 onClick={() => window.location.href = "/api/login"}
-                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
                 data-testid="admin-login-button"
               >
                 🔐 Log In with Replit
               </button>
               
-              {import.meta.env.DEV && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/auth/dev-login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                      if (response.ok) {
-                        window.location.reload();
-                      }
-                    } catch (error) {
-                      console.error('Dev login failed:', error);
+              <button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/auth/dev-login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (response.ok) {
+                      window.location.reload();
+                    } else {
+                      alert('Dev login failed - check console');
                     }
-                  }}
-                  className="w-full bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm"
-                  data-testid="dev-login-button"
-                >
-                  🚀 Quick Dev Login (Testing Only)
-                </button>
-              )}
+                  } catch (error) {
+                    console.error('Dev login failed:', error);
+                    alert('Dev login failed - check console');
+                  }
+                }}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+                data-testid="dev-login-button"
+              >
+                🚀 Quick Dev Login (Testing Only)
+              </button>
               
               <p className="text-xs text-muted-foreground">
-                You'll be redirected to Replit to authenticate
+                Choose either method to authenticate as admin
               </p>
             </div>
           </div>
@@ -102,9 +84,10 @@ export default function Admin() {
         <Header />
         <div className="max-w-md mx-auto mt-20 p-6">
           <div className="bg-card rounded-lg shadow-sm border border-border p-8 text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-destructive mb-4"></i>
+            <div className="text-4xl text-red-500 mb-4">⚠️</div>
             <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
             <p className="text-muted-foreground mb-6">You need admin privileges to access this page.</p>
+            <p className="text-sm text-muted-foreground mb-6">Current user: {(user as any)?.email || 'Unknown'}</p>
             <button 
               onClick={() => window.location.href = "/"}
               className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
@@ -121,6 +104,15 @@ export default function Admin() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <button 
+            onClick={() => window.location.href = "/api/logout"}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            Logout
+          </button>
+        </div>
         <AdminDashboard />
       </main>
     </div>

@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Development login attempt");
         // Simulate a user session for development
-        const mockUser = await storage.getUser('JuusoJuusto112@gmail.com');
+        const mockUser = await storage.getUserByEmail('JuusoJuusto112@gmail.com');
         if (mockUser) {
           req.login({
             claims: {
