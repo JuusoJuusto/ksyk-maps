@@ -90,7 +90,7 @@ export default function SuperiorInteractiveMap() {
   });
 
   // Get available floors for floor selector
-  const availableFloors = [...new Set(rooms.map(room => room.floor).filter(Boolean))].sort();
+  const availableFloors = Array.from(new Set(rooms.map(room => room.floor).filter(Boolean))).sort((a, b) => (a || 0) - (b || 0));
   
   // Get floors by building for the current floor
   const currentFloorData = floors.filter(floor => floor.floorNumber === currentFloor);
@@ -145,8 +145,8 @@ export default function SuperiorInteractiveMap() {
     // Simple pathfinding with waypoints
     for (let i = 0; i <= steps; i++) {
       const progress = i / steps;
-      const x = from.mapPositionX + (to.mapPositionX - from.mapPositionX) * progress;
-      const y = from.mapPositionY + (to.mapPositionY - from.mapPositionY) * progress;
+      const x = (from.mapPositionX || 0) + ((to.mapPositionX || 0) - (from.mapPositionX || 0)) * progress;
+      const y = (from.mapPositionY || 0) + ((to.mapPositionY || 0) - (from.mapPositionY || 0)) * progress;
       
       let instruction = "";
       if (i === 0) instruction = `Start at ${from.roomNumber}`;
@@ -265,8 +265,8 @@ export default function SuperiorInteractiveMap() {
     
     const baseStyle = {
       position: 'absolute' as const,
-      left: `${room.mapPositionX + mapState.panOffset.x + centerOffsetX}px`,
-      top: `${room.mapPositionY + mapState.panOffset.y + centerOffsetY}px`,
+      left: `${(room.mapPositionX || 0) + mapState.panOffset.x + centerOffsetX}px`,
+      top: `${(room.mapPositionY || 0) + mapState.panOffset.y + centerOffsetY}px`,
       width: `${(room.width || 40)}px`,
       height: `${(room.height || 30)}px`,
       borderRadius: '8px',
@@ -398,16 +398,16 @@ export default function SuperiorInteractiveMap() {
     <TooltipProvider>
       <div className="relative h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         
-        {/* Enhanced Navigation Panel with Floor Selector */}
-        <div className="absolute top-4 left-4 z-50 space-y-4">
-          <Card className="w-80 shadow-xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Navigation className="w-5 h-5" />
+        {/* Enhanced Navigation Panel - Mobile Responsive */}
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 z-50 space-y-2 md:space-y-4">
+          <Card className="w-72 sm:w-80 shadow-xl max-h-[85vh] overflow-y-auto">
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Navigation className="w-4 h-4 md:w-5 md:h-5" />
                 Campus Navigation
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               {/* Search bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -420,20 +420,20 @@ export default function SuperiorInteractiveMap() {
                 />
               </div>
 
-              {/* Floor Selector */}
+              {/* Floor Selector - Mobile Optimized */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  Floor Level ({filteredRooms.length} rooms)
+                <Label className="text-xs md:text-sm font-semibold flex items-center gap-1 md:gap-2">
+                  <Layers className="w-3 h-3 md:w-4 md:h-4" />
+                  Floor ({filteredRooms.length} rooms)
                 </Label>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-1 md:gap-2 flex-wrap">
                   {availableFloors.map(floor => (
                     <Button
                       key={floor}
                       variant={currentFloor === floor ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentFloor(floor)}
-                      className={`h-8 px-3 text-xs font-medium ${
+                      className={`h-7 md:h-8 px-2 md:px-3 text-xs font-medium min-w-[48px] touch-manipulation ${
                         currentFloor === floor 
                           ? 'bg-blue-600 text-white' 
                           : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
@@ -445,19 +445,20 @@ export default function SuperiorInteractiveMap() {
                   ))}
                 </div>
                 
-                {/* Current Floor Info */}
+                {/* Current Floor Info - Compact for Mobile */}
                 {currentFloorData.length > 0 && (
                   <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-                    📍 Currently viewing Floor {currentFloor}
-                    <br />
-                    {currentFloorData.map(floor => {
-                      const building = buildings.find(b => b.id === floor.buildingId);
-                      return (
-                        <span key={floor.id} className="block">
-                          • {building?.name} ({building?.nameEn}): {floor.nameEn}
-                        </span>
-                      );
-                    })}
+                    📍 Floor {currentFloor}
+                    <div className="hidden md:block mt-1">
+                      {currentFloorData.map(floor => {
+                        const building = buildings.find(b => b.id === floor.buildingId);
+                        return (
+                          <span key={floor.id} className="block">
+                            • {building?.name}: {floor.nameEn}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -519,10 +520,10 @@ export default function SuperiorInteractiveMap() {
               ) : (
                 <Button
                   onClick={() => setNavigation(prev => ({ ...prev, isNavigating: true }))}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  className="w-full h-9 md:h-10 text-sm md:text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 touch-manipulation"
                   data-testid="button-start-navigation"
                 >
-                  <Route className="w-4 h-4 mr-2" />
+                  <Route className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                   Start Navigation
                 </Button>
               )}
@@ -576,19 +577,19 @@ export default function SuperiorInteractiveMap() {
           </Card>
         </div>
 
-        {/* Enhanced Map Controls */}
-        <div className="absolute top-4 right-4 z-50 space-y-2">
-          <div className="flex flex-col space-y-2">
+        {/* Enhanced Map Controls - Mobile Optimized */}
+        <div className="absolute top-2 right-2 md:top-4 md:right-4 z-50 space-y-1 md:space-y-2">
+          <div className="flex flex-col space-y-1 md:space-y-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-10 h-10 shadow-lg"
+                  className="w-8 h-8 md:w-10 md:h-10 shadow-lg touch-manipulation"
                   onClick={handleZoomIn}
                   data-testid="button-zoom-in"
                 >
-                  <ZoomIn className="w-4 h-4" />
+                  <ZoomIn className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Zoom In</TooltipContent>
@@ -599,11 +600,11 @@ export default function SuperiorInteractiveMap() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-10 h-10 shadow-lg"
+                  className="w-8 h-8 md:w-10 md:h-10 shadow-lg touch-manipulation"
                   onClick={handleZoomOut}
                   data-testid="button-zoom-out"
                 >
-                  <ZoomOut className="w-4 h-4" />
+                  <ZoomOut className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Zoom Out</TooltipContent>
@@ -717,7 +718,7 @@ export default function SuperiorInteractiveMap() {
               'R': { x: -50, y: 200 }    // R Building - lower center
             };
             
-            const defaultPos = buildingPositions[building.name] || { x: index * 150, y: 50 };
+            const defaultPos = buildingPositions[building.name as keyof typeof buildingPositions] || { x: index * 150, y: 50 };
             const posX = building.mapPositionX ?? defaultPos.x;
             const posY = building.mapPositionY ?? defaultPos.y;
             
@@ -728,8 +729,8 @@ export default function SuperiorInteractiveMap() {
                   position: 'absolute',
                   left: `${posX + mapState.panOffset.x + 400}px`,
                   top: `${posY + mapState.panOffset.y + 300}px`,
-                  width: `${(building.width || 250)}px`,
-                  height: `${(building.height || 180)}px`,
+                  width: `250px`,
+                  height: `180px`,
                   backgroundColor: building.colorCode + '20' || 'rgba(59, 130, 246, 0.1)',
                   border: `3px solid ${building.colorCode || 'rgba(59, 130, 246, 0.5)'}`,
                   borderRadius: '12px',
@@ -755,10 +756,10 @@ export default function SuperiorInteractiveMap() {
               key={hallway.id}
               style={{
                 position: 'absolute',
-                left: `${(hallway.mapPositionX || 0) + mapState.panOffset.x}px`,
-                top: `${(hallway.mapPositionY || 0) + mapState.panOffset.y}px`,
-                width: `${(hallway.width || 20) * mapState.zoom}px`,
-                height: `${(hallway.height || 100) * mapState.zoom}px`,
+                left: `${400 + mapState.panOffset.x}px`,
+                top: `${300 + mapState.panOffset.y}px`,
+                width: `${20 * mapState.zoom}px`,
+                height: `${100 * mapState.zoom}px`,
                 backgroundColor: 'rgba(209, 213, 219, 0.6)',
                 borderRadius: '4px',
                 transform: `scale(${mapState.zoom})`,
