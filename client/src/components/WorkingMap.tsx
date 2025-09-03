@@ -2,7 +2,8 @@ export default function WorkingMap() {
   return (
     <div className="w-full h-screen bg-blue-100 p-4">
       <div className="bg-white rounded-lg p-6 shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">KSYK Campus Navigator</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">KSYK Map</h1>
+        <p className="text-gray-600 mb-6">by OLW APPS</p>
         
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <button className="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600">
