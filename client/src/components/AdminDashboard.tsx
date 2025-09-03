@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import RoomManagement from "@/components/RoomManagement";
 import FloorManagement from "@/components/FloorManagement";
 import HallwayManagement from "@/components/HallwayManagement";
+import InteractiveMapEditor from "@/components/InteractiveMapEditor";
 import type { Staff, Building, Room } from "@shared/schema";
 
 export default function AdminDashboard() {
@@ -54,8 +55,9 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="map">Map Editor</TabsTrigger>
           <TabsTrigger value="rooms">Rooms</TabsTrigger>
           <TabsTrigger value="floors">Floors</TabsTrigger>
           <TabsTrigger value="hallways">Hallways</TabsTrigger>
@@ -63,7 +65,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="staff">Staff</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="dashboard" className="space-y-6">{/* Dashboard Content */}
+        <TabsContent value="dashboard" className="space-y-6">
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -183,6 +185,10 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+        </TabsContent>
+        
+        <TabsContent value="map">
+          <InteractiveMapEditor />
         </TabsContent>
         
         <TabsContent value="rooms">

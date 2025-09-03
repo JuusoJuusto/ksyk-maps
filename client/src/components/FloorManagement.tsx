@@ -312,7 +312,7 @@ export default function FloorManagement() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {floors.map((floor) => (
+          {(floors as Floor[]).map((floor) => (
             <Card key={floor.id} data-testid={`card-floor-${floor.id}`}>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -368,7 +368,7 @@ export default function FloorManagement() {
           ))}
         </div>
 
-        {floors.length === 0 && (
+        {(floors as Floor[]).length === 0 && (
           <div className="text-center py-12">
             <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">No floors found</h3>

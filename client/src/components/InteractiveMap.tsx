@@ -1,17 +1,43 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import type { Building } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { Building, Room, Hallway } from "@shared/schema";
+import { Edit, MapPin, Route, Square } from "lucide-react";
+
+interface MapClickEvent {
+  x: number;
+  y: number;
+  building?: Building;
+}
 
 export default function InteractiveMap() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [placementMode, setPlacementMode] = useState<'room' | 'hallway' | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   const { data: buildings = [], isLoading } = useQuery<Building[]>({
     queryKey: ["/api/buildings"],
   });
+
+  const { data: rooms = [] } = useQuery<Room[]>({
+    queryKey: ["/api/rooms"],
+  });
+
+  const { data: hallways = [] } = useQuery<Hallway[]>({
+    queryKey: ["/api/hallways"],
+  });
+
+  const isAdmin = (user as any)?.role === 'admin';
 
   const buildingColors: Record<string, string> = {
     'academic': 'bg-primary',

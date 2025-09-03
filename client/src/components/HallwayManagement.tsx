@@ -175,7 +175,7 @@ export default function HallwayManagement() {
   };
 
   const getFloorName = (floorId: string) => {
-    const floor = floors.find(f => f.id === floorId);
+    const floor = (floors as Floor[]).find(f => f.id === floorId);
     return floor ? (floor.name || `Floor ${floor.floorNumber}`) : 'Unknown Floor';
   };
 
@@ -234,7 +234,7 @@ export default function HallwayManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">No specific floor</SelectItem>
-                        {floors.map((floor) => (
+                        {(floors as Floor[]).map((floor) => (
                           <SelectItem key={floor.id} value={floor.id}>
                             {floor.name || `Floor ${floor.floorNumber}`}
                           </SelectItem>
@@ -456,7 +456,7 @@ export default function HallwayManagement() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {hallways.map((hallway) => (
+          {(hallways as Hallway[]).map((hallway) => (
             <Card key={hallway.id} data-testid={`card-hallway-${hallway.id}`}>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -534,7 +534,7 @@ export default function HallwayManagement() {
           ))}
         </div>
 
-        {hallways.length === 0 && (
+        {(hallways as Hallway[]).length === 0 && (
           <div className="text-center py-12">
             <Route className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">No hallways found</h3>
