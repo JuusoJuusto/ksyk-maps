@@ -469,9 +469,38 @@ class MemStorage implements IStorage {
   ];
 
   // User operations
-  async getUser(id: string): Promise<User | undefined> { return undefined; }
-  async getUserByEmail(email: string): Promise<User | undefined> { return undefined; }
-  async upsertUser(user: UpsertUser): Promise<User> { throw new Error("Not implemented"); }
+  private mockUsers: User[] = [];
+
+  async getUser(id: string): Promise<User | undefined> { 
+    return this.mockUsers.find(u => u.id === id);
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> { 
+    return this.mockUsers.find(u => u.email === email);
+  }
+  
+  async upsertUser(userData: UpsertUser): Promise<User> { 
+    const existingIndex = this.mockUsers.findIndex(u => u.id === userData.id || u.email === userData.email);
+    
+    const user: User = {
+      id: userData.id || `user-${Date.now()}`,
+      email: userData.email || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      role: userData.role || 'user',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    if (existingIndex >= 0) {
+      this.mockUsers[existingIndex] = user;
+    } else {
+      this.mockUsers.push(user);
+    }
+    
+    return user;
+  }
 
   // Building operations
   async getBuildings(): Promise<Building[]> { return this.mockBuildings; }

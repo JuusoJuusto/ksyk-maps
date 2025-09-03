@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Announcement routes
   app.get('/api/announcements', async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const announcements = await storage.getAnnouncements(limit);
       res.json(announcements);
     } catch (error) {
