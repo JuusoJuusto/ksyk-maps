@@ -120,6 +120,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/rooms/:id', async (req, res) => {
+    try {
+      const room = await storage.getRoom(req.params.id);
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+      res.json(room);
+    } catch (error) {
+      console.error("Error fetching room:", error);
+      res.status(500).json({ message: "Failed to fetch room" });
+    }
+  });
+
   app.post('/api/rooms', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -133,6 +146,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating room:", error);
       res.status(500).json({ message: "Failed to create room" });
+    }
+  });
+
+  app.put('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertRoomSchema.partial().parse(req.body);
+      const room = await storage.updateRoom(req.params.id, validatedData);
+      res.json(room);
+    } catch (error) {
+      console.error("Error updating room:", error);
+      res.status(500).json({ message: "Failed to update room" });
+    }
+  });
+
+  app.delete('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteRoom(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting room:", error);
+      res.status(500).json({ message: "Failed to delete room" });
     }
   });
 

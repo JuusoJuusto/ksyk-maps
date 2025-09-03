@@ -69,8 +69,20 @@ export const rooms = pgTable("rooms", {
   nameFi: varchar("name_fi"),
   floor: integer("floor").default(1),
   capacity: integer("capacity"),
-  type: varchar("type"), // classroom, lab, office, etc.
+  type: varchar("type"), // classroom, lab, office, hallway, toilet, emergency_exit, storage, cafeteria, library_room, music_room, gym, etc.
+  subType: varchar("sub_type"), // More specific categorization
   equipment: text("equipment").array(),
+  features: text("features").array(), // accessibility features, emergency equipment, etc.
+  mapPositionX: integer("map_position_x"),
+  mapPositionY: integer("map_position_y"),
+  width: integer("width"),
+  height: integer("height"),
+  colorCode: varchar("color_code").default("#6B7280"),
+  emergencyInfo: text("emergency_info"), // For emergency exits and safety info
+  accessibilityInfo: text("accessibility_info"),
+  maintenanceNotes: text("maintenance_notes"),
+  lastInspected: timestamp("last_inspected"),
+  isPublic: boolean("is_public").default(true), // Whether to show on public maps
   isAccessible: boolean("is_accessible").default(true),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
