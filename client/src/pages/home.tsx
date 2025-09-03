@@ -1,5 +1,5 @@
-import SimpleWorkingMap from "@/components/SimpleWorkingMap";
+import CampusNavigator from "@/components/CampusNavigator";
 
 export default function Home() {
-  return <SimpleWorkingMap />;
+  return <CampusNavigator />;
 }
