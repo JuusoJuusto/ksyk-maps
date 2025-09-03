@@ -161,7 +161,7 @@ export default function FloorManagement() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Layers className="h-6 w-6" />
-            Floor Management
+            Floor Management ({floors.length} floors)
           </h2>
           <p className="text-muted-foreground">Manage building floors and their layouts</p>
         </div>

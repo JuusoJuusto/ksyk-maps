@@ -157,9 +157,12 @@ export default function SuperiorInteractiveMap() {
     setSelectedRoom(null);
   };
 
-  // Mouse interaction handlers
+  // Enhanced mouse interaction handlers
   const handleMouseDown = (event: React.MouseEvent) => {
-    if (event.target === mapRef.current) {
+    // Only start dragging if clicking on the background, not on rooms
+    const target = event.target as HTMLElement;
+    if (target === mapRef.current || target.classList.contains('map-background')) {
+      event.preventDefault();
       setMapState(prev => ({
         ...prev,
         isDragging: true,
@@ -170,6 +173,7 @@ export default function SuperiorInteractiveMap() {
 
   const handleMouseMove = (event: React.MouseEvent) => {
     if (mapState.isDragging) {
+      event.preventDefault();
       const deltaX = event.clientX - mapState.lastMousePos.x;
       const deltaY = event.clientY - mapState.lastMousePos.y;
       
@@ -185,6 +189,40 @@ export default function SuperiorInteractiveMap() {
   };
 
   const handleMouseUp = () => {
+    setMapState(prev => ({ ...prev, isDragging: false }));
+  };
+
+  // Touch handlers for mobile support
+  const handleTouchStart = (event: React.TouchEvent) => {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      setMapState(prev => ({
+        ...prev,
+        isDragging: true,
+        lastMousePos: { x: touch.clientX, y: touch.clientY }
+      }));
+    }
+  };
+
+  const handleTouchMove = (event: React.TouchEvent) => {
+    if (mapState.isDragging && event.touches.length === 1) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - mapState.lastMousePos.x;
+      const deltaY = touch.clientY - mapState.lastMousePos.y;
+      
+      setMapState(prev => ({
+        ...prev,
+        lastMousePos: { x: touch.clientX, y: touch.clientY },
+        panOffset: {
+          x: prev.panOffset.x + deltaX,
+          y: prev.panOffset.y + deltaY
+        }
+      }));
+    }
+  };
+
+  const handleTouchEnd = () => {
     setMapState(prev => ({ ...prev, isDragging: false }));
   };
 
@@ -562,15 +600,21 @@ export default function SuperiorInteractiveMap() {
           </div>
         )}
 
-        {/* Enhanced Interactive Map */}
+        {/* Enhanced Interactive Map with Better Dragging */}
         <div 
           ref={mapRef}
-          className="relative w-full h-full overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900"
+          className="map-background relative w-full h-full overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 select-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          style={{ cursor: mapState.isDragging ? 'grabbing' : 'grab' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ 
+            cursor: mapState.isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none'
+          }}
           data-testid="interactive-map"
         >
           
