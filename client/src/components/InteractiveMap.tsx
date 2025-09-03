@@ -169,7 +169,7 @@ export default function InteractiveMap() {
           <div className="mt-6 p-4 bg-muted rounded-md border border-border" data-testid="building-info">
             <h3 className="font-semibold text-foreground mb-2">{selectedBuilding.name}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-              <div><strong>Type:</strong> {selectedBuilding.type}</div>
+              <div><strong>Type:</strong> {(selectedBuilding as any).type}</div>
               <div><strong>Description:</strong> {selectedBuilding.description}</div>
             </div>
           </div>

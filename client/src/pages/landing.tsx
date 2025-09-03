@@ -17,8 +17,8 @@ export default function Landing() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <h1 className="text-xl font-bold text-primary">KSYK Navigator</h1>
-                <p className="text-xs text-muted-foreground">Kulosaaren yhteiskoulu</p>
+                <h1 className="text-xl font-bold text-primary">KSYK Map</h1>
+                <p className="text-xs text-muted-foreground">by OWL Apps</p>
               </div>
             </div>
             <Button onClick={handleLogin} data-testid="button-login">
@@ -38,7 +38,7 @@ export default function Landing() {
         >
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
             <div className="text-center text-white">
-              <h1 className="text-5xl font-bold mb-4">{t('hero.title')}</h1>
+              <h1 className="text-5xl font-bold mb-4">Welcome to KSYK Map</h1>
               <p className="text-xl opacity-90 mb-8">{t('hero.subtitle')}</p>
               <Button 
                 size="lg" 
@@ -105,7 +105,7 @@ export default function Landing() {
       <footer className="bg-card border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-muted-foreground">
-            <p>&copy; 2024 Kulosaaren yhteiskoulu. Navigate with confidence.</p>
+            <p>&copy; 2024 OWL Apps. Navigate with confidence.</p>
           </div>
         </div>
       </footer>

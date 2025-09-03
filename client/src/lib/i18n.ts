@@ -12,7 +12,7 @@ const resources = {
       'nav.admin': 'Admin',
       
       // Hero section
-      'hero.title': 'Welcome to KSYK Navigator',
+      'hero.title': 'Welcome to KSYK Map',
       'hero.subtitle': 'Navigate our campus with ease • 1151 students • 40+ nationalities',
       
       // Search
@@ -108,7 +108,7 @@ const resources = {
       'nav.admin': 'Hallinta',
       
       // Hero section
-      'hero.title': 'Tervetuloa KSYK Navigaattoriin',
+      'hero.title': 'Tervetuloa KSYK Map',
       'hero.subtitle': 'Navigoi kampuksella helposti • 1151 oppilasta • 40+ kansallisuutta',
       
       // Search

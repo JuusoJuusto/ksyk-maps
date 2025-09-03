@@ -14,7 +14,7 @@ export default function StaffDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
   
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = (user as any)?.role === 'admin';
 
   const { data: staff = [], isLoading } = useQuery<Staff[]>({
     queryKey: ["/api/staff"],

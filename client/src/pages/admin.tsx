@@ -12,7 +12,7 @@ export default function Admin() {
   const { t } = useTranslation();
 
   // Check if user is admin
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = (user as any)?.role === 'admin';
 
   // Redirect if not authenticated or not admin
   useEffect(() => {

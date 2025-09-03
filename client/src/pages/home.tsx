@@ -53,7 +53,7 @@ export default function Home() {
           >
             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
               <div className="text-center text-white">
-                <h1 className="text-4xl font-bold mb-2">{t('hero.title')}</h1>
+                <h1 className="text-4xl font-bold mb-2">Welcome to KSYK Map</h1>
                 <p className="text-lg opacity-90">{t('hero.subtitle')}</p>
               </div>
             </div>

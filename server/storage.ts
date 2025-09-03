@@ -117,11 +117,10 @@ export class DatabaseStorage implements IStorage {
 
   // Room operations
   async getRooms(buildingId?: string): Promise<Room[]> {
-    const query = db.select().from(rooms).where(eq(rooms.isActive, true));
     if (buildingId) {
-      return await query.where(and(eq(rooms.isActive, true), eq(rooms.buildingId, buildingId)));
+      return await db.select().from(rooms).where(and(eq(rooms.isActive, true), eq(rooms.buildingId, buildingId)));
     }
-    return await query;
+    return await db.select().from(rooms).where(eq(rooms.isActive, true));
   }
 
   async getRoom(id: string): Promise<Room | undefined> {
@@ -220,21 +219,23 @@ export class DatabaseStorage implements IStorage {
 
   // Event operations
   async getEvents(startDate?: Date, endDate?: Date): Promise<Event[]> {
-    let query = db.select().from(events).where(eq(events.isActive, true));
-    
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          eq(events.isActive, true),
+      return await db.select().from(events)
+        .where(
           and(
-            eq(events.startTime, startDate),
-            eq(events.endTime, endDate)
+            eq(events.isActive, true),
+            and(
+              eq(events.startTime, startDate),
+              eq(events.endTime, endDate)
+            )
           )
         )
-      );
+        .orderBy(desc(events.startTime));
     }
     
-    return await query.orderBy(desc(events.startTime));
+    return await db.select().from(events)
+      .where(eq(events.isActive, true))
+      .orderBy(desc(events.startTime));
   }
 
   async getEvent(id: string): Promise<Event | undefined> {

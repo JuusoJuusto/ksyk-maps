@@ -11,7 +11,7 @@ export default function Header() {
   const [currentLang, setCurrentLang] = useState(i18n.language);
 
   const isActive = (path: string) => location === path;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = (user as any)?.role === 'admin';
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
@@ -28,8 +28,8 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex-shrink-0" data-testid="link-home">
-              <h1 className="text-xl font-bold text-primary">KSYK Navigator</h1>
-              <p className="text-xs text-muted-foreground">Kulosaaren yhteiskoulu</p>
+              <h1 className="text-xl font-bold text-primary">KSYK Map</h1>
+              <p className="text-xs text-muted-foreground">by OWL Apps</p>
             </Link>
           </div>
           
