@@ -270,13 +270,16 @@ export default function CampusNavigator() {
             </button>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden"
+            className="lg:hidden flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
             data-testid="mobile-menu-button-desktop"
           >
             <Menu className="w-4 h-4" />
+            <span className="text-xs font-medium">
+              {language === 'fi' ? 'Valikko' : 'Menu'}
+            </span>
           </Button>
         </div>
       </div>
@@ -548,139 +551,276 @@ export default function CampusNavigator() {
             data-testid="sidebar-overlay"
           />
         )}
-          <div className="p-4 overflow-y-auto flex-1">
-            {/* Search */}
-            <Card className="mb-4">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  {language === 'fi' ? 'Hae huoneita' : 'Search Rooms'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
-                  className="h-12 touch-manipulation text-base"
-                  data-testid="room-search-input"
-                />
-              </CardContent>
-            </Card>
+          
+          {/* Mobile Sidebar Header */}
+          {sidebarOpen && (
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {activeTab === 'map' && (language === 'fi' ? 'Kartta' : 'Map')}
+                {activeTab === 'schedule' && (language === 'fi' ? 'Aikataulu' : 'Schedule')}
+                {activeTab === 'settings' && (language === 'fi' ? 'Asetukset' : 'Settings')}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(false)}
+                className="h-8 w-8 p-0"
+                data-testid="mobile-sidebar-close-button"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
+          <div className="overflow-y-auto flex-1">
+            {activeTab === 'map' && (
+              <div className="p-4">
+                {/* Search */}
+                <Card className="mb-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Search className="w-4 h-4" />
+                      {language === 'fi' ? 'Hae huoneita' : 'Search Rooms'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
+                      className="h-12 touch-manipulation text-base"
+                      data-testid="room-search-input"
+                    />
+                  </CardContent>
+                </Card>
 
-            {/* Floor Selector */}
-            <Card className="mb-4">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">
-                  {language === 'fi' ? 'Kerros' : 'Floor'} ({filteredRooms.length} {language === 'fi' ? 'huonetta' : 'rooms'})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map(floor => (
-                    <Button
-                      key={floor}
-                      variant={currentFloor === floor ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentFloor(floor)}
-                      className="h-12 touch-manipulation text-lg"
-                      data-testid={`floor-${floor}-button`}
-                    >
-                      {floor}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Navigation Status */}
-            {startRoom && (
-              <Card className="mb-4">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Navigation className="w-4 h-4" />
-                    {language === 'fi' ? 'Navigointi' : 'Navigation'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">{language === 'fi' ? 'Lähtö:' : 'From:'} {startRoom.roomNumber}</span>
-                  </div>
-                  {endRoom && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span className="text-sm">{language === 'fi' ? 'Määränpää:' : 'To:'} {endRoom.roomNumber}</span>
+                {/* Floor Selector */}
+                <Card className="mb-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">
+                      {language === 'fi' ? 'Kerros' : 'Floor'} ({filteredRooms.length} {language === 'fi' ? 'huonetta' : 'rooms'})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3].map(floor => (
+                        <Button
+                          key={floor}
+                          variant={currentFloor === floor ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentFloor(floor)}
+                          className="h-12 touch-manipulation text-lg"
+                          data-testid={`floor-${floor}-button`}
+                        >
+                          {floor}
+                        </Button>
+                      ))}
                     </div>
-                  )}
-                  {!endRoom && (
-                    <p className="text-xs text-gray-500">
-                      {language === 'fi' ? 'Klikkaa toista huonetta määränpäänä' : 'Click another room as destination'}
+                  </CardContent>
+                </Card>
+
+                {/* Navigation Status */}
+                {startRoom && (
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Navigation className="w-4 h-4" />
+                        {language === 'fi' ? 'Navigointi' : 'Navigation'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-sm">{language === 'fi' ? 'Lähtö:' : 'From:'} {startRoom.roomNumber}</span>
+                      </div>
+                      {endRoom && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="text-sm">{language === 'fi' ? 'Määränpää:' : 'To:'} {endRoom.roomNumber}</span>
+                        </div>
+                      )}
+                      {!endRoom && (
+                        <p className="text-xs text-gray-500">
+                          {language === 'fi' ? 'Klikkaa toista huonetta määränpäänä' : 'Click another room as destination'}
+                        </p>
+                      )}
+                      <Button onClick={clearNavigation} variant="outline" size="sm" className="w-full">
+                        {language === 'fi' ? 'Tyhjennä reitti' : 'Clear Route'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Room Details */}
+                {selectedRoom && (
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">{selectedRoom.roomNumber}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-sm text-gray-600">{getRoomName(selectedRoom)}</p>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="secondary">{language === 'fi' ? 'Kerros' : 'Floor'} {selectedRoom.floor}</Badge>
+                        <Badge variant="outline">{selectedRoom.capacity} {language === 'fi' ? 'paikkaa' : 'seats'}</Badge>
+                        <Badge variant="outline">{selectedRoom.type}</Badge>
+                      </div>
+                      {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 mb-1">
+                            {language === 'fi' ? 'Varusteet:' : 'Equipment:'}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedRoom.equipment.map((item, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {item.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Room List */}
+                <div className="space-y-2">
+                  {filteredRooms.length === 0 && (
+                    <p className="text-center text-gray-500 py-8 text-base">
+                      {language === 'fi' ? 'Ei huoneita löytynyt' : 'No rooms found'}
                     </p>
                   )}
-                  <Button onClick={clearNavigation} variant="outline" size="sm" className="w-full">
-                    {language === 'fi' ? 'Tyhjennä reitti' : 'Clear Route'}
-                  </Button>
-                </CardContent>
-              </Card>
+                  {filteredRooms.map(room => (
+                    <div 
+                      key={room.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all touch-manipulation min-h-[80px] ${
+                        selectedRoom?.id === room.id 
+                          ? 'border-blue-500 bg-blue-50 shadow-md' 
+                          : startRoom?.id === room.id
+                          ? 'border-green-500 bg-green-50 shadow-md'
+                          : endRoom?.id === room.id
+                          ? 'border-red-500 bg-red-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                      onClick={() => {
+                        handleRoomClick(room);
+                        setSelectedRoom(room);
+                      }}
+                      data-testid={`room-${room.roomNumber}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-semibold text-base mb-1">{room.roomNumber}</div>
+                          <div className="text-sm text-gray-600">{getRoomName(room)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">
+                            {language === 'fi' ? 'Kerros' : 'Floor'} {room.floor}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {room.capacity} {language === 'fi' ? 'paikkaa' : 'seats'}
+                          </div>
+                        </div>
+                      </div>
+                      {room.equipment && room.equipment.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {room.equipment.slice(0, 3).map((item, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs px-2 py-1">
+                              {item.replace('_', ' ')}
+                            </Badge>
+                          ))}
+                          {room.equipment.length > 3 && (
+                            <Badge variant="outline" className="text-xs px-2 py-1">
+                              +{room.equipment.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-
-            {/* Room Details */}
-            {selectedRoom && (
-              <Card className="mb-4">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">{selectedRoom.roomNumber}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm text-gray-600">{getRoomName(selectedRoom)}</p>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="secondary">{language === 'fi' ? 'Kerros' : 'Floor'} {selectedRoom.floor}</Badge>
-                    <Badge variant="outline">{selectedRoom.capacity} {language === 'fi' ? 'paikkaa' : 'seats'}</Badge>
-                    <Badge variant="outline">{selectedRoom.type}</Badge>
-                  </div>
-                  {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
+            
+            {activeTab === 'schedule' && (
+              <div className="p-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {language === 'fi' ? 'Lukujärjestys' : 'Class Schedule'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">
+                      {language === 'fi' 
+                        ? 'Lukujärjestystoiminto tulossa pian. Tässä näytetään koulujen tunnit ja tapahtumat.'
+                        : 'Schedule feature coming soon. This will show class times and school events.'}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
+            {activeTab === 'settings' && (
+              <div className="p-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      {language === 'fi' ? 'Asetukset' : 'Settings'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                      <p className="text-xs font-medium text-gray-700 mb-1">
-                        {language === 'fi' ? 'Varusteet:' : 'Equipment:'}
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedRoom.equipment.map((item, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {item.replace('_', ' ')}
-                          </Badge>
-                        ))}
+                      <label className="text-sm font-medium text-gray-700">
+                        {language === 'fi' ? 'Kieli' : 'Language'}
+                      </label>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          variant={language === 'en' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setLanguage('en')}
+                          className="flex-1"
+                        >
+                          English
+                        </Button>
+                        <Button
+                          variant={language === 'fi' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setLanguage('fi')}
+                          className="flex-1"
+                        >
+                          Suomi
+                        </Button>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Search Results */}
-            {searchTerm && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">
-                    {filteredRooms.length} {language === 'fi' ? 'tulosta' : 'results'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {filteredRooms.map(room => (
-                    <button
-                      key={room.id}
-                      onClick={() => handleRoomClick(room)}
-                      className="w-full text-left p-2 hover:bg-gray-50 rounded-md border border-gray-200"
-                      data-testid={`search-result-${room.roomNumber}`}
-                    >
-                      <div className="font-medium text-sm">{room.roomNumber}</div>
-                      <div className="text-xs text-gray-600">{getRoomName(room)}</div>
-                      <div className="text-xs text-gray-500">
-                        {language === 'fi' ? 'Kerros' : 'Floor'} {room.floor} • {room.capacity} {language === 'fi' ? 'paikkaa' : 'seats'}
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        {language === 'fi' ? 'Kartan asetukset' : 'Map Settings'}
+                      </label>
+                      <div className="mt-2 space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={resetMap}
+                          className="w-full"
+                        >
+                          {language === 'fi' ? 'Nollaa kartta' : 'Reset Map View'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearNavigation}
+                          className="w-full"
+                        >
+                          {language === 'fi' ? 'Tyhjennä navigointi' : 'Clear Navigation'}
+                        </Button>
                       </div>
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </div>
