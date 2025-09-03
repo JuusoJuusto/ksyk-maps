@@ -66,8 +66,9 @@ export default function HallwayManagement() {
     queryFn: async (): Promise<Floor[]> => {
       try {
         if (!selectedBuilding) return [];
-        const response = await apiRequest(`/api/floors?buildingId=${selectedBuilding}`);
-        return response as Floor[];
+        const response = await fetch(`/api/floors?buildingId=${selectedBuilding}`);
+        if (!response.ok) throw new Error('Failed to fetch floors');
+        return await response.json() as Floor[];
       } catch (error) {
         console.error("Error fetching floors:", error);
         return [];
@@ -83,8 +84,9 @@ export default function HallwayManagement() {
         const params = new URLSearchParams();
         if (selectedBuilding) params.append("buildingId", selectedBuilding);
         if (selectedFloor) params.append("floorId", selectedFloor);
-        const response = await apiRequest(`/api/hallways${params.toString() ? `?${params.toString()}` : ""}`);
-        return response as Hallway[];
+        const response = await fetch(`/api/hallways${params.toString() ? `?${params.toString()}` : ""}`);
+        if (!response.ok) throw new Error('Failed to fetch hallways');
+        return await response.json() as Hallway[];
       } catch (error) {
         console.error("Error fetching hallways:", error);
         return [];
@@ -202,7 +204,7 @@ export default function HallwayManagement() {
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingHallway(null)} data-testid="button-add-hallway">
+            <Button onClick={() => setEditingHallway(null)} data-testid="button-add-hallway" className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Add Hallway
             </Button>

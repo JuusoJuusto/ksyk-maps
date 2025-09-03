@@ -168,7 +168,7 @@ export default function FloorManagement() {
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingFloor(null)} data-testid="button-add-floor">
+            <Button onClick={() => setEditingFloor(null)} data-testid="button-add-floor" className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Add Floor
             </Button>
