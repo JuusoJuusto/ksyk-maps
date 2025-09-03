@@ -14,18 +14,14 @@ export default function Admin() {
   // Check if user is admin
   const isAdmin = (user as any)?.role === 'admin';
 
-  // Redirect if not authenticated or not admin
+  // Handle authentication for admin features
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
         title: t('unauthorized'),
-        description: t('unauthorized.desc'),
+        description: "Please log in to access admin features.",
         variant: "destructive",
       });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
     }
 
     if (!isLoading && isAuthenticated && !isAdmin) {
@@ -34,10 +30,6 @@ export default function Admin() {
         description: "Admin privileges required to access this page.",
         variant: "destructive",
       });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
-      return;
     }
   }, [isAuthenticated, isLoading, isAdmin, toast, t]);
 
@@ -52,8 +44,48 @@ export default function Admin() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
-    return null;
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="max-w-md mx-auto mt-20 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-8 text-center">
+            <i className="fas fa-lock text-4xl text-muted-foreground mb-4"></i>
+            <h2 className="text-2xl font-bold mb-4">Admin Access Required</h2>
+            <p className="text-muted-foreground mb-6">Please log in to access the admin panel.</p>
+            <button 
+              onClick={() => window.location.href = "/api/login"}
+              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Log In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="max-w-md mx-auto mt-20 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-8 text-center">
+            <i className="fas fa-exclamation-triangle text-4xl text-destructive mb-4"></i>
+            <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">You need admin privileges to access this page.</p>
+            <button 
+              onClick={() => window.location.href = "/"}
+              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
