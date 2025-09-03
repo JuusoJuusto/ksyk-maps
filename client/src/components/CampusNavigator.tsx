@@ -44,6 +44,9 @@ export default function CampusNavigator() {
   const [currentFloor, setCurrentFloor] = useState(1);
   const [language, setLanguage] = useState<'en' | 'fi'>('en');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mapScale, setMapScale] = useState(1);
+  const [mapPanX, setMapPanX] = useState(0);
+  const [mapPanY, setMapPanY] = useState(0);
 
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ['/api/buildings'],
@@ -93,6 +96,20 @@ export default function CampusNavigator() {
 
   const getBuildingName = (building: Building) => {
     return language === 'fi' ? building.nameFi : building.nameEn;
+  };
+
+  const handleZoomIn = () => {
+    setMapScale(prev => Math.min(prev * 1.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setMapScale(prev => Math.max(prev / 1.2, 0.5));
+  };
+
+  const resetMap = () => {
+    setMapScale(1);
+    setMapPanX(0);
+    setMapPanY(0);
   };
 
   return (
@@ -273,7 +290,7 @@ export default function CampusNavigator() {
           <svg 
             width="100%" 
             height="100%" 
-            viewBox="0 0 800 600"
+            viewBox={`${-400/mapScale + mapPanX} ${-300/mapScale + mapPanY} ${800/mapScale} ${600/mapScale}`}
             className="absolute inset-0"
           >
             {/* Grid Background */}
@@ -287,10 +304,10 @@ export default function CampusNavigator() {
             {/* Navigation Route */}
             {startRoom && endRoom && (
               <line
-                x1={startRoom.mapPositionX + 400}
-                y1={startRoom.mapPositionY + 300}
-                x2={endRoom.mapPositionX + 400}
-                y2={endRoom.mapPositionY + 300}
+                x1={startRoom.mapPositionX}
+                y1={startRoom.mapPositionY}
+                x2={endRoom.mapPositionX}
+                y2={endRoom.mapPositionY}
                 stroke="#2563eb"
                 strokeWidth="4"
                 strokeDasharray="10,5"
@@ -302,8 +319,8 @@ export default function CampusNavigator() {
             {buildings.map(building => (
               <g key={building.id}>
                 <rect
-                  x={building.mapPositionX + 400 - 60}
-                  y={building.mapPositionY + 300 - 40}
+                  x={building.mapPositionX - 60}
+                  y={building.mapPositionY - 40}
                   width="120"
                   height="80"
                   fill={building.colorCode + "30"}
@@ -312,16 +329,16 @@ export default function CampusNavigator() {
                   rx="8"
                 />
                 <text
-                  x={building.mapPositionX + 400}
-                  y={building.mapPositionY + 300 - 50}
+                  x={building.mapPositionX}
+                  y={building.mapPositionY - 50}
                   textAnchor="middle"
                   className="text-sm font-bold fill-gray-800"
                 >
                   {building.name}
                 </text>
                 <text
-                  x={building.mapPositionX + 400}
-                  y={building.mapPositionY + 300 - 35}
+                  x={building.mapPositionX}
+                  y={building.mapPositionY - 35}
                   textAnchor="middle"
                   className="text-xs fill-gray-600"
                 >
@@ -334,8 +351,8 @@ export default function CampusNavigator() {
             {filteredRooms.map(room => (
               <g key={room.id}>
                 <rect
-                  x={room.mapPositionX + 400 - room.width/2}
-                  y={room.mapPositionY + 300 - room.height/2}
+                  x={room.mapPositionX - room.width/2}
+                  y={room.mapPositionY - room.height/2}
                   width={room.width}
                   height={room.height}
                   fill={getRoomColor(room)}
@@ -346,8 +363,8 @@ export default function CampusNavigator() {
                   onClick={() => handleRoomClick(room)}
                 />
                 <text
-                  x={room.mapPositionX + 400}
-                  y={room.mapPositionY + 300}
+                  x={room.mapPositionX}
+                  y={room.mapPositionY}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="text-xs font-bold fill-gray-800 pointer-events-none"
@@ -356,15 +373,15 @@ export default function CampusNavigator() {
                 </text>
                 {/* Floor indicator */}
                 <circle
-                  cx={room.mapPositionX + 400 + room.width/2 - 10}
-                  cy={room.mapPositionY + 300 - room.height/2 + 10}
+                  cx={room.mapPositionX + room.width/2 - 10}
+                  cy={room.mapPositionY - room.height/2 + 10}
                   r="8"
                   fill="#3b82f6"
                   className="pointer-events-none"
                 />
                 <text
-                  x={room.mapPositionX + 400 + room.width/2 - 10}
-                  y={room.mapPositionY + 300 - room.height/2 + 14}
+                  x={room.mapPositionX + room.width/2 - 10}
+                  y={room.mapPositionY - room.height/2 + 14}
                   textAnchor="middle"
                   className="text-[10px] font-bold fill-white pointer-events-none"
                 >
@@ -373,6 +390,19 @@ export default function CampusNavigator() {
               </g>
             ))}
           </svg>
+
+          {/* Map Controls */}
+          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            <Button onClick={handleZoomIn} size="sm" className="w-10 h-10 p-0">
+              +
+            </Button>
+            <Button onClick={handleZoomOut} size="sm" className="w-10 h-10 p-0">
+              -
+            </Button>
+            <Button onClick={resetMap} size="sm" variant="outline" className="w-10 h-10 p-0">
+              ⌂
+            </Button>
+          </div>
 
           {/* Map Instructions */}
           <div className="absolute bottom-4 right-4 bg-white rounded-lg p-3 shadow-lg max-w-xs">
@@ -383,6 +413,7 @@ export default function CampusNavigator() {
               <div>• {language === 'fi' ? 'Klikkaa huoneita navigoidaksesi' : 'Click rooms to navigate'}</div>
               <div>• {language === 'fi' ? 'Vihreä = lähtö, punainen = määränpää' : 'Green = start, red = destination'}</div>
               <div>• {language === 'fi' ? 'Hae huoneita hakupalkista' : 'Search rooms from search bar'}</div>
+              <div>• {language === 'fi' ? 'Zoomaa + ja - napeilla' : 'Zoom with + and - buttons'}</div>
             </div>
           </div>
 

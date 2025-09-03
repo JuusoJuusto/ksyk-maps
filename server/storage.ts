@@ -392,15 +392,75 @@ export class DatabaseStorage implements IStorage {
 // Simple in-memory storage with mock data for KSYK campus
 class MemStorage implements IStorage {
   private mockBuildings: Building[] = [
-    { id: "1", name: "M", nameEn: "Music Building", nameFi: "Musiikkitalo", description: null, descriptionEn: "Music and arts education", descriptionFi: "Musiikin ja taiteen opetus", floors: 2, mapPositionX: -200, mapPositionY: 50, colorCode: "#9333EA", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
-    { id: "2", name: "K", nameEn: "Central Hall", nameFi: "Keskushalli", description: null, descriptionEn: "Main building", descriptionFi: "Päärakennus", floors: 2, mapPositionX: 100, mapPositionY: 0, colorCode: "#DC2626", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
-    { id: "3", name: "L", nameEn: "Gymnasium", nameFi: "Liikuntahalli", description: null, descriptionEn: "Sports and physical education", descriptionFi: "Urheilu ja liikuntakasvatus", floors: 1, mapPositionX: 350, mapPositionY: 80, colorCode: "#059669", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "1", name: "M", nameEn: "Music Building", nameFi: "Musiikkitalo", description: null, descriptionEn: "Music and arts education", descriptionFi: "Musiikin ja taiteen opetus", floors: 3, mapPositionX: -200, mapPositionY: 50, colorCode: "#9333EA", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "2", name: "K", nameEn: "Central Hall", nameFi: "Keskushalli", description: null, descriptionEn: "Main building", descriptionFi: "Päärakennus", floors: 3, mapPositionX: 100, mapPositionY: 0, colorCode: "#DC2626", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "3", name: "L", nameEn: "Gymnasium", nameFi: "Liikuntahalli", description: null, descriptionEn: "Sports and physical education", descriptionFi: "Urheilu ja liikuntakasvatus", floors: 2, mapPositionX: 350, mapPositionY: 80, colorCode: "#059669", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "4", name: "R", nameEn: "R Building", nameFi: "R-rakennus", description: null, descriptionEn: "Research and laboratories", descriptionFi: "Tutkimus ja laboratoriot", floors: 3, mapPositionX: -50, mapPositionY: 200, colorCode: "#F59E0B", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "5", name: "A", nameEn: "A Building", nameFi: "A-rakennus", description: null, descriptionEn: "Administration and offices", descriptionFi: "Hallinto ja toimistot", floors: 3, mapPositionX: 250, mapPositionY: 180, colorCode: "#8B5CF6", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "6", name: "U", nameEn: "U Building", nameFi: "U-rakennus", description: null, descriptionEn: "University programs", descriptionFi: "Yliopisto-ohjelmat", floors: 3, mapPositionX: -100, mapPositionY: -120, colorCode: "#3B82F6", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "7", name: "OG", nameEn: "Old Gymnasium", nameFi: "Vanha liikuntahalli", description: null, descriptionEn: "Historic sports facility", descriptionFi: "Historiallinen liikuntapaikka", floors: 2, mapPositionX: 200, mapPositionY: -80, colorCode: "#06B6D4", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
   ];
 
   private mockRooms: Room[] = [
-    { id: "1", buildingId: "1", roomNumber: "M12", nameEn: "Music Room 1", nameFi: "Musiikkiluokka 1", floor: 1, type: "music_room", capacity: 30, mapPositionX: -180, mapPositionY: 70, width: 60, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["piano", "microphone"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
-    { id: "2", buildingId: "2", roomNumber: "K15", nameEn: "Classroom 15", nameFi: "Luokkahuone 15", floor: 1, type: "classroom", capacity: 25, mapPositionX: 120, mapPositionY: 20, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["projector", "whiteboard"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
-    { id: "3", buildingId: "3", roomNumber: "Gym 1", nameEn: "Main Gymnasium", nameFi: "Pääliikuntahalli", floor: 1, type: "gymnasium", capacity: 200, mapPositionX: 370, mapPositionY: 100, width: 80, height: 60, description: null, descriptionEn: null, descriptionFi: null, equipment: ["basketball_court", "volleyball_net"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    // Music Building (M) - Floor 1
+    { id: "1", buildingId: "1", roomNumber: "M12", nameEn: "Music Room 12", nameFi: "Musiikkiluokka 12", floor: 1, type: "music_room", capacity: 30, mapPositionX: -180, mapPositionY: 70, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["piano", "microphone", "speakers"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    { id: "2", buildingId: "1", roomNumber: "M15", nameEn: "Music Room 15", nameFi: "Musiikkiluokka 15", floor: 1, type: "music_room", capacity: 25, mapPositionX: -220, mapPositionY: 30, width: 45, height: 30, description: null, descriptionEn: null, descriptionFi: null, equipment: ["piano", "drums"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Music Building (M) - Floor 2
+    { id: "3", buildingId: "1", roomNumber: "M22", nameEn: "Music Theory Room", nameFi: "Musiikin teoria", floor: 2, type: "classroom", capacity: 20, mapPositionX: -180, mapPositionY: 70, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["whiteboard", "projector"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Music Building (M) - Floor 3
+    { id: "4", buildingId: "1", roomNumber: "M32", nameEn: "Recording Studio", nameFi: "Äänitysstudio", floor: 3, type: "studio", capacity: 15, mapPositionX: -180, mapPositionY: 70, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["recording_equipment", "soundproof"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // Central Hall (K) - Floor 1
+    { id: "5", buildingId: "2", roomNumber: "K15", nameEn: "Main Classroom", nameFi: "Pääluokka", floor: 1, type: "classroom", capacity: 35, mapPositionX: 120, mapPositionY: 20, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["projector", "whiteboard", "computer"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    { id: "6", buildingId: "2", roomNumber: "K10", nameEn: "Language Lab", nameFi: "Kielilaboratorio", floor: 1, type: "lab", capacity: 30, mapPositionX: 80, mapPositionY: -20, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["headphones", "language_software"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Central Hall (K) - Floor 2
+    { id: "7", buildingId: "2", roomNumber: "K25", nameEn: "Science Classroom", nameFi: "Tiedeluokka", floor: 2, type: "classroom", capacity: 28, mapPositionX: 120, mapPositionY: 20, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["lab_bench", "microscopes"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Central Hall (K) - Floor 3
+    { id: "8", buildingId: "2", roomNumber: "K35", nameEn: "Art Studio", nameFi: "Taidestudio", floor: 3, type: "studio", capacity: 25, mapPositionX: 120, mapPositionY: 20, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["easels", "art_supplies"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // Gymnasium (L) - Floor 1
+    { id: "9", buildingId: "3", roomNumber: "L01", nameEn: "Main Gymnasium", nameFi: "Pääliikuntahalli", floor: 1, type: "gymnasium", capacity: 200, mapPositionX: 370, mapPositionY: 100, width: 80, height: 60, description: null, descriptionEn: null, descriptionFi: null, equipment: ["basketball_court", "volleyball_net", "sound_system"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    { id: "10", buildingId: "3", roomNumber: "L05", nameEn: "Fitness Room", nameFi: "Kuntosali", floor: 1, type: "fitness", capacity: 30, mapPositionX: 330, mapPositionY: 60, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["weights", "treadmills"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Gymnasium (L) - Floor 2
+    { id: "11", buildingId: "3", roomNumber: "L15", nameEn: "Dance Studio", nameFi: "Tanssistudio", floor: 2, type: "studio", capacity: 40, mapPositionX: 370, mapPositionY: 100, width: 60, height: 45, description: null, descriptionEn: null, descriptionFi: null, equipment: ["mirrors", "sound_system", "ballet_bars"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // R Building - Floor 1
+    { id: "12", buildingId: "4", roomNumber: "R10", nameEn: "Chemistry Lab", nameFi: "Kemian laboratorio", floor: 1, type: "lab", capacity: 24, mapPositionX: -30, mapPositionY: 220, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["fume_hood", "lab_bench", "safety_shower"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // R Building - Floor 2
+    { id: "13", buildingId: "4", roomNumber: "R20", nameEn: "Physics Lab", nameFi: "Fysiikan laboratorio", floor: 2, type: "lab", capacity: 22, mapPositionX: -30, mapPositionY: 220, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["oscilloscope", "lab_bench"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // R Building - Floor 3
+    { id: "14", buildingId: "4", roomNumber: "R30", nameEn: "Biology Lab", nameFi: "Biologian laboratorio", floor: 3, type: "lab", capacity: 26, mapPositionX: -30, mapPositionY: 220, width: 55, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["microscopes", "specimens"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // A Building - Floor 1
+    { id: "15", buildingId: "5", roomNumber: "A20", nameEn: "Office 20", nameFi: "Toimisto 20", floor: 1, type: "office", capacity: 4, mapPositionX: 270, mapPositionY: 200, width: 40, height: 30, description: null, descriptionEn: null, descriptionFi: null, equipment: ["desk", "computer"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // A Building - Floor 2
+    { id: "16", buildingId: "5", roomNumber: "A25", nameEn: "Conference Room", nameFi: "Kokoushuone", floor: 2, type: "meeting", capacity: 12, mapPositionX: 270, mapPositionY: 200, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["projector", "conference_table"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // A Building - Floor 3
+    { id: "17", buildingId: "5", roomNumber: "A35", nameEn: "Principal's Office", nameFi: "Rehtorin toimisto", floor: 3, type: "office", capacity: 6, mapPositionX: 270, mapPositionY: 200, width: 45, height: 32, description: null, descriptionEn: null, descriptionFi: null, equipment: ["desk", "bookshelf"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // U Building - Floor 1
+    { id: "18", buildingId: "6", roomNumber: "U30", nameEn: "Computer Lab", nameFi: "Tietokoneluokka", floor: 1, type: "lab", capacity: 32, mapPositionX: -80, mapPositionY: -100, width: 60, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["computers", "projector", "printer"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // U Building - Floor 2
+    { id: "19", buildingId: "6", roomNumber: "U35", nameEn: "Study Hall", nameFi: "Lukusali", floor: 2, type: "study", capacity: 50, mapPositionX: -80, mapPositionY: -100, width: 70, height: 50, description: null, descriptionEn: null, descriptionFi: null, equipment: ["desks", "quiet_zone"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // U Building - Floor 3
+    { id: "20", buildingId: "6", roomNumber: "U40", nameEn: "Library", nameFi: "Kirjasto", floor: 3, type: "library", capacity: 80, mapPositionX: -80, mapPositionY: -100, width: 75, height: 55, description: null, descriptionEn: null, descriptionFi: null, equipment: ["books", "study_tables", "computers"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+
+    // Old Gymnasium (OG) - Floor 1
+    { id: "21", buildingId: "7", roomNumber: "OG5", nameEn: "Small Gym", nameFi: "Pieni sali", floor: 1, type: "gymnasium", capacity: 60, mapPositionX: 220, mapPositionY: -60, width: 60, height: 45, description: null, descriptionEn: null, descriptionFi: null, equipment: ["badminton_court", "sound_system"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    
+    // Old Gymnasium (OG) - Floor 2
+    { id: "22", buildingId: "7", roomNumber: "OG10", nameEn: "Sports Equipment Storage", nameFi: "Urheiluvälinevarasto", floor: 2, type: "storage", capacity: 10, mapPositionX: 220, mapPositionY: -60, width: 40, height: 30, description: null, descriptionEn: null, descriptionFi: null, equipment: ["sports_equipment"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
   ];
 
   private mockFloors: Floor[] = [
