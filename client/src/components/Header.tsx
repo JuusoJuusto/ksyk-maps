@@ -6,12 +6,12 @@ import { useTranslation } from "react-i18next";
 
 export default function Header() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
 
   const isActive = (path: string) => location === path;
-  const isAdmin = (user as any)?.role === 'admin';
+  const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
@@ -83,30 +83,44 @@ export default function Header() {
               </button>
             </div>
             
-            {/* Admin Link */}
-            {isAdmin && (
-              <Link href="/admin">
+            {/* Admin Link or Login Button */}
+            {isAuthenticated ? (
+              <>
+                {isAdmin && (
+                  <Link href="/admin">
+                    <Button 
+                      variant={isActive('/admin') ? 'default' : 'outline'}
+                      className="hidden sm:flex items-center space-x-2"
+                      data-testid="button-admin"
+                    >
+                      <i className="fas fa-user-cog text-sm"></i>
+                      <span className="text-sm font-medium">{t('nav.admin')}</span>
+                    </Button>
+                  </Link>
+                )}
+                
+                {/* Logout Button */}
                 <Button 
-                  variant={isActive('/admin') ? 'default' : 'outline'}
+                  variant="outline" 
+                  onClick={handleLogout}
                   className="hidden sm:flex items-center space-x-2"
-                  data-testid="button-admin"
+                  data-testid="button-logout"
                 >
-                  <i className="fas fa-user-cog text-sm"></i>
-                  <span className="text-sm font-medium">{t('nav.admin')}</span>
+                  <i className="fas fa-sign-out-alt text-sm"></i>
+                  <span className="text-sm font-medium">{t('logout')}</span>
                 </Button>
-              </Link>
+              </>
+            ) : (
+              <Button 
+                variant="default"
+                onClick={() => window.location.href = "/api/login"}
+                className="hidden sm:flex items-center space-x-2"
+                data-testid="button-login"
+              >
+                <i className="fas fa-sign-in-alt text-sm"></i>
+                <span className="text-sm font-medium">{t('login')}</span>
+              </Button>
             )}
-            
-            {/* Logout Button */}
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="hidden sm:flex items-center space-x-2"
-              data-testid="button-logout"
-            >
-              <i className="fas fa-sign-out-alt text-sm"></i>
-              <span className="text-sm font-medium">{t('logout')}</span>
-            </Button>
             
             {/* Mobile menu button */}
             <button className="md:hidden" data-testid="button-mobile-menu">

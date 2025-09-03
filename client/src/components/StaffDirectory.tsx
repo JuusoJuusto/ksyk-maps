@@ -10,11 +10,11 @@ import type { Staff } from "@shared/schema";
 
 export default function StaffDirectory() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
   
-  const isAdmin = (user as any)?.role === 'admin';
+  const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
 
   const { data: staff = [], isLoading } = useQuery<Staff[]>({
     queryKey: ["/api/staff"],

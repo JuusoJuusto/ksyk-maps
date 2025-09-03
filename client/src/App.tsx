@@ -11,18 +11,11 @@ import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/admin" component={Admin} />
-        </>
-      )}
+      <Route path="/" component={Home} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/landing" component={Landing} />
       <Route component={NotFound} />
     </Switch>
   );

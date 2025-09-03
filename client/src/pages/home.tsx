@@ -8,35 +8,7 @@ import QuickActions from "@/components/QuickActions";
 import { useTranslation } from "react-i18next";
 
 export default function Home() {
-  const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
   const { t } = useTranslation();
-
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: t('unauthorized'),
-        description: t('unauthorized.desc'),
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast, t]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">{t('loading')}</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
