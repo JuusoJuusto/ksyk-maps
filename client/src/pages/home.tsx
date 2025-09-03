@@ -1,5 +1,5 @@
-import WorkingMap from "@/components/WorkingMap";
+import SimpleWorkingMap from "@/components/SimpleWorkingMap";
 
 export default function Home() {
-  return <WorkingMap />;
+  return <SimpleWorkingMap />;
 }
