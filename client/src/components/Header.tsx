@@ -83,42 +83,28 @@ export default function Header() {
               </button>
             </div>
             
-            {/* Admin Link or Login Button */}
-            {isAuthenticated ? (
-              <>
-                {isAdmin && (
-                  <Link href="/admin">
-                    <Button 
-                      variant={isActive('/admin') ? 'default' : 'outline'}
-                      className="hidden sm:flex items-center space-x-2"
-                      data-testid="button-admin"
-                    >
-                      <i className="fas fa-user-cog text-sm"></i>
-                      <span className="text-sm font-medium">{t('nav.admin')}</span>
-                    </Button>
-                  </Link>
-                )}
-                
-                {/* Logout Button */}
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  className="hidden sm:flex items-center space-x-2"
-                  data-testid="button-logout"
-                >
-                  <i className="fas fa-sign-out-alt text-sm"></i>
-                  <span className="text-sm font-medium">{t('logout')}</span>
-                </Button>
-              </>
-            ) : (
+            {/* Admin Panel Link */}
+            <Link href="/admin">
               <Button 
-                variant="default"
-                onClick={() => window.location.href = "/api/login"}
+                variant={isActive('/admin') ? 'default' : 'outline'}
                 className="hidden sm:flex items-center space-x-2"
-                data-testid="button-login"
+                data-testid="button-admin"
               >
-                <i className="fas fa-sign-in-alt text-sm"></i>
-                <span className="text-sm font-medium">{t('login')}</span>
+                <i className="fas fa-user-cog text-sm"></i>
+                <span className="text-sm font-medium">{t('nav.admin')}</span>
+              </Button>
+            </Link>
+            
+            {/* Logout Button - only show if authenticated */}
+            {isAuthenticated && (
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="hidden sm:flex items-center space-x-2"
+                data-testid="button-logout"
+              >
+                <i className="fas fa-sign-out-alt text-sm"></i>
+                <span className="text-sm font-medium">{t('logout')}</span>
               </Button>
             )}
             
