@@ -389,4 +389,80 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Simple in-memory storage with mock data for KSYK campus
+class MemStorage implements IStorage {
+  private mockBuildings: Building[] = [
+    { id: "1", name: "M", nameEn: "Music Building", nameFi: "Musiikkitalo", description: null, descriptionEn: "Music and arts education", descriptionFi: "Musiikin ja taiteen opetus", floors: 2, mapPositionX: -200, mapPositionY: 50, colorCode: "#9333EA", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "2", name: "K", nameEn: "Central Hall", nameFi: "Keskushalli", description: null, descriptionEn: "Main building", descriptionFi: "Päärakennus", floors: 2, mapPositionX: 100, mapPositionY: 0, colorCode: "#DC2626", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+    { id: "3", name: "L", nameEn: "Gymnasium", nameFi: "Liikuntahalli", description: null, descriptionEn: "Sports and physical education", descriptionFi: "Urheilu ja liikuntakasvatus", floors: 1, mapPositionX: 350, mapPositionY: 80, colorCode: "#059669", isActive: true, emergencyInfo: null, accessibility: null, createdAt: new Date(), updatedAt: new Date() },
+  ];
+
+  private mockRooms: Room[] = [
+    { id: "1", buildingId: "1", roomNumber: "M12", nameEn: "Music Room 1", nameFi: "Musiikkiluokka 1", floor: 1, type: "music_room", capacity: 30, mapPositionX: -180, mapPositionY: 70, width: 60, height: 40, description: null, descriptionEn: null, descriptionFi: null, equipment: ["piano", "microphone"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    { id: "2", buildingId: "2", roomNumber: "K15", nameEn: "Classroom 15", nameFi: "Luokkahuone 15", floor: 1, type: "classroom", capacity: 25, mapPositionX: 120, mapPositionY: 20, width: 50, height: 35, description: null, descriptionEn: null, descriptionFi: null, equipment: ["projector", "whiteboard"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+    { id: "3", buildingId: "3", roomNumber: "Gym 1", nameEn: "Main Gymnasium", nameFi: "Pääliikuntahalli", floor: 1, type: "gymnasium", capacity: 200, mapPositionX: 370, mapPositionY: 100, width: 80, height: 60, description: null, descriptionEn: null, descriptionFi: null, equipment: ["basketball_court", "volleyball_net"], isActive: true, accessibility: null, emergencyRoute: false, createdAt: new Date(), updatedAt: new Date() },
+  ];
+
+  private mockFloors: Floor[] = [
+    { id: "1", buildingId: "1", floorNumber: 1, name: null, nameEn: "Ground Floor", nameFi: "Pohjakerros", description: null, descriptionEn: "Main entrance", descriptionFi: "Pääsisäänkäynti", mapImageUrl: null, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+    { id: "2", buildingId: "2", floorNumber: 1, name: null, nameEn: "Ground Floor", nameFi: "Pohjakerros", description: null, descriptionEn: "Main entrance", descriptionFi: "Pääsisäänkäynti", mapImageUrl: null, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  ];
+
+  // User operations
+  async getUser(id: string): Promise<User | undefined> { return undefined; }
+  async getUserByEmail(email: string): Promise<User | undefined> { return undefined; }
+  async upsertUser(user: UpsertUser): Promise<User> { throw new Error("Not implemented"); }
+
+  // Building operations
+  async getBuildings(): Promise<Building[]> { return this.mockBuildings; }
+  async getBuilding(id: string): Promise<Building | undefined> { return this.mockBuildings.find(b => b.id === id); }
+  async createBuilding(building: InsertBuilding): Promise<Building> { throw new Error("Not implemented"); }
+  async updateBuilding(id: string, building: Partial<InsertBuilding>): Promise<Building> { throw new Error("Not implemented"); }
+  async deleteBuilding(id: string): Promise<void> { throw new Error("Not implemented"); }
+
+  // Floor operations  
+  async getFloors(buildingId?: string): Promise<Floor[]> { return this.mockFloors; }
+  async getFloor(id: string): Promise<Floor | undefined> { return this.mockFloors.find(f => f.id === id); }
+  async createFloor(floor: InsertFloor): Promise<Floor> { throw new Error("Not implemented"); }
+  async updateFloor(id: string, floor: Partial<InsertFloor>): Promise<Floor> { throw new Error("Not implemented"); }
+  async deleteFloor(id: string): Promise<void> { throw new Error("Not implemented"); }
+
+  // Room operations
+  async getRooms(buildingId?: string): Promise<Room[]> { return this.mockRooms; }
+  async getRoom(id: string): Promise<Room | undefined> { return this.mockRooms.find(r => r.id === id); }
+  async createRoom(room: InsertRoom): Promise<Room> { throw new Error("Not implemented"); }
+  async updateRoom(id: string, room: Partial<InsertRoom>): Promise<Room> { throw new Error("Not implemented"); }
+  async deleteRoom(id: string): Promise<void> { throw new Error("Not implemented"); }
+  async searchRooms(query: string): Promise<Room[]> { return this.mockRooms.filter(r => r.roomNumber.includes(query)); }
+
+  // Hallway operations
+  async getHallways(buildingId?: string, floorId?: string): Promise<Hallway[]> { return []; }
+  async getHallway(id: string): Promise<Hallway | undefined> { return undefined; }
+  async createHallway(hallway: InsertHallway): Promise<Hallway> { throw new Error("Not implemented"); }
+  async updateHallway(id: string, hallway: Partial<InsertHallway>): Promise<Hallway> { throw new Error("Not implemented"); }
+  async deleteHallway(id: string): Promise<void> { throw new Error("Not implemented"); }
+
+  // Staff operations
+  async getStaff(): Promise<Staff[]> { return []; }
+  async getStaffMember(id: string): Promise<Staff | undefined> { return undefined; }
+  async createStaffMember(staff: InsertStaff): Promise<Staff> { throw new Error("Not implemented"); }
+  async updateStaffMember(id: string, staff: Partial<InsertStaff>): Promise<Staff> { throw new Error("Not implemented"); }
+  async deleteStaffMember(id: string): Promise<void> { throw new Error("Not implemented"); }
+  async searchStaff(query: string, department?: string): Promise<Staff[]> { return []; }
+
+  // Event operations
+  async getEvents(startDate?: Date, endDate?: Date): Promise<Event[]> { return []; }
+  async getEvent(id: string): Promise<Event | undefined> { return undefined; }
+  async createEvent(event: InsertEvent): Promise<Event> { throw new Error("Not implemented"); }
+  async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event> { throw new Error("Not implemented"); }
+  async deleteEvent(id: string): Promise<void> { throw new Error("Not implemented"); }
+
+  // Announcement operations
+  async getAnnouncements(isActive?: boolean): Promise<Announcement[]> { return []; }
+  async getAnnouncement(id: string): Promise<Announcement | undefined> { return undefined; }
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> { throw new Error("Not implemented"); }
+  async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement> { throw new Error("Not implemented"); }
+  async deleteAnnouncement(id: string): Promise<void> { throw new Error("Not implemented"); }
+}
+
+export const storage = new MemStorage();
