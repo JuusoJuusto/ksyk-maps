@@ -12,6 +12,7 @@ import { BarChart3, Users, MapPin, Clock, TrendingUp, Eye, Navigation, Calendar,
 import RoomManagement from "@/components/RoomManagement";
 import FloorManagement from "@/components/FloorManagement";
 import HallwayManagement from "@/components/HallwayManagement";
+import BuildingManagement from "@/components/BuildingManagement";
 import InteractiveMapEditor from "@/components/InteractiveMapEditor";
 import type { Staff, Building as BuildingType, Room } from "@shared/schema";
 
@@ -444,11 +445,7 @@ export default function AdminDashboard() {
         </TabsContent>
         
         <TabsContent value="buildings">
-          <div className="p-6 text-center">
-            <BuildingIcon className="text-4xl text-muted-foreground mb-4 mx-auto w-16 h-16" />
-            <h3 className="text-lg font-semibold mb-2">Building Management</h3>
-            <p className="text-muted-foreground">Building management features coming soon.</p>
-          </div>
+          <BuildingManagement />
         </TabsContent>
         
         <TabsContent value="staff">

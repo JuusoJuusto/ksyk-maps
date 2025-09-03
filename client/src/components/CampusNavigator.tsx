@@ -180,58 +180,58 @@ export default function CampusNavigator() {
   };
 
   return (
-    <div className="flex flex-col h-screen relative overflow-hidden">
-      {/* Premium Header */}
-      <div className="glass-card shadow-floating px-6 py-4 relative z-10 border-0 rounded-none backdrop-blur-xl bg-white/10 border-b border-white/20">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
 
-            <div className="floating">
-              <h1 className="text-3xl font-bold gradient-text mb-1">KSYK Map</h1>
-              <p className="text-sm text-white/80 font-medium">by Owl Apps</p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">KSYK Map</h1>
+              <p className="text-sm text-gray-600">by Owl Apps</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <button
-                className={`btn-premium px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  language === 'en' ? 'shadow-glow' : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
+              <Button
+                variant={language === 'en' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setLanguage('en')}
               >
                 EN
-              </button>
-              <button
-                className={`btn-premium px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  language === 'fi' ? 'shadow-glow' : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
+              </Button>
+              <Button
+                variant={language === 'fi' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setLanguage('fi')}
               >
                 FI
-              </button>
+              </Button>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setLocation('/admin')}
-              className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold shadow-premium hover:shadow-floating"
+              className="flex items-center gap-2"
               data-testid="admin-button-desktop"
             >
               <Shield className="w-4 h-4" />
               Admin
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Premium Navigation Tabs */}
-      <div className="glass-card border-0 rounded-none bg-white/5 backdrop-blur-xl border-b border-white/10">
+      {/* Upper Navigation Tabs */}
+      <div className="bg-white border-b border-gray-200">
         <div className="flex items-center justify-between px-4">
           <div className="flex">
             <button
               onClick={() => setActiveTab('map')}
-              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'map'
-                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
-                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
               data-testid="map-tab"
             >
@@ -242,10 +242,10 @@ export default function CampusNavigator() {
             </button>
             <button
               onClick={() => setActiveTab('schedule')}
-              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'schedule'
-                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
-                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
               data-testid="schedule-tab"
             >
@@ -256,10 +256,10 @@ export default function CampusNavigator() {
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'settings'
-                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
-                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
               data-testid="settings-tab"
             >
@@ -269,64 +269,68 @@ export default function CampusNavigator() {
               </div>
             </button>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden btn-premium flex items-center gap-2 px-4 py-2 rounded-lg shadow-premium hover:shadow-floating"
+            className="lg:hidden flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
             data-testid="mobile-menu-button-desktop"
           >
             <Menu className="w-4 h-4" />
-            <span className="text-xs font-semibold">
+            <span className="text-xs font-medium">
               {language === 'fi' ? 'Valikko' : 'Menu'}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Premium Side Tab - Desktop */}
+        {/* Side Tab - Desktop */}
         <div className={`
           ${sideTabCollapsed ? 'w-[12px]' : 'w-80'} 
-          transition-all duration-500 ease-in-out
-          glass-card border-r border-white/20 flex flex-col
-          hidden md:flex shadow-premium backdrop-blur-xl bg-white/10
+          transition-all duration-300 ease-in-out
+          bg-white border-r border-gray-200 flex flex-col
+          hidden md:flex
         `}>
-          <div className="flex items-center justify-between p-4 border-b border-white/20 bg-white/5">
+          <div className="flex items-center justify-between p-2 border-b">
             {!sideTabCollapsed && (
-              <span className="text-sm font-semibold text-white/90">
+              <span className="text-sm font-medium text-gray-700">
                 {language === 'fi' ? 'Navigointi' : 'Navigation'}
               </span>
             )}
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setSideTabCollapsed(!sideTabCollapsed)}
-              className="h-8 w-8 p-0 btn-premium rounded-full hover:shadow-glow transition-all duration-300"
+              className="h-8 w-8 p-0"
               data-testid="side-tab-toggle-desktop"
             >
               {sideTabCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
+            </Button>
           </div>
           
           {!sideTabCollapsed && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto">
               {activeTab === 'map' && (
-                <div className="space-y-4">
-                  {/* Premium Search */}
-                  <div className="glass-card p-4 rounded-xl shadow-premium hover:shadow-floating transition-all duration-300">
-                    <div className="mb-3">
-                      <h3 className="text-sm font-semibold text-white/90 flex items-center gap-2">
-                        <Search className="w-4 h-4 text-white/70" />
+                <div className="p-4">
+                  {/* Search */}
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Search className="w-4 h-4" />
                         {language === 'fi' ? 'Hae huoneita' : 'Search Rooms'}
-                      </h3>
-                    </div>
-                    <div>
-                      <input
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Input
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
-                        className="w-full h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 transition-all duration-300 text-base"
+                        className="h-12 touch-manipulation text-base"
                         data-testid="room-search-input-desktop"
                       />
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Floor Selector */}
                   <Card className="mb-4">
