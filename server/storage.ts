@@ -519,9 +519,29 @@ class MemStorage implements IStorage {
   // Room operations
   async getRooms(buildingId?: string): Promise<Room[]> { return this.mockRooms; }
   async getRoom(id: string): Promise<Room | undefined> { return this.mockRooms.find(r => r.id === id); }
-  async createRoom(room: InsertRoom): Promise<Room> { throw new Error("Not implemented"); }
-  async updateRoom(id: string, room: Partial<InsertRoom>): Promise<Room> { throw new Error("Not implemented"); }
-  async deleteRoom(id: string): Promise<void> { throw new Error("Not implemented"); }
+  async createRoom(room: InsertRoom): Promise<Room> { 
+    const newRoom: Room = {
+      ...room,
+      id: (this.mockRooms.length + 1).toString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    };
+    this.mockRooms.push(newRoom);
+    return newRoom;
+  }
+  async updateRoom(id: string, room: Partial<InsertRoom>): Promise<Room> { 
+    const index = this.mockRooms.findIndex(r => r.id === id);
+    if (index === -1) throw new Error("Room not found");
+    this.mockRooms[index] = { ...this.mockRooms[index], ...room, updatedAt: new Date() };
+    return this.mockRooms[index];
+  }
+  async deleteRoom(id: string): Promise<void> { 
+    const index = this.mockRooms.findIndex(r => r.id === id);
+    if (index !== -1) {
+      this.mockRooms[index].isActive = false;
+    }
+  }
   async searchRooms(query: string): Promise<Room[]> { return this.mockRooms.filter(r => r.roomNumber.includes(query)); }
 
   // Hallway operations
