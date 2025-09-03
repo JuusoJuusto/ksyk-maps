@@ -134,22 +134,22 @@ export default function CampusMap() {
 
         {/* Navigation Status */}
         {navigationStart && (
-          <div className="mb-3 md:mb-4 p-3 bg-green-50 rounded-md border">
-            <p className="text-sm font-medium text-green-800">
+          <div className="mb-3 md:mb-4 p-3 bg-blue-50 rounded-md border">
+            <p className="text-sm font-medium text-blue-800">
               📍 From: {navigationStart.roomNumber}
             </p>
             {navigationEnd ? (
-              <p className="text-sm font-medium text-green-800">
+              <p className="text-sm font-medium text-blue-800">
                 🎯 To: {navigationEnd.roomNumber}
               </p>
             ) : (
-              <p className="text-xs text-green-600 mt-1">
+              <p className="text-xs text-blue-600 mt-1">
                 Click another room for destination
               </p>
             )}
             <button
               onClick={clearNavigation}
-              className="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600"
+              className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600"
             >
               Clear Navigation
             </button>

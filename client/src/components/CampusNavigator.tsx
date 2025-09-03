@@ -374,12 +374,12 @@ export default function CampusNavigator() {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                           <span className="text-sm">{startRoom.roomNumber}</span>
                         </div>
                         {endRoom && (
                           <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <div className="w-3 h-3 bg-blue-700 rounded-full"></div>
                             <span className="text-sm">{endRoom.roomNumber}</span>
                           </div>
                         )}
@@ -410,9 +410,9 @@ export default function CampusNavigator() {
                           selectedRoom?.id === room.id 
                             ? 'border-blue-500 bg-blue-50 shadow-md' 
                             : startRoom?.id === room.id
-                            ? 'border-green-500 bg-green-50 shadow-md'
+                            ? 'border-blue-500 bg-blue-50 shadow-md'
                             : endRoom?.id === room.id
-                            ? 'border-red-500 bg-red-50 shadow-md'
+                            ? 'border-blue-700 bg-blue-100 shadow-md'
                             : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                         }`}
                         onClick={() => {
@@ -640,12 +640,12 @@ export default function CampusNavigator() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <span className="text-sm">{language === 'fi' ? 'Lähtö:' : 'From:'} {startRoom.roomNumber}</span>
                       </div>
                       {endRoom && (
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <div className="w-3 h-3 bg-blue-700 rounded-full"></div>
                           <span className="text-sm">{language === 'fi' ? 'Määränpää:' : 'To:'} {endRoom.roomNumber}</span>
                         </div>
                       )}
@@ -1049,7 +1049,7 @@ export default function CampusNavigator() {
               {startRoom && (
                 <div className="mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <span className="font-semibold text-sm text-white/90">
                       {language === 'fi' ? 'Lähtö:' : 'Start:'} {startRoom.roomNumber}
                     </span>
@@ -1061,7 +1061,7 @@ export default function CampusNavigator() {
               {endRoom && (
                 <div className="mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-blue-700 rounded-full"></div>
                     <span className="font-medium text-sm">
                       {language === 'fi' ? 'Määränpää:' : 'Destination:'} {endRoom.roomNumber}
                     </span>

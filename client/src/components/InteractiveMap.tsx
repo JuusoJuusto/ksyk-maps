@@ -40,11 +40,11 @@ export default function InteractiveMap() {
   const isAdmin = (user as any)?.role === 'admin';
 
   const buildingColors: Record<string, string> = {
-    'academic': 'bg-primary',
-    'sports': 'bg-accent', 
-    'library': 'bg-secondary',
-    'music': 'bg-destructive',
-    'administration': 'bg-accent'
+    'academic': 'bg-blue-600',
+    'sports': 'bg-blue-500', 
+    'library': 'bg-blue-700',
+    'music': 'bg-blue-800',
+    'administration': 'bg-blue-600'
   };
 
   const defaultBuildings = [
@@ -142,7 +142,7 @@ export default function InteractiveMap() {
             {defaultBuildings.map((building) => (
               <div
                 key={building.id}
-                className={`map-building absolute ${buildingColors[building.type] || 'bg-primary'} rounded-md shadow-lg flex items-center justify-center text-white font-semibold hover:shadow-xl cursor-pointer transition-all hover:scale-105`}
+                className={`map-building absolute ${buildingColors[building.type] || 'bg-blue-600'} rounded-md shadow-lg flex items-center justify-center text-white font-semibold hover:shadow-xl cursor-pointer transition-all hover:scale-105`}
                 style={{
                   top: `${building.position.y}px`,
                   left: `${building.position.x}px`,
@@ -166,19 +166,19 @@ export default function InteractiveMap() {
             <div className="text-sm font-medium text-foreground mb-2">{t('map.legend')}</div>
             <div className="space-y-1 text-xs">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-primary rounded mr-2"></div>
+                <div className="w-3 h-3 bg-blue-600 rounded mr-2"></div>
                 {t('map.academic')}
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-accent rounded mr-2"></div>
+                <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
                 {t('map.sports')}
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-secondary rounded mr-2"></div>
+                <div className="w-3 h-3 bg-blue-700 rounded mr-2"></div>
                 {t('map.library')}
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-destructive rounded mr-2"></div>
+                <div className="w-3 h-3 bg-blue-800 rounded mr-2"></div>
                 {t('map.music')}
               </div>
             </div>

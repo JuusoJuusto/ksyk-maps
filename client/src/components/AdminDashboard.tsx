@@ -158,7 +158,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <div className="p-2 md:p-3 bg-primary dark:bg-primary rounded-lg flex-shrink-0">
+                  <div className="p-2 md:p-3 bg-blue-600 rounded-lg flex-shrink-0">
                     <Navigation className="text-primary-foreground w-4 h-4 md:w-6 md:h-6" />
                   </div>
                   <div className="ml-2 md:ml-4 min-w-0">
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <div className="p-2 md:p-3 bg-green-600 dark:bg-green-700 rounded-lg flex-shrink-0">
+                  <div className="p-2 md:p-3 bg-blue-600 rounded-lg flex-shrink-0">
                     <Users className="text-white w-4 h-4 md:w-6 md:h-6" />
                   </div>
                   <div className="ml-2 md:ml-4 min-w-0">
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <div className="p-2 md:p-3 bg-purple-600 dark:bg-purple-700 rounded-lg flex-shrink-0">
+                  <div className="p-2 md:p-3 bg-blue-600 rounded-lg flex-shrink-0">
                     <MapPin className="text-white w-4 h-4 md:w-6 md:h-6" />
                   </div>
                   <div className="ml-2 md:ml-4 min-w-0">
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
           <Card className="touch-card">
             <CardContent className="p-3 md:p-6">
               <div className="flex items-center">
-                <div className="p-2 md:p-3 bg-orange-600 dark:bg-orange-700 rounded-lg flex-shrink-0">
+                <div className="p-2 md:p-3 bg-blue-600 rounded-lg flex-shrink-0">
                   <Clock className="text-white w-4 h-4 md:w-6 md:h-6" />
                 </div>
                 <div className="ml-2 md:ml-4 min-w-0">
@@ -282,7 +282,7 @@ export default function AdminDashboard() {
                   {navigationStats.buildingUsage.map((building) => (
                     <div key={building.building} className="flex items-center justify-between" data-testid={`building-${building.building}`}>
                       <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                        <div className="w-6 h-6 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                        <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
                           {building.building}
                         </div>
                         <div className="min-w-0">
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
                       return (
                         <div key={hour.hour} className="flex flex-col justify-end items-center touch-target">
                           <div 
-                            className="bg-primary dark:bg-primary rounded-t-sm w-full transition-all duration-300 hover:bg-primary/80 active:bg-primary/90 motion-reduce:transition-none"
+                            className="bg-blue-600 rounded-t-sm w-full transition-all duration-300 hover:bg-blue-700 active:bg-blue-800"
                             style={{ height: `${height}%` }}
                             title={`${hour.searches} searches at ${hour.hour}`}
                             data-testid={`chart-bar-${hour.hour}`}

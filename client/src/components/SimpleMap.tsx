@@ -108,22 +108,22 @@ export default function SimpleMap() {
 
         {/* Navigation Status */}
         {startRoom && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-            <div className="text-sm font-medium text-green-800">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="text-sm font-medium text-blue-800">
               📍 From: {startRoom.name}
             </div>
             {endRoom ? (
-              <div className="text-sm font-medium text-green-800">
+              <div className="text-sm font-medium text-blue-800">
                 🎯 To: {endRoom.name}
               </div>
             ) : (
-              <div className="text-xs text-green-600 mt-1">
+              <div className="text-xs text-blue-600 mt-1">
                 Click another room to set destination
               </div>
             )}
             <button
               onClick={clearNavigation}
-              className="mt-2 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
+              className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
             >
               Clear Route
             </button>

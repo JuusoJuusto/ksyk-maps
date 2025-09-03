@@ -108,7 +108,7 @@ export default function Header() {
               <button 
                 className={`px-3 py-1 text-sm font-medium rounded-sm ${
                   currentLang === 'en' 
-                    ? 'bg-primary text-primary-foreground' 
+                    ? 'bg-blue-600 text-white' 
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => handleLanguageChange('en')}
@@ -119,7 +119,7 @@ export default function Header() {
               <button 
                 className={`px-3 py-1 text-sm font-medium rounded-sm ${
                   currentLang === 'fi' 
-                    ? 'bg-primary text-primary-foreground' 
+                    ? 'bg-blue-600 text-white' 
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => handleLanguageChange('fi')}
