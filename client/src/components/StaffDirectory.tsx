@@ -27,7 +27,7 @@ export default function StaffDirectory() {
       member.positionEn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.positionFi?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesDepartment = !selectedDepartment ||
+    const matchesDepartment = !selectedDepartment || selectedDepartment === "all" ||
       member.department === selectedDepartment ||
       member.departmentEn === selectedDepartment ||
       member.departmentFi === selectedDepartment;
@@ -101,7 +101,7 @@ export default function StaffDirectory() {
                 <SelectValue placeholder={t('staff.allDepartments')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('staff.allDepartments')}</SelectItem>
+                <SelectItem value="all">{t('staff.allDepartments')}</SelectItem>
                 <SelectItem value="Administration">{t('staff.administration')}</SelectItem>
                 <SelectItem value="Teaching Staff">{t('staff.teaching')}</SelectItem>
                 <SelectItem value="Support Staff">{t('staff.support')}</SelectItem>
