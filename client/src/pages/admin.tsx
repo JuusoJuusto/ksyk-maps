@@ -54,12 +54,41 @@ export default function Admin() {
             <i className="fas fa-lock text-4xl text-muted-foreground mb-4"></i>
             <h2 className="text-2xl font-bold mb-4">Admin Access Required</h2>
             <p className="text-muted-foreground mb-6">Please log in to access the admin panel.</p>
-            <button 
-              onClick={() => window.location.href = "/api/login"}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Log In
-            </button>
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.location.href = "/api/login"}
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+                data-testid="admin-login-button"
+              >
+                🔐 Log In with Replit
+              </button>
+              
+              {import.meta.env.DEV && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/auth/dev-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      if (response.ok) {
+                        window.location.reload();
+                      }
+                    } catch (error) {
+                      console.error('Dev login failed:', error);
+                    }
+                  }}
+                  className="w-full bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm"
+                  data-testid="dev-login-button"
+                >
+                  🚀 Quick Dev Login (Testing Only)
+                </button>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
+                You'll be redirected to Replit to authenticate
+              </p>
+            </div>
           </div>
         </div>
       </div>

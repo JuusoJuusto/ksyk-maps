@@ -23,6 +23,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Development login bypass (for testing only)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/auth/dev-login', async (req, res) => {
+      try {
+        console.log("Development login attempt");
+        // Simulate a user session for development
+        const mockUser = await storage.getUser('JuusoJuusto112@gmail.com');
+        if (mockUser) {
+          req.login({
+            claims: {
+              sub: mockUser.id,
+              email: mockUser.email,
+              first_name: mockUser.firstName,
+              last_name: mockUser.lastName,
+              profile_image_url: mockUser.profileImageUrl
+            }
+          }, (err) => {
+            if (err) {
+              console.error("Dev login error:", err);
+              return res.status(500).json({ error: "Login failed" });
+            }
+            res.json({ success: true, user: mockUser });
+          });
+        } else {
+          res.status(404).json({ error: "User not found" });
+        }
+      } catch (error) {
+        console.error("Dev login error:", error);
+        res.status(500).json({ error: "Login failed" });
+      }
+    });
+  }
+
   // Building routes
   app.get('/api/buildings', async (req, res) => {
     try {

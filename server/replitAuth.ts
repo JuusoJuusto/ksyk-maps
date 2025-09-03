@@ -141,7 +141,7 @@ export async function setupAuth(app: Express) {
     
     passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/admin",
-      failureRedirect: "/api/login",
+      failureRedirect: "/admin?error=auth_failed",
     })(req, res, next);
   });
 
