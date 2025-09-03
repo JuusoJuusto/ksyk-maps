@@ -1,5 +1,5 @@
-import BasicMap from "@/components/BasicMap";
+import MinimalMap from "@/components/MinimalMap";
 
 export default function Home() {
-  return <BasicMap />;
+  return <MinimalMap />;
 }
