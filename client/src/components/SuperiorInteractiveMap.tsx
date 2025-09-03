@@ -242,20 +242,23 @@ export default function SuperiorInteractiveMap() {
     setMapState(prev => ({ ...prev, isDragging: false }));
   };
 
-  // Get room style based on state
+  // Get room style based on state with fixed positioning
   const getRoomStyle = (room: Room) => {
+    // Center rooms within the map view  
+    const centerOffsetX = 400;
+    const centerOffsetY = 300;
+    
     const baseStyle = {
       position: 'absolute' as const,
-      left: `${room.mapPositionX + mapState.panOffset.x}px`,
-      top: `${room.mapPositionY + mapState.panOffset.y}px`,
-      width: `${(room.width || 40) * mapState.zoom}px`,
-      height: `${(room.height || 30) * mapState.zoom}px`,
+      left: `${room.mapPositionX + mapState.panOffset.x + centerOffsetX}px`,
+      top: `${room.mapPositionY + mapState.panOffset.y + centerOffsetY}px`,
+      width: `${(room.width || 40)}px`,
+      height: `${(room.height || 30)}px`,
       borderRadius: '8px',
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      transform: `scale(${mapState.zoom})`,
-      transformOrigin: 'top left',
       border: '2px solid',
+      zIndex: 10,
     };
 
     // Dynamic styling based on state
@@ -644,29 +647,50 @@ export default function SuperiorInteractiveMap() {
             }}
           />
 
-          {/* Buildings (Background Shapes) */}
-          {buildings.map(building => (
-            <div
-              key={building.id}
-              style={{
-                position: 'absolute',
-                left: `${(building.mapPositionX || 0) + mapState.panOffset.x}px`,
-                top: `${(building.mapPositionY || 0) + mapState.panOffset.y}px`,
-                width: `${(building.width || 200) * mapState.zoom}px`,
-                height: `${(building.height || 150) * mapState.zoom}px`,
-                backgroundColor: 'rgba(156, 163, 175, 0.2)',
-                border: '3px solid rgba(75, 85, 99, 0.3)',
-                borderRadius: '12px',
-                transform: `scale(${mapState.zoom})`,
-                transformOrigin: 'top left',
-              }}
-              className="pointer-events-none"
-            >
-              <div className="absolute -top-8 left-2 text-sm font-bold text-gray-600 dark:text-gray-400">
-                {building.nameEn || building.nameFi}
+          {/* Buildings (Background Shapes) - Fixed with Default Positions */}
+          {buildings.map((building, index) => {
+            // Assign default positions for buildings that don't have coordinates
+            const buildingPositions = {
+              'M': { x: -200, y: 50 },   // Music Building - left
+              'K': { x: 100, y: 0 },     // Central Hall - center
+              'L': { x: 350, y: 80 },    // Gym - right  
+              'OG': { x: 300, y: -150 }, // Old Gym - upper right
+              'U': { x: -100, y: -100 }, // U Building - upper left
+              'A': { x: 200, y: -80 },   // A Building - upper center
+              'R': { x: -50, y: 200 }    // R Building - lower center
+            };
+            
+            const defaultPos = buildingPositions[building.name] || { x: index * 150, y: 50 };
+            const posX = building.mapPositionX ?? defaultPos.x;
+            const posY = building.mapPositionY ?? defaultPos.y;
+            
+            return (
+              <div
+                key={building.id}
+                style={{
+                  position: 'absolute',
+                  left: `${posX + mapState.panOffset.x + 400}px`,
+                  top: `${posY + mapState.panOffset.y + 300}px`,
+                  width: `${(building.width || 250)}px`,
+                  height: `${(building.height || 180)}px`,
+                  backgroundColor: building.colorCode + '20' || 'rgba(59, 130, 246, 0.1)',
+                  border: `3px solid ${building.colorCode || 'rgba(59, 130, 246, 0.5)'}`,
+                  borderRadius: '12px',
+                  zIndex: 1,
+                }}
+                className="pointer-events-none"
+              >
+                <div className="absolute -top-10 left-2 text-sm font-bold text-gray-800 dark:text-gray-200 bg-white/90 dark:bg-gray-800/90 px-3 py-1 rounded shadow-lg border">
+                  {building.name} - {building.nameEn || building.nameFi}
+                </div>
+                
+                {/* Building icon */}
+                <div className="absolute top-3 right-3 opacity-60">
+                  <Building className="w-5 h-5" style={{ color: building.colorCode || '#3B82F6' }} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Hallways */}
           {hallways.map(hallway => (
