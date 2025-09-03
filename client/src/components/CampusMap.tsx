@@ -53,7 +53,7 @@ export default function CampusMap() {
   });
 
   // Get available floors
-  const availableFloors = [...new Set(rooms.map(room => room.floor))].sort();
+  const availableFloors = Array.from(new Set(rooms.map(room => room.floor))).sort();
 
   // Handle room click
   const handleRoomClick = (room: Room) => {

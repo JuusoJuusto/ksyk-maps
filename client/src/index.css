@@ -67,7 +67,8 @@
   /* Premium Button */
   .btn-premium {
     @apply relative overflow-hidden font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none !important;
   }
   
   .btn-premium::before {

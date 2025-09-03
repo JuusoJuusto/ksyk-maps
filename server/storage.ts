@@ -547,7 +547,7 @@ class MemStorage implements IStorage {
   async deleteEvent(id: string): Promise<void> { throw new Error("Not implemented"); }
 
   // Announcement operations
-  async getAnnouncements(isActive?: boolean): Promise<Announcement[]> { return []; }
+  async getAnnouncements(limit?: number): Promise<Announcement[]> { return []; }
   async getAnnouncement(id: string): Promise<Announcement | undefined> { return undefined; }
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> { throw new Error("Not implemented"); }
   async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement> { throw new Error("Not implemented"); }
