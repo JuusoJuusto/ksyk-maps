@@ -180,58 +180,58 @@ export default function CampusNavigator() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b px-4 py-3">
+    <div className="flex flex-col h-screen relative overflow-hidden">
+      {/* Premium Header */}
+      <div className="glass-card shadow-floating px-6 py-4 relative z-10 border-0 rounded-none backdrop-blur-xl bg-white/10 border-b border-white/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
 
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">KSYK Map</h1>
-              <p className="text-sm text-gray-600">by Owl Apps</p>
+            <div className="floating">
+              <h1 className="text-3xl font-bold gradient-text mb-1">KSYK Map</h1>
+              <p className="text-sm text-white/80 font-medium">by Owl Apps</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Button
-                variant={language === 'en' ? 'default' : 'outline'}
-                size="sm"
+              <button
+                className={`btn-premium px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                  language === 'en' ? 'shadow-glow' : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
                 onClick={() => setLanguage('en')}
               >
                 EN
-              </Button>
-              <Button
-                variant={language === 'fi' ? 'default' : 'outline'}
-                size="sm"
+              </button>
+              <button
+                className={`btn-premium px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                  language === 'fi' ? 'shadow-glow' : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
                 onClick={() => setLanguage('fi')}
               >
                 FI
-              </Button>
+              </button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={() => setLocation('/admin')}
-              className="flex items-center gap-2"
+              className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold shadow-premium hover:shadow-floating"
               data-testid="admin-button-desktop"
             >
               <Shield className="w-4 h-4" />
               Admin
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Upper Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Premium Navigation Tabs */}
+      <div className="glass-card border-0 rounded-none bg-white/5 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center justify-between px-4">
           <div className="flex">
             <button
               onClick={() => setActiveTab('map')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
                 activeTab === 'map'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
+                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
               }`}
               data-testid="map-tab"
             >
@@ -242,10 +242,10 @@ export default function CampusNavigator() {
             </button>
             <button
               onClick={() => setActiveTab('schedule')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
                 activeTab === 'schedule'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
+                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
               }`}
               data-testid="schedule-tab"
             >
@@ -256,10 +256,10 @@ export default function CampusNavigator() {
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all duration-300 touch-card ${
                 activeTab === 'settings'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-white text-white shadow-glow bg-white/10 rounded-t-lg'
+                  : 'border-transparent text-white/70 hover:text-white hover:bg-white/5 rounded-t-lg'
               }`}
               data-testid="settings-tab"
             >
@@ -269,68 +269,64 @@ export default function CampusNavigator() {
               </div>
             </button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            className="lg:hidden btn-premium flex items-center gap-2 px-4 py-2 rounded-lg shadow-premium hover:shadow-floating"
             data-testid="mobile-menu-button-desktop"
           >
             <Menu className="w-4 h-4" />
-            <span className="text-xs font-medium">
+            <span className="text-xs font-semibold">
               {language === 'fi' ? 'Valikko' : 'Menu'}
             </span>
-          </Button>
+          </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Side Tab - Desktop */}
+        {/* Premium Side Tab - Desktop */}
         <div className={`
           ${sideTabCollapsed ? 'w-[12px]' : 'w-80'} 
-          transition-all duration-300 ease-in-out
-          bg-white border-r border-gray-200 flex flex-col
-          hidden md:flex
+          transition-all duration-500 ease-in-out
+          glass-card border-r border-white/20 flex flex-col
+          hidden md:flex shadow-premium backdrop-blur-xl bg-white/10
         `}>
-          <div className="flex items-center justify-between p-2 border-b">
+          <div className="flex items-center justify-between p-4 border-b border-white/20 bg-white/5">
             {!sideTabCollapsed && (
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-semibold text-white/90">
                 {language === 'fi' ? 'Navigointi' : 'Navigation'}
               </span>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => setSideTabCollapsed(!sideTabCollapsed)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 btn-premium rounded-full hover:shadow-glow transition-all duration-300"
               data-testid="side-tab-toggle-desktop"
             >
               {sideTabCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
+            </button>
           </div>
           
           {!sideTabCollapsed && (
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
               {activeTab === 'map' && (
-                <div className="p-4">
-                  {/* Search */}
-                  <Card className="mb-4">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Search className="w-4 h-4" />
+                <div className="space-y-4">
+                  {/* Premium Search */}
+                  <div className="glass-card p-4 rounded-xl shadow-premium hover:shadow-floating transition-all duration-300">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-semibold text-white/90 flex items-center gap-2">
+                        <Search className="w-4 h-4 text-white/70" />
                         {language === 'fi' ? 'Hae huoneita' : 'Search Rooms'}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Input
+                      </h3>
+                    </div>
+                    <div>
+                      <input
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
-                        className="h-12 touch-manipulation text-base"
+                        className="w-full h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 transition-all duration-300 text-base"
                         data-testid="room-search-input-desktop"
                       />
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
 
                   {/* Floor Selector */}
                   <Card className="mb-4">
@@ -891,7 +887,7 @@ export default function CampusNavigator() {
               />
             )}
 
-            {/* Buildings */}
+            {/* Premium Buildings */}
             {buildings.map(building => (
               <g key={building.id}>
                 <rect
@@ -899,16 +895,19 @@ export default function CampusNavigator() {
                   y={building.mapPositionY - 40}
                   width="120"
                   height="80"
-                  fill={building.colorCode + "30"}
+                  fill={building.colorCode + "40"}
                   stroke={building.colorCode}
                   strokeWidth="3"
-                  rx="8"
+                  rx="12"
+                  className="hover:opacity-80 transition-all duration-300"
+                  style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}
                 />
                 <text
                   x={building.mapPositionX}
                   y={building.mapPositionY - 50}
                   textAnchor="middle"
-                  className="text-sm font-bold fill-gray-800"
+                  className="text-sm font-bold fill-white"
+                  style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
                 >
                   {building.name}
                 </text>
@@ -916,51 +915,75 @@ export default function CampusNavigator() {
                   x={building.mapPositionX}
                   y={building.mapPositionY - 35}
                   textAnchor="middle"
-                  className="text-xs fill-gray-600"
+                  className="text-xs fill-white"
+                  style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                 >
                   {getBuildingName(building)}
                 </text>
               </g>
             ))}
 
-            {/* Rooms */}
+            {/* Premium Rooms with Glow Effects */}
             {filteredRooms.map(room => (
               <g key={room.id}>
+                {/* Glow effect for selected rooms */}
+                {(startRoom?.id === room.id || endRoom?.id === room.id || selectedRoom?.id === room.id) && (
+                  <rect
+                    x={room.mapPositionX - room.width/2 - 8}
+                    y={room.mapPositionY - room.height/2 - 8}
+                    width={room.width + 16}
+                    height={room.height + 16}
+                    fill="none"
+                    stroke={startRoom?.id === room.id ? "#10b981" : endRoom?.id === room.id ? "#ef4444" : "#3b82f6"}
+                    strokeWidth="3"
+                    rx="12"
+                    className="animate-pulse"
+                    opacity="0.6"
+                  />
+                )}
                 <rect
                   x={room.mapPositionX - room.width/2}
                   y={room.mapPositionY - room.height/2}
                   width={room.width}
                   height={room.height}
                   fill={getRoomColor(room)}
-                  stroke={startRoom?.id === room.id ? "#059669" : endRoom?.id === room.id ? "#dc2626" : "#d1d5db"}
+                  stroke={startRoom?.id === room.id ? "#10b981" : endRoom?.id === room.id ? "#ef4444" : selectedRoom?.id === room.id ? "#3b82f6" : "rgba(255,255,255,0.3)"}
                   strokeWidth="2"
-                  rx="4"
-                  className="cursor-pointer hover:stroke-blue-500 transition-all duration-200"
+                  rx="6"
+                  className="cursor-pointer hover:stroke-white hover:stroke-4 transition-all duration-300 filter hover:brightness-110"
                   onClick={() => handleRoomClick(room)}
                   data-testid={`room-${room.roomNumber}`}
+                  style={{
+                    filter: (startRoom?.id === room.id || endRoom?.id === room.id || selectedRoom?.id === room.id) 
+                      ? 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.8))' 
+                      : 'none'
+                  }}
                 />
                 <text
                   x={room.mapPositionX}
                   y={room.mapPositionY}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="text-xs font-bold fill-gray-800 pointer-events-none"
+                  className="text-xs font-bold fill-white pointer-events-none"
+                  style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                 >
                   {room.roomNumber}
                 </text>
-                {/* Floor indicator */}
+                {/* Premium Floor indicator */}
                 <circle
                   cx={room.mapPositionX + room.width/2 - 10}
                   cy={room.mapPositionY - room.height/2 + 10}
                   r="8"
-                  fill="#3b82f6"
+                  fill="url(#floorGradient)"
                   className="pointer-events-none"
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
                 />
                 <text
                   x={room.mapPositionX + room.width/2 - 10}
                   y={room.mapPositionY - room.height/2 + 14}
                   textAnchor="middle"
                   className="text-[10px] font-bold fill-white pointer-events-none"
+                  style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}
                 >
                   {room.floor}
                 </text>
@@ -968,62 +991,56 @@ export default function CampusNavigator() {
             ))}
           </svg>
 
-          {/* Map Controls */}
-          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-            <Button 
-              onClick={handleZoomIn} 
-              size="sm" 
-              className="w-12 h-12 p-0 text-lg font-bold shadow-lg hover:scale-110 transition-transform"
+          {/* Premium Map Controls */}
+          <div className="absolute top-4 left-4 flex flex-col gap-3 z-10">
+            <button
+              onClick={handleZoomIn}
+              className="w-14 h-14 btn-premium rounded-xl shadow-floating hover:shadow-glow text-lg font-bold transition-all duration-300 hover:scale-110 touch-card"
               data-testid="zoom-in-button"
             >
               +
-            </Button>
-            <Button 
-              onClick={handleZoomOut} 
-              size="sm" 
-              className="w-12 h-12 p-0 text-lg font-bold shadow-lg hover:scale-110 transition-transform"
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-14 h-14 btn-premium rounded-xl shadow-floating hover:shadow-glow text-lg font-bold transition-all duration-300 hover:scale-110 touch-card"
               data-testid="zoom-out-button"
             >
               -
-            </Button>
-            <Button 
-              onClick={resetMap} 
-              size="sm" 
-              variant="outline" 
-              className="w-12 h-12 p-0 text-lg shadow-lg hover:scale-110 transition-transform"
+            </button>
+            <button
+              onClick={resetMap}
+              className="w-14 h-14 btn-premium rounded-xl shadow-floating hover:shadow-glow text-lg font-bold transition-all duration-300 hover:scale-110 touch-card"
               data-testid="reset-map-button"
             >
               ⌂
-            </Button>
+            </button>
           </div>
 
-          {/* Navigation Panel */}
+          {/* Premium Navigation Panel */}
           {(startRoom || endRoom) && (
-            <div className="absolute top-4 right-4 bg-white rounded-lg p-4 shadow-xl max-w-sm z-10">
+            <div className="absolute top-4 right-4 glass-card rounded-xl p-6 shadow-floating max-w-sm z-10 border border-white/20 backdrop-blur-xl bg-white/10">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-lg">
+                <h3 className="font-bold text-lg text-white/90">
                   {language === 'fi' ? 'Navigointi' : 'Navigation'}
                 </h3>
-                <Button 
-                  onClick={clearNavigation} 
-                  size="sm" 
-                  variant="outline"
-                  className="h-8 w-8 p-0"
+                <button
+                  onClick={clearNavigation}
+                  className="h-8 w-8 p-0 btn-premium rounded-lg text-sm hover:shadow-glow transition-all duration-300"
                   data-testid="clear-navigation-button"
                 >
                   ✕
-                </Button>
+                </button>
               </div>
               
               {startRoom && (
                 <div className="mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="font-medium text-sm">
+                    <span className="font-semibold text-sm text-white/90">
                       {language === 'fi' ? 'Lähtö:' : 'Start:'} {startRoom.roomNumber}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 ml-5">{getRoomName(startRoom)}</p>
+                  <p className="text-xs text-white/70 ml-5">{getRoomName(startRoom)}</p>
                 </div>
               )}
               
