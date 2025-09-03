@@ -197,6 +197,7 @@ export default function CampusNavigator() {
                 variant={language === 'en' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setLanguage('en')}
+                className={language === 'en' ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-600 text-blue-600 hover:bg-blue-50'}
               >
                 EN
               </Button>
@@ -204,6 +205,7 @@ export default function CampusNavigator() {
                 variant={language === 'fi' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setLanguage('fi')}
+                className={language === 'fi' ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-600 text-blue-600 hover:bg-blue-50'}
               >
                 FI
               </Button>
@@ -212,7 +214,7 @@ export default function CampusNavigator() {
               variant="outline"
               size="sm"
               onClick={() => setLocation('/admin')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
               data-testid="admin-button-desktop"
             >
               <Shield className="w-4 h-4" />
@@ -347,7 +349,11 @@ export default function CampusNavigator() {
                             variant={currentFloor === floor ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setCurrentFloor(floor)}
-                            className="h-12 touch-manipulation text-lg"
+                            className={`h-12 touch-manipulation text-lg ${
+                              currentFloor === floor 
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+                            }`}
                             data-testid={`floor-${floor}-button`}
                           >
                             {floor}
@@ -609,7 +615,11 @@ export default function CampusNavigator() {
                           variant={currentFloor === floor ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setCurrentFloor(floor)}
-                          className="h-12 touch-manipulation text-lg"
+                          className={`h-12 touch-manipulation text-lg ${
+                            currentFloor === floor 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+                          }`}
                           data-testid={`floor-${floor}-button`}
                         >
                           {floor}

@@ -186,7 +186,7 @@ export default function BuildingManagement() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog} data-testid="add-building-button">
+            <Button onClick={openCreateDialog} data-testid="add-building-button" className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Building
             </Button>
@@ -351,6 +351,7 @@ export default function BuildingManagement() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
                 >
                   Cancel
                 </Button>
@@ -358,6 +359,7 @@ export default function BuildingManagement() {
                   type="submit"
                   disabled={createBuildingMutation.isPending || updateBuildingMutation.isPending}
                   data-testid="save-building-button"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {editingBuilding ? "Update" : "Create"}
                 </Button>
@@ -426,6 +428,7 @@ export default function BuildingManagement() {
                     size="sm"
                     onClick={() => openEditDialog(building)}
                     data-testid={`edit-building-${building.id}`}
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
@@ -434,7 +437,7 @@ export default function BuildingManagement() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(building.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50"
                     data-testid={`delete-building-${building.id}`}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
@@ -455,7 +458,7 @@ export default function BuildingManagement() {
             <p className="text-muted-foreground mb-4">
               Get started by creating your first building.
             </p>
-            <Button onClick={openCreateDialog}>
+            <Button onClick={openCreateDialog} className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Building
             </Button>

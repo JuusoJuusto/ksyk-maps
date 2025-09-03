@@ -78,7 +78,7 @@ export default function Admin() {
                     alert('Dev login failed - check console for details');
                   }
                 }}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-lg transition-colors font-semibold text-lg shadow-md"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-4 rounded-lg transition-colors font-semibold text-lg shadow-md"
                 data-testid="dev-login-button"
               >
                 🚀 Quick Dev Login (Testing Only)
@@ -110,7 +110,7 @@ export default function Admin() {
             <p className="text-sm text-muted-foreground mb-8">Current user: {(user as any)?.email || 'Unknown'}</p>
             <button 
               onClick={() => window.location.href = "/"}
-              className="bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
             >
               Back to Home
             </button>
