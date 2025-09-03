@@ -432,7 +432,7 @@ export default function SuperiorInteractiveMap() {
                       key={floor}
                       variant={currentFloor === floor ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setCurrentFloor(floor)}
+                      onClick={() => setCurrentFloor(floor || 1)}
                       className={`h-7 md:h-8 px-2 md:px-3 text-xs font-medium min-w-[48px] touch-manipulation ${
                         currentFloor === floor 
                           ? 'bg-blue-600 text-white' 
