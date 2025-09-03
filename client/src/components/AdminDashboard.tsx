@@ -110,32 +110,32 @@ export default function AdminDashboard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <ScrollArea className="w-full">
-          <TabsList className="flex w-max min-w-full h-auto gap-1 p-1">
-            <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+          <TabsList className="flex w-max min-w-full h-auto gap-1 p-1 bg-blue-50">
+            <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="map" data-testid="tab-map" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="map" data-testid="tab-map" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Map className="w-4 h-4" />
               <span>Map</span>
             </TabsTrigger>
-            <TabsTrigger value="rooms" data-testid="tab-rooms" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="rooms" data-testid="tab-rooms" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <MapPin className="w-4 h-4" />
               <span>Rooms</span>
             </TabsTrigger>
-            <TabsTrigger value="floors" data-testid="tab-floors" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="floors" data-testid="tab-floors" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Layers className="w-4 h-4" />
               <span>Floors</span>
             </TabsTrigger>
-            <TabsTrigger value="hallways" data-testid="tab-hallways" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="hallways" data-testid="tab-hallways" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Route className="w-4 h-4" />
               <span>Hallways</span>
             </TabsTrigger>
-            <TabsTrigger value="buildings" data-testid="tab-buildings" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="buildings" data-testid="tab-buildings" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <BuildingIcon className="w-4 h-4" />
               <span>Buildings</span>
             </TabsTrigger>
-            <TabsTrigger value="staff" data-testid="tab-staff" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap">
+            <TabsTrigger value="staff" data-testid="tab-staff" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               <span>Staff</span>
             </TabsTrigger>
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         <TabsContent value="dashboard" className="space-y-6">
 
         {/* Navigation Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <Card className="touch-card">
             <CardContent className="p-3 md:p-6">
               {isLoadingBuildings ? (
@@ -389,9 +389,9 @@ export default function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-2 md:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                 <Button 
-                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-primary dark:bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 touch-target motion-reduce:transition-none motion-reduce:transform-none"
+                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800 touch-target w-full min-h-[4rem]"
                   onClick={() => setActiveTab("rooms")}
                   data-testid="admin-manage-rooms"
                 >
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                   <span className="text-xs md:text-sm font-medium text-center">Manage Rooms</span>
                 </Button>
                 <Button 
-                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-800 active:bg-green-800 dark:active:bg-green-900 touch-target motion-reduce:transition-none motion-reduce:transform-none"
+                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800 touch-target w-full min-h-[4rem]"
                   onClick={() => setActiveTab("map")}
                   data-testid="admin-map-editor"
                 >
@@ -407,7 +407,7 @@ export default function AdminDashboard() {
                   <span className="text-xs md:text-sm font-medium text-center">Map Editor</span>
                 </Button>
                 <Button 
-                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-800 active:bg-purple-800 dark:active:bg-purple-900 touch-target motion-reduce:transition-none motion-reduce:transform-none"
+                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800 touch-target w-full min-h-[4rem]"
                   onClick={() => setActiveTab("staff")}
                   data-testid="admin-manage-staff"
                 >
@@ -415,7 +415,7 @@ export default function AdminDashboard() {
                   <span className="text-xs md:text-sm font-medium text-center">Staff Management</span>
                 </Button>
                 <Button 
-                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-800 active:bg-orange-800 dark:active:bg-orange-900 touch-target motion-reduce:transition-none motion-reduce:transform-none"
+                  className="p-3 md:p-4 h-auto flex-col space-y-1 md:space-y-2 bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800 touch-target w-full min-h-[4rem]"
                   onClick={() => setActiveTab("buildings")}
                   data-testid="admin-manage-buildings"
                 >
