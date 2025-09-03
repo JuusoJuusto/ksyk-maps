@@ -4,6 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Touch-friendly components */
+  .touch-card {
+    @apply transition-all duration-200 hover:shadow-md active:scale-[0.98];
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  /* Line clamping for mobile */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 :root {
   --background: hsl(210, 20%, 98%);
   --foreground: hsl(210, 40%, 12%);
