@@ -5,7 +5,7 @@ import AdminDashboard from "@/components/AdminDashboard";
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   useEffect(() => {
     // Check authentication status once

@@ -27,8 +27,9 @@ export default function Header() {
   const handleNavigation = (from: string, to: string) => {
     // This will integrate with the map to show navigation
     console.log(`Navigation requested from ${from} to ${to}`);
-    // For now, show a success message
-    alert(`Route planned from ${from} to ${to}! Check the map for directions.`);
+    // For now, show a success message with more details
+    const message = `🧭 Navigation Route Planned!\n\nFrom: ${from}\nTo: ${to}\n\nThe route will be highlighted on the interactive campus map. Look for the blue path connecting your start and destination points.`;
+    alert(message);
   };
 
   return (

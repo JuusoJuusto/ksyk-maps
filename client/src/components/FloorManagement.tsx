@@ -56,8 +56,13 @@ export default function FloorManagement() {
     queryKey: ["/api/floors", selectedBuilding],
     queryFn: async (): Promise<Floor[]> => {
       try {
-        const response = await apiRequest(`/api/floors${selectedBuilding ? `?buildingId=${selectedBuilding}` : ""}`);
-        return response as Floor[];
+        const url = `/api/floors${selectedBuilding ? `?buildingId=${selectedBuilding}` : ""}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Failed to fetch floors');
+        }
+        const data = await response.json();
+        return data as Floor[];
       } catch (error) {
         console.error("Error fetching floors:", error);
         return [];
