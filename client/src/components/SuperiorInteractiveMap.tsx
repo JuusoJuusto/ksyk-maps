@@ -80,9 +80,16 @@ export default function SuperiorInteractiveMap() {
     room.nameFi?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Enhanced room click handler
+  // Fixed room click handler that doesn't interfere with dragging
   const handleRoomClick = (room: Room, event: React.MouseEvent) => {
     event.stopPropagation();
+    
+    // Don't handle clicks if we're dragging
+    if (mapState.isDragging) {
+      return;
+    }
+    
+    console.log("Room clicked:", room.roomNumber);
     
     if (!navigation.isNavigating) {
       // Start navigation mode
@@ -92,13 +99,16 @@ export default function SuperiorInteractiveMap() {
         isNavigating: true
       }));
       setSelectedRoom(room);
+      console.log("Started navigation from:", room.roomNumber);
     } else if (!navigation.to) {
       // Set destination and calculate route
+      const route = calculateRoute(navigation.from!, room);
       setNavigation(prev => ({
         ...prev,
         to: room,
-        route: calculateRoute(prev.from!, room)
+        route: route
       }));
+      console.log("Navigation route calculated from", navigation.from?.roomNumber, "to", room.roomNumber);
     } else {
       // Reset navigation
       setNavigation({
@@ -108,6 +118,7 @@ export default function SuperiorInteractiveMap() {
         isNavigating: true
       });
       setSelectedRoom(room);
+      console.log("Reset navigation, new start:", room.roomNumber);
     }
   };
 
@@ -157,21 +168,25 @@ export default function SuperiorInteractiveMap() {
     setSelectedRoom(null);
   };
 
-  // Enhanced mouse interaction handlers
-  const handleMouseDown = (event: React.MouseEvent) => {
-    // Only start dragging if clicking on the background, not on rooms
+  // Fixed mouse interaction handlers
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Only start dragging if not clicking on a room
     const target = event.target as HTMLElement;
-    if (target === mapRef.current || target.classList.contains('map-background')) {
+    const isRoom = target.closest('[data-testid^="room-"]');
+    
+    if (!isRoom) {
       event.preventDefault();
+      document.body.style.userSelect = 'none';
       setMapState(prev => ({
         ...prev,
         isDragging: true,
         lastMousePos: { x: event.clientX, y: event.clientY }
       }));
+      console.log("Started dragging");
     }
   };
 
-  const handleMouseMove = (event: React.MouseEvent) => {
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (mapState.isDragging) {
       event.preventDefault();
       const deltaX = event.clientX - mapState.lastMousePos.x;
@@ -189,6 +204,7 @@ export default function SuperiorInteractiveMap() {
   };
 
   const handleMouseUp = () => {
+    document.body.style.userSelect = 'auto';
     setMapState(prev => ({ ...prev, isDragging: false }));
   };
 
@@ -600,20 +616,17 @@ export default function SuperiorInteractiveMap() {
           </div>
         )}
 
-        {/* Enhanced Interactive Map with Better Dragging */}
+        {/* Fixed Interactive Map with Working Dragging */}
         <div 
           ref={mapRef}
-          className="map-background relative w-full h-full overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 select-none"
+          className="relative w-full h-full overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 select-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
           style={{ 
             cursor: mapState.isDragging ? 'grabbing' : 'grab',
-            touchAction: 'none'
+            userSelect: 'none'
           }}
           data-testid="interactive-map"
         >
