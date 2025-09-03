@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
 
 export default function Admin() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
