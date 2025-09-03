@@ -9,13 +9,15 @@ import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
 if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+  console.warn("Environment variable REPLIT_DOMAINS not provided, using fallback");
 }
 
 const getOidcConfig = memoize(
   async () => {
+    const issuerUrl = process.env.ISSUER_URL || "https://replit.com/oidc";
+    console.log("Setting up OIDC config with issuer:", issuerUrl);
     return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      new URL(issuerUrl),
       process.env.REPL_ID!
     );
   },
@@ -27,7 +29,7 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true, // Allow creating sessions table if missing
     ttl: sessionTtl,
     tableName: "sessions",
   });
@@ -38,8 +40,9 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
       maxAge: sessionTtl,
+      sameSite: 'lax', // Necessary for OAuth flows
     },
   });
 }
@@ -84,8 +87,10 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  const domains = process.env.REPLIT_DOMAINS?.split(",") || [];
+  console.log("Setting up auth for domains:", domains);
+  
+  for (const domain of domains) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -96,21 +101,46 @@ export async function setupAuth(app: Express) {
       verify,
     );
     passport.use(strategy);
+    console.log(`Configured auth strategy for domain: ${domain}`);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    const hostname = req.hostname;
+    const domains = process.env.REPLIT_DOMAINS?.split(",") || [];
+    const matchingDomain = domains.find(d => d.includes(hostname) || hostname.includes(d)) || domains[0];
+    const strategyName = `replitauth:${matchingDomain}`;
+    
+    console.log(`Login attempt - hostname: ${hostname}, using domain: ${matchingDomain}, strategy: ${strategyName}`);
+    
+    if (!matchingDomain) {
+      console.error("No matching domain found for hostname:", hostname);
+      return res.status(500).json({ error: "Authentication not configured for this domain" });
+    }
+    
+    try {
+      passport.authenticate(strategyName, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    } catch (error) {
+      console.error("Authentication error:", error);
+      res.status(500).json({ error: "Authentication configuration error" });
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
+    const hostname = req.hostname;
+    const domains = process.env.REPLIT_DOMAINS?.split(",") || [];
+    const matchingDomain = domains.find(d => d.includes(hostname) || hostname.includes(d)) || domains[0];
+    const strategyName = `replitauth:${matchingDomain}`;
+    
+    console.log(`Callback - hostname: ${hostname}, using domain: ${matchingDomain}, strategy: ${strategyName}`);
+    
+    passport.authenticate(strategyName, {
+      successReturnToOrRedirect: "/admin",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
