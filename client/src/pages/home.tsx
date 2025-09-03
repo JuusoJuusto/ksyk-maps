@@ -1,5 +1,5 @@
-import MinimalMap from "@/components/MinimalMap";
+import WorkingMap from "@/components/WorkingMap";
 
 export default function Home() {
-  return <MinimalMap />;
+  return <WorkingMap />;
 }
