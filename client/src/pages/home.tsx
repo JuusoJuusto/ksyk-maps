@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
-import InteractiveMap from "@/components/InteractiveMap";
+import SuperiorInteractiveMap from "@/components/SuperiorInteractiveMap";
 import StaffDirectory from "@/components/StaffDirectory";
 import QuickActions from "@/components/QuickActions";
 import { useTranslation } from "react-i18next";
@@ -53,16 +53,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Interactive Map Section */}
-          <div className="lg:col-span-2">
-            <InteractiveMap />
-          </div>
-          
-          {/* Quick Actions & Information */}
-          <div className="space-y-6">
-            <QuickActions />
-          </div>
+        {/* Full-Screen Interactive Map */}
+        <div className="h-[calc(100vh-200px)] relative">
+          <SuperiorInteractiveMap />
         </div>
         
         {/* Staff Directory Section */}
