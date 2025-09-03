@@ -45,8 +45,11 @@ export default function CampusNavigator() {
   const [language, setLanguage] = useState<'en' | 'fi'>('en');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mapScale, setMapScale] = useState(1);
-  const [mapPanX, setMapPanX] = useState(0);
-  const [mapPanY, setMapPanY] = useState(0);
+  const [mapTransform, setMapTransform] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragThreshold, setDragThreshold] = useState(false);
+  const [showDirections, setShowDirections] = useState(false);
 
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ['/api/buildings'],
@@ -65,6 +68,9 @@ export default function CampusNavigator() {
   );
 
   const handleRoomClick = (room: Room) => {
+    // Prevent room clicks during dragging
+    if (dragThreshold) return;
+    
     if (!startRoom) {
       setStartRoom(room);
       setSelectedRoom(room);
@@ -81,6 +87,7 @@ export default function CampusNavigator() {
     setStartRoom(null);
     setEndRoom(null);
     setSelectedRoom(null);
+    setShowDirections(false);
   };
 
   const getRoomColor = (room: Room) => {
@@ -108,8 +115,65 @@ export default function CampusNavigator() {
 
   const resetMap = () => {
     setMapScale(1);
-    setMapPanX(0);
-    setMapPanY(0);
+    setMapTransform({ x: 0, y: 0 });
+  };
+
+  const handleMapMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragThreshold(false);
+    setDragStart({ 
+      x: e.clientX - mapTransform.x, 
+      y: e.clientY - mapTransform.y 
+    });
+  };
+
+  const handleMapMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    
+    // Check if user has moved beyond threshold to prevent accidental clicks
+    if (Math.abs(deltaX - mapTransform.x) > 5 || Math.abs(deltaY - mapTransform.y) > 5) {
+      setDragThreshold(true);
+    }
+    
+    setMapTransform({ x: deltaX, y: deltaY });
+  };
+
+  const handleMapMouseUp = () => {
+    setIsDragging(false);
+    // Reset drag threshold after a delay to allow for click events
+    setTimeout(() => setDragThreshold(false), 100);
+  };
+
+
+  const getDirections = () => {
+    if (!startRoom || !endRoom) return [];
+    const directions = [];
+    
+    // Floor navigation
+    if (startRoom.floor !== endRoom.floor) {
+      directions.push(language === 'fi' 
+        ? `Siirry kerroksesta ${startRoom.floor} kerrokseen ${endRoom.floor}`
+        : `Go from floor ${startRoom.floor} to floor ${endRoom.floor}`);
+    }
+    
+    // Building navigation
+    const startBuilding = buildings.find(b => b.id === startRoom.buildingId);
+    const endBuilding = buildings.find(b => b.id === endRoom.buildingId);
+    
+    if (startBuilding?.id !== endBuilding?.id) {
+      directions.push(language === 'fi'
+        ? `Siirry rakennuksesta ${startBuilding?.name} rakennukseen ${endBuilding?.name}`
+        : `Go from ${startBuilding?.name} building to ${endBuilding?.name} building`);
+    }
+    
+    directions.push(language === 'fi'
+      ? `Saavu huoneeseen ${endRoom.roomNumber}`
+      : `Arrive at room ${endRoom.roomNumber}`);
+    
+    return directions;
   };
 
   return (
@@ -150,10 +214,25 @@ export default function CampusNavigator() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 bg-white border-r flex flex-col overflow-hidden lg:w-80`}>
-          <div className="p-4">
+        <div className={`
+          ${sidebarOpen ? 'w-80' : 'w-0'} 
+          transition-all duration-300 ease-in-out
+          bg-white border-r border-gray-200 flex flex-col
+          ${!sidebarOpen && 'overflow-hidden'}
+          md:relative absolute inset-y-0 left-0 z-30 shadow-xl md:shadow-none
+        `}>
+        
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-20 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+            data-testid="sidebar-overlay"
+          />
+        )}
+          <div className="p-4 overflow-y-auto flex-1">
             {/* Search */}
             <Card className="mb-4">
               <CardHeader className="pb-3">
@@ -167,6 +246,8 @@ export default function CampusNavigator() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
+                  className="h-12 touch-manipulation text-base"
+                  data-testid="room-search-input"
                 />
               </CardContent>
             </Card>
@@ -186,6 +267,8 @@ export default function CampusNavigator() {
                       variant={currentFloor === floor ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCurrentFloor(floor)}
+                      className="h-12 touch-manipulation text-lg"
+                      data-testid={`floor-${floor}-button`}
                     >
                       {floor}
                     </Button>
@@ -271,6 +354,7 @@ export default function CampusNavigator() {
                       key={room.id}
                       onClick={() => handleRoomClick(room)}
                       className="w-full text-left p-2 hover:bg-gray-50 rounded-md border border-gray-200"
+                      data-testid={`search-result-${room.roomNumber}`}
                     >
                       <div className="font-medium text-sm">{room.roomNumber}</div>
                       <div className="text-xs text-gray-600">{getRoomName(room)}</div>
@@ -290,8 +374,44 @@ export default function CampusNavigator() {
           <svg 
             width="100%" 
             height="100%" 
-            viewBox={`${-400/mapScale + mapPanX} ${-300/mapScale + mapPanY} ${800/mapScale} ${600/mapScale}`}
-            className="absolute inset-0"
+            viewBox="-400 -300 800 600"
+            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            style={{ 
+              touchAction: 'none',
+              transform: `scale(${mapScale}) translate(${mapTransform.x}px, ${mapTransform.y}px)`
+            }}
+            onMouseDown={handleMapMouseDown}
+            onMouseMove={handleMapMouseMove}
+            onMouseUp={handleMapMouseUp}
+            onMouseLeave={handleMapMouseUp}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              setIsDragging(true);
+              setDragThreshold(false);
+              setDragStart({ 
+                x: touch.clientX - mapTransform.x, 
+                y: touch.clientY - mapTransform.y 
+              });
+            }}
+            onTouchMove={(e) => {
+              if (!isDragging) return;
+              e.preventDefault();
+              const touch = e.touches[0];
+              const deltaX = touch.clientX - dragStart.x;
+              const deltaY = touch.clientY - dragStart.y;
+              
+              // Check movement threshold
+              if (Math.abs(deltaX - mapTransform.x) > 5 || Math.abs(deltaY - mapTransform.y) > 5) {
+                setDragThreshold(true);
+              }
+              
+              setMapTransform({ x: deltaX, y: deltaY });
+            }}
+            onTouchEnd={() => {
+              setIsDragging(false);
+              setTimeout(() => setDragThreshold(false), 100);
+            }}
+            data-testid="interactive-map"
           >
             {/* Grid Background */}
             <defs>
@@ -361,6 +481,7 @@ export default function CampusNavigator() {
                   rx="4"
                   className="cursor-pointer hover:stroke-blue-500 transition-all duration-200"
                   onClick={() => handleRoomClick(room)}
+                  data-testid={`room-${room.roomNumber}`}
                 />
                 <text
                   x={room.mapPositionX}
@@ -393,16 +514,108 @@ export default function CampusNavigator() {
 
           {/* Map Controls */}
           <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-            <Button onClick={handleZoomIn} size="sm" className="w-10 h-10 p-0">
+            <Button 
+              onClick={handleZoomIn} 
+              size="sm" 
+              className="w-12 h-12 p-0 text-lg font-bold shadow-lg hover:scale-110 transition-transform"
+              data-testid="zoom-in-button"
+            >
               +
             </Button>
-            <Button onClick={handleZoomOut} size="sm" className="w-10 h-10 p-0">
+            <Button 
+              onClick={handleZoomOut} 
+              size="sm" 
+              className="w-12 h-12 p-0 text-lg font-bold shadow-lg hover:scale-110 transition-transform"
+              data-testid="zoom-out-button"
+            >
               -
             </Button>
-            <Button onClick={resetMap} size="sm" variant="outline" className="w-10 h-10 p-0">
+            <Button 
+              onClick={resetMap} 
+              size="sm" 
+              variant="outline" 
+              className="w-12 h-12 p-0 text-lg shadow-lg hover:scale-110 transition-transform"
+              data-testid="reset-map-button"
+            >
               ⌂
             </Button>
           </div>
+
+          {/* Navigation Panel */}
+          {(startRoom || endRoom) && (
+            <div className="absolute top-4 right-4 bg-white rounded-lg p-4 shadow-xl max-w-sm z-10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-lg">
+                  {language === 'fi' ? 'Navigointi' : 'Navigation'}
+                </h3>
+                <Button 
+                  onClick={clearNavigation} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  data-testid="clear-navigation-button"
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              {startRoom && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="font-medium text-sm">
+                      {language === 'fi' ? 'Lähtö:' : 'Start:'} {startRoom.roomNumber}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 ml-5">{getRoomName(startRoom)}</p>
+                </div>
+              )}
+              
+              {endRoom && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="font-medium text-sm">
+                      {language === 'fi' ? 'Määränpää:' : 'Destination:'} {endRoom.roomNumber}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 ml-5">{getRoomName(endRoom)}</p>
+                </div>
+              )}
+
+              {startRoom && endRoom && (
+                <div>
+                  <Button
+                    onClick={() => setShowDirections(!showDirections)}
+                    size="sm"
+                    className="w-full mb-2"
+                    data-testid="show-directions-button"
+                  >
+                    {showDirections 
+                      ? (language === 'fi' ? 'Piilota ohjeet' : 'Hide Directions')
+                      : (language === 'fi' ? 'Näytä ohjeet' : 'Show Directions')
+                    }
+                  </Button>
+                  
+                  {showDirections && (
+                    <div className="bg-blue-50 rounded p-3">
+                      <h4 className="font-medium text-sm mb-2">
+                        {language === 'fi' ? 'Reittiohje:' : 'Directions:'}
+                      </h4>
+                      <ol className="text-xs space-y-1">
+                        {getDirections().map((direction, index) => (
+                          <li key={index} className="flex">
+                            <span className="font-medium mr-2">{index + 1}.</span>
+                            <span>{direction}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Map Instructions */}
           <div className="absolute bottom-4 right-4 bg-white rounded-lg p-3 shadow-lg max-w-xs">
@@ -417,8 +630,8 @@ export default function CampusNavigator() {
             </div>
           </div>
 
-          {/* Buildings Legend */}
-          <div className="absolute top-4 right-4 bg-white rounded-lg p-3 shadow-lg">
+          {/* Buildings Legend - Moved to bottom-left to avoid collision with Navigation Panel */}
+          <div className="absolute bottom-20 left-4 bg-white rounded-lg p-3 shadow-lg max-w-xs">
             <div className="text-sm font-medium mb-2">
               {language === 'fi' ? 'Rakennukset:' : 'Buildings:'}
             </div>
@@ -428,8 +641,9 @@ export default function CampusNavigator() {
                   <div 
                     className="w-3 h-3 rounded-sm" 
                     style={{ backgroundColor: building.colorCode }}
+                    data-testid={`building-color-${building.id}`}
                   ></div>
-                  <span>{building.name} - {getBuildingName(building)}</span>
+                  <span data-testid={`building-name-${building.id}`}>{building.name} - {getBuildingName(building)}</span>
                 </div>
               ))}
             </div>
