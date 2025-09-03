@@ -129,6 +129,18 @@ export default function Header() {
               </button>
             </div>
             
+            {/* Help Button */}
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => {}}
+              className="hidden sm:flex items-center space-x-2"
+              data-testid="button-help"
+            >
+              <i className="fas fa-question-circle text-sm"></i>
+              <span className="text-sm font-medium">Help</span>
+            </Button>
+            
             {/* Admin Panel Link */}
             <Link href="/admin">
               <Button 

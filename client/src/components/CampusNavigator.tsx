@@ -213,6 +213,16 @@ export default function CampusNavigator() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => {}}
+              className="flex items-center gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+              data-testid="help-button-desktop"
+            >
+              <i className="fas fa-question-circle w-4 h-4" />
+              Help
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setLocation('/admin')}
               className="flex items-center gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
               data-testid="admin-button-desktop"
@@ -329,7 +339,7 @@ export default function CampusNavigator() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
                         className="h-12 touch-manipulation text-base"
-                        data-testid="room-search-input-desktop"
+                        data-testid="search-input"
                       />
                     </CardContent>
                   </Card>
@@ -354,7 +364,7 @@ export default function CampusNavigator() {
                                 ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                 : 'border-blue-600 text-blue-600 hover:bg-blue-50'
                             }`}
-                            data-testid={`floor-${floor}-button`}
+                            data-testid={`floor-${floor}`}
                           >
                             {floor}
                           </Button>
