@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Navigation, MapPin, Users, Calendar, Settings, Menu } from "lucide-react";
+import { useLocation } from "wouter";
+import { Search, Navigation, MapPin, Users, Calendar, Settings, Menu, ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Building {
   id: string;
@@ -50,6 +50,9 @@ export default function CampusNavigator() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragThreshold, setDragThreshold] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
+  const [activeTab, setActiveTab] = useState<'map' | 'schedule' | 'settings'>('map');
+  const [sideTabCollapsed, setSideTabCollapsed] = useState(false);
+  const [location, setLocation] = useLocation();
 
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ['/api/buildings'],
@@ -182,46 +185,359 @@ export default function CampusNavigator() {
       <div className="bg-white shadow-sm border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
-            >
-              <Menu className="w-4 h-4" />
-            </Button>
+
             <div>
               <h1 className="text-2xl font-bold text-gray-900">KSYK Map</h1>
               <p className="text-sm text-gray-600">by Owl Apps</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={language === 'en' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLanguage('en')}
+              >
+                EN
+              </Button>
+              <Button
+                variant={language === 'fi' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLanguage('fi')}
+              >
+                FI
+              </Button>
+            </div>
             <Button
-              variant={language === 'en' ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
-              onClick={() => setLanguage('en')}
+              onClick={() => setLocation('/admin')}
+              className="flex items-center gap-2"
+              data-testid="admin-button-desktop"
             >
-              EN
-            </Button>
-            <Button
-              variant={language === 'fi' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setLanguage('fi')}
-            >
-              FI
+              <Shield className="w-4 h-4" />
+              Admin
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Upper Navigation Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-4">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'map'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              data-testid="map-tab"
+            >
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                {language === 'fi' ? 'Kartta' : 'Map'}
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'schedule'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              data-testid="schedule-tab"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {language === 'fi' ? 'Aikataulu' : 'Schedule'}
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'settings'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              data-testid="settings-tab"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                {language === 'fi' ? 'Asetukset' : 'Settings'}
+              </div>
+            </button>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden"
+            data-testid="mobile-menu-button-desktop"
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar */}
+        {/* Side Tab - Desktop */}
+        <div className={`
+          ${sideTabCollapsed ? 'w-[12px]' : 'w-80'} 
+          transition-all duration-300 ease-in-out
+          bg-white border-r border-gray-200 flex flex-col
+          hidden md:flex
+        `}>
+          <div className="flex items-center justify-between p-2 border-b">
+            {!sideTabCollapsed && (
+              <span className="text-sm font-medium text-gray-700">
+                {language === 'fi' ? 'Navigointi' : 'Navigation'}
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSideTabCollapsed(!sideTabCollapsed)}
+              className="h-8 w-8 p-0"
+              data-testid="side-tab-toggle-desktop"
+            >
+              {sideTabCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </Button>
+          </div>
+          
+          {!sideTabCollapsed && (
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === 'map' && (
+                <div className="p-4">
+                  {/* Search */}
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        {language === 'fi' ? 'Hae huoneita' : 'Search Rooms'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder={language === 'fi' ? 'Huoneen numero tai nimi...' : 'Room number or name...'}
+                        className="h-12 touch-manipulation text-base"
+                        data-testid="room-search-input-desktop"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Floor Selector */}
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">
+                        {language === 'fi' ? 'Kerros' : 'Floor'} ({filteredRooms.length} {language === 'fi' ? 'huonetta' : 'rooms'})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[1, 2, 3].map(floor => (
+                          <Button
+                            key={floor}
+                            variant={currentFloor === floor ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setCurrentFloor(floor)}
+                            className="h-12 touch-manipulation text-lg"
+                            data-testid={`floor-${floor}-button`}
+                          >
+                            {floor}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Navigation Status */}
+                  {startRoom && (
+                    <Card className="mb-4">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Navigation className="w-4 h-4" />
+                          {language === 'fi' ? 'Navigointi' : 'Navigation'}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-sm">{startRoom.roomNumber}</span>
+                        </div>
+                        {endRoom && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <span className="text-sm">{endRoom.roomNumber}</span>
+                          </div>
+                        )}
+                        <Button
+                          onClick={clearNavigation}
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-10 touch-manipulation"
+                          data-testid="sidebar-clear-route-button"
+                        >
+                          {language === 'fi' ? 'Tyhjennä reitti' : 'Clear Route'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Room List */}
+                  <div className="space-y-2">
+                    {filteredRooms.length === 0 && (
+                      <p className="text-center text-gray-500 py-8 text-base">
+                        {language === 'fi' ? 'Ei huoneita löytynyt' : 'No rooms found'}
+                      </p>
+                    )}
+                    {filteredRooms.map(room => (
+                      <div 
+                        key={room.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all touch-manipulation min-h-[80px] ${
+                          selectedRoom?.id === room.id 
+                            ? 'border-blue-500 bg-blue-50 shadow-md' 
+                            : startRoom?.id === room.id
+                            ? 'border-green-500 bg-green-50 shadow-md'
+                            : endRoom?.id === room.id
+                            ? 'border-red-500 bg-red-50 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                        onClick={() => {
+                          handleRoomClick(room);
+                          setSelectedRoom(room);
+                        }}
+                        data-testid={`room-${room.roomNumber}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-semibold text-base mb-1">{room.roomNumber}</div>
+                            <div className="text-sm text-gray-600">{getRoomName(room)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">
+                              {language === 'fi' ? 'Kerros' : 'Floor'} {room.floor}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {room.capacity} {language === 'fi' ? 'paikkaa' : 'seats'}
+                            </div>
+                          </div>
+                        </div>
+                        {room.equipment && room.equipment.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {room.equipment.slice(0, 3).map((item, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs px-2 py-1">
+                                {item.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                            {room.equipment.length > 3 && (
+                              <Badge variant="outline" className="text-xs px-2 py-1">
+                                +{room.equipment.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'schedule' && (
+                <div className="p-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {language === 'fi' ? 'Lukujärjestys' : 'Class Schedule'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600">
+                        {language === 'fi' 
+                          ? 'Lukujärjestystoiminto tulossa pian. Tässä näytetään koulujen tunnit ja tapahtumat.'
+                          : 'Schedule feature coming soon. This will show class times and school events.'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              
+              {activeTab === 'settings' && (
+                <div className="p-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        {language === 'fi' ? 'Asetukset' : 'Settings'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          {language === 'fi' ? 'Kieli' : 'Language'}
+                        </label>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant={language === 'en' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setLanguage('en')}
+                            className="flex-1"
+                          >
+                            English
+                          </Button>
+                          <Button
+                            variant={language === 'fi' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setLanguage('fi')}
+                            className="flex-1"
+                          >
+                            Suomi
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          {language === 'fi' ? 'Kartan asetukset' : 'Map Settings'}
+                        </label>
+                        <div className="mt-2 space-y-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetMap}
+                            className="w-full"
+                          >
+                            {language === 'fi' ? 'Nollaa kartta' : 'Reset Map View'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearNavigation}
+                            className="w-full"
+                          >
+                            {language === 'fi' ? 'Tyhjennä navigointi' : 'Clear Navigation'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Sidebar */}
         <div className={`
           ${sidebarOpen ? 'w-80' : 'w-0'} 
           transition-all duration-300 ease-in-out
           bg-white border-r border-gray-200 flex flex-col
           ${!sidebarOpen && 'overflow-hidden'}
-          md:relative absolute inset-y-0 left-0 z-30 shadow-xl md:shadow-none
+          md:hidden absolute inset-y-0 left-0 z-30 shadow-xl
         `}>
         
         {/* Mobile Overlay */}
