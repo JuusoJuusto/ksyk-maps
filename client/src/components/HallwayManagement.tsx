@@ -245,7 +245,7 @@ export default function HallwayManagement() {
                         <SelectValue placeholder="Select floor (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No specific floor</SelectItem>
+                        <SelectItem value="none">No specific floor</SelectItem>
                         {floors.map((floor: Floor) => (
                           <SelectItem key={floor.id} value={floor.id}>
                             {floor.name || `Floor ${floor.floorNumber}`}
@@ -441,7 +441,7 @@ export default function HallwayManagement() {
               <SelectValue placeholder="Filter by building" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Buildings</SelectItem>
+              <SelectItem value="all">All Buildings</SelectItem>
               {buildings.map((building) => (
                 <SelectItem key={building.id} value={building.id}>
                   {building.name} - {building.nameEn || building.nameFi}
@@ -456,7 +456,7 @@ export default function HallwayManagement() {
                 <SelectValue placeholder="Filter by floor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Floors</SelectItem>
+                <SelectItem value="all">All Floors</SelectItem>
                 {floors.map((floor: Floor) => (
                   <SelectItem key={floor.id} value={floor.id}>
                     {floor.name || `Floor ${floor.floorNumber}`}

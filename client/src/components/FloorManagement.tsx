@@ -311,7 +311,7 @@ export default function FloorManagement() {
               <SelectValue placeholder="Filter by building" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Buildings</SelectItem>
+              <SelectItem value="all">All Buildings</SelectItem>
               {buildings.map((building) => (
                 <SelectItem key={building.id} value={building.id}>
                   {building.name} - {building.nameEn || building.nameFi}
