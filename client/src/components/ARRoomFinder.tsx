@@ -97,7 +97,7 @@ export function ARRoomFinder() {
   useEffect(() => {
     // Check for AR support
     const checkARSupport = () => {
-      const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
       const hasOrientation = typeof DeviceOrientationEvent !== 'undefined';
       const hasGeolocation = 'geolocation' in navigator;
       

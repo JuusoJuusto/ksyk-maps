@@ -6,9 +6,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { HelpProvider } from "@/contexts/HelpContext";
 import { HelpBubble } from "@/components/HelpBubble";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
+import Features from "@/pages/features";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -17,6 +19,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/admin" component={Admin} />
+      <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route component={NotFound} />
     </Switch>
@@ -25,16 +28,18 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <HelpProvider>
-          <HelpBubble>
-            <Toaster />
-            <Router />
-          </HelpBubble>
-        </HelpProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <HelpProvider>
+            <HelpBubble>
+              <Toaster />
+              <Router />
+            </HelpBubble>
+          </HelpProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
