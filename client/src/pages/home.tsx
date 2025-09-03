@@ -1,5 +1,5 @@
-import CampusMap from "@/components/CampusMap";
+import SimpleMap from "@/components/SimpleMap";
 
 export default function Home() {
-  return <CampusMap />;
+  return <SimpleMap />;
 }
