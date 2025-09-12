@@ -9,9 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { BarChart3, Users, MapPin, Clock, TrendingUp, Eye, Navigation, Calendar, Settings, Building as BuildingIcon, Map, Layers, Route } from "lucide-react";
-import RoomManagement from "@/components/RoomManagement";
-import FloorManagement from "@/components/FloorManagement";
-import HallwayManagement from "@/components/HallwayManagement";
+import { EnhancedRoomManagement } from "@/components/EnhancedRoomManagement";
 import BuildingManagement from "@/components/BuildingManagement";
 import InteractiveMapEditor from "@/components/InteractiveMapEditor";
 import type { Staff, Building as BuildingType, Room } from "@shared/schema";
@@ -111,33 +109,21 @@ export default function AdminDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <ScrollArea className="w-full">
           <TabsList className="flex w-max min-w-full h-auto gap-1 p-1 bg-blue-50">
-            <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="flex items-center gap-2 px-4 md:px-6 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4" />
-              <span>Dashboard</span>
+              <span>Analytics Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="map" data-testid="tab-map" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Map className="w-4 h-4" />
-              <span>Map</span>
-            </TabsTrigger>
-            <TabsTrigger value="rooms" data-testid="tab-rooms" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <TabsTrigger value="rooms" data-testid="tab-rooms" className="flex items-center gap-2 px-4 md:px-6 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <MapPin className="w-4 h-4" />
-              <span>Rooms</span>
+              <span>Classroom Management</span>
             </TabsTrigger>
-            <TabsTrigger value="floors" data-testid="tab-floors" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Layers className="w-4 h-4" />
-              <span>Floors</span>
-            </TabsTrigger>
-            <TabsTrigger value="hallways" data-testid="tab-hallways" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Route className="w-4 h-4" />
-              <span>Hallways</span>
-            </TabsTrigger>
-            <TabsTrigger value="buildings" data-testid="tab-buildings" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <TabsTrigger value="buildings" data-testid="tab-buildings" className="flex items-center gap-2 px-4 md:px-6 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <BuildingIcon className="w-4 h-4" />
-              <span>Buildings</span>
+              <span>Building Management</span>
             </TabsTrigger>
-            <TabsTrigger value="staff" data-testid="tab-staff" className="flex items-center gap-2 px-2 md:px-4 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Users className="w-4 h-4" />
-              <span>Staff</span>
+            <TabsTrigger value="map" data-testid="tab-map" className="flex items-center gap-2 px-4 md:px-6 whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Map className="w-4 h-4" />
+              <span>Interactive Map</span>
             </TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -433,27 +419,11 @@ export default function AdminDashboard() {
         </TabsContent>
         
         <TabsContent value="rooms">
-          <RoomManagement />
-        </TabsContent>
-        
-        <TabsContent value="floors">
-          <FloorManagement />
-        </TabsContent>
-        
-        <TabsContent value="hallways">
-          <HallwayManagement />
+          <EnhancedRoomManagement />
         </TabsContent>
         
         <TabsContent value="buildings">
           <BuildingManagement />
-        </TabsContent>
-        
-        <TabsContent value="staff">
-          <div className="p-6 text-center">
-            <Users className="text-4xl text-muted-foreground mb-4 mx-auto w-16 h-16" />
-            <h3 className="text-lg font-semibold mb-2">Staff Management</h3>
-            <p className="text-muted-foreground">Staff management features coming soon.</p>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

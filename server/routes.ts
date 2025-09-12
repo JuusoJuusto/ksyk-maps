@@ -23,28 +23,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin login endpoint
+  app.post('/api/auth/admin-login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Validate admin credentials
+      if (email === 'admin@ksyk.fi' && password === 'admin') {
+        // Check if admin user exists, create if not
+        let adminUser = await storage.getUserByEmail(email);
+        
+        if (!adminUser) {
+          // Create admin user
+          adminUser = await storage.upsertUser({
+            id: 'admin-ksyk-user',
+            email: 'admin@ksyk.fi',
+            firstName: 'KSYK',
+            lastName: 'Administrator',
+            role: 'admin',
+            profileImageUrl: null
+          });
+        }
+
+        // Create session
+        if (adminUser) {
+          req.login({
+            claims: {
+              sub: adminUser.id,
+              email: adminUser.email,
+              first_name: adminUser.firstName,
+              last_name: adminUser.lastName,
+              profile_image_url: adminUser.profileImageUrl
+            }
+          }, (err) => {
+            if (err) {
+              console.error("Admin login error:", err);
+              return res.status(500).json({ message: "Login failed" });
+            }
+            res.json({ success: true, user: adminUser });
+          });
+        } else {
+          res.status(500).json({ message: "Failed to create admin user" });
+        }
+      } else {
+        res.status(401).json({ message: "Invalid admin credentials" });
+      }
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Authentication error" });
+    }
+  });
+
   // Development login bypass (for testing only)
   if (process.env.NODE_ENV === 'development') {
     app.post('/api/auth/dev-login', async (req, res) => {
       try {
         console.log("Development login attempt");
-        // Simulate a user session for development
-        const mockUser = await storage.getUserByEmail('JuusoJuusto112@gmail.com');
-        if (mockUser) {
+        // Use admin user for dev login
+        let adminUser = await storage.getUserByEmail('admin@ksyk.fi');
+        
+        if (!adminUser) {
+          adminUser = await storage.upsertUser({
+            id: 'admin-ksyk-user',
+            email: 'admin@ksyk.fi',
+            firstName: 'KSYK',
+            lastName: 'Administrator',
+            role: 'admin',
+            profileImageUrl: null
+          });
+        }
+        
+        if (adminUser) {
           req.login({
             claims: {
-              sub: mockUser.id,
-              email: mockUser.email,
-              first_name: mockUser.firstName,
-              last_name: mockUser.lastName,
-              profile_image_url: mockUser.profileImageUrl
+              sub: adminUser.id,
+              email: adminUser.email,
+              first_name: adminUser.firstName,
+              last_name: adminUser.lastName,
+              profile_image_url: adminUser.profileImageUrl
             }
           }, (err) => {
             if (err) {
               console.error("Dev login error:", err);
               return res.status(500).json({ error: "Login failed" });
             }
-            res.json({ success: true, user: mockUser });
+            res.json({ success: true, user: adminUser });
           });
         } else {
           res.status(404).json({ error: "User not found" });

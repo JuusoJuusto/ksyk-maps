@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
+import { AdminLogin } from "@/components/AdminLogin";
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -43,55 +44,7 @@ export default function Admin() {
 
   // Show login prompt if not authenticated
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="max-w-md mx-auto mt-20 p-6">
-          <div className="bg-card rounded-lg shadow-lg border border-border p-8 text-center">
-            <div className="text-6xl mb-6">🔒</div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Admin Login Required</h2>
-            <p className="text-muted-foreground mb-8">Please log in to access the admin panel.</p>
-            
-            <div className="space-y-4">
-              <button 
-                onClick={() => window.location.href = "/api/login"}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg transition-colors font-semibold text-lg shadow-md"
-                data-testid="admin-login-button"
-              >
-                🔐 Log In with Replit
-              </button>
-              
-              <button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/auth/dev-login', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' }
-                    });
-                    if (response.ok) {
-                      window.location.reload();
-                    } else {
-                      alert('Dev login failed - check console for details');
-                    }
-                  } catch (error) {
-                    console.error('Dev login failed:', error);
-                    alert('Dev login failed - check console for details');
-                  }
-                }}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-4 rounded-lg transition-colors font-semibold text-lg shadow-md"
-                data-testid="dev-login-button"
-              >
-                🚀 Quick Dev Login (Testing Only)
-              </button>
-              
-              <p className="text-sm text-muted-foreground mt-4">
-                Choose either method to authenticate as admin
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AdminLogin onLoginSuccess={() => window.location.reload()} />;
   }
 
   // Check if user is admin

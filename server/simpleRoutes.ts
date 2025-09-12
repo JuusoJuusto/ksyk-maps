@@ -11,12 +11,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/buildings', (req, res) => {
     const buildings = [
       { id: "1", name: "M", nameEn: "Music Building", nameFi: "Musiikkirakennus" },
-      { id: "2", name: "K", nameEn: "Central Hall", nameFi: "Keskusaula" },
+      { id: "2", name: "K", nameEn: "Central Hall", nameFi: "Keskushalli" },
       { id: "3", name: "L", nameEn: "Gymnasium", nameFi: "Liikuntasali" },
       { id: "4", name: "R", nameEn: "R Building", nameFi: "R-rakennus" },
       { id: "5", name: "A", nameEn: "A Building", nameFi: "A-rakennus" },
       { id: "6", name: "U", nameEn: "U Building", nameFi: "U-rakennus" },
-      { id: "7", name: "OG", nameEn: "Old Gymnasium", nameFi: "Vanha Liikuntasali" }
+      { id: "7", name: "OG", nameEn: "Old Gymnasium", nameFi: "OG Liikuntasali" }
     ];
     res.json(buildings);
   });
