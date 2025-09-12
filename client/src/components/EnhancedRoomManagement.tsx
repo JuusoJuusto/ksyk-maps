@@ -144,8 +144,8 @@ export function EnhancedRoomManagement() {
       capacity: 20,
       type: 'classroom',
       equipment: [],
-      accessibility: true,
-      bookingEnabled: true
+      isAccessible: true,
+      isActive: true
     });
   };
 
@@ -170,8 +170,8 @@ export function EnhancedRoomManagement() {
       capacity: room.capacity || 20,
       type: room.type || 'classroom',
       equipment: room.equipment || [],
-      isAccessible: room.isAccessible || true,
-      isActive: room.isActive || true
+      isAccessible: room.isAccessible ?? true,
+      isActive: room.isActive ?? true
     });
     setShowAddDialog(true);
   };
@@ -181,7 +181,7 @@ export function EnhancedRoomManagement() {
                          room.nameEn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          room.nameFi?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBuilding = selectedBuilding === 'all' || room.buildingId === selectedBuilding;
-    const matchesFloor = selectedFloor === 'all' || room.floor.toString() === selectedFloor;
+    const matchesFloor = selectedFloor === 'all' || (room.floor || 1).toString() === selectedFloor;
     return matchesSearch && matchesBuilding && matchesFloor;
   });
 
@@ -203,7 +203,7 @@ export function EnhancedRoomManagement() {
   ];
 
   const getFloors = () => {
-    const floors = [...new Set(rooms.map(room => room.floor))].sort((a, b) => a - b);
+    const floors = Array.from(new Set(rooms.map(room => room.floor || 1))).sort((a, b) => a - b);
     return floors;
   };
 
@@ -212,8 +212,8 @@ export function EnhancedRoomManagement() {
       total: rooms.length,
       byType: {} as Record<string, number>,
       byBuilding: {} as Record<string, number>,
-      withBooking: rooms.filter(r => r.bookingEnabled).length,
-      accessible: rooms.filter(r => r.accessibility).length
+      withBooking: rooms.filter(r => r.isActive).length,
+      accessible: rooms.filter(r => r.isAccessible).length
     };
 
     rooms.forEach(room => {
@@ -352,8 +352,8 @@ export function EnhancedRoomManagement() {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.accessibility}
-                    onChange={(e) => setFormData({...formData, accessibility: e.target.checked})}
+                    checked={formData.isAccessible}
+                    onChange={(e) => setFormData({...formData, isAccessible: e.target.checked})}
                     className="rounded"
                   />
                   <span className="text-sm">Wheelchair Accessible</span>
@@ -362,11 +362,11 @@ export function EnhancedRoomManagement() {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.bookingEnabled}
-                    onChange={(e) => setFormData({...formData, bookingEnabled: e.target.checked})}
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
                     className="rounded"
                   />
-                  <span className="text-sm">Booking Enabled</span>
+                  <span className="text-sm">Room Active</span>
                 </label>
               </div>
               
@@ -528,17 +528,17 @@ export function EnhancedRoomManagement() {
                     {room.capacity || 'N/A'}
                   </Badge>
                   
-                  {room.accessibility && (
+                  {room.isAccessible && (
                     <Badge variant="secondary" className="bg-green-100 text-green-800">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Accessible
                     </Badge>
                   )}
                   
-                  {room.bookingEnabled && (
+                  {room.isActive && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                       <Calendar className="w-3 h-3 mr-1" />
-                      Bookable
+                      Active
                     </Badge>
                   )}
                 </div>

@@ -23,13 +23,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin login endpoint
+  // Admin login endpoint  
   app.post('/api/auth/admin-login', async (req, res) => {
     try {
       const { email, password } = req.body;
       
-      // Validate admin credentials
-      if (email === 'admin@ksyk.fi' && password === 'admin') {
+      // Validate admin credentials (should use environment variables in production)
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@ksyk.fi';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+      
+      if (email === adminEmail && password === adminPassword) {
         // Check if admin user exists, create if not
         let adminUser = await storage.getUserByEmail(email);
         
