@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
+import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -28,48 +29,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      // Validate admin credentials (should use environment variables in production)
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@ksyk.fi';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+      // Hardcoded owner credentials
+      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+      const OWNER_PASSWORD = 'Juusto2012!';
       
-      if (email === adminEmail && password === adminPassword) {
-        // Check if admin user exists, create if not
-        let adminUser = await storage.getUserByEmail(email);
+      // Check if credentials match owner (hardcoded)
+      if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+        // Check if owner user exists in database, create if not
+        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
-        if (!adminUser) {
-          // Create admin user
-          adminUser = await storage.upsertUser({
-            id: 'admin-ksyk-user',
-            email: 'admin@ksyk.fi',
-            firstName: 'KSYK',
-            lastName: 'Administrator',
+        if (!ownerUser) {
+          console.log('Creating owner admin user in database...');
+          ownerUser = await storage.upsertUser({
+            id: 'owner-admin-user',
+            email: OWNER_EMAIL,
+            firstName: 'Juuso',
+            lastName: 'Kaikula',
             role: 'admin',
             profileImageUrl: null
           });
+          console.log('Owner admin user created:', ownerUser);
         }
 
         // Create session
-        if (adminUser) {
+        if (ownerUser) {
           req.login({
             claims: {
-              sub: adminUser.id,
-              email: adminUser.email,
-              first_name: adminUser.firstName,
-              last_name: adminUser.lastName,
-              profile_image_url: adminUser.profileImageUrl
+              sub: ownerUser.id,
+              email: ownerUser.email,
+              first_name: ownerUser.firstName,
+              last_name: ownerUser.lastName,
+              profile_image_url: ownerUser.profileImageUrl
             }
           }, (err) => {
             if (err) {
-              console.error("Admin login error:", err);
+              console.error("Owner login error:", err);
               return res.status(500).json({ message: "Login failed" });
             }
-            res.json({ success: true, user: adminUser });
+            console.log('Owner logged in successfully');
+            res.json({ success: true, user: ownerUser, requirePasswordChange: false });
           });
         } else {
-          res.status(500).json({ message: "Failed to create admin user" });
+          res.status(500).json({ message: "Failed to create owner user" });
         }
       } else {
-        res.status(401).json({ message: "Invalid admin credentials" });
+        // Check if it's a database user with temporary password
+        const user = await storage.getUserByEmail(email);
+        
+        if (user && user.password === password) {
+          // Password matches!
+          req.login({
+            claims: {
+              sub: user.id,
+              email: user.email,
+              first_name: user.firstName,
+              last_name: user.lastName,
+              profile_image_url: user.profileImageUrl
+            }
+          }, (err) => {
+            if (err) {
+              console.error("Login error:", err);
+              return res.status(500).json({ message: "Login failed" });
+            }
+            console.log('User logged in:', user.email);
+            res.json({ 
+              success: true, 
+              user: user,
+              requirePasswordChange: user.isTemporaryPassword || false
+            });
+          });
+        } else {
+          console.log('Login failed - invalid credentials for:', email);
+          res.status(401).json({ message: "Invalid credentials" });
+        }
       }
     } catch (error) {
       console.error("Admin login error:", error);
@@ -77,40 +109,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change password endpoint
+  app.post('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { newPassword } = req.body;
+      const userId = req.user.claims.sub;
+      
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      // Update user password
+      await storage.upsertUser({
+        id: userId,
+        password: newPassword,
+        isTemporaryPassword: false
+      });
+      
+      console.log('Password changed for user:', userId);
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Password change error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Logout endpoint
+  app.post('/api/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res.status(500).json({ message: "Session cleanup failed" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true, message: "Logged out successfully" });
+      });
+    });
+  });
+
   // Development login bypass (for testing only)
   if (process.env.NODE_ENV === 'development') {
     app.post('/api/auth/dev-login', async (req, res) => {
       try {
         console.log("Development login attempt");
-        // Use admin user for dev login
-        let adminUser = await storage.getUserByEmail('admin@ksyk.fi');
+        const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
         
-        if (!adminUser) {
-          adminUser = await storage.upsertUser({
-            id: 'admin-ksyk-user',
-            email: 'admin@ksyk.fi',
-            firstName: 'KSYK',
-            lastName: 'Administrator',
+        // Use owner user for dev login
+        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
+        
+        if (!ownerUser) {
+          ownerUser = await storage.upsertUser({
+            id: 'owner-admin-user',
+            email: OWNER_EMAIL,
+            firstName: 'Juuso',
+            lastName: 'Kaikula',
             role: 'admin',
             profileImageUrl: null
           });
         }
         
-        if (adminUser) {
+        if (ownerUser) {
           req.login({
             claims: {
-              sub: adminUser.id,
-              email: adminUser.email,
-              first_name: adminUser.firstName,
-              last_name: adminUser.lastName,
-              profile_image_url: adminUser.profileImageUrl
+              sub: ownerUser.id,
+              email: ownerUser.email,
+              first_name: ownerUser.firstName,
+              last_name: ownerUser.lastName,
+              profile_image_url: ownerUser.profileImageUrl
             }
           }, (err) => {
             if (err) {
               console.error("Dev login error:", err);
               return res.status(500).json({ error: "Login failed" });
             }
-            res.json({ success: true, user: adminUser });
+            res.json({ success: true, user: ownerUser });
           });
         } else {
           res.status(404).json({ error: "User not found" });
@@ -424,6 +501,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User routes (admin only)
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Get all users from Firebase
+      const allUsers = await storage.getAllUsers();
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { email, firstName, lastName, role, password, passwordOption } = req.body;
+
+      // Validate required fields
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ message: "Email, first name, and last name are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Generate temp password if email option
+      let finalPassword = password;
+      let isTemp = false;
+      if (passwordOption === 'email') {
+        finalPassword = generateTempPassword();
+        isTemp = true;
+      }
+
+      // Create user
+      const newUser = await storage.upsertUser({
+        email,
+        firstName,
+        lastName,
+        role: role || 'admin',
+        password: finalPassword,
+        isTemporaryPassword: isTemp,
+        profileImageUrl: null
+      });
+
+      // If email option, send invitation email
+      if (passwordOption === 'email') {
+        try {
+          const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
+          console.log(`📧 Email sent to ${email}:`, emailResult);
+        } catch (error) {
+          console.error('Failed to send email, but user was created:', error);
+        }
+      }
+
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { email, firstName, lastName, role, newPassword } = req.body;
+
+      // Don't allow editing owner account
+      if (id === 'owner-admin-user') {
+        return res.status(403).json({ message: "Cannot edit owner account" });
+      }
+
+      const updateData: any = {
+        id,
+        email,
+        firstName,
+        lastName,
+        role
+      };
+
+      // Only update password if provided
+      if (newPassword) {
+        updateData.password = newPassword;
+      }
+
+      const updatedUser = await storage.upsertUser(updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+
+      // Don't allow deleting owner account
+      if (id === 'owner-admin-user') {
+        return res.status(403).json({ message: "Cannot delete owner account" });
+      }
+
+      await storage.deleteUser(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Staff routes
   app.get('/api/staff', async (req, res) => {
     try {
@@ -522,6 +730,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create announcement" });
     }
   });
+
+  app.put('/api/announcements/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertAnnouncementSchema.partial().parse(req.body);
+      const announcement = await storage.updateAnnouncement(req.params.id, validatedData);
+      res.json(announcement);
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      res.status(500).json({ message: "Failed to update announcement" });
+    }
+  });
+
+  app.delete('/api/announcements/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteAnnouncement(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  // Test email endpoint (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.claims.sub);
+        if (!user || user.role !== 'admin') {
+          return res.status(403).json({ message: "Admin access required" });
+        }
+
+        const { email } = req.body;
+        const testPassword = generateTempPassword();
+        
+        console.log('\n🧪 ========== TESTING EMAIL ==========');
+        console.log('Sending test email to:', email);
+        
+        const result = await sendPasswordSetupEmail(email, 'Test', testPassword);
+        
+        console.log('Test result:', result);
+        console.log('=====================================\n');
+        
+        res.json({ 
+          success: result.success, 
+          mode: result.mode,
+          password: testPassword,
+          message: result.success ? 'Email sent successfully!' : 'Email failed, check console'
+        });
+      } catch (error: any) {
+        console.error('Test email error:', error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+  }
 
   // Search endpoint for global search
   app.get('/api/search', async (req, res) => {

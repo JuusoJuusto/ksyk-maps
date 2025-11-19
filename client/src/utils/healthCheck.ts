@@ -1,4 +1,4 @@
-// Comprehensive health check and monitoring system for KSYK Navigator
+// Comprehensive health check and monitoring system for KSYK Map
 
 export interface HealthCheckResult {
   status: 'healthy' | 'warning' | 'error';

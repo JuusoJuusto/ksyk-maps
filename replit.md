@@ -1,6 +1,6 @@
 # Overview
 
-KSYK Navigator is a campus navigation and management system for Kulosaaren yhteiskoulu (a Finnish school). The application provides an interactive campus map, staff directory, room search functionality, and administrative tools. It supports multilingual content (English and Finnish) and features both public-facing navigation tools and admin-only management capabilities.
+KSYK Map is a campus map and management system for Kulosaaren yhteiskoulu (a Finnish school). The application provides an interactive campus map, staff directory, room search functionality, and administrative tools. It supports multilingual content (English and Finnish) and features both public-facing navigation tools and admin-only management capabilities.
 
 # User Preferences
 

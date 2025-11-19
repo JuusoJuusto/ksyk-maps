@@ -1,6 +1,6 @@
 {
-  "name": "KSYK Navigator - Campus Navigation System",
-  "short_name": "KSYK Navigator",
+  "name": "KSYK Map - Campus Map System",
+  "short_name": "KSYK Map",
   "description": "Advanced campus navigation and management system for Kulosaaren yhteiskoulu",
   "start_url": "/",
   "display": "standalone",

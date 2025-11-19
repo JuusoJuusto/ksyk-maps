@@ -93,7 +93,7 @@ export function WebSocketStatus() {
     if (ws && isConnected) {
       const testMessage = {
         type: 'test',
-        data: { message: 'Hello from KSYK Navigator!', timestamp: new Date() }
+        data: { message: 'Hello from KSYK Map!', timestamp: new Date() }
       };
       ws.send(JSON.stringify(testMessage));
     }

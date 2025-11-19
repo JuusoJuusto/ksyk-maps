@@ -1,5 +1,5 @@
-// KSYK Navigator Service Worker - Advanced PWA Capabilities
-const CACHE_NAME = 'ksyk-navigator-v1.0.0';
+// KSYK Map Service Worker - Advanced PWA Capabilities
+const CACHE_NAME = 'ksyk-map-v1.0.0';
 const STATIC_CACHE_NAME = 'ksyk-static-v1';
 const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v1';
 
@@ -221,7 +221,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
   const options = {
-    body: 'New update available for KSYK Navigator',
+    body: 'New update available for KSYK Map',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-72x72.png',
     vibrate: [200, 100, 200],
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
   }
   
   event.waitUntil(
-    self.registration.showNotification('KSYK Navigator', options)
+    self.registration.showNotification('KSYK Map', options)
   );
 });
 

@@ -1,4 +1,4 @@
-// Performance optimization utilities for KSYK Navigator
+// Performance optimization utilities for KSYK Map
 import React, { ComponentType } from 'react';
 
 // Debounce function for search inputs and API calls

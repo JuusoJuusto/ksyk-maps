@@ -1,44 +1,47 @@
 import type { Express, RequestHandler } from "express";
+import session from "express-session";
 import { storage } from "./storage";
 
-// Simple mock authentication that bypasses database
+// Real authentication with sessions
 export async function setupAuth(app: Express) {
-  // Create admin user if it doesn't exist
-  try {
-    const adminUser = await storage.getUserByEmail("admin@ksyk.fi");
-    if (!adminUser) {
-      console.log("Creating admin user for development...");
-      await storage.upsertUser({
-        id: "mock-admin-id",
-        email: "admin@ksyk.fi",
-        firstName: "Admin",
-        lastName: "User",
-        role: "admin",
-        profileImageUrl: null
-      });
-      console.log("Admin user created successfully");
-    }
-  } catch (error) {
-    console.error("Failed to create admin user:", error);
-  }
-
-  // Mock session setup without database
-  app.use((req: any, res, next) => {
-    // Mock user session for development
-    req.user = {
-      claims: {
-        sub: "mock-admin-id",
-        email: "admin@ksyk.fi",
-        first_name: "Admin",
-        last_name: "User"
+  // Setup session middleware
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'ksyk-map-secret-key-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
+    })
+  );
+
+  // Add login method to request
+  app.use((req: any, res, next) => {
+    req.login = (user: any, callback: (err?: any) => void) => {
+      req.session.user = user;
+      callback();
     };
-    req.isAuthenticated = () => true;
+    
+    req.logout = (callback: (err?: any) => void) => {
+      req.session.user = null;
+      callback();
+    };
+    
+    req.isAuthenticated = () => {
+      return !!req.session.user;
+    };
+    
+    req.user = req.session.user || null;
     next();
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // Always allow access in development mode
-  return next();
+export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized" });
 };
