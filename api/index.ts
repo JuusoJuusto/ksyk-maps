@@ -1,62 +1,91 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "../server/routes";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Create Express app
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Initialize routes once
-let routesInitialized = false;
-let initPromise: Promise<void> | null = null;
-
-async function initializeRoutes() {
-  if (routesInitialized) return;
-  if (initPromise) return initPromise;
-  
-  initPromise = (async () => {
-    try {
-      console.log("Initializing routes for Vercel serverless...");
-      await registerRoutes(app);
-      routesInitialized = true;
-      console.log("Routes initialized successfully");
-    } catch (error) {
-      console.error("Failed to initialize routes:", error);
-      initPromise = null; // Reset so we can try again
-      throw error;
-    }
-  })();
-  
-  return initPromise;
-}
-
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error("API Error:", {
-    status,
-    message,
-    stack: err.stack,
-    url: _req.url,
-    method: _req.method
-  });
-  res.status(status).json({ message });
-});
-
-// Export handler for Vercel serverless
-export default async (req: Request, res: Response) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    // Ensure routes are initialized
-    await initializeRoutes();
+    // Simple router based on URL path
+    const path = req.url || '/';
     
-    // Handle the request with Express
-    return app(req, res);
+    // Remove /api prefix if present
+    const apiPath = path.replace(/^\/api/, '');
+    
+    console.log(`Handling request: ${req.method} ${apiPath}`);
+    
+    // Health check
+    if (apiPath === '/' || apiPath === '') {
+      return res.status(200).json({
+        message: "KSYK Maps API is running",
+        version: "1.0.0",
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Import and use storage
+    const { storage } = await import('../server/storage.js');
+    
+    // Buildings endpoint
+    if (apiPath === '/buildings' && req.method === 'GET') {
+      const buildings = await storage.getBuildings();
+      return res.status(200).json(buildings);
+    }
+    
+    // Rooms endpoint
+    if (apiPath === '/rooms' && req.method === 'GET') {
+      const buildingId = req.query.buildingId as string | undefined;
+      const rooms = await storage.getRooms(buildingId);
+      return res.status(200).json(rooms);
+    }
+    
+    // Floors endpoint
+    if (apiPath === '/floors' && req.method === 'GET') {
+      const buildingId = req.query.buildingId as string | undefined;
+      const floors = await storage.getFloors(buildingId);
+      return res.status(200).json(floors);
+    }
+    
+    // Staff endpoint
+    if (apiPath === '/staff' && req.method === 'GET') {
+      const staff = await storage.getStaff();
+      return res.status(200).json(staff);
+    }
+    
+    // Announcements endpoint
+    if (apiPath === '/announcements' && req.method === 'GET') {
+      const announcements = await storage.getAnnouncements();
+      return res.status(200).json(announcements);
+    }
+    
+    // Auth user endpoint
+    if (apiPath === '/auth/user' && req.method === 'GET') {
+      // For now, return unauthorized
+      // TODO: Implement proper auth
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // 404 for unknown routes
+    return res.status(404).json({
+      message: "Not found",
+      path: apiPath,
+      availableEndpoints: [
+        '/buildings',
+        '/rooms',
+        '/floors',
+        '/staff',
+        '/announcements',
+        '/auth/user'
+      ]
+    });
+    
   } catch (error: any) {
-    console.error("Serverless function error:", error);
-    return res.status(500).json({ 
+    console.error("API Error:", {
+      message: error.message,
+      stack: error.stack,
+      url: req.url,
+      method: req.method
+    });
+    
+    return res.status(500).json({
       message: "Internal server error",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
-};
+}
