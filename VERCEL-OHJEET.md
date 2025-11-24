@@ -108,10 +108,17 @@ VITE_FIREBASE_APP_ID
 DATABASE_URL
 ```
 
-Esimerkki arvo:
+**TÄRKEÄÄ:** Jos käytät Neon PostgreSQL:
 ```
 postgresql://user:password@host.neon.tech/database?sslmode=require
 ```
+
+**Jos käytät Firebase:**
+```
+USE_FIREBASE=true
+```
+
+Ja lisää myös Firebase Service Account (katso alla)
 
 ### Turvallisuus Muuttujat
 
@@ -147,7 +154,7 @@ Arvo: `production`
 
 4. **Toista Seuraavalle Muuttujalle**
 
-### Yhteensä Lisättävä: 9 Muuttujaa
+### Yhteensä Lisättävä: 9-10 Muuttujaa
 
 - [ ] VITE_FIREBASE_API_KEY
 - [ ] VITE_FIREBASE_AUTH_DOMAIN
@@ -155,9 +162,21 @@ Arvo: `production`
 - [ ] VITE_FIREBASE_STORAGE_BUCKET
 - [ ] VITE_FIREBASE_MESSAGING_SENDER_ID
 - [ ] VITE_FIREBASE_APP_ID
-- [ ] DATABASE_URL
+- [ ] DATABASE_URL (tai USE_FIREBASE=true)
 - [ ] SESSION_SECRET
 - [ ] NODE_ENV
+- [ ] FIREBASE_SERVICE_ACCOUNT (jos käytät Firebasea)
+
+### Jos Käytät Firebase Tietokantana:
+
+1. **Lisää USE_FIREBASE**
+   - Key: `USE_FIREBASE`
+   - Value: `true`
+
+2. **Lisää FIREBASE_SERVICE_ACCOUNT**
+   - Key: `FIREBASE_SERVICE_ACCOUNT`
+   - Value: Kopioi KOKO `serviceAccountKey.json` tiedoston sisältö (JSON muodossa)
+   - Esim: `{"type":"service_account","project_id":"...","private_key":"..."}`
 
 ---
 
