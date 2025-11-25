@@ -292,24 +292,59 @@ class MemStorage implements IStorage {
   async deleteEvent(id: string): Promise<void> { throw new Error("Not implemented"); }
 
   // Announcement operations
-  async getAnnouncements(limit?: number): Promise<Announcement[]> { return []; }
-  async getAnnouncement(id: string): Promise<Announcement | undefined> { return undefined; }
-  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> { throw new Error("Not implemented"); }
-  async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement> { throw new Error("Not implemented"); }
-  async deleteAnnouncement(id: string): Promise<void> { throw new Error("Not implemented"); }
+  private mockAnnouncements: Announcement[] = [];
+  
+  async getAnnouncements(limit?: number): Promise<Announcement[]> { 
+    return this.mockAnnouncements.slice(0, limit || 10); 
+  }
+  
+  async getAnnouncement(id: string): Promise<Announcement | undefined> { 
+    return this.mockAnnouncements.find(a => a.id === id); 
+  }
+  
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> { 
+    const newAnnouncement: Announcement = {
+      id: `announcement-${Date.now()}`,
+      ...announcement,
+      isActive: announcement.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as Announcement;
+    this.mockAnnouncements.push(newAnnouncement);
+    return newAnnouncement;
+  }
+  
+  async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement> { 
+    const index = this.mockAnnouncements.findIndex(a => a.id === id);
+    if (index === -1) throw new Error("Announcement not found");
+    this.mockAnnouncements[index] = { ...this.mockAnnouncements[index], ...announcement, updatedAt: new Date() } as Announcement;
+    return this.mockAnnouncements[index];
+  }
+  
+  async deleteAnnouncement(id: string): Promise<void> { 
+    const index = this.mockAnnouncements.findIndex(a => a.id === id);
+    if (index !== -1) {
+      this.mockAnnouncements.splice(index, 1);
+    }
+  }
 }
 
 // Create storage factory function
 async function createStorage(): Promise<IStorage> {
+  // Debug env vars
+  console.log('Storage initialization - USE_FIREBASE:', process.env.USE_FIREBASE);
+  
   // Check if we should use Firebase
   if (process.env.USE_FIREBASE === 'true') {
     try {
       const { firebaseStorage } = await import('./firebaseStorage.js');
-      console.log('Using Firebase storage');
+      console.log('✅ Using Firebase storage');
       return firebaseStorage;
     } catch (error) {
-      console.warn('Firebase not available, falling back to mock storage:', error);
+      console.error('❌ Firebase not available, falling back to mock storage:', error);
     }
+  } else {
+    console.log('ℹ️ USE_FIREBASE not set to true, using mock storage');
   }
   
   // Check if we should use PostgreSQL
