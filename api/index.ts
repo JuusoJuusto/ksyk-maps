@@ -54,10 +54,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(announcements);
     }
     
+    // Admin login endpoint
+    if (apiPath === '/auth/admin-login' && req.method === 'POST') {
+      const { email, password } = req.body;
+      
+      // Hardcoded owner credentials
+      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+      const OWNER_PASSWORD = 'Juusto2012!';
+      
+      if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+        // Check if owner user exists in database, create if not
+        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
+        
+        if (!ownerUser) {
+          console.log('Creating owner admin user in database...');
+          ownerUser = await storage.upsertUser({
+            id: 'owner-admin-user',
+            email: OWNER_EMAIL,
+            firstName: 'Juuso',
+            lastName: 'Kaikula',
+            role: 'admin',
+            profileImageUrl: null
+          });
+        }
+        
+        return res.status(200).json({
+          success: true,
+          user: ownerUser
+        });
+      }
+      
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+    
     // Auth user endpoint
     if (apiPath === '/auth/user' && req.method === 'GET') {
       // For now, return unauthorized
-      // TODO: Implement proper auth
+      // TODO: Implement proper auth with sessions
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -71,7 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/floors',
         '/staff',
         '/announcements',
-        '/auth/user'
+        '/auth/user',
+        '/auth/admin-login'
       ]
     });
     
