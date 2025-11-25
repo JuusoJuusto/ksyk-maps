@@ -26,47 +26,21 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
-      // Use Firebase Auth directly for login
-      const { signInWithEmailAndPassword } = await import("firebase/auth");
-      const { auth } = await import("@/lib/firebase");
+      // Use backend authentication (hardcoded credentials)
+      const response = await fetch("/api/auth/admin-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
       
-      try {
-        // Try Firebase Auth first
-        const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-        
-        // Verify with backend
-        const response = await fetch("/api/auth/admin-login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Login failed");
-        }
-        
-        const data = await response.json();
-        return { ...data, firebaseUser: userCredential.user };
-      } catch (firebaseError: any) {
-        // If Firebase auth fails, try backend only (for hardcoded credentials)
-        const response = await fetch("/api/auth/admin-login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Login failed");
-        }
-        
-        return response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Login failed");
       }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       if (data.success) {

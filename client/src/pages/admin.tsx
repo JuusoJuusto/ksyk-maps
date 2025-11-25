@@ -13,61 +13,25 @@ export default function Admin() {
   const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = async () => {
+    // Check authentication status from localStorage
+    const checkAuth = () => {
       try {
-        // First check localStorage for logged in status
         const isLoggedIn = localStorage.getItem('ksyk_admin_logged_in');
         const storedUser = localStorage.getItem('ksyk_admin_user');
         
         if (isLoggedIn === 'true' && storedUser) {
-          // User is logged in via localStorage
+          // User is logged in
           const userData = JSON.parse(storedUser);
           setUser(userData);
-          setIsLoading(false);
-          return;
+        } else {
+          // Not logged in
+          setUser(null);
         }
-        
-        // Fallback: Try Firebase Auth
-        const { auth } = await import("@/lib/firebase");
-        const { onAuthStateChanged } = await import("firebase/auth");
-        
-        onAuthStateChanged(auth, async (firebaseUser) => {
-          if (firebaseUser) {
-            // User is logged in via Firebase
-            try {
-              const response = await fetch('/api/auth/user');
-              if (response.ok) {
-                const userData = await response.json();
-                setUser(userData);
-                localStorage.setItem('ksyk_admin_user', JSON.stringify(userData));
-                localStorage.setItem('ksyk_admin_logged_in', 'true');
-              } else {
-                // Create user from Firebase data
-                const userData = {
-                  id: firebaseUser.uid,
-                  email: firebaseUser.email,
-                  role: 'admin',
-                  firstName: firebaseUser.displayName?.split(' ')[0] || 'Admin',
-                  lastName: firebaseUser.displayName?.split(' ')[1] || 'User',
-                };
-                setUser(userData);
-                localStorage.setItem('ksyk_admin_user', JSON.stringify(userData));
-                localStorage.setItem('ksyk_admin_logged_in', 'true');
-              }
-            } catch (err) {
-              console.error('Error fetching user data:', err);
-              setUser(null);
-            }
-          } else {
-            setUser(null);
-          }
-          setIsLoading(false);
-        });
       } catch (err) {
         console.error('Auth check failed:', err);
         setError(err);
         setUser(null);
+      } finally {
         setIsLoading(false);
       }
     };
