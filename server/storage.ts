@@ -180,6 +180,8 @@ class MemStorage implements IStorage {
       lastName: userData.lastName || null,
       profileImageUrl: userData.profileImageUrl || null,
       role: userData.role || 'user',
+      password: null,
+      isTemporaryPassword: null,
       createdAt: new Date(),
       updatedAt: new Date()
     };

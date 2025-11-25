@@ -22,17 +22,79 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Import and use storage
     const { storage } = await import('../server/storage.js');
     
-    // Buildings endpoint
-    if (apiPath === '/buildings' && req.method === 'GET') {
-      const buildings = await storage.getBuildings();
-      return res.status(200).json(buildings);
+    // Buildings endpoints
+    if (apiPath.startsWith('/buildings')) {
+      if (req.method === 'GET' && apiPath === '/buildings') {
+        const buildings = await storage.getBuildings();
+        return res.status(200).json(buildings);
+      }
+      
+      if (req.method === 'POST' && apiPath === '/buildings') {
+        const building = await storage.createBuilding(req.body);
+        return res.status(201).json(building);
+      }
+      
+      // Handle /buildings/:id routes
+      const idMatch = apiPath.match(/^\/buildings\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'GET') {
+          const building = await storage.getBuilding(id);
+          if (!building) {
+            return res.status(404).json({ message: 'Building not found' });
+          }
+          return res.status(200).json(building);
+        }
+        
+        if (req.method === 'PUT' || req.method === 'PATCH') {
+          const building = await storage.updateBuilding(id, req.body);
+          return res.status(200).json(building);
+        }
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteBuilding(id);
+          return res.status(204).send('');
+        }
+      }
     }
     
-    // Rooms endpoint
-    if (apiPath === '/rooms' && req.method === 'GET') {
-      const buildingId = req.query.buildingId as string | undefined;
-      const rooms = await storage.getRooms(buildingId);
-      return res.status(200).json(rooms);
+    // Rooms endpoints
+    if (apiPath.startsWith('/rooms')) {
+      if (req.method === 'GET' && apiPath === '/rooms') {
+        const buildingId = req.query.buildingId as string | undefined;
+        const rooms = await storage.getRooms(buildingId);
+        return res.status(200).json(rooms);
+      }
+      
+      if (req.method === 'POST' && apiPath === '/rooms') {
+        const room = await storage.createRoom(req.body);
+        return res.status(201).json(room);
+      }
+      
+      // Handle /rooms/:id routes
+      const idMatch = apiPath.match(/^\/rooms\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'GET') {
+          const room = await storage.getRoom(id);
+          if (!room) {
+            return res.status(404).json({ message: 'Room not found' });
+          }
+          return res.status(200).json(room);
+        }
+        
+        if (req.method === 'PUT' || req.method === 'PATCH') {
+          const room = await storage.updateRoom(id, req.body);
+          return res.status(200).json(room);
+        }
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteRoom(id);
+          return res.status(204).send('');
+        }
+      }
     }
     
     // Floors endpoint

@@ -122,10 +122,21 @@ export default function AnnouncementManager() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get current user from localStorage
+    const storedUser = localStorage.getItem('ksyk_admin_user');
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    
+    const dataToSubmit = {
+      ...formData,
+      authorId: currentUser?.id || 'owner-admin-user',
+      isActive: true
+    };
+    
     if (editingId) {
-      updateMutation.mutate({ id: editingId, data: formData });
+      updateMutation.mutate({ id: editingId, data: dataToSubmit });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSubmit);
     }
   };
 
