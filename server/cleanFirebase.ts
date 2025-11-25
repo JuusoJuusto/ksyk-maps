@@ -58,9 +58,11 @@ async function cleanFirebase() {
     await Promise.all(userDeletes);
     console.log(`✅ Deleted ${userDeletes.length} users (kept owner)`);
     
-    // Add correct KSYK buildings with proper shapes
-    console.log('\n📦 Adding KSYK campus buildings...');
+    // DON'T add buildings - let user create them via Builder
+    console.log('\n✅ Buildings cleared - use KSYK Builder to create new ones');
     
+    /*
+    // Commented out - buildings should be created via Builder
     const buildings = [
       {
         name: "M",
@@ -169,14 +171,11 @@ async function cleanFirebase() {
       }
     ];
     
-    for (const building of buildings) {
-      const created = await firebaseStorage.createBuilding(building as any);
-      console.log(`✅ Created building: ${created.name} (${created.nameEn})`);
-    }
+    */
     
-    console.log('\n🎉 Firebase cleaned and reseeded successfully!');
+    console.log('\n🎉 Firebase cleaned successfully!');
     console.log('\n📊 Summary:');
-    console.log(`- Buildings: ${buildings.length}`);
+    console.log(`- Buildings: 0 (use Builder to create)`);
     console.log(`- Announcements: 0 (cleaned)`);
     console.log(`- Users: 1 (owner only)`);
     
