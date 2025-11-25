@@ -26,27 +26,59 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
-      const response = await fetch("/api/auth/admin-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
+      // Use Firebase Auth directly for login
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase");
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+      try {
+        // Try Firebase Auth first
+        const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+        
+        // Verify with backend
+        const response = await fetch("/api/auth/admin-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        const data = await response.json();
+        return { ...data, firebaseUser: userCredential.user };
+      } catch (firebaseError: any) {
+        // If Firebase auth fails, try backend only (for hardcoded credentials)
+        const response = await fetch("/api/auth/admin-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        return response.json();
       }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       if (data.success) {
+        // Store user info in localStorage for persistence
+        localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
+        localStorage.setItem('ksyk_admin_logged_in', 'true');
+        
         if (data.requirePasswordChange) {
           setShowPasswordChange(true);
         } else {
-          setLocation("/admin-ksyk-management-portal");
+          // Redirect to admin portal
+          window.location.href = "/admin-ksyk-management-portal";
         }
       } else {
         setError(data.message || "Login failed");
