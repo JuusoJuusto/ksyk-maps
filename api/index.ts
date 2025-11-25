@@ -129,6 +129,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
+    // Users endpoints
+    if (apiPath.startsWith('/users')) {
+      if (req.method === 'GET') {
+        const users = await storage.getAllUsers();
+        return res.status(200).json(users);
+      }
+      
+      if (req.method === 'POST') {
+        const user = await storage.upsertUser(req.body);
+        return res.status(201).json(user);
+      }
+      
+      // Handle /users/:id routes
+      const idMatch = apiPath.match(/^\/users\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'GET') {
+          const user = await storage.getUser(id);
+          if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+          }
+          return res.status(200).json(user);
+        }
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteUser(id);
+          return res.status(204).send('');
+        }
+      }
+    }
+    
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",
@@ -139,6 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/floors',
         '/staff',
         '/announcements',
+        '/users',
         '/auth/user',
         '/auth/admin-login'
       ]
