@@ -43,6 +43,10 @@ interface Room {
 
 
 export default function Home() {
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebarOpen');
+    return saved ? JSON.parse(saved) : window.innerWidth > 768;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Room[]>([]);
   const [selectedFloor, setSelectedFloor] = useState(1);
@@ -53,6 +57,10 @@ export default function Home() {
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  useEffect(() => {
+    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
+  }, [sidebarOpen]);
 
   // Fetch buildings
   const { data: buildings = [] } = useQuery({
@@ -121,12 +129,12 @@ export default function Home() {
       <Header />
       
       <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left Sidebar - Navigation */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm">
+        {/* Left Sidebar - Navigation - COLLAPSIBLE */}
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 overflow-hidden`}>
           {/* Navigation Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
-            <h2 className="text-xl font-bold text-white mb-1">🗺️ KSYK Campus Map</h2>
-            <p className="text-sm text-blue-100">Search and explore campus - UPDATED!</p>
+            <h2 className="text-xl font-bold text-white mb-1">KSYK Campus Map</h2>
+            <p className="text-sm text-blue-100">Search and explore campus</p>
           </div>          
           {/* Search Rooms */}
           <div className="p-4 border-b border-gray-200">
@@ -276,6 +284,15 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 text-white p-2 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all"
+          style={{ left: sidebarOpen ? '320px' : '0px' }}
+        >
+          {sidebarOpen ? '◀' : '▶'}
+        </button>
+        
         {/* Main Content - Campus Map */}
         <div className="flex-1 relative bg-white">
           <Tabs defaultValue="map" className="h-full">

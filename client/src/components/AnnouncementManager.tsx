@@ -183,9 +183,8 @@ export default function AnnouncementManager() {
     return <Info className="h-4 w-4" />;
   };
 
-  // Count announcements (excluding the first 3 which are permanent)
-  const permanentCount = 3;
-  const deletableAnnouncements = announcements.slice(permanentCount);
+  // All announcements are deletable
+  const permanentCount = 0;
 
   return (
     <div className="space-y-6">
@@ -379,7 +378,7 @@ export default function AnnouncementManager() {
               All Announcements ({announcements.length})
             </span>
             <Badge variant="secondary">
-              {permanentCount} Permanent • {deletableAnnouncements.length} Deletable
+              {announcements.length} Total
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -392,8 +391,8 @@ export default function AnnouncementManager() {
             </div>
           ) : (
             <div className="space-y-3">
-              {announcements.map((announcement: Announcement, index: number) => {
-                const isPermanent = index < permanentCount;
+              {announcements.map((announcement: Announcement) => {
+                const isPermanent = false;
                 
                 return (
                   <div
@@ -505,11 +504,7 @@ export default function AnnouncementManager() {
                         )}
                       </div>
                     </div>
-                    {isPermanent && (
-                      <div className="mt-2 text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
-                        ⚠️ This is a permanent announcement and cannot be deleted. Only the first {permanentCount} announcements are protected.
-                      </div>
-                    )}
+
                   </div>
                 );
               })}
