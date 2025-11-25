@@ -124,11 +124,10 @@ export default function Home() {
         {/* Left Sidebar - Navigation */}
         <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm">
           {/* Navigation Header */}
-          <div className="p-6 border-b border-gray-200 bg-blue-50">
-            <h2 className="text-xl font-bold text-blue-900 mb-1">Navigation</h2>
-            <p className="text-sm text-blue-600">Search and explore campus</p>
-          </div>
-          
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
+            <h2 className="text-xl font-bold text-white mb-1">🗺️ KSYK Campus Map</h2>
+            <p className="text-sm text-blue-100">Search and explore campus - UPDATED!</p>
+          </div>          
           {/* Search Rooms */}
           <div className="p-4 border-b border-gray-200">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
