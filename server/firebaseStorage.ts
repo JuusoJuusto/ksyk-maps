@@ -25,43 +25,62 @@ import type {
 // Initialize Firebase Admin (server-side)
 if (!getApps().length) {
   try {
-    // Try to load service account key from file
-    const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json');
-    
-    if (fs.existsSync(serviceAccountPath)) {
-      const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-      
-      initializeApp({
-        credential: cert(serviceAccount),
-        projectId: "ksyk-maps",
-      });
-      
-      console.log('✅ Firebase initialized with service account key');
-    } else {
-      // Fallback: Try environment variables
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-      
-      if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
-        initializeApp({
-          credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: privateKey,
-          }),
-        });
+    // Priority 1: Try FIREBASE_SERVICE_ACCOUNT environment variable (for Vercel)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         
-        console.log('✅ Firebase initialized with environment variables');
-      } else {
-        // Last resort: Initialize without credentials (will use default)
         initializeApp({
+          credential: cert(serviceAccount),
           projectId: "ksyk-maps",
         });
         
-        console.log('⚠️ Firebase initialized without credentials (limited functionality)');
+        console.log('✅ Firebase initialized with FIREBASE_SERVICE_ACCOUNT env var');
+      } catch (parseError) {
+        console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
+        throw parseError;
+      }
+    }
+    // Priority 2: Try to load service account key from file (for local development)
+    else {
+      const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json');
+      
+      if (fs.existsSync(serviceAccountPath)) {
+        const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+        
+        initializeApp({
+          credential: cert(serviceAccount),
+          projectId: "ksyk-maps",
+        });
+        
+        console.log('✅ Firebase initialized with serviceAccountKey.json file');
+      } else {
+        // Priority 3: Try individual environment variables
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+        
+        if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
+          initializeApp({
+            credential: cert({
+              projectId: process.env.FIREBASE_PROJECT_ID,
+              clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+              privateKey: privateKey,
+            }),
+          });
+          
+          console.log('✅ Firebase initialized with individual environment variables');
+        } else {
+          throw new Error('No Firebase credentials found. Please set FIREBASE_SERVICE_ACCOUNT environment variable.');
+        }
       }
     }
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
+    console.error('Available env vars:', {
+      hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+    });
     throw error;
   }
 }
