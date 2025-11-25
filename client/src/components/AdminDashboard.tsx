@@ -107,17 +107,21 @@ export default function AdminDashboard() {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [viewingPassword, setViewingPassword] = useState<string | null>(null);
   
-  // Get current user to check if owner
-  const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
-    queryFn: async () => {
-      const response = await fetch("/api/auth/user");
-      if (!response.ok) throw new Error("Failed to fetch current user");
-      return response.json();
-    },
-  });
+  // Get current user from localStorage
+  const getCurrentUser = () => {
+    try {
+      const storedUser = localStorage.getItem('ksyk_admin_user');
+      if (storedUser) {
+        return JSON.parse(storedUser);
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+    }
+    return null;
+  };
   
-  const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com";
+  const currentUser = getCurrentUser();
+  const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
   
   // Builder state
   const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');

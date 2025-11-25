@@ -48,10 +48,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(staff);
     }
     
-    // Announcements endpoint
-    if (apiPath === '/announcements' && req.method === 'GET') {
-      const announcements = await storage.getAnnouncements();
-      return res.status(200).json(announcements);
+    // Announcements endpoints
+    if (apiPath.startsWith('/announcements')) {
+      if (req.method === 'GET') {
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+        const announcements = await storage.getAnnouncements(limit);
+        return res.status(200).json(announcements);
+      }
+      
+      if (req.method === 'POST') {
+        const announcement = await storage.createAnnouncement(req.body);
+        return res.status(201).json(announcement);
+      }
+      
+      // Handle /announcements/:id routes
+      const idMatch = apiPath.match(/^\/announcements\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'GET') {
+          const announcement = await storage.getAnnouncement(id);
+          if (!announcement) {
+            return res.status(404).json({ message: 'Announcement not found' });
+          }
+          return res.status(200).json(announcement);
+        }
+        
+        if (req.method === 'PUT' || req.method === 'PATCH') {
+          const announcement = await storage.updateAnnouncement(id, req.body);
+          return res.status(200).json(announcement);
+        }
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteAnnouncement(id);
+          return res.status(204).send('');
+        }
+      }
     }
     
     // Admin login endpoint
