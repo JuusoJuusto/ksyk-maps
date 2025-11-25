@@ -36,7 +36,11 @@ export default function AnnouncementManager() {
   
   const [formData, setFormData] = useState({
     title: "",
+    titleEn: "",
+    titleFi: "",
     content: "",
+    contentEn: "",
+    contentFi: "",
     priority: "normal",
     isActive: true,
     publishedAt: new Date().toISOString().slice(0, 16),
@@ -102,7 +106,11 @@ export default function AnnouncementManager() {
   const resetForm = () => {
     setFormData({
       title: "",
+      titleEn: "",
+      titleFi: "",
       content: "",
+      contentEn: "",
+      contentFi: "",
       priority: "normal",
       isActive: true,
       publishedAt: new Date().toISOString().slice(0, 16),
@@ -121,10 +129,14 @@ export default function AnnouncementManager() {
     }
   };
 
-  const handleEdit = (announcement: Announcement) => {
+  const handleEdit = (announcement: any) => {
     setFormData({
-      title: announcement.title,
-      content: announcement.content,
+      title: announcement.title || "",
+      titleEn: announcement.titleEn || "",
+      titleFi: announcement.titleFi || "",
+      content: announcement.content || "",
+      contentEn: announcement.contentEn || "",
+      contentFi: announcement.contentFi || "",
       priority: announcement.priority,
       isActive: announcement.isActive,
       publishedAt: announcement.publishedAt || new Date().toISOString().slice(0, 16),
@@ -205,7 +217,7 @@ export default function AnnouncementManager() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="title">Title *</Label>
+                <Label htmlFor="title">Title (Default) *</Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -215,8 +227,29 @@ export default function AnnouncementManager() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="titleEn">Title (English)</Label>
+                  <Input
+                    id="titleEn"
+                    value={formData.titleEn}
+                    onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
+                    placeholder="English title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="titleFi">Title (Finnish)</Label>
+                  <Input
+                    id="titleFi"
+                    value={formData.titleFi}
+                    onChange={(e) => setFormData({ ...formData, titleFi: e.target.value })}
+                    placeholder="Suomenkielinen otsikko"
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label htmlFor="content">Content *</Label>
+                <Label htmlFor="content">Content (Default) *</Label>
                 <Textarea
                   id="content"
                   value={formData.content}
@@ -225,6 +258,29 @@ export default function AnnouncementManager() {
                   rows={4}
                   required
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contentEn">Content (English)</Label>
+                  <Textarea
+                    id="contentEn"
+                    value={formData.contentEn}
+                    onChange={(e) => setFormData({ ...formData, contentEn: e.target.value })}
+                    placeholder="English content"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contentFi">Content (Finnish)</Label>
+                  <Textarea
+                    id="contentFi"
+                    value={formData.contentFi}
+                    onChange={(e) => setFormData({ ...formData, contentFi: e.target.value })}
+                    placeholder="Suomenkielinen sisältö"
+                    rows={3}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
