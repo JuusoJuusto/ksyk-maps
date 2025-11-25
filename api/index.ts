@@ -148,6 +148,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Admin cleanup endpoint - DELETE ALL DATA
+    if (apiPath === '/admin/cleanup' && req.method === 'POST') {
+      const { confirmDelete } = req.body;
+      
+      if (confirmDelete !== 'DELETE_ALL') {
+        return res.status(400).json({ message: 'Confirmation required' });
+      }
+      
+      // Delete all buildings
+      const buildings = await storage.getBuildings();
+      for (const building of buildings) {
+        await storage.deleteBuilding(building.id);
+      }
+      
+      // Delete all rooms
+      const rooms = await storage.getRooms();
+      for (const room of rooms) {
+        await storage.deleteRoom(room.id);
+      }
+      
+      // Delete all announcements
+      const announcements = await storage.getAnnouncements(1000);
+      for (const announcement of announcements) {
+        await storage.deleteAnnouncement(announcement.id);
+      }
+      
+      return res.status(200).json({
+        success: true,
+        deleted: {
+          buildings: buildings.length,
+          rooms: rooms.length,
+          announcements: announcements.length
+        }
+      });
+    }
+    
     // Admin login endpoint
     if (apiPath === '/auth/admin-login' && req.method === 'POST') {
       const { email, password } = req.body;
