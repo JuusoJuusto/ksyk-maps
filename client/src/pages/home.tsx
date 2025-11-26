@@ -17,7 +17,8 @@ import {
   RotateCcw,
   X,
   Navigation,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from "lucide-react";
 
 interface Building {
@@ -148,17 +149,13 @@ export default function Home() {
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
         <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
-          {/* Navigation Header */}
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
-            <h2 className="text-xl font-bold text-white mb-1">KSYK Campus Map</h2>
-            <p className="text-sm text-blue-100">Search and explore campus</p>
-            
-            {/* Navigation Button */}
+          {/* Navigation Button - Clean Header */}
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white border border-white/30"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 h-12 text-lg font-semibold"
             >
-              <Navigation className="mr-2 h-4 w-4" />
+              <Navigation className="mr-2 h-5 w-5" />
               Get Directions
             </Button>
           </div>          
@@ -275,38 +272,53 @@ export default function Home() {
             </div>
           )}
 
-          {/* Buildings Legend */}
+          {/* How to use - Clean Guide */}
           <div className="p-4 flex-1 overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Buildings:</h3>
-            <div className="space-y-2">
-              {buildings.map((building: Building) => (
-                <div 
-                  key={building.id} 
-                  className={`flex items-center space-x-2 text-sm p-2 rounded cursor-pointer transition-colors ${
-                    selectedBuilding?.id === building.id ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => setSelectedBuilding(building)}
-                >
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: building.colorCode }}
-                  ></div>
-                  <span className="font-medium">{building.name}</span>
-                  <span className="text-gray-500">- {building.nameEn}</span>
-                </div>
-              ))}
-            </div>
-            
-            {/* How to use */}
-            <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">How to use:</h4>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• Click rooms to navigate</li>
-                <li>• Green = start, red = destination</li>
-                <li>• Search rooms from search bar</li>
-                <li>• Zoom with + and - buttons</li>
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <h4 className="text-base font-bold text-blue-900 mb-3 flex items-center">
+                <Zap className="mr-2 h-5 w-5 text-blue-600" />
+                Quick Guide
+              </h4>
+              <ul className="text-sm text-blue-800 space-y-2">
+                <li className="flex items-start">
+                  <span className="mr-2">🧭</span>
+                  <span><strong>Get Directions:</strong> Click button above to navigate between rooms</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">🔍</span>
+                  <span><strong>Search:</strong> Find any room by number or name</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">🗺️</span>
+                  <span><strong>Map Controls:</strong> Zoom with +/- buttons, drag to pan</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">📱</span>
+                  <span><strong>Mobile:</strong> Tap outside sidebar to close</span>
+                </li>
               </ul>
             </div>
+            
+            {/* Navigation Route Display */}
+            {navigationFrom && navigationTo && (
+              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="text-sm font-bold text-green-900 mb-2">Active Route:</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                    <span className="text-green-800">{navigationFrom}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <ArrowRight className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-gray-600">Walking route</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                    <span className="text-red-800">{navigationTo}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

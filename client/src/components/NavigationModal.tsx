@@ -82,9 +82,16 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
 
   const handleNavigation = () => {
     if (selectedFrom && selectedTo) {
-      const fromLabel = `${selectedFrom.roomNumber} (${selectedFrom.name || selectedFrom.nameEn})`;
-      const toLabel = `${selectedTo.roomNumber} (${selectedTo.name || selectedTo.nameEn})`;
+      const fromLabel = `${selectedFrom.roomNumber} - ${selectedFrom.name || selectedFrom.nameEn}`;
+      const toLabel = `${selectedTo.roomNumber} - ${selectedTo.name || selectedTo.nameEn}`;
+      
+      // Call the navigation handler
       onNavigate(fromLabel, toLabel);
+      
+      // Show success message
+      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n✅ Route is now displayed on the map!`);
+      
+      // Close modal
       onClose();
       
       // Reset form

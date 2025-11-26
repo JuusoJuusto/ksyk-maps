@@ -560,10 +560,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If email option, send invitation email
       if (passwordOption === 'email') {
         try {
+          console.log(`\n🚀 Attempting to send invitation email to ${email}...`);
           const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
-          console.log(`📧 Email sent to ${email}:`, emailResult);
-        } catch (error) {
-          console.error('Failed to send email, but user was created:', error);
+          
+          if (emailResult.success) {
+            console.log(`✅ SUCCESS! Email sent to ${email}`);
+            console.log(`   Mode: ${emailResult.mode}`);
+            console.log(`   Message ID: ${emailResult.messageId || 'N/A'}`);
+          } else {
+            console.log(`⚠️ Email failed but user created. Password: ${finalPassword}`);
+            console.log(`   Error: ${emailResult.error?.message || 'Unknown'}`);
+          }
+        } catch (error: any) {
+          console.error('❌ Email error:', error.message);
+          console.log(`📝 User created successfully. Manual password: ${finalPassword}`);
         }
       }
 

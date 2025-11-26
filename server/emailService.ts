@@ -158,38 +158,62 @@ This is an automated message from KSYK Map Admin System
   
   if (!transport) {
     // Log to console if email not configured
-    console.log('\n📧 ========== EMAIL WOULD BE SENT ==========');
+    console.log('\n📧 ========== EMAIL NOT CONFIGURED - CONSOLE MODE ==========');
     console.log('To:', email);
     console.log('Subject:', emailContent.subject);
     console.log('Temporary Password:', tempPassword);
-    console.log('==========================================\n');
-    return { success: true, mode: 'console' };
+    console.log('');
+    console.log('⚠️ To enable email sending:');
+    console.log('1. Verify EMAIL_USER and EMAIL_PASSWORD in .env');
+    console.log('2. For Gmail, use App Password from: https://myaccount.google.com/apppasswords');
+    console.log('3. Restart the server');
+    console.log('===========================================================\n');
+    return { success: true, mode: 'console', password: tempPassword };
   }
   
   try {
-    console.log(`📧 Attempting to send email to: ${email}`);
-    console.log(`📧 Using SMTP: ${EMAIL_CONFIG.host}:${EMAIL_CONFIG.port}`);
-    console.log(`📧 From: ${EMAIL_CONFIG.auth.user}`);
+    console.log(`\n📧 ========== SENDING EMAIL ==========`);
+    console.log(`To: ${email}`);
+    console.log(`From: ${EMAIL_CONFIG.auth.user}`);
+    console.log(`SMTP: ${EMAIL_CONFIG.host}:${EMAIL_CONFIG.port}`);
+    console.log(`Subject: ${emailContent.subject}`);
+    console.log('');
     
     const info = await transport.sendMail(emailContent);
-    console.log('✅ Email sent successfully!');
-    console.log('   Message ID:', info.messageId);
-    console.log('   To:', email);
-    console.log('   Temp Password:', tempPassword);
-    return { success: true, mode: 'email', messageId: info.messageId };
-  } catch (error: any) {
-    console.error('❌ Error sending email:');
-    console.error('   Error:', error.message);
-    console.error('   Code:', error.code);
-    console.error('   Response:', error.response);
     
-    // Fallback to console
-    console.log('\n📧 ========== EMAIL FAILED, SHOWING IN CONSOLE ==========');
-    console.log('To:', email);
-    console.log('Temporary Password:', tempPassword);
-    console.log('Error Details:', error.message);
-    console.log('======================================================\n');
-    return { success: false, error, mode: 'console' };
+    console.log('✅ ========== EMAIL SENT SUCCESSFULLY! ==========');
+    console.log(`Message ID: ${info.messageId}`);
+    console.log(`Recipient: ${email}`);
+    console.log(`Password: ${tempPassword}`);
+    console.log(`Status: Delivered to ${EMAIL_CONFIG.host}`);
+    console.log('================================================\n');
+    
+    return { success: true, mode: 'email', messageId: info.messageId, password: tempPassword };
+  } catch (error: any) {
+    console.error('\n❌ ========== EMAIL FAILED ==========');
+    console.error(`Error: ${error.message}`);
+    console.error(`Code: ${error.code}`);
+    console.error(`Response: ${error.response || 'N/A'}`);
+    
+    if (error.code === 'EAUTH') {
+      console.error('\n💡 AUTHENTICATION FAILED:');
+      console.error('   - Check EMAIL_USER is correct');
+      console.error('   - Check EMAIL_PASSWORD is valid');
+      console.error('   - For Gmail, use App Password (not regular password)');
+      console.error('   - Generate at: https://myaccount.google.com/apppasswords');
+    } else if (error.code === 'ECONNECTION') {
+      console.error('\n💡 CONNECTION FAILED:');
+      console.error('   - Check internet connection');
+      console.error('   - Verify SMTP host and port');
+      console.error('   - Check firewall settings');
+    }
+    
+    console.log('\n📝 FALLBACK - Password for manual sharing:');
+    console.log(`   Email: ${email}`);
+    console.log(`   Password: ${tempPassword}`);
+    console.log('=====================================\n');
+    
+    return { success: false, error, mode: 'console', password: tempPassword };
   }
 }
 
