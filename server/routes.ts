@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
-import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
+import { sendPasswordSetupEmail, generateTempPassword } from "./resendEmail";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
