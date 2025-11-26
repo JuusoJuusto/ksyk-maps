@@ -224,25 +224,21 @@ export default function Builder() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-4xl mx-auto">
-            <TabsTrigger value="shape-builder" className="flex items-center">
-              <Building className="mr-2 h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-4xl mx-auto gap-2">
+            <TabsTrigger value="shape-builder" className="flex items-center text-xs md:text-sm">
+              <Building className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
               🏗️ Shape Builder
             </TabsTrigger>
-            <TabsTrigger value="map-builder" className="flex items-center">
-              <Pencil className="mr-2 h-4 w-4" />
+            <TabsTrigger value="map-builder" className="flex items-center text-xs md:text-sm">
+              <Pencil className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
               Floor Plans
             </TabsTrigger>
-            <TabsTrigger value="buildings" className="flex items-center">
-              <Building className="mr-2 h-4 w-4" />
-              Buildings
-            </TabsTrigger>
-            <TabsTrigger value="rooms" className="flex items-center">
-              <Home className="mr-2 h-4 w-4" />
+            <TabsTrigger value="rooms" className="flex items-center text-xs md:text-sm">
+              <Home className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
               Rooms
             </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center">
-              <Grid className="mr-2 h-4 w-4" />
+            <TabsTrigger value="preview" className="flex items-center text-xs md:text-sm">
+              <Grid className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
               Preview
             </TabsTrigger>
           </TabsList>
@@ -271,187 +267,7 @@ export default function Builder() {
             <AdvancedMapBuilder />
           </TabsContent>
 
-          {/* Building Builder */}
-          <TabsContent value="buildings" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* Building Form */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-blue-600 text-white">
-                  <CardTitle className="flex items-center">
-                    <Plus className="mr-2 h-6 w-6" />
-                    Create New Building
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Building Code *</Label>
-                      <Input
-                        id="name"
-                        value={buildingForm.name}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, name: e.target.value })}
-                        placeholder="e.g., M, K, L, R"
-                        className="font-mono"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="floors">Number of Floors</Label>
-                      <Input
-                        id="floors"
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={buildingForm.floors}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, floors: parseInt(e.target.value) || 1 })}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="nameEn">English Name</Label>
-                      <Input
-                        id="nameEn"
-                        value={buildingForm.nameEn}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, nameEn: e.target.value })}
-                        placeholder="e.g., Music Building"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="nameFi">Finnish Name</Label>
-                      <Input
-                        id="nameFi"
-                        value={buildingForm.nameFi}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, nameFi: e.target.value })}
-                        placeholder="e.g., Musiikkitalo"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={buildingForm.description}
-                      onChange={(e) => setBuildingForm({ ...buildingForm, description: e.target.value })}
-                      placeholder="Brief description of the building's purpose"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="capacity">Capacity</Label>
-                      <Input
-                        id="capacity"
-                        type="number"
-                        value={buildingForm.capacity}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, capacity: parseInt(e.target.value) || 0 })}
-                        placeholder="Total building capacity"
-                      />
-                    </div>
-                    <div>
-                      <Label>Building Color</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {buildingColors.map((color) => (
-                          <button
-                            key={color}
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              buildingForm.colorCode === color ? 'border-gray-800' : 'border-gray-300'
-                            }`}
-                            style={{ backgroundColor: color }}
-                            onClick={() => setBuildingForm({ ...buildingForm, colorCode: color })}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="mapX">Map Position X</Label>
-                      <Input
-                        id="mapX"
-                        type="number"
-                        value={buildingForm.mapPositionX}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, mapPositionX: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="mapY">Map Position Y</Label>
-                      <Input
-                        id="mapY"
-                        type="number"
-                        value={buildingForm.mapPositionY}
-                        onChange={(e) => setBuildingForm({ ...buildingForm, mapPositionY: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={handleCreateBuilding}
-                    disabled={createBuildingMutation.isPending}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    {createBuildingMutation.isPending ? (
-                      <>Creating...</>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Create Building
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Existing Buildings */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-gray-800 text-white">
-                  <CardTitle className="flex items-center">
-                    <Building className="mr-2 h-6 w-6" />
-                    Existing Buildings ({buildings.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {buildings.map((building: Building) => (
-                      <div key={building.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-6 h-6 rounded-full"
-                            style={{ backgroundColor: building.colorCode }}
-                          />
-                          <div>
-                            <div className="font-bold text-lg">{building.name}</div>
-                            <div className="text-sm text-gray-600">{building.nameEn}</div>
-                            <div className="text-xs text-gray-500">{building.floors} floors</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={building.isActive ? "default" : "secondary"}>
-                            {building.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {buildings.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No buildings created yet</p>
-                        <p className="text-sm">Create your first building to get started!</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           {/* Room Builder */}
           <TabsContent value="rooms" className="space-y-6">

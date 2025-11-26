@@ -762,38 +762,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test email endpoint (development only)
-  if (process.env.NODE_ENV === 'development') {
-    app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
-      try {
-        const user = await storage.getUser(req.user.claims.sub);
-        if (!user || user.role !== 'admin') {
-          return res.status(403).json({ message: "Admin access required" });
-        }
-
-        const { email } = req.body;
-        const testPassword = generateTempPassword();
-        
-        console.log('\n🧪 ========== TESTING EMAIL ==========');
-        console.log('Sending test email to:', email);
-        
-        const result = await sendPasswordSetupEmail(email, 'Test', testPassword);
-        
-        console.log('Test result:', result);
-        console.log('=====================================\n');
-        
-        res.json({ 
-          success: result.success, 
-          mode: result.mode,
-          password: testPassword,
-          message: result.success ? 'Email sent successfully!' : 'Email failed, check console'
-        });
-      } catch (error: any) {
-        console.error('Test email error:', error);
-        res.status(500).json({ message: error.message });
+  // Test email endpoint (always available for debugging)
+  app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
       }
-    });
-  }
+
+      const { email } = req.body;
+      const testPassword = generateTempPassword();
+      
+      console.log('\n🧪 ========== TESTING EMAIL ==========');
+      console.log('Sending test email to:', email);
+      console.log('Environment check:');
+      console.log('  EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET');
+      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ SET' : '❌ NOT SET');
+      console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
+      console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
+      
+      const result = await sendPasswordSetupEmail(email, 'Test User', testPassword);
+      
+      console.log('Test result:', result);
+      console.log('=====================================\n');
+      
+      res.json({ 
+        success: result.success, 
+        mode: result.mode,
+        password: testPassword,
+        messageId: result.messageId,
+        message: result.success 
+          ? `✅ Email sent successfully via ${result.mode}!` 
+          : `❌ Email failed: ${result.error?.message || 'Unknown error'}`,
+        config: {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT,
+          user: process.env.EMAIL_USER,
+          hasPassword: !!process.env.EMAIL_PASSWORD
+        }
+      });
+    } catch (error: any) {
+      console.error('Test email error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
 
   // Search endpoint for global search
   app.get('/api/search', async (req, res) => {

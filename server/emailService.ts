@@ -18,17 +18,32 @@ async function getTransporter() {
   if (!transporter) {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.warn('⚠️ Email credentials not configured. Emails will be logged to console only.');
+      console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in .env file');
       return null;
     }
+    
+    console.log('🔧 Creating email transporter...');
+    console.log('   Host:', EMAIL_CONFIG.host);
+    console.log('   Port:', EMAIL_CONFIG.port);
+    console.log('   User:', EMAIL_CONFIG.auth.user);
     
     transporter = nodemailer.createTransport(EMAIL_CONFIG);
     
     // Test connection
     try {
+      console.log('🔍 Verifying email connection...');
       await transporter.verify();
-      console.log('✅ Email service initialized and verified');
-    } catch (error) {
-      console.error('❌ Email service verification failed:', error);
+      console.log('✅ Email service initialized and verified successfully!');
+      console.log('   Ready to send emails via', EMAIL_CONFIG.host);
+    } catch (error: any) {
+      console.error('❌ Email service verification failed:');
+      console.error('   Error:', error.message);
+      console.error('   Code:', error.code);
+      if (error.code === 'EAUTH') {
+        console.error('   💡 Authentication failed. Check your EMAIL_USER and EMAIL_PASSWORD');
+        console.error('   💡 For Gmail, you need an App Password, not your regular password');
+        console.error('   💡 Generate one at: https://myaccount.google.com/apppasswords');
+      }
       console.log('📧 Falling back to console mode');
       transporter = null;
       return null;
@@ -38,6 +53,14 @@ async function getTransporter() {
 }
 
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
+  console.log('\n🔧 ========== EMAIL SERVICE DEBUG ==========');
+  console.log('📧 EMAIL_USER:', process.env.EMAIL_USER);
+  console.log('🔑 EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : '❌ NOT SET');
+  console.log('📮 EMAIL_HOST:', process.env.EMAIL_HOST);
+  console.log('🔌 EMAIL_PORT:', process.env.EMAIL_PORT);
+  console.log('👤 Sending to:', email);
+  console.log('==========================================\n');
+  
   const transport = await getTransporter();
   
   const emailContent = {

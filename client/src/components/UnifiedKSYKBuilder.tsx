@@ -349,47 +349,67 @@ export default function UnifiedKSYKBuilder() {
     { value: "toilet", label: "Toilet" }
   ];
 
+  const [editingBuilding, setEditingBuilding] = useState<any | null>(null);
+
+  const updateBuildingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await fetch(`/api/buildings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update building");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      alert("✅ Building updated!");
+      setEditingBuilding(null);
+    },
+  });
+
   return (
     <div className="space-y-6">
       {/* Mode Selector */}
       <Card className="shadow-xl border-2 border-blue-200">
         <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
-          <CardTitle className="text-3xl flex items-center justify-between">
+          <CardTitle className="text-xl md:text-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <span className="flex items-center">
-              <Zap className="mr-3 h-8 w-8" />
+              <Zap className="mr-2 md:mr-3 h-6 md:h-8 w-6 md:w-8" />
               KSYK Professional Builder
             </span>
             <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-white/20 text-white">
+              <Badge variant="secondary" className="bg-white/20 text-white text-xs md:text-sm">
                 {buildings.length} Buildings
               </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white">
+              <Badge variant="secondary" className="bg-white/20 text-white text-xs md:text-sm">
                 {rooms.length} Rooms
               </Badge>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="flex space-x-3">
+        <CardContent className="p-3 md:p-6">
+          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3">
             <Button
               onClick={() => setBuilderMode('shapes')}
-              className={`flex-1 h-16 text-lg ${builderMode === 'shapes' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'shapes' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}`}
             >
-              <Building className="mr-2 h-6 w-6" />
+              <Building className="mr-2 h-4 md:h-6 w-4 md:w-6" />
               Custom Shapes
             </Button>
             <Button
               onClick={() => setBuilderMode('buildings')}
-              className={`flex-1 h-16 text-lg ${builderMode === 'buildings' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'buildings' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
             >
-              <Square className="mr-2 h-6 w-6" />
-              Buildings
+              <Square className="mr-2 h-4 md:h-6 w-4 md:w-6" />
+              Manage Buildings
             </Button>
             <Button
               onClick={() => setBuilderMode('rooms')}
-              className={`flex-1 h-16 text-lg ${builderMode === 'rooms' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'rooms' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400 hover:bg-gray-500'}`}
             >
-              <Home className="mr-2 h-6 w-6" />
+              <Home className="mr-2 h-4 md:h-6 w-4 md:w-6" />
               Rooms
             </Button>
           </div>
@@ -712,35 +732,81 @@ export default function UnifiedKSYKBuilder() {
             </CardContent>
           </Card>
 
-          {/* Buildings List */}
+          {/* Buildings List - MANAGE MODE */}
           {builderMode === 'buildings' && (
             <Card className="shadow-lg mt-6">
               <CardHeader className="bg-gray-800 text-white">
-                <CardTitle>Existing Buildings ({buildings.length})</CardTitle>
+                <CardTitle>Manage Buildings ({buildings.length})</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                   {buildings.map((building: any) => (
                     <div key={building.id} className="border-2 rounded-lg p-3 hover:shadow-lg transition-shadow" style={{ borderColor: building.colorCode }}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-lg">{building.name}</h4>
-                          <p className="text-sm text-gray-600">{building.nameEn}</p>
-                          <p className="text-xs text-gray-500">{building.floors} floors</p>
+                      {editingBuilding?.id === building.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingBuilding.name}
+                            onChange={(e) => setEditingBuilding({ ...editingBuilding, name: e.target.value })}
+                            placeholder="Building Code"
+                            className="text-sm"
+                          />
+                          <Input
+                            value={editingBuilding.nameEn}
+                            onChange={(e) => setEditingBuilding({ ...editingBuilding, nameEn: e.target.value })}
+                            placeholder="English Name"
+                            className="text-sm"
+                          />
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => updateBuildingMutation.mutate({ id: building.id, data: editingBuilding })}
+                              className="flex-1 bg-green-600"
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingBuilding(null)}
+                              className="flex-1"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
-                          onClick={() => {
-                            if (confirm(`Delete ${building.name}?`)) {
-                              deleteBuildingMutation.mutate(building.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold text-lg">{building.name}</h4>
+                            <p className="text-sm text-gray-600">{building.nameEn}</p>
+                            <p className="text-xs text-gray-500">{building.floors} floors</p>
+                          </div>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600"
+                              onClick={() => setEditingBuilding(building)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={() => {
+                                if (confirm(`Delete ${building.name}?`)) {
+                                  deleteBuildingMutation.mutate(building.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

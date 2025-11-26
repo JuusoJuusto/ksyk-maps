@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import NavigationModal from "@/components/NavigationModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,9 @@ import {
   Plus,
   Minus,
   RotateCcw,
-  X
+  X,
+  Navigation,
+  ArrowRight
 } from "lucide-react";
 
 interface Building {
@@ -57,6 +60,9 @@ export default function Home() {
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const [navigationFrom, setNavigationFrom] = useState<string>("");
+  const [navigationTo, setNavigationTo] = useState<string>("");
   
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
@@ -124,17 +130,37 @@ export default function Home() {
     setZoom(Math.max(0.5, Math.min(3, zoom + zoomDelta)));
   };
 
+  const handleNavigate = (from: string, to: string) => {
+    setNavigationFrom(from);
+    setNavigationTo(to);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left Sidebar - Navigation - COLLAPSIBLE */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 overflow-hidden`}>
+      <NavigationModal 
+        isOpen={navigationOpen} 
+        onClose={() => setNavigationOpen(false)}
+        onNavigate={handleNavigate}
+      />
+      
+      <div className="flex h-[calc(100vh-4rem)] relative">
+        {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
           {/* Navigation Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
             <h2 className="text-xl font-bold text-white mb-1">KSYK Campus Map</h2>
             <p className="text-sm text-blue-100">Search and explore campus</p>
+            
+            {/* Navigation Button */}
+            <Button
+              onClick={() => setNavigationOpen(true)}
+              className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white border border-white/30"
+            >
+              <Navigation className="mr-2 h-4 w-4" />
+              Get Directions
+            </Button>
           </div>          
           {/* Search Rooms */}
           <div className="p-4 border-b border-gray-200">
@@ -284,30 +310,38 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button */}
+        {/* Sidebar Toggle Button - MOBILE FRIENDLY */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 text-white p-2 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all"
-          style={{ left: sidebarOpen ? '320px' : '0px' }}
+          className="fixed md:absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
+          style={{ left: sidebarOpen ? (window.innerWidth < 768 ? '0px' : '320px') : '0px' }}
         >
           {sidebarOpen ? '◀' : '▶'}
         </button>
         
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
         {/* Main Content - Campus Map */}
         <div className="flex-1 relative bg-white">
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className="absolute top-4 left-4 z-10 bg-white shadow-lg border border-gray-200">
-              <TabsTrigger value="map" className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4" />
-                <span>Map</span>
+            <TabsList className="absolute top-4 left-4 z-10 bg-white shadow-lg border border-gray-200 flex-col md:flex-row">
+              <TabsTrigger value="map" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+                <MapPin className="h-3 md:h-4 w-3 md:w-4" />
+                <span className="hidden md:inline">Map</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>Schedule</span>
+              <TabsTrigger value="schedule" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+                <Calendar className="h-3 md:h-4 w-3 md:w-4" />
+                <span className="hidden md:inline">Schedule</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center space-x-2">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
+              <TabsTrigger value="settings" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+                <Settings className="h-3 md:h-4 w-3 md:w-4" />
+                <span className="hidden md:inline">Settings</span>
               </TabsTrigger>
             </TabsList>
 
@@ -315,32 +349,69 @@ export default function Home() {
             <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
+              {/* Navigation Route Display */}
+              {navigationFrom && navigationTo && (
+                <div className="absolute top-16 md:top-20 left-4 right-16 md:right-20 z-20 bg-white/95 backdrop-blur rounded-lg shadow-xl border-2 border-blue-500 p-3 md:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 md:space-x-4 flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <div className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span className="text-xs md:text-sm font-semibold text-green-700 truncate">{navigationFrom}</span>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <ArrowRight className="h-4 md:h-5 w-4 md:w-5 text-blue-600" />
+                      </div>
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                        <span className="text-xs md:text-sm font-semibold text-red-700 truncate">{navigationTo}</span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setNavigationFrom("");
+                        setNavigationTo("");
+                      }}
+                      className="ml-2 h-6 w-6 md:h-8 md:w-8 p-0 flex-shrink-0"
+                    >
+                      <X className="h-3 md:h-4 w-3 md:w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600 flex items-center">
+                    <Navigation className="h-3 w-3 mr-1" />
+                    <span className="hidden md:inline">Follow the blue path • Estimated time: ~3 minutes</span>
+                    <span className="md:hidden">~3 min walk</span>
+                  </div>
+                </div>
+              )}
+              
               {/* Campus Map - CLEAN GRID ONLY */}
               <div className="h-full bg-white p-0 overflow-hidden relative">
-                {/* Map Controls */}
-                <div className="absolute top-20 right-4 z-20 flex flex-col space-y-2">
+                {/* Map Controls - MOBILE FRIENDLY */}
+                <div className="absolute top-16 md:top-20 right-2 md:right-4 z-20 flex flex-col space-y-1 md:space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-10 h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 md:h-5 w-4 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-10 h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-5 w-5" />
+                    <Minus className="h-4 md:h-5 w-4 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-10 h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => {
                       setZoom(1);
                       setPanX(0);
@@ -348,7 +419,18 @@ export default function Home() {
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-5 w-5" />
+                    <RotateCcw className="h-4 md:h-5 w-4 md:w-5" />
+                  </Button>
+                  
+                  {/* Mobile Navigation Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-blue-600 text-white shadow-lg hover:bg-blue-700 md:hidden"
+                    onClick={() => setNavigationOpen(true)}
+                    title="Navigation"
+                  >
+                    <Navigation className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -379,97 +461,8 @@ export default function Home() {
                   <rect width="100%" height="100%" fill="url(#grid)" />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
-                  {/* Buildings - GRID ALIGNED ONLY */}
-                  {buildings.map((building: Building, index: number) => {
-                    // Snap to 40px grid
-                    const gridX = building.mapPositionX ? Math.round(building.mapPositionX / 40) * 40 : 80 + (index % 5) * 200;
-                    const gridY = building.mapPositionY ? Math.round(building.mapPositionY / 40) * 40 : 80 + Math.floor(index / 5) * 160;
-                    const isSelected = selectedBuilding?.id === building.id;
-                    const buildingRooms = rooms.filter(
-                      (room: Room) => room.buildingId === building.id && room.floor === selectedFloor
-                    );
-                    
-                    const buildingWidth = 160;
-                    const buildingHeight = 120;
-                    
-                    return (
-                      <g key={building.id}>
-                        {/* Building - CLEAN GRID STYLE */}
-                        <rect
-                          x={gridX}
-                          y={gridY}
-                          width={buildingWidth}
-                          height={buildingHeight}
-                          fill={building.colorCode}
-                          stroke={isSelected ? "#2563eb" : "#94a3b8"}
-                          strokeWidth={isSelected ? "3" : "2"}
-                          rx="4"
-                          className="cursor-pointer transition-all pointer-events-auto"
-                          onClick={() => setSelectedBuilding(building)}
-                        />
-                        
-                        {/* Floor lines */}
-                        {Array.from({ length: building.floors }).map((_, floorIdx) => (
-                          <line
-                            key={`floor-${floorIdx}`}
-                            x1={gridX}
-                            y1={gridY + (floorIdx + 1) * (buildingHeight / (building.floors + 1))}
-                            x2={gridX + buildingWidth}
-                            y2={gridY + (floorIdx + 1) * (buildingHeight / (building.floors + 1))}
-                            stroke="rgba(255,255,255,0.3)"
-                            strokeWidth="1"
-                            className="pointer-events-none"
-                          />
-                        ))}
-                        
-                        {/* Building label */}
-                        <text
-                          x={gridX + buildingWidth / 2}
-                          y={gridY + buildingHeight / 2 - 10}
-                          textAnchor="middle"
-                          className="fill-white font-bold text-3xl pointer-events-none"
-                          style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
-                        >
-                          {building.name}
-                        </text>
-                        
-                        <text
-                          x={gridX + buildingWidth / 2}
-                          y={gridY + buildingHeight / 2 + 15}
-                          textAnchor="middle"
-                          className="fill-white text-sm pointer-events-none"
-                          style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.7)" }}
-                        >
-                          {building.nameEn || building.name}
-                        </text>
-                        
-                        <text
-                          x={gridX + buildingWidth / 2}
-                          y={gridY + buildingHeight / 2 + 30}
-                          textAnchor="middle"
-                          className="fill-white text-xs pointer-events-none opacity-90"
-                        >
-                          {building.floors} Floor{building.floors > 1 ? 's' : ''} • {buildingRooms.length} Rooms
-                        </text>
-                        
-                        {/* Selection indicator */}
-                        {isSelected && (
-                          <rect
-                            x={gridX - 2}
-                            y={gridY - 2}
-                            width={buildingWidth + 4}
-                            height={buildingHeight + 4}
-                            fill="none"
-                            stroke="#2563eb"
-                            strokeWidth="2"
-                            strokeDasharray="8,4"
-                            rx="4"
-                            className="pointer-events-none animate-pulse"
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
+                  {/* Buildings REMOVED - Clean grid only */}
+                  {/* Grid is now clean and ready for navigation paths */}
                 </svg>
                 </div>
               </div>
