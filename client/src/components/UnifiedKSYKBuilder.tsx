@@ -373,11 +373,11 @@ export default function UnifiedKSYKBuilder() {
     <div className="space-y-6">
       {/* Mode Selector */}
       <Card className="shadow-xl border-2 border-blue-200">
-        <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
+        <CardHeader className="bg-blue-600 text-white">
           <CardTitle className="text-xl md:text-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <span className="flex items-center">
-              <Zap className="mr-2 md:mr-3 h-6 md:h-8 w-6 md:w-8" />
-              KSYK Professional Builder
+              <Building className="mr-2 md:mr-3 h-6 md:h-8 w-6 md:w-8" />
+              KSYK Builder
             </span>
             <div className="flex items-center space-x-2">
               <Badge variant="secondary" className="bg-white/20 text-white text-xs md:text-sm">
@@ -398,13 +398,7 @@ export default function UnifiedKSYKBuilder() {
               <Building className="mr-2 h-4 md:h-6 w-4 md:w-6" />
               Custom Shapes
             </Button>
-            <Button
-              onClick={() => setBuilderMode('buildings')}
-              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'buildings' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
-            >
-              <Square className="mr-2 h-4 md:h-6 w-4 md:w-6" />
-              Manage Buildings
-            </Button>
+
             <Button
               onClick={() => setBuilderMode('rooms')}
               className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'rooms' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400 hover:bg-gray-500'}`}
@@ -732,8 +726,8 @@ export default function UnifiedKSYKBuilder() {
             </CardContent>
           </Card>
 
-          {/* Buildings List - MANAGE MODE */}
-          {builderMode === 'buildings' && (
+          {/* Buildings removed */}
+          {false && (
             <Card className="shadow-lg mt-6">
               <CardHeader className="bg-gray-800 text-white">
                 <CardTitle>Manage Buildings ({buildings.length})</CardTitle>

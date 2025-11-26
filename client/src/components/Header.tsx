@@ -11,7 +11,14 @@ export default function Header() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(i18n.language);
+  const [currentLang, setCurrentLang] = useState(() => {
+    const saved = localStorage.getItem('ksyk_language');
+    if (saved) {
+      i18n.changeLanguage(saved);
+      return saved;
+    }
+    return i18n.language;
+  });
   const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
 
@@ -45,6 +52,7 @@ export default function Header() {
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
     setCurrentLang(lang);
+    localStorage.setItem('ksyk_language', lang);
   };
 
   const handleLogout = async () => {

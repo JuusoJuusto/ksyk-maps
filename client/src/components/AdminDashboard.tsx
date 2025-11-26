@@ -350,7 +350,7 @@ export default function AdminDashboard() {
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="ksyk-builder">🏗️ KSYK Builder</TabsTrigger>
+          <TabsTrigger value="ksyk-builder">KSYK Builder</TabsTrigger>
           <TabsTrigger value="buildings">Buildings</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
