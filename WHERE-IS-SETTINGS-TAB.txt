@@ -1,0 +1,127 @@
+🔍 WHERE IS THE SETTINGS TAB?
+
+The Settings tab IS THERE! Here's exactly where to find it:
+
+📍 LOCATION:
+Admin Panel → Top Navigation → 7th Tab (last one)
+
+👀 VISUAL GUIDE:
+
+When you're in the Admin Panel, look at the top tabs:
+
+┌─────────────────────────────────────────────────────────────────┐
+│  [Overview] [Users] [KSYK Builder] [Buildings] [Staff]          │
+│  [Announcements] [Settings] ← HERE!                             │
+└─────────────────────────────────────────────────────────────────┘
+
+The tabs are in this order:
+1. Overview
+2. Users  
+3. KSYK Builder
+4. Buildings
+5. Staff
+6. Announcements
+7. **SETTINGS** ← Click this one!
+
+🎯 STEP-BY-STEP:
+
+1. Go to: https://ksykmaps.vercel.app/admin-login
+   (or http://localhost:3000/admin-login for local)
+
+2. Login with:
+   Email: JuusoJuusto112@gmail.com
+   Password: Juusto2012!
+
+3. You'll be redirected to /admin
+
+4. Look at the TOP of the page
+
+5. You'll see a row of tabs
+
+6. Scroll the tabs if needed (they might wrap on small screens)
+
+7. Click "Settings" (the last tab)
+
+8. You'll see 4 sub-tabs:
+   - Branding (colors, logo)
+   - Content (text in different languages)
+   - Features (toggle features on/off)
+   - Contact (email, phone)
+
+🖥️ WHAT YOU'LL SEE IN SETTINGS:
+
+┌─────────────────────────────────────────────────────────────────┐
+│  App Customization                          [Save Changes]      │
+│  Customize the look and feel of your application                │
+├─────────────────────────────────────────────────────────────────┤
+│  [🎨 Branding] [🌍 Content] [⚙️ Features] [📧 Contact]         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Brand Identity                                                  │
+│  Customize your app's name and colors                           │
+│                                                                  │
+│  App Name (Default): [KSYK Map____________]                     │
+│  Logo URL: [https://example.com/logo.png__]                     │
+│                                                                  │
+│  Primary Color: [🎨] [#3B82F6___________]                       │
+│  Secondary Color: [🎨] [#2563EB___________]                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+🚨 IF YOU DON'T SEE IT:
+
+Problem: "I only see 6 tabs, not 7!"
+Solution: 
+- Hard refresh: Ctrl+F5 (Windows) or Cmd+Shift+R (Mac)
+- Clear browser cache
+- Close and reopen browser
+- Make sure you're logged in as admin
+
+Problem: "The tabs are cut off on my screen"
+Solution:
+- The tabs might wrap to a second row
+- Scroll down slightly
+- Or make your browser window wider
+
+Problem: "I see an error when clicking Settings"
+Solution:
+- Open browser console (F12)
+- Look for red error messages
+- Share the error message
+
+Problem: "Settings tab is there but empty/loading forever"
+Solution:
+- Check if server is running
+- Check browser console for errors
+- Make sure Firebase is connected
+- Restart the server
+
+🎉 ONCE YOU'RE IN SETTINGS:
+
+You can customize:
+✅ App colors (with color pickers!)
+✅ App name and logo
+✅ Text in English and Finnish
+✅ Toggle features on/off
+✅ Set contact information
+
+All changes save to Firebase and apply to EVERYONE immediately!
+
+💡 TIP: 
+Start with the Branding tab - change the primary color to see 
+the changes take effect across the entire app!
+
+🔥 REMEMBER:
+After clicking "Save Changes", the page will reload automatically
+to apply your new settings. This is normal!
+
+---
+
+Still can't find it? 
+1. Make sure you're at /admin (not /admin-login)
+2. Make sure you're logged in (you should see your name in header)
+3. Look for 7 tabs at the top
+4. The last one says "Settings"
+5. Click it!
+
+That's it! The Settings tab is definitely there and working! 🎨

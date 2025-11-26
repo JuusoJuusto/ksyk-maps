@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UnifiedKSYKBuilder from "@/components/UnifiedKSYKBuilder";
+import AppSettingsManager from "@/components/AppSettingsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -347,13 +348,14 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder">KSYK Builder</TabsTrigger>
           <TabsTrigger value="buildings">Buildings</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1347,6 +1349,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="announcements" className="space-y-6">
           <AnnouncementManager />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <AppSettingsManager />
         </TabsContent>
       </Tabs>
     </div>

@@ -15,6 +15,8 @@ import {
   type InsertEvent,
   type Announcement,
   type InsertAnnouncement,
+  type AppSettings,
+  type InsertAppSettings,
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -76,6 +78,10 @@ export interface IStorage {
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
   updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement>;
   deleteAnnouncement(id: string): Promise<void>;
+  
+  // App Settings operations
+  getAppSettings(): Promise<AppSettings>;
+  updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings>;
 }
 
 
@@ -326,6 +332,39 @@ class MemStorage implements IStorage {
     if (index !== -1) {
       this.mockAnnouncements.splice(index, 1);
     }
+  }
+
+  // App Settings operations
+  private mockAppSettings: AppSettings = {
+    id: 'default',
+    appName: 'KSYK Map',
+    appNameEn: 'KSYK Map',
+    appNameFi: 'KSYK Kartta',
+    logoUrl: null,
+    primaryColor: '#3B82F6',
+    secondaryColor: '#2563EB',
+    headerTitle: 'Campus Map',
+    headerTitleEn: 'Campus Map',
+    headerTitleFi: 'Kampuskartta',
+    footerText: null,
+    footerTextEn: null,
+    footerTextFi: null,
+    contactEmail: null,
+    contactPhone: null,
+    showStats: true,
+    showAnnouncements: true,
+    enableSearch: true,
+    defaultLanguage: 'en',
+    updatedAt: new Date()
+  };
+
+  async getAppSettings(): Promise<AppSettings> {
+    return this.mockAppSettings;
+  }
+
+  async updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings> {
+    this.mockAppSettings = { ...this.mockAppSettings, ...settings, updatedAt: new Date() };
+    return this.mockAppSettings;
   }
 }
 

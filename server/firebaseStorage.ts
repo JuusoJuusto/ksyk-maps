@@ -20,6 +20,8 @@ import type {
   InsertEvent,
   Announcement,
   InsertAnnouncement,
+  AppSettings,
+  InsertAppSettings,
 } from "@shared/schema";
 
 // Initialize Firebase Admin (server-side)
@@ -716,6 +718,60 @@ export class FirebaseStorage implements IStorage {
       await db.collection('announcements').doc(id).update({ isActive: false });
     } catch (error) {
       console.error('Error deleting announcement:', error);
+      throw error;
+    }
+  }
+
+  // App Settings operations
+  async getAppSettings(): Promise<AppSettings> {
+    try {
+      const doc = await db.collection('appSettings').doc('default').get();
+      if (!doc.exists) {
+        // Return default settings if not found
+        const defaultSettings: AppSettings = {
+          id: 'default',
+          appName: 'KSYK Map',
+          appNameEn: 'KSYK Map',
+          appNameFi: 'KSYK Kartta',
+          logoUrl: null,
+          primaryColor: '#3B82F6',
+          secondaryColor: '#2563EB',
+          headerTitle: 'Campus Map',
+          headerTitleEn: 'Campus Map',
+          headerTitleFi: 'Kampuskartta',
+          footerText: null,
+          footerTextEn: null,
+          footerTextFi: null,
+          contactEmail: null,
+          contactPhone: null,
+          showStats: true,
+          showAnnouncements: true,
+          enableSearch: true,
+          defaultLanguage: 'en',
+          updatedAt: new Date()
+        };
+        // Create default settings
+        await db.collection('appSettings').doc('default').set(defaultSettings);
+        return defaultSettings;
+      }
+      return { id: doc.id, ...doc.data() } as AppSettings;
+    } catch (error) {
+      console.error('Error getting app settings:', error);
+      throw error;
+    }
+  }
+
+  async updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings> {
+    try {
+      const updateData = {
+        ...settings,
+        updatedAt: new Date()
+      };
+      await db.collection('appSettings').doc('default').set(updateData, { merge: true });
+      const updated = await this.getAppSettings();
+      return updated;
+    } catch (error) {
+      console.error('Error updating app settings:', error);
       throw error;
     }
   }

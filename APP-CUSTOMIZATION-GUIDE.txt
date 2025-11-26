@@ -1,0 +1,64 @@
+🎨 APP CUSTOMIZATION FEATURE - COMPLETE!
+
+✅ WHAT'S NEW:
+1. Complete app customization in Admin Panel → Settings tab
+2. Switched to Resend SDK for email (simpler & free)
+3. All settings sync to Firebase database in real-time
+4. Changes apply to all users immediately
+
+📧 EMAIL SETUP (RESEND):
+1. Your API key is already configured: re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+2. Local .env updated with RESEND_API_KEY
+3. Update Vercel with: RESEND_API_KEY=re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+
+⚠️ IMPORTANT - RESEND FREE TIER:
+- You can only send emails to VERIFIED email addresses
+- Go to https://resend.com/emails and verify recipient emails first
+- OR upgrade to a paid plan to send to anyone
+- OR add your own domain to send from your domain
+
+🎨 CUSTOMIZATION OPTIONS:
+
+BRANDING TAB:
+- App Name (shown in header/title)
+- Logo URL (your custom logo)
+- Primary Color (main theme color)
+- Secondary Color (accent color)
+
+CONTENT TAB:
+- Header Titles (English & Finnish)
+- App Names (English & Finnish)
+- Footer Text (English & Finnish)
+- Default Language (en/fi)
+
+FEATURES TAB:
+- Show Statistics (toggle campus stats)
+- Show Announcements (toggle announcement banner)
+- Enable Search (toggle search functionality)
+
+CONTACT TAB:
+- Contact Email
+- Contact Phone
+
+🚀 HOW TO USE:
+1. Login as admin
+2. Go to Admin Panel
+3. Click "Settings" tab
+4. Customize any settings
+5. Click "Save Changes"
+6. Page reloads with new settings applied!
+
+💾 DATABASE:
+- Settings stored in Firebase: appSettings/default
+- All users see changes immediately
+- No code deployment needed for customization
+
+🔄 TO DEPLOY:
+1. Update Vercel environment variable:
+   RESEND_API_KEY=re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+
+2. Redeploy your app
+
+3. Verify emails in Resend dashboard before sending
+
+DONE! 🎉

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
-import { sendPasswordSetupEmail, generateTempPassword } from "./resendEmail";
+import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -859,6 +859,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error performing global search:", error);
       res.status(500).json({ message: "Failed to perform search" });
+    }
+  });
+
+  // App Settings routes
+  app.get('/api/settings', async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching app settings:", error);
+      res.status(500).json({ message: "Failed to fetch app settings" });
+    }
+  });
+
+  app.put('/api/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const settings = await storage.updateAppSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating app settings:", error);
+      res.status(500).json({ message: "Failed to update app settings" });
     }
   });
 

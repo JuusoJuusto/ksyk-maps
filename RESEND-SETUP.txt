@@ -1,0 +1,19 @@
+✅ SWITCHED TO RESEND - WORKS ON VERCEL!
+
+Get FREE Resend API Key:
+1. Go to: https://resend.com/signup
+2. Sign up (free)
+3. Verify email
+4. Go to: https://resend.com/api-keys
+5. Click "Create API Key"
+6. Copy the key (starts with "re_")
+
+Add to Vercel:
+1. Go to: https://vercel.com/dashboard
+2. ksykmaps → Settings → Environment Variables
+3. Add: RESEND_API_KEY = your_key_here
+4. Redeploy
+
+DONE! Emails will work perfectly!
+
+Resend is FREE for 100 emails/day and works perfectly on Vercel!

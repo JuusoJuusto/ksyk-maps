@@ -303,11 +303,42 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   updatedAt: true,
 });
 
+// App Settings table
+export const appSettings = pgTable("app_settings", {
+  id: varchar("id").primaryKey().default('default'),
+  appName: varchar("app_name").default("KSYK Map"),
+  appNameEn: varchar("app_name_en").default("KSYK Map"),
+  appNameFi: varchar("app_name_fi").default("KSYK Kartta"),
+  logoUrl: varchar("logo_url"),
+  primaryColor: varchar("primary_color").default("#3B82F6"),
+  secondaryColor: varchar("secondary_color").default("#2563EB"),
+  headerTitle: varchar("header_title").default("Campus Map"),
+  headerTitleEn: varchar("header_title_en").default("Campus Map"),
+  headerTitleFi: varchar("header_title_fi").default("Kampuskartta"),
+  footerText: text("footer_text"),
+  footerTextEn: text("footer_text_en"),
+  footerTextFi: text("footer_text_fi"),
+  contactEmail: varchar("contact_email"),
+  contactPhone: varchar("contact_phone"),
+  showStats: boolean("show_stats").default(true),
+  showAnnouncements: boolean("show_announcements").default(true),
+  enableSearch: boolean("enable_search").default(true),
+  defaultLanguage: varchar("default_language").default("en"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Building = typeof buildings.$inferSelect;
 export type InsertBuilding = z.infer<typeof insertBuildingSchema>;
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
 export type Floor = typeof floors.$inferSelect;
 export type InsertFloor = z.infer<typeof insertFloorSchema>;
 export type Hallway = typeof hallways.$inferSelect;

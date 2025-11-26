@@ -1,142 +1,260 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// Email configuration - force fresh config each time
-function getEmailConfig() {
-  return {
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  };
-}
-
-// Create transporter
-let transporter: any = null;
-
-async function getTransporter() {
-  // Always create fresh transporter
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('⚠️ EMAIL NOT CONFIGURED');
-    console.warn('   EMAIL_USER:', process.env.EMAIL_USER || 'NOT SET');
-    console.warn('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET');
-    return null;
-  }
-  
-  const config = getEmailConfig();
-  console.log('🔧 Creating email transporter...');
-  console.log('   Host:', config.host);
-  console.log('   Port:', config.port);
-  console.log('   User:', config.auth.user);
-  console.log('   Pass:', config.auth.pass ? '***SET***' : 'NOT SET');
-  
-  transporter = nodemailer.createTransport(config);
-    
-    // Test connection
-    try {
-      console.log('🔍 Verifying email connection...');
-      await transporter.verify();
-      console.log('✅ Email service initialized and verified successfully!');
-      console.log('   Ready to send emails via', EMAIL_CONFIG.host);
-    } catch (error: any) {
-      console.error('❌ Email service verification failed:');
-      console.error('   Error:', error.message);
-      console.error('   Code:', error.code);
-      if (error.code === 'EAUTH') {
-        console.error('   💡 Authentication failed. Check your EMAIL_USER and EMAIL_PASSWORD');
-        console.error('   💡 For Gmail, you need an App Password, not your regular password');
-        console.error('   💡 Generate one at: https://myaccount.google.com/apppasswords');
-      }
-      console.log('📧 Falling back to console mode');
-      transporter = null;
-      return null;
-    }
-  }
-  return transporter;
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
   console.log('\n🚀 ========== SENDING EMAIL ==========');
   console.log('To:', email);
   console.log('Name:', firstName);
   console.log('Password:', tempPassword);
-  console.log('ENV CHECK:');
-  console.log('  EMAIL_HOST:', process.env.EMAIL_HOST || 'NOT SET');
-  console.log('  EMAIL_PORT:', process.env.EMAIL_PORT || 'NOT SET');
-  console.log('  EMAIL_USER:', process.env.EMAIL_USER || 'NOT SET');
-  console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'SET (length: ' + process.env.EMAIL_PASSWORD.length + ')' : 'NOT SET');
+  console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
   console.log('=====================================\n');
-  
-  // Force reinitialize transporter to ensure fresh connection
-  transporter = null;
-  const transport = await getTransporter();
-  
+
+  if (!process.env.RESEND_API_KEY) {
+    console.log('⚠️ RESEND_API_KEY not set, showing password in console');
+    console.log(`📝 Password for ${email}: ${tempPassword}`);
+    return { success: true, mode: 'console', password: tempPassword };
+  }
+
   const emailContent = {
-    from: `"KSYK Map Admin" <${process.env.EMAIL_USER || 'noreply@ksyk.fi'}>`,
-    to: email,
-    subject: 'Welcome to KSYK Map - Set Your Password',
+    from: 'KSYK Map <onboarding@resend.dev>',
+    to: [email],
+    subject: '🗺️ Welcome to KSYK Map - Your Admin Account',
     html: `
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to KSYK Map</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-          .password-box { background: white; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-          .password { font-size: 24px; font-weight: bold; color: #2563EB; letter-spacing: 2px; font-family: monospace; }
-          .button { display: inline-block; background: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-          .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
-          .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; 
+            color: #1f2937;
+            background-color: #f3f4f6;
+            padding: 20px;
+          }
+          .email-wrapper { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center;
+          }
+          .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .header p {
+            margin-top: 8px;
+            opacity: 0.95;
+            font-size: 16px;
+          }
+          .content { 
+            padding: 40px 30px;
+            background: white;
+          }
+          .greeting {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 16px;
+          }
+          .intro {
+            color: #4b5563;
+            margin-bottom: 24px;
+            font-size: 15px;
+          }
+          .password-section {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 2px solid #3B82F6;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: center;
+          }
+          .password-label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+          }
+          .password { 
+            font-size: 32px; 
+            font-weight: 700; 
+            color: #1e40af; 
+            letter-spacing: 3px; 
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+          }
+          .warning-box { 
+            background: #fef3c7; 
+            border-left: 4px solid #f59e0b; 
+            padding: 20px; 
+            margin: 24px 0;
+            border-radius: 8px;
+          }
+          .warning-box strong {
+            color: #92400e;
+            display: block;
+            margin-bottom: 12px;
+            font-size: 15px;
+          }
+          .warning-box ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #78350f;
+          }
+          .warning-box li {
+            margin: 6px 0;
+          }
+          .info-box {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+          }
+          .info-box h3 {
+            color: #111827;
+            font-size: 16px;
+            margin-bottom: 12px;
+          }
+          .info-item {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .info-item:last-child {
+            border-bottom: none;
+          }
+          .info-label {
+            font-weight: 600;
+            color: #374151;
+            min-width: 100px;
+          }
+          .info-value {
+            color: #6b7280;
+            word-break: break-all;
+          }
+          .cta-button { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            color: white !important; 
+            padding: 16px 40px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 24px 0;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: transform 0.2s;
+          }
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+          }
+          .button-container {
+            text-align: center;
+            margin: 32px 0;
+          }
+          .footer { 
+            text-align: center; 
+            color: #9ca3af; 
+            font-size: 13px; 
+            padding: 24px 30px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+          }
+          .footer p {
+            margin: 4px 0;
+          }
+          .help-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+          }
         </style>
       </head>
       <body>
-        <div class="container">
+        <div class="email-wrapper">
           <div class="header">
-            <h1>🗺️ Welcome to KSYK Map!</h1>
+            <h1>🗺️ Welcome to KSYK Map</h1>
+            <p>Your admin account is ready!</p>
           </div>
+          
           <div class="content">
-            <h2>Hello ${firstName}!</h2>
-            <p>Your admin account has been created for the KSYK Map system.</p>
+            <div class="greeting">Hello ${firstName}! 👋</div>
+            <p class="intro">
+              Your administrator account has been successfully created for the KSYK Map system. 
+              You now have full access to manage the campus navigation platform.
+            </p>
             
-            <div class="password-box">
-              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Your temporary password:</p>
+            <div class="password-section">
+              <div class="password-label">Your Temporary Password</div>
               <div class="password">${tempPassword}</div>
             </div>
             
-            <div class="warning">
-              <strong>⚠️ Important Security Notice:</strong>
-              <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-                <li>Please change this password after your first login</li>
-                <li>Do not share this password with anyone</li>
-                <li>Keep this email secure or delete it after logging in</li>
+            <div class="warning-box">
+              <strong>🔒 Important Security Notice</strong>
+              <ul>
+                <li>Change this password immediately after your first login</li>
+                <li>Never share your password with anyone</li>
+                <li>Delete this email after logging in for security</li>
               </ul>
             </div>
             
-            <p><strong>Your login details:</strong></p>
-            <ul>
-              <li><strong>Email:</strong> ${email}</li>
-              <li><strong>Password:</strong> (shown above)</li>
-              <li><strong>Login URL:</strong> <a href="https://ksykmaps.vercel.app/admin-login">https://ksykmaps.vercel.app/admin-login</a></li>
-            </ul>
-            
-            <div style="text-align: center;">
-              <a href="https://ksykmaps.vercel.app/admin-login" class="button">Login to KSYK Map</a>
+            <div class="info-box">
+              <h3>📋 Your Login Credentials</h3>
+              <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span class="info-value">${email}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Password:</span>
+                <span class="info-value">See above</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Login URL:</span>
+                <span class="info-value">ksykmaps.vercel.app/admin-login</span>
+              </div>
             </div>
             
-            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-              If you have any questions or need assistance, please contact the system administrator.
-            </p>
+            <div class="button-container">
+              <a href="https://ksykmaps.vercel.app/admin-login" class="cta-button">
+                🚀 Login to Admin Panel
+              </a>
+            </div>
+            
+            <div class="help-text">
+              Need help? Contact your system administrator or reply to this email for assistance.
+            </div>
           </div>
+          
           <div class="footer">
-            <p>This is an automated message from KSYK Map Admin System</p>
+            <p><strong>KSYK Map Admin System</strong></p>
             <p>© 2025 KSYK Map. All rights reserved.</p>
+            <p style="margin-top: 12px; font-size: 12px;">
+              This is an automated message. Please do not reply to this email.
+            </p>
           </div>
         </div>
       </body>
@@ -168,64 +286,22 @@ This is an automated message from KSYK Map Admin System
 © 2025 KSYK Map. All rights reserved.
     `
   };
-  
-  if (!transport) {
-    // Log to console if email not configured
-    console.log('\n📧 ========== EMAIL NOT CONFIGURED - CONSOLE MODE ==========');
-    console.log('To:', email);
-    console.log('Subject:', emailContent.subject);
-    console.log('Temporary Password:', tempPassword);
-    console.log('');
-    console.log('⚠️ To enable email sending:');
-    console.log('1. Verify EMAIL_USER and EMAIL_PASSWORD in .env');
-    console.log('2. For Gmail, use App Password from: https://myaccount.google.com/apppasswords');
-    console.log('3. Restart the server');
-    console.log('===========================================================\n');
-    return { success: true, mode: 'console', password: tempPassword };
-  }
-  
+
   try {
-    console.log(`\n📧 ========== SENDING EMAIL ==========`);
-    console.log(`To: ${email}`);
-    console.log(`From: ${EMAIL_CONFIG.auth.user}`);
-    console.log(`SMTP: ${EMAIL_CONFIG.host}:${EMAIL_CONFIG.port}`);
-    console.log(`Subject: ${emailContent.subject}`);
-    console.log('');
-    
-    const info = await transport.sendMail(emailContent);
-    
-    console.log('✅ ========== EMAIL SENT SUCCESSFULLY! ==========');
-    console.log(`Message ID: ${info.messageId}`);
-    console.log(`Recipient: ${email}`);
-    console.log(`Password: ${tempPassword}`);
-    console.log(`Status: Delivered to ${EMAIL_CONFIG.host}`);
-    console.log('================================================\n');
-    
-    return { success: true, mode: 'email', messageId: info.messageId, password: tempPassword };
-  } catch (error: any) {
-    console.error('\n❌ ========== EMAIL FAILED ==========');
-    console.error(`Error: ${error.message}`);
-    console.error(`Code: ${error.code}`);
-    console.error(`Response: ${error.response || 'N/A'}`);
-    
-    if (error.code === 'EAUTH') {
-      console.error('\n💡 AUTHENTICATION FAILED:');
-      console.error('   - Check EMAIL_USER is correct');
-      console.error('   - Check EMAIL_PASSWORD is valid');
-      console.error('   - For Gmail, use App Password (not regular password)');
-      console.error('   - Generate at: https://myaccount.google.com/apppasswords');
-    } else if (error.code === 'ECONNECTION') {
-      console.error('\n💡 CONNECTION FAILED:');
-      console.error('   - Check internet connection');
-      console.error('   - Verify SMTP host and port');
-      console.error('   - Check firewall settings');
+    const { data, error } = await resend.emails.send(emailContent);
+
+    if (error) {
+      console.error('❌ Resend error:', error);
+      console.log(`📝 Password for ${email}: ${tempPassword}`);
+      return { success: false, error, mode: 'console', password: tempPassword };
     }
-    
-    console.log('\n📝 FALLBACK - Password for manual sharing:');
-    console.log(`   Email: ${email}`);
-    console.log(`   Password: ${tempPassword}`);
-    console.log('=====================================\n');
-    
+
+    console.log('✅ Email sent successfully via Resend!');
+    console.log('   Email ID:', data?.id);
+    return { success: true, mode: 'email', messageId: data?.id, password: tempPassword };
+  } catch (error: any) {
+    console.error('❌ Exception:', error);
+    console.log(`📝 Password for ${email}: ${tempPassword}`);
     return { success: false, error, mode: 'console', password: tempPassword };
   }
 }

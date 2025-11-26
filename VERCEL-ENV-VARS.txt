@@ -4,10 +4,7 @@ USE_FIREBASE=true
 NODE_ENV=production
 SESSION_SECRET=ksyk-map-super-secret-key-change-in-production-2024
 
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=JuusoJuusto112@gmail.com
-EMAIL_PASSWORD=vvzvffmzwbdibwrb
+RESEND_API_KEY=re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
 
 FIREBASE_SERVICE_ACCOUNT=
 Copy the ENTIRE content of serviceAccountKey.json here as ONE LINE (no line breaks)

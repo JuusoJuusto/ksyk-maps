@@ -1,0 +1,85 @@
+📧 EMAIL SETUP - RESEND (FREE & WORKING!)
+
+✅ YOUR API KEY: re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+
+🚨 CRITICAL - WHY EMAILS MIGHT NOT ARRIVE:
+
+Resend FREE TIER has a restriction:
+- You can ONLY send emails to VERIFIED email addresses
+- OR you need to add your own domain
+
+📝 TO FIX - VERIFY YOUR EMAIL:
+
+1. Go to: https://resend.com/login
+2. Login with your Resend account
+3. Go to "Audience" or "Emails" section
+4. Add and VERIFY the email addresses you want to send to
+5. Check the inbox of those emails for verification link
+6. Click the verification link
+7. NOW you can send emails to those addresses!
+
+🎯 ALTERNATIVE - ADD YOUR DOMAIN:
+
+1. Go to Resend Dashboard → Domains
+2. Add your domain (e.g., ksyk.fi)
+3. Add the DNS records they provide
+4. Once verified, you can send from yourname@ksyk.fi
+5. Then you can send to ANYONE!
+
+💻 LOCAL TESTING:
+
+Your .env is already configured:
+RESEND_API_KEY=re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+
+To test locally:
+1. Restart your server
+2. Go to Admin Panel → Users
+3. Create a new user with "Send via email"
+4. Check server console for email status
+5. If email sent successfully, check recipient inbox
+
+🌐 VERCEL DEPLOYMENT:
+
+Add this environment variable in Vercel:
+RESEND_API_KEY=re_cjxCHufh_6dt8g21HwgeMNLvn81wbdcMC
+
+Then redeploy!
+
+📊 EMAIL FEATURES:
+
+✅ Beautiful HTML design with gradients
+✅ Mobile responsive
+✅ Clear password display
+✅ Security warnings
+✅ Direct login button
+✅ Professional footer
+
+🎨 APP CUSTOMIZATION TAB:
+
+The Settings tab IS in your Admin Panel!
+Location: Admin Panel → Settings (7th tab)
+
+If you don't see it:
+1. Make sure you're logged in as admin
+2. Refresh the page (Ctrl+F5)
+3. Check browser console for errors
+4. The tab should be after "Announcements"
+
+Features in Settings tab:
+- Branding (colors, logo, app name)
+- Content (multilingual text)
+- Features (toggle stats, search, announcements)
+- Contact (email, phone)
+
+All changes save to Firebase and apply to ALL users instantly!
+
+🔥 QUICK START:
+
+1. Verify your recipient email at resend.com
+2. Restart your local server
+3. Create a test user with email option
+4. Check if email arrives
+5. If yes, deploy to Vercel with RESEND_API_KEY
+6. Done!
+
+Need help? Check server console logs for detailed email status.
