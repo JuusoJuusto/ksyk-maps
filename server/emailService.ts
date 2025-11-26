@@ -104,11 +104,11 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
             <ul>
               <li><strong>Email:</strong> ${email}</li>
               <li><strong>Password:</strong> (shown above)</li>
-              <li><strong>Login URL:</strong> <a href="http://localhost:3000/admin-login">http://localhost:3000/admin-login</a></li>
+              <li><strong>Login URL:</strong> <a href="https://ksykmaps.vercel.app/admin-login">https://ksykmaps.vercel.app/admin-login</a></li>
             </ul>
             
             <div style="text-align: center;">
-              <a href="http://localhost:3000/admin-login" class="button">Login to KSYK Map</a>
+              <a href="https://ksykmaps.vercel.app/admin-login" class="button">Login to KSYK Map</a>
             </div>
             
             <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
@@ -140,7 +140,7 @@ IMPORTANT SECURITY NOTICE:
 Your login details:
 - Email: ${email}
 - Password: ${tempPassword}
-- Login URL: http://localhost:3000/admin-login
+- Login URL: https://ksykmaps.vercel.app/admin-login
 
 If you have any questions or need assistance, please contact the system administrator.
 
