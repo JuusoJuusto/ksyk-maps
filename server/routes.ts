@@ -559,22 +559,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If email option, send invitation email
       if (passwordOption === 'email') {
+        console.log(`\n🚀 ========== EMAIL INVITATION TRIGGERED ==========`);
+        console.log(`Target: ${email}`);
+        console.log(`Name: ${firstName} ${lastName}`);
+        console.log(`Password: ${finalPassword}`);
+        
         try {
-          console.log(`\n🚀 Attempting to send invitation email to ${email}...`);
           const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
           
-          if (emailResult.success) {
-            console.log(`✅ SUCCESS! Email sent to ${email}`);
-            console.log(`   Mode: ${emailResult.mode}`);
-            console.log(`   Message ID: ${emailResult.messageId || 'N/A'}`);
+          console.log(`\n📧 EMAIL RESULT:`);
+          console.log(`   Success: ${emailResult.success}`);
+          console.log(`   Mode: ${emailResult.mode}`);
+          console.log(`   Message ID: ${emailResult.messageId || 'N/A'}`);
+          
+          if (emailResult.success && emailResult.mode === 'email') {
+            console.log(`✅ EMAIL SENT SUCCESSFULLY to ${email}`);
           } else {
-            console.log(`⚠️ Email failed but user created. Password: ${finalPassword}`);
-            console.log(`   Error: ${emailResult.error?.message || 'Unknown'}`);
+            console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
+            if (emailResult.error) {
+              console.error(`   Error: ${emailResult.error.message}`);
+            }
           }
         } catch (error: any) {
-          console.error('❌ Email error:', error.message);
-          console.log(`📝 User created successfully. Manual password: ${finalPassword}`);
+          console.error('❌ EMAIL EXCEPTION:', error.message);
+          console.log(`📝 FALLBACK - Password: ${finalPassword}`);
         }
+        
+        console.log(`================================================\n`);
       }
 
       res.status(201).json(newUser);
@@ -629,8 +640,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
 
-      // Don't allow deleting owner account
+      // Don't allow deleting owner account by ID
       if (id === 'owner-admin-user') {
+        return res.status(403).json({ message: "Cannot delete owner account" });
+      }
+      
+      // Don't allow deleting by owner email
+      const userToDelete = await storage.getUser(id);
+      if (userToDelete && userToDelete.email === 'JuusoJuusto112@gmail.com' && userToDelete.firstName === 'Juuso' && userToDelete.lastName === 'Kaikula') {
         return res.status(403).json({ message: "Cannot delete owner account" });
       }
 
