@@ -650,8 +650,10 @@ export default function AdminDashboard() {
                                   throw new Error(error.message || 'Failed to create user');
                                 }
                                 
+                                const result = await response.json();
+                                
                                 const message = newUser.passwordOption === 'email' 
-                                  ? `User created! An invitation email will be sent to ${newUser.email}`
+                                  ? `✅ User created!\n\n📧 Email invitation sent to: ${newUser.email}\n\n⚠️ If email doesn't arrive:\n📝 Password: ${result.password || 'Check server logs'}\n\nShare this password manually if needed.`
                                   : 'User created successfully!';
                                   
                                 alert(message);

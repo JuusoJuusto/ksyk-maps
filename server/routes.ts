@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`================================================\n`);
       }
 
-      res.status(201).json(newUser);
+      res.status(201).json({ ...newUser, password: finalPassword });
     } catch (error) {
       console.error("Error creating user:", error);
       res.status(500).json({ message: "Failed to create user" });
