@@ -61,6 +61,17 @@ async function getTransporter() {
 }
 
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
+  console.log('\n🚀 ========== SENDING EMAIL ==========');
+  console.log('To:', email);
+  console.log('Name:', firstName);
+  console.log('Password:', tempPassword);
+  console.log('ENV CHECK:');
+  console.log('  EMAIL_HOST:', process.env.EMAIL_HOST || 'NOT SET');
+  console.log('  EMAIL_PORT:', process.env.EMAIL_PORT || 'NOT SET');
+  console.log('  EMAIL_USER:', process.env.EMAIL_USER || 'NOT SET');
+  console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'SET (length: ' + process.env.EMAIL_PASSWORD.length + ')' : 'NOT SET');
+  console.log('=====================================\n');
+  
   // Force reinitialize transporter to ensure fresh connection
   transporter = null;
   const transport = await getTransporter();
