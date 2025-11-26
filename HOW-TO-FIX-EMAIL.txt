@@ -25,7 +25,7 @@ Value: JuusoJuusto112@gmail.com
 
 Variable 4:
 Name: EMAIL_PASSWORD
-Value: vvzvffmzwbdibwrb
+Value: chotcunaxmglzgly
 
 STEP 3: Redeploy
 1. Click: Deployments (top menu)
