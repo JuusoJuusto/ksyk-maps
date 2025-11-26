@@ -1,0 +1,20 @@
+EMAIL NOT WORKING? CHECK THIS:
+
+1. ✅ Code is correct (email service works)
+2. ❌ Environment variables NOT SET in Vercel
+
+YOU MUST ADD TO VERCEL:
+Go to: https://vercel.com/dashboard
+→ ksykmaps project
+→ Settings
+→ Environment Variables
+→ Add these:
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=JuusoJuusto112@gmail.com
+EMAIL_PASSWORD=vvzvffmzwbdibwrb
+
+Then click "Redeploy" in Deployments tab!
+
+Without these, emails will ONLY show in server logs, not actually send.

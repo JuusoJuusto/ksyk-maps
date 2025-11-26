@@ -325,8 +325,10 @@ export default function Home() {
         {/* Sidebar Toggle Button - MOBILE FRIENDLY */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed md:absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
-          style={{ left: sidebarOpen ? (window.innerWidth < 768 ? '0px' : '320px') : '0px' }}
+          className="fixed md:absolute top-1/2 -translate-y-1/2 z-50 bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
+          style={{ 
+            left: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '0px' : '320px') : '0px'
+          }}
         >
           {sidebarOpen ? '◀' : '▶'}
         </button>

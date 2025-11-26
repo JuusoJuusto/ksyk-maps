@@ -104,14 +104,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     }
   };
 
-  const popularDestinations = [
-    { id: "library", name: "Library", room: "U40", type: "library" },
-    { id: "gym", name: "Main Gymnasium", room: "L01", type: "gymnasium" },
-    { id: "cafeteria", name: "Cafeteria", room: "K20", type: "cafeteria" },
-    { id: "office", name: "Principal's Office", room: "A35", type: "office" },
-    { id: "lab", name: "Chemistry Lab", room: "R10", type: "lab" },
-    { id: "music", name: "Music Room", room: "M12", type: "music_room" }
-  ];
+  const popularDestinations: any[] = [];
 
   if (!isOpen) return null;
 
@@ -272,30 +265,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
             </div>
           </div>
 
-          {/* Popular Destinations */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">🌟 Popular Destinations</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {popularDestinations.map((dest) => (
-                <Button
-                  key={dest.id}
-                  variant="outline"
-                  className="p-4 h-auto flex flex-col items-start hover:bg-blue-50 hover:border-blue-300"
-                  onClick={() => {
-                    const room = rooms.find((r: Room) => r.roomNumber === dest.room);
-                    if (room) {
-                      setSelectedTo(room);
-                      setToQuery(`${room.roomNumber} - ${room.name || room.nameEn}`);
-                      setToResults([]);
-                    }
-                  }}
-                >
-                  <div className="font-semibold text-blue-600">{dest.room}</div>
-                  <div className="text-sm text-gray-600">{dest.name}</div>
-                </Button>
-              ))}
-            </div>
-          </div>
+
 
           {/* Navigation Button */}
           <div className="mt-8 flex justify-center">
