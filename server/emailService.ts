@@ -1,33 +1,41 @@
 import nodemailer from 'nodemailer';
 
-// Email configuration
-const EMAIL_CONFIG = {
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
-};
+// Email configuration - force fresh config each time
+function getEmailConfig() {
+  return {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  };
+}
 
 // Create transporter
 let transporter: any = null;
 
 async function getTransporter() {
-  if (!transporter) {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.warn('⚠️ Email credentials not configured. Emails will be logged to console only.');
-      console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in .env file');
-      return null;
-    }
-    
-    console.log('🔧 Creating email transporter...');
-    console.log('   Host:', EMAIL_CONFIG.host);
-    console.log('   Port:', EMAIL_CONFIG.port);
-    console.log('   User:', EMAIL_CONFIG.auth.user);
-    
-    transporter = nodemailer.createTransport(EMAIL_CONFIG);
+  // Always create fresh transporter
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('⚠️ EMAIL NOT CONFIGURED');
+    console.warn('   EMAIL_USER:', process.env.EMAIL_USER || 'NOT SET');
+    console.warn('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET');
+    return null;
+  }
+  
+  const config = getEmailConfig();
+  console.log('🔧 Creating email transporter...');
+  console.log('   Host:', config.host);
+  console.log('   Port:', config.port);
+  console.log('   User:', config.auth.user);
+  console.log('   Pass:', config.auth.pass ? '***SET***' : 'NOT SET');
+  
+  transporter = nodemailer.createTransport(config);
     
     // Test connection
     try {

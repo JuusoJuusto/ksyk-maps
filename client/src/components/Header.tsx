@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,14 +11,15 @@ export default function Header() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(() => {
+  const [currentLang, setCurrentLang] = useState(i18n.language);
+  
+  useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
-    if (saved) {
+    if (saved && saved !== i18n.language) {
       i18n.changeLanguage(saved);
-      return saved;
+      setCurrentLang(saved);
     }
-    return i18n.language;
-  });
+  }, []);
   const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
 
@@ -49,10 +50,11 @@ export default function Header() {
     );
   };
 
-  const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
+  const handleLanguageChange = async (lang: string) => {
+    await i18n.changeLanguage(lang);
     setCurrentLang(lang);
     localStorage.setItem('ksyk_language', lang);
+    window.location.reload(); // Force reload to apply changes
   };
 
   const handleLogout = async () => {
