@@ -1257,7 +1257,16 @@ export default function AdminDashboard() {
                       <Badge variant={building.isActive ? "default" : "secondary"}>
                         {building.isActive ? "Active" : "Inactive"}
                       </Badge>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setActiveTab('ksyk-builder');
+                          setBuilderMode('buildings');
+                          setShowBuilderForm(true);
+                          setEditingBuilding(building);
+                        }}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>

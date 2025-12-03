@@ -475,8 +475,56 @@ export default function Home() {
                   <rect width="100%" height="100%" fill="url(#grid)" />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
-                  {/* Buildings REMOVED - Clean grid only */}
-                  {/* Grid is now clean and ready for navigation paths */}
+                  {/* Buildings */}
+                  {buildings.map((building: Building) => {
+                    const x = building.mapPositionX || 0;
+                    const y = building.mapPositionY || 0;
+                    const width = 80;
+                    const height = 60;
+                    
+                    return (
+                      <g key={building.id}>
+                        <rect
+                          x={x + 500}
+                          y={y + 300}
+                          width={width}
+                          height={height}
+                          fill={building.colorCode}
+                          stroke="#1f2937"
+                          strokeWidth="2"
+                          rx="4"
+                          className="cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto"
+                          onClick={() => {
+                            setSelectedBuilding(building.id);
+                            setSelectedFloor(1);
+                          }}
+                        />
+                        <text
+                          x={x + 500 + width / 2}
+                          y={y + 300 + height / 2}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="24"
+                          fontWeight="bold"
+                          className="pointer-events-none"
+                        >
+                          {building.name}
+                        </text>
+                        <text
+                          x={x + 500 + width / 2}
+                          y={y + 300 + height / 2 + 20}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="10"
+                          className="pointer-events-none"
+                        >
+                          {building.floors} floors
+                        </text>
+                      </g>
+                    );
+                  })}
                 </svg>
                 </div>
               </div>
