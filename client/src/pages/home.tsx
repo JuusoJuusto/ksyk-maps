@@ -461,8 +461,8 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="0 0 1000 600" className="w-full h-full pointer-events-none">
-                  {/* Grid background - CLEAN */}
+                <svg viewBox="-500 -500 2000 1500" className="w-full h-full pointer-events-none">
+                  {/* Grid background - Larger viewport to prevent cropping */}
                   <defs>
                     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
@@ -471,60 +471,12 @@ export default function Home() {
                       <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  <rect width="100%" height="100%" fill="white" />
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                  <rect width="100%" height="100%" fill="url(#gridMajor)" />
+                  <rect x="-500" y="-500" width="2000" height="1500" fill="white" />
+                  <rect x="-500" y="-500" width="2000" height="1500" fill="url(#grid)" />
+                  <rect x="-500" y="-500" width="2000" height="1500" fill="url(#gridMajor)" />
 
-                  {/* Buildings */}
-                  {buildings.map((building: Building) => {
-                    const x = building.mapPositionX || 0;
-                    const y = building.mapPositionY || 0;
-                    const width = 80;
-                    const height = 60;
-                    
-                    return (
-                      <g key={building.id}>
-                        <rect
-                          x={x + 500}
-                          y={y + 300}
-                          width={width}
-                          height={height}
-                          fill={building.colorCode}
-                          stroke="#1f2937"
-                          strokeWidth="2"
-                          rx="4"
-                          className="cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto"
-                          onClick={() => {
-                            setSelectedBuilding(building.id);
-                            setSelectedFloor(1);
-                          }}
-                        />
-                        <text
-                          x={x + 500 + width / 2}
-                          y={y + 300 + height / 2}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="24"
-                          fontWeight="bold"
-                          className="pointer-events-none"
-                        >
-                          {building.name}
-                        </text>
-                        <text
-                          x={x + 500 + width / 2}
-                          y={y + 300 + height / 2 + 20}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="10"
-                          className="pointer-events-none"
-                        >
-                          {building.floors} floors
-                        </text>
-                      </g>
-                    );
-                  })}
+                  {/* Buildings removed - use KSYK Builder in Admin Panel to add buildings */}
+                  {/* The map is now much larger (2000x1500) so buildings won't crop out */}
                 </svg>
                 </div>
               </div>

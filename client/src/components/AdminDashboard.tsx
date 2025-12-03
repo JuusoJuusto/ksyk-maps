@@ -1269,6 +1269,30 @@ export default function AdminDashboard() {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={async () => {
+                          if (!confirm(`Delete building ${building.name}? This will also delete all rooms in this building.`)) return;
+                          try {
+                            const response = await fetch(`/api/buildings/${building.id}`, {
+                              method: 'DELETE',
+                              credentials: 'include'
+                            });
+                            if (response.ok) {
+                              alert('Building deleted!');
+                              window.location.reload();
+                            } else {
+                              alert('Failed to delete building');
+                            }
+                          } catch (error) {
+                            console.error('Error deleting building:', error);
+                            alert('Error deleting building');
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
