@@ -1,0 +1,175 @@
+✅ LATEST FIXES APPLIED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗺️ BUILDINGS REMOVED FROM MAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Buildings removed from home page map
+✅ Map now shows clean grid only
+✅ Use KSYK Builder in Admin Panel to add buildings
+
+WHY:
+- Buildings were hardcoded and couldn't be managed
+- Now you can add/edit/delete buildings through Admin Panel
+- Buildings will appear on map when added via KSYK Builder
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗑️ DELETE BUILDING FUNCTIONALITY ADDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Delete button added to Buildings tab
+✅ Confirmation dialog before deletion
+✅ Deletes building and all its rooms
+✅ Red trash icon button
+
+HOW TO USE:
+1. Go to Admin Panel → Buildings tab
+2. Find the building you want to delete
+3. Click the red trash icon button
+4. Confirm deletion
+5. Building and all its rooms are deleted
+
+⚠️ WARNING: This action cannot be undone!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 MANIFEST.JSON FIXED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Removed references to missing icon files
+✅ Simplified manifest to essential fields only
+✅ No more manifest syntax errors
+
+BEFORE:
+- Referenced icon-192.png, icon-512.png (didn't exist)
+- Referenced screenshot-mobile.png (didn't exist)
+- Caused console errors
+
+AFTER:
+- Clean manifest with only essential fields
+- No errors in console
+- PWA still works
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗺️ MAP VIEWPORT ENLARGED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Map viewport increased from 1000x600 to 2000x1500
+✅ ViewBox adjusted to prevent cropping
+✅ Buildings won't be cut off at edges
+✅ More space for campus layout
+
+BEFORE:
+viewBox="0 0 1000 600"
+- Small viewport
+- Buildings could crop out
+
+AFTER:
+viewBox="-500 -500 2000 1500"
+- Much larger viewport
+- Centered at origin
+- Buildings have plenty of space
+- No cropping issues
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔐 401 ERROR EXPLAINED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The error: "api/auth/user:1 Failed to load resource: 401"
+
+THIS IS NORMAL! ✅
+
+What it means:
+- The app checks if you're logged in
+- If not logged in, returns 401 (Unauthorized)
+- This is expected behavior
+- Not an error that needs fixing
+
+When you see it:
+- On home page (when not logged in)
+- After logging out
+- In a new browser session
+
+It's safe to ignore! The app handles it correctly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 DEPLOYED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Commit: 95ffcee
+Message: "Remove buildings from map, add delete functionality, fix manifest, enlarge map viewport"
+
+Changes:
+✅ client/src/pages/home.tsx - Buildings removed, viewport enlarged
+✅ client/src/components/AdminDashboard.tsx - Delete button added
+✅ public/manifest.json - Simplified, errors fixed
+
+Status: Pushed to GitHub
+Vercel: Auto-deploying now
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 HOW TO ADD BUILDINGS NOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Since buildings are removed from the map:
+
+1. Go to Admin Panel (http://localhost:3000/admin)
+
+2. Click "KSYK Builder" tab
+
+3. Make sure "Buildings" mode is selected
+
+4. Click "Add New Building"
+
+5. Fill in building details:
+   - Building Code (e.g., "K", "M", "L")
+   - English Name
+   - Finnish Name
+   - Number of Floors
+   - Capacity
+   - Color Code (use color picker)
+   - Map Position X (e.g., 0, 100, -200)
+   - Map Position Y (e.g., 0, 50, -100)
+
+6. Click "Save Building"
+
+7. Building is now in database
+
+8. Go to home page - building should appear on map!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 WHAT'S DIFFERENT NOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE:
+- Buildings hardcoded in map
+- Couldn't delete buildings
+- Small map viewport (buildings could crop)
+- Manifest.json errors
+
+AFTER:
+- Clean map (add buildings via Admin Panel)
+- Can delete buildings with trash button
+- Large map viewport (no cropping)
+- No manifest errors
+- Full control over buildings
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Buildings removed from map
+✅ Delete button added to Buildings tab
+✅ Manifest.json fixed
+✅ Map viewport enlarged (2000x1500)
+✅ 401 error is normal (not a bug)
+✅ Code pushed to GitHub
+✅ Vercel auto-deploying
+
+NEXT STEPS:
+1. Refresh browser
+2. Map should show clean grid
+3. Use KSYK Builder to add buildings
+4. Buildings will appear on map
+5. Use trash button to delete buildings
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
