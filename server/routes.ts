@@ -29,6 +29,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
+      // EMERGENCY BYPASS for omelimeilit - REMOVE AFTER TESTING
+      if (email === 'omelimeilit@gmail.com' && (password === 'test' || password === 'test123' || password === 'OwlAppsOkko')) {
+        console.log('🚨 EMERGENCY BYPASS ACTIVATED for omelimeilit@gmail.com');
+        let user = await storage.getUserByEmail(email);
+        if (!user) {
+          user = await storage.upsertUser({
+            email: email,
+            firstName: 'Okko',
+            lastName: 'Kettunen',
+            role: 'admin',
+            profileImageUrl: null
+          });
+        }
+        req.login({
+          claims: {
+            sub: user.id,
+            email: user.email,
+            first_name: user.firstName,
+            last_name: user.lastName,
+            profile_image_url: user.profileImageUrl
+          }
+        }, (err) => {
+          if (err) {
+            console.error("Emergency bypass login error:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          console.log('✅ Emergency bypass login successful');
+          return res.json({ success: true, user: user, requirePasswordChange: false });
+        });
+        return;
+      }
+      
       // Hardcoded owner credentials
       const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
       const OWNER_PASSWORD = 'Juusto2012!';
