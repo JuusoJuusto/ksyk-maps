@@ -123,7 +123,7 @@ export default function AdminDashboard() {
   
   const currentUser = getCurrentUser();
   const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
-  const isAdmin = currentUser?.role === "admin"; // All admins can access
+  const isAdmin = currentUser?.role === "admin" || isOwner; // Admin or owner
   
   // Builder state
   const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
@@ -410,12 +410,12 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-          {!isAdmin ? (
+          {!isOwner ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Admin Access Required</h3>
-                <p className="text-gray-500">User management is restricted to admin accounts.</p>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Owner Access Only</h3>
+                <p className="text-gray-500">User management is restricted to the owner account for security.</p>
               </CardContent>
             </Card>
           ) : (
@@ -423,9 +423,9 @@ export default function AdminDashboard() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>User Management</CardTitle>
+                    <CardTitle>User Management (Owner Only)</CardTitle>
                     <CardDescription>
-                      Add and manage admin users in the system
+                      Add and manage users in the system. Roles: visitor, user, admin, owner.
                     </CardDescription>
                   </div>
                   <Button 
@@ -508,8 +508,10 @@ export default function AdminDashboard() {
                               : setNewUser({...newUser, role: e.target.value})
                             }
                           >
-                            <option value="admin">Admin</option>
+                            <option value="visitor">Visitor</option>
                             <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="owner">Owner</option>
                           </select>
                         </div>
                         {!editingUser && (
