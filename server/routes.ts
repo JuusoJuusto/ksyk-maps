@@ -76,6 +76,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if it's a database user with temporary password
         const user = await storage.getUserByEmail(email);
         
+        console.log('🔍 Login attempt for:', email);
+        console.log('   User found:', user ? 'YES' : 'NO');
+        if (user) {
+          console.log('   Stored password:', user.password);
+          console.log('   Provided password:', password);
+          console.log('   Passwords match:', user.password === password);
+        }
+        
         if (user && user.password === password) {
           // Password matches!
           req.login({
@@ -91,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error("Login error:", err);
               return res.status(500).json({ message: "Login failed" });
             }
-            console.log('User logged in:', user.email);
+            console.log('✅ User logged in:', user.email);
             res.json({ 
               success: true, 
               user: user,
@@ -99,8 +107,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           });
         } else {
-          console.log('Login failed - invalid credentials for:', email);
-          res.status(401).json({ message: "Invalid credentials" });
+          if (user && !user.password) {
+            console.log('❌ Login failed - user has no password set');
+            res.status(401).json({ message: "Password not set. Contact administrator." });
+          } else if (user) {
+            console.log('❌ Login failed - incorrect password');
+            res.status(401).json({ message: "Invalid password" });
+          } else {
+            console.log('❌ Login failed - user not found');
+            res.status(401).json({ message: "User not found" });
+          }
         }
       }
     } catch (error) {
