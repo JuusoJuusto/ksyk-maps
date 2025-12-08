@@ -123,6 +123,7 @@ export default function AdminDashboard() {
   
   const currentUser = getCurrentUser();
   const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
+  const isAdmin = currentUser?.role === "admin"; // All admins can access
   
   // Builder state
   const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
@@ -409,12 +410,12 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-          {!isOwner ? (
+          {!isAdmin ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Owner Access Only</h3>
-                <p className="text-gray-500">User management is restricted to the owner account.</p>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Admin Access Required</h3>
+                <p className="text-gray-500">User management is restricted to admin accounts.</p>
               </CardContent>
             </Card>
           ) : (
@@ -422,7 +423,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>User Management (Owner Only)</CardTitle>
+                    <CardTitle>User Management</CardTitle>
                     <CardDescription>
                       Add and manage admin users in the system
                     </CardDescription>
