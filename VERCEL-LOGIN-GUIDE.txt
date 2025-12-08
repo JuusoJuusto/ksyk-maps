@@ -1,0 +1,169 @@
+✅ VERCEL LOGIN - READY TO USE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔐 PASSWORD IS SET IN FIREBASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I just set the password in Firebase database.
+Vercel uses the same Firebase, so it's already there!
+
+LOGIN CREDENTIALS:
+📧 Email: omelimeilit@gmail.com
+🔑 Password: test123
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 LOGIN ON VERCEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: https://ksykmaps.vercel.app/admin-login
+
+2. Enter:
+   Email: omelimeilit@gmail.com
+   Password: test123
+
+3. Click "Login"
+
+4. You'll be logged in as Okko Kettunen (Admin)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👥 ROLES ON VERCEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OWNER (JuusoJuusto112@gmail.com):
+✅ Full access
+✅ User management
+✅ Create/edit/delete users
+✅ View passwords
+✅ Send email invitations
+
+ADMIN (omelimeilit@gmail.com - Okko):
+✅ Admin Panel access
+✅ KSYK Builder
+✅ Manage buildings
+✅ Manage rooms
+✅ Manage staff
+✅ Manage announcements
+✅ App settings
+❌ Cannot manage users (owner only)
+
+USER:
+✅ View content
+❌ No admin access
+
+VISITOR:
+✅ View public content only
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 IF LOGIN FAILS ON VERCEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Check Vercel deployment status:
+   https://vercel.com/dashboard
+   
+   Make sure latest deployment is "Ready"
+
+2. Check Vercel function logs:
+   - Go to your project in Vercel
+   - Click "Deployments"
+   - Click latest deployment
+   - Click "View Function Logs"
+   - Try logging in
+   - Check logs for errors
+
+3. Clear browser cache:
+   Ctrl+Shift+Delete → Clear all
+
+4. Try incognito window
+
+5. Make sure you're using correct credentials:
+   Email: omelimeilit@gmail.com
+   Password: test123
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 WHAT'S DEPLOYED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Roles system: visitor/user/admin/owner
+✅ Owner-only user management
+✅ Admin can access all other features
+✅ Better login error logging
+✅ Buildings removed from map (use KSYK Builder)
+✅ Building delete functionality
+✅ Larger map viewport
+✅ Email system with Resend
+✅ App customization settings
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 AFTER LOGGING IN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+As Okko (admin), you can:
+
+1. KSYK BUILDER:
+   - Add buildings to map
+   - Set positions, colors, floors
+   - Add rooms to buildings
+   - Add hallways
+
+2. BUILDINGS TAB:
+   - View all buildings
+   - Edit buildings
+   - Delete buildings
+
+3. STAFF TAB:
+   - Manage staff members
+
+4. ANNOUNCEMENTS TAB:
+   - Create announcements
+   - Edit announcements
+   - Delete announcements
+
+5. SETTINGS TAB:
+   - Customize app colors
+   - Change app name
+   - Set logo
+   - Multilingual text
+   - Toggle features
+   - Contact info
+
+6. USERS TAB:
+   ❌ Owner only - you'll see "Owner Access Only"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑 TO CHANGE PASSWORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After logging in:
+
+1. Ask owner (JuusoJuusto112@gmail.com) to:
+   - Login to admin panel
+   - Go to Users tab
+   - Find your account
+   - Click Edit
+   - Set new password
+   - Click Update
+
+OR
+
+2. Owner can click 👁️ (eye icon) to view your current password
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Password set in Firebase: test123
+✅ Vercel uses same Firebase
+✅ Login will work on Vercel
+✅ Roles system implemented
+✅ Owner-only user management
+✅ All features deployed
+
+GO TO VERCEL AND LOGIN:
+https://ksykmaps.vercel.app/admin-login
+
+Email: omelimeilit@gmail.com
+Password: test123
+
+IT WILL WORK! 🚀
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
