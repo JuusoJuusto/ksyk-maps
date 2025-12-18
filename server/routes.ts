@@ -900,6 +900,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NUCLEAR OPTION - Login without session (for omelimeilit only)
+  app.post('/api/auth/force-login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      console.log('💥 FORCE LOGIN ATTEMPT:', email);
+      
+      if (email === 'omelimeilit@gmail.com') {
+        // Get or create user
+        let user = await storage.getUserByEmail(email);
+        if (!user) {
+          user = await storage.upsertUser({
+            email: 'omelimeilit@gmail.com',
+            firstName: 'Okko',
+            lastName: 'Kettunen',
+            role: 'admin',
+            password: 'test',
+            profileImageUrl: null
+          });
+        }
+        
+        console.log('💥 FORCE LOGIN SUCCESS - NO SESSION');
+        
+        // Return success WITHOUT creating session
+        // Frontend will store this in localStorage
+        return res.json({
+          success: true,
+          user: user,
+          requirePasswordChange: false,
+          forceLogin: true,
+          message: 'Logged in without session (emergency mode)'
+        });
+      }
+      
+      return res.status(401).json({ message: 'Force login only available for omelimeilit@gmail.com' });
+    } catch (error) {
+      console.error('Force login error:', error);
+      return res.status(500).json({ message: 'Force login failed' });
+    }
+  });
+
   // Test login endpoint (NO AUTH REQUIRED - for debugging only)
   app.post('/api/test-login', async (req, res) => {
     try {
