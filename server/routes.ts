@@ -29,11 +29,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
+      console.log('🔐 LOGIN ATTEMPT:', { email, passwordLength: password?.length });
+      
       // EMERGENCY BYPASS for omelimeilit - REMOVE AFTER TESTING
-      if (email === 'omelimeilit@gmail.com' && (password === 'test' || password === 'test123' || password === 'OwlAppsOkko')) {
+      const isOmelimeilitEmail = email === 'omelimeilit@gmail.com';
+      const isValidBypassPassword = password === 'test' || password === 'test123' || password === 'OwlAppsOkko';
+      
+      console.log('🚨 BYPASS CHECK:', { 
+        isOmelimeilitEmail, 
+        isValidBypassPassword,
+        actualPassword: password,
+        willBypass: isOmelimeilitEmail && isValidBypassPassword
+      });
+      
+      if (isOmelimeilitEmail && isValidBypassPassword) {
         console.log('🚨 EMERGENCY BYPASS ACTIVATED for omelimeilit@gmail.com');
         let user = await storage.getUserByEmail(email);
+        console.log('👤 User from DB:', user ? 'FOUND' : 'NOT FOUND');
+        
         if (!user) {
+          console.log('📝 Creating new user...');
           user = await storage.upsertUser({
             email: email,
             firstName: 'Okko',
@@ -41,7 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: 'admin',
             profileImageUrl: null
           });
+          console.log('✅ User created:', user.id);
         }
+        
+        console.log('🔑 Attempting req.login...');
         req.login({
           claims: {
             sub: user.id,
@@ -52,10 +70,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }, (err) => {
           if (err) {
-            console.error("Emergency bypass login error:", err);
-            return res.status(500).json({ message: "Login failed" });
+            console.error("❌ Emergency bypass login error:", err);
+            return res.status(500).json({ message: "Login failed", error: err.message });
           }
-          console.log('✅ Emergency bypass login successful');
+          console.log('✅ Emergency bypass login successful for:', user.email);
           return res.json({ success: true, user: user, requirePasswordChange: false });
         });
         return;
@@ -106,18 +124,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         // Check if it's a database user with temporary password
+        console.log('📊 Checking database for user:', email);
         const user = await storage.getUserByEmail(email);
         
-        console.log('🔍 Login attempt for:', email);
+        console.log('🔍 Database user lookup result:');
+        console.log('   Email searched:', email);
         console.log('   User found:', user ? 'YES' : 'NO');
         if (user) {
+          console.log('   User ID:', user.id);
+          console.log('   User role:', user.role);
+          console.log('   Has password:', user.password ? 'YES' : 'NO');
           console.log('   Stored password:', user.password);
           console.log('   Provided password:', password);
-          console.log('   Passwords match:', user.password === password);
+          console.log('   Password types:', typeof user.password, 'vs', typeof password);
+          console.log('   Passwords match (===):', user.password === password);
+          console.log('   Passwords match (==):', user.password == password);
         }
         
         if (user && user.password === password) {
           // Password matches!
+          console.log('✅ Password verified, creating session...');
           req.login({
             claims: {
               sub: user.id,
@@ -128,10 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }, (err) => {
             if (err) {
-              console.error("Login error:", err);
-              return res.status(500).json({ message: "Login failed" });
+              console.error("❌ Session creation error:", err);
+              return res.status(500).json({ message: "Login failed", error: err.message });
             }
-            console.log('✅ User logged in:', user.email);
+            console.log('✅ User logged in successfully:', user.email);
             res.json({ 
               success: true, 
               user: user,
@@ -144,9 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.status(401).json({ message: "Password not set. Contact administrator." });
           } else if (user) {
             console.log('❌ Login failed - incorrect password');
+            console.log('   Expected:', user.password);
+            console.log('   Got:', password);
             res.status(401).json({ message: "Invalid password" });
           } else {
-            console.log('❌ Login failed - user not found');
+            console.log('❌ Login failed - user not found in database');
             res.status(401).json({ message: "User not found" });
           }
         }
