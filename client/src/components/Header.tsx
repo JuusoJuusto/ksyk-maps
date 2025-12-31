@@ -89,7 +89,170 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-b-4 border-blue-900 shadow-xl sticky top-0 z-50">
+      {/* Announcement Bar - TOP CENTER */}
+      {activeAnnouncements.length > 0 && currentAnnouncement && (
+        <div className={`${
+          currentAnnouncement.priority === 'urgent' 
+            ? 'bg-gradient-to-r from-red-600 to-red-700' 
+            : currentAnnouncement.priority === 'high'
+            ? 'bg-gradient-to-r from-orange-600 to-orange-700'
+            : 'bg-gradient-to-r from-blue-800 to-blue-900'
+        } text-white py-3 px-4 shadow-lg`}>
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <button
+              onClick={prevAnnouncement}
+              className="p-2 hover:bg-white/30 rounded-full transition-all transform hover:scale-110"
+              disabled={activeAnnouncements.length <= 1}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            
+            <div className="flex items-center space-x-3 flex-1 justify-center">
+              <Megaphone className="h-6 w-6 animate-pulse" />
+              <div className="text-center">
+                <span className="font-bold text-lg">{currentAnnouncement.title}</span>
+                <span className="mx-3">•</span>
+                <span className="text-sm opacity-95">{currentAnnouncement.content}</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={nextAnnouncement}
+              className="p-2 hover:bg-white/30 rounded-full transition-all transform hover:scale-110"
+              disabled={activeAnnouncements.length <= 1}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          <div className="flex items-center space-x-4">
+            <Link href="/" className="flex-shrink-0 flex items-center space-x-4 group" data-testid="link-home">
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:bg-white/30 transition-all"></div>
+                <img src="/ksykmaps_logo.png" alt="KSYK Logo" className="h-16 w-16 object-contain relative z-10 transform group-hover:scale-110 transition-transform" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-white tracking-tight group-hover:text-yellow-300 transition-colors">KSYK Map</h1>
+                <p className="text-sm text-blue-200 font-medium">by OWL Apps</p>
+              </div>
+            </Link>
+          </div>
+          
+          {/* Show different navigation based on admin panel or regular app */}
+          {!isInAdminPanel ? (
+            <nav className="hidden md:flex space-x-8">
+              {/* Clean navigation - no extra links */}
+            </nav>
+          ) : (
+            <nav className="hidden md:flex space-x-8">
+              <span className="px-4 py-2 text-lg font-bold text-yellow-300 bg-white/10 rounded-lg backdrop-blur-sm">
+                Admin Management Portal
+              </span>
+            </nav>
+          )}
+
+          <div className="flex items-center space-x-4">
+            {/* Show different buttons based on admin panel or regular app */}
+            {!isInAdminPanel ? (
+              <>
+                {/* Language Toggle */}
+                <div className="language-toggle flex bg-white/20 backdrop-blur-sm rounded-lg p-1 shadow-lg">
+                  <button 
+                    className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${
+                      currentLang === 'en' 
+                        ? 'bg-white text-blue-700 shadow-md' 
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                    onClick={() => handleLanguageChange('en')}
+                    data-testid="button-lang-en"
+                  >
+                    EN
+                  </button>
+                  <button 
+                    className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${
+                      currentLang === 'fi' 
+                        ? 'bg-white text-blue-700 shadow-md' 
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                    onClick={() => handleLanguageChange('fi')}
+                    data-testid="button-lang-fi"
+                  >
+                    FI
+                  </button>
+                </div>
+                
+                {/* HSL Button */}
+                <Link href="/hsl">
+                  <Button 
+                    variant="outline"
+                    size="lg"
+                    className="bg-green-500 border-2 border-green-600 text-white hover:bg-green-600 font-bold shadow-lg transform hover:scale-105 transition-all"
+                    data-testid="button-hsl"
+                  >
+                    🚌 HSL
+                  </Button>
+                </Link>
+                
+                {/* Admin Panel Link */}
+                <Link href="/admin-login">
+                  <Button 
+                    variant={isActive('/admin-login') ? 'default' : 'outline'}
+                    size="lg"
+                    className="bg-yellow-400 border-2 border-yellow-500 text-blue-900 hover:bg-yellow-300 font-bold shadow-lg transform hover:scale-105 transition-all"
+                    data-testid="button-admin"
+                  >
+                    🔐 Admin
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                {/* Admin Panel - Only HSL and Logout */}
+                <Link href="/hsl">
+                  <Button 
+                    variant="outline"
+                    size="lg"
+                    className="bg-green-500 border-2 border-green-600 text-white hover:bg-green-600 font-bold shadow-lg"
+                    data-testid="button-hsl"
+                  >
+                    🚌 HSL
+                  </Button>
+                </Link>
+                
+                {/* Logout Button - always show in admin panel */}
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  onClick={handleLogout}
+                  className="bg-red-500 border-2 border-red-600 text-white hover:bg-red-600 font-bold shadow-lg"
+                  data-testid="button-logout"
+                >
+                  🚪 Logout
+                </Button>
+              </>
+            )}
+            
+            {/* Mobile menu button */}
+            <button className="md:hidden text-white text-2xl" data-testid="button-mobile-menu">
+              ☰
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <NavigationModal 
+        isOpen={showNavigationModal}
+        onClose={() => setShowNavigationModal(false)}
+        onNavigate={handleNavigation}
+      />
+    </header>
+  );
+}
       {/* Announcement Bar - TOP CENTER */}
       {activeAnnouncements.length > 0 && currentAnnouncement && (
         <div className={`${

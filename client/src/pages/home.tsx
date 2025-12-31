@@ -476,11 +476,23 @@ export default function Home() {
                   <rect x="-500" y="-500" width="2000" height="1500" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase */}
-                  {buildings.map((building: Building) => {
-                    const x = building.mapPositionX || 0;
-                    const y = building.mapPositionY || 0;
-                    const width = 120;
-                    const height = 80;
+                  {buildings.map((building: Building, index: number) => {
+                    // Better default positions if not set - spread them out nicely
+                    const defaultPositions = [
+                      { x: -200, y: 50 },   // Position 1
+                      { x: 100, y: 0 },     // Position 2
+                      { x: 350, y: 80 },    // Position 3
+                      { x: -50, y: 200 },   // Position 4
+                      { x: 250, y: 180 },   // Position 5
+                      { x: -100, y: -120 }, // Position 6
+                      { x: 200, y: -80 },   // Position 7
+                    ];
+                    
+                    const defaultPos = defaultPositions[index % defaultPositions.length];
+                    const x = building.mapPositionX ?? defaultPos.x;
+                    const y = building.mapPositionY ?? defaultPos.y;
+                    const width = 140;
+                    const height = 100;
                     
                     return (
                       <g 
@@ -489,45 +501,86 @@ export default function Home() {
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
-                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        className="cursor-pointer transition-all duration-200"
+                        style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
                       >
-                        {/* Building rectangle */}
+                        {/* Building shadow */}
+                        <rect
+                          x={x + 4}
+                          y={y + 4}
+                          width={width}
+                          height={height}
+                          fill="rgba(0,0,0,0.2)"
+                          rx="12"
+                        />
+                        
+                        {/* Building rectangle with gradient */}
+                        <defs>
+                          <linearGradient id={`grad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.7 }} />
+                          </linearGradient>
+                        </defs>
                         <rect
                           x={x}
                           y={y}
                           width={width}
                           height={height}
-                          fill={building.colorCode || '#3B82F6'}
-                          stroke="#1e293b"
-                          strokeWidth="3"
-                          rx="8"
+                          fill={`url(#grad-${building.id})`}
+                          stroke="#ffffff"
+                          strokeWidth="4"
+                          rx="12"
+                          className="hover:stroke-yellow-400 transition-all"
                         />
                         
-                        {/* Building name */}
+                        {/* Building name - larger and bolder */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2}
+                          y={y + height / 2 - 10}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="24"
-                          fontWeight="bold"
-                          style={{ pointerEvents: 'none' }}
+                          fontSize="32"
+                          fontWeight="900"
+                          style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}
                         >
                           {building.name}
                         </text>
                         
-                        {/* Floor count */}
+                        {/* Building English name */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 + 20}
+                          y={y + height / 2 + 15}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="11"
+                          fontWeight="600"
+                          style={{ pointerEvents: 'none', opacity: 0.9 }}
+                        >
+                          {building.nameEn || building.nameFi}
+                        </text>
+                        
+                        {/* Floor count badge */}
+                        <rect
+                          x={x + width - 35}
+                          y={y + 8}
+                          width="30"
+                          height="20"
+                          fill="rgba(255,255,255,0.3)"
+                          rx="10"
+                        />
+                        <text
+                          x={x + width - 20}
+                          y={y + 18}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
                           fontSize="12"
+                          fontWeight="bold"
                           style={{ pointerEvents: 'none' }}
                         >
-                          {building.floors} floors
+                          {building.floors}F
                         </text>
                       </g>
                     );
