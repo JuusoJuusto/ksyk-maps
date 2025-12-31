@@ -26,26 +26,13 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
-      // Try normal login first
-      let response = await fetch("/api/auth/admin-login", {
+      const response = await fetch("/api/auth/admin-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
       });
-      
-      // If normal login fails and email is omelimeilit, try force login
-      if (!response.ok && credentials.email === 'omelimeilit@gmail.com') {
-        console.log('Normal login failed, trying force login...');
-        response = await fetch("/api/auth/force-login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-        });
-      }
       
       if (!response.ok) {
         const errorData = await response.json();

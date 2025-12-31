@@ -1,24 +1,42 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Create Gmail transporter
+const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.log('⚠️ Email credentials not configured');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+};
 
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
-  console.log('\n🚀 ========== SENDING EMAIL ==========');
+  console.log('\n📧 ========== SENDING EMAIL ==========');
   console.log('To:', email);
   console.log('Name:', firstName);
   console.log('Password:', tempPassword);
-  console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
+  console.log('Email configured:', !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD));
   console.log('=====================================\n');
 
-  if (!process.env.RESEND_API_KEY) {
-    console.log('⚠️ RESEND_API_KEY not set, showing password in console');
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.log('⚠️ Email not configured, showing password in console');
     console.log(`📝 Password for ${email}: ${tempPassword}`);
     return { success: true, mode: 'console', password: tempPassword };
   }
 
   const emailContent = {
-    from: 'KSYK Map <onboarding@resend.dev>',
-    to: [email],
+    from: `"KSYK Map Admin" <${process.env.EMAIL_USER}>`,
+    to: email,
     subject: '🗺️ Welcome to KSYK Map - Your Admin Account',
     html: `
       <!DOCTYPE html>
@@ -245,7 +263,7 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
             </div>
             
             <div class="help-text">
-              Need help? Contact your system administrator or reply to this email for assistance.
+              Need help? Contact your system administrator for assistance.
             </div>
           </div>
           
@@ -253,7 +271,7 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
             <p><strong>KSYK Map Admin System</strong></p>
             <p>© 2025 KSYK Map. All rights reserved.</p>
             <p style="margin-top: 12px; font-size: 12px;">
-              This is an automated message. Please do not reply to this email.
+              This is an automated message.
             </p>
           </div>
         </div>
@@ -288,19 +306,13 @@ This is an automated message from KSYK Map Admin System
   };
 
   try {
-    const { data, error } = await resend.emails.send(emailContent);
+    const info = await transporter.sendMail(emailContent);
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      console.log(`📝 Password for ${email}: ${tempPassword}`);
-      return { success: false, error, mode: 'console', password: tempPassword };
-    }
-
-    console.log('✅ Email sent successfully via Resend!');
-    console.log('   Email ID:', data?.id);
-    return { success: true, mode: 'email', messageId: data?.id, password: tempPassword };
+    console.log('✅ Email sent successfully via Gmail!');
+    console.log('   Message ID:', info.messageId);
+    return { success: true, mode: 'email', messageId: info.messageId, password: tempPassword };
   } catch (error: any) {
-    console.error('❌ Exception:', error);
+    console.error('❌ Email send error:', error);
     console.log(`📝 Password for ${email}: ${tempPassword}`);
     return { success: false, error, mode: 'console', password: tempPassword };
   }

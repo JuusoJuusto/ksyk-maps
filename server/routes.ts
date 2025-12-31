@@ -29,125 +29,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      console.log('🔐 LOGIN ATTEMPT:', { email, passwordLength: password?.length, password });
-      
-      // ULTRA AGGRESSIVE BYPASS - WORKS WITHOUT ANY DEPENDENCIES
-      if (email === 'omelimeilit@gmail.com') {
-        console.log('🚨🚨🚨 OMELIMEILIT DETECTED - FORCING LOGIN');
-        
-        // Try to get user from database
-        let user;
-        try {
-          user = await storage.getUserByEmail(email);
-          console.log('👤 User lookup result:', user ? 'FOUND' : 'NOT FOUND');
-        } catch (dbError) {
-          console.error('❌ Database error:', dbError);
-          user = null;
-        }
-        
-        // If user doesn't exist, create it
-        if (!user) {
-          console.log('📝 Creating user in database...');
-          try {
-            user = await storage.upsertUser({
-              email: 'omelimeilit@gmail.com',
-              firstName: 'Okko',
-              lastName: 'Kettunen',
-              role: 'admin',
-              password: 'test',
-              profileImageUrl: null
-            });
-            console.log('✅ User created:', user);
-          } catch (createError) {
-            console.error('❌ User creation error:', createError);
-            // Use fallback user object
-            user = {
-              id: 'user-omelimeilit-emergency',
-              email: 'omelimeilit@gmail.com',
-              firstName: 'Okko',
-              lastName: 'Kettunen',
-              role: 'admin',
-              password: 'test',
-              profileImageUrl: null
-            };
-            console.log('⚠️ Using fallback user object');
-          }
-        }
-        
-        // Force login with session
-        console.log('🔑 Creating session for:', user.email);
-        try {
-          req.login({
-            claims: {
-              sub: user.id,
-              email: user.email,
-              first_name: user.firstName,
-              last_name: user.lastName,
-              profile_image_url: user.profileImageUrl
-            }
-          }, (err) => {
-            if (err) {
-              console.error("❌ Session error:", err);
-              // EVEN IF SESSION FAILS, RETURN SUCCESS
-              console.log('⚠️ Session failed but returning success anyway');
-              return res.json({ 
-                success: true, 
-                user: user, 
-                requirePasswordChange: false,
-                sessionWarning: 'Session creation failed but login allowed'
-              });
-            }
-            console.log('✅✅✅ LOGIN SUCCESSFUL for omelimeilit@gmail.com');
-            return res.json({ success: true, user: user, requirePasswordChange: false });
-          });
-          return;
-        } catch (loginError) {
-          console.error('❌ Login error:', loginError);
-          // RETURN SUCCESS ANYWAY
-          console.log('⚠️ Login threw error but returning success anyway');
-          return res.json({ 
-            success: true, 
-            user: user, 
-            requirePasswordChange: false,
-            loginWarning: 'Login error but access granted'
-          });
-        }
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password required" });
       }
       
-      // Hardcoded owner credentials
-      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
-      const OWNER_PASSWORD = 'Juusto2012!';
+      console.log('🔐 Login attempt:', email);
       
-      // Check if credentials match owner (hardcoded)
+      // Check owner credentials from environment variables (secure, server-side only)
+      const OWNER_EMAIL = process.env.OWNER_EMAIL || 'JuusoJuusto112@gmail.com';
+      const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'Juusto2012!';
+      
       if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
-        // Check if owner user exists in database, create if not
+        // Owner login
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
         if (!ownerUser) {
-          console.log('Creating owner admin user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
             email: OWNER_EMAIL,
             firstName: 'Juuso',
             lastName: 'Kaikula',
-            role: 'admin',
+            role: 'owner',
             profileImageUrl: null
           });
-          console.log('Owner admin user created:', ownerUser);
         }
 
-        // Create session
-        if (ownerUser) {
-          req.login({
-            claims: {
-              sub: ownerUser.id,
-              email: ownerUser.email,
-              first_name: ownerUser.firstName,
-              last_name: ownerUser.lastName,
-              profile_image_url: ownerUser.profileImageUrl
-            }
-          }, (err) => {
-            if (err) {
+        req.login({
+          claims: {
+            sub: ownerUser.id,
+            email: ownerUser.email,
+            first_name: ownerUser.firstName,
+            last_name: ownerUser.lastName,
+            profile_image_url: ownerUser.profileImageUrl
+          }
+        }, (err) => {
+          if (err) {
+            console.error("Owner login error:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
+        });
+        return;
+      }
+      
+      // Check Firebase database for admin users
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      if (!user.password) {
+        return res.status(401).json({ message: "Password not set. Contact administrator." });
+      }
+      
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Valid admin user from database
+      req.login({
+        claims: {
+          sub: user.id,
+          email: user.email,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          profile_image_url: user.profileImageUrl
+        }
+      }, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        return res.json({ 
+          success: true, 
+          user: user,
+          requirePasswordChange: user.isTemporaryPassword || false
+        });
+      });
+      
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Authentication error" });
+    }
+  });
               console.error("Owner login error:", err);
               return res.status(500).json({ message: "Login failed" });
             }
