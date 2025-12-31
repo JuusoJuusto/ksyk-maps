@@ -132,9 +132,9 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-3" data-testid="link-home">
-              <img src="/ksyk-logo.png" alt="KSYK Logo" className="h-10 w-10 object-contain" />
+              <img src="/ksykmaps_logo.png" alt="KSYK Logo" className="h-12 w-12 object-contain" />
               <div>
-                <h1 className="text-xl font-bold text-primary">KSYK Map</h1>
+                <h1 className="text-2xl font-bold text-primary">KSYK Map</h1>
                 <p className="text-xs text-muted-foreground">by OWL Apps</p>
               </div>
             </Link>

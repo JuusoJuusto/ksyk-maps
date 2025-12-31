@@ -337,7 +337,6 @@ export class DatabaseStorage implements IStorage {
   async deleteAnnouncement(id: string): Promise<void> {
     await db.update(announcements).set({ isActive: false }).where(eq(announcements.id, id));
   }
-}
 
   // App Settings operations
   async getAppSettings(): Promise<any> {
@@ -347,7 +346,7 @@ export class DatabaseStorage implements IStorage {
       appName: 'KSYK Map',
       appNameEn: 'KSYK Map',
       appNameFi: 'KSYK Kartta',
-      logoUrl: '/ksyk-logo.png',
+      logoUrl: '/ksykmaps_logo.png',
       primaryColor: '#3B82F6',
       secondaryColor: '#2563EB',
       headerTitle: 'Campus Map',
