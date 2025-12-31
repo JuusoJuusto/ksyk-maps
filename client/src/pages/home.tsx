@@ -475,8 +475,63 @@ export default function Home() {
                   <rect x="-500" y="-500" width="2000" height="1500" fill="url(#grid)" />
                   <rect x="-500" y="-500" width="2000" height="1500" fill="url(#gridMajor)" />
 
-                  {/* Buildings removed - use KSYK Builder in Admin Panel to add buildings */}
-                  {/* The map is now much larger (2000x1500) so buildings won't crop out */}
+                  {/* Buildings from Firebase */}
+                  {buildings.map((building: Building) => {
+                    const x = building.mapPositionX || 0;
+                    const y = building.mapPositionY || 0;
+                    const width = 120;
+                    const height = 80;
+                    
+                    return (
+                      <g 
+                        key={building.id}
+                        onClick={() => {
+                          setSelectedBuilding(building);
+                          setSelectedFloor(1);
+                        }}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        {/* Building rectangle */}
+                        <rect
+                          x={x}
+                          y={y}
+                          width={width}
+                          height={height}
+                          fill={building.colorCode || '#3B82F6'}
+                          stroke="#1e293b"
+                          strokeWidth="3"
+                          rx="8"
+                        />
+                        
+                        {/* Building name */}
+                        <text
+                          x={x + width / 2}
+                          y={y + height / 2}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="24"
+                          fontWeight="bold"
+                          style={{ pointerEvents: 'none' }}
+                        >
+                          {building.name}
+                        </text>
+                        
+                        {/* Floor count */}
+                        <text
+                          x={x + width / 2}
+                          y={y + height / 2 + 20}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="12"
+                          style={{ pointerEvents: 'none' }}
+                        >
+                          {building.floors} floors
+                        </text>
+                      </g>
+                    );
+                  })}
                 </svg>
                 </div>
               </div>
