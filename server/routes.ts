@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
+import { createFirebaseUserAndSendEmail, sendPasswordResetEmail as sendFirebasePasswordReset } from "./firebaseEmailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -633,31 +634,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImageUrl: null
       });
 
-      // If email option, send invitation email
+      // If email option, use Firebase Authentication to send password reset email
       if (passwordOption === 'email') {
-        console.log(`\n🚀 ========== EMAIL INVITATION TRIGGERED ==========`);
+        console.log(`\n🚀 ========== FIREBASE AUTH INVITATION ==========`);
         console.log(`Target: ${email}`);
         console.log(`Name: ${firstName} ${lastName}`);
-        console.log(`Password: ${finalPassword}`);
+        console.log(`Using Firebase Authentication for email`);
         
         try {
-          const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
+          // Create user in Firebase Authentication and send password reset email
+          const firebaseResult = await createFirebaseUserAndSendEmail(
+            email,
+            firstName,
+            lastName,
+            role || 'admin'
+          );
           
-          console.log(`\n📧 EMAIL RESULT:`);
-          console.log(`   Success: ${emailResult.success}`);
-          console.log(`   Mode: ${emailResult.mode}`);
-          console.log(`   Message ID: ${emailResult.messageId || 'N/A'}`);
+          console.log(`\n🔥 FIREBASE RESULT:`);
+          console.log(`   Success: ${firebaseResult.success}`);
+          console.log(`   UID: ${firebaseResult.uid || 'N/A'}`);
+          console.log(`   Message: ${firebaseResult.message}`);
           
-          if (emailResult.success && emailResult.mode === 'email') {
-            console.log(`✅ EMAIL SENT SUCCESSFULLY to ${email}`);
+          if (firebaseResult.success) {
+            console.log(`✅ FIREBASE AUTH USER CREATED - Email sent automatically!`);
+            // Store Firebase UID in Firestore user document
+            await storage.upsertUser({
+              ...newUser,
+              firebaseUid: firebaseResult.uid
+            });
           } else {
-            console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
-            if (emailResult.error) {
-              console.error(`   Error: ${emailResult.error.message}`);
+            console.log(`⚠️ FIREBASE AUTH FAILED - Falling back to manual password`);
+            console.log(`📝 Manual Password: ${finalPassword}`);
+            if (firebaseResult.error) {
+              console.error(`   Error: ${firebaseResult.error.message}`);
             }
           }
         } catch (error: any) {
-          console.error('❌ EMAIL EXCEPTION:', error.message);
+          console.error('❌ FIREBASE EXCEPTION:', error.message);
           console.log(`📝 FALLBACK - Password: ${finalPassword}`);
         }
         
