@@ -658,7 +658,7 @@ export default function AdminDashboard() {
                                 const result = await response.json();
                                 
                                 const message = newUser.passwordOption === 'email' 
-                                  ? `✅ User created!\n\n📧 Email invitation sent to: ${newUser.email}\n\n⚠️ If email doesn't arrive:\n📝 Password: ${result.password || 'Check server logs'}\n\nShare this password manually if needed.`
+                                  ? `✅ User created successfully!\n\n📧 Email invitation sent to: ${newUser.email}\n\nThe user will receive their login credentials via email.`
                                   : 'User created successfully!';
                                   
                                 alert(message);
