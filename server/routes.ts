@@ -4,21 +4,6 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
-import { createFirebaseUserAndSendEmail, sendPasswordResetEmail as sendFirebasePasswordReset } from "./firebaseEmailService";
-import admin from 'firebase-admin';
-
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase Admin initialized');
-  } catch (error) {
-    console.error('❌ Firebase Admin initialization failed:', error);
-  }
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -82,80 +67,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Owner login error:", err);
             return res.status(500).json({ message: "Login failed" });
           }
+          console.log('✅ Owner logged in successfully');
           return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
         });
         return;
       }
       
-      // Try Firebase Authentication first
-      try {
-        console.log('🔥 Attempting Firebase Auth login...');
-        const userRecord = await admin.auth().getUserByEmail(email);
-        console.log('✅ User found in Firebase Auth:', userRecord.uid);
-        
-        // Verify password by trying to get a custom token (this validates the user exists)
-        // Note: We can't verify password directly with Admin SDK
-        // The user must have set their password via the reset link
-        
-        // Check if user exists in Firestore
-        let firestoreUser = await storage.getUserByEmail(email);
-        
-        if (!firestoreUser) {
-          // Create Firestore user from Firebase Auth user
-          console.log('Creating Firestore user from Firebase Auth...');
-          const customClaims = (await admin.auth().getUser(userRecord.uid)).customClaims || {};
-          
-          firestoreUser = await storage.upsertUser({
-            id: userRecord.uid,
-            email: userRecord.email!,
-            firstName: userRecord.displayName?.split(' ')[0] || 'User',
-            lastName: userRecord.displayName?.split(' ').slice(1).join(' ') || '',
-            role: (customClaims.role as string) || 'admin',
-            firebaseUid: userRecord.uid,
-            profileImageUrl: userRecord.photoURL || null
-          });
-        }
-        
-        // For Firebase Auth users, we can't verify password server-side
-        // They must use the client-side Firebase Auth or password reset
-        // So we'll create a session if they exist in Firebase Auth
-        req.login({
-          claims: {
-            sub: firestoreUser.id,
-            email: firestoreUser.email,
-            first_name: firestoreUser.firstName,
-            last_name: firestoreUser.lastName,
-            profile_image_url: firestoreUser.profileImageUrl
-          }
-        }, (err) => {
-          if (err) {
-            console.error("Firebase Auth login error:", err);
-            return res.status(500).json({ message: "Login failed" });
-          }
-          console.log('✅ Firebase Auth user logged in');
-          return res.json({ 
-            success: true, 
-            user: firestoreUser,
-            requirePasswordChange: false,
-            isFirebaseAuth: true,
-            message: "Please use the password you set via email link"
-          });
-        });
-        return;
-        
-      } catch (firebaseError: any) {
-        console.log('Firebase Auth user not found, checking Firestore...');
-      }
-      
-      // Check Firestore database for admin users (legacy system)
+      // Check Firestore database for admin users
+      console.log('📊 Checking database for user:', email);
       const user = await storage.getUserByEmail(email);
+      
+      console.log('🔍 Database user lookup result:');
+      console.log('   Email searched:', email);
+      console.log('   User found:', user ? 'YES' : 'NO');
+      if (user) {
+        console.log('   User ID:', user.id);
+        console.log('   User role:', user.role);
+        console.log('   Has password:', user.password ? 'YES' : 'NO');
+        console.log('   Password match:', user.password === password);
+      }
       
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       if (!user.password) {
-        return res.status(401).json({ message: "Password not set. Please check your email for password reset link." });
+        return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
       
       if (user.password !== password) {
@@ -176,6 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Login error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
+        console.log('✅ User logged in successfully:', user.email);
         return res.json({ 
           success: true, 
           user: user,
@@ -183,77 +121,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
       
-    } catch (error) {
-      console.error("Admin login error:", error);
-      res.status(500).json({ message: "Authentication error" });
-    }
-  });
-              console.error("Owner login error:", err);
-              return res.status(500).json({ message: "Login failed" });
-            }
-            console.log('Owner logged in successfully');
-            res.json({ success: true, user: ownerUser, requirePasswordChange: false });
-          });
-        } else {
-          res.status(500).json({ message: "Failed to create owner user" });
-        }
-      } else {
-        // Check if it's a database user with temporary password
-        console.log('📊 Checking database for user:', email);
-        const user = await storage.getUserByEmail(email);
-        
-        console.log('🔍 Database user lookup result:');
-        console.log('   Email searched:', email);
-        console.log('   User found:', user ? 'YES' : 'NO');
-        if (user) {
-          console.log('   User ID:', user.id);
-          console.log('   User role:', user.role);
-          console.log('   Has password:', user.password ? 'YES' : 'NO');
-          console.log('   Stored password:', user.password);
-          console.log('   Provided password:', password);
-          console.log('   Password types:', typeof user.password, 'vs', typeof password);
-          console.log('   Passwords match (===):', user.password === password);
-          console.log('   Passwords match (==):', user.password == password);
-        }
-        
-        if (user && user.password === password) {
-          // Password matches!
-          console.log('✅ Password verified, creating session...');
-          req.login({
-            claims: {
-              sub: user.id,
-              email: user.email,
-              first_name: user.firstName,
-              last_name: user.lastName,
-              profile_image_url: user.profileImageUrl
-            }
-          }, (err) => {
-            if (err) {
-              console.error("❌ Session creation error:", err);
-              return res.status(500).json({ message: "Login failed", error: err.message });
-            }
-            console.log('✅ User logged in successfully:', user.email);
-            res.json({ 
-              success: true, 
-              user: user,
-              requirePasswordChange: user.isTemporaryPassword || false
-            });
-          });
-        } else {
-          if (user && !user.password) {
-            console.log('❌ Login failed - user has no password set');
-            res.status(401).json({ message: "Password not set. Contact administrator." });
-          } else if (user) {
-            console.log('❌ Login failed - incorrect password');
-            console.log('   Expected:', user.password);
-            console.log('   Got:', password);
-            res.status(401).json({ message: "Invalid password" });
-          } else {
-            console.log('❌ Login failed - user not found in database');
-            res.status(401).json({ message: "User not found" });
-          }
-        }
-      }
     } catch (error) {
       console.error("Admin login error:", error);
       res.status(500).json({ message: "Authentication error" });
@@ -285,98 +152,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Firebase Authentication login endpoint
-  // Firebase Authentication login endpoint
-  app.post('/api/auth/firebase-login', async (req, res) => {
-    try {
-      const { idToken } = req.body;
-      
-      if (!idToken) {
-        console.error('❌ No ID token provided');
-        return res.status(400).json({ message: "ID token required" });
-      }
-      
-      console.log('🔥 Verifying Firebase ID token...');
-      console.log('   Firebase Admin initialized:', !!admin.apps.length);
-      
-      if (!admin.apps.length) {
-        console.error('❌ Firebase Admin not initialized!');
-        return res.status(500).json({ message: "Firebase not configured" });
-      }
-      
-      // Verify the ID token
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const uid = decodedToken.uid;
-      
-      console.log('✅ Token verified for UID:', uid);
-      
-      // Get user from Firebase Auth
-      const userRecord = await admin.auth().getUser(uid);
-      console.log('✅ User found:', userRecord.email);
-      
-      // Get or create user in Firestore
-      let firestoreUser = await storage.getUserByEmail(userRecord.email!);
-      
-      if (!firestoreUser) {
-        console.log('📝 Creating Firestore user from Firebase Auth...');
-        const customClaims = userRecord.customClaims || {};
-        
-        firestoreUser = await storage.upsertUser({
-          id: uid,
-          email: userRecord.email!,
-          firstName: userRecord.displayName?.split(' ')[0] || 'User',
-          lastName: userRecord.displayName?.split(' ').slice(1).join(' ') || '',
-          role: (customClaims.role as string) || 'admin',
-          firebaseUid: uid,
-          profileImageUrl: userRecord.photoURL || null
-        });
-        console.log('✅ Firestore user created');
-      }
-      
-      // Create session
-      req.login({
-        claims: {
-          sub: firestoreUser.id,
-          email: firestoreUser.email,
-          first_name: firestoreUser.firstName,
-          last_name: firestoreUser.lastName,
-          profile_image_url: firestoreUser.profileImageUrl
-        }
-      }, (err) => {
-        if (err) {
-          console.error("❌ Session creation error:", err);
-          return res.status(500).json({ message: "Session creation failed", error: err.message });
-        }
-        
-        console.log('✅ Firebase user logged in successfully');
-        res.json({ 
-          success: true, 
-          user: firestoreUser
-        });
-      });
-      
-    } catch (error: any) {
-      console.error("❌ Firebase login error:", error);
-      console.error("   Error code:", error.code);
-      console.error("   Error message:", error.message);
-      res.status(401).json({ 
-        message: "Authentication failed", 
-        error: error.message,
-        code: error.code
-      });
-    }
-  });
-    }
-  });
-
   // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {
-    req.logout((err) => {
+    req.logout((err: any) => {
       if (err) {
         console.error("Logout error:", err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      req.session.destroy((err) => {
+      req.session.destroy((err: any) => {
         if (err) {
           console.error("Session destroy error:", err);
           return res.status(500).json({ message: "Session cleanup failed" });
@@ -385,6 +168,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ success: true, message: "Logged out successfully" });
       });
     });
+  });
+
+  // Test email endpoint (for debugging)
+  app.post('/api/test-email', async (req, res) => {
+    try {
+      console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
+      console.log('Environment variables check:');
+      console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
+      console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
+      console.log('  EMAIL_USER:', process.env.EMAIL_USER);
+      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
+      
+      const testEmail = req.body.email || 'JuusoJuusto112@gmail.com';
+      const testName = req.body.name || 'Test User';
+      const testPassword = 'TestPass123!';
+      
+      console.log(`\nSending test email to: ${testEmail}`);
+      
+      const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
+      
+      console.log('\nTest email result:', result);
+      console.log('==========================================\n');
+      
+      res.json({
+        success: result.success,
+        mode: result.mode,
+        message: result.success ? 'Email sent successfully!' : 'Email failed to send',
+        details: result,
+        envVars: {
+          EMAIL_HOST: process.env.EMAIL_HOST,
+          EMAIL_PORT: process.env.EMAIL_PORT,
+          EMAIL_USER: process.env.EMAIL_USER,
+          EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
+        }
+      });
+    } catch (error: any) {
+      console.error('Test email error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        stack: error.stack
+      });
+    }
   });
 
   // Development login bypass (for testing only)
