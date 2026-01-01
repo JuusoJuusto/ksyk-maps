@@ -957,7 +957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -968,9 +968,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Sending test email to:', email);
       console.log('Environment check:');
       console.log('  EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET');
-      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ SET' : '❌ NOT SET');
+      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ SET (length: ' + (process.env.EMAIL_PASSWORD?.length || 0) + ')' : '❌ NOT SET');
       console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
       console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
+      console.log('  NODE_ENV:', process.env.NODE_ENV);
       
       const result = await sendPasswordSetupEmail(email, 'Test User', testPassword);
       
@@ -985,11 +986,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: result.success 
           ? `✅ Email sent successfully via ${result.mode}!` 
           : `❌ Email failed: ${result.error?.message || 'Unknown error'}`,
+        error: result.error ? {
+          message: result.error.message,
+          code: result.error.code,
+          command: result.error.command
+        } : null,
         config: {
           host: process.env.EMAIL_HOST,
           port: process.env.EMAIL_PORT,
           user: process.env.EMAIL_USER,
-          hasPassword: !!process.env.EMAIL_PASSWORD
+          hasPassword: !!process.env.EMAIL_PASSWORD,
+          passwordLength: process.env.EMAIL_PASSWORD?.length || 0
         }
       });
     } catch (error: any) {
