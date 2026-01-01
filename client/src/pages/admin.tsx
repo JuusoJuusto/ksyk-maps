@@ -182,7 +182,7 @@ export default function Admin() {
                 Welcome back, <span className="font-semibold">{(user as any)?.firstName || (user as any)?.email}</span>
               </p>
               <p className="text-blue-200 text-sm mt-1">
-                Role: {(user as any)?.role === 'owner' ? '👑 Owner' : '🛡️ Administrator'}
+                Role: {(user as any)?.role === 'owner' ? 'Owner' : 'Administrator'}
               </p>
             </div>
             <div className="hidden md:block">

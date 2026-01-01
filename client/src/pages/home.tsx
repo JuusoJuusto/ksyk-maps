@@ -137,7 +137,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Header />
       
       <NavigationModal 
@@ -148,12 +148,12 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-sm transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
           {/* Navigation Button - Clean Header */}
-          <div className="p-4 border-b border-gray-200 bg-blue-600">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 h-12 text-lg font-semibold"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 h-14 text-lg font-semibold shadow-lg"
             >
               <Navigation className="mr-2 h-5 w-5" />
               Get Directions
