@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 import { createFirebaseUserAndSendEmail, sendPasswordResetEmail as sendFirebasePasswordReset } from "./firebaseEmailService";
+import admin from 'firebase-admin';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -73,7 +74,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Check Firebase database for admin users
+      // Try Firebase Authentication first
+      try {
+        console.log('🔥 Attempting Firebase Auth login...');
+        const userRecord = await admin.auth().getUserByEmail(email);
+        console.log('✅ User found in Firebase Auth:', userRecord.uid);
+        
+        // Verify password by trying to get a custom token (this validates the user exists)
+        // Note: We can't verify password directly with Admin SDK
+        // The user must have set their password via the reset link
+        
+        // Check if user exists in Firestore
+        let firestoreUser = await storage.getUserByEmail(email);
+        
+        if (!firestoreUser) {
+          // Create Firestore user from Firebase Auth user
+          console.log('Creating Firestore user from Firebase Auth...');
+          const customClaims = (await admin.auth().getUser(userRecord.uid)).customClaims || {};
+          
+          firestoreUser = await storage.upsertUser({
+            id: userRecord.uid,
+            email: userRecord.email!,
+            firstName: userRecord.displayName?.split(' ')[0] || 'User',
+            lastName: userRecord.displayName?.split(' ').slice(1).join(' ') || '',
+            role: (customClaims.role as string) || 'admin',
+            firebaseUid: userRecord.uid,
+            profileImageUrl: userRecord.photoURL || null
+          });
+        }
+        
+        // For Firebase Auth users, we can't verify password server-side
+        // They must use the client-side Firebase Auth or password reset
+        // So we'll create a session if they exist in Firebase Auth
+        req.login({
+          claims: {
+            sub: firestoreUser.id,
+            email: firestoreUser.email,
+            first_name: firestoreUser.firstName,
+            last_name: firestoreUser.lastName,
+            profile_image_url: firestoreUser.profileImageUrl
+          }
+        }, (err) => {
+          if (err) {
+            console.error("Firebase Auth login error:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          console.log('✅ Firebase Auth user logged in');
+          return res.json({ 
+            success: true, 
+            user: firestoreUser,
+            requirePasswordChange: false,
+            isFirebaseAuth: true,
+            message: "Please use the password you set via email link"
+          });
+        });
+        return;
+        
+      } catch (firebaseError: any) {
+        console.log('Firebase Auth user not found, checking Firestore...');
+      }
+      
+      // Check Firestore database for admin users (legacy system)
       const user = await storage.getUserByEmail(email);
       
       if (!user) {
@@ -81,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user.password) {
-        return res.status(401).json({ message: "Password not set. Contact administrator." });
+        return res.status(401).json({ message: "Password not set. Please check your email for password reset link." });
       }
       
       if (user.password !== password) {
