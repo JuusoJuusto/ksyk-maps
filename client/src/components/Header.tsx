@@ -76,10 +76,10 @@ export default function Header() {
   };
 
   const handleNavigation = (from: string, to: string) => {
-    console.log(`Γ£à Navigation planned: ${from} ΓåÆ ${to}`);
+    console.log(`Navigation planned: ${from} to ${to}`);
     
     // Create a comprehensive success message
-    const message = `≡ƒÄ» Route Successfully Planned!\n\n≡ƒôì Starting Point: ${from}\n≡ƒÄ» Destination: ${to}\n\n≡ƒù║∩╕Å Your route is now displayed on the interactive map with:\nΓÇó Animated blue path showing the way\nΓÇó Numbered waypoints for guidance\nΓÇó Step-by-step walking directions\n\nThe route should be visible immediately on the map below!`;
+    const message = `Route Successfully Planned!\n\nStarting Point: ${from}\nDestination: ${to}\n\nYour route is now displayed on the interactive map with:\n- Animated blue path showing the way\n- Numbered waypoints for guidance\n- Step-by-step walking directions\n\nThe route should be visible immediately on the map below!`;
     
     // Show success feedback
     alert(message);
@@ -112,7 +112,7 @@ export default function Header() {
               <Megaphone className="h-5 w-5 animate-pulse" />
               <div className="text-center">
                 <span className="font-semibold">{currentAnnouncement.title}</span>
-                <span className="mx-2">ΓÇó</span>
+                <span className="mx-2">•</span>
                 <span className="text-sm opacity-90">{currentAnnouncement.content}</span>
               </div>
             </div>
@@ -132,7 +132,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-3" data-testid="link-home">
-              <img src="/ksyk-logo.png" alt="KSYK Logo" className="h-10 w-10 object-contain" />
+              <img src="/ksykmaps_logo.png" alt="KSYK Logo" className="h-12 w-12 object-contain" />
               <div>
                 <h1 className="text-xl font-bold text-primary">KSYK Map</h1>
                 <p className="text-xs text-muted-foreground">by OWL Apps</p>
@@ -233,7 +233,7 @@ export default function Header() {
             
             {/* Mobile menu button */}
             <button className="md:hidden" data-testid="button-mobile-menu">
-              Γÿ░
+              ☰
             </button>
           </div>
         </div>
