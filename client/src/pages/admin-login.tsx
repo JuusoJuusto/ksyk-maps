@@ -7,8 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Shield, Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 
 interface LoginResponse {
   success: boolean;
@@ -76,69 +74,8 @@ export default function AdminLogin() {
       return;
     }
     
-    // Check if it's the owner email - skip Firebase Auth for owner
-    const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
-    
-    if (email === OWNER_EMAIL) {
-      console.log('👑 Owner login detected, using backend...');
-      loginMutation.mutate({ email, password });
-      return;
-    }
-    
-    // Try Firebase Authentication for regular users
-    try {
-      console.log('🔥 Attempting Firebase Auth login...');
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      console.log('✅ Firebase Auth successful!', user.uid);
-      
-      // Get ID token to verify with backend
-      const idToken = await user.getIdToken();
-      
-      // Verify with backend and create session
-      const response = await fetch("/api/auth/firebase-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ idToken }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Backend verification failed");
-      }
-      
-      const data = await response.json();
-      
-      // Store user info
-      localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
-      localStorage.setItem('ksyk_admin_logged_in', 'true');
-      
-      // Redirect to admin portal
-      window.location.href = "/admin-ksyk-management-portal";
-      return;
-      
-    } catch (firebaseError: any) {
-      console.log('Firebase Auth failed:', firebaseError.code);
-      
-      // If it's invalid credentials, show error
-      if (firebaseError.code === 'auth/invalid-credential' || firebaseError.code === 'auth/wrong-password') {
-        setError("Invalid email or password");
-        return;
-      }
-      
-      // If user not found in Firebase, try backend (legacy users)
-      if (firebaseError.code === 'auth/user-not-found') {
-        console.log('User not in Firebase Auth, trying backend...');
-        loginMutation.mutate({ email, password });
-        return;
-      }
-      
-      // Other Firebase errors
-      setError(firebaseError.message);
-    }
+    // Simple backend login - works for everyone
+    loginMutation.mutate({ email, password });
   };
 
   const handlePasswordChange = async () => {

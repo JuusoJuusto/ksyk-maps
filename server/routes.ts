@@ -792,47 +792,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImageUrl: null
       });
 
-      // If email option, use Firebase Authentication to send password reset email
+      // If email option, send invitation email with password
       if (passwordOption === 'email') {
-        console.log(`\n🚀 ========== FIREBASE AUTH INVITATION ==========`);
+        console.log(`\n📧 ========== EMAIL INVITATION ==========`);
         console.log(`Target: ${email}`);
         console.log(`Name: ${firstName} ${lastName}`);
-        console.log(`Using Firebase Authentication for email`);
+        console.log(`Password: ${finalPassword}`);
         
         try {
-          // Create user in Firebase Authentication and send password reset email
-          const firebaseResult = await createFirebaseUserAndSendEmail(
-            email,
-            firstName,
-            lastName,
-            role || 'admin'
-          );
+          const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
           
-          console.log(`\n🔥 FIREBASE RESULT:`);
-          console.log(`   Success: ${firebaseResult.success}`);
-          console.log(`   UID: ${firebaseResult.uid || 'N/A'}`);
-          console.log(`   Message: ${firebaseResult.message}`);
+          console.log(`\n📧 EMAIL RESULT:`);
+          console.log(`   Success: ${emailResult.success}`);
+          console.log(`   Mode: ${emailResult.mode}`);
           
-          if (firebaseResult.success) {
-            console.log(`✅ FIREBASE AUTH USER CREATED - Email sent automatically!`);
-            // Store Firebase UID in Firestore user document
-            await storage.upsertUser({
-              ...newUser,
-              firebaseUid: firebaseResult.uid
-            });
+          if (emailResult.success) {
+            console.log(`✅ EMAIL SENT to ${email}`);
           } else {
-            console.log(`⚠️ FIREBASE AUTH FAILED - Falling back to manual password`);
-            console.log(`📝 Manual Password: ${finalPassword}`);
-            if (firebaseResult.error) {
-              console.error(`   Error: ${firebaseResult.error.message}`);
-            }
+            console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
           }
         } catch (error: any) {
-          console.error('❌ FIREBASE EXCEPTION:', error.message);
-          console.log(`📝 FALLBACK - Password: ${finalPassword}`);
+          console.error('❌ EMAIL ERROR:', error.message);
+          console.log(`📝 Password: ${finalPassword}`);
         }
         
-        console.log(`================================================\n`);
+        console.log(`==========================================\n`);
       }
 
       res.status(201).json({ ...newUser, password: finalPassword });
