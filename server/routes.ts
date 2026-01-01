@@ -272,6 +272,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Firebase Authentication login endpoint
+  app.post('/api/auth/firebase-login', async (req, res) => {
+    try {
+      const { idToken } = req.body;
+      
+      if (!idToken) {
+        return res.status(400).json({ message: "ID token required" });
+      }
+      
+      console.log('🔥 Verifying Firebase ID token...');
+      
+      // Verify the ID token
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      
+      console.log('✅ Token verified for UID:', uid);
+      
+      // Get user from Firebase Auth
+      const userRecord = await admin.auth().getUser(uid);
+      
+      // Get or create user in Firestore
+      let firestoreUser = await storage.getUserByEmail(userRecord.email!);
+      
+      if (!firestoreUser) {
+        console.log('Creating Firestore user from Firebase Auth...');
+        const customClaims = userRecord.customClaims || {};
+        
+        firestoreUser = await storage.upsertUser({
+          id: uid,
+          email: userRecord.email!,
+          firstName: userRecord.displayName?.split(' ')[0] || 'User',
+          lastName: userRecord.displayName?.split(' ').slice(1).join(' ') || '',
+          role: (customClaims.role as string) || 'admin',
+          firebaseUid: uid,
+          profileImageUrl: userRecord.photoURL || null
+        });
+      }
+      
+      // Create session
+      req.login({
+        claims: {
+          sub: firestoreUser.id,
+          email: firestoreUser.email,
+          first_name: firestoreUser.firstName,
+          last_name: firestoreUser.lastName,
+          profile_image_url: firestoreUser.profileImageUrl
+        }
+      }, (err) => {
+        if (err) {
+          console.error("Session creation error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        console.log('✅ Firebase user logged in successfully');
+        res.json({ 
+          success: true, 
+          user: firestoreUser
+        });
+      });
+      
+    } catch (error: any) {
+      console.error("Firebase login error:", error);
+      res.status(401).json({ message: "Invalid token" });
+    }
+  });
+
   // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {

@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Shield, Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 interface LoginResponse {
   success: boolean;
@@ -65,7 +67,7 @@ export default function AdminLogin() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     
@@ -74,6 +76,51 @@ export default function AdminLogin() {
       return;
     }
     
+    // Try Firebase Authentication first
+    try {
+      console.log('🔥 Attempting Firebase Auth login...');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      console.log('✅ Firebase Auth successful!', user.uid);
+      
+      // Get ID token to verify with backend
+      const idToken = await user.getIdToken();
+      
+      // Verify with backend and create session
+      const response = await fetch("/api/auth/firebase-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Backend verification failed");
+      }
+      
+      const data = await response.json();
+      
+      // Store user info
+      localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
+      localStorage.setItem('ksyk_admin_logged_in', 'true');
+      
+      // Redirect to admin portal
+      window.location.href = "/admin-ksyk-management-portal";
+      return;
+      
+    } catch (firebaseError: any) {
+      console.log('Firebase Auth failed, trying backend...', firebaseError.code);
+      
+      // If Firebase Auth fails, try backend login (for owner and legacy users)
+      if (firebaseError.code !== 'auth/user-not-found' && firebaseError.code !== 'auth/wrong-password') {
+        setError(firebaseError.message);
+        return;
+      }
+    }
+    
+    // Fallback to backend login
     loginMutation.mutate({ email, password });
   };
 
