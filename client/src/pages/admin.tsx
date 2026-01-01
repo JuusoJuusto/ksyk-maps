@@ -170,18 +170,34 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {/* Welcome Header */}
+        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {(user as any)?.email}</p>
+              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-blue-100 text-lg">
+                Welcome back, <span className="font-semibold">{(user as any)?.firstName || (user as any)?.email}</span>
+              </p>
+              <p className="text-blue-200 text-sm mt-1">
+                Role: {(user as any)?.role === 'owner' ? '👑 Owner' : '🛡️ Administrator'}
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 text-center">
+                <p className="text-sm text-blue-100">System Status</p>
+                <p className="text-2xl font-bold">✅ Online</p>
+              </div>
             </div>
           </div>
         </div>
-        <AdminDashboard />
+        
+        {/* Dashboard Content */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <AdminDashboard />
+        </div>
       </main>
     </div>
   );
