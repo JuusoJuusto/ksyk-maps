@@ -76,7 +76,16 @@ export default function AdminLogin() {
       return;
     }
     
-    // Try Firebase Authentication first
+    // Check if it's the owner email - skip Firebase Auth for owner
+    const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+    
+    if (email === OWNER_EMAIL) {
+      console.log('👑 Owner login detected, using backend...');
+      loginMutation.mutate({ email, password });
+      return;
+    }
+    
+    // Try Firebase Authentication for regular users
     try {
       console.log('🔥 Attempting Firebase Auth login...');
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -97,7 +106,8 @@ export default function AdminLogin() {
       });
       
       if (!response.ok) {
-        throw new Error("Backend verification failed");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Backend verification failed");
       }
       
       const data = await response.json();
@@ -111,14 +121,25 @@ export default function AdminLogin() {
       return;
       
     } catch (firebaseError: any) {
-      console.log('Firebase Auth failed, trying backend...', firebaseError.code);
+      console.log('Firebase Auth failed:', firebaseError.code);
       
-      // If Firebase Auth fails, try backend login (for owner and legacy users)
-      if (firebaseError.code !== 'auth/user-not-found' && firebaseError.code !== 'auth/wrong-password') {
-        setError(firebaseError.message);
+      // If it's invalid credentials, show error
+      if (firebaseError.code === 'auth/invalid-credential' || firebaseError.code === 'auth/wrong-password') {
+        setError("Invalid email or password");
         return;
       }
+      
+      // If user not found in Firebase, try backend (legacy users)
+      if (firebaseError.code === 'auth/user-not-found') {
+        console.log('User not in Firebase Auth, trying backend...');
+        loginMutation.mutate({ email, password });
+        return;
+      }
+      
+      // Other Firebase errors
+      setError(firebaseError.message);
     }
+  };
     
     // Fallback to backend login
     loginMutation.mutate({ email, password });
