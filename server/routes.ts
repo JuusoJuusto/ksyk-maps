@@ -36,10 +36,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔐 Login attempt:', email);
       
       // Check owner credentials from environment variables (secure, server-side only)
-      const OWNER_EMAIL = process.env.OWNER_EMAIL || 'JuusoJuusto112@gmail.com';
-      const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'Juusto2012!';
+      const OWNER_EMAIL = process.env.OWNER_EMAIL;
+      const OWNER_PASSWORD = process.env.OWNER_PASSWORD;
       
-      if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+      if (OWNER_EMAIL && OWNER_PASSWORD && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
         // Owner login
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
@@ -218,7 +218,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post('/api/auth/dev-login', async (req, res) => {
       try {
         console.log("Development login attempt");
-        const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+        const OWNER_EMAIL = process.env.OWNER_EMAIL;
+        
+        if (!OWNER_EMAIL) {
+          return res.status(500).json({ error: "Owner email not configured" });
+        }
         
         // Use owner user for dev login
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);

@@ -148,6 +148,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Test email endpoint
+    if (apiPath === '/test-email' && req.method === 'POST') {
+      const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
+      
+      console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
+      console.log('Environment variables check:');
+      console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
+      console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
+      console.log('  EMAIL_USER:', process.env.EMAIL_USER);
+      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
+      
+      const testEmail = req.body.email || process.env.EMAIL_USER || 'test@example.com';
+      const testName = req.body.name || 'Test User';
+      const testPassword = 'TestPass123!';
+      
+      console.log(`\nSending test email to: ${testEmail}`);
+      
+      try {
+        const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
+        
+        console.log('\nTest email result:', result);
+        console.log('==========================================\n');
+        
+        return res.status(200).json({
+          success: result.success,
+          mode: result.mode,
+          message: result.success ? 'Email sent successfully!' : 'Email failed to send',
+          details: result,
+          envVars: {
+            EMAIL_HOST: process.env.EMAIL_HOST,
+            EMAIL_PORT: process.env.EMAIL_PORT,
+            EMAIL_USER: process.env.EMAIL_USER,
+            EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
+          }
+        });
+      } catch (error: any) {
+        console.error('Test email error:', error);
+        return res.status(500).json({
+          success: false,
+          error: error.message,
+          stack: error.stack
+        });
+      }
+    }
+
     // Admin cleanup endpoint - DELETE ALL DATA
     if (apiPath === '/admin/cleanup' && req.method === 'POST') {
       const { confirmDelete } = req.body;
@@ -235,8 +280,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       if (req.method === 'POST') {
-        const user = await storage.upsertUser(req.body);
-        return res.status(201).json(user);
+        const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
+        const { email, firstName, lastName, role, password, passwordOption } = req.body;
+
+        // Validate required fields
+        if (!email || !firstName || !lastName) {
+          return res.status(400).json({ message: "Email, first name, and last name are required" });
+        }
+
+        // Check if user already exists
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({ message: "User with this email already exists" });
+        }
+
+        // Generate temp password if email option
+        let finalPassword = password;
+        let isTemp = false;
+        if (passwordOption === 'email') {
+          finalPassword = generateTempPassword();
+          isTemp = true;
+        }
+
+        // Create user
+        const newUser = await storage.upsertUser({
+          email,
+          firstName,
+          lastName,
+          role: role || 'admin',
+          password: finalPassword,
+          isTemporaryPassword: isTemp,
+          profileImageUrl: null
+        });
+
+        // If email option, send invitation email with password
+        if (passwordOption === 'email') {
+          console.log(`\n📧 ========== EMAIL INVITATION ==========`);
+          console.log(`Target: ${email}`);
+          console.log(`Name: ${firstName} ${lastName}`);
+          console.log(`Password: ${finalPassword}`);
+          
+          try {
+            const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
+            
+            console.log(`\n📧 EMAIL RESULT:`);
+            console.log(`   Success: ${emailResult.success}`);
+            console.log(`   Mode: ${emailResult.mode}`);
+            
+            if (emailResult.success) {
+              console.log(`✅ EMAIL SENT to ${email}`);
+            } else {
+              console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
+            }
+          } catch (error: any) {
+            console.error('❌ EMAIL ERROR:', error.message);
+            console.log(`📝 Password: ${finalPassword}`);
+          }
+          
+          console.log(`==========================================\n`);
+        }
+
+        return res.status(201).json({ ...newUser, password: finalPassword });
       }
       
       // Handle /users/:id routes
@@ -271,7 +375,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/announcements',
         '/users',
         '/auth/user',
-        '/auth/admin-login'
+        '/auth/admin-login',
+        '/test-email (POST)'
       ]
     });
     
