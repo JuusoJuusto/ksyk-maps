@@ -191,7 +191,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
                     data-testid="button-hsl"
                   >
-                    ≡ƒÜî HSL
+                    HSL
                   </Button>
                 </Link>
                 
@@ -215,7 +215,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
                     data-testid="button-hsl"
                   >
-                    ≡ƒÜî HSL
+                    HSL
                   </Button>
                 </Link>
                 
