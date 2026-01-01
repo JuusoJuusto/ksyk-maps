@@ -149,47 +149,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     
     // Test email endpoint
-    if (apiPath === '/test-email' && req.method === 'POST') {
-      const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
-      
-      console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
-      console.log('Environment variables check:');
-      console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
-      console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
-      console.log('  EMAIL_USER:', process.env.EMAIL_USER);
-      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
-      
-      const testEmail = req.body.email || process.env.EMAIL_USER || 'test@example.com';
-      const testName = req.body.name || 'Test User';
-      const testPassword = 'TestPass123!';
-      
-      console.log(`\nSending test email to: ${testEmail}`);
-      
-      try {
-        const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
-        
-        console.log('\nTest email result:', result);
-        console.log('==========================================\n');
-        
+    if (apiPath === '/test-email') {
+      if (req.method === 'GET') {
         return res.status(200).json({
-          success: result.success,
-          mode: result.mode,
-          message: result.success ? 'Email sent successfully!' : 'Email failed to send',
-          details: result,
-          envVars: {
-            EMAIL_HOST: process.env.EMAIL_HOST,
-            EMAIL_PORT: process.env.EMAIL_PORT,
-            EMAIL_USER: process.env.EMAIL_USER,
-            EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
+          message: "Test email endpoint - use POST to send test email",
+          usage: "POST /api/test-email with body: {\"email\": \"your@email.com\", \"name\": \"Your Name\"}",
+          envVarsSet: {
+            EMAIL_HOST: !!process.env.EMAIL_HOST,
+            EMAIL_PORT: !!process.env.EMAIL_PORT,
+            EMAIL_USER: !!process.env.EMAIL_USER,
+            EMAIL_PASSWORD: !!process.env.EMAIL_PASSWORD
           }
         });
-      } catch (error: any) {
-        console.error('Test email error:', error);
-        return res.status(500).json({
-          success: false,
-          error: error.message,
-          stack: error.stack
-        });
+      }
+      
+      if (req.method === 'POST') {
+        const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
+        
+        console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
+        console.log('Environment variables check:');
+        console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
+        console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
+        console.log('  EMAIL_USER:', process.env.EMAIL_USER);
+        console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
+        
+        const testEmail = req.body.email || process.env.EMAIL_USER || 'test@example.com';
+        const testName = req.body.name || 'Test User';
+        const testPassword = 'TestPass123!';
+        
+        console.log(`\nSending test email to: ${testEmail}`);
+        
+        try {
+          const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
+          
+          console.log('\nTest email result:', result);
+          console.log('==========================================\n');
+          
+          return res.status(200).json({
+            success: result.success,
+            mode: result.mode,
+            message: result.success ? 'Email sent successfully!' : 'Email failed to send',
+            details: result,
+            envVars: {
+              EMAIL_HOST: process.env.EMAIL_HOST,
+              EMAIL_PORT: process.env.EMAIL_PORT,
+              EMAIL_USER: process.env.EMAIL_USER,
+              EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
+            }
+          });
+        } catch (error: any) {
+          console.error('Test email error:', error);
+          return res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
+          });
+        }
       }
     }
 
