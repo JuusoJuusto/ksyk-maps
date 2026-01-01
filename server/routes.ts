@@ -29,21 +29,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
+      console.log('\n🔐 ========== LOGIN ATTEMPT ==========');
+      console.log('Email:', email);
+      console.log('Password length:', password?.length);
+      console.log('Timestamp:', new Date().toISOString());
+      
       if (!email || !password) {
+        console.log('❌ Missing email or password');
         return res.status(400).json({ message: "Email and password required" });
       }
-      
-      console.log('🔐 Login attempt:', email);
       
       // Check owner credentials from environment variables (secure, server-side only)
       const OWNER_EMAIL = process.env.OWNER_EMAIL;
       const OWNER_PASSWORD = process.env.OWNER_PASSWORD;
       
+      console.log('🔑 Checking owner credentials...');
+      console.log('   Owner email set:', !!OWNER_EMAIL);
+      console.log('   Owner password set:', !!OWNER_PASSWORD);
+      console.log('   Email match:', email === OWNER_EMAIL);
+      
       if (OWNER_EMAIL && OWNER_PASSWORD && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+        console.log('✅ OWNER LOGIN DETECTED');
         // Owner login
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
         if (!ownerUser) {
+          console.log('📝 Creating owner user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
             email: OWNER_EMAIL,
@@ -64,42 +75,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }, (err) => {
           if (err) {
-            console.error("Owner login error:", err);
+            console.error("❌ Owner login error:", err);
             return res.status(500).json({ message: "Login failed" });
           }
           console.log('✅ Owner logged in successfully');
+          console.log('=====================================\n');
           return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
         });
         return;
       }
       
       // Check Firestore database for admin users
-      console.log('📊 Checking database for user:', email);
+      console.log('📊 Checking Firestore database...');
       const user = await storage.getUserByEmail(email);
       
-      console.log('🔍 Database user lookup result:');
-      console.log('   Email searched:', email);
-      console.log('   User found:', user ? 'YES' : 'NO');
+      console.log('🔍 Database lookup result:');
+      console.log('   User found:', !!user);
+      
       if (user) {
         console.log('   User ID:', user.id);
+        console.log('   User email:', user.email);
         console.log('   User role:', user.role);
-        console.log('   Has password:', user.password ? 'YES' : 'NO');
-        console.log('   Password match:', user.password === password);
+        console.log('   Has password field:', 'password' in user);
+        console.log('   Password is set:', !!user.password);
+        console.log('   Password value:', user.password);
+        console.log('   Provided password:', password);
+        console.log('   Password match (===):', user.password === password);
+        console.log('   Password match (==):', user.password == password);
+        console.log('   Is temporary:', user.isTemporaryPassword);
       }
       
       if (!user) {
+        console.log('❌ User not found in database');
+        console.log('=====================================\n');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       if (!user.password) {
+        console.log('❌ User has no password set');
+        console.log('=====================================\n');
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
       
       if (user.password !== password) {
+        console.log('❌ Password mismatch!');
+        console.log('   Expected:', user.password);
+        console.log('   Got:', password);
+        console.log('   Type of expected:', typeof user.password);
+        console.log('   Type of got:', typeof password);
+        console.log('=====================================\n');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Valid admin user from database
+      console.log('✅ PASSWORD MATCH! Creating session...');
       req.login({
         claims: {
           sub: user.id,
@@ -110,10 +139,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }, (err) => {
         if (err) {
-          console.error("Login error:", err);
+          console.error("❌ Session creation error:", err);
+          console.log('=====================================\n');
           return res.status(500).json({ message: "Login failed" });
         }
-        console.log('✅ User logged in successfully:', user.email);
+        console.log('✅ User logged in successfully!');
+        console.log('   Requires password change:', user.isTemporaryPassword || false);
+        console.log('=====================================\n');
         return res.json({ 
           success: true, 
           user: user,
@@ -122,7 +154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error("Admin login error:", error);
+      console.error("❌ Admin login error:", error);
+      console.log('=====================================\n');
       res.status(500).json({ message: "Authentication error" });
     }
   });

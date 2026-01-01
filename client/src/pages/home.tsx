@@ -461,8 +461,8 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="-500 -500 2000 1500" className="w-full h-full pointer-events-none">
-                  {/* Grid background - Larger viewport to prevent cropping */}
+                <svg viewBox="-1000 -1000 3000 2500" className="w-full h-full pointer-events-none">
+                  {/* Grid background - MASSIVE viewport to cover entire area */}
                   <defs>
                     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
@@ -471,9 +471,9 @@ export default function Home() {
                       <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  <rect x="-500" y="-500" width="2000" height="1500" fill="white" />
-                  <rect x="-500" y="-500" width="2000" height="1500" fill="url(#grid)" />
-                  <rect x="-500" y="-500" width="2000" height="1500" fill="url(#gridMajor)" />
+                  <rect x="-1000" y="-1000" width="3000" height="2500" fill="white" />
+                  <rect x="-1000" y="-1000" width="3000" height="2500" fill="url(#grid)" />
+                  <rect x="-1000" y="-1000" width="3000" height="2500" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase */}
                   {buildings.map((building: Building, index: number) => {

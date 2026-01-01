@@ -51,10 +51,19 @@ export default function Header() {
   };
 
   const handleLanguageChange = async (lang: string) => {
-    await i18n.changeLanguage(lang);
-    setCurrentLang(lang);
-    localStorage.setItem('ksyk_language', lang);
-    window.location.reload(); // Force reload to apply changes
+    try {
+      console.log('🌐 Changing language to:', lang);
+      await i18n.changeLanguage(lang);
+      setCurrentLang(lang);
+      localStorage.setItem('ksyk_language', lang);
+      
+      // Force reload to apply language changes throughout the app
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Language change error:', error);
+    }
   };
 
   const handleLogout = async () => {
