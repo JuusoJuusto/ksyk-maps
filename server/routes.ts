@@ -7,6 +7,19 @@ import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 import { createFirebaseUserAndSendEmail, sendPasswordResetEmail as sendFirebasePasswordReset } from "./firebaseEmailService";
 import admin from 'firebase-admin';
 
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('✅ Firebase Admin initialized');
+  } catch (error) {
+    console.error('❌ Firebase Admin initialization failed:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -273,15 +286,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Firebase Authentication login endpoint
+  // Firebase Authentication login endpoint
   app.post('/api/auth/firebase-login', async (req, res) => {
     try {
       const { idToken } = req.body;
       
       if (!idToken) {
+        console.error('❌ No ID token provided');
         return res.status(400).json({ message: "ID token required" });
       }
       
       console.log('🔥 Verifying Firebase ID token...');
+      console.log('   Firebase Admin initialized:', !!admin.apps.length);
+      
+      if (!admin.apps.length) {
+        console.error('❌ Firebase Admin not initialized!');
+        return res.status(500).json({ message: "Firebase not configured" });
+      }
       
       // Verify the ID token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -291,12 +312,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get user from Firebase Auth
       const userRecord = await admin.auth().getUser(uid);
+      console.log('✅ User found:', userRecord.email);
       
       // Get or create user in Firestore
       let firestoreUser = await storage.getUserByEmail(userRecord.email!);
       
       if (!firestoreUser) {
-        console.log('Creating Firestore user from Firebase Auth...');
+        console.log('📝 Creating Firestore user from Firebase Auth...');
         const customClaims = userRecord.customClaims || {};
         
         firestoreUser = await storage.upsertUser({
@@ -308,6 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firebaseUid: uid,
           profileImageUrl: userRecord.photoURL || null
         });
+        console.log('✅ Firestore user created');
       }
       
       // Create session
@@ -321,8 +344,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }, (err) => {
         if (err) {
-          console.error("Session creation error:", err);
-          return res.status(500).json({ message: "Login failed" });
+          console.error("❌ Session creation error:", err);
+          return res.status(500).json({ message: "Session creation failed", error: err.message });
         }
         
         console.log('✅ Firebase user logged in successfully');
@@ -333,8 +356,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error: any) {
-      console.error("Firebase login error:", error);
-      res.status(401).json({ message: "Invalid token" });
+      console.error("❌ Firebase login error:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      res.status(401).json({ 
+        message: "Authentication failed", 
+        error: error.message,
+        code: error.code
+      });
+    }
+  });
     }
   });
 
