@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+import nodemailer from 'nodemailer';
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -8,16 +9,33 @@ if (!admin.apps.length) {
   });
 }
 
+// Create Gmail transporter for sending custom emails
+const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.log('⚠️ Email credentials not configured');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+};
+
 /**
- * Create a user in Firebase Authentication and send password reset email
- * This uses Firebase's built-in email system - no Gmail SMTP needed!
+ * Create a user in Firebase Authentication and send custom password reset email
  */
 export async function createFirebaseUserAndSendEmail(
   email: string,
   firstName: string,
   lastName: string,
   role: string
-): Promise<{ success: boolean; uid?: string; error?: any; message: string }> {
+): Promise<{ success: boolean; uid?: string; error?: any; message: string; resetLink?: string }> {
   
   console.log('\n🔥 ========== FIREBASE AUTH USER CREATION ==========');
   console.log('Email:', email);
@@ -41,7 +59,6 @@ export async function createFirebaseUserAndSendEmail(
     console.log('✅ Custom claims set (role:', role + ')');
     
     // Step 3: Generate password reset link
-    // This link will be sent to the user's email automatically by Firebase
     const resetLink = await admin.auth().generatePasswordResetLink(email, {
       url: 'https://ksykmaps.vercel.app/admin-login',
       handleCodeInApp: false
@@ -50,18 +67,84 @@ export async function createFirebaseUserAndSendEmail(
     console.log('✅ Password reset link generated');
     console.log('   Link:', resetLink);
     
-    // Step 4: Send password reset email (Firebase sends this automatically!)
-    // Firebase will send a beautiful email with your app name and logo
-    console.log('📧 Firebase will send password reset email automatically');
-    console.log('   To:', email);
-    console.log('   Subject: Reset your password for KSYK Maps');
+    // Step 4: Send custom email with the reset link
+    const transporter = createTransporter();
     
+    if (!transporter) {
+      console.log('⚠️ Email not configured - returning reset link');
+      return {
+        success: true,
+        uid: userRecord.uid,
+        resetLink: resetLink,
+        message: `✅ User created! Share this link: ${resetLink}`
+      };
+    }
+
+    const emailContent = {
+      from: `"KSYK Maps Admin" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Welcome to KSYK Maps - Set Your Password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e5e7eb; }
+            .button { display: inline-block; background: #3B82F6; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+            .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Welcome to KSYK Maps!</h1>
+            </div>
+            <div class="content">
+              <h2>Hello ${firstName}!</h2>
+              <p>Your administrator account has been created for the KSYK Maps system.</p>
+              <p>Click the button below to set your password and activate your account:</p>
+              <div style="text-align: center;">
+                <a href="${resetLink}" class="button">Set Your Password</a>
+              </div>
+              <p style="color: #6b7280; font-size: 14px;">Or copy this link: ${resetLink}</p>
+              <p><strong>Important:</strong> This link will expire in 1 hour for security.</p>
+            </div>
+            <div class="footer">
+              <p>KSYK Maps Admin System</p>
+              <p>If you didn't request this, please ignore this email.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+Welcome to KSYK Maps!
+
+Hello ${firstName}!
+
+Your administrator account has been created. Click the link below to set your password:
+
+${resetLink}
+
+This link will expire in 1 hour.
+
+---
+KSYK Maps Admin System
+      `
+    };
+
+    await transporter.sendMail(emailContent);
+    console.log('✅ Custom email sent via Gmail SMTP');
     console.log('================================================\n');
     
     return {
       success: true,
       uid: userRecord.uid,
-      message: `✅ User created! Firebase sent password reset email to ${email}`
+      resetLink: resetLink,
+      message: `✅ User created! Password reset email sent to ${email}`
     };
     
   } catch (error: any) {

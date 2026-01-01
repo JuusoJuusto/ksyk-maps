@@ -137,7 +137,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Header />
       
       <NavigationModal 
@@ -148,21 +148,21 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white border-r border-gray-200 flex flex-col shadow-xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white/95 backdrop-blur-sm border-r border-gray-200 flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
           {/* Navigation Button - Clean Header */}
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700">
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 h-14 text-lg font-semibold shadow-lg"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
-              <Navigation className="mr-2 h-5 w-5" />
+              <Navigation className="mr-2 h-6 w-6" />
               Get Directions
             </Button>
           </div>          
           {/* Search Rooms */}
-          <div className="p-4 border-b border-gray-200">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              <Search className="inline h-4 w-4 mr-1" />
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-blue-50">
+            <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center">
+              <Search className="inline h-5 w-5 mr-2 text-blue-600" />
               Search Rooms
             </label>
             <Input
@@ -170,16 +170,16 @@ export default function Home() {
               placeholder="Room number or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full"
+              className="w-full border-2 border-blue-200 focus:border-blue-500 shadow-sm"
             />
             
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <div className="mt-3 max-h-64 overflow-y-auto border rounded-lg bg-white shadow-sm">
+              <div className="mt-3 max-h-64 overflow-y-auto border-2 border-blue-200 rounded-xl bg-white shadow-lg">
                 {searchResults.map((room: Room) => (
                   <div
                     key={room.id}
-                    className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                    className="p-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer border-b last:border-b-0 transition-all"
                     onClick={() => {
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
@@ -187,9 +187,9 @@ export default function Home() {
                       setSearchResults([]);
                     }}
                   >
-                    <div className="font-semibold text-blue-600">{room.roomNumber}</div>
-                    <div className="text-sm text-gray-600">{room.name || room.nameEn}</div>
-                    <div className="text-xs text-gray-500">Floor {room.floor} • {room.type.replace('_', ' ')}</div>
+                    <div className="font-bold text-blue-700 text-lg">{room.roomNumber}</div>
+                    <div className="text-sm text-gray-700 font-medium">{room.name || room.nameEn}</div>
+                    <div className="text-xs text-gray-500 mt-1">Floor {room.floor} • {room.type.replace('_', ' ')}</div>
                   </div>
                 ))}
               </div>
@@ -197,32 +197,32 @@ export default function Home() {
           </div>
 
           {/* Floor Navigation */}
-          <div className="p-4 border-b border-gray-200 bg-white">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-purple-50">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">Floor ({floorRooms.length} rooms)</h3>
+              <h3 className="text-sm font-bold text-gray-800">Floor ({floorRooms.length} rooms)</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFloor(1)}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-blue-100"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
             </div>
             
             {/* Floor Controls */}
-            <div className="flex items-center justify-center space-x-3">
+            <div className="flex items-center justify-center space-x-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedFloor(Math.max(selectedFloor - 1, 0))}
                 disabled={selectedFloor <= 0}
-                className="w-10 h-10 p-0"
+                className="w-12 h-12 p-0 border-2 border-blue-300 hover:bg-blue-50 disabled:opacity-30"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-5 w-5" />
               </Button>
               
-              <div className="flex items-center justify-center w-16 h-16 bg-blue-600 text-white font-bold text-2xl rounded-xl shadow-lg">
+              <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-3xl rounded-2xl shadow-2xl transform hover:scale-110 transition-transform">
                 {selectedFloor}
               </div>
               
@@ -231,9 +231,9 @@ export default function Home() {
                 size="sm"
                 onClick={() => setSelectedFloor(Math.min(selectedFloor + 1, 3))}
                 disabled={selectedFloor >= 3}
-                className="w-10 h-10 p-0"
+                className="w-12 h-12 p-0 border-2 border-blue-300 hover:bg-blue-50 disabled:opacity-30"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
               </Button>
             </div>
           </div>
