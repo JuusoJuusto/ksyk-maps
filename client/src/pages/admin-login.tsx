@@ -140,10 +140,6 @@ export default function AdminLogin() {
       setError(firebaseError.message);
     }
   };
-    
-    // Fallback to backend login
-    loginMutation.mutate({ email, password });
-  };
 
   const handlePasswordChange = async () => {
     if (newPassword !== confirmPassword) {
