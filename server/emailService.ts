@@ -23,6 +23,9 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
   console.log('To:', email);
   console.log('Name:', firstName);
   console.log('Password:', tempPassword);
+  console.log('Email User:', process.env.EMAIL_USER);
+  console.log('Email Host:', process.env.EMAIL_HOST);
+  console.log('Email Port:', process.env.EMAIL_PORT);
   console.log('Email configured:', !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD));
   console.log('=====================================\n');
 
@@ -31,13 +34,13 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
   if (!transporter) {
     console.log('⚠️ Email not configured, showing password in console');
     console.log(`📝 Password for ${email}: ${tempPassword}`);
-    return { success: true, mode: 'console', password: tempPassword };
+    return { success: false, mode: 'console', password: tempPassword, error: 'Email not configured' };
   }
 
   const emailContent = {
     from: `"KSYK Map Admin" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: '🗺️ Welcome to KSYK Map - Your Admin Account',
+    subject: 'Welcome to KSYK Map - Your Admin Account',
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -306,14 +309,18 @@ This is an automated message from KSYK Map Admin System
   };
 
   try {
+    console.log('📤 Attempting to send email...');
     const info = await transporter.sendMail(emailContent);
 
     console.log('✅ Email sent successfully via Gmail!');
     console.log('   Message ID:', info.messageId);
+    console.log('   Response:', info.response);
     return { success: true, mode: 'email', messageId: info.messageId, password: tempPassword };
   } catch (error: any) {
     console.error('❌ Email send error:', error);
-    console.log(`📝 Password for ${email}: ${tempPassword}`);
+    console.error('   Error code:', error.code);
+    console.error('   Error message:', error.message);
+    console.log(`📝 FALLBACK - Password for ${email}: ${tempPassword}`);
     return { success: false, error, mode: 'console', password: tempPassword };
   }
 }
