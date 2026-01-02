@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +21,18 @@ const convertFirebaseDate = (timestamp: any): Date => {
 interface Announcement {
   id: string;
   title: string;
+  titleEn?: string;
+  titleFi?: string;
   content: string;
+  contentEn?: string;
+  contentFi?: string;
   priority: string;
   createdAt: string;
   isActive: boolean;
 }
 
 export default function AnnouncementBanner() {
+  const { t, i18n } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -47,6 +53,21 @@ export default function AnnouncementBanner() {
   }
 
   const currentAnnouncement = activeAnnouncements[currentIndex];
+  
+  // Get localized content
+  const getLocalizedTitle = (announcement: Announcement) => {
+    if (i18n.language === 'fi' && announcement.titleFi) {
+      return announcement.titleFi;
+    }
+    return announcement.titleEn || announcement.title;
+  };
+  
+  const getLocalizedContent = (announcement: Announcement) => {
+    if (i18n.language === 'fi' && announcement.contentFi) {
+      return announcement.contentFi;
+    }
+    return announcement.contentEn || announcement.content;
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -99,7 +120,7 @@ export default function AnnouncementBanner() {
               onClick={() => setIsDialogOpen(true)}
             >
               {getPriorityIcon(currentAnnouncement.priority)}
-              <h3 className="font-bold text-blue-900">Announcements</h3>
+              <h3 className="font-bold text-blue-900">{t('announcements.title')}</h3>
               {activeAnnouncements.length > 1 && (
                 <Badge variant="outline" className="text-xs">
                   {currentIndex + 1} / {activeAnnouncements.length}
@@ -130,14 +151,14 @@ export default function AnnouncementBanner() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-sm text-blue-900 flex-1">
-                    {currentAnnouncement.title}
+                    {getLocalizedTitle(currentAnnouncement)}
                   </h4>
                   <Badge className={`text-xs ml-2 ${getPriorityColor(currentAnnouncement.priority)}`}>
                     {currentAnnouncement.priority}
                   </Badge>
                 </div>
                 <p className="text-xs text-blue-700 mb-2 leading-relaxed">
-                  {currentAnnouncement.content}
+                  {getLocalizedContent(currentAnnouncement)}
                 </p>
                 <div className="flex items-center text-xs text-blue-600">
                   <Clock className="h-3 w-3 mr-1" />
@@ -189,7 +210,7 @@ export default function AnnouncementBanner() {
                 <div className="flex items-center justify-between mb-2">
                   <DialogTitle className="text-2xl flex items-center">
                     {getPriorityIcon(currentAnnouncement.priority)}
-                    <span className="ml-2">{currentAnnouncement.title}</span>
+                    <span className="ml-2">{getLocalizedTitle(currentAnnouncement)}</span>
                   </DialogTitle>
                   <Badge className={`${getPriorityColor(currentAnnouncement.priority)}`}>
                     {currentAnnouncement.priority}
@@ -223,7 +244,7 @@ export default function AnnouncementBanner() {
               <div className="mt-4 space-y-4">
                 <div className="prose max-w-none">
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {currentAnnouncement.content}
+                    {getLocalizedContent(currentAnnouncement)}
                   </p>
                 </div>
                 
@@ -252,7 +273,7 @@ export default function AnnouncementBanner() {
               
               <div className="mt-6 flex justify-end">
                 <Button onClick={() => setIsDialogOpen(false)}>
-                  Close
+                  {t('close')}
                 </Button>
               </div>
             </DialogContent>
