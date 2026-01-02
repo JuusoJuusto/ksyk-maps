@@ -17,6 +17,7 @@ const resources = {
       
       // Search
       'search.placeholder': 'Search for rooms, staff, facilities...',
+      'search.rooms': 'Search Rooms',
       'search.navigate': 'Navigate',
       
       // Map
@@ -113,6 +114,7 @@ const resources = {
       
       // Search
       'search.placeholder': 'Etsi luokkia, henkilöstöä, tiloja...',
+      'search.rooms': 'Etsi huoneita',
       'search.navigate': 'Navigoi',
       
       // Map

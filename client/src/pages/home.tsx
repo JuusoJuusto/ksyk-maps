@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
@@ -47,6 +48,7 @@ interface Room {
 
 
 export default function Home() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -56,7 +58,7 @@ export default function Home() {
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.8); // Start zoomed out to see more grid
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -156,18 +158,18 @@ export default function Home() {
               className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
               <Navigation className="mr-2 h-6 w-6" />
-              Get Directions
+              {t('actions.directions')}
             </Button>
           </div>          
           {/* Search Rooms */}
           <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-blue-50">
             <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center">
               <Search className="inline h-5 w-5 mr-2 text-blue-600" />
-              Search Rooms
+              {t('search.placeholder')}
             </label>
             <Input
               type="text"
-              placeholder="Room number or name..."
+              placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full border-2 border-blue-200 focus:border-blue-500 shadow-sm"
@@ -199,7 +201,7 @@ export default function Home() {
           {/* Floor Navigation */}
           <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-purple-50">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-800">Floor ({floorRooms.length} rooms)</h3>
+              <h3 className="text-sm font-bold text-gray-800">{t('map.floors')} ({floorRooms.length} {t('map.title').toLowerCase()})</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -427,7 +429,7 @@ export default function Home() {
                     size="sm"
                     className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => {
-                      setZoom(1);
+                      setZoom(0.8); // Reset to zoomed out view
                       setPanX(0);
                       setPanY(0);
                     }}
