@@ -307,12 +307,12 @@ export default function Home() {
 
           {/* How to use - Clean Guide */}
           <div className="p-4 flex-1 overflow-y-auto">
-            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-              <h4 className="text-base font-bold text-blue-900 mb-3 flex items-center">
-                <Zap className="mr-2 h-5 w-5 text-blue-600" />
+            <div className={`p-4 rounded-lg border ${darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'}`}>
+              <h4 className={`text-base font-bold mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-blue-900'}`}>
+                <Zap className={`mr-2 h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 Quick Guide
               </h4>
-              <ul className="text-sm text-blue-800 space-y-2">
+              <ul className={`text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-blue-800'}`}>
                 <li className="flex items-start">
                   <span className="mr-2">🧭</span>
                   <span><strong>Get Directions:</strong> Click button above to navigate between rooms</span>
@@ -334,20 +334,20 @@ export default function Home() {
             
             {/* Navigation Route Display */}
             {navigationFrom && navigationTo && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                <h4 className="text-sm font-bold text-green-900 mb-2">Active Route:</h4>
+              <div className={`mt-4 p-4 rounded-lg border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-green-50 border-green-200'}`}>
+                <h4 className={`text-sm font-bold mb-2 ${darkMode ? 'text-gray-200' : 'text-green-900'}`}>Active Route:</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-green-800">{navigationFrom}</span>
+                    <div className={`w-3 h-3 rounded-full mr-2 ${darkMode ? 'bg-green-400' : 'bg-green-500'}`}></div>
+                    <span className={darkMode ? 'text-gray-300' : 'text-green-800'}>{navigationFrom}</span>
                   </div>
                   <div className="flex items-center">
-                    <ArrowRight className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-gray-600">Walking route</span>
+                    <ArrowRight className={`h-4 w-4 mr-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                    <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Walking route</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                    <span className="text-red-800">{navigationTo}</span>
+                    <div className={`w-3 h-3 rounded-full mr-2 ${darkMode ? 'bg-red-400' : 'bg-red-500'}`}></div>
+                    <span className={darkMode ? 'text-gray-300' : 'text-red-800'}>{navigationTo}</span>
                   </div>
                 </div>
               </div>
@@ -497,11 +497,11 @@ export default function Home() {
                 <svg viewBox="-5000 -5000 12000 10000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
                   {/* Grid background - ABSOLUTELY MASSIVE to cover ENTIRE viewport */}
                   <defs>
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="1"/>
+                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                      <path d="M 100 0 L 0 0 0 100" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="2"/>
                     </pattern>
-                    <pattern id="gridMajor" width="200" height="200" patternUnits="userSpaceOnUse">
-                      <path d="M 200 0 L 0 0 0 200" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
+                    <pattern id="gridMajor" width="500" height="500" patternUnits="userSpaceOnUse">
+                      <path d="M 500 0 L 0 0 0 500" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="4"/>
                     </pattern>
                   </defs>
                   {/* Background fills ENTIRE MASSIVE SVG viewport */}
