@@ -211,15 +211,15 @@ export default function ProfessionalKSYKBuilder() {
                     />
                   </div>
                   <div>
-                    <Label className="font-bold">Floors (1 or 2)</Label>
-                    <select
+                    <Label className="font-bold">Floors</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="10"
                       value={buildingData.floors}
-                      onChange={(e) => setBuildingData({ ...buildingData, floors: parseInt(e.target.value) })}
-                      className="w-full p-3 border-2 rounded-lg mt-1 text-lg"
-                    >
-                      <option value="1">1 Floor</option>
-                      <option value="2">2 Floors</option>
-                    </select>
+                      onChange={(e) => setBuildingData({ ...buildingData, floors: parseInt(e.target.value) || 1 })}
+                      className="mt-1 h-12 text-lg"
+                    />
                   </div>
                 </div>
 
@@ -323,15 +323,15 @@ export default function ProfessionalKSYKBuilder() {
                     />
                   </div>
                   <div>
-                    <Label className="font-bold">Floor (1 or 2)</Label>
-                    <select
+                    <Label className="font-bold">Floor</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="10"
                       value={roomData.floor}
-                      onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) })}
-                      className="w-full p-3 border-2 rounded-lg mt-1"
-                    >
-                      <option value="1">Floor 1</option>
-                      <option value="2">Floor 2</option>
-                    </select>
+                      onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) || 1 })}
+                      className="mt-1 h-12 text-lg"
+                    />
                   </div>
                 </div>
 

@@ -495,16 +495,16 @@ export default function Home() {
                   }}
                 >
                 <svg viewBox="-10000 -6000 25000 15000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - ULTRA WIDE with BIGGER boxes */}
+                  {/* Grid background - SMALLER boxes for better detail */}
                   <defs>
-                    <pattern id="grid" width="200" height="200" patternUnits="userSpaceOnUse">
-                      <path d="M 200 0 L 0 0 0 200" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="3"/>
+                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                      <path d="M 50 0 L 0 0 0 50" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="1"/>
                     </pattern>
-                    <pattern id="gridMajor" width="1000" height="1000" patternUnits="userSpaceOnUse">
-                      <path d="M 1000 0 L 0 0 0 1000" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="6"/>
+                    <pattern id="gridMajor" width="250" height="250" patternUnits="userSpaceOnUse">
+                      <path d="M 250 0 L 0 0 0 250" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  {/* Background fills ENTIRE ULTRA WIDE viewport - NO MORE CUTOFF */}
+                  {/* Background fills ENTIRE viewport */}
                   <rect x="-10000" y="-6000" width="25000" height="15000" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#grid)" />
                   <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#gridMajor)" />
