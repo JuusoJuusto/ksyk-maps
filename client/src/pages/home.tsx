@@ -48,7 +48,12 @@ interface Room {
 
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [currentLang, setCurrentLang] = useState(i18n.language);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -70,6 +75,32 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
   }, [sidebarOpen]);
+  
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+  
+  const handleLanguageChange = (lang: string) => {
+    localStorage.setItem('ksyk_language', lang);
+    i18n.changeLanguage(lang).then(() => {
+      setCurrentLang(lang);
+      window.location.reload();
+    });
+  };
+  
+  const handleResetMap = () => {
+    setZoom(0.8);
+    setPanX(0);
+    setPanY(0);
+    setSelectedFloor(1);
+    setSelectedRoom(null);
+    setSelectedBuilding(null);
+  };
 
   // Fetch buildings
   const { data: buildings = [] } = useQuery({
@@ -349,15 +380,15 @@ export default function Home() {
             <TabsList className="absolute top-4 left-4 z-10 bg-white shadow-lg border border-gray-200 flex-col md:flex-row">
               <TabsTrigger value="map" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <MapPin className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">Map</span>
+                <span className="hidden md:inline">{t('nav.map')}</span>
               </TabsTrigger>
               <TabsTrigger value="schedule" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <Calendar className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">Schedule</span>
+                <span className="hidden md:inline">{t('nav.events')}</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <Settings className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">Settings</span>
+                <span className="hidden md:inline">{t('admin.settings')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -463,8 +494,8 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="-2000 -2000 5000 4000" className="w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
-                  {/* Grid background - ULTRA MASSIVE viewport to cover ENTIRE area */}
+                <svg viewBox="-2000 -2000 5000 4000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
+                  {/* Grid background - ULTRA MASSIVE to cover ENTIRE viewport */}
                   <defs>
                     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
@@ -473,6 +504,7 @@ export default function Home() {
                       <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
                   </defs>
+                  {/* Background fills ENTIRE SVG viewport */}
                   <rect x="-2000" y="-2000" width="5000" height="4000" fill="white" />
                   <rect x="-2000" y="-2000" width="5000" height="4000" fill="url(#grid)" />
                   <rect x="-2000" y="-2000" width="5000" height="4000" fill="url(#gridMajor)" />
@@ -594,21 +626,132 @@ export default function Home() {
 
             <TabsContent value="schedule" className="h-full m-0 p-8 overflow-auto">
               <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Class Schedule</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.events')}</h2>
                 <Card className="shadow-lg">
                   <CardContent className="p-8">
-                    <p className="text-gray-600 text-center">Schedule functionality coming soon...</p>
+                    <p className="text-gray-600 text-center">{t('loading')}...</p>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className="h-full m-0 p-8 overflow-auto">
+            <TabsContent value="settings" className="h-full m-0 p-8 overflow-auto bg-gradient-to-br from-slate-50 to-blue-50">
               <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Settings</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('admin.settings')}</h2>
+                
+                {/* Language Settings */}
+                <Card className="shadow-lg mb-6">
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">🌐 {t('nav.information')}</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Language / Kieli
+                        </label>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant={currentLang === 'en' ? 'default' : 'outline'}
+                            onClick={() => handleLanguageChange('en')}
+                            className="flex-1"
+                          >
+                            🇬🇧 English
+                          </Button>
+                          <Button
+                            variant={currentLang === 'fi' ? 'default' : 'outline'}
+                            onClick={() => handleLanguageChange('fi')}
+                            className="flex-1"
+                          >
+                            🇫🇮 Suomi
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Appearance Settings */}
+                <Card className="shadow-lg mb-6">
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">🎨 Appearance</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Dark Mode
+                          </label>
+                          <p className="text-xs text-gray-500">Toggle dark theme</p>
+                        </div>
+                        <Button
+                          variant={darkMode ? 'default' : 'outline'}
+                          onClick={() => setDarkMode(!darkMode)}
+                          className="w-24"
+                        >
+                          {darkMode ? '🌙 On' : '☀️ Off'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Map Settings */}
+                <Card className="shadow-lg mb-6">
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">🗺️ {t('map.title')}</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Reset Map View
+                          </label>
+                          <p className="text-xs text-gray-500">Return to default position and zoom</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={handleResetMap}
+                          className="flex items-center space-x-2"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          <span>Reset</span>
+                        </Button>
+                      </div>
+                      
+                      <div className="pt-4 border-t">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Current Zoom: {(zoom * 100).toFixed(0)}%
+                        </label>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <div className="flex-1 flex items-center justify-center bg-gray-100 rounded px-4">
+                            {(zoom * 100).toFixed(0)}%
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setZoom(Math.min(zoom + 0.1, 3))}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* About */}
                 <Card className="shadow-lg">
-                  <CardContent className="p-8">
-                    <p className="text-gray-600 text-center">Settings panel coming soon...</p>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">ℹ️ About</h3>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      <p><strong>KSYK Map</strong> - Interactive Campus Navigation</p>
+                      <p>Version 2.0</p>
+                      <p>© 2025 OWL Apps</p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
