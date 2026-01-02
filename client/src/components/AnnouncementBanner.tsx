@@ -169,7 +169,7 @@ export default function AnnouncementBanner() {
                       let date: Date;
                       
                       if (!timestamp) {
-                        return 'Recently';
+                        return t('announcements.recently');
                       }
                       
                       // Handle Firebase Timestamp format
@@ -183,7 +183,7 @@ export default function AnnouncementBanner() {
                       
                       // Check if date is valid
                       if (isNaN(date.getTime())) {
-                        return 'Recently';
+                        return t('announcements.recently');
                       }
                       
                       return formatDistanceToNow(date, { addSuffix: true });
@@ -197,7 +197,7 @@ export default function AnnouncementBanner() {
                   onClick={() => setIsDialogOpen(true)}
                 >
                   <Info className="h-3 w-3 mr-1" />
-                  <span>Click for more details</span>
+                  <span>{t('announcements.clickDetails')}</span>
                 </div>
               </div>
             </motion.div>
@@ -223,7 +223,7 @@ export default function AnnouncementBanner() {
                       const timestamp = currentAnnouncement.createdAt;
                       let date: Date;
                       
-                      if (!timestamp) return 'Recently';
+                      if (!timestamp) return t('announcements.recently');
                       
                       if (typeof timestamp === 'object' && timestamp._seconds) {
                         date = new Date(timestamp._seconds * 1000);
@@ -231,7 +231,7 @@ export default function AnnouncementBanner() {
                         date = new Date(timestamp);
                       }
                       
-                      if (isNaN(date.getTime())) return 'Recently';
+                      if (isNaN(date.getTime())) return t('announcements.recently');
                       
                       return formatDistanceToNow(date, { addSuffix: true });
                     } catch {
@@ -253,7 +253,7 @@ export default function AnnouncementBanner() {
                     <div className="flex items-center">
                       <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
                       <p className="text-sm text-red-700 font-semibold">
-                        This is an urgent announcement. Please take immediate action if required.
+                        {t('announcements.urgent')}
                       </p>
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export default function AnnouncementBanner() {
                     <div className="flex items-center">
                       <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
                       <p className="text-sm text-orange-700 font-semibold">
-                        This is a high priority announcement. Please review carefully.
+                        {t('announcements.high')}
                       </p>
                     </div>
                   </div>

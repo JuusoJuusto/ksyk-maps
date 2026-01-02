@@ -65,6 +65,10 @@ const resources = {
       
       // Announcements
       'announcements.title': 'Announcements',
+      'announcements.clickDetails': 'Click for more details',
+      'announcements.recently': 'Recently',
+      'announcements.urgent': 'This is an urgent announcement. Please take immediate action if required.',
+      'announcements.high': 'This is a high priority announcement. Please review carefully.',
       
       // Staff Directory
       'staff.title': 'Staff Directory',
@@ -163,6 +167,10 @@ const resources = {
       
       // Announcements
       'announcements.title': 'Ilmoitukset',
+      'announcements.clickDetails': 'Klikkaa lisätietoja varten',
+      'announcements.recently': 'Äskettäin',
+      'announcements.urgent': 'Tämä on kiireellinen ilmoitus. Ryhdy välittömiin toimiin tarvittaessa.',
+      'announcements.high': 'Tämä on tärkeä ilmoitus. Tarkista huolellisesti.',
       
       // Staff Directory
       'staff.title': 'Henkilöstöhakemisto',
