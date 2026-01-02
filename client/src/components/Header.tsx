@@ -50,20 +50,13 @@ export default function Header() {
     );
   };
 
-  const handleLanguageChange = async (lang: string) => {
-    try {
-      console.log('🌐 Changing language to:', lang);
-      await i18n.changeLanguage(lang);
-      setCurrentLang(lang);
-      localStorage.setItem('ksyk_language', lang);
-      
-      // Force reload to apply language changes throughout the app
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-    } catch (error) {
-      console.error('Language change error:', error);
-    }
+  const handleLanguageChange = (lang: string) => {
+    console.log('🌐 Changing language to:', lang);
+    localStorage.setItem('ksyk_language', lang);
+    i18n.changeLanguage(lang).then(() => {
+      // Immediate reload
+      window.location.reload();
+    });
   };
 
   const handleLogout = async () => {

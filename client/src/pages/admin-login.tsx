@@ -90,20 +90,27 @@ export default function AdminLogin() {
     }
     
     try {
+      const userData = JSON.parse(localStorage.getItem('ksyk_admin_user') || '{}');
+      
       const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPassword })
+        body: JSON.stringify({ 
+          newPassword,
+          userId: userData.id,
+          email: userData.email
+        })
       });
       
       if (!response.ok) {
-        throw new Error("Failed to change password");
+        const error = await response.json();
+        throw new Error(error.message || "Failed to change password");
       }
       
       alert("Password changed successfully!");
-      setLocation("/admin-ksyk-management-portal");
-    } catch (error) {
-      setError("Failed to change password");
+      window.location.href = "/admin-ksyk-management-portal";
+    } catch (error: any) {
+      setError(error.message || "Failed to change password");
     }
   };
 

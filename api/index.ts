@@ -350,6 +350,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     
+    // Password change endpoint
+    if (apiPath === '/auth/change-password' && req.method === 'POST') {
+      const { newPassword } = req.body;
+      
+      console.log('\n🔐 ========== PASSWORD CHANGE ==========');
+      console.log('New password length:', newPassword?.length);
+      
+      if (!newPassword || newPassword.length < 6) {
+        console.log('❌ Password too short');
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      // For now, we'll use a simple approach - get user from request body
+      // In production, this should use session authentication
+      const { userId, email } = req.body;
+      
+      if (!userId && !email) {
+        console.log('❌ No user identifier provided');
+        return res.status(400).json({ message: "User identifier required" });
+      }
+      
+      try {
+        let user;
+        if (userId) {
+          user = await storage.getUser(userId);
+        } else if (email) {
+          user = await storage.getUserByEmail(email);
+        }
+        
+        if (!user) {
+          console.log('❌ User not found');
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        console.log('📝 Updating password for:', user.email);
+        
+        // Update user password
+        await storage.upsertUser({
+          id: user.id,
+          password: newPassword,
+          isTemporaryPassword: false
+        });
+        
+        console.log('✅ Password changed successfully');
+        console.log('=====================================\n');
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: "Password changed successfully" 
+        });
+      } catch (error: any) {
+        console.error('❌ Password change error:', error);
+        return res.status(500).json({ message: "Failed to change password" });
+      }
+    }
+    
     // Auth user endpoint
     if (apiPath === '/auth/user' && req.method === 'GET') {
       // For now, return unauthorized
