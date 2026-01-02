@@ -248,35 +248,105 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/auth/admin-login' && req.method === 'POST') {
       const { email, password } = req.body;
       
-      // Hardcoded owner credentials
-      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
-      const OWNER_PASSWORD = 'Juusto2012!';
+      console.log('\n🔐 ========== API LOGIN ATTEMPT ==========');
+      console.log('Email:', email);
+      console.log('Password length:', password?.length);
+      console.log('Timestamp:', new Date().toISOString());
+      
+      if (!email || !password) {
+        console.log('❌ Missing email or password');
+        return res.status(400).json({ message: "Email and password required", success: false });
+      }
+      
+      // Check owner credentials from environment variables
+      const OWNER_EMAIL = process.env.OWNER_EMAIL || 'JuusoJuusto112@gmail.com';
+      const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'Juusto2012!';
+      
+      console.log('🔑 Checking owner credentials...');
+      console.log('   Email match:', email === OWNER_EMAIL);
       
       if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+        console.log('✅ OWNER LOGIN DETECTED');
         // Check if owner user exists in database, create if not
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
         if (!ownerUser) {
-          console.log('Creating owner admin user in database...');
+          console.log('📝 Creating owner admin user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
             email: OWNER_EMAIL,
             firstName: 'Juuso',
             lastName: 'Kaikula',
-            role: 'admin',
+            role: 'owner',
             profileImageUrl: null
           });
         }
         
+        console.log('✅ Owner logged in successfully');
+        console.log('=====================================\n');
         return res.status(200).json({
           success: true,
-          user: ownerUser
+          user: ownerUser,
+          requirePasswordChange: false
         });
       }
       
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
+      // Check Firestore database for admin users
+      console.log('📊 Checking Firestore database...');
+      const user = await storage.getUserByEmail(email);
+      
+      console.log('🔍 Database lookup result:');
+      console.log('   User found:', !!user);
+      
+      if (user) {
+        console.log('   User ID:', user.id);
+        console.log('   User email:', user.email);
+        console.log('   User role:', user.role);
+        console.log('   Has password field:', 'password' in user);
+        console.log('   Password is set:', !!user.password);
+        console.log('   Password value:', user.password);
+        console.log('   Provided password:', password);
+        console.log('   Password match (===):', user.password === password);
+        console.log('   Is temporary:', user.isTemporaryPassword);
+      }
+      
+      if (!user) {
+        console.log('❌ User not found in database');
+        console.log('=====================================\n');
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+      
+      if (!user.password) {
+        console.log('❌ User has no password set');
+        console.log('=====================================\n');
+        return res.status(401).json({
+          success: false,
+          message: 'Password not set. Please check your email for password setup link.'
+        });
+      }
+      
+      if (user.password !== password) {
+        console.log('❌ Password mismatch!');
+        console.log('   Expected:', user.password);
+        console.log('   Got:', password);
+        console.log('=====================================\n');
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+      
+      // Valid admin user from database
+      console.log('✅ PASSWORD MATCH! User logged in successfully!');
+      console.log('   Requires password change:', user.isTemporaryPassword || false);
+      console.log('=====================================\n');
+      return res.status(200).json({
+        success: true,
+        user: user,
+        requirePasswordChange: user.isTemporaryPassword || false
       });
     }
     
