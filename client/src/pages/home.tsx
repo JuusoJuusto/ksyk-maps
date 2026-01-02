@@ -170,7 +170,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
       <Header />
       
       <NavigationModal 
@@ -181,9 +181,9 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-white/95 backdrop-blur-sm border-r border-gray-200 flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
           {/* Navigation Button - Clean Header */}
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700">
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
               onClick={() => setNavigationOpen(true)}
               className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
@@ -193,17 +193,17 @@ export default function Home() {
             </Button>
           </div>          
           {/* Search Rooms */}
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-blue-50">
-            <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center">
-              <Search className="inline h-5 w-5 mr-2 text-blue-600" />
-              {t('search.placeholder')}
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-blue-50'}`}>
+            <label className={`block text-sm font-bold mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              <Search className={`inline h-5 w-5 mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              {t('search.rooms')}
             </label>
             <Input
               type="text"
               placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border-2 border-blue-200 focus:border-blue-500 shadow-sm"
+              className={`w-full border-2 shadow-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-blue-200 focus:border-blue-500'}`}
             />
             
             {/* Search Results */}
@@ -384,7 +384,7 @@ export default function Home() {
               </TabsTrigger>
               <TabsTrigger value="schedule" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <Calendar className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">{t('nav.events')}</span>
+                <span className="hidden md:inline">{t('nav.schedule')}</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <Settings className="h-3 md:h-4 w-3 md:w-4" />
@@ -494,20 +494,20 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="-2000 -2000 5000 4000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - ULTRA MASSIVE to cover ENTIRE viewport */}
+                <svg viewBox="-5000 -5000 12000 10000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
+                  {/* Grid background - ABSOLUTELY MASSIVE to cover ENTIRE viewport */}
                   <defs>
                     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="1"/>
                     </pattern>
                     <pattern id="gridMajor" width="200" height="200" patternUnits="userSpaceOnUse">
-                      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#d1d5db" strokeWidth="2"/>
+                      <path d="M 200 0 L 0 0 0 200" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  {/* Background fills ENTIRE SVG viewport */}
-                  <rect x="-2000" y="-2000" width="5000" height="4000" fill="white" />
-                  <rect x="-2000" y="-2000" width="5000" height="4000" fill="url(#grid)" />
-                  <rect x="-2000" y="-2000" width="5000" height="4000" fill="url(#gridMajor)" />
+                  {/* Background fills ENTIRE MASSIVE SVG viewport */}
+                  <rect x="-5000" y="-5000" width="12000" height="10000" fill={darkMode ? '#1f2937' : 'white'} />
+                  <rect x="-5000" y="-5000" width="12000" height="10000" fill="url(#grid)" />
+                  <rect x="-5000" y="-5000" width="12000" height="10000" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase */}
                   {buildings.map((building: Building, index: number) => {
@@ -626,10 +626,10 @@ export default function Home() {
 
             <TabsContent value="schedule" className="h-full m-0 p-8 overflow-auto">
               <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.events')}</h2>
-                <Card className="shadow-lg">
+                <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('nav.schedule')}</h2>
+                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-8">
-                    <p className="text-gray-600 text-center">{t('loading')}...</p>
+                    <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('loading')}...</p>
                   </CardContent>
                 </Card>
               </div>

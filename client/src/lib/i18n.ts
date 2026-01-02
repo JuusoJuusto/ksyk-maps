@@ -7,6 +7,7 @@ const resources = {
       // Navigation
       'nav.map': 'Map',
       'nav.directory': 'Directory',
+      'nav.schedule': 'Schedule',
       'nav.events': 'Events',
       'nav.information': 'Information',
       'nav.admin': 'Admin',
@@ -104,6 +105,7 @@ const resources = {
       // Navigation
       'nav.map': 'Kartta',
       'nav.directory': 'Henkilöstö',
+      'nav.schedule': 'Lukujärjestys',
       'nav.events': 'Tapahtumat',
       'nav.information': 'Tietoa',
       'nav.admin': 'Hallinta',
