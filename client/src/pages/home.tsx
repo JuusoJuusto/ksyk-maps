@@ -63,7 +63,7 @@ export default function Home() {
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [zoom, setZoom] = useState(0.6); // Start zoomed OUT to see whole grid
+  const [zoom, setZoom] = useState(1); // Start at normal zoom to see buildings
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -94,7 +94,7 @@ export default function Home() {
   };
   
   const handleResetMap = () => {
-    setZoom(0.6); // Reset to zoomed OUT view to see whole grid
+    setZoom(1); // Reset to normal zoom
     setPanX(0);
     setPanY(0);
     setSelectedFloor(1);
@@ -460,7 +460,7 @@ export default function Home() {
                     size="sm"
                     className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => {
-                      setZoom(0.6); // Reset to zoomed out view
+                      setZoom(1); // Reset to normal zoom
                       setPanX(0);
                       setPanY(0);
                     }}
@@ -494,38 +494,87 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="-10000 -6000 25000 15000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - SMALLER boxes for better detail */}
+                <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
+                  {/* Grid background - MATCHES KSYK Builder exactly (50x50 small, 250x250 major) */}
                   <defs>
                     <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
                       <path d="M 50 0 L 0 0 0 50" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="1"/>
                     </pattern>
                     <pattern id="gridMajor" width="250" height="250" patternUnits="userSpaceOnUse">
+                      <rect width="250" height="250" fill="url(#grid)"/>
                       <path d="M 250 0 L 0 0 0 250" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  {/* Background fills ENTIRE viewport */}
-                  <rect x="-10000" y="-6000" width="25000" height="15000" fill={darkMode ? '#1f2937' : 'white'} />
-                  <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#grid)" />
-                  <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#gridMajor)" />
+                  {/* Background fills viewport - same as KSYK Builder */}
+                  <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
+                  <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
-                  {/* Buildings from Firebase */}
+                  {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
                   {buildings.map((building: Building, index: number) => {
-                    // Better default positions if not set - spread them out nicely
-                    const defaultPositions = [
-                      { x: -200, y: 50 },   // Position 1
-                      { x: 100, y: 0 },     // Position 2
-                      { x: 350, y: 80 },    // Position 3
-                      { x: -50, y: 200 },   // Position 4
-                      { x: 250, y: 180 },   // Position 5
-                      { x: -100, y: -120 }, // Position 6
-                      { x: 200, y: -80 },   // Position 7
-                    ];
+                    const x = building.mapPositionX ?? 100 + (index * 160);
+                    const y = building.mapPositionY ?? 100;
                     
-                    const defaultPos = defaultPositions[index % defaultPositions.length];
-                    const x = building.mapPositionX ?? defaultPos.x;
-                    const y = building.mapPositionY ?? defaultPos.y;
-                    const width = 140;
+                    // Try to parse custom shape from description
+                    let customShape: {x: number, y: number}[] | null = null;
+                    try {
+                      if ((building as any).description) {
+                        const parsed = JSON.parse((building as any).description);
+                        customShape = parsed.customShape;
+                      }
+                    } catch {}
+                    
+                    // If building has custom shape, render polygon
+                    if (customShape && customShape.length > 2) {
+                      const xs = customShape.map(p => p.x);
+                      const ys = customShape.map(p => p.y);
+                      const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+                      const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+                      
+                      return (
+                        <g 
+                          key={building.id}
+                          onClick={() => {
+                            setSelectedBuilding(building);
+                            setSelectedFloor(1);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <polygon
+                            points={customShape.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill={building.colorCode || '#3B82F6'}
+                            stroke="white"
+                            strokeWidth="3"
+                            opacity="0.9"
+                          />
+                          <text
+                            x={centerX}
+                            y={centerY - 8}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="white"
+                            fontSize="24"
+                            fontWeight="bold"
+                            style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
+                          >
+                            {building.name}
+                          </text>
+                          <text
+                            x={centerX}
+                            y={centerY + 14}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="white"
+                            fontSize="10"
+                            style={{ pointerEvents: 'none', opacity: 0.9 }}
+                          >
+                            {building.nameEn || building.nameFi}
+                          </text>
+                        </g>
+                      );
+                    }
+                    
+                    // Default rectangle rendering for buildings without custom shape
+                    const width = 150;
                     const height = 100;
                     
                     return (
@@ -535,53 +584,31 @@ export default function Home() {
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
-                        className="cursor-pointer transition-all duration-200"
-                        style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
+                        className="cursor-pointer"
                       >
-                        {/* Building shadow */}
-                        <rect
-                          x={x + 4}
-                          y={y + 4}
-                          width={width}
-                          height={height}
-                          fill="rgba(0,0,0,0.2)"
-                          rx="12"
-                        />
-                        
-                        {/* Building rectangle with gradient */}
-                        <defs>
-                          <linearGradient id={`grad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 1 }} />
-                            <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.7 }} />
-                          </linearGradient>
-                        </defs>
                         <rect
                           x={x}
                           y={y}
                           width={width}
                           height={height}
-                          fill={`url(#grad-${building.id})`}
-                          stroke="#ffffff"
-                          strokeWidth="4"
-                          rx="12"
-                          className="hover:stroke-yellow-400 transition-all"
+                          fill={building.colorCode || '#3B82F6'}
+                          stroke="white"
+                          strokeWidth="3"
+                          rx="8"
+                          opacity="0.9"
                         />
-                        
-                        {/* Building name - larger and bolder */}
                         <text
                           x={x + width / 2}
                           y={y + height / 2 - 10}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="32"
-                          fontWeight="900"
+                          fontSize="28"
+                          fontWeight="bold"
                           style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}
                         >
                           {building.name}
                         </text>
-                        
-                        {/* Building English name */}
                         <text
                           x={x + width / 2}
                           y={y + height / 2 + 15}
@@ -589,13 +616,10 @@ export default function Home() {
                           dominantBaseline="middle"
                           fill="white"
                           fontSize="11"
-                          fontWeight="600"
                           style={{ pointerEvents: 'none', opacity: 0.9 }}
                         >
                           {building.nameEn || building.nameFi}
                         </text>
-                        
-                        {/* Floor count badge */}
                         <rect
                           x={x + width - 35}
                           y={y + 8}
