@@ -495,13 +495,13 @@ export default function Home() {
                   }}
                 >
                 <svg viewBox="-10000 -6000 25000 15000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - ULTRA WIDE to prevent cutoff */}
+                  {/* Grid background - ULTRA WIDE with BIGGER boxes */}
                   <defs>
-                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-                      <path d="M 100 0 L 0 0 0 100" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="2"/>
+                    <pattern id="grid" width="200" height="200" patternUnits="userSpaceOnUse">
+                      <path d="M 200 0 L 0 0 0 200" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="3"/>
                     </pattern>
-                    <pattern id="gridMajor" width="500" height="500" patternUnits="userSpaceOnUse">
-                      <path d="M 500 0 L 0 0 0 500" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="4"/>
+                    <pattern id="gridMajor" width="1000" height="1000" patternUnits="userSpaceOnUse">
+                      <path d="M 1000 0 L 0 0 0 1000" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="6"/>
                     </pattern>
                   </defs>
                   {/* Background fills ENTIRE ULTRA WIDE viewport - NO MORE CUTOFF */}

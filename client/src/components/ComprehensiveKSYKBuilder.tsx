@@ -202,20 +202,20 @@ export default function ComprehensiveKSYKBuilder() {
   ];
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <Card className="shadow-2xl border-2 border-blue-300">
-        <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
+      <Card className="shadow-xl border-2 border-blue-400">
+        <CardHeader className="bg-blue-600 text-white">
           <CardTitle className="text-4xl flex items-center justify-between">
             <span className="flex items-center">
               <Building className="mr-3 h-10 w-10" />
               KSYK Builder Pro
             </span>
             <div className="flex space-x-2">
-              <Badge variant="secondary" className="bg-white/20 text-white text-lg px-4 py-2">
+              <Badge variant="secondary" className="bg-blue-700 text-white text-lg px-4 py-2">
                 🏢 {buildings.length} Buildings
               </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white text-lg px-4 py-2">
+              <Badge variant="secondary" className="bg-blue-700 text-white text-lg px-4 py-2">
                 🚪 {rooms.length} Rooms
               </Badge>
             </div>
@@ -244,7 +244,7 @@ export default function ComprehensiveKSYKBuilder() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Create Building */}
             <Card className="shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <CardHeader className="bg-blue-600 text-white">
                 <CardTitle className="flex items-center text-2xl">
                   <Square className="mr-2 h-6 w-6" />
                   Create Building
@@ -364,7 +364,7 @@ export default function ComprehensiveKSYKBuilder() {
 
             {/* Building List */}
             <Card className="shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white">
+              <CardHeader className="bg-green-600 text-white">
                 <CardTitle className="flex items-center text-2xl">
                   <Building className="mr-2 h-6 w-6" />
                   Buildings ({buildings.length})
@@ -419,7 +419,7 @@ export default function ComprehensiveKSYKBuilder() {
         <TabsContent value="rooms" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+              <CardHeader className="bg-purple-600 text-white">
                 <CardTitle className="flex items-center text-2xl">
                   <Home className="mr-2 h-6 w-6" />
                   Create Room / Classroom
@@ -512,7 +512,7 @@ export default function ComprehensiveKSYKBuilder() {
             </Card>
 
             <Card className="shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
+              <CardHeader className="bg-indigo-600 text-white">
                 <CardTitle className="flex items-center text-2xl">
                   <Home className="mr-2 h-6 w-6" />
                   Rooms ({rooms.length})
@@ -557,7 +557,7 @@ export default function ComprehensiveKSYKBuilder() {
         {/* HALLWAYS TAB */}
         <TabsContent value="hallways" className="mt-6">
           <Card className="shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white">
+            <CardHeader className="bg-green-600 text-white">
               <CardTitle className="flex items-center text-2xl">
                 <Layers className="mr-2 h-6 w-6" />
                 Create Hallway
