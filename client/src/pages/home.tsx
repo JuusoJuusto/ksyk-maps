@@ -63,7 +63,7 @@ export default function Home() {
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [zoom, setZoom] = useState(0.8); // Start zoomed out to see more grid
+  const [zoom, setZoom] = useState(1.2); // Start zoomed IN to see buildings better
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -94,7 +94,7 @@ export default function Home() {
   };
   
   const handleResetMap = () => {
-    setZoom(0.8);
+    setZoom(1.2); // Reset to zoomed IN view
     setPanX(0);
     setPanY(0);
     setSelectedFloor(1);
@@ -208,11 +208,11 @@ export default function Home() {
             
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <div className="mt-3 max-h-64 overflow-y-auto border-2 border-blue-200 rounded-xl bg-white shadow-lg">
+              <div className={`mt-3 max-h-64 overflow-y-auto border-2 rounded-xl shadow-lg ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-blue-200 bg-white'}`}>
                 {searchResults.map((room: Room) => (
                   <div
                     key={room.id}
-                    className="p-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer border-b last:border-b-0 transition-all"
+                    className={`p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-gray-200'}`}
                     onClick={() => {
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
@@ -220,9 +220,9 @@ export default function Home() {
                       setSearchResults([]);
                     }}
                   >
-                    <div className="font-bold text-blue-700 text-lg">{room.roomNumber}</div>
-                    <div className="text-sm text-gray-700 font-medium">{room.name || room.nameEn}</div>
-                    <div className="text-xs text-gray-500 mt-1">Floor {room.floor} • {room.type.replace('_', ' ')}</div>
+                    <div className={`font-bold text-lg ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{room.roomNumber}</div>
+                    <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{room.name || room.nameEn}</div>
+                    <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Floor {room.floor} • {room.type.replace('_', ' ')}</div>
                   </div>
                 ))}
               </div>
@@ -230,14 +230,14 @@ export default function Home() {
           </div>
 
           {/* Floor Navigation */}
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-white to-purple-50">
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-purple-50'}`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-800">{t('map.floors')} ({floorRooms.length} {t('map.title').toLowerCase()})</h3>
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{t('map.floors')} ({floorRooms.length} rooms)</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFloor(1)}
-                className="h-8 w-8 p-0 hover:bg-blue-100"
+                className={`h-8 w-8 p-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-100'}`}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -250,12 +250,12 @@ export default function Home() {
                 size="sm"
                 onClick={() => setSelectedFloor(Math.max(selectedFloor - 1, 0))}
                 disabled={selectedFloor <= 0}
-                className="w-12 h-12 p-0 border-2 border-blue-300 hover:bg-blue-50 disabled:opacity-30"
+                className={`w-12 h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
               >
                 <Minus className="h-5 w-5" />
               </Button>
               
-              <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-3xl rounded-2xl shadow-2xl transform hover:scale-110 transition-transform">
+              <div className={`flex items-center justify-center w-20 h-20 font-black text-3xl rounded-2xl shadow-2xl transform hover:scale-110 transition-transform ${darkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-900 text-white' : 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white'}`}>
                 {selectedFloor}
               </div>
               
@@ -264,7 +264,7 @@ export default function Home() {
                 size="sm"
                 onClick={() => setSelectedFloor(Math.min(selectedFloor + 1, 3))}
                 disabled={selectedFloor >= 3}
-                className="w-12 h-12 p-0 border-2 border-blue-300 hover:bg-blue-50 disabled:opacity-30"
+                className={`w-12 h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
               >
                 <Plus className="h-5 w-5" />
               </Button>
@@ -273,9 +273,9 @@ export default function Home() {
 
           {/* Selected Room Info */}
           {selectedRoom && (
-            <div className="p-4 border-b border-gray-200 bg-blue-50">
+            <div className={`p-4 border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-gray-200'}`}>
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-bold text-blue-900 text-lg">{selectedRoom.roomNumber}</h3>
+                <h3 className={`font-bold text-lg ${darkMode ? 'text-blue-400' : 'text-blue-900'}`}>{selectedRoom.roomNumber}</h3>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -285,8 +285,8 @@ export default function Home() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-sm text-blue-700 mb-2">{selectedRoom.name || selectedRoom.nameEn}</p>
-              <div className="text-xs text-blue-600 space-y-1">
+              <p className={`text-sm mb-2 ${darkMode ? 'text-gray-300' : 'text-blue-700'}`}>{selectedRoom.name || selectedRoom.nameEn}</p>
+              <div className={`text-xs space-y-1 ${darkMode ? 'text-gray-400' : 'text-blue-600'}`}>
                 <div>Floor {selectedRoom.floor}</div>
                 <div className="capitalize">{selectedRoom.type.replace('_', ' ')}</div>
                 {selectedRoom.capacity && <div>{selectedRoom.capacity} seats</div>}
@@ -296,7 +296,7 @@ export default function Home() {
               {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {selectedRoom.equipment.map((item, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    <span key={idx} className={`px-2 py-1 text-xs rounded ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-100 text-blue-800'}`}>
                       {item}
                     </span>
                   ))}
@@ -434,7 +434,7 @@ export default function Home() {
               )}
               
               {/* Campus Map - CLEAN GRID ONLY */}
-              <div className="h-full bg-white p-0 overflow-hidden relative">
+              <div className={`h-full p-0 overflow-hidden relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
                 {/* Map Controls - MOBILE FRIENDLY */}
                 <div className="absolute top-16 md:top-20 right-2 md:right-4 z-20 flex flex-col space-y-1 md:space-y-2">
                   <Button
