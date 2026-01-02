@@ -50,7 +50,7 @@ export default function UnifiedKSYKBuilder() {
   const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [gridSize, setGridSize] = useState(20);
+  const [gridSize, setGridSize] = useState(100); // Match main page grid size
   const [showGrid, setShowGrid] = useState(true);
   
   const [buildingData, setBuildingData] = useState({
@@ -820,9 +820,9 @@ export default function UnifiedKSYKBuilder() {
                 <Input
                   type="number"
                   value={gridSize}
-                  onChange={(e) => setGridSize(parseInt(e.target.value) || 20)}
-                  min="10"
-                  max="50"
+                  onChange={(e) => setGridSize(parseInt(e.target.value) || 100)}
+                  min="50"
+                  max="200"
                   className="w-20 h-8"
                 />
               </div>
@@ -848,23 +848,27 @@ export default function UnifiedKSYKBuilder() {
               <div className="relative bg-gray-50" style={{ height: '700px' }}>
                 <svg
                   ref={svgRef}
-                  viewBox="0 0 1000 700"
+                  viewBox="-1000 -700 2000 1400"
                   className={`w-full h-full ${isDrawing ? 'cursor-crosshair' : 'cursor-default'}`}
                   onClick={handleCanvasClick}
                 >
                   {showGrid && (
                     <defs>
-                      <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
-                        <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e5e7eb" strokeWidth="2"/>
                       </pattern>
-                      <pattern id="grid" width={gridSize * 5} height={gridSize * 5} patternUnits="userSpaceOnUse">
-                        <rect width={gridSize * 5} height={gridSize * 5} fill="url(#smallGrid)"/>
-                        <path d={`M ${gridSize * 5} 0 L 0 0 0 ${gridSize * 5}`} fill="none" stroke="#d1d5db" strokeWidth="1"/>
+                      <pattern id="gridMajor" width="500" height="500" patternUnits="userSpaceOnUse">
+                        <path d="M 500 0 L 0 0 0 500" fill="none" stroke="#d1d5db" strokeWidth="4"/>
                       </pattern>
                     </defs>
                   )}
                   <rect width="100%" height="100%" fill="white" />
-                  {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
+                  {showGrid && (
+                    <>
+                      <rect x="-1000" y="-700" width="2000" height="1400" fill="url(#grid)" />
+                      <rect x="-1000" y="-700" width="2000" height="1400" fill="url(#gridMajor)" />
+                    </>
+                  )}
 
                   {/* Existing Buildings */}
                   {buildings.map((building: any) => {

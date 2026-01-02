@@ -63,7 +63,7 @@ export default function Home() {
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [zoom, setZoom] = useState(1.2); // Start zoomed IN to see buildings better
+  const [zoom, setZoom] = useState(0.6); // Start zoomed OUT to see whole grid
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -94,7 +94,7 @@ export default function Home() {
   };
   
   const handleResetMap = () => {
-    setZoom(1.2); // Reset to zoomed IN view
+    setZoom(0.6); // Reset to zoomed OUT view to see whole grid
     setPanX(0);
     setPanY(0);
     setSelectedFloor(1);
@@ -460,7 +460,7 @@ export default function Home() {
                     size="sm"
                     className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
                     onClick={() => {
-                      setZoom(0.8); // Reset to zoomed out view
+                      setZoom(0.6); // Reset to zoomed out view
                       setPanX(0);
                       setPanY(0);
                     }}
