@@ -47,7 +47,7 @@ export default function UnifiedKSYKBuilder() {
   const queryClient = useQueryClient();
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'shapes'>('shapes');
+  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [gridSize, setGridSize] = useState(20);
@@ -72,6 +72,20 @@ export default function UnifiedKSYKBuilder() {
     capacity: 30,
     type: "classroom",
     colorCode: "#6B7280"
+  });
+
+  const [hallwayData, setHallwayData] = useState({
+    buildingId: "",
+    name: "",
+    nameEn: "",
+    nameFi: "",
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0,
+    width: 2,
+    colorCode: "#9CA3AF",
+    emergencyRoute: false
   });
 
   // Fetch existing data
@@ -234,6 +248,36 @@ export default function UnifiedKSYKBuilder() {
     },
   });
 
+  const createHallwayMutation = useMutation({
+    mutationFn: async (hallway: any) => {
+      const response = await fetch("/api/hallways", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(hallway),
+      });
+      if (!response.ok) throw new Error("Failed to create hallway");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hallways"] });
+      alert("✅ Hallway created and synced!");
+      setHallwayData({
+        buildingId: "",
+        name: "",
+        nameEn: "",
+        nameFi: "",
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 0,
+        width: 2,
+        colorCode: "#9CA3AF",
+        emergencyRoute: false
+      });
+    },
+  });
+
   const deleteBuildingMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/buildings/${id}`, {
@@ -392,11 +436,11 @@ export default function UnifiedKSYKBuilder() {
         <CardContent className="p-3 md:p-6">
           <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3">
             <Button
-              onClick={() => setBuilderMode('shapes')}
-              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'shapes' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+              onClick={() => setBuilderMode('buildings')}
+              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'buildings' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}`}
             >
               <Building className="mr-2 h-4 md:h-6 w-4 md:w-6" />
-              Custom Shapes
+              Buildings
             </Button>
 
             <Button
@@ -406,6 +450,14 @@ export default function UnifiedKSYKBuilder() {
               <Home className="mr-2 h-4 md:h-6 w-4 md:w-6" />
               Rooms
             </Button>
+
+            <Button
+              onClick={() => setBuilderMode('hallways')}
+              className={`flex-1 h-12 md:h-16 text-sm md:text-lg ${builderMode === 'hallways' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+            >
+              <Layers className="mr-2 h-4 md:h-6 w-4 md:w-6" />
+              Hallways
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -413,12 +465,12 @@ export default function UnifiedKSYKBuilder() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Panel - Controls */}
         <div className="lg:col-span-1 space-y-4">
-          {builderMode === 'shapes' && (
+          {builderMode === 'buildings' && (
             <Card className="shadow-lg">
               <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <CardTitle className="flex items-center">
                   <Building className="mr-2 h-5 w-5" />
-                  Custom Shape Builder
+                  Building Builder
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
@@ -614,6 +666,132 @@ export default function UnifiedKSYKBuilder() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Room
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {builderMode === 'hallways' && (
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white">
+                <CardTitle className="flex items-center">
+                  <Layers className="mr-2 h-5 w-5" />
+                  Hallway Creator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div>
+                  <Label>Building *</Label>
+                  <select
+                    value={hallwayData.buildingId}
+                    onChange={(e) => setHallwayData({ ...hallwayData, buildingId: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Select Building</option>
+                    {buildings.map((building: any) => (
+                      <option key={building.id} value={building.id}>
+                        {building.name} - {building.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Hallway Name *</Label>
+                  <Input
+                    value={hallwayData.name}
+                    onChange={(e) => setHallwayData({ ...hallwayData, name: e.target.value })}
+                    placeholder="Main Hallway, Corridor A"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>English Name</Label>
+                    <Input
+                      value={hallwayData.nameEn}
+                      onChange={(e) => setHallwayData({ ...hallwayData, nameEn: e.target.value })}
+                      placeholder="Main Hallway"
+                    />
+                  </div>
+                  <div>
+                    <Label>Finnish Name</Label>
+                    <Input
+                      value={hallwayData.nameFi}
+                      onChange={(e) => setHallwayData({ ...hallwayData, nameFi: e.target.value })}
+                      placeholder="Pääkäytävä"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Start X</Label>
+                    <Input
+                      type="number"
+                      value={hallwayData.startX}
+                      onChange={(e) => setHallwayData({ ...hallwayData, startX: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Start Y</Label>
+                    <Input
+                      type="number"
+                      value={hallwayData.startY}
+                      onChange={(e) => setHallwayData({ ...hallwayData, startY: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>End X</Label>
+                    <Input
+                      type="number"
+                      value={hallwayData.endX}
+                      onChange={(e) => setHallwayData({ ...hallwayData, endX: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>End Y</Label>
+                    <Input
+                      type="number"
+                      value={hallwayData.endY}
+                      onChange={(e) => setHallwayData({ ...hallwayData, endY: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Width (meters)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={hallwayData.width}
+                    onChange={(e) => setHallwayData({ ...hallwayData, width: parseInt(e.target.value) || 2 })}
+                  />
+                </div>
+                <div>
+                  <Label>Color</Label>
+                  <input
+                    type="color"
+                    value={hallwayData.colorCode}
+                    onChange={(e) => setHallwayData({ ...hallwayData, colorCode: e.target.value })}
+                    className="w-full h-10 rounded cursor-pointer"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={hallwayData.emergencyRoute}
+                    onChange={(e) => setHallwayData({ ...hallwayData, emergencyRoute: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <Label>Emergency Route</Label>
+                </div>
+                <Button
+                  onClick={() => createHallwayMutation.mutate(hallwayData)}
+                  disabled={!hallwayData.buildingId || !hallwayData.name}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Hallway
                 </Button>
               </CardContent>
             </Card>

@@ -494,8 +494,8 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="-5000 -5000 12000 10000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - ABSOLUTELY MASSIVE to cover ENTIRE viewport */}
+                <svg viewBox="-10000 -6000 25000 15000" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
+                  {/* Grid background - ULTRA WIDE to prevent cutoff */}
                   <defs>
                     <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
                       <path d="M 100 0 L 0 0 0 100" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="2"/>
@@ -504,10 +504,10 @@ export default function Home() {
                       <path d="M 500 0 L 0 0 0 500" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="4"/>
                     </pattern>
                   </defs>
-                  {/* Background fills ENTIRE MASSIVE SVG viewport */}
-                  <rect x="-5000" y="-5000" width="12000" height="10000" fill={darkMode ? '#1f2937' : 'white'} />
-                  <rect x="-5000" y="-5000" width="12000" height="10000" fill="url(#grid)" />
-                  <rect x="-5000" y="-5000" width="12000" height="10000" fill="url(#gridMajor)" />
+                  {/* Background fills ENTIRE ULTRA WIDE viewport - NO MORE CUTOFF */}
+                  <rect x="-10000" y="-6000" width="25000" height="15000" fill={darkMode ? '#1f2937' : 'white'} />
+                  <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#grid)" />
+                  <rect x="-10000" y="-6000" width="25000" height="15000" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase */}
                   {buildings.map((building: Building, index: number) => {
