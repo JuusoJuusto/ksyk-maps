@@ -494,8 +494,8 @@ export default function Home() {
                     transition: isDragging ? 'none' : 'transform 0.1s ease'
                   }}
                 >
-                <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
-                  {/* Grid background - MATCHES KSYK Builder exactly (50x50 small, 250x250 major) */}
+                <svg viewBox="0 0 2000 1200" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>
+                  {/* Grid background - LARGER AREA with same grid size */}
                   <defs>
                     <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
                       <path d="M 50 0 L 0 0 0 50" fill="none" stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth="1"/>
@@ -505,7 +505,7 @@ export default function Home() {
                       <path d="M 250 0 L 0 0 0 250" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  {/* Background fills viewport - same as KSYK Builder */}
+                  {/* Background fills larger viewport */}
                   <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
