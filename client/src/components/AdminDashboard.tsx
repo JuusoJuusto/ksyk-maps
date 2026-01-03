@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
-import ProfessionalKSYKBuilder from "@/components/ProfessionalKSYKBuilder";
+import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -834,7 +834,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="ksyk-builder" className="space-y-6">
-          <ProfessionalKSYKBuilder />
+          <UltimateKSYKBuilder />
         </TabsContent>
 
         <TabsContent value="builder" className="space-y-6">
