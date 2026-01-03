@@ -24,6 +24,7 @@ export default function UltimateKSYKBuilder() {
   const [rectStart, setRectStart] = useState<Point | null>(null);
   const [rectEnd, setRectEnd] = useState<Point | null>(null);
   const [gridSize] = useState(50);
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [selectedBuilding, setSelectedBuilding] = useState<any>(null);
   
   const [buildingData, setBuildingData] = useState({
@@ -55,10 +56,13 @@ export default function UltimateKSYKBuilder() {
     },
   });
 
-  const snapToGrid = (point: Point): Point => ({
-    x: Math.round(point.x / gridSize) * gridSize,
-    y: Math.round(point.y / gridSize) * gridSize
-  });
+  const snapToGrid = (point: Point): Point => {
+    if (!snapEnabled) return point;
+    return {
+      x: Math.round(point.x / gridSize) * gridSize,
+      y: Math.round(point.y / gridSize) * gridSize
+    };
+  };
 
   const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -75,8 +79,13 @@ export default function UltimateKSYKBuilder() {
     const point = getSVGPoint(e);
     
     if (shapeMode === "rectangle") {
-      if (!rectStart) setRectStart(point);
-      else setRectEnd(point);
+      if (!rectStart) {
+        setRectStart(point);
+      } else {
+        setRectEnd(point);
+        // Auto-finish rectangle after second click
+        setTimeout(() => finishDrawing(), 100);
+      }
       return;
     }
     
@@ -419,6 +428,10 @@ export default function UltimateKSYKBuilder() {
                     <Move className="h-4 w-4" />Custom
                   </motion.button>
                 </div>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setSnapEnabled(!snapEnabled)} className={`w-full p-2 rounded-lg border-2 flex items-center justify-center gap-2 transition-all text-sm ${snapEnabled ? "bg-green-600 text-white border-green-600 shadow-lg" : "bg-white border-gray-300 hover:border-green-400"}`}>
+                  <Layers className="h-4 w-4" />
+                  Snap to Grid {snapEnabled ? "ON" : "OFF"}
+                </motion.button>
               </div>
 
               <div className="border-t pt-4 space-y-2">
