@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, Layers, Zap, Save, Edit3 } from "lucide-react";
+import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3 } from "lucide-react";
 
 interface Point { x: number; y: number; }
 
@@ -26,6 +26,13 @@ export default function UltimateKSYKBuilder() {
   const [gridSize] = useState(50);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [selectedBuilding, setSelectedBuilding] = useState<any>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [copiedBuilding, setCopiedBuilding] = useState<any>(null);
+  const [showGrid, setShowGrid] = useState(true);
   
   const [buildingData, setBuildingData] = useState({
     name: "", nameEn: "", nameFi: "", floors: [1] as number[],
@@ -56,6 +63,50 @@ export default function UltimateKSYKBuilder() {
     },
   });
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete selected building
+      if (e.key === 'Delete' && selectedBuilding && !isDrawing) {
+        if (confirm(`Delete ${selectedBuilding.name}?`)) {
+          deleteBuildingMutation.mutate(selectedBuilding.id);
+          setSelectedBuilding(null);
+        }
+      }
+      // Copy building (Ctrl+C)
+      if (e.ctrlKey && e.key === 'c' && selectedBuilding) {
+        setCopiedBuilding(selectedBuilding);
+        alert('Building copied!');
+      }
+      // Paste building (Ctrl+V)
+      if (e.ctrlKey && e.key === 'v' && copiedBuilding && !isDrawing) {
+        const newBuilding = {
+          ...copiedBuilding,
+          name: copiedBuilding.name + ' Copy',
+          mapPositionX: (copiedBuilding.mapPositionX || 0) + 100,
+          mapPositionY: (copiedBuilding.mapPositionY || 0) + 100,
+        };
+        delete newBuilding.id;
+        createBuildingMutation.mutate(newBuilding);
+      }
+      // Escape to cancel drawing
+      if (e.key === 'Escape' && isDrawing) {
+        cancelDrawing();
+      }
+      // Toggle grid (G key)
+      if (e.key === 'g' && !isDrawing) {
+        setShowGrid(!showGrid);
+      }
+      // Toggle snap (S key)
+      if (e.key === 's' && !isDrawing) {
+        setSnapEnabled(!snapEnabled);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedBuilding, copiedBuilding, isDrawing, showGrid, snapEnabled]);
+
   const snapToGrid = (point: Point): Point => {
     if (!snapEnabled) return point;
     return {
@@ -74,7 +125,42 @@ export default function UltimateKSYKBuilder() {
     return snapToGrid({ x: svgP.x, y: svgP.y });
   };
 
+  // Zoom functions
+  const handleZoomIn = () => setZoom(Math.min(zoom * 1.2, 3));
+  const handleZoomOut = () => setZoom(Math.max(zoom / 1.2, 0.5));
+  const handleResetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  
+  // Pan functions
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // Middle mouse or Ctrl+Click
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      e.preventDefault();
+    }
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning) {
+      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    } else if (isDrawing && shapeMode === "rectangle" && rectStart) {
+      setRectEnd(getSVGPoint(e));
+    }
+  };
+  
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+  
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoom(Math.max(0.5, Math.min(3, zoom * delta)));
+    }
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning) return;
     if (!isDrawing || activeTool === "select") return;
     const point = getSVGPoint(e);
     
@@ -95,11 +181,6 @@ export default function UltimateKSYKBuilder() {
       if (distance < gridSize * 2) { finishDrawing(); return; }
     }
     setCurrentPoints([...currentPoints, point]);
-  };
-
-  const handleCanvasMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing || shapeMode !== "rectangle" || !rectStart) return;
-    setRectEnd(getSVGPoint(e));
   };
 
   const startDrawing = () => {
@@ -471,7 +552,39 @@ export default function UltimateKSYKBuilder() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="relative bg-white" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
-                <svg ref={svgRef} viewBox="0 0 2000 1200" className={`w-full h-full ${isDrawing ? "cursor-crosshair" : "cursor-default"}`} onClick={handleCanvasClick} onMouseMove={handleCanvasMouseMove}>
+                {/* Zoom Controls */}
+                <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomIn} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
+                    <ZoomIn className="h-5 w-5 text-gray-700" />
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomOut} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
+                    <ZoomOut className="h-5 w-5 text-gray-700" />
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleResetView} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
+                    <Maximize2 className="h-5 w-5 text-gray-700" />
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowGrid(!showGrid)} className={`p-2 rounded-lg shadow-lg border-2 ${showGrid ? 'bg-green-500 border-green-600' : 'bg-white border-gray-300'}`}>
+                    <Grid3x3 className={`h-5 w-5 ${showGrid ? 'text-white' : 'text-gray-700'}`} />
+                  </motion.button>
+                </div>
+                
+                {/* Zoom indicator */}
+                <div className="absolute bottom-4 right-4 z-10 bg-white px-3 py-1 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold">
+                  {Math.round(zoom * 100)}%
+                </div>
+                
+                <svg 
+                  ref={svgRef} 
+                  viewBox="0 0 2000 1200" 
+                  className={`w-full h-full ${isPanning ? 'cursor-grabbing' : isDrawing ? 'cursor-crosshair' : 'cursor-grab'}`} 
+                  onClick={handleCanvasClick} 
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onWheel={handleWheel}
+                  style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center', transition: isPanning ? 'none' : 'transform 0.1s ease' }}
+                >
                   <defs>
                     <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
                       <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="#e5e7eb" strokeWidth="1"/>
@@ -482,7 +595,7 @@ export default function UltimateKSYKBuilder() {
                     </pattern>
                   </defs>
                   <rect width="100%" height="100%" fill="white" />
-                  <rect width="100%" height="100%" fill="url(#largeGrid)" />
+                  {showGrid && <rect width="100%" height="100%" fill="url(#largeGrid)" />}
                   
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;
@@ -547,9 +660,17 @@ export default function UltimateKSYKBuilder() {
                         <h4 className="font-bold text-lg" style={{ color: building.colorCode }}>{building.name}</h4>
                         <p className="text-sm text-gray-600 truncate">{building.nameEn}</p>
                       </div>
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${building.name}?`)) deleteBuildingMutation.mutate(building.id); }} className="p-1 hover:bg-red-100 rounded">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </motion.button>
+                      <div className="flex gap-1">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setCopiedBuilding(building); alert('Building copied! Press Ctrl+V to paste'); }} className="p-1 hover:bg-blue-100 rounded" title="Copy (Ctrl+C)">
+                          <Copy className="h-4 w-4 text-blue-600" />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditMode(true); setBuildingData({ name: building.name, nameEn: building.nameEn, nameFi: building.nameFi, floors: Array.isArray(building.floors) ? building.floors : [building.floors], capacity: building.capacity, colorCode: building.colorCode, mapPositionX: building.mapPositionX, mapPositionY: building.mapPositionY }); }} className="p-1 hover:bg-green-100 rounded" title="Edit">
+                          <Edit className="h-4 w-4 text-green-600" />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${building.name}?`)) deleteBuildingMutation.mutate(building.id); }} className="p-1 hover:bg-red-100 rounded" title="Delete (Del)">
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </motion.button>
+                      </div>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
                       <div className="flex items-center gap-1">
