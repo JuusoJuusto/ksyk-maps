@@ -113,7 +113,7 @@ export default function EasterEgg() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="text-6xl md:text-8xl font-black mb-6"
         >
-          {["", " ", "Y", "O", "U", " ", "F", "O", "U", "N", "D", " ", "I", "T", "!", " ", ""].map((char, i) => (
+          {"YOU FOUND IT!".split("").map((char, i) => (
             <motion.span
               key={i}
               className="inline-block"
@@ -133,7 +133,7 @@ export default function EasterEgg() {
                 delay: i * 0.1,
               }}
             >
-              {char}
+              {char === " " ? "\u00A0" : char}
             </motion.span>
           ))}
         </motion.h1>
@@ -235,7 +235,7 @@ export default function EasterEgg() {
               animation: "gradient 3s ease infinite",
             }}
           >
-             JUUSO 
+            JUUSO
           </motion.p>
 
           <div className="flex justify-center gap-4 mt-6">
@@ -270,7 +270,7 @@ export default function EasterEgg() {
           onClick={() => navigate("/")}
           className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-2xl hover:shadow-pink-500/50 transition-all"
         >
-           Back to Home
+          Back to Home
         </motion.button>
 
         {/* Floating Icons */}
