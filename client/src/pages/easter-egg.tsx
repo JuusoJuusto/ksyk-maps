@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function EasterEgg() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; delay: number }>>([]);
 
   useEffect(() => {
@@ -267,7 +267,7 @@ export default function EasterEgg() {
           transition={{ delay: 1.2 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate("/")}
+          onClick={() => setLocation("/")}
           className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-2xl hover:shadow-pink-500/50 transition-all"
         >
           Back to Home
