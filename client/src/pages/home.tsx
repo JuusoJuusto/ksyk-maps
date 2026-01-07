@@ -170,7 +170,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-blue-600'}`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
       <Header />
       
       <NavigationModal 
@@ -506,8 +506,8 @@ export default function Home() {
                     </pattern>
                   </defs>
                   {/* Background fills larger viewport */}
-                  <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : '#2563eb'} />
-                  <rect width="100%" height="100%" fill="url(#gridMajor)" opacity="0.6" />
+                  <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
+                  <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
                   {buildings.map((building: Building, index: number) => {
@@ -659,9 +659,9 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className="h-full m-0 p-8 overflow-auto bg-blue-600">
+            <TabsContent value="settings" className="h-full m-0 p-8 overflow-auto bg-gradient-to-br from-slate-50 to-blue-50">
               <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl font-bold text-white mb-6">{t('admin.settings')}</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('admin.settings')}</h2>
                 
                 {/* Language Settings */}
                 <Card className="shadow-lg mb-6">

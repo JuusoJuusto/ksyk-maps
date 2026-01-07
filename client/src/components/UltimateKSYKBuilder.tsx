@@ -278,7 +278,7 @@ export default function UltimateKSYKBuilder() {
 
 
   return (
-    <div className="min-h-screen bg-blue-600 p-2 md:p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-4">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="shadow-2xl border-2 border-blue-500 mb-4">
           <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white py-4 md:py-6">
@@ -470,7 +470,7 @@ export default function UltimateKSYKBuilder() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="relative bg-blue-600" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
+              <div className="relative bg-white" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
                 <svg ref={svgRef} viewBox="0 0 2000 1200" className={`w-full h-full ${isDrawing ? "cursor-crosshair" : "cursor-default"}`} onClick={handleCanvasClick} onMouseMove={handleCanvasMouseMove}>
                   <defs>
                     <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
@@ -481,8 +481,8 @@ export default function UltimateKSYKBuilder() {
                       <path d={`M ${gridSize * 5} 0 L 0 0 0 ${gridSize * 5}`} fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
                   </defs>
-                  <rect width="100%" height="100%" fill="#2563eb" />
-                  <rect width="100%" height="100%" fill="url(#largeGrid)" opacity="0.6" />
+                  <rect width="100%" height="100%" fill="white" />
+                  <rect width="100%" height="100%" fill="url(#largeGrid)" />
                   
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;

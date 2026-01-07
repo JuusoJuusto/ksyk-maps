@@ -460,3 +460,32 @@ body {
 .animate-delay-500 {
   animation-delay: 0.5s;
 }
+
+
+/* Custom Scrollbar - White/Light */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff #f1f5f9;
+}
