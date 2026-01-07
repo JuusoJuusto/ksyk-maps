@@ -278,7 +278,7 @@ export default function UltimateKSYKBuilder() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-4">
+    <div className="min-h-screen bg-blue-600 p-2 md:p-4">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="shadow-2xl border-2 border-blue-500 mb-4">
           <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white py-4 md:py-6">
@@ -470,7 +470,7 @@ export default function UltimateKSYKBuilder() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="relative bg-gradient-to-br from-gray-50 to-blue-50" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
+              <div className="relative bg-blue-600" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
                 <svg ref={svgRef} viewBox="0 0 2000 1200" className={`w-full h-full ${isDrawing ? "cursor-crosshair" : "cursor-default"}`} onClick={handleCanvasClick} onMouseMove={handleCanvasMouseMove}>
                   <defs>
                     <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
@@ -480,12 +480,8 @@ export default function UltimateKSYKBuilder() {
                       <rect width={gridSize * 5} height={gridSize * 5} fill="url(#smallGrid)"/>
                       <path d={`M ${gridSize * 5} 0 L 0 0 0 ${gridSize * 5}`} fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
-                    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: "#f8fafc", stopOpacity: 1 }} />
-                      <stop offset="100%" style={{ stopColor: "#e0f2fe", stopOpacity: 1 }} />
-                    </linearGradient>
                   </defs>
-                  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+                  <rect width="100%" height="100%" fill="#2563eb" />
                   <rect width="100%" height="100%" fill="url(#largeGrid)" opacity="0.6" />
                   
                   {buildings.map((building: any) => {
