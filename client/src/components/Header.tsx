@@ -136,7 +136,17 @@ export default function Header() {
             <Link href="/" className="flex-shrink-0 flex items-center space-x-3" data-testid="link-home">
               <img src="/ksykmaps_logo.png" alt="KSYK Logo" className="h-12 w-12 object-contain" />
               <div>
-                <h1 className="text-xl font-bold text-primary">KSYK Map</h1>
+                <h1 
+                  className="text-xl font-bold text-primary cursor-pointer hover:text-blue-600 transition-colors" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = '/secret-easter-egg';
+                  }}
+                  title="Click for a surprise! 🎉"
+                >
+                  KSYK Map
+                </h1>
                 <p className="text-xs text-muted-foreground">by OWL Apps</p>
               </div>
             </Link>

@@ -225,7 +225,7 @@ export default function UltimateKSYKBuilder() {
       const xs = points.map(p => p.x), ys = points.map(p => p.y);
       createBuildingMutation.mutate({
         ...buildingData,
-        floors: buildingData.floors.length,
+        floors: buildingData.floors.length || 1,
         mapPositionX: Math.min(...xs),
         mapPositionY: Math.min(...ys),
         description: JSON.stringify({ customShape: points })

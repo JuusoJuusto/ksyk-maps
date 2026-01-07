@@ -14,6 +14,7 @@ import AdminLogin from "@/pages/admin-login";
 import Builder from "@/pages/builder";
 import HSL from "@/pages/hsl";
 import Features from "@/pages/features";
+import EasterEgg from "@/pages/easter-egg";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/hsl" component={HSL} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
+      <Route path="/secret-easter-egg" component={EasterEgg} />
       <Route component={NotFound} />
     </Switch>
   );
