@@ -636,30 +636,60 @@ export class FirebaseStorage implements IStorage {
   // Announcement operations
   async getAnnouncements(limit: number = 10): Promise<Announcement[]> {
     try {
+      const now = new Date();
+      
       // Try with orderBy first
       try {
         const snapshot = await db.collection('announcements')
           .where('isActive', '==', true)
           .orderBy('createdAt', 'desc')
-          .limit(limit)
+          .limit(limit * 2) // Fetch more to account for expired ones
           .get();
         
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        const announcements = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Announcement))
+          .filter(announcement => {
+            // Filter out expired announcements
+            if (announcement.expiresAt) {
+              const expiresDate = announcement.expiresAt instanceof Date 
+                ? announcement.expiresAt 
+                : new Date(announcement.expiresAt);
+              return expiresDate > now;
+            }
+            return true; // No expiry date means it doesn't expire
+          })
+          .slice(0, limit); // Apply the original limit after filtering
+        
+        return announcements;
       } catch (indexError) {
         // If index doesn't exist, fetch without orderBy
         console.log('⚠️ Firebase index not found, fetching without orderBy');
         const snapshot = await db.collection('announcements')
           .where('isActive', '==', true)
-          .limit(limit)
+          .limit(limit * 2) // Fetch more to account for expired ones
           .get();
         
-        const announcements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        const announcements = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Announcement))
+          .filter(announcement => {
+            // Filter out expired announcements
+            if (announcement.expiresAt) {
+              const expiresDate = announcement.expiresAt instanceof Date 
+                ? announcement.expiresAt 
+                : new Date(announcement.expiresAt);
+              return expiresDate > now;
+            }
+            return true; // No expiry date means it doesn't expire
+          });
+        
         // Sort in memory
-        return announcements.sort((a, b) => {
+        const sorted = announcements.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateB - dateA;
         });
+        
+        return sorted.slice(0, limit); // Apply the original limit after filtering
       }
     } catch (error) {
       console.error('Error getting announcements:', error);

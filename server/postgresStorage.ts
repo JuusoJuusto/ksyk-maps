@@ -25,7 +25,7 @@ import {
   type InsertAnnouncement,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, or } from "drizzle-orm";
+import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
 import type { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
@@ -307,10 +307,19 @@ export class DatabaseStorage implements IStorage {
 
   // Announcement operations
   async getAnnouncements(limit = 10): Promise<Announcement[]> {
+    const now = new Date();
     return await db
       .select()
       .from(announcements)
-      .where(eq(announcements.isActive, true))
+      .where(
+        and(
+          eq(announcements.isActive, true),
+          or(
+            isNull(announcements.expiresAt),
+            gt(announcements.expiresAt, now)
+          )
+        )
+      )
       .orderBy(desc(announcements.createdAt))
       .limit(limit);
   }
