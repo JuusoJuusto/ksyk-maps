@@ -66,12 +66,11 @@ class HealthMonitor {
       const start = performance.now();
       const responses = await Promise.all([
         fetch('/api/buildings'),
-        fetch('/api/rooms'),
-        fetch('/api/auth/user')
+        fetch('/api/rooms')
       ]);
 
       const duration = performance.now() - start;
-      const allOk = responses.every(r => r.ok || r.status === 401); // 401 is OK for auth endpoint
+      const allOk = responses.every(r => r.ok);
 
       if (!allOk) {
         return {

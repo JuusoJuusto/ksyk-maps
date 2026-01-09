@@ -1,16 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
 
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/api/auth/user"],
+  // Check localStorage for admin user instead of API call
+  const getStoredUser = () => {
+    try {
+      const stored = localStorage.getItem('ksyk_admin_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["auth-user"],
+    queryFn: getStoredUser,
     retry: false,
     refetchInterval: false,
     refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
 
   return {
     user,
-    isLoading,
-    isAuthenticated: !!user && !error,
+    isLoading: false,
+    isAuthenticated: !!user,
   };
 }
