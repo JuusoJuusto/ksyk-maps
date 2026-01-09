@@ -108,7 +108,9 @@ export default function Home() {
     queryFn: async () => {
       const response = await fetch("/api/buildings");
       if (!response.ok) throw new Error("Failed to fetch buildings");
-      return response.json();
+      const data = await response.json();
+      console.log('🏢 Fetched buildings:', data.length, data);
+      return data;
     },
   });
 
@@ -510,6 +512,7 @@ export default function Home() {
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
                   {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
+                  {console.log('🎨 Rendering buildings on map:', buildings.length)}
                   {buildings.map((building: Building, index: number) => {
                     const x = building.mapPositionX ?? 100 + (index * 160);
                     const y = building.mapPositionY ?? 100;

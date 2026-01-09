@@ -50,7 +50,9 @@ export default function UltimateKSYKBuilder() {
     queryFn: async () => {
       const response = await fetch("/api/buildings");
       if (!response.ok) throw new Error("Failed to fetch buildings");
-      return response.json();
+      const data = await response.json();
+      console.log('🏗️ KSYK Builder - Fetched buildings:', data.length, data);
+      return data;
     },
   });
 
@@ -597,6 +599,7 @@ export default function UltimateKSYKBuilder() {
                   <rect width="100%" height="100%" fill="white" />
                   {showGrid && <rect width="100%" height="100%" fill="url(#largeGrid)" />}
                   
+                  {console.log('🎨 KSYK Builder - Rendering buildings:', buildings.length)}
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;
                     let customShape = null;
