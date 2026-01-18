@@ -77,7 +77,21 @@ export default function UltimateKSYKBuilder() {
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
-  const isLoading = buildingsLoading || roomsLoading;
+  const { data: hallways = [], isLoading: hallwaysLoading } = useQuery({
+    queryKey: ["hallways"],
+    queryFn: async () => {
+      console.log('🚶 Fetching hallways from API...');
+      const response = await fetch("/api/hallways");
+      if (!response.ok) throw new Error("Failed to fetch hallways");
+      const data = await response.json();
+      console.log('✅ Received hallways:', data.length, data);
+      return data;
+    },
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = buildingsLoading || roomsLoading || hallwaysLoading;
 
   // Memoize room type colors to avoid recalculation
   const getRoomColor = useMemo(() => (type: string) => {
@@ -888,6 +902,41 @@ export default function UltimateKSYKBuilder() {
                           style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                         >
                           {room.roomNumber}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Hallways rendering */}
+                  {hallways.map((hallway: any, index: number) => {
+                    const startX = hallway.startX || (200 + (index * 100));
+                    const startY = hallway.startY || 400;
+                    const endX = hallway.endX || (startX + 100);
+                    const endY = hallway.endY || startY;
+                    const width = hallway.width || 2;
+                    
+                    return (
+                      <g key={hallway.id}>
+                        {/* Hallway line */}
+                        <line
+                          x1={startX}
+                          y1={startY}
+                          x2={endX}
+                          y2={endY}
+                          stroke="#9CA3AF"
+                          strokeWidth={width * 10}
+                          opacity="0.7"
+                        />
+                        {/* Hallway label */}
+                        <text
+                          x={(startX + endX) / 2}
+                          y={(startY + endY) / 2 - 10}
+                          textAnchor="middle"
+                          fill="#6B7280"
+                          fontSize="10"
+                          fontWeight="bold"
+                        >
+                          {hallway.name}
                         </text>
                       </g>
                     );
