@@ -120,6 +120,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
     }
+
+    // Hallways endpoints
+    if (apiPath.startsWith('/hallways')) {
+      if (req.method === 'GET' && apiPath === '/hallways') {
+        const buildingId = req.query.buildingId as string | undefined;
+        const hallways = await storage.getHallways(buildingId);
+        return res.status(200).json(hallways);
+      }
+      
+      if (req.method === 'POST' && apiPath === '/hallways') {
+        const hallway = await storage.createHallway(req.body);
+        return res.status(201).json(hallway);
+      }
+      
+      // Handle /hallways/:id routes
+      const idMatch = apiPath.match(/^\/hallways\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteHallway(id);
+          return res.status(204).send('');
+        }
+      }
+    }
     
     // Floors endpoint
     if (apiPath === '/floors' && req.method === 'GET') {

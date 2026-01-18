@@ -643,12 +643,19 @@ export default function UltimateKSYKBuilder() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Connected Room (Optional)</Label>
+                      <Label className="text-xs font-bold">Connects To Building (Optional)</Label>
                       <select value={roomData.connectedRoomId} onChange={(e) => setRoomData({ ...roomData, connectedRoomId: e.target.value })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
                         <option value="">No connection</option>
-                        {rooms.filter((r: any) => r.buildingId === roomData.buildingId && r.floor === roomData.floor).map((room: any) => (
-                          <option key={room.id} value={room.id}>{room.roomNumber} - {room.type}</option>
-                        ))}
+                        <optgroup label="Buildings">
+                          {buildings.filter((b: any) => b.id !== roomData.buildingId).map((building: any) => (
+                            <option key={`building-${building.id}`} value={`building-${building.id}`}>🏢 {building.name} - {building.nameEn}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Rooms">
+                          {rooms.filter((r: any) => r.buildingId === roomData.buildingId && r.floor === roomData.floor).map((room: any) => (
+                            <option key={room.id} value={room.id}>🚪 {room.roomNumber} - {room.type}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </div>
                   </motion.div>

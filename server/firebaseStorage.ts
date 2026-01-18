@@ -400,11 +400,14 @@ export class FirebaseStorage implements IStorage {
       const hallwayData = {
         ...hallway,
         id: docRef.id,
+        isActive: true, // CRITICAL: Set isActive to true so hallways show up
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       
+      console.log('Creating hallway in Firebase:', hallwayData);
       await docRef.set(hallwayData);
+      console.log('Hallway created successfully:', docRef.id);
       return hallwayData as Hallway;
     } catch (error) {
       console.error('Error creating hallway:', error);
