@@ -5,13 +5,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import NavigationModal from "@/components/NavigationModal";
-import { Megaphone, ChevronLeft, ChevronRight } from "lucide-react";
+import { Megaphone, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
 
 export default function Header() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
   
   useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
@@ -20,6 +24,16 @@ export default function Header() {
       setCurrentLang(saved);
     }
   }, []);
+  
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+  
   const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
 
@@ -169,6 +183,19 @@ export default function Header() {
             {/* Show different buttons based on admin panel or regular app */}
             {!isInAdminPanel ? (
               <>
+                {/* Dark Mode Toggle */}
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className={`p-2 rounded-lg transition-all ${
+                    darkMode 
+                      ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
+                
                 {/* Language Toggle */}
                 <div className="language-toggle flex bg-muted rounded-md p-1">
                   <button 
@@ -219,6 +246,19 @@ export default function Header() {
               </>
             ) : (
               <>
+                {/* Dark Mode Toggle in Admin Panel */}
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className={`p-2 rounded-lg transition-all ${
+                    darkMode 
+                      ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
+                
                 {/* Admin Panel - Only HSL and Logout */}
                 <Link href="/hsl">
                   <Button 

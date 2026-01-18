@@ -462,7 +462,7 @@ body {
 }
 
 
-/* Custom Scrollbar - White/Light */
+/* Custom Scrollbar - Light Mode */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -484,8 +484,27 @@ body {
   border-color: #cbd5e1;
 }
 
+/* Dark Mode Scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-color: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  border-color: #334155;
+}
+
 /* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: #ffffff #f1f5f9;
+}
+
+.dark * {
+  scrollbar-color: #334155 #1e293b;
 }
