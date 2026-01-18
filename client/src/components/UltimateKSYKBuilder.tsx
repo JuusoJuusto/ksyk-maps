@@ -11,7 +11,7 @@ import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Mov
 
 interface Point { x: number; y: number; }
 
-type Tool = "select" | "building" | "room" | "stairway" | "hallway";
+type Tool = "select" | "building" | "room" | "stairway" | "hallway" | "door";
 type ShapeMode = "rectangle" | "custom";
 
 export default function UltimateKSYKBuilder() {
@@ -45,6 +45,10 @@ export default function UltimateKSYKBuilder() {
   const [roomData, setRoomData] = useState({
     buildingId: "", roomNumber: "", name: "", nameEn: "", nameFi: "",
     floor: 1, capacity: 30, type: "classroom"
+  });
+
+  const [hallwayData, setHallwayData] = useState({
+    buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1
   });
 
 
@@ -251,7 +255,7 @@ export default function UltimateKSYKBuilder() {
         mapPositionY: Math.min(...ys),
         description: JSON.stringify({ customShape: points })
       });
-    } else if (activeTool === "room" || activeTool === "stairway") {
+    } else if (activeTool === "room" || activeTool === "stairway" || activeTool === "door") {
       if (!roomData.buildingId || !roomData.roomNumber) {
         alert("Select building and enter room number!");
         return;
@@ -265,6 +269,20 @@ export default function UltimateKSYKBuilder() {
         mapPositionY: Math.min(...ys),
         width,
         height
+      });
+    } else if (activeTool === "hallway") {
+      if (!hallwayData.buildingId || !hallwayData.name) {
+        alert("Select building and enter hallway name!");
+        return;
+      }
+      const xs = points.map(p => p.x), ys = points.map(p => p.y);
+      createHallwayMutation.mutate({
+        ...hallwayData,
+        startX: Math.min(...xs),
+        startY: Math.min(...ys),
+        endX: Math.max(...xs),
+        endY: Math.max(...ys),
+        width: 2
       });
     }
   };
@@ -326,6 +344,35 @@ export default function UltimateKSYKBuilder() {
     }
   });
 
+  const createHallwayMutation = useMutation({
+    mutationFn: async (hallway: any) => {
+      console.log('Creating hallway:', hallway);
+      const response = await fetch("/api/hallways", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(hallway)
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Hallway creation failed:', error);
+        throw new Error("Failed to create hallway");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Hallway created successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ["hallways"] });
+      alert("Hallway created!");
+      cancelDrawing();
+      setHallwayData({ buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1 });
+    },
+    onError: (error) => {
+      console.error('Hallway creation error:', error);
+      alert('Failed to create hallway: ' + error.message);
+    }
+  });
+
   const deleteBuildingMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/buildings/${id}`, { method: "DELETE", credentials: "include" });
@@ -356,7 +403,9 @@ export default function UltimateKSYKBuilder() {
       const x1 = Math.min(rectStart.x, end.x), y1 = Math.min(rectStart.y, end.y);
       const width = Math.abs(end.x - rectStart.x) || 1, height = Math.abs(end.y - rectStart.y) || 1;
       const color = activeTool === "building" ? buildingData.colorCode : 
-                    activeTool === "room" ? getRoomColor(roomData.type) : "#8B5CF6";
+                    activeTool === "room" ? getRoomColor(roomData.type) :
+                    activeTool === "hallway" ? "#9CA3AF" :
+                    activeTool === "door" ? "#F59E0B" : "#8B5CF6";
       return (
         <g>
           <rect x={x1} y={y1} width={width} height={height} fill={color} opacity="0.4" stroke={color} strokeWidth="3" strokeDasharray="8,4" />
@@ -368,7 +417,9 @@ export default function UltimateKSYKBuilder() {
     
     if (currentPoints.length === 0) return null;
     const color = activeTool === "building" ? buildingData.colorCode : 
-                  activeTool === "room" ? getRoomColor(roomData.type) : "#8B5CF6";
+                  activeTool === "room" ? getRoomColor(roomData.type) :
+                  activeTool === "hallway" ? "#9CA3AF" :
+                  activeTool === "door" ? "#F59E0B" : "#8B5CF6";
     
     return (
       <g>
@@ -397,7 +448,9 @@ export default function UltimateKSYKBuilder() {
   const tools = [
     { id: "building" as Tool, icon: Building, label: "Building", color: "bg-blue-600", hoverColor: "hover:bg-blue-700" },
     { id: "room" as Tool, icon: Home, label: "Room", color: "bg-purple-600", hoverColor: "hover:bg-purple-700" },
+    { id: "hallway" as Tool, icon: Move, label: "Hallway", color: "bg-gray-600", hoverColor: "hover:bg-gray-700" },
     { id: "stairway" as Tool, icon: Layers, label: "Stairway/Elevator", color: "bg-green-600", hoverColor: "hover:bg-green-700" },
+    { id: "door" as Tool, icon: Square, label: "Door", color: "bg-amber-600", hoverColor: "hover:bg-amber-700" },
   ];
 
 
@@ -545,6 +598,48 @@ export default function UltimateKSYKBuilder() {
                           <option value="stairway">Stairway</option>
                           <option value="elevator">Elevator</option>
                         </select>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTool === "hallway" && (
+                  <motion.div key="hallway" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-3 border-t pt-4">
+                    <div>
+                      <Label className="text-xs font-bold">Building *</Label>
+                      <select value={hallwayData.buildingId} onChange={(e) => setHallwayData({ ...hallwayData, buildingId: e.target.value })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
+                        <option value="">Select Building</option>
+                        {buildings.map((building: any) => (<option key={building.id} value={building.id}>{building.name} - {building.nameEn}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Hallway Name *</Label>
+                      <Input value={hallwayData.name} onChange={(e) => setHallwayData({ ...hallwayData, name: e.target.value })} placeholder="Main Hallway" className="mt-1 h-9" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Floor</Label>
+                      <Input type="number" min="1" value={hallwayData.floor} onChange={(e) => setHallwayData({ ...hallwayData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTool === "door" && (
+                  <motion.div key="door" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-3 border-t pt-4">
+                    <div>
+                      <Label className="text-xs font-bold">Building *</Label>
+                      <select value={roomData.buildingId} onChange={(e) => setRoomData({ ...roomData, buildingId: e.target.value, type: "door" })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
+                        <option value="">Select Building</option>
+                        {buildings.map((building: any) => (<option key={building.id} value={building.id}>{building.name} - {building.nameEn}</option>))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-bold">Door ID *</Label>
+                        <Input value={roomData.roomNumber} onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value })} placeholder="D1" className="mt-1 h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Floor</Label>
+                        <Input type="number" min="1" value={roomData.floor} onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
                       </div>
                     </div>
                   </motion.div>
