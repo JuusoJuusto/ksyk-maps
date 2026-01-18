@@ -650,15 +650,15 @@ export default function Home() {
 
             <TabsContent value="settings" className={`h-full m-0 p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-blue-50'}`}>
               <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('admin.settings')}</h2>
+                <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('admin.settings')}</h2>
                 
                 {/* Language Settings */}
-                <Card className="shadow-lg mb-6">
+                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">🌐 {t('nav.information')}</h3>
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 {t('nav.information')}</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Language / Kieli
                         </label>
                         <div className="flex space-x-2">
@@ -683,16 +683,16 @@ export default function Home() {
                 </Card>
                 
                 {/* Appearance Settings */}
-                <Card className="shadow-lg mb-6">
+                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">🎨 Appearance</h3>
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Dark Mode
                           </label>
-                          <p className="text-xs text-gray-500">Toggle dark theme</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Toggle dark theme</p>
                         </div>
                         <Button
                           variant={darkMode ? 'default' : 'outline'}
@@ -707,16 +707,16 @@ export default function Home() {
                 </Card>
                 
                 {/* Map Settings */}
-                <Card className="shadow-lg mb-6">
+                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">🗺️ {t('map.title')}</h3>
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🗺️ {t('map.title')}</h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Reset Map View
                           </label>
-                          <p className="text-xs text-gray-500">Return to default position and zoom</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Return to default position and zoom</p>
                         </div>
                         <Button
                           variant="outline"
@@ -728,8 +728,8 @@ export default function Home() {
                         </Button>
                       </div>
                       
-                      <div className="pt-4 border-t">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : ''}`}>
+                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Current Zoom: {(zoom * 100).toFixed(0)}%
                         </label>
                         <div className="flex space-x-2">
@@ -737,16 +737,18 @@ export default function Home() {
                             variant="outline"
                             size="sm"
                             onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))}
+                            className={darkMode ? 'border-gray-600 hover:bg-gray-700' : ''}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <div className="flex-1 flex items-center justify-center bg-gray-100 rounded px-4">
+                          <div className={`flex-1 flex items-center justify-center rounded px-4 ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}>
                             {(zoom * 100).toFixed(0)}%
                           </div>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setZoom(Math.min(zoom + 0.1, 3))}
+                            className={darkMode ? 'border-gray-600 hover:bg-gray-700' : ''}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
