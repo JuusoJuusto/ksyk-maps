@@ -44,7 +44,7 @@ export default function UltimateKSYKBuilder() {
 
   const [roomData, setRoomData] = useState({
     buildingId: "", roomNumber: "", name: "", nameEn: "", nameFi: "",
-    floor: 1, capacity: 30, type: "classroom"
+    floor: 1, capacity: 30, type: "classroom", connectedRoomId: ""
   });
 
   const [hallwayData, setHallwayData] = useState({
@@ -641,6 +641,15 @@ export default function UltimateKSYKBuilder() {
                         <Label className="text-xs font-bold">Floor</Label>
                         <Input type="number" min="1" value={roomData.floor} onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
                       </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Connected Room (Optional)</Label>
+                      <select value={roomData.connectedRoomId} onChange={(e) => setRoomData({ ...roomData, connectedRoomId: e.target.value })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
+                        <option value="">No connection</option>
+                        {rooms.filter((r: any) => r.buildingId === roomData.buildingId && r.floor === roomData.floor).map((room: any) => (
+                          <option key={room.id} value={room.id}>{room.roomNumber} - {room.type}</option>
+                        ))}
+                      </select>
                     </div>
                   </motion.div>
                 )}

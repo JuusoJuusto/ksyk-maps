@@ -201,24 +201,26 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
         return;
       }
       
-      // Build route description
+      // Build route description with better formatting
       const routeSteps = path.map((room, idx) => {
-        if (idx === 0) return `📍 Start: ${room.roomNumber}`;
-        if (idx === path.length - 1) return `🎯 Arrive: ${room.roomNumber}`;
+        if (idx === 0) return `📍 Start: ${room.roomNumber} (Floor ${room.floor})`;
+        if (idx === path.length - 1) return `🎯 Arrive: ${room.roomNumber} (Floor ${room.floor})`;
         
-        if (room.type === 'stairway') return `🪜 Stairway ${room.roomNumber} (Floor ${room.floor})`;
-        if (room.type === 'elevator') return `🛗 Elevator ${room.roomNumber} (Floor ${room.floor})`;
+        if (room.type === 'stairway') return `🪜 Stairway ${room.roomNumber} → Floor ${room.floor}`;
+        if (room.type === 'elevator') return `🛗 Elevator ${room.roomNumber} → Floor ${room.floor}`;
         if (room.type === 'hallway') return `🚶 Hallway ${room.roomNumber}`;
+        if (room.type === 'door') return `🚪 Door ${room.roomNumber}`;
         return `→ ${room.roomNumber}`;
       }).join('\n');
       
       const estimatedTime = Math.max(1, Math.ceil(path.length * 0.5)); // 30 seconds per step
+      const floorChanges = path.filter((room, idx) => idx > 0 && room.floor !== path[idx-1].floor).length;
       
       // Call the navigation handler
       onNavigate(fromLabel, toLabel);
       
-      // Show success message with route
-      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedTime} min\n\n✅ Route is now displayed on the map!`);
+      // Show success message with detailed route
+      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps, ${floorChanges} floor changes):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedTime} min\n\n✅ Follow the highlighted path on the map!`);
       
       // Close modal
       onClose();
