@@ -29,7 +29,6 @@ export default function UltimateKSYKBuilder() {
   const [selectedBuilding, setSelectedBuilding] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 5000, height: 3000 });
@@ -167,17 +166,38 @@ export default function UltimateKSYKBuilder() {
     return snapToGrid({ x, y });
   };
 
-  // Zoom functions
+  // Zoom functions - FIXED to zoom viewBox, not the whole page
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev * 1.2, 3));
+    setViewBox(prev => {
+      const newWidth = prev.width * 0.8; // Zoom in = smaller viewBox
+      const newHeight = prev.height * 0.8;
+      const centerX = prev.x + prev.width / 2;
+      const centerY = prev.y + prev.height / 2;
+      return {
+        x: centerX - newWidth / 2,
+        y: centerY - newHeight / 2,
+        width: Math.max(newWidth, 500), // Min viewBox size
+        height: Math.max(newHeight, 300)
+      };
+    });
   };
   
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev / 1.2, 0.3));
+    setViewBox(prev => {
+      const newWidth = prev.width * 1.25; // Zoom out = larger viewBox
+      const newHeight = prev.height * 1.25;
+      const centerX = prev.x + prev.width / 2;
+      const centerY = prev.y + prev.height / 2;
+      return {
+        x: Math.max(0, centerX - newWidth / 2),
+        y: Math.max(0, centerY - newHeight / 2),
+        width: Math.min(newWidth, 10000), // Max viewBox size
+        height: Math.min(newHeight, 6000)
+      };
+    });
   };
   
   const handleResetView = () => { 
-    setZoom(0.5); // Start zoomed out to see more of the large canvas
     setViewBox({ x: 0, y: 0, width: 5000, height: 3000 });
   };
   
@@ -192,12 +212,13 @@ export default function UltimateKSYKBuilder() {
   
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (isPanning) {
-      const dx = (e.clientX - panStart.x) / zoom;
-      const dy = (e.clientY - panStart.y) / zoom;
+      const dx = (e.clientX - panStart.x) * (viewBox.width / (svgRef.current?.getBoundingClientRect().width || 1000));
+      const dy = (e.clientY - panStart.y) * (viewBox.height / (svgRef.current?.getBoundingClientRect().height || 600));
+      
       setViewBox(prev => ({
         ...prev,
-        x: prev.x - dx,
-        y: prev.y - dy
+        x: Math.max(0, Math.min(5000 - prev.width, prev.x - dx)),
+        y: Math.max(0, Math.min(3000 - prev.height, prev.y - dy))
       }));
       setPanStart({ x: e.clientX, y: e.clientY });
     } else if (isDrawing && shapeMode === "rectangle" && rectStart) {
@@ -210,18 +231,44 @@ export default function UltimateKSYKBuilder() {
   };
   
   const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    e.preventDefault(); // CRITICAL: Prevent page zoom!
+    
     if (e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom(prev => Math.max(0.3, Math.min(3, prev * delta)));
+      // Zoom with Ctrl+Scroll
+      const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      // Get mouse position in SVG coordinates
+      const mouseX = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.width;
+      const mouseY = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.height;
+      
+      setViewBox(prev => {
+        const newWidth = prev.width * zoomFactor;
+        const newHeight = prev.height * zoomFactor;
+        
+        // Clamp viewBox size
+        const clampedWidth = Math.max(500, Math.min(10000, newWidth));
+        const clampedHeight = Math.max(300, Math.min(6000, newHeight));
+        
+        // Zoom towards mouse position
+        const newX = mouseX - (mouseX - prev.x) * (clampedWidth / prev.width);
+        const newY = mouseY - (mouseY - prev.y) * (clampedHeight / prev.height);
+        
+        return {
+          x: Math.max(0, Math.min(5000 - clampedWidth, newX)),
+          y: Math.max(0, Math.min(3000 - clampedHeight, newY)),
+          width: clampedWidth,
+          height: clampedHeight
+        };
+      });
     } else {
-      // Scroll to pan
-      e.preventDefault();
+      // Pan with regular scroll
       const scrollSpeed = 2;
       setViewBox(prev => ({
         ...prev,
-        x: prev.x + e.deltaX * scrollSpeed,
-        y: prev.y + e.deltaY * scrollSpeed
+        x: Math.max(0, Math.min(5000 - prev.width, prev.x + e.deltaX * scrollSpeed)),
+        y: Math.max(0, Math.min(3000 - prev.height, prev.y + e.deltaY * scrollSpeed))
       }));
     }
   };
@@ -757,7 +804,16 @@ export default function UltimateKSYKBuilder() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="relative bg-white" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
+              <div 
+                className="relative bg-white overflow-hidden" 
+                style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}
+                onWheel={(e) => {
+                  // Prevent page zoom when over the map
+                  if (e.ctrlKey) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 {/* Zoom Controls */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomIn} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all">
@@ -775,10 +831,10 @@ export default function UltimateKSYKBuilder() {
                 </div>
                 
                 {/* Zoom indicator */}
-                <div className="absolute bottom-4 right-4 z-10 bg-white px-3 py-1 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold flex items-center gap-2">
-                  <span>{Math.round(zoom * 100)}%</span>
+                <div className="absolute bottom-4 right-4 z-10 bg-white px-4 py-2 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold flex items-center gap-3">
+                  <span className="text-blue-600">{Math.round((5000 / viewBox.width) * 100)}%</span>
                   <span className="text-gray-400">|</span>
-                  <span className="text-xs text-gray-600">Scroll to pan, Ctrl+Scroll to zoom</span>
+                  <span className="text-xs text-gray-600">Drag to pan • Ctrl+Scroll to zoom</span>
                 </div>
                 
                 <svg 
