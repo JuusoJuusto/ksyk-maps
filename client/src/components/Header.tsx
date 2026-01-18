@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import NavigationModal from "@/components/NavigationModal";
@@ -13,10 +14,7 @@ export default function Header() {
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const [showAnnouncementDialog, setShowAnnouncementDialog] = useState(false);
   
   useEffect(() => {
@@ -26,15 +24,6 @@ export default function Header() {
       setCurrentLang(saved);
     }
   }, []);
-  
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
   
   const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
@@ -215,7 +204,7 @@ export default function Header() {
               <>
                 {/* Dark Mode Toggle */}
                 <button
-                  onClick={() => setDarkMode(!darkMode)}
+                  onClick={toggleDarkMode}
                   className={`p-2 rounded-lg transition-all ${
                     darkMode 
                       ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
@@ -278,7 +267,7 @@ export default function Header() {
               <>
                 {/* Dark Mode Toggle in Admin Panel */}
                 <button
-                  onClick={() => setDarkMode(!darkMode)}
+                  onClick={toggleDarkMode}
                   className={`p-2 rounded-lg transition-all ${
                     darkMode 
                       ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 

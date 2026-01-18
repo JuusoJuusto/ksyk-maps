@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
@@ -50,10 +51,7 @@ interface Room {
 export default function Home() {
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -75,15 +73,6 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
   }, [sidebarOpen]);
-  
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
   
   const handleLanguageChange = (lang: string) => {
     localStorage.setItem('ksyk_language', lang);
@@ -707,7 +696,7 @@ export default function Home() {
                         </div>
                         <Button
                           variant={darkMode ? 'default' : 'outline'}
-                          onClick={() => setDarkMode(!darkMode)}
+                          onClick={toggleDarkMode}
                           className="w-24"
                         >
                           {darkMode ? '🌙 On' : '☀️ Off'}

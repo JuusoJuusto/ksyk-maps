@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HelpProvider } from "@/contexts/HelpContext";
+import { DarkModeProvider } from "@/contexts/DarkModeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "@/pages/landing";
@@ -37,14 +38,16 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <HelpProvider>
-            <HelpBubble>
-              <Toaster />
-              <Router />
-            </HelpBubble>
-          </HelpProvider>
-        </TooltipProvider>
+        <DarkModeProvider>
+          <TooltipProvider>
+            <HelpProvider>
+              <HelpBubble>
+                <Toaster />
+                <Router />
+              </HelpBubble>
+            </HelpProvider>
+          </TooltipProvider>
+        </DarkModeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
