@@ -201,9 +201,15 @@ export default function UltimateKSYKBuilder() {
     setViewBox({ x: 0, y: 0, width: 5000, height: 3000 });
   };
   
-  // Pan functions - FIXED for larger canvas
+  // Pan functions - ENHANCED for smooth dragging
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // Middle mouse or Ctrl+Click
+    // Allow panning with left click (not just middle/ctrl+click)
+    if (e.button === 0 && !isDrawing) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+      e.stopPropagation();
+    } else if (e.button === 1) { // Middle mouse
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
@@ -212,8 +218,11 @@ export default function UltimateKSYKBuilder() {
   
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (isPanning) {
-      const dx = (e.clientX - panStart.x) * (viewBox.width / (svgRef.current?.getBoundingClientRect().width || 1000));
-      const dy = (e.clientY - panStart.y) * (viewBox.height / (svgRef.current?.getBoundingClientRect().height || 600));
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const dx = (e.clientX - panStart.x) * (viewBox.width / rect.width);
+      const dy = (e.clientY - panStart.y) * (viewBox.height / rect.height);
       
       setViewBox(prev => ({
         ...prev,
@@ -274,8 +283,12 @@ export default function UltimateKSYKBuilder() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Don't process clicks if we were panning
     if (isPanning) return;
+    
+    // Only process clicks in drawing mode
     if (!isDrawing || activeTool === "select") return;
+    
     const point = getSVGPoint(e);
     
     if (shapeMode === "rectangle") {
@@ -805,7 +818,7 @@ export default function UltimateKSYKBuilder() {
             </CardHeader>
             <CardContent className="p-0">
               <div 
-                className="relative bg-white overflow-hidden" 
+                className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden" 
                 style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}
                 onWheel={(e) => {
                   // Prevent page zoom when over the map
@@ -814,39 +827,129 @@ export default function UltimateKSYKBuilder() {
                   }
                 }}
               >
-                {/* Zoom Controls */}
+                {/* Enhanced Zoom Controls with better styling */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomIn} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all">
-                    <ZoomIn className="h-6 w-6 text-gray-700" />
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    onClick={handleZoomIn} 
+                    className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-xl border-2 border-blue-400 hover:from-blue-600 hover:to-blue-700 transition-all group"
+                    title="Zoom In (Ctrl + Scroll Up)"
+                  >
+                    <ZoomIn className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomOut} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all">
-                    <ZoomOut className="h-6 w-6 text-gray-700" />
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    onClick={handleZoomOut} 
+                    className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-xl border-2 border-blue-400 hover:from-blue-600 hover:to-blue-700 transition-all group"
+                    title="Zoom Out (Ctrl + Scroll Down)"
+                  >
+                    <ZoomOut className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleResetView} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all" title="Reset View">
-                    <Maximize2 className="h-6 w-6 text-gray-700" />
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    onClick={handleResetView} 
+                    className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-xl border-2 border-green-400 hover:from-green-600 hover:to-green-700 transition-all group" 
+                    title="Reset View (Show All)"
+                  >
+                    <Maximize2 className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowGrid(!showGrid)} className={`p-3 rounded-lg shadow-lg border-2 transition-all ${showGrid ? 'bg-green-500 border-green-600 hover:bg-green-600' : 'bg-white border-gray-300 hover:border-green-500 hover:bg-green-50'}`} title="Toggle Grid">
-                    <Grid3x3 className={`h-6 w-6 ${showGrid ? 'text-white' : 'text-gray-700'}`} />
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    onClick={() => setShowGrid(!showGrid)} 
+                    className={`p-3 rounded-xl shadow-xl border-2 transition-all group ${
+                      showGrid 
+                        ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-amber-400 hover:from-amber-600 hover:to-amber-700' 
+                        : 'bg-white border-gray-300 hover:border-amber-400 hover:bg-amber-50'
+                    }`} 
+                    title="Toggle Grid (G)"
+                  >
+                    <Grid3x3 className={`h-6 w-6 group-hover:scale-110 transition-transform ${showGrid ? 'text-white' : 'text-gray-700'}`} />
                   </motion.button>
                 </div>
                 
-                {/* Zoom indicator */}
-                <div className="absolute bottom-4 right-4 z-10 bg-white px-4 py-2 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold flex items-center gap-3">
-                  <span className="text-blue-600">{Math.round((5000 / viewBox.width) * 100)}%</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-xs text-gray-600">Drag to pan • Ctrl+Scroll to zoom</span>
+                {/* Enhanced zoom indicator with position info */}
+                <div className="absolute bottom-4 right-4 z-10 bg-gradient-to-r from-gray-900 to-gray-800 px-5 py-3 rounded-xl shadow-2xl border-2 border-gray-700 text-white">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <ZoomIn className="h-4 w-4 text-blue-400" />
+                      <span className="text-lg font-bold text-blue-400">{Math.round((5000 / viewBox.width) * 100)}%</span>
+                    </div>
+                    <div className="h-6 w-px bg-gray-600"></div>
+                    <div className="text-xs text-gray-300 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">🖱️</span>
+                        <span>Drag to pan</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">⌨️</span>
+                        <span>Ctrl+Scroll to zoom</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mini-map navigator */}
+                <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-2xl border-2 border-gray-300">
+                  <div className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <Layers className="h-3 w-3" />
+                    Navigator
+                  </div>
+                  <svg width="150" height="90" viewBox="0 0 5000 3000" className="border-2 border-gray-300 rounded bg-gray-50">
+                    {/* Mini grid */}
+                    <rect width="5000" height="3000" fill="#f9fafb" />
+                    <rect width="5000" height="3000" fill="url(#smallGrid)" opacity="0.3" />
+                    
+                    {/* Buildings on minimap */}
+                    {buildings.map((building: any) => {
+                      const x = building.mapPositionX || 100;
+                      const y = building.mapPositionY || 100;
+                      return (
+                        <rect
+                          key={building.id}
+                          x={x}
+                          y={y}
+                          width="150"
+                          height="100"
+                          fill={building.colorCode}
+                          opacity="0.7"
+                        />
+                      );
+                    })}
+                    
+                    {/* Current viewport indicator */}
+                    <rect
+                      x={viewBox.x}
+                      y={viewBox.y}
+                      width={viewBox.width}
+                      height={viewBox.height}
+                      fill="none"
+                      stroke="#3B82F6"
+                      strokeWidth="40"
+                      strokeDasharray="100,50"
+                      opacity="0.8"
+                    />
+                  </svg>
                 </div>
                 
                 <svg 
                   ref={svgRef} 
                   viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-                  className={`w-full h-full ${isPanning ? 'cursor-grabbing' : isDrawing ? 'cursor-crosshair' : 'cursor-grab'}`} 
+                  className={`w-full h-full select-none ${
+                    isPanning ? 'cursor-grabbing' : 
+                    isDrawing ? 'cursor-crosshair' : 
+                    'cursor-grab'
+                  }`} 
                   onClick={handleCanvasClick} 
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onWheel={handleWheel}
+                  style={{ touchAction: 'none' }}
                 >
                   <defs>
                     <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
