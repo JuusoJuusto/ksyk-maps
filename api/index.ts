@@ -25,7 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Buildings endpoints
     if (apiPath.startsWith('/buildings')) {
       if (req.method === 'GET' && apiPath === '/buildings') {
+        console.log('🏢 Fetching buildings from storage...');
         const buildings = await storage.getBuildings();
+        console.log(`✅ Found ${buildings.length} buildings`);
+        console.log('Buildings data:', JSON.stringify(buildings, null, 2));
         return res.status(200).json(buildings);
       }
       

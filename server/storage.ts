@@ -371,7 +371,10 @@ class MemStorage implements IStorage {
 // Create storage factory function
 async function createStorage(): Promise<IStorage> {
   // Debug env vars
-  console.log('Storage initialization - USE_FIREBASE:', process.env.USE_FIREBASE);
+  console.log('🔧 Storage initialization - Environment check:');
+  console.log('  USE_FIREBASE:', process.env.USE_FIREBASE);
+  console.log('  Has FIREBASE_SERVICE_ACCOUNT:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log('  Has DATABASE_URL:', !!process.env.DATABASE_URL);
   
   // Check if we should use Firebase
   if (process.env.USE_FIREBASE === 'true') {
@@ -390,14 +393,14 @@ async function createStorage(): Promise<IStorage> {
   if (process.env.DATABASE_URL) {
     try {
       const { DatabaseStorage } = await import('./postgresStorage.js');
-      console.log('Using PostgreSQL storage');
+      console.log('✅ Using PostgreSQL storage');
       return new DatabaseStorage();
     } catch (error) {
-      console.warn('PostgreSQL not available, falling back to mock storage:', error);
+      console.warn('⚠️ PostgreSQL not available, falling back to mock storage:', error);
     }
   }
   
-  console.log('Using mock storage for development');
+  console.log('📦 Using mock storage for development');
   return new MemStorage();
 }
 

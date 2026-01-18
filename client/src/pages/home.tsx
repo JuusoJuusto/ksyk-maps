@@ -95,9 +95,15 @@ export default function Home() {
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
+      console.log('🏢 Fetching buildings from API...');
       const response = await fetch("/api/buildings");
-      if (!response.ok) throw new Error("Failed to fetch buildings");
-      return response.json();
+      if (!response.ok) {
+        console.error('❌ Failed to fetch buildings:', response.status, response.statusText);
+        throw new Error("Failed to fetch buildings");
+      }
+      const data = await response.json();
+      console.log('✅ Received buildings:', data.length, data);
+      return data;
     },
   });
 
@@ -497,6 +503,11 @@ export default function Home() {
                   {/* Background fills larger viewport */}
                   <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
+
+                  {/* Debug: Show building count */}
+                  <text x="50" y="50" fill={darkMode ? '#fff' : '#000'} fontSize="20" fontWeight="bold">
+                    Buildings: {buildings.length}
+                  </text>
 
                   {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
                   {buildings.map((building: Building, index: number) => {
