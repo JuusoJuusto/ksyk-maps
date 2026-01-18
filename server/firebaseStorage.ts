@@ -493,11 +493,14 @@ export class FirebaseStorage implements IStorage {
       const roomData = {
         ...room,
         id: docRef.id,
+        isActive: true, // CRITICAL: Set isActive to true so rooms show up
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       
+      console.log('Creating room in Firebase:', roomData);
       await docRef.set(roomData);
+      console.log('Room created successfully:', docRef.id);
       return roomData as Room;
     } catch (error) {
       console.error('Error creating room:', error);
