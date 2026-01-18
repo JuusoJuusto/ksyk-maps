@@ -15,7 +15,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         message: "KSYK Maps API is running",
         version: "1.0.0",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        env: {
+          USE_FIREBASE: process.env.USE_FIREBASE,
+          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+          FIREBASE_SERVICE_ACCOUNT_LENGTH: process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0,
+          NODE_ENV: process.env.NODE_ENV
+        }
+      });
+    }
+    
+    // Debug endpoint to check storage
+    if (apiPath === '/debug') {
+      const { storage } = await import('../server/storage.js');
+      const buildings = await storage.getBuildings();
+      return res.status(200).json({
+        storageType: storage.constructor.name,
+        buildingCount: buildings.length,
+        buildings: buildings,
+        env: {
+          USE_FIREBASE: process.env.USE_FIREBASE,
+          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT
+        }
       });
     }
     

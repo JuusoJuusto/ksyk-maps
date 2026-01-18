@@ -25,21 +25,37 @@ import type {
 } from "@shared/schema";
 
 // Initialize Firebase Admin (server-side)
+let firebaseInitialized = false;
+let firebaseError: Error | null = null;
+
 if (!getApps().length) {
   try {
+    console.log('🔥 Attempting Firebase initialization...');
+    console.log('Environment check:', {
+      HAS_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+      SERVICE_ACCOUNT_LENGTH: process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0,
+      HAS_PROJECT_ID: !!process.env.FIREBASE_PROJECT_ID,
+      HAS_CLIENT_EMAIL: !!process.env.FIREBASE_CLIENT_EMAIL,
+      HAS_PRIVATE_KEY: !!process.env.FIREBASE_PRIVATE_KEY
+    });
+    
     // Priority 1: Try FIREBASE_SERVICE_ACCOUNT environment variable (for Vercel)
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       try {
+        console.log('📝 Parsing FIREBASE_SERVICE_ACCOUNT...');
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         
+        console.log('🔑 Service account parsed, initializing Firebase...');
         initializeApp({
           credential: cert(serviceAccount),
           projectId: "ksyk-maps",
         });
         
+        firebaseInitialized = true;
         console.log('✅ Firebase initialized with FIREBASE_SERVICE_ACCOUNT env var');
       } catch (parseError) {
         console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
+        firebaseError = parseError as Error;
         throw parseError;
       }
     }
@@ -55,6 +71,7 @@ if (!getApps().length) {
           projectId: "ksyk-maps",
         });
         
+        firebaseInitialized = true;
         console.log('✅ Firebase initialized with serviceAccountKey.json file');
       } else {
         // Priority 3: Try individual environment variables
@@ -69,13 +86,18 @@ if (!getApps().length) {
             }),
           });
           
+          firebaseInitialized = true;
           console.log('✅ Firebase initialized with individual environment variables');
         } else {
-          throw new Error('No Firebase credentials found. Please set FIREBASE_SERVICE_ACCOUNT environment variable.');
+          const error = new Error('No Firebase credentials found. Please set FIREBASE_SERVICE_ACCOUNT environment variable.');
+          firebaseError = error;
+          console.error('❌', error.message);
+          throw error;
         }
       }
     }
   } catch (error) {
+    firebaseError = error as Error;
     console.error('❌ Firebase initialization error:', error);
     console.error('Available env vars:', {
       hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT,
@@ -90,6 +112,17 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export class FirebaseStorage implements IStorage {
+  constructor() {
+    if (!firebaseInitialized) {
+      const errorMsg = firebaseError 
+        ? `Firebase not initialized: ${firebaseError.message}`
+        : 'Firebase not initialized for unknown reason';
+      console.error('❌ FirebaseStorage constructor error:', errorMsg);
+      throw new Error(errorMsg);
+    }
+    console.log('✅ FirebaseStorage instance created successfully');
+  }
+  
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     try {

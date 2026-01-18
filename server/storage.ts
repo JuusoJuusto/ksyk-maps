@@ -374,16 +374,31 @@ async function createStorage(): Promise<IStorage> {
   console.log('🔧 Storage initialization - Environment check:');
   console.log('  USE_FIREBASE:', process.env.USE_FIREBASE);
   console.log('  Has FIREBASE_SERVICE_ACCOUNT:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log('  FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
   console.log('  Has DATABASE_URL:', !!process.env.DATABASE_URL);
   
   // Check if we should use Firebase
   if (process.env.USE_FIREBASE === 'true') {
+    console.log('🔥 USE_FIREBASE is true, attempting to load Firebase...');
     try {
       const { firebaseStorage } = await import('./firebaseStorage.js');
-      console.log('✅ Using Firebase storage');
-      return firebaseStorage;
+      console.log('✅ Firebase storage module loaded');
+      
+      // Test Firebase connection by trying to get buildings
+      try {
+        const testBuildings = await firebaseStorage.getBuildings();
+        console.log(`✅ Firebase connection verified - found ${testBuildings.length} buildings`);
+        return firebaseStorage;
+      } catch (testError) {
+        console.error('❌ Firebase connection test failed:', testError);
+        throw testError;
+      }
     } catch (error) {
       console.error('❌ Firebase not available, falling back to mock storage:', error);
+      console.error('Error details:', {
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
     }
   } else {
     console.log('ℹ️ USE_FIREBASE not set to true, using mock storage');
