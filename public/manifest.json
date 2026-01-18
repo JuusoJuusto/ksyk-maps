@@ -8,9 +8,9 @@
   "theme_color": "#3B82F6",
   "icons": [
     {
-      "src": "/ksykmaps_logo.png",
+      "src": "/kulosaaren_yhteiskoulu_logo.jpeg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg"
     }
   ]
 }

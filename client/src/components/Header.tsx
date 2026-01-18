@@ -167,7 +167,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-3" data-testid="link-home">
-              <img src="/ksykmaps_logo.png" alt="KSYK Logo" className="h-12 w-12 object-contain" />
+              <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="KSYK Logo" className="h-12 w-12 object-contain rounded-lg" />
               <div>
                 <h1 
                   className="text-xl font-bold text-primary cursor-pointer hover:text-blue-600 transition-colors" 
