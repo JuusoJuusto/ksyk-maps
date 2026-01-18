@@ -32,6 +32,7 @@ export default function UltimateKSYKBuilder() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 5000, height: 3000 });
   const [copiedBuilding, setCopiedBuilding] = useState<any>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -157,30 +158,48 @@ export default function UltimateKSYKBuilder() {
   const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
     const svg = svgRef.current;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-    return snapToGrid({ x: svgP.x, y: svgP.y });
+    const rect = svg.getBoundingClientRect();
+    
+    // Calculate point in SVG coordinate space using viewBox
+    const x = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.width;
+    const y = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.height;
+    
+    return snapToGrid({ x, y });
   };
 
   // Zoom functions
-  const handleZoomIn = () => setZoom(Math.min(zoom * 1.2, 3));
-  const handleZoomOut = () => setZoom(Math.max(zoom / 1.2, 0.5));
-  const handleResetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev * 1.2, 3));
+  };
   
-  // Pan functions
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev / 1.2, 0.3));
+  };
+  
+  const handleResetView = () => { 
+    setZoom(0.5); // Start zoomed out to see more of the large canvas
+    setViewBox({ x: 0, y: 0, width: 5000, height: 3000 });
+  };
+  
+  // Pan functions - FIXED for larger canvas
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // Middle mouse or Ctrl+Click
       setIsPanning(true);
-      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
     }
   };
   
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (isPanning) {
-      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+      const dx = (e.clientX - panStart.x) / zoom;
+      const dy = (e.clientY - panStart.y) / zoom;
+      setViewBox(prev => ({
+        ...prev,
+        x: prev.x - dx,
+        y: prev.y - dy
+      }));
+      setPanStart({ x: e.clientX, y: e.clientY });
     } else if (isDrawing && shapeMode === "rectangle" && rectStart) {
       setRectEnd(getSVGPoint(e));
     }
@@ -194,7 +213,16 @@ export default function UltimateKSYKBuilder() {
     if (e.ctrlKey) {
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom(Math.max(0.5, Math.min(3, zoom * delta)));
+      setZoom(prev => Math.max(0.3, Math.min(3, prev * delta)));
+    } else {
+      // Scroll to pan
+      e.preventDefault();
+      const scrollSpeed = 2;
+      setViewBox(prev => ({
+        ...prev,
+        x: prev.x + e.deltaX * scrollSpeed,
+        y: prev.y + e.deltaY * scrollSpeed
+      }));
     }
   };
 
@@ -732,28 +760,30 @@ export default function UltimateKSYKBuilder() {
               <div className="relative bg-white" style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}>
                 {/* Zoom Controls */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomIn} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
-                    <ZoomIn className="h-5 w-5 text-gray-700" />
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomIn} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all">
+                    <ZoomIn className="h-6 w-6 text-gray-700" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomOut} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
-                    <ZoomOut className="h-5 w-5 text-gray-700" />
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleZoomOut} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all">
+                    <ZoomOut className="h-6 w-6 text-gray-700" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleResetView} className="p-2 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-blue-500">
-                    <Maximize2 className="h-5 w-5 text-gray-700" />
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleResetView} className="p-3 bg-white rounded-lg shadow-lg border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all" title="Reset View">
+                    <Maximize2 className="h-6 w-6 text-gray-700" />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowGrid(!showGrid)} className={`p-2 rounded-lg shadow-lg border-2 ${showGrid ? 'bg-green-500 border-green-600' : 'bg-white border-gray-300'}`}>
-                    <Grid3x3 className={`h-5 w-5 ${showGrid ? 'text-white' : 'text-gray-700'}`} />
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowGrid(!showGrid)} className={`p-3 rounded-lg shadow-lg border-2 transition-all ${showGrid ? 'bg-green-500 border-green-600 hover:bg-green-600' : 'bg-white border-gray-300 hover:border-green-500 hover:bg-green-50'}`} title="Toggle Grid">
+                    <Grid3x3 className={`h-6 w-6 ${showGrid ? 'text-white' : 'text-gray-700'}`} />
                   </motion.button>
                 </div>
                 
                 {/* Zoom indicator */}
-                <div className="absolute bottom-4 right-4 z-10 bg-white px-3 py-1 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold">
-                  {Math.round(zoom * 100)}%
+                <div className="absolute bottom-4 right-4 z-10 bg-white px-3 py-1 rounded-lg shadow-lg border-2 border-gray-300 text-sm font-bold flex items-center gap-2">
+                  <span>{Math.round(zoom * 100)}%</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-xs text-gray-600">Scroll to pan, Ctrl+Scroll to zoom</span>
                 </div>
                 
                 <svg 
                   ref={svgRef} 
-                  viewBox="0 0 5000 3000" 
+                  viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                   className={`w-full h-full ${isPanning ? 'cursor-grabbing' : isDrawing ? 'cursor-crosshair' : 'cursor-grab'}`} 
                   onClick={handleCanvasClick} 
                   onMouseDown={handleMouseDown}
@@ -761,7 +791,6 @@ export default function UltimateKSYKBuilder() {
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onWheel={handleWheel}
-                  style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center', transition: isPanning ? 'none' : 'transform 0.1s ease' }}
                 >
                   <defs>
                     <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
