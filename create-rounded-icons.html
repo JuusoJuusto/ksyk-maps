@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Rounded Icons</title>
+</head>
+<body>
+    <h1>Rounded Icon Generator</h1>
+    <p>This will create rounded versions of your logo for favicon and apple-touch-icon.</p>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <br><br>
+    
+    <canvas id="favicon" width="32" height="32" style="border: 1px solid black; margin: 10px;"></canvas>
+    <button onclick="downloadCanvas('favicon', 'favicon.png')">Download Favicon (32x32)</button>
+    <br>
+    
+    <canvas id="appleTouchIcon" width="180" height="180" style="border: 1px solid black; margin: 10px;"></canvas>
+    <button onclick="downloadCanvas('appleTouchIcon', 'apple-touch-icon.png')">Download Apple Touch Icon (180x180)</button>
+    <br>
+    
+    <canvas id="icon192" width="192" height="192" style="border: 1px solid black; margin: 10px;"></canvas>
+    <button onclick="downloadCanvas('icon192', 'icon-192.png')">Download Icon 192x192</button>
+    <br>
+    
+    <canvas id="icon512" width="512" height="512" style="border: 1px solid black; margin: 10px;"></canvas>
+    <button onclick="downloadCanvas('icon512', 'icon-512.png')">Download Icon 512x512</button>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Create all sizes
+                    createRoundedIcon('favicon', img, 32);
+                    createRoundedIcon('appleTouchIcon', img, 180);
+                    createRoundedIcon('icon192', img, 192);
+                    createRoundedIcon('icon512', img, 512);
+                };
+                img.src = event.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        });
+        
+        function createRoundedIcon(canvasId, img, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Create rounded clipping path
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            
+            // Draw image
+            ctx.drawImage(img, 0, 0, size, size);
+        }
+        
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

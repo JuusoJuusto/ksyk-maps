@@ -30,6 +30,19 @@
       ]
     },
     {
+      "source": "/(favicon|apple-touch-icon|icon-192|icon-512).png",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/kulosaaren_yhteiskoulu_logo.jpeg",
       "headers": [
         {
