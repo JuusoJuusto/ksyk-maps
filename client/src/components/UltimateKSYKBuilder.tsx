@@ -703,7 +703,7 @@ export default function UltimateKSYKBuilder() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
               {buildings.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <Building className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -741,6 +741,88 @@ export default function UltimateKSYKBuilder() {
                 ))
               )}
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Rooms Section */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-4">
+        <Card className="shadow-xl border-2 border-gray-200">
+          <CardHeader className="bg-gradient-to-r from-purple-800 to-purple-900 text-white py-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Home className="h-5 w-5" />
+                Rooms ({rooms.length})
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {rooms.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Home className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-semibold">No rooms yet</p>
+                <p className="text-sm">Use the Room tool to add rooms to your buildings!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Group rooms by building */}
+                {buildings.map((building: any) => {
+                  const buildingRooms = rooms.filter((r: any) => r.buildingId === building.id);
+                  if (buildingRooms.length === 0) return null;
+                  
+                  return (
+                    <div key={building.id} className="border-2 rounded-xl p-4" style={{ borderColor: building.colorCode }}>
+                      <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: building.colorCode }}>
+                        <Building className="h-5 w-5" />
+                        {building.name} - {building.nameEn}
+                        <Badge variant="outline" className="ml-2">{buildingRooms.length} rooms</Badge>
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                        {buildingRooms.map((room: any) => {
+                          // Color code by room type
+                          const getRoomColor = (type: string) => {
+                            switch(type) {
+                              case 'classroom': return '#3B82F6'; // blue
+                              case 'lab': return '#10B981'; // green
+                              case 'office': return '#F59E0B'; // amber
+                              case 'library': return '#8B5CF6'; // purple
+                              case 'gymnasium': return '#EF4444'; // red
+                              case 'cafeteria': return '#EC4899'; // pink
+                              case 'toilet': return '#6B7280'; // gray
+                              case 'stairway': return '#DC2626'; // dark red
+                              case 'elevator': return '#7C3AED'; // violet
+                              case 'hallway': return '#9CA3AF'; // light gray
+                              default: return '#6B7280';
+                            }
+                          };
+                          
+                          const roomColor = getRoomColor(room.type);
+                          
+                          return (
+                            <motion.div 
+                              key={room.id} 
+                              whileHover={{ scale: 1.05 }} 
+                              className="border rounded-lg p-2 hover:shadow-md transition-all text-sm"
+                              style={{ borderColor: roomColor, borderWidth: '2px' }}
+                            >
+                              <div className="font-bold" style={{ color: roomColor }}>{room.roomNumber}</div>
+                              <div className="text-xs text-gray-600 truncate">{room.name || room.nameEn || 'Unnamed'}</div>
+                              <div className="flex items-center justify-between mt-1">
+                                <Badge variant="outline" className="text-xs" style={{ borderColor: roomColor, color: roomColor }}>
+                                  Floor {room.floor}
+                                </Badge>
+                                <span className="text-xs text-gray-500 capitalize">{room.type.replace('_', ' ')}</span>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

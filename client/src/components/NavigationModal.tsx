@@ -80,16 +80,143 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     }
   };
 
+  // Pathfinding algorithm - finds route through hallways and stairways only
+  const findPath = (from: Room, to: Room): Room[] | null => {
+    // If same room, no path needed
+    if (from.id === to.id) return [from];
+    
+    // Get all hallways and stairways (navigation nodes)
+    const navRooms = rooms.filter((r: Room) => 
+      r.type === 'hallway' || r.type === 'stairway' || r.type === 'elevator'
+    );
+    
+    // Build adjacency graph - rooms connect if they're in same building and adjacent floors
+    const buildGraph = () => {
+      const graph = new Map<string, string[]>();
+      
+      // Add start and end rooms
+      const allNodes = [from, to, ...navRooms];
+      
+      allNodes.forEach(room => {
+        graph.set(room.id, []);
+      });
+      
+      // Connect rooms in same building
+      allNodes.forEach(roomA => {
+        allNodes.forEach(roomB => {
+          if (roomA.id === roomB.id) return;
+          
+          // Same building connections
+          if (roomA.buildingId === roomB.buildingId) {
+            // Same floor - can connect if both are nav rooms or one is start/end
+            if (roomA.floor === roomB.floor) {
+              const isNavConnection = 
+                (roomA.type === 'hallway' || roomA.type === 'stairway' || roomA.type === 'elevator') &&
+                (roomB.type === 'hallway' || roomB.type === 'stairway' || roomB.type === 'elevator');
+              
+              const isStartEnd = 
+                (roomA.id === from.id || roomA.id === to.id) ||
+                (roomB.id === from.id || roomB.id === to.id);
+              
+              if (isNavConnection || isStartEnd) {
+                graph.get(roomA.id)?.push(roomB.id);
+              }
+            }
+            // Adjacent floors - only through stairways/elevators
+            else if (Math.abs(roomA.floor - roomB.floor) === 1) {
+              if ((roomA.type === 'stairway' || roomA.type === 'elevator') &&
+                  (roomB.type === 'stairway' || roomB.type === 'elevator')) {
+                graph.get(roomA.id)?.push(roomB.id);
+              }
+            }
+          }
+        });
+      });
+      
+      return graph;
+    };
+    
+    // A* pathfinding
+    const graph = buildGraph();
+    const openSet = new Set([from.id]);
+    const cameFrom = new Map<string, string>();
+    const gScore = new Map<string, number>();
+    const fScore = new Map<string, number>();
+    
+    gScore.set(from.id, 0);
+    fScore.set(from.id, 0);
+    
+    while (openSet.size > 0) {
+      // Get node with lowest fScore
+      let current = '';
+      let lowestF = Infinity;
+      openSet.forEach(id => {
+        const f = fScore.get(id) || Infinity;
+        if (f < lowestF) {
+          lowestF = f;
+          current = id;
+        }
+      });
+      
+      if (current === to.id) {
+        // Reconstruct path
+        const path: Room[] = [];
+        let curr = current;
+        while (curr) {
+          const room = rooms.find((r: Room) => r.id === curr) || (curr === from.id ? from : to);
+          path.unshift(room);
+          curr = cameFrom.get(curr) || '';
+        }
+        return path;
+      }
+      
+      openSet.delete(current);
+      const neighbors = graph.get(current) || [];
+      
+      neighbors.forEach(neighborId => {
+        const tentativeG = (gScore.get(current) || 0) + 1;
+        
+        if (tentativeG < (gScore.get(neighborId) || Infinity)) {
+          cameFrom.set(neighborId, current);
+          gScore.set(neighborId, tentativeG);
+          fScore.set(neighborId, tentativeG + 1); // Simple heuristic
+          openSet.add(neighborId);
+        }
+      });
+    }
+    
+    return null; // No path found
+  };
+
   const handleNavigation = () => {
     if (selectedFrom && selectedTo) {
       const fromLabel = `${selectedFrom.roomNumber} - ${selectedFrom.name || selectedFrom.nameEn}`;
       const toLabel = `${selectedTo.roomNumber} - ${selectedTo.name || selectedTo.nameEn}`;
       
+      // Find path through hallways/stairways
+      const path = findPath(selectedFrom, selectedTo);
+      
+      if (!path) {
+        alert(`❌ No route found!\n\nCannot find a path through hallways and stairways between these rooms.\n\nThis might mean:\n• The rooms are in different buildings\n• Missing hallway/stairway connections\n• Rooms are on different floors without stairway access`);
+        return;
+      }
+      
+      // Build route description
+      const routeSteps = path.map((room, idx) => {
+        if (idx === 0) return `Start: ${room.roomNumber}`;
+        if (idx === path.length - 1) return `Arrive: ${room.roomNumber}`;
+        
+        if (room.type === 'stairway') return `🪜 Take stairway ${room.roomNumber}`;
+        if (room.type === 'elevator') return `🛗 Take elevator ${room.roomNumber}`;
+        if (room.type === 'hallway') return `🚶 Walk through hallway ${room.roomNumber}`;
+        return `→ ${room.roomNumber}`;
+      }).join('\n');
+      
       // Call the navigation handler
       onNavigate(fromLabel, toLabel);
       
-      // Show success message
-      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n✅ Route is now displayed on the map!`);
+      // Show success message with route
+      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps):\n${routeSteps}\n\n✅ Route is now displayed on the map!`);
       
       // Close modal
       onClose();
