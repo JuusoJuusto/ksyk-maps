@@ -44,6 +44,10 @@ interface Room {
   buildingId: string;
   capacity?: number;
   equipment?: string[];
+  mapPositionX?: number;
+  mapPositionY?: number;
+  width?: number;
+  height?: number;
 }
 
 
@@ -91,7 +95,7 @@ export default function Home() {
     setSelectedBuilding(null);
   };
 
-  // Fetch buildings
+  // Fetch buildings with caching
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
@@ -105,9 +109,11 @@ export default function Home() {
       console.log('✅ Received buildings:', data.length, data);
       return data;
     },
+    staleTime: 60000, // Cache for 1 minute
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch rooms
+  // Fetch rooms with caching
   const { data: rooms = [] } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
@@ -115,6 +121,8 @@ export default function Home() {
       if (!response.ok) throw new Error("Failed to fetch rooms");
       return response.json();
     },
+    staleTime: 60000, // Cache for 1 minute
+    refetchOnWindowFocus: false,
   });
 
 

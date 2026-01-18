@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,8 @@ export default function UltimateKSYKBuilder() {
       if (!response.ok) throw new Error("Failed to fetch buildings");
       return response.json();
     },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const { data: rooms = [] } = useQuery({
@@ -64,7 +66,20 @@ export default function UltimateKSYKBuilder() {
       if (!response.ok) throw new Error("Failed to fetch rooms");
       return response.json();
     },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
+
+  // Memoize room type colors to avoid recalculation
+  const getRoomColor = useMemo(() => (type: string) => {
+    const colors: Record<string, string> = {
+      classroom: '#3B82F6', lab: '#10B981', office: '#F59E0B',
+      library: '#8B5CF6', gymnasium: '#EF4444', cafeteria: '#EC4899',
+      toilet: '#6B7280', stairway: '#DC2626', elevator: '#7C3AED',
+      hallway: '#9CA3AF'
+    };
+    return colors[type] || '#6B7280';
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -231,13 +246,16 @@ export default function UltimateKSYKBuilder() {
         mapPositionY: Math.min(...ys),
         description: JSON.stringify({ customShape: points })
       });
-    } else if (activeTool === "room") {
-      if (!roomData.buildingId || !roomData.roomNumber) {
-        alert("Select building and enter room number!");
-        return;
-      }
-      createRoomMutation.mutate(roomData);
     }
+  };
+
+  // Separate function for creating rooms without drawing
+  const handleCreateRoom = () => {
+    if (!roomData.buildingId || !roomData.roomNumber) {
+      alert("Select building and enter room number!");
+      return;
+    }
+    createRoomMutation.mutate(roomData);
   };
 
   const toggleFloor = (floor: number) => {
@@ -378,7 +396,7 @@ export default function UltimateKSYKBuilder() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="xl:col-span-1">
           <Card className="shadow-xl border-2 border-gray-200">
             <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
@@ -465,12 +483,31 @@ export default function UltimateKSYKBuilder() {
                         <Input type="number" min="1" value={roomData.floor} onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-bold">Name (EN)</Label>
+                        <Input value={roomData.nameEn} onChange={(e) => setRoomData({ ...roomData, nameEn: e.target.value })} placeholder="Music Room" className="mt-1 h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Name (FI)</Label>
+                        <Input value={roomData.nameFi} onChange={(e) => setRoomData({ ...roomData, nameFi: e.target.value })} placeholder="Musiikkihuone" className="mt-1 h-9" />
+                      </div>
+                    </div>
                     <div>
                       <Label className="text-xs font-bold">Type</Label>
                       <select value={roomData.type} onChange={(e) => setRoomData({ ...roomData, type: e.target.value })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
                         {roomTypes.map((type) => (<option key={type.value} value={type.value}>{type.label}</option>))}
                       </select>
                     </div>
+                    <div>
+                      <Label className="text-xs font-bold">Capacity</Label>
+                      <Input type="number" min="1" value={roomData.capacity} onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 30 })} className="mt-1 h-9" />
+                    </div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button onClick={handleCreateRoom} className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg h-11">
+                        <Plus className="h-4 w-4 mr-2" />Create Room
+                      </Button>
+                    </motion.div>
                   </motion.div>
                 )}
 
@@ -538,7 +575,7 @@ export default function UltimateKSYKBuilder() {
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="xl:col-span-3">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="xl:col-span-4">
           <Card className="shadow-2xl border-2 border-gray-200">
             <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
               <div className="flex items-center justify-between">
@@ -691,7 +728,9 @@ export default function UltimateKSYKBuilder() {
             </CardContent>
           </Card>
         </motion.div>
-      
+      </div>
+
+      {/* Buildings and Rooms Section - Full Width */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-4">
         <Card className="shadow-xl border-2 border-gray-200">
           <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
@@ -703,7 +742,7 @@ export default function UltimateKSYKBuilder() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
               {buildings.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <Building className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -780,23 +819,6 @@ export default function UltimateKSYKBuilder() {
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                         {buildingRooms.map((room: any) => {
-                          // Color code by room type
-                          const getRoomColor = (type: string) => {
-                            switch(type) {
-                              case 'classroom': return '#3B82F6'; // blue
-                              case 'lab': return '#10B981'; // green
-                              case 'office': return '#F59E0B'; // amber
-                              case 'library': return '#8B5CF6'; // purple
-                              case 'gymnasium': return '#EF4444'; // red
-                              case 'cafeteria': return '#EC4899'; // pink
-                              case 'toilet': return '#6B7280'; // gray
-                              case 'stairway': return '#DC2626'; // dark red
-                              case 'elevator': return '#7C3AED'; // violet
-                              case 'hallway': return '#9CA3AF'; // light gray
-                              default: return '#6B7280';
-                            }
-                          };
-                          
                           const roomColor = getRoomColor(room.type);
                           
                           return (
