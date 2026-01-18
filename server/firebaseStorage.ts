@@ -200,10 +200,38 @@ export class FirebaseStorage implements IStorage {
   // Building operations
   async getBuildings(): Promise<Building[]> {
     try {
+      console.log('🔍 FirebaseStorage.getBuildings() called');
+      console.log('📊 Querying Firestore for buildings with isActive=true...');
+      
       const snapshot = await db.collection('buildings').where('isActive', '==', true).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Building));
+      
+      console.log(`📦 Firestore returned ${snapshot.size} documents`);
+      
+      if (snapshot.empty) {
+        console.log('⚠️ No buildings found with isActive=true');
+        console.log('🔍 Trying to get ALL buildings (without isActive filter)...');
+        
+        const allSnapshot = await db.collection('buildings').get();
+        console.log(`📦 Total buildings in collection: ${allSnapshot.size}`);
+        
+        if (!allSnapshot.empty) {
+          const allBuildings = allSnapshot.docs.map(doc => {
+            const data = doc.data();
+            console.log(`  - Building ${doc.id}: isActive=${data.isActive}, name=${data.name}`);
+            return { id: doc.id, ...data };
+          });
+          
+          // Return all buildings regardless of isActive status
+          console.log('✅ Returning all buildings (ignoring isActive filter)');
+          return allBuildings as Building[];
+        }
+      }
+      
+      const buildings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Building));
+      console.log(`✅ Returning ${buildings.length} active buildings`);
+      return buildings;
     } catch (error) {
-      console.error('Error getting buildings:', error);
+      console.error('❌ Error getting buildings:', error);
       return [];
     }
   }
