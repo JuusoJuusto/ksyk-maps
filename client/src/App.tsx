@@ -12,7 +12,6 @@ import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import Builder from "@/pages/builder";
-import KSYKBuilderPage from "@/pages/ksyk-builder";
 import HSL from "@/pages/hsl";
 import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
@@ -26,7 +25,6 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
-      <Route path="/admin-ksyk-management-portal/ksyk-builder" component={KSYKBuilderPage} />
       <Route path="/builder" component={Builder} />
       <Route path="/hsl" component={HSL} />
       <Route path="/features" component={Features} />

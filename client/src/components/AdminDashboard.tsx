@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
@@ -353,11 +352,7 @@ export default function AdminDashboard() {
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="ksyk-builder" asChild>
-            <Link href="/admin-ksyk-management-portal/ksyk-builder">
-              <span>KSYK Builder</span>
-            </Link>
-          </TabsTrigger>
+          <TabsTrigger value="ksyk-builder">KSYK Builder</TabsTrigger>
           <TabsTrigger value="buildings">Buildings</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>

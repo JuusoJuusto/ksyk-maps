@@ -676,6 +676,69 @@ export default function Home() {
                       </g>
                     );
                   })}
+                  
+                  {/* Rooms inside buildings */}
+                  {rooms.filter((room: Room) => room.floor === selectedFloor).map((room: Room) => {
+                    if (!room.mapPositionX || !room.mapPositionY) return null;
+                    
+                    const roomWidth = room.width || 40;
+                    const roomHeight = room.height || 30;
+                    
+                    // Room type colors
+                    const roomColors: Record<string, string> = {
+                      classroom: '#60A5FA',
+                      lab: '#34D399',
+                      office: '#FBBF24',
+                      library: '#A78BFA',
+                      gymnasium: '#F87171',
+                      cafeteria: '#FB923C',
+                      toilet: '#94A3B8',
+                      stairway: '#EF4444',
+                      hallway: '#D1D5DB',
+                      elevator: '#10B981'
+                    };
+                    
+                    const roomColor = roomColors[room.type] || '#9CA3AF';
+                    
+                    return (
+                      <g key={room.id} className="cursor-pointer" onClick={() => setSelectedRoom(room)}>
+                        {/* Room shadow */}
+                        <rect
+                          x={room.mapPositionX + 2}
+                          y={room.mapPositionY + 2}
+                          width={roomWidth}
+                          height={roomHeight}
+                          fill="rgba(0,0,0,0.2)"
+                          rx="4"
+                        />
+                        {/* Room */}
+                        <rect
+                          x={room.mapPositionX}
+                          y={room.mapPositionY}
+                          width={roomWidth}
+                          height={roomHeight}
+                          fill={roomColor}
+                          stroke="white"
+                          strokeWidth="2"
+                          rx="4"
+                          opacity="0.9"
+                        />
+                        {/* Room number */}
+                        <text
+                          x={room.mapPositionX + roomWidth / 2}
+                          y={room.mapPositionY + roomHeight / 2}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="10"
+                          fontWeight="bold"
+                          style={{ pointerEvents: 'none' }}
+                        >
+                          {room.roomNumber}
+                        </text>
+                      </g>
+                    );
+                  })}
                 </svg>
                 </div>
               </div>
