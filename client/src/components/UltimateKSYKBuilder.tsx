@@ -62,9 +62,12 @@ export default function UltimateKSYKBuilder() {
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
+      console.log('🏠 Fetching rooms from API...');
       const response = await fetch("/api/rooms");
       if (!response.ok) throw new Error("Failed to fetch rooms");
-      return response.json();
+      const data = await response.json();
+      console.log('✅ Received rooms:', data.length, data);
+      return data;
     },
     staleTime: 30000, // Cache for 30 seconds
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -731,9 +734,10 @@ export default function UltimateKSYKBuilder() {
                   })}
                   
                   {/* Rooms rendering */}
-                  {rooms.map((room: any) => {
-                    if (!room.mapPositionX || !room.mapPositionY) return null;
-                    
+                  {rooms.map((room: any, index: number) => {
+                    // Default position if not set
+                    const roomX = room.mapPositionX || (100 + (index * 60));
+                    const roomY = room.mapPositionY || 500;
                     const roomWidth = room.width || 40;
                     const roomHeight = room.height || 30;
                     const roomColor = getRoomColor(room.type);
@@ -742,8 +746,8 @@ export default function UltimateKSYKBuilder() {
                       <g key={room.id} className="cursor-pointer transition-all">
                         {/* Room shadow */}
                         <rect
-                          x={room.mapPositionX + 2}
-                          y={room.mapPositionY + 2}
+                          x={roomX + 2}
+                          y={roomY + 2}
                           width={roomWidth}
                           height={roomHeight}
                           fill="rgba(0,0,0,0.2)"
@@ -751,8 +755,8 @@ export default function UltimateKSYKBuilder() {
                         />
                         {/* Room */}
                         <rect
-                          x={room.mapPositionX}
-                          y={room.mapPositionY}
+                          x={roomX}
+                          y={roomY}
                           width={roomWidth}
                           height={roomHeight}
                           fill={roomColor}
@@ -763,8 +767,8 @@ export default function UltimateKSYKBuilder() {
                         />
                         {/* Room number */}
                         <text
-                          x={room.mapPositionX + roomWidth / 2}
-                          y={room.mapPositionY + roomHeight / 2}
+                          x={roomX + roomWidth / 2}
+                          y={roomY + roomHeight / 2}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
