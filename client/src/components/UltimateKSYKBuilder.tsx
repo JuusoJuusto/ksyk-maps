@@ -753,7 +753,7 @@ export default function UltimateKSYKBuilder() {
                 
                 <svg 
                   ref={svgRef} 
-                  viewBox="0 0 2000 1200" 
+                  viewBox="0 0 5000 3000" 
                   className={`w-full h-full ${isPanning ? 'cursor-grabbing' : isDrawing ? 'cursor-crosshair' : 'cursor-grab'}`} 
                   onClick={handleCanvasClick} 
                   onMouseDown={handleMouseDown}
@@ -776,8 +776,8 @@ export default function UltimateKSYKBuilder() {
                       <stop offset="100%" style={{ stopColor: "white", stopOpacity: 0 }} />
                     </linearGradient>
                   </defs>
-                  <rect width="100%" height="100%" fill="white" />
-                  {showGrid && <rect width="100%" height="100%" fill="url(#largeGrid)" />}
+                  <rect width="5000" height="3000" fill="white" />
+                  {showGrid && <rect width="5000" height="3000" fill="url(#largeGrid)" />}
                   
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;
@@ -1005,8 +1005,9 @@ export default function UltimateKSYKBuilder() {
                   
                   {renderCurrentShape()}
                   
-                  <line x1="1000" y1="0" x2="1000" y2="1200" stroke="#94a3b8" strokeWidth="1" strokeDasharray="5,5" opacity="0.3" />
-                  <line x1="0" y1="600" x2="2000" y2="600" stroke="#94a3b8" strokeWidth="1" strokeDasharray="5,5" opacity="0.3" />
+                  {/* Center crosshair guides */}
+                  <line x1="2500" y1="0" x2="2500" y2="3000" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.3" />
+                  <line x1="0" y1="1500" x2="5000" y2="1500" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.3" />
                 </svg>
               </div>
             </CardContent>

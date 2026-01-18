@@ -55,7 +55,7 @@ export default function InteractiveCampusMap({
   const [searchTerm, setSearchTerm] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 1000, height: 600 });
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 5000, height: 3000 });
 
   // Use props or fetch data as fallback
   const buildings = propBuildings.length > 0 ? propBuildings : [];
@@ -143,42 +143,34 @@ export default function InteractiveCampusMap({
               onMouseLeave={handleMouseUp}
               onWheel={handleWheel}
             >
-              {/* Grid Lines (Major) */}
-              {Array.from({ length: 25 }).map((_, i) => (
-                <line
-                  key={`v-${i}`}
-                  x1={i * 40}
-                  y1="0"
-                  x2={i * 40}
-                  y2="600"
-                  stroke="#d1d5db"
-                  strokeWidth="1"
-                  opacity="0.3"
-                />
-              ))}
-              {Array.from({ length: 15 }).map((_, i) => (
-                <line
-                  key={`h-${i}`}
-                  x1="0"
-                  y1={i * 40}
-                  x2="1000"
-                  y2={i * 40}
-                  stroke="#d1d5db"
-                  strokeWidth="1"
-                  opacity="0.3"
-                />
-              ))}
+              <defs>
+                <pattern id="homeSmallGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+                  <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
+                </pattern>
+                <pattern id="homeLargeGrid" width="250" height="250" patternUnits="userSpaceOnUse">
+                  <rect width="250" height="250" fill="url(#homeSmallGrid)"/>
+                  <path d="M 250 0 L 0 0 0 250" fill="none" stroke="#d1d5db" strokeWidth="2"/>
+                </pattern>
+              </defs>
+              
+              {/* Grid background covering entire viewBox */}
+              <rect x="0" y="0" width="5000" height="3000" fill="white" />
+              <rect x="0" y="0" width="5000" height="3000" fill="url(#homeLargeGrid)" opacity="0.5" />
+              
+              {/* Center crosshair guides */}
+              <line x1="2500" y1="0" x2="2500" y2="3000" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.2" />
+              <line x1="0" y1="1500" x2="5000" y2="1500" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.2" />
 
               {/* Buildings as Grid-Aligned Elements */}
               {buildings.map((building: Building, index: number) => {
-                // Snap to grid (40px units)
-                const gridX = building.mapPositionX ? Math.round(building.mapPositionX / 40) * 40 : 80 + (index % 5) * 200;
-                const gridY = building.mapPositionY ? Math.round(building.mapPositionY / 40) * 40 : 80 + Math.floor(index / 5) * 160;
+                // Use actual positions or default to grid layout
+                const gridX = building.mapPositionX || (200 + (index % 8) * 400);
+                const gridY = building.mapPositionY || (200 + Math.floor(index / 8) * 350);
                 const isHovered = hoveredBuilding === building.id;
                 const isSelected = selectedBuilding?.id === building.id;
                 const buildingRooms = rooms.filter(room => room.buildingId === building.id && room.floor === selectedFloor);
                 
-                // Building dimensions (grid-aligned)
+                // Building dimensions
                 const buildingWidth = 160;
                 const buildingHeight = 120;
                 
