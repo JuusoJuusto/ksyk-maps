@@ -322,7 +322,6 @@ export default function UltimateKSYKBuilder() {
       alert('Failed to create room: ' + error.message);
     }
   });
-  });
 
   const deleteBuildingMutation = useMutation({
     mutationFn: async (id: string) => {
