@@ -490,6 +490,7 @@ export default function UltimateKSYKBuilder() {
               <div className="flex flex-wrap gap-2 justify-center">
                 <Badge className="bg-white/20 text-white px-3 py-1 text-sm">{buildings.length} Buildings</Badge>
                 <Badge className="bg-white/20 text-white px-3 py-1 text-sm">{rooms.length} Rooms</Badge>
+                <Badge className="bg-white/20 text-white px-3 py-1 text-sm">{hallways.length} Hallways</Badge>
               </div>
             </CardTitle>
           </CardHeader>
@@ -907,17 +908,32 @@ export default function UltimateKSYKBuilder() {
                     );
                   })}
 
-                  {/* Hallways rendering */}
+                  {/* Hallways rendering - Enhanced with gradients and animations */}
                   {hallways.map((hallway: any, index: number) => {
                     const startX = hallway.startX || (200 + (index * 100));
                     const startY = hallway.startY || 400;
                     const endX = hallway.endX || (startX + 100);
                     const endY = hallway.endY || startY;
                     const width = hallway.width || 2;
+                    const midX = (startX + endX) / 2;
+                    const midY = (startY + endY) / 2;
+                    
+                    // Calculate angle for proper text rotation
+                    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
                     
                     return (
-                      <g key={hallway.id}>
-                        {/* Hallway line */}
+                      <g key={hallway.id} className="hallway-group cursor-pointer hover:opacity-100 transition-opacity" opacity="0.85">
+                        {/* Shadow/glow effect */}
+                        <line
+                          x1={startX}
+                          y1={startY}
+                          x2={endX}
+                          y2={endY}
+                          stroke="rgba(0,0,0,0.2)"
+                          strokeWidth={(width * 10) + 4}
+                          strokeLinecap="round"
+                        />
+                        {/* Main hallway line with gradient */}
                         <line
                           x1={startX}
                           y1={startY}
@@ -925,18 +941,63 @@ export default function UltimateKSYKBuilder() {
                           y2={endY}
                           stroke="#9CA3AF"
                           strokeWidth={width * 10}
-                          opacity="0.7"
+                          strokeLinecap="round"
+                          opacity="0.8"
                         />
-                        {/* Hallway label */}
-                        <text
-                          x={(startX + endX) / 2}
-                          y={(startY + endY) / 2 - 10}
-                          textAnchor="middle"
+                        {/* Highlight line on top */}
+                        <line
+                          x1={startX}
+                          y1={startY}
+                          x2={endX}
+                          y2={endY}
+                          stroke="white"
+                          strokeWidth={width * 4}
+                          strokeLinecap="round"
+                          opacity="0.3"
+                        />
+                        {/* Hallway label with background */}
+                        <g transform={`translate(${midX}, ${midY - 15})`}>
+                          <rect
+                            x="-40"
+                            y="-10"
+                            width="80"
+                            height="20"
+                            fill="white"
+                            stroke="#9CA3AF"
+                            strokeWidth="2"
+                            rx="4"
+                            opacity="0.95"
+                          />
+                          <text
+                            x="0"
+                            y="4"
+                            textAnchor="middle"
+                            fill="#4B5563"
+                            fontSize="11"
+                            fontWeight="bold"
+                          >
+                            {hallway.name}
+                          </text>
+                        </g>
+                        {/* Floor indicator */}
+                        <circle
+                          cx={startX}
+                          cy={startY}
+                          r="8"
                           fill="#6B7280"
-                          fontSize="10"
+                          stroke="white"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={startX}
+                          y={startY + 1}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize="8"
                           fontWeight="bold"
                         >
-                          {hallway.name}
+                          {hallway.floor || 1}
                         </text>
                       </g>
                     );
@@ -1089,6 +1150,90 @@ export default function UltimateKSYKBuilder() {
         cancelText="Cancel"
         variant="destructive"
       />
+
+      {/* Hallways Section - NEW */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="mt-4">
+        <Card className="shadow-xl border-2 border-gray-200">
+          <CardHeader className="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Move className="h-5 w-5" />
+                Hallways & Connections ({hallways.length})
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {hallways.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Move className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-semibold">No hallways yet</p>
+                <p className="text-sm">Use the Hallway tool to create navigation paths!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Group hallways by building */}
+                {buildings.map((building: any) => {
+                  const buildingHallways = hallways.filter((h: any) => h.buildingId === building.id);
+                  if (buildingHallways.length === 0) return null;
+                  
+                  return (
+                    <div key={building.id} className="border-2 rounded-xl p-4 border-gray-400">
+                      <h4 className="font-bold text-lg mb-3 flex items-center gap-2 text-gray-700">
+                        <Building className="h-5 w-5" />
+                        {building.name} - {building.nameEn}
+                        <Badge variant="outline" className="ml-2">{buildingHallways.length} hallways</Badge>
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {buildingHallways.map((hallway: any) => {
+                          const length = Math.sqrt(
+                            Math.pow((hallway.endX || 0) - (hallway.startX || 0), 2) +
+                            Math.pow((hallway.endY || 0) - (hallway.startY || 0), 2)
+                          );
+                          const lengthMeters = Math.round(length / 10);
+                          
+                          return (
+                            <motion.div
+                              key={hallway.id}
+                              whileHover={{ scale: 1.03, y: -2 }}
+                              className="border-2 border-gray-400 rounded-lg p-3 hover:shadow-lg transition-all bg-gradient-to-br from-gray-50 to-gray-100"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="font-bold text-gray-700 flex items-center gap-2">
+                                  <Move className="h-4 w-4" />
+                                  {hallway.name}
+                                </div>
+                                <Badge variant="outline" className="text-xs bg-white">
+                                  Floor {hallway.floor || 1}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-gray-600 space-y-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-semibold">Width:</span>
+                                  <span>{hallway.width || 2}m</span>
+                                </div>
+                                {lengthMeters > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-semibold">Length:</span>
+                                    <span>~{lengthMeters}m</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1 text-gray-500">
+                                  <span>({hallway.startX}, {hallway.startY}) → ({hallway.endX}, {hallway.endY})</span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

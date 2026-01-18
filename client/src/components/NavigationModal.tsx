@@ -80,7 +80,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     }
   };
 
-  // Pathfinding algorithm - finds route through hallways and stairways only
+  // Enhanced pathfinding algorithm with distance-based routing
   const findPath = (from: Room, to: Room): Room[] | null => {
     // If same room, no path needed
     if (from.id === to.id) return [from];
@@ -90,9 +90,20 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       r.type === 'hallway' || r.type === 'stairway' || r.type === 'elevator'
     );
     
-    // Build adjacency graph - rooms connect if they're in same building and adjacent floors
+    // Calculate distance between two rooms (using map positions if available)
+    const getDistance = (roomA: Room, roomB: Room): number => {
+      if (roomA.mapPositionX && roomA.mapPositionY && roomB.mapPositionX && roomB.mapPositionY) {
+        const dx = roomA.mapPositionX - roomB.mapPositionX;
+        const dy = roomA.mapPositionY - roomB.mapPositionY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+      // Fallback: floor difference penalty
+      return Math.abs(roomA.floor - roomB.floor) * 50 + 10;
+    };
+    
+    // Build adjacency graph with weighted edges
     const buildGraph = () => {
-      const graph = new Map<string, string[]>();
+      const graph = new Map<string, Array<{id: string, weight: number}>>();
       
       // Add start and end rooms
       const allNodes = [from, to, ...navRooms];
@@ -119,14 +130,17 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
                 (roomB.id === from.id || roomB.id === to.id);
               
               if (isNavConnection || isStartEnd) {
-                graph.get(roomA.id)?.push(roomB.id);
+                const distance = getDistance(roomA, roomB);
+                graph.get(roomA.id)?.push({ id: roomB.id, weight: distance });
               }
             }
             // Adjacent floors - only through stairways/elevators
             else if (Math.abs(roomA.floor - roomB.floor) === 1) {
               if ((roomA.type === 'stairway' || roomA.type === 'elevator') &&
                   (roomB.type === 'stairway' || roomB.type === 'elevator')) {
-                graph.get(roomA.id)?.push(roomB.id);
+                // Elevators are faster than stairs
+                const weight = roomA.type === 'elevator' ? 20 : 30;
+                graph.get(roomA.id)?.push({ id: roomB.id, weight });
               }
             }
           }
@@ -136,7 +150,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       return graph;
     };
     
-    // A* pathfinding
+    // A* pathfinding with distance-based heuristic
     const graph = buildGraph();
     const openSet = new Set([from.id]);
     const cameFrom = new Map<string, string>();
@@ -144,7 +158,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     const fScore = new Map<string, number>();
     
     gScore.set(from.id, 0);
-    fScore.set(from.id, 0);
+    fScore.set(from.id, getDistance(from, to));
     
     while (openSet.size > 0) {
       // Get node with lowest fScore
@@ -173,14 +187,17 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       openSet.delete(current);
       const neighbors = graph.get(current) || [];
       
-      neighbors.forEach(neighborId => {
-        const tentativeG = (gScore.get(current) || 0) + 1;
+      neighbors.forEach(neighbor => {
+        const tentativeG = (gScore.get(current) || 0) + neighbor.weight;
         
-        if (tentativeG < (gScore.get(neighborId) || Infinity)) {
-          cameFrom.set(neighborId, current);
-          gScore.set(neighborId, tentativeG);
-          fScore.set(neighborId, tentativeG + 1); // Simple heuristic
-          openSet.add(neighborId);
+        if (tentativeG < (gScore.get(neighbor.id) || Infinity)) {
+          cameFrom.set(neighbor.id, current);
+          gScore.set(neighbor.id, tentativeG);
+          
+          const neighborRoom = rooms.find((r: Room) => r.id === neighbor.id) || to;
+          const heuristic = getDistance(neighborRoom, to);
+          fScore.set(neighbor.id, tentativeG + heuristic);
+          openSet.add(neighbor.id);
         }
       });
     }
@@ -202,26 +219,48 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
           return;
         }
         
-        // Build route description with better formatting
+        // Build enhanced route description with better formatting and icons
         const routeSteps = path.map((room, idx) => {
-          if (idx === 0) return `📍 Start: ${room.roomNumber} (Floor ${room.floor})`;
-          if (idx === path.length - 1) return `🎯 Arrive: ${room.roomNumber} (Floor ${room.floor})`;
+          if (idx === 0) return `📍 START: ${room.roomNumber} (Floor ${room.floor})`;
+          if (idx === path.length - 1) return `🎯 ARRIVE: ${room.roomNumber} (Floor ${room.floor})`;
           
-          if (room.type === 'stairway') return `🪜 Stairway ${room.roomNumber} → Floor ${room.floor}`;
-          if (room.type === 'elevator') return `🛗 Elevator ${room.roomNumber} → Floor ${room.floor}`;
-          if (room.type === 'hallway') return `🚶 Hallway ${room.roomNumber}`;
-          if (room.type === 'door') return `🚪 Door ${room.roomNumber}`;
+          if (room.type === 'stairway') return `🪜 Take Stairway ${room.roomNumber} → Floor ${room.floor}`;
+          if (room.type === 'elevator') return `🛗 Take Elevator ${room.roomNumber} → Floor ${room.floor}`;
+          if (room.type === 'hallway') return `🚶 Walk through ${room.roomNumber || 'Hallway'}`;
+          if (room.type === 'door') return `🚪 Pass through Door ${room.roomNumber}`;
           return `→ ${room.roomNumber}`;
         }).join('\n');
         
-        const estimatedTime = Math.max(1, Math.ceil(path.length * 0.5)); // 30 seconds per step
+        // Calculate more accurate estimated time based on path
+        const hallwaySteps = path.filter(r => r.type === 'hallway').length;
+        const stairSteps = path.filter(r => r.type === 'stairway').length;
+        const elevatorSteps = path.filter(r => r.type === 'elevator').length;
+        
+        // Time estimates: hallway=30s, stairs=45s, elevator=20s
+        const estimatedSeconds = (hallwaySteps * 30) + (stairSteps * 45) + (elevatorSteps * 20);
+        const estimatedMinutes = Math.max(1, Math.ceil(estimatedSeconds / 60));
+        
         const floorChanges = path.filter((room, idx) => idx > 0 && room.floor !== path[idx-1].floor).length;
+        
+        // Calculate total distance if map positions available
+        let totalDistance = 0;
+        for (let i = 1; i < path.length; i++) {
+          const prev = path[i-1];
+          const curr = path[i];
+          if (prev.mapPositionX && prev.mapPositionY && curr.mapPositionX && curr.mapPositionY) {
+            const dx = curr.mapPositionX - prev.mapPositionX;
+            const dy = curr.mapPositionY - prev.mapPositionY;
+            totalDistance += Math.sqrt(dx * dx + dy * dy);
+          }
+        }
+        const distanceMeters = Math.round(totalDistance / 10); // Rough conversion
         
         // Call the navigation handler
         onNavigate(fromLabel, toLabel);
         
-        // Show success message with detailed route
-        alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps, ${floorChanges} floor changes):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedTime} min\n\n✅ Follow the highlighted path on the map!`);
+        // Show enhanced success message with detailed route
+        const distanceInfo = distanceMeters > 0 ? `\n📏 Distance: ~${distanceMeters}m` : '';
+        alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps, ${floorChanges} floor changes):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedMinutes} min${distanceInfo}\n\n✨ Follow the highlighted path on the map!`);
         
         // Close modal
         onClose();
