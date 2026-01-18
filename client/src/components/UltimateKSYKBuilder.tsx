@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3 } from "lucide-react";
 
 interface Point { x: number; y: number; }
@@ -33,6 +34,8 @@ export default function UltimateKSYKBuilder() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [copiedBuilding, setCopiedBuilding] = useState<any>(null);
   const [showGrid, setShowGrid] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [buildingToDelete, setBuildingToDelete] = useState<any>(null);
   
   const [buildingData, setBuildingData] = useState({
     name: "", nameEn: "", nameFi: "", floors: [1] as number[],
@@ -68,10 +71,8 @@ export default function UltimateKSYKBuilder() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Delete selected building
       if (e.key === 'Delete' && selectedBuilding && !isDrawing) {
-        if (confirm(`Delete ${selectedBuilding.name}?`)) {
-          deleteBuildingMutation.mutate(selectedBuilding.id);
-          setSelectedBuilding(null);
-        }
+        setBuildingToDelete(selectedBuilding);
+        setDeleteConfirmOpen(true);
       }
       // Copy building (Ctrl+C)
       if (e.ctrlKey && e.key === 'c' && selectedBuilding) {
@@ -593,6 +594,10 @@ export default function UltimateKSYKBuilder() {
                       <rect width={gridSize * 5} height={gridSize * 5} fill="url(#smallGrid)"/>
                       <path d={`M ${gridSize * 5} 0 L 0 0 0 ${gridSize * 5}`} fill="none" stroke="#d1d5db" strokeWidth="2"/>
                     </pattern>
+                    <linearGradient id="buildingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "white", stopOpacity: 0.4 }} />
+                      <stop offset="100%" style={{ stopColor: "white", stopOpacity: 0 }} />
+                    </linearGradient>
                   </defs>
                   <rect width="100%" height="100%" fill="white" />
                   {showGrid && <rect width="100%" height="100%" fill="url(#largeGrid)" />}
@@ -602,12 +607,34 @@ export default function UltimateKSYKBuilder() {
                     let customShape = null;
                     try { if (building.description) customShape = JSON.parse(building.description).customShape; } catch {}
                     
+                    const isSelected = selectedBuilding?.id === building.id;
+                    
                     if (customShape && customShape.length > 2) {
                       const xs = customShape.map((p: Point) => p.x), ys = customShape.map((p: Point) => p.y);
                       const centerX = (Math.min(...xs) + Math.max(...xs)) / 2, centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
                       return (
-                        <g key={building.id} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setSelectedBuilding(building)}>
-                          <polygon points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} fill={building.colorCode} stroke="white" strokeWidth="4" opacity="0.95" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.2))" />
+                        <g key={building.id} className="cursor-pointer transition-all" onClick={() => setSelectedBuilding(building)}>
+                          {/* Shadow */}
+                          <polygon 
+                            points={customShape.map((p: Point) => `${p.x + 4},${p.y + 4}`).join(" ")} 
+                            fill="rgba(0,0,0,0.3)" 
+                            opacity="0.5"
+                          />
+                          {/* Building */}
+                          <polygon 
+                            points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} 
+                            fill={building.colorCode} 
+                            stroke={isSelected ? "#FFD700" : "white"} 
+                            strokeWidth={isSelected ? "6" : "4"} 
+                            opacity="0.95"
+                            className="transition-all"
+                          />
+                          {/* Highlight effect */}
+                          <polygon 
+                            points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} 
+                            fill="url(#buildingGradient)" 
+                            opacity="0.3"
+                          />
                           <text x={centerX} y={centerY - 10} textAnchor="middle" fill="white" fontSize="28" fontWeight="900" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.8)" }}>{building.name}</text>
                           <text x={centerX} y={centerY + 18} textAnchor="middle" fill="white" fontSize="12" fontWeight="600" style={{ opacity: 0.95 }}>{building.nameEn}</text>
                         </g>
@@ -615,8 +642,40 @@ export default function UltimateKSYKBuilder() {
                     }
                     
                     return (
-                      <g key={building.id} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setSelectedBuilding(building)}>
-                        <rect x={x} y={y} width="150" height="100" fill={building.colorCode} stroke="white" strokeWidth="4" rx="12" opacity="0.95" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.2))" />
+                      <g key={building.id} className="cursor-pointer transition-all" onClick={() => setSelectedBuilding(building)}>
+                        {/* Shadow */}
+                        <rect 
+                          x={x + 4} 
+                          y={y + 4} 
+                          width="150" 
+                          height="100" 
+                          fill="rgba(0,0,0,0.3)" 
+                          rx="12" 
+                          opacity="0.5"
+                        />
+                        {/* Building */}
+                        <rect 
+                          x={x} 
+                          y={y} 
+                          width="150" 
+                          height="100" 
+                          fill={building.colorCode} 
+                          stroke={isSelected ? "#FFD700" : "white"} 
+                          strokeWidth={isSelected ? "6" : "4"} 
+                          rx="12" 
+                          opacity="0.95"
+                          className="transition-all"
+                        />
+                        {/* Highlight effect */}
+                        <rect 
+                          x={x} 
+                          y={y} 
+                          width="150" 
+                          height="100" 
+                          fill="url(#buildingGradient)" 
+                          rx="12" 
+                          opacity="0.3"
+                        />
                         <text x={x + 75} y={y + 48} textAnchor="middle" fill="white" fontSize="32" fontWeight="900" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.8)" }}>{building.name}</text>
                         <text x={x + 75} y={y + 75} textAnchor="middle" fill="white" fontSize="13" fontWeight="600" opacity="0.95">{building.nameEn}</text>
                       </g>
@@ -632,8 +691,7 @@ export default function UltimateKSYKBuilder() {
             </CardContent>
           </Card>
         </motion.div>
-      </div>
-
+      
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-4">
         <Card className="shadow-xl border-2 border-gray-200">
           <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
@@ -667,7 +725,7 @@ export default function UltimateKSYKBuilder() {
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditMode(true); setBuildingData({ name: building.name, nameEn: building.nameEn, nameFi: building.nameFi, floors: Array.isArray(building.floors) ? building.floors : [building.floors], capacity: building.capacity, colorCode: building.colorCode, mapPositionX: building.mapPositionX, mapPositionY: building.mapPositionY }); }} className="p-1 hover:bg-green-100 rounded" title="Edit">
                           <Edit className="h-4 w-4 text-green-600" />
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${building.name}?`)) deleteBuildingMutation.mutate(building.id); }} className="p-1 hover:bg-red-100 rounded" title="Delete (Del)">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setBuildingToDelete(building); setDeleteConfirmOpen(true); }} className="p-1 hover:bg-red-100 rounded" title="Delete (Del)">
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </motion.button>
                       </div>
@@ -686,6 +744,26 @@ export default function UltimateKSYKBuilder() {
           </CardContent>
         </Card>
       </motion.div>
+    </div>
+      
+      {/* Custom Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Building?"
+        description={`Are you sure you want to delete "${buildingToDelete?.name}"? This action cannot be undone.`}
+        onConfirm={() => {
+          if (buildingToDelete) {
+            deleteBuildingMutation.mutate(buildingToDelete.id);
+            setSelectedBuilding(null);
+            setBuildingToDelete(null);
+          }
+          setDeleteConfirmOpen(false);
+        }}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }

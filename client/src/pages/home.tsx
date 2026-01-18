@@ -499,15 +499,14 @@ export default function Home() {
                       <rect width="250" height="250" fill="url(#grid)"/>
                       <path d="M 250 0 L 0 0 0 250" fill="none" stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="2"/>
                     </pattern>
+                    <linearGradient id="buildingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "white", stopOpacity: 0.4 }} />
+                      <stop offset="100%" style={{ stopColor: "white", stopOpacity: 0 }} />
+                    </linearGradient>
                   </defs>
                   {/* Background fills larger viewport */}
                   <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
-
-                  {/* Debug: Show building count */}
-                  <text x="50" y="50" fill={darkMode ? '#fff' : '#000'} fontSize="20" fontWeight="bold">
-                    Buildings: {buildings.length}
-                  </text>
 
                   {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
                   {buildings.map((building: Building, index: number) => {
@@ -537,14 +536,27 @@ export default function Home() {
                             setSelectedBuilding(building);
                             setSelectedFloor(1);
                           }}
-                          className="cursor-pointer"
+                          className="cursor-pointer transition-all"
                         >
+                          {/* Shadow */}
+                          <polygon
+                            points={customShape.map(p => `${p.x + 4},${p.y + 4}`).join(' ')}
+                            fill="rgba(0,0,0,0.3)"
+                            opacity="0.5"
+                          />
+                          {/* Building */}
                           <polygon
                             points={customShape.map(p => `${p.x},${p.y}`).join(' ')}
                             fill={building.colorCode || '#3B82F6'}
                             stroke="white"
-                            strokeWidth="3"
-                            opacity="0.9"
+                            strokeWidth="4"
+                            opacity="0.95"
+                          />
+                          {/* Highlight */}
+                          <polygon
+                            points={customShape.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="url(#buildingGradient)"
+                            opacity="0.3"
                           />
                           <text
                             x={centerX}
@@ -584,8 +596,19 @@ export default function Home() {
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
-                        className="cursor-pointer"
+                        className="cursor-pointer transition-all"
                       >
+                        {/* Shadow */}
+                        <rect
+                          x={x + 4}
+                          y={y + 4}
+                          width={width}
+                          height={height}
+                          fill="rgba(0,0,0,0.3)"
+                          rx="8"
+                          opacity="0.5"
+                        />
+                        {/* Building */}
                         <rect
                           x={x}
                           y={y}
@@ -593,9 +616,19 @@ export default function Home() {
                           height={height}
                           fill={building.colorCode || '#3B82F6'}
                           stroke="white"
-                          strokeWidth="3"
+                          strokeWidth="4"
                           rx="8"
-                          opacity="0.9"
+                          opacity="0.95"
+                        />
+                        {/* Highlight */}
+                        <rect
+                          x={x}
+                          y={y}
+                          width={width}
+                          height={height}
+                          fill="url(#buildingGradient)"
+                          rx="8"
+                          opacity="0.3"
                         />
                         <text
                           x={x + width / 2}
