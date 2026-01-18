@@ -201,15 +201,27 @@ export default function UltimateKSYKBuilder() {
     setViewBox({ x: 0, y: 0, width: 5000, height: 3000 });
   };
   
-  // Pan functions - ENHANCED for smooth dragging
+  // Pan functions - RIGHT CLICK TO DRAG!
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    // Allow panning with left click (not just middle/ctrl+click)
-    if (e.button === 0 && !isDrawing) {
+    // RIGHT CLICK (button 2) for dragging - ALWAYS works!
+    if (e.button === 2) {
+      e.preventDefault(); // Prevent context menu
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    // Middle mouse also works
+    if (e.button === 1) {
       e.preventDefault();
-      e.stopPropagation();
-    } else if (e.button === 1) { // Middle mouse
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    // Left click only for drawing mode
+    if (e.button === 0 && !isDrawing) {
+      // Allow left click drag when NOT drawing
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
@@ -871,22 +883,22 @@ export default function UltimateKSYKBuilder() {
                   </motion.button>
                 </div>
                 
-                {/* Enhanced zoom indicator with position info */}
-                <div className="absolute bottom-4 right-4 z-10 bg-gradient-to-r from-gray-900 to-gray-800 px-5 py-3 rounded-xl shadow-2xl border-2 border-gray-700 text-white">
+                {/* Enhanced zoom indicator */}
+                <div className="absolute bottom-4 right-4 z-10 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 rounded-2xl shadow-2xl border-2 border-white/20 text-white backdrop-blur-sm">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <ZoomIn className="h-4 w-4 text-blue-400" />
-                      <span className="text-lg font-bold text-blue-400">{Math.round((5000 / viewBox.width) * 100)}%</span>
+                      <ZoomIn className="h-5 w-5 text-white" />
+                      <span className="text-2xl font-bold">{Math.round((5000 / viewBox.width) * 100)}%</span>
                     </div>
-                    <div className="h-6 w-px bg-gray-600"></div>
-                    <div className="text-xs text-gray-300 space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400">🖱️</span>
-                        <span>Drag to pan</span>
+                    <div className="h-8 w-px bg-white/30"></div>
+                    <div className="text-sm text-white/90 space-y-1">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span>🖱️</span>
+                        <span>Right-Click + Drag to Pan</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400">⌨️</span>
-                        <span>Ctrl+Scroll to zoom</span>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span>⌨️</span>
+                        <span>Ctrl + Scroll to Zoom</span>
                       </div>
                     </div>
                   </div>
@@ -949,6 +961,7 @@ export default function UltimateKSYKBuilder() {
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onWheel={handleWheel}
+                  onContextMenu={(e) => e.preventDefault()}
                   style={{ touchAction: 'none' }}
                 >
                   <defs>
