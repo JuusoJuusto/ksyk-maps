@@ -48,7 +48,7 @@ export default function UltimateKSYKBuilder() {
   });
 
   const [hallwayData, setHallwayData] = useState({
-    buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1
+    buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1, width: 3
   });
 
 
@@ -201,30 +201,29 @@ export default function UltimateKSYKBuilder() {
     setViewBox({ x: 0, y: 0, width: 5000, height: 3000 });
   };
   
-  // Pan functions - RIGHT CLICK TO DRAG!
+  // FIXED: Simple left-click drag that ACTUALLY WORKS!
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    // RIGHT CLICK (button 2) for dragging - ALWAYS works!
-    if (e.button === 2) {
-      e.preventDefault(); // Prevent context menu
+    // SPACE key + left click = pan mode
+    if (e.button === 0 && (e.shiftKey || !isDrawing)) {
+      e.preventDefault();
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       return;
     }
     
-    // Middle mouse also works
+    // Right-click always pans
+    if (e.button === 2) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    // Middle mouse pans
     if (e.button === 1) {
       e.preventDefault();
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
-      return;
-    }
-    
-    // Left click only for drawing mode
-    if (e.button === 0 && !isDrawing) {
-      // Allow left click drag when NOT drawing
-      setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
-      e.preventDefault();
     }
   };
   
@@ -396,7 +395,7 @@ export default function UltimateKSYKBuilder() {
         startY: Math.min(...ys),
         endX: Math.max(...xs),
         endY: Math.max(...ys),
-        width: 2
+        width: hallwayData.width || 3
       });
     }
   };
@@ -731,9 +730,18 @@ export default function UltimateKSYKBuilder() {
                       <Label className="text-xs font-bold">Hallway Name *</Label>
                       <Input value={hallwayData.name} onChange={(e) => setHallwayData({ ...hallwayData, name: e.target.value })} placeholder="Main Hallway" className="mt-1 h-9" />
                     </div>
-                    <div>
-                      <Label className="text-xs font-bold">Floor</Label>
-                      <Input type="number" min="1" value={hallwayData.floor} onChange={(e) => setHallwayData({ ...hallwayData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-bold">Floor</Label>
+                        <Input type="number" min="1" value={hallwayData.floor} onChange={(e) => setHallwayData({ ...hallwayData, floor: parseInt(e.target.value) || 1 })} className="mt-1 h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Width (m)</Label>
+                        <Input type="number" min="1" max="10" value={hallwayData.width} onChange={(e) => setHallwayData({ ...hallwayData, width: parseInt(e.target.value) || 3 })} className="mt-1 h-9" />
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
+                      💡 Tip: Wider hallways (5-10m) for main corridors, narrower (2-3m) for side passages
                     </div>
                   </motion.div>
                 )}
@@ -894,7 +902,7 @@ export default function UltimateKSYKBuilder() {
                     <div className="text-sm text-white/90 space-y-1">
                       <div className="flex items-center gap-2 font-semibold">
                         <span>🖱️</span>
-                        <span>Right-Click + Drag to Pan</span>
+                        <span>Shift + Drag to Pan</span>
                       </div>
                       <div className="flex items-center gap-2 font-semibold">
                         <span>⌨️</span>
@@ -1109,29 +1117,29 @@ export default function UltimateKSYKBuilder() {
                     );
                   })}
 
-                  {/* Hallways rendering - Enhanced with gradients and animations */}
+                  {/* Hallways rendering - ENHANCED with adjustable thickness */}
                   {hallways.map((hallway: any, index: number) => {
                     const startX = hallway.startX || (200 + (index * 100));
                     const startY = hallway.startY || 400;
                     const endX = hallway.endX || (startX + 100);
                     const endY = hallway.endY || startY;
-                    const width = hallway.width || 2;
+                    const width = hallway.width || 3;
                     const midX = (startX + endX) / 2;
                     const midY = (startY + endY) / 2;
                     
-                    // Calculate angle for proper text rotation
-                    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+                    // Calculate thickness based on width (1m = 5px)
+                    const strokeWidth = width * 5;
                     
                     return (
-                      <g key={hallway.id} className="hallway-group cursor-pointer hover:opacity-100 transition-opacity" opacity="0.85">
+                      <g key={hallway.id} className="hallway-group cursor-pointer hover:opacity-100 transition-opacity" opacity="0.9">
                         {/* Shadow/glow effect */}
                         <line
                           x1={startX}
                           y1={startY}
                           x2={endX}
                           y2={endY}
-                          stroke="rgba(0,0,0,0.2)"
-                          strokeWidth={(width * 10) + 4}
+                          stroke="rgba(0,0,0,0.3)"
+                          strokeWidth={strokeWidth + 6}
                           strokeLinecap="round"
                         />
                         {/* Main hallway line with gradient */}
@@ -1141,9 +1149,9 @@ export default function UltimateKSYKBuilder() {
                           x2={endX}
                           y2={endY}
                           stroke="#9CA3AF"
-                          strokeWidth={width * 10}
+                          strokeWidth={strokeWidth}
                           strokeLinecap="round"
-                          opacity="0.8"
+                          opacity="0.85"
                         />
                         {/* Highlight line on top */}
                         <line
@@ -1152,39 +1160,62 @@ export default function UltimateKSYKBuilder() {
                           x2={endX}
                           y2={endY}
                           stroke="white"
-                          strokeWidth={width * 4}
+                          strokeWidth={strokeWidth * 0.4}
                           strokeLinecap="round"
-                          opacity="0.3"
+                          opacity="0.4"
                         />
                         {/* Hallway label with background */}
-                        <g transform={`translate(${midX}, ${midY - 15})`}>
+                        <g transform={`translate(${midX}, ${midY - 20})`}>
                           <rect
-                            x="-40"
-                            y="-10"
-                            width="80"
-                            height="20"
+                            x="-50"
+                            y="-12"
+                            width="100"
+                            height="24"
                             fill="white"
                             stroke="#9CA3AF"
                             strokeWidth="2"
-                            rx="4"
+                            rx="6"
                             opacity="0.95"
+                          />
+                          <text
+                            x="0"
+                            y="5"
+                            textAnchor="middle"
+                            fill="#4B5563"
+                            fontSize="12"
+                            fontWeight="bold"
+                          >
+                            {hallway.name}
+                          </text>
+                        </g>
+                        {/* Width indicator badge */}
+                        <g transform={`translate(${midX}, ${midY + 5})`}>
+                          <rect
+                            x="-20"
+                            y="-8"
+                            width="40"
+                            height="16"
+                            fill="#6B7280"
+                            stroke="white"
+                            strokeWidth="2"
+                            rx="8"
                           />
                           <text
                             x="0"
                             y="4"
                             textAnchor="middle"
-                            fill="#4B5563"
-                            fontSize="11"
+                            fill="white"
+                            fontSize="10"
                             fontWeight="bold"
                           >
-                            {hallway.name}
+                            {width}m
                           </text>
                         </g>
                         {/* Floor indicator */}
                         <circle
                           cx={startX}
                           cy={startY}
-                          r="8"
+                          r="10"
                           fill="#6B7280"
                           stroke="white"
                           strokeWidth="2"
@@ -1195,7 +1226,7 @@ export default function UltimateKSYKBuilder() {
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="8"
+                          fontSize="9"
                           fontWeight="bold"
                         >
                           {hallway.floor || 1}
