@@ -848,8 +848,7 @@ export default function UltimateKSYKBuilder() {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
-      
+
       {/* Custom Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteConfirmOpen}
