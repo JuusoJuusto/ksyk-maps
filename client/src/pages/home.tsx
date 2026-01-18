@@ -96,7 +96,7 @@ export default function Home() {
   };
 
   // Fetch buildings with caching
-  const { data: buildings = [] } = useQuery({
+  const { data: buildings = [], isLoading: buildingsLoading } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
       console.log('🏢 Fetching buildings from API...');
@@ -114,7 +114,7 @@ export default function Home() {
   });
 
   // Fetch rooms with caching
-  const { data: rooms = [] } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
       const response = await fetch("/api/rooms");
@@ -124,6 +124,8 @@ export default function Home() {
     staleTime: 60000, // Cache for 1 minute
     refetchOnWindowFocus: false,
   });
+
+  const isLoading = buildingsLoading || roomsLoading;
 
 
 
@@ -174,6 +176,15 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4`}>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
+            <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Loading Campus Map...</p>
+          </div>
+        </div>
+      )}
+      
       <Header />
       
       <NavigationModal 
