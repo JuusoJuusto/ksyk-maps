@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import NavigationModal from "@/components/NavigationModal";
-import { Megaphone, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { Megaphone, ChevronLeft, ChevronRight, Sun, Moon, X } from "lucide-react";
 
 export default function Header() {
   const [location] = useLocation();
@@ -16,6 +17,7 @@ export default function Header() {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  const [showAnnouncementDialog, setShowAnnouncementDialog] = useState(false);
   
   useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
@@ -124,7 +126,10 @@ export default function Header() {
               <ChevronLeft className="h-5 w-5" />
             </button>
             
-            <div className="flex items-center space-x-3 flex-1 justify-center">
+            <div 
+              className="flex items-center space-x-3 flex-1 justify-center cursor-pointer hover:bg-white/10 rounded-lg px-4 py-1 transition-colors"
+              onClick={() => setShowAnnouncementDialog(true)}
+            >
               <Megaphone className="h-5 w-5 animate-pulse" />
               <div className="text-center">
                 <span className="font-semibold">{currentAnnouncement.title}</span>
@@ -143,6 +148,31 @@ export default function Header() {
           </div>
         </div>
       )}
+      
+      {/* Announcement Dialog */}
+      <Dialog open={showAnnouncementDialog} onOpenChange={setShowAnnouncementDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Megaphone className="h-6 w-6 text-blue-600" />
+              {currentAnnouncement?.title}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Priority: {currentAnnouncement?.priority}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {currentAnnouncement?.content}
+            </p>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <Button onClick={() => setShowAnnouncementDialog(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">

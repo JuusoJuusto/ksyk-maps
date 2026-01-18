@@ -375,9 +375,9 @@ export default function Home() {
         )}
         
         {/* Main Content - Campus Map */}
-        <div className="flex-1 relative bg-white">
+        <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className="absolute top-4 left-4 z-10 bg-white shadow-lg border border-gray-200 flex-col md:flex-row">
+            <TabsList className={`absolute top-4 left-4 z-10 shadow-lg border flex-col md:flex-row ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <TabsTrigger value="map" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
                 <MapPin className="h-3 md:h-4 w-3 md:w-4" />
                 <span className="hidden md:inline">{t('nav.map')}</span>
@@ -440,7 +440,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
@@ -449,7 +449,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
@@ -458,7 +458,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-white shadow-lg hover:bg-blue-50"
+                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
                     onClick={() => {
                       setZoom(1); // Reset to normal zoom
                       setPanX(0);
@@ -659,7 +659,7 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className="h-full m-0 p-8 overflow-auto bg-gradient-to-br from-slate-50 to-blue-50">
+            <TabsContent value="settings" className={`h-full m-0 p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-blue-50'}`}>
               <div className="max-w-4xl mx-auto">
                 <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('admin.settings')}</h2>
                 
