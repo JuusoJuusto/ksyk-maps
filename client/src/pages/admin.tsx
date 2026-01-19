@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
 import { AdminLogin } from "@/components/AdminLogin";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -40,14 +41,7 @@ export default function Admin() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen variant="white" message="Loading Admin Panel..." />;
   }
 
   // Show password change modal if temporary password

@@ -56,7 +56,6 @@ export default function Header() {
   };
 
   const handleLanguageChange = (lang: string) => {
-    console.log('🌐 Changing language to:', lang);
     localStorage.setItem('ksyk_language', lang);
     i18n.changeLanguage(lang).then(() => {
       // Immediate reload
@@ -83,16 +82,11 @@ export default function Header() {
   };
 
   const handleNavigation = (from: string, to: string) => {
-    console.log(`Navigation planned: ${from} to ${to}`);
-    
     // Create a comprehensive success message
     const message = `Route Successfully Planned!\n\nStarting Point: ${from}\nDestination: ${to}\n\nYour route is now displayed on the interactive map with:\n- Animated blue path showing the way\n- Numbered waypoints for guidance\n- Step-by-step walking directions\n\nThe route should be visible immediately on the map below!`;
     
     // Show success feedback
     alert(message);
-    
-    // Log for debugging
-    console.log("Navigation completed successfully");
   };
 
   return (
@@ -166,11 +160,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
-            <Link href="/" className="flex-shrink-0 flex items-center space-x-3" data-testid="link-home">
-              <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="KSYK Logo" className="h-12 w-12 object-contain rounded-lg" />
+            <Link href="/" className="flex-shrink-0 flex items-center space-x-3 group" data-testid="link-home">
+              <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="KSYK Logo" className="h-12 w-12 object-contain rounded-lg shadow-sm group-hover:shadow-md transition-shadow" />
               <div>
                 <h1 
-                  className="text-xl font-bold text-primary cursor-pointer hover:text-blue-600 transition-colors" 
+                  className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition-all" 
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -178,9 +172,9 @@ export default function Header() {
                   }}
                   title="Click for a surprise! 🎉"
                 >
-                  KSYK Map
+                  KSYK Maps
                 </h1>
-                <p className="text-xs text-muted-foreground">by OWL Apps</p>
+                <p className="text-xs text-muted-foreground font-medium">Professional Campus Navigation</p>
               </div>
             </Link>
           </div>
@@ -246,10 +240,10 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
+                    className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:from-green-100 hover:to-emerald-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
-                    HSL
+                    🚌 HSL Transit
                   </Button>
                 </Link>
                 
@@ -257,9 +251,10 @@ export default function Header() {
                 <Link href="/admin-login">
                   <Button 
                     variant={isActive('/admin-login') ? 'default' : 'outline'}
+                    className="font-semibold shadow-sm"
                     data-testid="button-admin"
                   >
-                    Admin
+                    🔐 Admin
                   </Button>
                 </Link>
               </>

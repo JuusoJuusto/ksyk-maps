@@ -5,6 +5,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,14 +100,11 @@ export default function Home() {
   const { data: buildings = [], isLoading: buildingsLoading } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
-      console.log('🏢 Fetching buildings from API...');
       const response = await fetch("/api/buildings");
       if (!response.ok) {
-        console.error('❌ Failed to fetch buildings:', response.status, response.statusText);
         throw new Error("Failed to fetch buildings");
       }
       const data = await response.json();
-      console.log('✅ Received buildings:', data.length, data);
       return data;
     },
     staleTime: 60000, // Cache for 1 minute
@@ -176,14 +174,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4`}>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
-            <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Loading Campus Map...</p>
-          </div>
-        </div>
-      )}
+      {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
       
       <Header />
       
