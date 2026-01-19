@@ -30,11 +30,11 @@ export default function LoadingSpinner({
     const isWhite = variant === "white";
     
     return (
-      <div className={`fixed inset-0 z-50 flex items-center justify-center ${
+      <div className={`fixed inset-0 z-[9999] flex items-center justify-center ${
         isWhite 
           ? 'bg-white' 
           : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700'
-      }`}>
+      }`} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}>
         {/* Animated background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{

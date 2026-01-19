@@ -243,7 +243,7 @@ export default function Header() {
                     className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:from-green-100 hover:to-emerald-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
-                    🚌 HSL Transit
+                    HSL
                   </Button>
                 </Link>
                 
@@ -254,7 +254,7 @@ export default function Header() {
                     className="font-semibold shadow-sm"
                     data-testid="button-admin"
                   >
-                    🔐 Admin
+                    Admin
                   </Button>
                 </Link>
               </>

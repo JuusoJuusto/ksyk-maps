@@ -570,7 +570,7 @@ export default function UltimateKSYKBuilder() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-4">
-      {isLoading && <LoadingSpinner fullScreen message="Loading KSYK Builder..." />}
+      {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Builder..." />}
       
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="shadow-2xl border-2 border-blue-500 mb-4">

@@ -186,7 +186,7 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-40 h-full`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-[45] h-full`}>
           {/* Navigation Button - Clean Header */}
           <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
@@ -363,7 +363,7 @@ export default function Home() {
         {/* Sidebar Toggle Button - MOBILE FRIENDLY */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed md:absolute top-1/2 -translate-y-1/2 z-50 bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
+          className="fixed md:absolute top-1/2 -translate-y-1/2 z-[60] bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
           style={{ 
             left: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '0px' : '320px') : '0px'
           }}
@@ -374,7 +374,7 @@ export default function Home() {
         {/* Mobile Overlay */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            className="fixed inset-0 bg-black/50 z-[35] md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
