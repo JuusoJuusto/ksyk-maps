@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3 } from "lucide-react";
 
 interface Point { x: number; y: number; }
@@ -569,14 +570,7 @@ export default function UltimateKSYKBuilder() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-4">
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
-            <p className="text-xl font-bold text-gray-800">Loading KSYK Builder...</p>
-          </div>
-        </div>
-      )}
+      {isLoading && <LoadingSpinner fullScreen message="Loading KSYK Builder..." />}
       
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="shadow-2xl border-2 border-blue-500 mb-4">
