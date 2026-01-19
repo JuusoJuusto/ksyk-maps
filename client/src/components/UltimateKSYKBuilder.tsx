@@ -1196,38 +1196,94 @@ export default function UltimateKSYKBuilder() {
                           rx="3"
                         />
                         
-                        {/* Special icons for stairways and elevators */}
+                        {/* Special icons for stairways and elevators - ULTRA ENHANCED */}
                         {isStairway && (
-                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 8})`}>
-                            <path d="M-8,8 L-4,8 L-4,4 L0,4 L0,0 L4,0 L4,-4 L8,-4" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
+                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 10})`}>
+                            {/* Stairway background glow */}
+                            <circle r="14" fill="white" opacity="0.3" />
+                            {/* Animated stairs icon */}
+                            <g className="animate-pulse">
+                              <path d="M-10,10 L-6,10 L-6,6 L-2,6 L-2,2 L2,2 L2,-2 L6,-2 L6,-6 L10,-6" 
+                                stroke="white" 
+                                strokeWidth="2.5" 
+                                fill="none" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                                filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"
+                              />
+                            </g>
+                            {/* Stairway label */}
+                            <text y="18" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold" opacity="0.9">
+                              STAIRS
+                            </text>
                           </g>
                         )}
                         {isElevator && (
-                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 6})`}>
-                            <rect x="-6" y="-6" width="12" height="12" fill="white" opacity="0.8" rx="2" />
-                            <path d="M0,-3 L3,0 L-3,0 Z" fill={roomColor} />
-                            <path d="M0,3 L3,0 L-3,0 Z" fill={roomColor} />
+                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 10})`}>
+                            {/* Elevator background glow */}
+                            <circle r="14" fill="white" opacity="0.3" />
+                            {/* Elevator box with 3D effect */}
+                            <rect x="-8" y="-8" width="16" height="16" fill="white" opacity="0.95" rx="3" 
+                              filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))" />
+                            <rect x="-7" y="-7" width="14" height="6" fill={roomColor} opacity="0.2" rx="2" />
+                            {/* Animated arrows */}
+                            <g className="animate-pulse">
+                              <path d="M0,-4 L4,-1 L-4,-1 Z" fill={roomColor} />
+                              <path d="M0,4 L4,1 L-4,1 Z" fill={roomColor} />
+                            </g>
+                            {/* Elevator label */}
+                            <text y="18" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold" opacity="0.9">
+                              ELEVATOR
+                            </text>
                           </g>
                         )}
                         
                         {/* Room number with better styling */}
                         <text
                           x={roomX + roomWidth / 2}
-                          y={roomY + roomHeight / 2 + (isStairway || isElevator ? 8 : 0)}
+                          y={roomY + roomHeight / 2 + (isStairway || isElevator ? 12 : 0)}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="13"
+                          fontSize="14"
                           fontWeight="bold"
-                          style={{ pointerEvents: 'none', textShadow: '1px 1px 3px rgba(0,0,0,0.9)' }}
+                          style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}
                         >
                           {room.roomNumber}
                         </text>
                         
+                        {/* Type badge for special rooms */}
+                        {(isStairway || isElevator) && (
+                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight - 8})`}>
+                            <rect 
+                              x="-20" 
+                              y="-6" 
+                              width="40" 
+                              height="12" 
+                              fill="white" 
+                              opacity="0.95" 
+                              rx="6"
+                              filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))"
+                            />
+                            <text 
+                              x="0" 
+                              y="2" 
+                              textAnchor="middle" 
+                              dominantBaseline="middle" 
+                              fill={roomColor} 
+                              fontSize="8" 
+                              fontWeight="bold"
+                            >
+                              {isStairway ? 'STAIRWAY' : 'ELEVATOR'}
+                            </text>
+                          </g>
+                        )}
+                        
                         {/* Floor indicator badge */}
-                        <g transform={`translate(${roomX + roomWidth - 8}, ${roomY + 8})`}>
-                          <circle r="7" fill="white" opacity="0.9" />
-                          <text x="0" y="1" textAnchor="middle" dominantBaseline="middle" fill={roomColor} fontSize="9" fontWeight="bold">
+                        <g transform={`translate(${roomX + roomWidth - 10}, ${roomY + 10})`}>
+                          <circle r="8" fill="white" opacity="0.95" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))" />
+                          <circle r="7" fill={roomColor} opacity="0.2" />
+                          <text x="0" y="1" textAnchor="middle" dominantBaseline="middle" fill={roomColor} fontSize="10" fontWeight="bold">
                             {room.floor}
                           </text>
                         </g>
