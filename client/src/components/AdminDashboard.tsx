@@ -1235,70 +1235,398 @@ export default function AdminDashboard() {
         <TabsContent value="buildings" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Buildings Management</CardTitle>
-              <CardDescription>
-                Manage campus buildings and their properties
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-2xl">Buildings Management</CardTitle>
+                  <CardDescription>
+                    Manage campus buildings, their properties, and associated rooms
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={() => setActiveTab('ksyk-builder')}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Building
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {buildings.map((building: Building) => (
-                  <div key={building.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div 
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: building.colorCode }}
-                      />
-                      <div>
-                        <h3 className="font-semibold">{building.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {building.floors} floors • Capacity: {building.capacity || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={building.isActive ? "default" : "secondary"}>
-                        {building.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          setActiveTab('ksyk-builder');
-                          setBuilderMode('buildings');
-                          setShowBuilderForm(true);
-                          setEditingBuilding(building);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={async () => {
-                          if (!confirm(`Delete building ${building.name}? This will also delete all rooms in this building.`)) return;
-                          try {
-                            const response = await fetch(`/api/buildings/${building.id}`, {
-                              method: 'DELETE',
-                              credentials: 'include'
-                            });
-                            if (response.ok) {
-                              alert('Building deleted!');
-                              window.location.reload();
-                            } else {
-                              alert('Failed to delete building');
-                            }
-                          } catch (error) {
-                            console.error('Error deleting building:', error);
-                            alert('Error deleting building');
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              <div className="space-y-6">
+                {buildings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Building className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Buildings Yet</h3>
+                    <p className="text-gray-500 mb-4">Get started by adding your first building</p>
+                    <Button onClick={() => setActiveTab('ksyk-builder')}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Building
+                    </Button>
                   </div>
-                ))}
+                ) : (
+                  buildings.map((building: Building) => {
+                    const buildingRooms = rooms.filter((r: Room) => r.buildingId === building.id);
+                    const [isExpanded, setIsExpanded] = useState(false);
+                    const [isEditing, setIsEditing] = useState(false);
+                    const [editData, setEditData] = useState({
+                      name: building.name,
+                      nameEn: building.nameEn || '',
+                      nameFi: building.nameFi || '',
+                      floors: building.floors,
+                      capacity: building.capacity || 0,
+                      colorCode: building.colorCode,
+                      description: building.description || ''
+                    });
+
+                    return (
+                      <Card key={building.id} className="border-2 hover:shadow-lg transition-all">
+                        <CardContent className="p-6">
+                          {/* Building Header */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-start space-x-4 flex-1">
+                              <div 
+                                className="w-16 h-16 rounded-xl shadow-lg flex items-center justify-center text-white text-2xl font-bold"
+                                style={{ backgroundColor: building.colorCode }}
+                              >
+                                {building.name}
+                              </div>
+                              <div className="flex-1">
+                                {!isEditing ? (
+                                  <>
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <h3 className="text-xl font-bold text-gray-900">{building.name}</h3>
+                                      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                                        {building.nameEn || 'No English name'}
+                                      </Badge>
+                                      {building.nameFi && (
+                                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                                          {building.nameFi}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                                      <div className="flex items-center gap-1">
+                                        <Layers className="h-4 w-4" />
+                                        <span className="font-semibold">{building.floors}</span> floors
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Users className="h-4 w-4" />
+                                        <span className="font-semibold">{building.capacity || 'N/A'}</span> capacity
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4" />
+                                        <span className="font-semibold">{buildingRooms.length}</span> rooms
+                                      </div>
+                                      {building.mapPositionX && building.mapPositionY && (
+                                        <div className="flex items-center gap-1 text-gray-500">
+                                          <span className="text-xs">Position: ({building.mapPositionX}, {building.mapPositionY})</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {building.description && (
+                                      <p className="text-sm text-gray-600 mt-2">{building.description}</p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-3 gap-3">
+                                      <div>
+                                        <Label className="text-xs font-bold">Building Code *</Label>
+                                        <Input
+                                          value={editData.name}
+                                          onChange={(e) => setEditData({...editData, name: e.target.value})}
+                                          placeholder="M, K, L"
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-bold">English Name</Label>
+                                        <Input
+                                          value={editData.nameEn}
+                                          onChange={(e) => setEditData({...editData, nameEn: e.target.value})}
+                                          placeholder="Music Building"
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-bold">Finnish Name</Label>
+                                        <Input
+                                          value={editData.nameFi}
+                                          onChange={(e) => setEditData({...editData, nameFi: e.target.value})}
+                                          placeholder="Musiikkitalo"
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                      <div>
+                                        <Label className="text-xs font-bold">Floors</Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          value={editData.floors}
+                                          onChange={(e) => setEditData({...editData, floors: parseInt(e.target.value) || 1})}
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-bold">Capacity</Label>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          value={editData.capacity}
+                                          onChange={(e) => setEditData({...editData, capacity: parseInt(e.target.value) || 0})}
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-bold">Color</Label>
+                                        <div className="flex gap-2 mt-1">
+                                          <Input
+                                            type="color"
+                                            value={editData.colorCode}
+                                            onChange={(e) => setEditData({...editData, colorCode: e.target.value})}
+                                            className="w-16 h-10 p-1"
+                                          />
+                                          <Input
+                                            value={editData.colorCode}
+                                            onChange={(e) => setEditData({...editData, colorCode: e.target.value})}
+                                            placeholder="#3B82F6"
+                                            className="flex-1"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-bold">Description</Label>
+                                      <Textarea
+                                        value={editData.description}
+                                        onChange={(e) => setEditData({...editData, description: e.target.value})}
+                                        placeholder="Building description..."
+                                        className="mt-1"
+                                        rows={2}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2">
+                              {!isEditing ? (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => setIsEditing(true)}
+                                    className="hover:bg-blue-50 hover:border-blue-300"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                    className="hover:bg-green-50 hover:border-green-300"
+                                  >
+                                    <MapPin className="h-4 w-4 mr-1" />
+                                    {isExpanded ? 'Hide' : 'Show'} Rooms ({buildingRooms.length})
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={async () => {
+                                      if (!confirm(`Delete building ${building.name}? This will also delete all ${buildingRooms.length} rooms in this building.`)) return;
+                                      try {
+                                        const response = await fetch(`/api/buildings/${building.id}`, {
+                                          method: 'DELETE',
+                                          credentials: 'include'
+                                        });
+                                        if (response.ok) {
+                                          alert('Building deleted successfully!');
+                                          queryClient.invalidateQueries({ queryKey: ["buildings"] });
+                                          queryClient.invalidateQueries({ queryKey: ["rooms"] });
+                                        } else {
+                                          alert('Failed to delete building');
+                                        }
+                                      } catch (error) {
+                                        console.error('Error deleting building:', error);
+                                        alert('Error deleting building');
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                      setIsEditing(false);
+                                      setEditData({
+                                        name: building.name,
+                                        nameEn: building.nameEn || '',
+                                        nameFi: building.nameFi || '',
+                                        floors: building.floors,
+                                        capacity: building.capacity || 0,
+                                        colorCode: building.colorCode,
+                                        description: building.description || ''
+                                      });
+                                    }}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={async () => {
+                                      try {
+                                        const response = await fetch(`/api/buildings/${building.id}`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          credentials: 'include',
+                                          body: JSON.stringify(editData)
+                                        });
+                                        if (response.ok) {
+                                          alert('Building updated successfully!');
+                                          queryClient.invalidateQueries({ queryKey: ["buildings"] });
+                                          setIsEditing(false);
+                                        } else {
+                                          alert('Failed to update building');
+                                        }
+                                      } catch (error) {
+                                        console.error('Error updating building:', error);
+                                        alert('Error updating building');
+                                      }
+                                    }}
+                                  >
+                                    <Save className="h-4 w-4 mr-1" />
+                                    Save Changes
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Rooms Section */}
+                          {isExpanded && (
+                            <div className="mt-6 pt-6 border-t">
+                              <div className="flex justify-between items-center mb-4">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                  Rooms in {building.name}
+                                </h4>
+                                <Button 
+                                  size="sm"
+                                  onClick={() => {
+                                    setActiveTab('ksyk-builder');
+                                    setBuilderMode('rooms');
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Room
+                                </Button>
+                              </div>
+                              
+                              {buildingRooms.length === 0 ? (
+                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                  <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                                  <p className="text-gray-600">No rooms in this building yet</p>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="mt-3"
+                                    onClick={() => {
+                                      setActiveTab('ksyk-builder');
+                                      setBuilderMode('rooms');
+                                    }}
+                                  >
+                                    Add First Room
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {buildingRooms.map((room: Room) => (
+                                    <div 
+                                      key={room.id} 
+                                      className="border rounded-lg p-3 hover:shadow-md transition-all bg-white"
+                                    >
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                                            {room.roomNumber}
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold text-sm">{room.roomNumber}</p>
+                                            <p className="text-xs text-gray-500">Floor {room.floor}</p>
+                                          </div>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                          {room.type}
+                                        </Badge>
+                                      </div>
+                                      {(room.name || room.nameEn) && (
+                                        <p className="text-xs text-gray-600 mb-2">
+                                          {room.name || room.nameEn}
+                                        </p>
+                                      )}
+                                      <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span>Capacity: {room.capacity || 'N/A'}</span>
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            size="sm" 
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0"
+                                            onClick={() => {
+                                              setActiveTab('ksyk-builder');
+                                              setBuilderMode('rooms');
+                                              setEditingRoom(room);
+                                            }}
+                                          >
+                                            <Edit className="h-3 w-3" />
+                                          </Button>
+                                          <Button 
+                                            size="sm" 
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            onClick={async () => {
+                                              if (!confirm(`Delete room ${room.roomNumber}?`)) return;
+                                              try {
+                                                const response = await fetch(`/api/rooms/${room.id}`, {
+                                                  method: 'DELETE',
+                                                  credentials: 'include'
+                                                });
+                                                if (response.ok) {
+                                                  queryClient.invalidateQueries({ queryKey: ["rooms"] });
+                                                } else {
+                                                  alert('Failed to delete room');
+                                                }
+                                              } catch (error) {
+                                                console.error('Error deleting room:', error);
+                                                alert('Error deleting room');
+                                              }
+                                            }}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>

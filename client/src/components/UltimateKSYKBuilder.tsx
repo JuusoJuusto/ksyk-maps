@@ -999,125 +999,243 @@ export default function UltimateKSYKBuilder() {
                       const xs = customShape.map((p: Point) => p.x), ys = customShape.map((p: Point) => p.y);
                       const centerX = (Math.min(...xs) + Math.max(...xs)) / 2, centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
                       return (
-                        <g key={building.id} className="cursor-pointer transition-all" onClick={() => setSelectedBuilding(building)}>
-                          {/* Shadow */}
-                          <polygon 
-                            points={customShape.map((p: Point) => `${p.x + 4},${p.y + 4}`).join(" ")} 
-                            fill="rgba(0,0,0,0.3)" 
-                            opacity="0.5"
-                          />
-                          {/* Building */}
+                        <g key={building.id} className="cursor-pointer transition-all hover:opacity-100" onClick={() => setSelectedBuilding(building)}>
+                          {/* Enhanced 3D shadow for custom shapes */}
+                          <polygon points={customShape.map((p: Point) => `${p.x + 8},${p.y + 8}`).join(" ")} fill="rgba(0,0,0,0.15)" />
+                          <polygon points={customShape.map((p: Point) => `${p.x + 6},${p.y + 6}`).join(" ")} fill="rgba(0,0,0,0.2)" />
+                          <polygon points={customShape.map((p: Point) => `${p.x + 4},${p.y + 4}`).join(" ")} fill="rgba(0,0,0,0.25)" />
+                          
+                          {/* Gradient for custom shape */}
+                          <defs>
+                            <linearGradient id={`customGrad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style={{ stopColor: building.colorCode, stopOpacity: 1 }} />
+                              <stop offset="100%" style={{ stopColor: building.colorCode, stopOpacity: 0.7 }} />
+                            </linearGradient>
+                            <filter id={`customGlow-${building.id}`}>
+                              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                              <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                          </defs>
+                          
+                          {/* Main custom building shape */}
                           <polygon 
                             points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} 
-                            fill={building.colorCode} 
-                            stroke={isSelected ? "#FFD700" : "white"} 
+                            fill={`url(#customGrad-${building.id})`}
+                            stroke={isSelected ? "#FBBF24" : "white"} 
                             strokeWidth={isSelected ? "6" : "4"} 
                             opacity="0.95"
+                            filter={isSelected ? `url(#customGlow-${building.id})` : "none"}
                             className="transition-all"
                           />
-                          {/* Highlight effect */}
+                          
+                          {/* Shine effect on custom shape */}
                           <polygon 
                             points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} 
-                            fill="url(#buildingGradient)" 
-                            opacity="0.3"
+                            fill="white" 
+                            opacity="0.2"
                           />
-                          <text x={centerX} y={centerY - 10} textAnchor="middle" fill="white" fontSize="28" fontWeight="900" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.8)" }}>{building.name}</text>
-                          <text x={centerX} y={centerY + 18} textAnchor="middle" fill="white" fontSize="12" fontWeight="600" style={{ opacity: 0.95 }}>{building.nameEn}</text>
+                          
+                          {/* Building name with shadow */}
+                          <text x={centerX} y={centerY - 8} textAnchor="middle" fill="black" fontSize="30" fontWeight="900" opacity="0.3">{building.name}</text>
+                          <text x={centerX} y={centerY - 10} textAnchor="middle" fill="white" fontSize="30" fontWeight="900" style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.9)" }}>{building.name}</text>
+                          <text x={centerX} y={centerY + 18} textAnchor="middle" fill="white" fontSize="13" fontWeight="700" opacity="0.95" style={{ textShadow: "1px 1px 4px rgba(0,0,0,0.8)" }}>{building.nameEn}</text>
+                          
+                          {/* Floor indicators for custom shapes */}
+                          <g transform={`translate(${Math.min(...xs) + 10}, ${Math.min(...ys) + 10})`}>
+                            {[...Array(Math.min(building.floors || 1, 5))].map((_, i) => (
+                              <rect key={i} x={i * 13} y="0" width="11" height="11" fill="white" opacity="0.7" rx="2" />
+                            ))}
+                          </g>
                         </g>
                       );
                     }
                     
                     return (
                       <g key={building.id} className="cursor-pointer transition-all" onClick={() => setSelectedBuilding(building)}>
-                        {/* Shadow */}
-                        <rect 
-                          x={x + 4} 
-                          y={y + 4} 
-                          width="150" 
-                          height="100" 
-                          fill="rgba(0,0,0,0.3)" 
-                          rx="12" 
-                          opacity="0.5"
-                        />
-                        {/* Building */}
+                        {/* 3D Shadow layers for depth */}
+                        <rect x={x + 8} y={y + 8} width="150" height="100" fill="rgba(0,0,0,0.15)" rx="14" />
+                        <rect x={x + 6} y={y + 6} width="150" height="100" fill="rgba(0,0,0,0.2)" rx="13" />
+                        <rect x={x + 4} y={y + 4} width="150" height="100" fill="rgba(0,0,0,0.25)" rx="12" />
+                        
+                        {/* Building gradient definition */}
+                        <defs>
+                          <linearGradient id={`buildingGrad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: building.colorCode, stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: building.colorCode, stopOpacity: 0.7 }} />
+                          </linearGradient>
+                          <filter id={`glow-${building.id}`}>
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                              <feMergeNode in="coloredBlur"/>
+                              <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        
+                        {/* Main building body with gradient */}
                         <rect 
                           x={x} 
                           y={y} 
                           width="150" 
                           height="100" 
-                          fill={building.colorCode} 
-                          stroke={isSelected ? "#FFD700" : "white"} 
+                          fill={`url(#buildingGrad-${building.id})`}
+                          stroke={isSelected ? "#FBBF24" : "white"} 
                           strokeWidth={isSelected ? "6" : "4"} 
                           rx="12" 
                           opacity="0.95"
+                          filter={isSelected ? `url(#glow-${building.id})` : "none"}
                           className="transition-all"
                         />
-                        {/* Highlight effect */}
+                        
+                        {/* Glass shine effect */}
                         <rect 
-                          x={x} 
-                          y={y} 
-                          width="150" 
-                          height="100" 
-                          fill="url(#buildingGradient)" 
-                          rx="12" 
-                          opacity="0.3"
+                          x={x + 5} 
+                          y={y + 5} 
+                          width="140" 
+                          height="35" 
+                          fill="white" 
+                          rx="8" 
+                          opacity="0.25"
                         />
-                        <text x={x + 75} y={y + 48} textAnchor="middle" fill="white" fontSize="32" fontWeight="900" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.8)" }}>{building.name}</text>
-                        <text x={x + 75} y={y + 75} textAnchor="middle" fill="white" fontSize="13" fontWeight="600" opacity="0.95">{building.nameEn}</text>
+                        
+                        {/* Floor indicator badges */}
+                        <g transform={`translate(${x + 10}, ${y + 10})`}>
+                          {[...Array(Math.min(building.floors || 1, 5))].map((_, i) => (
+                            <rect
+                              key={i}
+                              x={i * 13}
+                              y="0"
+                              width="11"
+                              height="11"
+                              fill="white"
+                              opacity="0.7"
+                              rx="2"
+                            />
+                          ))}
+                        </g>
+                        
+                        {/* Building name with enhanced shadow */}
+                        <text x={x + 75} y={y + 52} textAnchor="middle" fill="black" fontSize="34" fontWeight="900" opacity="0.3">{building.name}</text>
+                        <text x={x + 75} y={y + 50} textAnchor="middle" fill="white" fontSize="34" fontWeight="900" style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.9)" }}>{building.name}</text>
+                        
+                        {/* Building English name */}
+                        <text x={x + 75} y={y + 78} textAnchor="middle" fill="white" fontSize="14" fontWeight="700" opacity="0.95" style={{ textShadow: "1px 1px 4px rgba(0,0,0,0.8)" }}>{building.nameEn}</text>
+                        
+                        {/* Capacity badge */}
+                        {building.capacity && (
+                          <g transform={`translate(${x + 130}, ${y + 85})`}>
+                            <rect x="-20" y="-9" width="40" height="18" fill="white" opacity="0.95" rx="9" stroke={building.colorCode} strokeWidth="2" />
+                            <text x="0" y="5" textAnchor="middle" fill={building.colorCode} fontSize="11" fontWeight="bold">{building.capacity}</text>
+                          </g>
+                        )}
                       </g>
                     );
                   })}
                   
-                  {/* Rooms rendering */}
+                  {/* Rooms rendering - ENHANCED with better visuals and type indicators */}
                   {rooms.map((room: any, index: number) => {
-                    // Default position if not set
                     const roomX = room.mapPositionX || (100 + (index * 60));
                     const roomY = room.mapPositionY || 500;
                     const roomWidth = room.width || 40;
                     const roomHeight = room.height || 30;
                     const roomColor = getRoomColor(room.type);
+                    const isStairway = room.type === 'stairway';
+                    const isElevator = room.type === 'elevator';
                     
                     return (
-                      <g key={room.id} className="cursor-pointer transition-all">
-                        {/* Room shadow */}
-                        <rect
-                          x={roomX + 2}
-                          y={roomY + 2}
-                          width={roomWidth}
-                          height={roomHeight}
-                          fill="rgba(0,0,0,0.2)"
-                          rx="4"
-                        />
-                        {/* Room */}
+                      <g key={room.id} className="cursor-pointer transition-all hover:opacity-100" opacity="0.95">
+                        {/* Enhanced shadow with multiple layers */}
+                        <rect x={roomX + 3} y={roomY + 3} width={roomWidth} height={roomHeight} fill="rgba(0,0,0,0.15)" rx="5" />
+                        <rect x={roomX + 2} y={roomY + 2} width={roomWidth} height={roomHeight} fill="rgba(0,0,0,0.2)" rx="4.5" />
+                        
+                        {/* Room gradient definition */}
+                        <defs>
+                          <linearGradient id={`roomGrad-${room.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: roomColor, stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: roomColor, stopOpacity: 0.8 }} />
+                          </linearGradient>
+                          <pattern id={`pattern-${room.id}`} x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+                            <rect width="8" height="8" fill={roomColor} opacity="0.1" />
+                            <path d="M0,8 L8,0" stroke="white" strokeWidth="0.5" opacity="0.3" />
+                          </pattern>
+                        </defs>
+                        
+                        {/* Main room body with gradient */}
                         <rect
                           x={roomX}
                           y={roomY}
                           width={roomWidth}
                           height={roomHeight}
-                          fill={roomColor}
+                          fill={`url(#roomGrad-${room.id})`}
                           stroke="white"
-                          strokeWidth="2"
+                          strokeWidth="2.5"
                           rx="4"
-                          opacity="0.9"
                         />
-                        {/* Room number */}
+                        
+                        {/* Pattern overlay for texture */}
+                        <rect
+                          x={roomX}
+                          y={roomY}
+                          width={roomWidth}
+                          height={roomHeight}
+                          fill={`url(#pattern-${room.id})`}
+                          rx="4"
+                        />
+                        
+                        {/* Shine effect */}
+                        <rect
+                          x={roomX + 2}
+                          y={roomY + 2}
+                          width={roomWidth - 4}
+                          height={roomHeight * 0.4}
+                          fill="white"
+                          opacity="0.2"
+                          rx="3"
+                        />
+                        
+                        {/* Special icons for stairways and elevators */}
+                        {isStairway && (
+                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 8})`}>
+                            <path d="M-8,8 L-4,8 L-4,4 L0,4 L0,0 L4,0 L4,-4 L8,-4" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
+                          </g>
+                        )}
+                        {isElevator && (
+                          <g transform={`translate(${roomX + roomWidth/2}, ${roomY + roomHeight/2 - 6})`}>
+                            <rect x="-6" y="-6" width="12" height="12" fill="white" opacity="0.8" rx="2" />
+                            <path d="M0,-3 L3,0 L-3,0 Z" fill={roomColor} />
+                            <path d="M0,3 L3,0 L-3,0 Z" fill={roomColor} />
+                          </g>
+                        )}
+                        
+                        {/* Room number with better styling */}
                         <text
                           x={roomX + roomWidth / 2}
-                          y={roomY + roomHeight / 2}
+                          y={roomY + roomHeight / 2 + (isStairway || isElevator ? 8 : 0)}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="12"
+                          fontSize="13"
                           fontWeight="bold"
-                          style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                          style={{ pointerEvents: 'none', textShadow: '1px 1px 3px rgba(0,0,0,0.9)' }}
                         >
                           {room.roomNumber}
                         </text>
+                        
+                        {/* Floor indicator badge */}
+                        <g transform={`translate(${roomX + roomWidth - 8}, ${roomY + 8})`}>
+                          <circle r="7" fill="white" opacity="0.9" />
+                          <text x="0" y="1" textAnchor="middle" dominantBaseline="middle" fill={roomColor} fontSize="9" fontWeight="bold">
+                            {room.floor}
+                          </text>
+                        </g>
                       </g>
                     );
                   })}
 
-                  {/* Hallways rendering - ENHANCED with adjustable thickness */}
+                  {/* Hallways rendering - ULTRA ENHANCED with 3D effect, animations, and better visuals */}
                   {hallways.map((hallway: any, index: number) => {
                     const startX = hallway.startX || (200 + (index * 100));
                     const startY = hallway.startY || 400;
@@ -1126,111 +1244,129 @@ export default function UltimateKSYKBuilder() {
                     const width = hallway.width || 3;
                     const midX = (startX + endX) / 2;
                     const midY = (startY + endY) / 2;
-                    
-                    // Calculate thickness based on width (1m = 5px)
                     const strokeWidth = width * 5;
                     
+                    // Calculate angle for proper orientation
+                    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+                    const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                    
                     return (
-                      <g key={hallway.id} className="hallway-group cursor-pointer hover:opacity-100 transition-opacity" opacity="0.9">
-                        {/* Shadow/glow effect */}
+                      <g key={hallway.id} className="hallway-group cursor-pointer hover:opacity-100 transition-all" opacity="0.92">
+                        {/* Gradient definition for hallway */}
+                        <defs>
+                          <linearGradient id={`hallwayGrad-${hallway.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style={{ stopColor: "#9CA3AF", stopOpacity: 0.9 }} />
+                            <stop offset="50%" style={{ stopColor: "#D1D5DB", stopOpacity: 0.95 }} />
+                            <stop offset="100%" style={{ stopColor: "#9CA3AF", stopOpacity: 0.9 }} />
+                          </linearGradient>
+                          <filter id={`hallwayShadow-${hallway.id}`}>
+                            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                            <feOffset dx="2" dy="2" result="offsetblur"/>
+                            <feComponentTransfer>
+                              <feFuncA type="linear" slope="0.5"/>
+                            </feComponentTransfer>
+                            <feMerge>
+                              <feMergeNode/>
+                              <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        
+                        {/* Outer glow/shadow (multiple layers for depth) */}
+                        <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="rgba(0,0,0,0.15)" strokeWidth={strokeWidth + 12} strokeLinecap="round" />
+                        <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="rgba(0,0,0,0.2)" strokeWidth={strokeWidth + 8} strokeLinecap="round" />
+                        <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="rgba(0,0,0,0.25)" strokeWidth={strokeWidth + 4} strokeLinecap="round" />
+                        
+                        {/* Main hallway body with gradient */}
                         <line
                           x1={startX}
                           y1={startY}
                           x2={endX}
                           y2={endY}
-                          stroke="rgba(0,0,0,0.3)"
-                          strokeWidth={strokeWidth + 6}
-                          strokeLinecap="round"
-                        />
-                        {/* Main hallway line with gradient */}
-                        <line
-                          x1={startX}
-                          y1={startY}
-                          x2={endX}
-                          y2={endY}
-                          stroke="#9CA3AF"
+                          stroke={`url(#hallwayGrad-${hallway.id})`}
                           strokeWidth={strokeWidth}
                           strokeLinecap="round"
-                          opacity="0.85"
+                          filter={`url(#hallwayShadow-${hallway.id})`}
                         />
-                        {/* Highlight line on top */}
+                        
+                        {/* Center highlight line */}
                         <line
                           x1={startX}
                           y1={startY}
                           x2={endX}
                           y2={endY}
                           stroke="white"
-                          strokeWidth={strokeWidth * 0.4}
+                          strokeWidth={strokeWidth * 0.3}
                           strokeLinecap="round"
-                          opacity="0.4"
+                          opacity="0.5"
                         />
-                        {/* Hallway label with background */}
-                        <g transform={`translate(${midX}, ${midY - 20})`}>
+                        
+                        {/* Edge borders for definition */}
+                        <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="#6B7280" strokeWidth={strokeWidth + 2} strokeLinecap="round" opacity="0.3" />
+                        
+                        {/* Hallway name label with enhanced background */}
+                        <g transform={`translate(${midX}, ${midY - 25})`}>
+                          {/* Label shadow */}
+                          <rect x="-55" y="-14" width="110" height="28" fill="rgba(0,0,0,0.2)" rx="8" />
+                          {/* Label background with gradient */}
+                          <defs>
+                            <linearGradient id={`labelGrad-${hallway.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style={{ stopColor: "white", stopOpacity: 1 }} />
+                              <stop offset="100%" style={{ stopColor: "#F3F4F6", stopOpacity: 1 }} />
+                            </linearGradient>
+                          </defs>
                           <rect
-                            x="-50"
-                            y="-12"
-                            width="100"
-                            height="24"
-                            fill="white"
+                            x="-53"
+                            y="-13"
+                            width="106"
+                            height="26"
+                            fill={`url(#labelGrad-${hallway.id})`}
                             stroke="#9CA3AF"
-                            strokeWidth="2"
-                            rx="6"
-                            opacity="0.95"
+                            strokeWidth="2.5"
+                            rx="7"
                           />
-                          <text
-                            x="0"
-                            y="5"
-                            textAnchor="middle"
-                            fill="#4B5563"
-                            fontSize="12"
-                            fontWeight="bold"
-                          >
+                          {/* Shine effect on label */}
+                          <rect x="-51" y="-11" width="102" height="10" fill="white" opacity="0.4" rx="5" />
+                          <text x="0" y="5" textAnchor="middle" fill="#374151" fontSize="13" fontWeight="bold">
                             {hallway.name}
                           </text>
                         </g>
-                        {/* Width indicator badge */}
-                        <g transform={`translate(${midX}, ${midY + 5})`}>
-                          <rect
-                            x="-20"
-                            y="-8"
-                            width="40"
-                            height="16"
-                            fill="#6B7280"
-                            stroke="white"
-                            strokeWidth="2"
-                            rx="8"
-                          />
-                          <text
-                            x="0"
-                            y="4"
-                            textAnchor="middle"
-                            fill="white"
-                            fontSize="10"
-                            fontWeight="bold"
-                          >
+                        
+                        {/* Width indicator badge with 3D effect */}
+                        <g transform={`translate(${midX}, ${midY + 8})`}>
+                          {/* Badge shadow */}
+                          <rect x="-24" y="-10" width="48" height="20" fill="rgba(0,0,0,0.25)" rx="10" />
+                          {/* Badge background */}
+                          <rect x="-23" y="-9" width="46" height="18" fill="#6B7280" stroke="white" strokeWidth="2.5" rx="9" />
+                          {/* Badge shine */}
+                          <rect x="-21" y="-7" width="42" height="7" fill="white" opacity="0.3" rx="3" />
+                          <text x="0" y="4" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
                             {width}m
                           </text>
                         </g>
-                        {/* Floor indicator */}
-                        <circle
-                          cx={startX}
-                          cy={startY}
-                          r="10"
-                          fill="#6B7280"
-                          stroke="white"
-                          strokeWidth="2"
-                        />
-                        <text
-                          x={startX}
-                          y={startY + 1}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="9"
-                          fontWeight="bold"
-                        >
-                          {hallway.floor || 1}
-                        </text>
+                        
+                        {/* Start point floor indicator with enhanced styling */}
+                        <g transform={`translate(${startX}, ${startY})`}>
+                          {/* Outer ring */}
+                          <circle r="14" fill="rgba(107, 114, 128, 0.3)" />
+                          <circle r="12" fill="#6B7280" stroke="white" strokeWidth="3" />
+                          {/* Inner shine */}
+                          <circle r="9" fill="white" opacity="0.2" />
+                          <text x="0" y="1" textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="10" fontWeight="bold">
+                            {hallway.floor || 1}
+                          </text>
+                        </g>
+                        
+                        {/* End point marker */}
+                        <g transform={`translate(${endX}, ${endY})`}>
+                          <circle r="8" fill="white" opacity="0.8" stroke="#6B7280" strokeWidth="2" />
+                          <circle r="4" fill="#6B7280" />
+                        </g>
+                        
+                        {/* Direction arrow in the middle */}
+                        <g transform={`translate(${midX}, ${midY}) rotate(${angle})`}>
+                          <path d="M-8,0 L8,0 M3,-4 L8,0 L3,4" stroke="#6B7280" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+                        </g>
                       </g>
                     );
                   })}

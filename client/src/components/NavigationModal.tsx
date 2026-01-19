@@ -28,6 +28,10 @@ interface Room {
   type: string;
   floor: number;
   buildingId: string;
+  mapPositionX?: number;
+  mapPositionY?: number;
+  width?: number;
+  height?: number;
 }
 
 export default function NavigationModal({ isOpen, onClose, onNavigate }: NavigationModalProps) {
