@@ -74,6 +74,8 @@ export default function Home() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [navigationFrom, setNavigationFrom] = useState<string>("");
   const [navigationTo, setNavigationTo] = useState<string>("");
+  const [navigationPath, setNavigationPath] = useState<Room[]>([]);
+  const [showNavigationPopup, setShowNavigationPopup] = useState(false);
   
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
@@ -167,9 +169,15 @@ export default function Home() {
     setZoom(Math.max(0.5, Math.min(3, zoom + zoomDelta)));
   };
 
-  const handleNavigate = (from: string, to: string) => {
+  const handleNavigate = (from: string, to: string, path?: Room[]) => {
     setNavigationFrom(from);
     setNavigationTo(to);
+    if (path && path.length > 0) {
+      setNavigationPath(path);
+      setShowNavigationPopup(true);
+      // Auto-hide popup after 5 seconds
+      setTimeout(() => setShowNavigationPopup(false), 5000);
+    }
   };
 
   return (
@@ -401,39 +409,91 @@ export default function Home() {
             <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
-              {/* Navigation Route Display */}
-              {navigationFrom && navigationTo && (
-                <div className="absolute top-16 md:top-20 left-4 right-16 md:right-20 z-20 bg-white/95 backdrop-blur rounded-lg shadow-xl border-2 border-blue-500 p-3 md:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 md:space-x-4 flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <div className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
-                        <span className="text-xs md:text-sm font-semibold text-green-700 truncate">{navigationFrom}</span>
+              {/* Google Maps-Style Navigation Popup */}
+              {showNavigationPopup && navigationPath.length > 0 && (
+                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-2xl shadow-2xl border-2 border-blue-500 p-6 max-w-md animate-in slide-in-from-top">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-full">
+                        <Navigation className="h-6 w-6 text-blue-600" />
                       </div>
-                      <div className="flex-shrink-0">
-                        <ArrowRight className="h-4 md:h-5 w-4 md:w-5 text-blue-600" />
-                      </div>
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                        <span className="text-xs md:text-sm font-semibold text-red-700 truncate">{navigationTo}</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">Route Found!</h3>
+                        <p className="text-sm text-gray-600">{navigationPath.length} steps</p>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setNavigationFrom("");
-                        setNavigationTo("");
-                      }}
-                      className="ml-2 h-6 w-6 md:h-8 md:w-8 p-0 flex-shrink-0"
+                      onClick={() => setShowNavigationPopup(false)}
+                      className="h-8 w-8 p-0"
                     >
-                      <X className="h-3 md:h-4 w-3 md:w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="mt-2 text-xs text-gray-600 flex items-center">
-                    <Navigation className="h-3 w-3 mr-1" />
-                    <span className="hidden md:inline">Follow the blue path • Estimated time: ~3 minutes</span>
-                    <span className="md:hidden">~3 min walk</span>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-green-700">{navigationFrom}</p>
+                        <p className="text-xs text-green-600">Starting point</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-center">
+                      <div className="h-12 w-0.5 bg-blue-300"></div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+                      <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold">B</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-700">{navigationTo}</p>
+                        <p className="text-xs text-red-600">Destination</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-600 text-center">Follow the blue path on the map</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Compact Navigation Bar */}
+              {navigationFrom && navigationTo && !showNavigationPopup && (
+                <div className="absolute top-20 left-4 right-4 z-20 bg-white/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 truncate">Active route</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowNavigationPopup(true)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        Details
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setNavigationFrom("");
+                          setNavigationTo("");
+                          setNavigationPath([]);
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -873,6 +933,108 @@ export default function Home() {
                       </g>
                     );
                   })}
+                  
+                  {/* Navigation Path Visualization - Google Maps Style */}
+                  {navigationPath.length > 1 && navigationPath.map((room, idx) => {
+                    if (idx === navigationPath.length - 1 || !room.mapPositionX || !room.mapPositionY) return null;
+                    const nextRoom = navigationPath[idx + 1];
+                    if (!nextRoom.mapPositionX || !nextRoom.mapPositionY) return null;
+                    
+                    const x1 = room.mapPositionX + (room.width || 40) / 2;
+                    const y1 = room.mapPositionY + (room.height || 30) / 2;
+                    const x2 = nextRoom.mapPositionX + (nextRoom.width || 40) / 2;
+                    const y2 = nextRoom.mapPositionY + (nextRoom.height || 30) / 2;
+                    
+                    return (
+                      <g key={`path-${idx}`}>
+                        {/* Outer glow */}
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="#3B82F6"
+                          strokeWidth="12"
+                          opacity="0.2"
+                          strokeLinecap="round"
+                        />
+                        {/* Main path */}
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="#2563EB"
+                          strokeWidth="6"
+                          opacity="0.9"
+                          strokeLinecap="round"
+                          strokeDasharray="10,5"
+                          className="animate-pulse"
+                        />
+                        {/* Direction arrow */}
+                        <g transform={`translate(${(x1 + x2) / 2}, ${(y1 + y2) / 2})`}>
+                          <circle r="8" fill="#2563EB" opacity="0.9" />
+                          <text
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="white"
+                            fontSize="10"
+                            fontWeight="bold"
+                          >
+                            {idx + 1}
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Start and End Markers */}
+                  {navigationPath.length > 0 && navigationPath[0]?.mapPositionX && navigationPath[0]?.mapPositionY && (
+                    <g>
+                      <circle
+                        cx={navigationPath[0].mapPositionX + (navigationPath[0].width || 40) / 2}
+                        cy={navigationPath[0].mapPositionY + (navigationPath[0].height || 30) / 2}
+                        r="15"
+                        fill="#10B981"
+                        opacity="0.9"
+                        className="animate-pulse"
+                      />
+                      <text
+                        x={navigationPath[0].mapPositionX + (navigationPath[0].width || 40) / 2}
+                        y={navigationPath[0].mapPositionY + (navigationPath[0].height || 30) / 2}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="white"
+                        fontSize="16"
+                        fontWeight="bold"
+                      >
+                        A
+                      </text>
+                    </g>
+                  )}
+                  {navigationPath.length > 1 && navigationPath[navigationPath.length - 1]?.mapPositionX && navigationPath[navigationPath.length - 1]?.mapPositionY && (
+                    <g>
+                      <circle
+                        cx={navigationPath[navigationPath.length - 1].mapPositionX! + (navigationPath[navigationPath.length - 1].width || 40) / 2}
+                        cy={navigationPath[navigationPath.length - 1].mapPositionY! + (navigationPath[navigationPath.length - 1].height || 30) / 2}
+                        r="15"
+                        fill="#EF4444"
+                        opacity="0.9"
+                        className="animate-pulse"
+                      />
+                      <text
+                        x={navigationPath[navigationPath.length - 1].mapPositionX! + (navigationPath[navigationPath.length - 1].width || 40) / 2}
+                        y={navigationPath[navigationPath.length - 1].mapPositionY! + (navigationPath[navigationPath.length - 1].height || 30) / 2}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="white"
+                        fontSize="16"
+                        fontWeight="bold"
+                      >
+                        B
+                      </text>
+                    </g>
+                  )}
                 </svg>
                 </div>
               </div>

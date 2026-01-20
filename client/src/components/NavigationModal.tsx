@@ -17,7 +17,7 @@ import {
 interface NavigationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (from: string, to: string) => void;
+  onNavigate: (from: string, to: string, path?: Room[]) => void;
 }
 
 interface Room {
@@ -270,12 +270,11 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       }
       const distanceMeters = Math.round(totalDistance / 10); // Rough conversion
       
-      // Call the navigation handler
-      onNavigate(fromLabel, toLabel);
+      // Call the navigation handler with the path
+      onNavigate(fromLabel, toLabel, path);
       
       // Show enhanced success message with detailed route
       const distanceInfo = distanceMeters > 0 ? `\n📏 Distance: ~${distanceMeters}m` : '';
-      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps${floorChanges > 0 ? `, ${floorChanges} floor changes` : ''}):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedMinutes} min${distanceInfo}\n\n✨ Follow the highlighted path on the map!`);
       
       // Close modal
       onClose();

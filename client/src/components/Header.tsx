@@ -163,8 +163,7 @@ export default function Header() {
             <Link href="/" className="flex-shrink-0 flex items-center space-x-3 group" data-testid="link-home">
               <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="KSYK Logo" className="h-12 w-12 object-contain rounded-lg shadow-sm group-hover:shadow-md transition-shadow" />
               <div>
-                <h1 
-                  className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition-all" 
+                <h2 className={`text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition-all`} 
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -173,7 +172,7 @@ export default function Header() {
                   title="Click for a surprise! 🎉"
                 >
                   KSYK Maps
-                </h1>
+                </h2>
                 <p className="text-xs text-muted-foreground font-medium">by OWL Apps</p>
               </div>
             </Link>
