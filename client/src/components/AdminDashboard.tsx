@@ -1699,44 +1699,150 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="staff" className="space-y-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Staff Management</h2>
+              <p className="text-muted-foreground">Manage staff members and their information</p>
+            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Staff Member
+            </Button>
+          </div>
+
+          {/* Staff Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Staff</p>
+                    <p className="text-2xl font-bold">{staff.length}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Active</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {staff.filter((s: Staff) => s.isActive).length}
+                    </p>
+                  </div>
+                  <Users className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Departments</p>
+                    <p className="text-2xl font-bold">
+                      {new Set(staff.map((s: Staff) => s.department).filter(Boolean)).size}
+                    </p>
+                  </div>
+                  <Building className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Positions</p>
+                    <p className="text-2xl font-bold">
+                      {new Set(staff.map((s: Staff) => s.position).filter(Boolean)).size}
+                    </p>
+                  </div>
+                  <Layers className="h-8 w-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Staff Management</CardTitle>
+              <CardTitle>Staff Directory</CardTitle>
               <CardDescription>
-                Manage staff members and their information
+                {staff.length === 0 
+                  ? "No staff members found. Add staff members to get started."
+                  : `Showing ${Math.min(staff.length, 20)} of ${staff.length} staff members`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {staff.slice(0, 10).map((member: Staff) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{member.firstName} {member.lastName}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {member.position} • {member.department}
-                      </p>
-                      {member.email && (
-                        <p className="text-xs text-muted-foreground">{member.email}</p>
-                      )}
+              {staff.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Staff Members</h3>
+                  <p className="text-gray-600 mb-6">Get started by adding your first staff member</p>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Staff Member
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {staff.slice(0, 20).map((member: Staff) => (
+                    <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                          {member.firstName?.[0]}{member.lastName?.[0]}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {member.firstName} {member.lastName}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {member.position || 'No position'} • {member.department || 'No department'}
+                          </p>
+                          {member.email && (
+                            <p className="text-xs text-gray-500 mt-1">{member.email}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={member.isActive ? "default" : "secondary"} className={member.isActive ? "bg-green-600" : ""}>
+                          {member.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={member.isActive ? "default" : "secondary"}>
-                        {member.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
+                  ))}
+                  {staff.length > 20 && (
+                    <div className="text-center py-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Showing 20 of {staff.length} staff members
+                      </p>
+                      <Button variant="outline" size="sm" className="mt-2">
+                        Load More
                       </Button>
                     </div>
-                  </div>
-                ))}
-                {staff.length > 10 && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Showing 10 of {staff.length} staff members
-                  </p>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Sample Data Notice */}
+          {staff.length === 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>No staff data available.</strong> The staff API endpoint may not be configured or there's no data in the database. 
+                Contact your system administrator to set up staff management.
+              </AlertDescription>
+            </Alert>
+          )}
         </TabsContent>
 
         <TabsContent value="announcements" className="space-y-6">
