@@ -210,76 +210,87 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
   };
 
   const handleNavigation = () => {
-    if (selectedFrom && selectedTo) {
+    if (!selectedFrom || !selectedTo) {
+      alert('⚠️ Please select both starting point and destination');
+      return;
+    }
+
+    try {
+      const fromLabel = `${selectedFrom.roomNumber} - ${selectedFrom.name || selectedFrom.nameEn || 'Room'}`;
+      const toLabel = `${selectedTo.roomNumber} - ${selectedTo.name || selectedTo.nameEn || 'Room'}`;
+      
+      // Find path through hallways/stairways
+      let path: Room[] | null = null;
       try {
-        const fromLabel = `${selectedFrom.roomNumber} - ${selectedFrom.name || selectedFrom.nameEn}`;
-        const toLabel = `${selectedTo.roomNumber} - ${selectedTo.name || selectedTo.nameEn}`;
-        
-        // Find path through hallways/stairways
-        const path = findPath(selectedFrom, selectedTo);
-        
-        if (!path) {
-          alert(`❌ No route found!\n\nCannot find a path through hallways and stairways between these rooms.\n\nThis might mean:\n• The rooms are in different buildings\n• Missing hallway/stairway connections\n• Rooms are on different floors without stairway access`);
-          return;
-        }
-        
-        // Build enhanced route description with better formatting and icons
-        const routeSteps = path.map((room, idx) => {
-          if (idx === 0) return `📍 START: ${room.roomNumber} (Floor ${room.floor})`;
-          if (idx === path.length - 1) return `🎯 ARRIVE: ${room.roomNumber} (Floor ${room.floor})`;
-          
-          if (room.type === 'stairway') return `🪜 Take Stairway ${room.roomNumber} → Floor ${room.floor}`;
-          if (room.type === 'elevator') return `🛗 Take Elevator ${room.roomNumber} → Floor ${room.floor}`;
-          if (room.type === 'hallway') return `🚶 Walk through ${room.roomNumber || 'Hallway'}`;
-          if (room.type === 'door') return `🚪 Pass through Door ${room.roomNumber}`;
-          return `→ ${room.roomNumber}`;
-        }).join('\n');
-        
-        // Calculate more accurate estimated time based on path
-        const hallwaySteps = path.filter(r => r.type === 'hallway').length;
-        const stairSteps = path.filter(r => r.type === 'stairway').length;
-        const elevatorSteps = path.filter(r => r.type === 'elevator').length;
-        
-        // Time estimates: hallway=30s, stairs=45s, elevator=20s
-        const estimatedSeconds = (hallwaySteps * 30) + (stairSteps * 45) + (elevatorSteps * 20);
-        const estimatedMinutes = Math.max(1, Math.ceil(estimatedSeconds / 60));
-        
-        const floorChanges = path.filter((room, idx) => idx > 0 && room.floor !== path[idx-1].floor).length;
-        
-        // Calculate total distance if map positions available
-        let totalDistance = 0;
-        for (let i = 1; i < path.length; i++) {
-          const prev = path[i-1];
-          const curr = path[i];
-          if (prev.mapPositionX && prev.mapPositionY && curr.mapPositionX && curr.mapPositionY) {
-            const dx = curr.mapPositionX - prev.mapPositionX;
-            const dy = curr.mapPositionY - prev.mapPositionY;
-            totalDistance += Math.sqrt(dx * dx + dy * dy);
-          }
-        }
-        const distanceMeters = Math.round(totalDistance / 10); // Rough conversion
-        
-        // Call the navigation handler
-        onNavigate(fromLabel, toLabel);
-        
-        // Show enhanced success message with detailed route
-        const distanceInfo = distanceMeters > 0 ? `\n📏 Distance: ~${distanceMeters}m` : '';
-        alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps, ${floorChanges} floor changes):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedMinutes} min${distanceInfo}\n\n✨ Follow the highlighted path on the map!`);
-        
-        // Close modal
-        onClose();
-        
-        // Reset form
-        setFromQuery("");
-        setToQuery("");
-        setSelectedFrom(null);
-        setSelectedTo(null);
-        setFromResults([]);
-        setToResults([]);
-      } catch (error) {
-        console.error('Navigation error:', error);
-        alert('❌ Navigation failed: ' + (error as Error).message);
+        path = findPath(selectedFrom, selectedTo);
+      } catch (pathError) {
+        console.error('Pathfinding error:', pathError);
+        alert(`❌ Error calculating route\n\nThere was a problem finding the path. Please try again or select different rooms.`);
+        return;
       }
+      
+      if (!path || path.length === 0) {
+        alert(`❌ No route found!\n\nCannot find a path between these rooms.\n\nThis might mean:\n• The rooms are in different buildings\n• Missing hallway/stairway connections\n• Rooms are on different floors without stairway access\n\nTry selecting rooms in the same building or on the same floor.`);
+        return;
+      }
+      
+      // Build enhanced route description with better formatting and icons
+      const routeSteps = path.map((room, idx) => {
+        if (idx === 0) return `📍 START: ${room.roomNumber} (Floor ${room.floor})`;
+        if (idx === path.length - 1) return `🎯 ARRIVE: ${room.roomNumber} (Floor ${room.floor})`;
+        
+        if (room.type === 'stairway') return `🪜 Take Stairway ${room.roomNumber} → Floor ${room.floor}`;
+        if (room.type === 'elevator') return `🛗 Take Elevator ${room.roomNumber} → Floor ${room.floor}`;
+        if (room.type === 'hallway') return `🚶 Walk through ${room.roomNumber || 'Hallway'}`;
+        if (room.type === 'door') return `🚪 Pass through Door ${room.roomNumber}`;
+        return `→ ${room.roomNumber}`;
+      }).join('\n');
+      
+      // Calculate more accurate estimated time based on path
+      const hallwaySteps = path.filter(r => r.type === 'hallway').length;
+      const stairSteps = path.filter(r => r.type === 'stairway').length;
+      const elevatorSteps = path.filter(r => r.type === 'elevator').length;
+      
+      // Time estimates: hallway=30s, stairs=45s, elevator=20s
+      const estimatedSeconds = (hallwaySteps * 30) + (stairSteps * 45) + (elevatorSteps * 20);
+      const estimatedMinutes = Math.max(1, Math.ceil(estimatedSeconds / 60));
+      
+      const floorChanges = path.filter((room, idx) => idx > 0 && room.floor !== path[idx-1].floor).length;
+      
+      // Calculate total distance if map positions available
+      let totalDistance = 0;
+      for (let i = 1; i < path.length; i++) {
+        const prev = path[i-1];
+        const curr = path[i];
+        if (prev.mapPositionX && prev.mapPositionY && curr.mapPositionX && curr.mapPositionY) {
+          const dx = curr.mapPositionX - prev.mapPositionX;
+          const dy = curr.mapPositionY - prev.mapPositionY;
+          totalDistance += Math.sqrt(dx * dx + dy * dy);
+        }
+      }
+      const distanceMeters = Math.round(totalDistance / 10); // Rough conversion
+      
+      // Call the navigation handler
+      onNavigate(fromLabel, toLabel);
+      
+      // Show enhanced success message with detailed route
+      const distanceInfo = distanceMeters > 0 ? `\n📏 Distance: ~${distanceMeters}m` : '';
+      alert(`🎯 Navigation Set!\n\n📍 From: ${fromLabel}\n🎯 To: ${toLabel}\n\n📋 Route (${path.length} steps${floorChanges > 0 ? `, ${floorChanges} floor changes` : ''}):\n${routeSteps}\n\n⏱️ Estimated time: ~${estimatedMinutes} min${distanceInfo}\n\n✨ Follow the highlighted path on the map!`);
+      
+      // Close modal
+      onClose();
+      
+      // Reset form
+      setFromQuery("");
+      setToQuery("");
+      setSelectedFrom(null);
+      setSelectedTo(null);
+      setFromResults([]);
+      setToResults([]);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`❌ Navigation Error\n\n${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
     }
   };
 
