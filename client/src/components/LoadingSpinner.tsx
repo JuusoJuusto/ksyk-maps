@@ -166,11 +166,11 @@ export default function LoadingSpinner({
           <div className={`mt-8 w-64 h-2 rounded-full overflow-hidden ${
             isWhite ? 'bg-gray-200' : 'bg-white/20'
           }`}>
-            <div className={`h-full rounded-full animate-pulse ${
+            <div className={`h-full rounded-full ${
               isWhite ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-white'
             }`} style={{ 
               width: '100%',
-              animation: 'progressBar 2s ease-in-out infinite'
+              animation: 'progressBarSlide 2s ease-in-out infinite'
             }}></div>
           </div>
         </div>
@@ -181,9 +181,9 @@ export default function LoadingSpinner({
             0% { transform: translate(0, 0); }
             100% { transform: translate(50px, 50px); }
           }
-          @keyframes progressBar {
-            0%, 100% { transform: translateX(-100%); }
-            50% { transform: translateX(0); }
+          @keyframes progressBarSlide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
           }
         `}</style>
       </div>

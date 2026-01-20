@@ -818,16 +818,24 @@ export default function Home() {
                     
                     return (
                       <g key={room.id} className="cursor-pointer" onClick={() => setSelectedRoom(room)}>
-                        {/* Room shadow */}
+                        {/* Room shadow - 2 layers */}
                         <rect
-                          x={room.mapPositionX + 2}
-                          y={room.mapPositionY + 2}
+                          x={room.mapPositionX + 3}
+                          y={room.mapPositionY + 3}
                           width={roomWidth}
                           height={roomHeight}
-                          fill="rgba(0,0,0,0.2)"
-                          rx="4"
+                          fill="rgba(0,0,0,0.25)"
+                          rx="5"
                         />
-                        {/* Room */}
+                        <rect
+                          x={room.mapPositionX + 1.5}
+                          y={room.mapPositionY + 1.5}
+                          width={roomWidth}
+                          height={roomHeight}
+                          fill="rgba(0,0,0,0.15)"
+                          rx="5"
+                        />
+                        {/* Room - Full color */}
                         <rect
                           x={room.mapPositionX}
                           y={room.mapPositionY}
@@ -835,9 +843,19 @@ export default function Home() {
                           height={roomHeight}
                           fill={roomColor}
                           stroke="white"
-                          strokeWidth="2"
-                          rx="4"
-                          opacity="0.9"
+                          strokeWidth="2.5"
+                          rx="5"
+                          opacity="0.95"
+                        />
+                        {/* Glass shine effect */}
+                        <rect
+                          x={room.mapPositionX}
+                          y={room.mapPositionY}
+                          width={roomWidth}
+                          height={roomHeight / 3}
+                          fill="white"
+                          rx="5"
+                          opacity="0.2"
                         />
                         {/* Room number */}
                         <text
@@ -846,9 +864,9 @@ export default function Home() {
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="10"
+                          fontSize="12"
                           fontWeight="bold"
-                          style={{ pointerEvents: 'none' }}
+                          style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                         >
                           {room.roomNumber}
                         </text>

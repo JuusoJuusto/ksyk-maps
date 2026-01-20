@@ -355,7 +355,11 @@ export default function UltimateKSYKBuilder() {
     }
     
     if (points.length < 3 && !(shapeMode === "rectangle" && rectStart && rectEnd)) {
-      alert("Need at least 3 points!");
+      if (shapeMode === "rectangle") {
+        alert("Click two points to create a rectangle!");
+      } else {
+        alert("Need at least 3 points for custom shape!");
+      }
       return;
     }
 
