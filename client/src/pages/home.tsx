@@ -518,7 +518,7 @@ export default function Home() {
                   <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
-                  {/* Buildings from Firebase - EXACT same rendering as KSYK Builder */}
+                  {/* Buildings from Firebase - ENHANCED 3D RENDERING */}
                   {buildings.map((building: Building, index: number) => {
                     const x = building.mapPositionX ?? 100 + (index * 160);
                     const y = building.mapPositionY ?? 100;
@@ -546,56 +546,115 @@ export default function Home() {
                             setSelectedBuilding(building);
                             setSelectedFloor(1);
                           }}
-                          className="cursor-pointer transition-all"
+                          className="cursor-pointer transition-all hover:opacity-90"
                         >
-                          {/* Shadow */}
+                          {/* Multi-layer 3D Shadow */}
                           <polygon
-                            points={customShape.map(p => `${p.x + 4},${p.y + 4}`).join(' ')}
-                            fill="rgba(0,0,0,0.3)"
+                            points={customShape.map(p => `${p.x + 8},${p.y + 8}`).join(' ')}
+                            fill="rgba(0,0,0,0.15)"
+                            opacity="0.6"
+                          />
+                          <polygon
+                            points={customShape.map(p => `${p.x + 5},${p.y + 5}`).join(' ')}
+                            fill="rgba(0,0,0,0.2)"
                             opacity="0.5"
                           />
-                          {/* Building */}
+                          <polygon
+                            points={customShape.map(p => `${p.x + 2},${p.y + 2}`).join(' ')}
+                            fill="rgba(0,0,0,0.25)"
+                            opacity="0.4"
+                          />
+                          
+                          {/* Building Base with Gradient */}
+                          <defs>
+                            <linearGradient id={`buildingGrad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 1 }} />
+                              <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.7 }} />
+                            </linearGradient>
+                            <filter id={`glow-${building.id}`}>
+                              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                              <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                          </defs>
+                          
                           <polygon
                             points={customShape.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill={building.colorCode || '#3B82F6'}
+                            fill={`url(#buildingGrad-${building.id})`}
                             stroke="white"
-                            strokeWidth="4"
-                            opacity="0.95"
+                            strokeWidth="5"
+                            opacity="0.98"
+                            filter={`url(#glow-${building.id})`}
                           />
-                          {/* Highlight */}
+                          
+                          {/* Glass Shine Effect */}
                           <polygon
                             points={customShape.map(p => `${p.x},${p.y}`).join(' ')}
                             fill="url(#buildingGradient)"
-                            opacity="0.3"
+                            opacity="0.4"
                           />
+                          
+                          {/* Building Name - Enhanced */}
                           <text
                             x={centerX}
-                            y={centerY - 8}
+                            y={centerY - 10}
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="24"
-                            fontWeight="bold"
-                            style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
+                            fontSize="32"
+                            fontWeight="900"
+                            style={{ 
+                              pointerEvents: 'none', 
+                              textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)',
+                              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))'
+                            }}
                           >
                             {building.name}
                           </text>
                           <text
                             x={centerX}
-                            y={centerY + 14}
+                            y={centerY + 16}
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="10"
-                            style={{ pointerEvents: 'none', opacity: 0.9 }}
+                            fontSize="12"
+                            fontWeight="600"
+                            style={{ pointerEvents: 'none', opacity: 0.95, textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}
                           >
                             {building.nameEn || building.nameFi}
                           </text>
+                          
+                          {/* Floor Badge */}
+                          <g transform={`translate(${Math.min(...xs) + 10}, ${Math.min(...ys) + 10})`}>
+                            <rect
+                              x="0"
+                              y="0"
+                              width="45"
+                              height="22"
+                              fill="rgba(0,0,0,0.7)"
+                              rx="11"
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                            <text
+                              x="22.5"
+                              y="11"
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fill="white"
+                              fontSize="11"
+                              fontWeight="bold"
+                            >
+                              {building.floors}F
+                            </text>
+                          </g>
                         </g>
                       );
                     }
                     
-                    // Default rectangle rendering for buildings without custom shape
+                    // Default rectangle rendering for buildings without custom shape - ENHANCED
                     const width = 150;
                     const height = 100;
                     
@@ -606,83 +665,130 @@ export default function Home() {
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
-                        className="cursor-pointer transition-all"
+                        className="cursor-pointer transition-all hover:opacity-90"
                       >
-                        {/* Shadow */}
+                        {/* Multi-layer 3D Shadow */}
                         <rect
-                          x={x + 4}
-                          y={y + 4}
+                          x={x + 8}
+                          y={y + 8}
                           width={width}
                           height={height}
-                          fill="rgba(0,0,0,0.3)"
-                          rx="8"
+                          fill="rgba(0,0,0,0.15)"
+                          rx="10"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x={x + 5}
+                          y={y + 5}
+                          width={width}
+                          height={height}
+                          fill="rgba(0,0,0,0.2)"
+                          rx="10"
                           opacity="0.5"
                         />
-                        {/* Building */}
+                        <rect
+                          x={x + 2}
+                          y={y + 2}
+                          width={width}
+                          height={height}
+                          fill="rgba(0,0,0,0.25)"
+                          rx="10"
+                          opacity="0.4"
+                        />
+                        
+                        {/* Building Base with Gradient */}
+                        <defs>
+                          <linearGradient id={`buildingGrad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.7 }} />
+                          </linearGradient>
+                          <filter id={`glow-${building.id}`}>
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                              <feMergeNode in="coloredBlur"/>
+                              <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        
                         <rect
                           x={x}
                           y={y}
                           width={width}
                           height={height}
-                          fill={building.colorCode || '#3B82F6'}
+                          fill={`url(#buildingGrad-${building.id})`}
                           stroke="white"
-                          strokeWidth="4"
-                          rx="8"
-                          opacity="0.95"
+                          strokeWidth="5"
+                          rx="10"
+                          opacity="0.98"
+                          filter={`url(#glow-${building.id})`}
                         />
-                        {/* Highlight */}
+                        
+                        {/* Glass Shine Effect */}
                         <rect
                           x={x}
                           y={y}
                           width={width}
                           height={height}
                           fill="url(#buildingGradient)"
-                          rx="8"
-                          opacity="0.3"
+                          rx="10"
+                          opacity="0.4"
                         />
+                        
+                        {/* Building Name - Enhanced */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 - 10}
+                          y={y + height / 2 - 12}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="28"
-                          fontWeight="bold"
-                          style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}
+                          fontSize="34"
+                          fontWeight="900"
+                          style={{ 
+                            pointerEvents: 'none', 
+                            textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))'
+                          }}
                         >
                           {building.name}
                         </text>
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 + 15}
+                          y={y + height / 2 + 14}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="11"
-                          style={{ pointerEvents: 'none', opacity: 0.9 }}
+                          fontSize="13"
+                          fontWeight="600"
+                          style={{ pointerEvents: 'none', opacity: 0.95, textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}
                         >
                           {building.nameEn || building.nameFi}
                         </text>
-                        <rect
-                          x={x + width - 35}
-                          y={y + 8}
-                          width="30"
-                          height="20"
-                          fill="rgba(255,255,255,0.3)"
-                          rx="10"
-                        />
-                        <text
-                          x={x + width - 20}
-                          y={y + 18}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="12"
-                          fontWeight="bold"
-                          style={{ pointerEvents: 'none' }}
-                        >
-                          {building.floors}F
-                        </text>
+                        
+                        {/* Floor Badge */}
+                        <g transform={`translate(${x + 10}, ${y + 10})`}>
+                          <rect
+                            x="0"
+                            y="0"
+                            width="45"
+                            height="22"
+                            fill="rgba(0,0,0,0.7)"
+                            rx="11"
+                            stroke="white"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x="22.5"
+                            y="11"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="white"
+                            fontSize="11"
+                            fontWeight="bold"
+                          >
+                            {building.floors}F
+                          </text>
+                        </g>
                       </g>
                     );
                   })}

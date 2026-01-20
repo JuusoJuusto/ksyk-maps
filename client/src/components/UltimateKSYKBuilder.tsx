@@ -560,6 +560,7 @@ export default function UltimateKSYKBuilder() {
   };
 
   const tools = [
+    { id: "select" as Tool, icon: MousePointer, label: "Select", color: "bg-gray-700", hoverColor: "hover:bg-gray-800" },
     { id: "building" as Tool, icon: Building, label: "Building", color: "bg-blue-600", hoverColor: "hover:bg-blue-700" },
     { id: "room" as Tool, icon: Home, label: "Room", color: "bg-purple-600", hoverColor: "hover:bg-purple-700" },
     { id: "hallway" as Tool, icon: Move, label: "Hallway", color: "bg-gray-600", hoverColor: "hover:bg-gray-700" },
@@ -649,10 +650,25 @@ export default function UltimateKSYKBuilder() {
                     </div>
                     <div>
                       <Label className="text-xs font-bold mb-2 block">Color</Label>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-4 gap-2 mb-2">
                         {colors.map((color) => (
                           <motion.button key={color.value} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className={`h-9 rounded-lg border-2 transition-all ${buildingData.colorCode === color.value ? "border-black shadow-lg scale-110" : "border-gray-300"}`} style={{ backgroundColor: color.value }} onClick={() => setBuildingData({ ...buildingData, colorCode: color.value })} title={color.name} />
                         ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs font-bold">Custom:</Label>
+                        <input 
+                          type="color" 
+                          value={buildingData.colorCode} 
+                          onChange={(e) => setBuildingData({ ...buildingData, colorCode: e.target.value })}
+                          className="h-9 w-full rounded-lg border-2 border-gray-300 cursor-pointer"
+                        />
+                        <Input 
+                          value={buildingData.colorCode} 
+                          onChange={(e) => setBuildingData({ ...buildingData, colorCode: e.target.value })}
+                          placeholder="#3B82F6"
+                          className="h-9 w-24 text-xs font-mono"
+                        />
                       </div>
                     </div>
                   </motion.div>
