@@ -1,146 +1,65 @@
-# 🗺️ KSYK Campus Maps
+# 🗺️ KSYK Maps
 
-**Version 2.0.1** - Professional Interactive Campus Navigation System
+Interactive campus navigation system for Kulosaaren Yhteiskoulu (KSYK).
 
-Interactive campus map for KSYK. Create custom buildings, manage rooms, navigate between locations, and share with everyone!
-
-## ⚡ Quick Start
-
-```bash
-npm install
-npm run dev
-```
-
-Open: `http://localhost:5173`
-
-## 📚 Documentation
-
-### 🇫🇮 Suomeksi (Finnish):
-- **`PIKA-ALOITUS.md`** - 2 minuutin aloitus
-- **`ONGELMAT-PIKA.md`** - Ongelmat ja ratkaisut
-- **`VERCEL-DEPLOY.md`** - Vercel deployment
-- **`README-FI.md`** - Täydellinen dokumentaatio
-
-### 🇬🇧 English:
-- **`QUICK_START.md`** - Quick start guide
-- **`DEPLOYMENT.md`** - Deployment options
-- **`SHARE-NOW.md`** - Share instantly
-- **`CHANGELOG.md`** - Version history and updates
-
-## 🔑 Admin Access
-
-Admin panel is available at `/admin-login`. Contact the system administrator for credentials.
-
-**Security Note:** Admin credentials are stored securely in environment variables and are not included in the repository.
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## ✨ Features
 
-### 🗺️ Navigation & Maps
-- 🧭 **Smart Navigation** - Google Maps-style route planning with A* pathfinding
-- 🎯 **Visual Path Display** - Animated blue paths showing your route
-- 📍 **Waypoint Markers** - Numbered steps with pulsing start/end markers
-- 🏢 **3D Buildings** - Multi-layer shadows and dynamic gradients
-- 🎨 **Custom Shapes** - Draw polygon buildings with color picker
-- 🗺️ **Interactive Map** - Drag, zoom, and explore the campus
+### 🧭 Navigation
+- Google Maps-style route planning
+- A* pathfinding algorithm
+- Animated path visualization
+- Multi-floor navigation
 
-### 👥 Staff Management
-- 📊 **Staff Dashboard** - Complete CRUD operations for staff members
-- 🔍 **Search & Filter** - Find staff by name, position, or department
-- 🌐 **Multilingual** - Support for English and Finnish
-- 📧 **Contact Info** - Email and phone management
-- ✅ **Status Tracking** - Active/inactive staff members
-
-### 🏗️ Building & Room Management
-- 🏢 **Custom Buildings** - Click-to-draw custom shapes
-- 🚪 **Room Details** - Capacity, equipment, and type information
-- 🛤️ **Hallways** - Connect rooms with adjustable-width hallways
-- 🎨 **Full Color Picker** - Customize building and room colors
-- 📏 **Floor Management** - Multi-floor support with floor navigation
-
-### 📢 Communication
-- 📣 **Announcements** - Priority-based campus announcements
-- 🔔 **Banner Display** - Rotating announcement banner
-- ⏰ **Scheduling** - Set expiry dates for announcements
-- 🌐 **Bilingual** - English and Finnish support
+### 🏢 Campus Management
+- Interactive building and room maps
+- Staff directory with search
+- Real-time announcements
+- Multilingual support (EN/FI)
 
 ### 🎨 User Experience
-- 🌓 **Dark Mode** - Full dark theme support
-- 📱 **Mobile Responsive** - Optimized for all devices
-- ⚡ **Smooth Animations** - Professional transitions and effects
-- 🎯 **Intuitive UI** - Clean, modern interface
-- 🔍 **Smart Search** - Quick room and staff lookup
+- Dark mode support
+- Mobile responsive design
+- Smooth animations
+- Professional UI
 
-## 🚀 Share with Cloudflare
+## 🚀 Quick Start
 
 ```bash
-# Terminal 1
-npm run dev
+# Install dependencies
+npm install
 
-# Terminal 2
-.\START-CLOUDFLARE.bat
+# Set up environment variables
+cp .env.example .env
+# Add your Firebase credentials
+
+# Start development server
+npm run dev
 ```
 
-Share the URL you get!
+## 🛠️ Tech Stack
 
-## 🆘 Problems?
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express
+- **Database**: Firebase Firestore
+- **Deployment**: Vercel
 
-See: **`ONGELMAT-PIKA.md`** (Finnish) or **`DEPLOYMENT.md`** (English)
+## 📱 Live Demo
 
-## 📦 Tech Stack
-
-**Frontend:**
-- ⚛️ React 18 + TypeScript
-- 🎨 Tailwind CSS
-- ⚡ Vite
-- 🔄 React Query
-- 🌐 i18next
-
-**Backend:**
-- 🚀 Express.js + Node.js
-- 🔥 Firebase Firestore
-- 🔐 Passport.js Authentication
-- 📧 Nodemailer
-
-**Deployment:**
-- ☁️ Vercel
-- 🌐 Cloudflare Tunnel
-
-## 📋 Version History
-
-See **`CHANGELOG.md`** for detailed version history and updates.
-
-**Current Version:** 2.0.1 (January 24, 2026)
-
-### Recent Updates:
-- ✅ Staff management system fully functional with CRUD operations
-- ✅ Version info button showing current version and changelog
-- ✅ Mobile responsiveness improvements
-- ✅ Google Maps-style navigation with animated paths
-- ✅ Enhanced 3D building rendering
-- ✅ Fixed sidebar toggle and mobile responsiveness
-
-## 🔮 Upcoming Features
-
-- 🗓️ Event calendar with room booking
-- 📊 Analytics dashboard
-- 🔔 Push notifications
-- 🎫 QR code integration
-- 🌍 3D map view
-
-## 📄 License
-
-MIT
+Visit: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
 ## 📞 Support
 
-For issues, feature requests, or technical support:
 - 📧 Email: juuso.kaikula@ksyk.fi
 - 💬 Discord: https://discord.gg/5ERZp9gUpr
-- 🏫 School: Kulosaaren Yhteiskoulu (KSYK)
 - ⏱️ Response time: Usually within 24 hours
-- ⏱️ Response time: Usually within 24 hours
-- 💬 Include version number (v2.0.1) when reporting issues
+
+## 📄 License
+
+MIT License - Free to use!
 
 ---
 
-**Made with ❤️ by OWL Apps for KSYK**
+Made with ❤️ by OWL Apps for KSYK

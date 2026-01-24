@@ -36,25 +36,39 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          AUTHOR=$(git log -1 --pretty=%an)
+          
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "{
                  \"embeds\": [{
-                   \"title\": \"🚀 KSYK Maps v${{ steps.version.outputs.version }} Released!\",
+                   \"title\": \"🚀 KSYK Maps v${VERSION} Released!\",
                    \"description\": \"New version has been deployed to production.\",
                    \"color\": 3447003,
                    \"fields\": [
                      {
-                       \"name\": \"📋 What's New\",
-                       \"value\": \"Check the changelog for details!\"
+                       \"name\": \"📦 Version\",
+                       \"value\": \"v${VERSION}\",
+                       \"inline\": true
+                     },
+                     {
+                       \"name\": \"👤 Author\",
+                       \"value\": \"${AUTHOR}\",
+                       \"inline\": true
+                     },
+                     {
+                       \"name\": \"📝 Commit Message\",
+                       \"value\": \"${COMMIT_MSG}\"
                      },
                      {
                        \"name\": \"🔗 Links\",
-                       \"value\": \"[View on GitHub](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\"
+                       \"value\": \"[View Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\\n[Live Site](https://ksykmaps.vercel.app)\"
                      },
                      {
                        \"name\": \"📧 Support\",
-                       \"value\": \"juuso.kaikula@ksyk.fi\"
+                       \"value\": \"Email: juuso.kaikula@ksyk.fi\\nDiscord: https://discord.gg/5ERZp9gUpr\"
                      }
                    ],
                    \"footer\": {

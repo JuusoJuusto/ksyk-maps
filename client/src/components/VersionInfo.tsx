@@ -39,8 +39,8 @@ export default function VersionInfo() {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
-            <div className="space-y-6 mt-6 pb-6">
+          <div className="flex-1 overflow-y-auto pr-3 space-y-6 mt-6 pb-6" style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto' }}>
+            <div className="space-y-6">
             {/* Version 2.0.1 Updates */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
               <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
