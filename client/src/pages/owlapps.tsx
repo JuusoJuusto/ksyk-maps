@@ -2,11 +2,11 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Mail, MessageSquare, Github, Globe, Heart } from "lucide-react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 export default function OWLApps() {
   const { darkMode } = useDarkMode();
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
@@ -15,7 +15,7 @@ export default function OWLApps() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
+            onClick={() => setLocation("/")}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -92,7 +92,7 @@ export default function OWLApps() {
                   </ul>
                   <div className="mt-4">
                     <Button
-                      onClick={() => navigate("/")}
+                      onClick={() => setLocation("/")}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       Visit KSYK Maps
