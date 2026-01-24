@@ -1307,12 +1307,21 @@ export default function Home() {
                 <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
                     <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>ℹ️ About</h3>
-                    <div className={`space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                      <p>Version 2.0.4</p>
-                      <p>Latest Update: January 25, 2026</p>
-                      <p>Originally Released: August 20, 2025</p>
-                      <p>© 2026 OWL Apps</p>
+                    <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <div className="space-y-2">
+                        <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
+                        <p>Version 2.0.4</p>
+                        <p>Latest Update: January 25, 2026</p>
+                        <p>Originally Released: August 20, 2025</p>
+                        <p>© 2026 OWL Apps</p>
+                      </div>
+                      
+                      <Button
+                        onClick={() => window.location.href = '/owlapps'}
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        Learn More About OWL Apps
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

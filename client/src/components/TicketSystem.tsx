@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,8 +31,10 @@ export default function TicketSystem() {
       const newTicketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       setTicketId(newTicketId);
 
-      // Tickets channel webhook (admin-only channel)
-      const ticketsWebhook = "https://discord.com/api/webhooks/1464731342699761746/aLvsx19F6u-DBrLlYlW0WKQrIO0bzCEeUZtkdoX6CGx7QnxxwJnEMgtMeW48fUiCiD6X";
+      // Tickets channel webhook - YOU MUST UPDATE THIS!
+      // Go to Discord > #tickets channel > Edit Channel > Integrations > Webhooks > New Webhook
+      // Copy the webhook URL and paste it here
+      const ticketsWebhook = import.meta.env.VITE_DISCORD_TICKETS_WEBHOOK || "https://discord.com/api/webhooks/1464731342699761746/aLvsx19F6u-DBrLlYlW0WKQrIO0bzCEeUZtkdoX6CGx7QnxxwJnEMgtMeW48fUiCiD6X";
       
       const typeEmoji = formData.type === 'bug' ? '🐛' : formData.type === 'feature' ? '✨' : '💬';
       const typeColor = formData.type === 'bug' ? 15158332 : formData.type === 'feature' ? 3447003 : 15844367;
@@ -133,6 +135,9 @@ export default function TicketSystem() {
               <Ticket className="h-6 w-6 text-blue-600" />
               Submit a Support Ticket
             </DialogTitle>
+            <DialogDescription className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+              Fill out the form below to submit a ticket to our support team.
+            </DialogDescription>
           </DialogHeader>
 
           {submitted ? (
