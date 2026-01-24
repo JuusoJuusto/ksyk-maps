@@ -1310,7 +1310,7 @@ export default function Home() {
                     <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <div className="space-y-2">
                         <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                        <p>Version 2.0.4</p>
+                        <p>Version 2.1.0</p>
                         <p>Latest Update: January 25, 2026</p>
                         <p>Originally Released: August 20, 2025</p>
                         <p>© 2026 OWL Apps</p>
