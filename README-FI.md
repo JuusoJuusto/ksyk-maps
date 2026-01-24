@@ -190,6 +190,7 @@ Katso **`CHANGELOG.md`** yksityiskohtainen versiohistoria ja päivitykset.
 
 ### Kysymyksiä?
 - 📧 Sähköposti: juuso.kaikula@ksyk.fi
+- 💬 Discord: https://discord.gg/5ERZp9gUpr
 - 🏫 Koulu: Kulosaaren Yhteiskoulu (KSYK)
 - ⏱️ Vastausaika: Yleensä 24 tunnin sisällä
 - 💬 Mainitse versionumero (v2.0.1) ongelmia raportoidessa

@@ -135,10 +135,14 @@ KSYK Maps by OWL Apps
 
 ## Troubleshooting
 
+### ✅ FIXED: "no URL specified" error
+This has been fixed in the latest version. The webhook URL is now properly quoted in the curl command.
+
 ### GitHub Action not working?
 1. Check that the webhook URL is correctly set in GitHub Secrets
 2. Go to **Actions** tab in GitHub to see if the workflow ran
 3. Check the workflow logs for errors
+4. Make sure the secret name is exactly `DISCORD_WEBHOOK_URL`
 
 ### Manual script not working?
 1. Make sure `DISCORD_WEBHOOK_URL` environment variable is set
@@ -150,6 +154,11 @@ Should look like:
 ```
 https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz
 ```
+
+### Common Issues:
+- **Webhook expired**: Create a new webhook in Discord
+- **Wrong channel**: Check webhook settings in Discord
+- **Permissions**: Make sure the bot can post in the channel
 
 ---
 

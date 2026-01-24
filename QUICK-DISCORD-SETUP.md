@@ -25,6 +25,8 @@ That's it! Now every time you push changes to:
 
 Discord will automatically get a notification with the changelog!
 
+**✅ Note:** The curl command error has been fixed in the latest version.
+
 ---
 
 ## Test It Now

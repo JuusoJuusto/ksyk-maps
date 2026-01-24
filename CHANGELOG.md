@@ -117,7 +117,9 @@ We use Semantic Versioning:
 
 For issues, feature requests, or technical support:
 - Email: juuso.kaikula@ksyk.fi
+- Discord: https://discord.gg/5ERZp9gUpr
 - School: Kulosaaren Yhteiskoulu (KSYK)
+- Response time: Usually within 24 hours
 - Response time: Usually within 24 hours
 
 ---

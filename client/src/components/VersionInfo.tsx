@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 
 export default function VersionInfo() {
@@ -8,12 +8,13 @@ export default function VersionInfo() {
   
   const version = "2.0.1";
   const releaseDate = "January 24, 2026";
+  const originalReleaseDate = "August 20, 2025";
   
   return (
     <>
       <button
         onClick={() => setShowChangelog(true)}
-        className="fixed bottom-4 right-4 z-40 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center space-x-2 text-sm font-semibold"
+        className="fixed bottom-4 right-4 z-30 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center space-x-2 text-sm font-semibold"
         title="View Version Info & Changelog"
       >
         <Info className="h-4 w-4" />
@@ -21,18 +22,25 @@ export default function VersionInfo() {
       </button>
       
       <Dialog open={showChangelog} onOpenChange={setShowChangelog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-3xl flex items-center gap-3">
-              <Sparkles className="h-8 w-8 text-blue-600" />
-              KSYK Maps v{version}
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+          <DialogHeader className="pb-6 border-b-2 border-blue-200 dark:border-gray-700">
+            <DialogTitle className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-2xl shadow-xl">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-3xl font-black bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  KSYK Maps v{version}
+                </div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mt-1">
+                  Latest Update: {releaseDate}
+                </div>
+              </div>
             </DialogTitle>
-            <DialogDescription className="text-base">
-              Released on {releaseDate}
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 mt-4">
+          <div className="flex-1 overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+            <div className="space-y-6 mt-6 pb-6">
             {/* Version 2.0.1 Updates */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
               <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
@@ -209,31 +217,56 @@ export default function VersionInfo() {
             </div>
             
             {/* Footer */}
-            <div className="text-center pt-4 border-t">
-              <p className="text-gray-600 text-sm mb-3">
-                Made with love by <strong>OWL Apps</strong> for KSYK
-              </p>
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h4 className="font-bold text-blue-900 mb-2">Need Help?</h4>
-                <p className="text-blue-800 text-sm mb-2">
+            <div className="text-center pt-6 border-t-2 border-blue-200 dark:border-gray-700">
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 p-6 rounded-2xl border-2 border-blue-200 dark:border-gray-600 shadow-lg mb-6">
+                <h4 className="font-black text-blue-900 dark:text-blue-300 mb-3 text-lg">📞 Need Help?</h4>
+                <p className="text-blue-800 dark:text-blue-400 text-sm mb-4">
                   For support, feature requests, or bug reports:
                 </p>
-                <a 
-                  href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
-                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold text-sm"
-                >
-                  <span>📧</span>
-                  <span>juuso.kaikula@ksyk.fi</span>
-                </a>
-                <p className="text-blue-600 text-xs mt-2">
-                  Response time: Usually within 24 hours
+                <div className="space-y-2">
+                  <a 
+                    href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
+                    className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-base transition-colors"
+                  >
+                    <span>📧</span>
+                    <span>juuso.kaikula@ksyk.fi</span>
+                  </a>
+                  <br />
+                  <a 
+                    href="https://discord.gg/5ERZp9gUpr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-base transition-colors"
+                  >
+                    <span>💬</span>
+                    <span>Join Discord Community</span>
+                  </a>
+                </div>
+                <p className="text-blue-600 dark:text-blue-400 text-xs mt-4">
+                  ⏱️ Response time: Usually within 24 hours
+                </p>
+              </div>
+              
+              <div className="text-gray-600 dark:text-gray-400 text-sm space-y-1">
+                <p className="font-semibold">
+                  Made with ❤️ by <strong className="text-blue-600 dark:text-blue-400">OWL Apps</strong> for KSYK
+                </p>
+                <p className="text-xs">
+                  Originally released: {originalReleaseDate}
+                </p>
+                <p className="text-xs">
+                  © 2025-2026 OWL Apps. All rights reserved.
                 </p>
               </div>
             </div>
+            </div>
           </div>
           
-          <div className="flex justify-end mt-6">
-            <Button onClick={() => setShowChangelog(false)}>
+          <div className="flex justify-end pt-4 border-t-2 border-blue-200 dark:border-gray-700">
+            <Button 
+              onClick={() => setShowChangelog(false)}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-8 py-2 shadow-lg"
+            >
               Close
             </Button>
           </div>

@@ -37,25 +37,30 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           curl -H "Content-Type: application/json" \
-               -d '{
-                 "embeds": [{
-                   "title": "🚀 KSYK Maps v${{ steps.version.outputs.version }} Released!",
-                   "description": "New version has been deployed to production.",
-                   "color": 3447003,
-                   "fields": [
+               -X POST \
+               -d "{
+                 \"embeds\": [{
+                   \"title\": \"🚀 KSYK Maps v${{ steps.version.outputs.version }} Released!\",
+                   \"description\": \"New version has been deployed to production.\",
+                   \"color\": 3447003,
+                   \"fields\": [
                      {
-                       "name": "📋 Changelog",
-                       "value": "```\n${{ steps.changelog.outputs.changelog }}\n```"
+                       \"name\": \"📋 What's New\",
+                       \"value\": \"Check the changelog for details!\"
                      },
                      {
-                       "name": "🔗 Links",
-                       "value": "[View on GitHub](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+                       \"name\": \"🔗 Links\",
+                       \"value\": \"[View on GitHub](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\"
+                     },
+                     {
+                       \"name\": \"📧 Support\",
+                       \"value\": \"juuso.kaikula@ksyk.fi\"
                      }
                    ],
-                   "footer": {
-                     "text": "KSYK Maps by OWL Apps"
+                   \"footer\": {
+                     \"text\": \"KSYK Maps by OWL Apps\"
                    },
-                   "timestamp": "${{ github.event.head_commit.timestamp }}"
+                   \"timestamp\": \"${{ github.event.head_commit.timestamp }}\"
                  }]
-               }' \
-               $DISCORD_WEBHOOK
+               }" \
+               "$DISCORD_WEBHOOK"

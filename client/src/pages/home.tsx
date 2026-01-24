@@ -375,25 +375,19 @@ export default function Home() {
         {/* Sidebar Toggle Button - MOBILE OPTIMIZED */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`fixed top-1/2 -translate-y-1/2 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-r-xl shadow-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-110 ${
+          className={`fixed top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-r-xl shadow-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-110 ${
             sidebarOpen ? 'left-[calc(100%-3rem)] md:left-[320px]' : 'left-0'
-          } p-2 md:p-3`}
+          } p-3 md:p-4`}
           style={{
             left: sidebarOpen ? (window.innerWidth < 768 ? 'calc(100% - 3rem)' : '320px') : '0px'
           }}
           title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
         >
-          <div className="flex flex-col items-center">
+          <div className="flex items-center justify-center">
             {sidebarOpen ? (
-              <>
-                <span className="text-xl md:text-2xl font-bold">◀</span>
-                <span className="text-[7px] md:text-[8px] mt-1">CLOSE</span>
-              </>
+              <span className="text-2xl md:text-3xl font-bold">◀</span>
             ) : (
-              <>
-                <span className="text-xl md:text-2xl font-bold">▶</span>
-                <span className="text-[7px] md:text-[8px] mt-1">OPEN</span>
-              </>
+              <span className="text-2xl md:text-3xl font-bold">▶</span>
             )}
           </div>
         </button>
@@ -1271,13 +1265,25 @@ export default function Home() {
                         <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
                           For technical support, bug reports, or feature requests:
                         </p>
-                        <a 
-                          href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
-                          className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
-                        >
-                          <span>📧</span>
-                          <span>juuso.kaikula@ksyk.fi</span>
-                        </a>
+                        <div className="space-y-2">
+                          <a 
+                            href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
+                            className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
+                          >
+                            <span>📧</span>
+                            <span>juuso.kaikula@ksyk.fi</span>
+                          </a>
+                          <br />
+                          <a 
+                            href="https://discord.gg/5ERZp9gUpr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
+                          >
+                            <span>💬</span>
+                            <span>Join Discord Community</span>
+                          </a>
+                        </div>
                         <p className="text-blue-600 dark:text-blue-400 text-xs mt-3">
                           ⏱️ Response time: Usually within 24 hours
                         </p>
@@ -1300,8 +1306,9 @@ export default function Home() {
                     <div className={`space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
                       <p>Version 2.0.1</p>
-                      <p>Released: January 24, 2026</p>
-                      <p>© 2026 OWL Apps</p>
+                      <p>Latest Update: January 24, 2026</p>
+                      <p>Originally Released: August 20, 2025</p>
+                      <p>© 2025-2026 OWL Apps</p>
                     </div>
                   </CardContent>
                 </Card>
