@@ -4,6 +4,25 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.0.2] - 2026-01-25
+
+### Security
+- Moved Firebase credentials to environment variables
+- Removed hardcoded API keys from source code
+- Cleaned up repository (removed 16+ unnecessary files)
+- Updated license to proprietary (not free to use)
+
+### Changed
+- Updated README files (removed Quick Start, changed to "Application")
+- Improved .gitignore for better security
+- Enhanced Discord notifications with more details
+
+### Fixed
+- Firebase connection issues resolved
+- Environment variable configuration improved
+
+---
+
 ## [2.0.1] - 2026-01-24
 
 ### Added
@@ -75,5 +94,6 @@ For support, bug reports, or feature requests:
 - 💬 Discord: https://discord.gg/5ERZp9gUpr
 - ⏱️ Response time: Usually within 24 hours
 
-Made with ❤️ by OWL Apps for KSYK
+---
 
+Made with ❤️ by OWL Apps for KSYK

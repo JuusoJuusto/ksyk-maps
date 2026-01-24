@@ -3,7 +3,7 @@
 Interaktiivinen kampusnavigointijärjestelmä Kulosaaren Yhteiskoululle (KSYK).
 
 [![Versio](https://img.shields.io/badge/versio-2.0.1-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
-[![Lisenssi](https://img.shields.io/badge/lisenssi-MIT-green.svg)](LICENSE)
+[![Lisenssi](https://img.shields.io/badge/lisenssi-Proprietary-red.svg)](LICENSE)
 
 ## ✨ Ominaisuudet
 
@@ -25,20 +25,6 @@ Interaktiivinen kampusnavigointijärjestelmä Kulosaaren Yhteiskoululle (KSYK).
 - Sulava animaatio
 - Ammattimainen käyttöliittymä
 
-## 🚀 Pika-aloitus
-
-```bash
-# Asenna riippuvuudet
-npm install
-
-# Aseta ympäristömuuttujat
-cp .env.example .env
-# Lisää Firebase-tunnuksesi
-
-# Käynnistä kehityspalvelin
-npm run dev
-```
-
 ## 🛠️ Teknologiat
 
 - **Frontend**: React, TypeScript, Tailwind CSS
@@ -46,7 +32,7 @@ npm run dev
 - **Tietokanta**: Firebase Firestore
 - **Julkaisu**: Vercel
 
-## 📱 Live Demo
+## 📱 Sovellus
 
 Vieraile: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
@@ -58,7 +44,9 @@ Vieraile: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
 ## 📄 Lisenssi
 
-MIT License - Vapaa käyttöön!
+Copyright © 2025-2026 OWL Apps. Kaikki oikeudet pidätetään.
+
+Tämä ohjelmisto on omistusoikeudellinen ja luottamuksellinen. Luvaton kopiointi, jakelu tai käyttö on ehdottomasti kielletty.
 
 ---
 
