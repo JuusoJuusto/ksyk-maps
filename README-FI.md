@@ -1,15 +1,45 @@
 # 🗺️ KSYK Campus Maps
 
-Interaktiivinen kampuskartta KSYK:lle. Luo mukautettuja rakennuksia, hallinnoi huoneita ja jaa kartta kaikille!
+**Versio 2.0.1** - Ammattimainen Interaktiivinen Kampusnavigointijärjestelmä
+
+Interaktiivinen kampuskartta KSYK:lle. Luo mukautettuja rakennuksia, hallinnoi huoneita, navigoi sijaintien välillä ja jaa kartta kaikille!
 
 ## ✨ Ominaisuudet
 
+### 🗺️ Navigointi & Kartat
+- 🧭 **Älykäs Navigointi** - Google Maps -tyylinen reittisuunnittelu A* algoritmilla
+- 🎯 **Visuaalinen Reitti** - Animoidut siniset polut näyttävät reitin
+- 📍 **Reittipisteet** - Numeroitu vaiheet sykkivillä alku/loppu merkkeillä
+- 🏢 **3D Rakennukset** - Monikerroksinen varjostus ja dynaamiset gradientit
+- 🎨 **Mukautetut Muodot** - Piirrä monikulmiorakennuksia värivalitsimella
+- 🗺️ **Interaktiivinen Kartta** - Vedä, zoomaa ja tutki kampusta
+
+### 👥 Henkilöstöhallinta
+- 📊 **Henkilöstö Dashboard** - Täydelliset CRUD-toiminnot henkilöstölle
+- 🔍 **Haku & Suodatus** - Etsi henkilöstöä nimen, aseman tai osaston mukaan
+- 🌐 **Monikielinen** - Tuki englanniksi ja suomeksi
+- 📧 **Yhteystiedot** - Sähköposti ja puhelinnumero hallinta
+- ✅ **Tilan Seuranta** - Aktiiviset/ei-aktiiviset henkilöstön jäsenet
+
+### 🏗️ Rakennus & Huonehallinta
 - 🏗️ **Mukautetut Rakennukset** - Klikkaa ja piirrä mitä tahansa muotoja
-- 🎨 **Täysi Väripaletti** - Valitse mikä tahansa väri väripyörästä
-- 🗺️ **Live Kartta** - Näe muutokset reaaliajassa
-- 📢 **Ilmoitukset** - Julkaisu- ja vanhenemispäivät
-- 👥 **Käyttäjähallinta** - Luo admin-käyttäjiä
-- 📱 **Responsiivinen** - Toimii kaikilla laitteilla
+- 🚪 **Huoneen Tiedot** - Kapasiteetti, varusteet ja tyyppi
+- 🛤️ **Käytävät** - Yhdistä huoneita säädettävän levyisillä käytävillä
+- 🎨 **Täysi Väripaletti** - Mukauta rakennus- ja huonevärejä
+- 📏 **Kerrosten Hallinta** - Monikerroksinen tuki kerrosnavigoinnilla
+
+### 📢 Viestintä
+- 📣 **Ilmoitukset** - Prioriteettiin perustuvat kampusilmoitukset
+- 🔔 **Banneri Näyttö** - Pyörivä ilmoitusbanneri
+- ⏰ **Ajastus** - Aseta vanhenemispäivät ilmoituksille
+- 🌐 **Kaksikielinen** - Englanti ja suomi tuki
+
+### 🎨 Käyttökokemus
+- 🌓 **Tumma Tila** - Täysi tumma teema tuki
+- 📱 **Mobiiliresponsiivinen** - Optimoitu kaikille laitteille
+- ⚡ **Sulava Animaatio** - Ammattimaiset siirtymät ja efektit
+- 🎯 **Intuitiivinen UI** - Puhdas, moderni käyttöliittymä
+- 🔍 **Älykäs Haku** - Nopea huone- ja henkilöstöhaku
 
 ## 🚀 Pika-aloitus
 
@@ -30,6 +60,7 @@ Jaa URL muille!
 
 ### Aloittelijalle:
 - **NOPEA-OHJE.md** - 5 minuutin setup
+- **CHANGELOG.md** - Versiohistoria ja päivitykset
 
 ### 24/7 Käyttö:
 - **24-7-KAYNTI-OHJE.md** - Pidä sovellus päällä 24/7
@@ -60,9 +91,9 @@ Jaa URL muille!
 
 ## 🔑 Admin Kirjautuminen
 
-- URL: `/admin-login`
-- Email: `JuusoJuusto112@gmail.com`
-- Salasana: `Juusto2012!`
+Admin paneeli on saatavilla osoitteessa `/admin-login`. Ota yhteyttä järjestelmän ylläpitäjään kirjautumistietojen saamiseksi.
+
+**Turvallisuushuomautus:** Admin-tunnukset tallennetaan turvallisesti ympäristömuuttujiin eivätkä ne sisälly repositorioon.
 
 ## 🏗️ KSYK Builder
 
@@ -82,12 +113,22 @@ Kun sovellus on käynnissä, jaa:
 
 ## 🛠️ Teknologiat
 
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Express + Node.js
-- **Database**: Firebase / PostgreSQL
-- **Styling**: Tailwind CSS
-- **Maps**: Custom SVG
-- **Hosting**: Vercel / Railway / Cloudflare
+**Frontend:**
+- ⚛️ React 18 + TypeScript
+- 🎨 Tailwind CSS
+- ⚡ Vite
+- 🔄 React Query
+- 🌐 i18next
+
+**Backend:**
+- 🚀 Express.js + Node.js
+- 🔥 Firebase Firestore
+- 🔐 Passport.js Autentikointi
+- 📧 Nodemailer
+
+**Deployment:**
+- ☁️ Vercel
+- 🌐 Cloudflare Tunnel
 
 ## 📦 Rakenne
 
@@ -113,7 +154,31 @@ VITE_FIREBASE_API_KEY=your_key
 VITE_FIREBASE_PROJECT_ID=your_project
 DATABASE_URL=your_database
 SESSION_SECRET=random_secret
+OWNER_EMAIL=admin@example.com
+OWNER_PASSWORD=secure_password
 ```
+
+## 📋 Versiohistoria
+
+Katso **`CHANGELOG.md`** yksityiskohtainen versiohistoria ja päivitykset.
+
+**Nykyinen Versio:** 2.0.1 (24. tammikuuta 2026)
+
+### Viimeisimmät Päivitykset:
+- ✅ Henkilöstöhallintajärjestelmä täysin toimiva CRUD-toiminnoilla
+- ✅ Versiotietopainike näyttää nykyisen version ja muutoslokin
+- ✅ Mobiiliresponsiivisuuden parannukset
+- ✅ Google Maps -tyylinen navigointi animoiduilla poluilla
+- ✅ Parannettu 3D rakennusten renderöinti
+- ✅ Korjattu sivupalkin vaihto ja mobiiliresponsiivisuus
+
+## 🔮 Tulevat Ominaisuudet
+
+- 🗓️ Tapahtumakalenteri huonevarauksilla
+- 📊 Analytiikka dashboard
+- 🔔 Push-ilmoitukset
+- 🎫 QR-koodin integraatio
+- 🌍 3D karttanäkymä
 
 ## 🆘 Tuki
 
@@ -124,9 +189,10 @@ SESSION_SECRET=random_secret
 4. Katso browser console virheet
 
 ### Kysymyksiä?
-- Katso ohjeet `docs/` kansiosta
-- Tarkista GitHub Issues
-- Lue `DEPLOYMENT.md`
+- 📧 Sähköposti: juuso.kaikula@ksyk.fi
+- 🏫 Koulu: Kulosaaren Yhteiskoulu (KSYK)
+- ⏱️ Vastausaika: Yleensä 24 tunnin sisällä
+- 💬 Mainitse versionumero (v2.0.1) ongelmia raportoidessa
 
 ## 📄 Lisenssi
 
@@ -134,7 +200,7 @@ MIT License - Vapaa käyttöön!
 
 ## 🎉 Kiitokset
 
-Tehty ❤️:llä KSYK:lle
+Tehty ❤️:llä OWL Apps toimesta KSYK:lle
 
 ---
 

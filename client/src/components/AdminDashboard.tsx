@@ -487,6 +487,26 @@ export default function AdminDashboard() {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [viewingPassword, setViewingPassword] = useState<string | null>(null);
   
+  // Staff management state
+  const [editingStaff, setEditingStaff] = useState<any>(null);
+  const [showStaffForm, setShowStaffForm] = useState(false);
+  const [newStaff, setNewStaff] = useState<any>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    position: "",
+    positionEn: "",
+    positionFi: "",
+    department: "",
+    departmentEn: "",
+    departmentFi: "",
+    bio: "",
+    bioEn: "",
+    bioFi: "",
+    isActive: true
+  });
+  
   // Get current user from localStorage
   const getCurrentUser = () => {
     try {
@@ -649,6 +669,71 @@ export default function AdminDashboard() {
     },
   });
 
+  // Staff mutations
+  const createStaffMutation = useMutation({
+    mutationFn: async (staff: any) => {
+      const response = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(staff),
+      });
+      if (!response.ok) throw new Error("Failed to create staff member");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      setShowStaffForm(false);
+      setNewStaff({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        position: "",
+        positionEn: "",
+        positionFi: "",
+        department: "",
+        departmentEn: "",
+        departmentFi: "",
+        bio: "",
+        bioEn: "",
+        bioFi: "",
+        isActive: true
+      });
+    },
+  });
+
+  const updateStaffMutation = useMutation({
+    mutationFn: async ({ id, ...staff }: any) => {
+      const response = await fetch(`/api/staff/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(staff),
+      });
+      if (!response.ok) throw new Error("Failed to update staff member");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      setEditingStaff(null);
+      setShowStaffForm(false);
+    },
+  });
+
+  const deleteStaffMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/staff/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete staff member");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    },
+  });
+
   const handleCreateAnnouncement = () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
       alert("Please fill in title and content");
@@ -660,6 +745,24 @@ export default function AdminDashboard() {
   const handleUpdateAnnouncement = () => {
     if (!editingAnnouncement) return;
     updateAnnouncementMutation.mutate(editingAnnouncement);
+  };
+
+  const handleCreateStaff = () => {
+    if (!newStaff.firstName || !newStaff.lastName) {
+      alert("Please fill in first name and last name");
+      return;
+    }
+    createStaffMutation.mutate(newStaff);
+  };
+
+  const handleUpdateStaff = () => {
+    if (!editingStaff) return;
+    updateStaffMutation.mutate(editingStaff);
+  };
+
+  const handleDeleteStaff = (id: string, name: string) => {
+    if (!confirm(`Delete staff member ${name}?`)) return;
+    deleteStaffMutation.mutate(id);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -1704,11 +1807,236 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-bold">Staff Management</h2>
               <p className="text-muted-foreground">Manage staff members and their information</p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                setShowStaffForm(true);
+                setEditingStaff(null);
+                setNewStaff({
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  phone: "",
+                  position: "",
+                  positionEn: "",
+                  positionFi: "",
+                  department: "",
+                  departmentEn: "",
+                  departmentFi: "",
+                  bio: "",
+                  bioEn: "",
+                  bioFi: "",
+                  isActive: true
+                });
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Staff Member
             </Button>
           </div>
+
+          {/* Staff Form */}
+          {showStaffForm && (
+            <Card className="border-2 border-blue-500">
+              <CardHeader>
+                <CardTitle>{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
+                <CardDescription>
+                  {editingStaff ? "Update staff member information" : "Fill in the details to add a new staff member"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>First Name *</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.firstName : newStaff.firstName}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, firstName: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, firstName: e.target.value });
+                        }
+                      }}
+                      placeholder="John"
+                    />
+                  </div>
+                  <div>
+                    <Label>Last Name *</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.lastName : newStaff.lastName}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, lastName: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, lastName: e.target.value });
+                        }
+                      }}
+                      placeholder="Doe"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={editingStaff ? editingStaff.email || "" : newStaff.email}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, email: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, email: e.target.value });
+                        }
+                      }}
+                      placeholder="john.doe@ksyk.fi"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.phone || "" : newStaff.phone}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, phone: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, phone: e.target.value });
+                        }
+                      }}
+                      placeholder="+358 40 123 4567"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Position (Default)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.position || "" : newStaff.position}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, position: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, position: e.target.value });
+                        }
+                      }}
+                      placeholder="Teacher"
+                    />
+                  </div>
+                  <div>
+                    <Label>Position (English)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.positionEn || "" : newStaff.positionEn}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, positionEn: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, positionEn: e.target.value });
+                        }
+                      }}
+                      placeholder="Teacher"
+                    />
+                  </div>
+                  <div>
+                    <Label>Position (Finnish)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.positionFi || "" : newStaff.positionFi}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, positionFi: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, positionFi: e.target.value });
+                        }
+                      }}
+                      placeholder="Opettaja"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Department (Default)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.department || "" : newStaff.department}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, department: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, department: e.target.value });
+                        }
+                      }}
+                      placeholder="Music"
+                    />
+                  </div>
+                  <div>
+                    <Label>Department (English)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.departmentEn || "" : newStaff.departmentEn}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, departmentEn: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, departmentEn: e.target.value });
+                        }
+                      }}
+                      placeholder="Music"
+                    />
+                  </div>
+                  <div>
+                    <Label>Department (Finnish)</Label>
+                    <Input
+                      value={editingStaff ? editingStaff.departmentFi || "" : newStaff.departmentFi}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, departmentFi: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, departmentFi: e.target.value });
+                        }
+                      }}
+                      placeholder="Musiikki"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={editingStaff ? editingStaff.isActive : newStaff.isActive}
+                    onChange={(e) => {
+                      if (editingStaff) {
+                        setEditingStaff({ ...editingStaff, isActive: e.target.checked });
+                      } else {
+                        setNewStaff({ ...newStaff, isActive: e.target.checked });
+                      }
+                    }}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="isActive">Active</Label>
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowStaffForm(false);
+                      setEditingStaff(null);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {editingStaff ? "Update" : "Create"} Staff Member
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Staff Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -1780,7 +2108,13 @@ export default function AdminDashboard() {
                   <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No Staff Members</h3>
                   <p className="text-gray-600 mb-6">Get started by adding your first staff member</p>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      setShowStaffForm(true);
+                      setEditingStaff(null);
+                    }}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add First Staff Member
                   </Button>
@@ -1809,10 +2143,23 @@ export default function AdminDashboard() {
                         <Badge variant={member.isActive ? "default" : "secondary"} className={member.isActive ? "bg-green-600" : ""}>
                           {member.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            setEditingStaff(member);
+                            setShowStaffForm(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteStaff(member.id, `${member.firstName} ${member.lastName}`)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1832,17 +2179,6 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-
-          {/* Sample Data Notice */}
-          {staff.length === 0 && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>No staff data available.</strong> The staff API endpoint may not be configured or there's no data in the database. 
-                Contact your system administrator to set up staff management.
-              </AlertDescription>
-            </Alert>
-          )}
         </TabsContent>
 
         <TabsContent value="announcements" className="space-y-6">

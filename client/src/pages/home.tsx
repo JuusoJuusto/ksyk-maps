@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import VersionInfo from "@/components/VersionInfo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -192,23 +193,26 @@ export default function Home() {
         onNavigate={handleNavigate}
       />
       
+      {/* Version Info Button */}
+      <VersionInfo />
+      
       <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Left Sidebar - Navigation - COLLAPSIBLE & MOBILE FRIENDLY */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden md:relative absolute md:static z-[45] h-full`}>
+        {/* Left Sidebar - Navigation - IMPROVED MOBILE */}
+        <div className={`${sidebarOpen ? 'w-full md:w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden fixed md:relative z-[45] h-full`}>
           {/* Navigation Button - Clean Header */}
-          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
+          <div className={`p-3 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-12 md:h-14 text-base md:text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
-              <Navigation className="mr-2 h-6 w-6" />
+              <Navigation className="mr-2 h-5 w-5 md:h-6 md:w-6" />
               {t('actions.directions')}
             </Button>
           </div>          
-          {/* Search Rooms */}
-          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-blue-50'}`}>
-            <label className={`block text-sm font-bold mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-              <Search className={`inline h-5 w-5 mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+          {/* Search Rooms - MOBILE OPTIMIZED */}
+          <div className={`p-3 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-blue-50'}`}>
+            <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              <Search className={`inline h-4 w-4 md:h-5 md:w-5 mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               {t('search.rooms')}
             </label>
             <Input
@@ -216,7 +220,7 @@ export default function Home() {
               placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full border-2 shadow-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-blue-200 focus:border-blue-500'}`}
+              className={`w-full border-2 shadow-sm text-sm md:text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-blue-200 focus:border-blue-500'}`}
             />
             
             {/* Search Results */}
@@ -368,15 +372,30 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - MOBILE FRIENDLY */}
+        {/* Sidebar Toggle Button - MOBILE OPTIMIZED */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed md:absolute top-1/2 -translate-y-1/2 z-[60] bg-blue-600 text-white p-2 md:p-3 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all text-sm md:text-base"
-          style={{ 
-            left: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '0px' : '320px') : '0px'
+          className={`fixed top-1/2 -translate-y-1/2 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-r-xl shadow-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-110 ${
+            sidebarOpen ? 'left-[calc(100%-3rem)] md:left-[320px]' : 'left-0'
+          } p-2 md:p-3`}
+          style={{
+            left: sidebarOpen ? (window.innerWidth < 768 ? 'calc(100% - 3rem)' : '320px') : '0px'
           }}
+          title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
         >
-          {sidebarOpen ? '◀' : '▶'}
+          <div className="flex flex-col items-center">
+            {sidebarOpen ? (
+              <>
+                <span className="text-xl md:text-2xl font-bold">◀</span>
+                <span className="text-[7px] md:text-[8px] mt-1">CLOSE</span>
+              </>
+            ) : (
+              <>
+                <span className="text-xl md:text-2xl font-bold">▶</span>
+                <span className="text-[7px] md:text-[8px] mt-1">OPEN</span>
+              </>
+            )}
+          </div>
         </button>
         
         {/* Mobile Overlay */}
@@ -934,7 +953,7 @@ export default function Home() {
                     );
                   })}
                   
-                  {/* Navigation Path Visualization - Google Maps Style */}
+                  {/* Navigation Path Visualization - ENHANCED Google Maps Style */}
                   {navigationPath.length > 1 && navigationPath.map((room, idx) => {
                     if (idx === navigationPath.length - 1 || !room.mapPositionX || !room.mapPositionY) return null;
                     const nextRoom = navigationPath[idx + 1];
@@ -947,18 +966,36 @@ export default function Home() {
                     
                     return (
                       <g key={`path-${idx}`}>
-                        {/* Outer glow */}
+                        {/* Outer glow - animated */}
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="#60A5FA"
+                          strokeWidth="16"
+                          opacity="0.3"
+                          strokeLinecap="round"
+                        >
+                          <animate
+                            attributeName="opacity"
+                            values="0.2;0.4;0.2"
+                            dur="2s"
+                            repeatCount="indefinite"
+                          />
+                        </line>
+                        {/* Middle glow */}
                         <line
                           x1={x1}
                           y1={y1}
                           x2={x2}
                           y2={y2}
                           stroke="#3B82F6"
-                          strokeWidth="12"
-                          opacity="0.2"
+                          strokeWidth="10"
+                          opacity="0.6"
                           strokeLinecap="round"
                         />
-                        {/* Main path */}
+                        {/* Main path - animated dashes */}
                         <line
                           x1={x1}
                           y1={y1}
@@ -966,19 +1003,34 @@ export default function Home() {
                           y2={y2}
                           stroke="#2563EB"
                           strokeWidth="6"
-                          opacity="0.9"
+                          opacity="0.95"
                           strokeLinecap="round"
-                          strokeDasharray="10,5"
-                          className="animate-pulse"
-                        />
-                        {/* Direction arrow */}
+                          strokeDasharray="15,8"
+                        >
+                          <animate
+                            attributeName="stroke-dashoffset"
+                            from="0"
+                            to="23"
+                            dur="1s"
+                            repeatCount="indefinite"
+                          />
+                        </line>
+                        {/* Direction arrow with number */}
                         <g transform={`translate(${(x1 + x2) / 2}, ${(y1 + y2) / 2})`}>
-                          <circle r="8" fill="#2563EB" opacity="0.9" />
+                          <circle r="12" fill="white" opacity="0.95" stroke="#2563EB" strokeWidth="2" />
+                          <circle r="10" fill="#2563EB" opacity="0.9">
+                            <animate
+                              attributeName="r"
+                              values="10;11;10"
+                              dur="1.5s"
+                              repeatCount="indefinite"
+                            />
+                          </circle>
                           <text
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="10"
+                            fontSize="11"
                             fontWeight="bold"
                           >
                             {idx + 1}
@@ -988,16 +1040,39 @@ export default function Home() {
                     );
                   })}
                   
-                  {/* Start and End Markers */}
+                  {/* Start Marker - Enhanced with animation */}
                   {navigationPath.length > 0 && navigationPath[0]?.mapPositionX && navigationPath[0]?.mapPositionY && (
                     <g>
+                      {/* Pulsing outer ring */}
                       <circle
                         cx={navigationPath[0].mapPositionX + (navigationPath[0].width || 40) / 2}
                         cy={navigationPath[0].mapPositionY + (navigationPath[0].height || 30) / 2}
-                        r="15"
+                        r="20"
                         fill="#10B981"
-                        opacity="0.9"
-                        className="animate-pulse"
+                        opacity="0.3"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="20;25;20"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.3;0.1;0.3"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                      {/* Main marker */}
+                      <circle
+                        cx={navigationPath[0].mapPositionX + (navigationPath[0].width || 40) / 2}
+                        cy={navigationPath[0].mapPositionY + (navigationPath[0].height || 30) / 2}
+                        r="16"
+                        fill="#10B981"
+                        opacity="0.95"
+                        stroke="white"
+                        strokeWidth="3"
                       />
                       <text
                         x={navigationPath[0].mapPositionX + (navigationPath[0].width || 40) / 2}
@@ -1005,22 +1080,47 @@ export default function Home() {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fill="white"
-                        fontSize="16"
+                        fontSize="18"
                         fontWeight="bold"
                       >
                         A
                       </text>
                     </g>
                   )}
+                  
+                  {/* End Marker - Enhanced with animation */}
                   {navigationPath.length > 1 && navigationPath[navigationPath.length - 1]?.mapPositionX && navigationPath[navigationPath.length - 1]?.mapPositionY && (
                     <g>
+                      {/* Pulsing outer ring */}
                       <circle
                         cx={navigationPath[navigationPath.length - 1].mapPositionX! + (navigationPath[navigationPath.length - 1].width || 40) / 2}
                         cy={navigationPath[navigationPath.length - 1].mapPositionY! + (navigationPath[navigationPath.length - 1].height || 30) / 2}
-                        r="15"
+                        r="20"
                         fill="#EF4444"
-                        opacity="0.9"
-                        className="animate-pulse"
+                        opacity="0.3"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="20;25;20"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.3;0.1;0.3"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                      {/* Main marker */}
+                      <circle
+                        cx={navigationPath[navigationPath.length - 1].mapPositionX! + (navigationPath[navigationPath.length - 1].width || 40) / 2}
+                        cy={navigationPath[navigationPath.length - 1].mapPositionY! + (navigationPath[navigationPath.length - 1].height || 30) / 2}
+                        r="16"
+                        fill="#EF4444"
+                        opacity="0.95"
+                        stroke="white"
+                        strokeWidth="3"
                       />
                       <text
                         x={navigationPath[navigationPath.length - 1].mapPositionX! + (navigationPath[navigationPath.length - 1].width || 40) / 2}
@@ -1028,7 +1128,7 @@ export default function Home() {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fill="white"
-                        fontSize="16"
+                        fontSize="18"
                         fontWeight="bold"
                       >
                         B
@@ -1161,14 +1261,47 @@ export default function Home() {
                   </CardContent>
                 </Card>
                 
-                {/* About */}
-                <Card className="shadow-lg">
+                {/* Support */}
+                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">ℹ️ About</h3>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <p><strong>KSYK Map</strong> - Interactive Campus Navigation</p>
-                      <p>Version 2.0</p>
-                      <p>© 2025 OWL Apps</p>
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>📞 Support</h3>
+                    <div className={`space-y-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-2">Need Help?</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
+                          For technical support, bug reports, or feature requests:
+                        </p>
+                        <a 
+                          href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
+                          className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
+                        >
+                          <span>📧</span>
+                          <span>juuso.kaikula@ksyk.fi</span>
+                        </a>
+                        <p className="text-blue-600 dark:text-blue-400 text-xs mt-3">
+                          ⏱️ Response time: Usually within 24 hours
+                        </p>
+                        <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">
+                          💬 Please include version number (v2.0.1) when reporting issues
+                        </p>
+                      </div>
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <p><strong>School:</strong> Kulosaaren Yhteiskoulu (KSYK)</p>
+                        <p><strong>Developer:</strong> OWL Apps</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* About */}
+                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                  <CardContent className="p-6">
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>ℹ️ About</h3>
+                    <div className={`space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
+                      <p>Version 2.0.1</p>
+                      <p>Released: January 24, 2026</p>
+                      <p>© 2026 OWL Apps</p>
                     </div>
                   </CardContent>
                 </Card>

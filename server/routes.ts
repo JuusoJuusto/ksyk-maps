@@ -767,6 +767,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/staff/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validatedData = insertStaffSchema.partial().parse(req.body);
+      const staffMember = await storage.updateStaffMember(req.params.id, validatedData);
+      res.json(staffMember);
+    } catch (error) {
+      console.error("Error updating staff member:", error);
+      res.status(500).json({ message: "Failed to update staff member" });
+    }
+  });
+
+  app.delete('/api/staff/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteStaffMember(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting staff member:", error);
+      res.status(500).json({ message: "Failed to delete staff member" });
+    }
+  });
+
   // Event routes
   app.get('/api/events', async (req, res) => {
     try {
