@@ -39,6 +39,44 @@ export default function OWLApps() {
           </p>
         </div>
 
+        {/* Owner Section */}
+        <Card className={`mb-8 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
+          <CardContent className="p-8">
+            <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Owner & Founder
+            </h2>
+            
+            <div className={`p-6 rounded-xl border-2 ${darkMode ? 'bg-gray-700 border-blue-600' : 'bg-blue-50 border-blue-300'}`}>
+              <div className="flex items-start gap-4">
+                <div className="p-4 bg-blue-600 rounded-full">
+                  <span className="text-2xl font-black text-white">JK</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Juuso Kaikula
+                  </h3>
+                  <p className={`text-lg mb-4 ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                    Founder & Lead Developer
+                  </p>
+                  <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Passionate about creating innovative solutions for education. Specializing in full-stack development, 
+                    UI/UX design, and building scalable applications that make a difference.
+                  </p>
+                  <div className="space-y-2">
+                    <a
+                      href="mailto:juuso.kaikula@ksyk.fi"
+                      className={`flex items-center gap-2 ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>juuso.kaikula@ksyk.fi</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* About Section */}
         <Card className={`mb-8 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
           <CardContent className="p-8">

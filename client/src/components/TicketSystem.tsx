@@ -31,10 +31,9 @@ export default function TicketSystem() {
       const newTicketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       setTicketId(newTicketId);
 
-      // Tickets channel webhook - YOU MUST UPDATE THIS!
-      // Go to Discord > #tickets channel > Edit Channel > Integrations > Webhooks > New Webhook
-      // Copy the webhook URL and paste it here
-      const ticketsWebhook = import.meta.env.VITE_DISCORD_TICKETS_WEBHOOK || "https://discord.com/api/webhooks/1464731342699761746/aLvsx19F6u-DBrLlYlW0WKQrIO0bzCEeUZtkdoX6CGx7QnxxwJnEMgtMeW48fUiCiD6X";
+      // Tickets channel webhook
+      const ticketsWebhook = import.meta.env.VITE_DISCORD_TICKETS_WEBHOOK;
+      const ticketLogsWebhook = import.meta.env.VITE_DISCORD_TICKET_LOGS_WEBHOOK;
       
       const typeEmoji = formData.type === 'bug' ? '🐛' : formData.type === 'feature' ? '✨' : '💬';
       const typeColor = formData.type === 'bug' ? 15158332 : formData.type === 'feature' ? 3447003 : 15844367;
@@ -74,15 +73,39 @@ export default function TicketSystem() {
         }]
       };
 
-      // Send to tickets channel (admin-only)
-      const response = await fetch(ticketsWebhook, {
+      // Send to tickets channel
+      await fetch(ticketsWebhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(embed)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send ticket');
+      // Send to ticket logs channel
+      await fetch(ticketLogsWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(embed)
+      });
+
+      // Save to Firebase
+      try {
+        await fetch('/api/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: newTicketId,
+            type: formData.type,
+            title: formData.title,
+            description: formData.description,
+            name: formData.name,
+            email: formData.email,
+            status: 'pending',
+            priority: formData.type === 'bug' ? 'high' : 'normal',
+            createdAt: new Date().toISOString()
+          })
+        });
+      } catch (error) {
+        console.error('Failed to save to Firebase:', error);
       }
 
       // Send confirmation email if email provided
