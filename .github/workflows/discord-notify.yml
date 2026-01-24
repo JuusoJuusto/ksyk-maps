@@ -1,0 +1,61 @@
+name: Discord Changelog Notification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG.md'
+      - 'package.json'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get latest changelog entry
+        id: changelog
+        run: |
+          # Extract the latest version section from CHANGELOG.md
+          CHANGELOG=$(awk '/^## \[/{if(++count==2) exit} count==1' CHANGELOG.md | tail -n +2)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "🚀 KSYK Maps v${{ steps.version.outputs.version }} Released!",
+                   "description": "New version has been deployed to production.",
+                   "color": 3447003,
+                   "fields": [
+                     {
+                       "name": "📋 Changelog",
+                       "value": "```\n${{ steps.changelog.outputs.changelog }}\n```"
+                     },
+                     {
+                       "name": "🔗 Links",
+                       "value": "[View on GitHub](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+                     }
+                   ],
+                   "footer": {
+                     "text": "KSYK Maps by OWL Apps"
+                   },
+                   "timestamp": "${{ github.event.head_commit.timestamp }}"
+                 }]
+               }' \
+               $DISCORD_WEBHOOK
