@@ -6,7 +6,7 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "2.0.2";
+  const version = "2.0.3";
   const releaseDate = "January 25, 2026";
   const originalReleaseDate = "August 20, 2025";
   
@@ -255,7 +255,7 @@ export default function VersionInfo() {
                   Originally released: {originalReleaseDate}
                 </p>
                 <p className="text-xs">
-                  © 2025-2026 OWL Apps. All rights reserved.
+                  © 2026 OWL Apps. All rights reserved.
                 </p>
               </div>
             </div>

@@ -4,6 +4,25 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.0.3] - 2026-01-25
+
+### Added
+- 🎫 Ticket System - Submit bug reports, feature requests, and support tickets directly to Discord
+- Floating ticket button in bottom-right corner
+- Automatic Discord webhook integration for tickets
+- Email field for follow-up contact
+
+### Fixed
+- Windows compatibility for dev script (NODE_ENV command)
+- Copyright dates updated to 2026 only
+- Discord webhook now properly configured in .env
+
+### Changed
+- Version info button and ticket button positioned to avoid overlap
+- Improved button z-index layering
+
+---
+
 ## [2.0.2] - 2026-01-25
 
 ### Security
@@ -92,6 +111,7 @@ All notable changes to KSYK Maps will be documented in this file.
 For support, bug reports, or feature requests:
 - 📧 Email: juuso.kaikula@ksyk.fi
 - 💬 Discord: https://discord.gg/5ERZp9gUpr
+- 🎫 Use the ticket system in the app
 - ⏱️ Response time: Usually within 24 hours
 
 ---

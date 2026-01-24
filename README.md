@@ -44,7 +44,7 @@ Visit: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
 ## 📄 License
 
-Copyright © 2025-2026 OWL Apps. All rights reserved.
+Copyright © 2026 OWL Apps. All rights reserved.
 
 This software is proprietary and confidential. Unauthorized copying, distribution, or use of this software is strictly prohibited.
 

@@ -7,6 +7,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import VersionInfo from "@/components/VersionInfo";
+import TicketSystem from "@/components/TicketSystem";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -195,6 +196,9 @@ export default function Home() {
       
       {/* Version Info Button */}
       <VersionInfo />
+      
+      {/* Ticket System Button */}
+      <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - IMPROVED MOBILE */}
@@ -1305,10 +1309,10 @@ export default function Home() {
                     <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>ℹ️ About</h3>
                     <div className={`space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                      <p>Version 2.0.1</p>
-                      <p>Latest Update: January 24, 2026</p>
+                      <p>Version 2.0.3</p>
+                      <p>Latest Update: January 25, 2026</p>
                       <p>Originally Released: August 20, 2025</p>
-                      <p>© 2025-2026 OWL Apps</p>
+                      <p>© 2026 OWL Apps</p>
                     </div>
                   </CardContent>
                 </Card>

@@ -1,12 +1,12 @@
 {
   "name": "ksyk-maps",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "type": "module",
   "license": "UNLICENSED",
   "description": "Professional Interactive Campus Navigation System for KSYK",
   "author": "OWL Apps",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "set NODE_ENV=development && tsx server/index.ts",
     "build": "vite build",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
