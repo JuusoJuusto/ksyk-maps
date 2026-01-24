@@ -1309,7 +1309,7 @@ export default function Home() {
                     <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>ℹ️ About</h3>
                     <div className={`space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                      <p>Version 2.0.3</p>
+                      <p>Version 2.0.4</p>
                       <p>Latest Update: January 25, 2026</p>
                       <p>Originally Released: August 20, 2025</p>
                       <p>© 2026 OWL Apps</p>

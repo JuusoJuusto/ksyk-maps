@@ -4,6 +4,32 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.0.4] - 2026-01-25
+
+### Fixed
+- 🔥 **Firebase connection restored** - Added fallback values for environment variables
+- Firebase now works properly with console logging for debugging
+- Environment variables load correctly with fallbacks
+
+### Improved
+- 🎫 **Enhanced Ticket System**:
+  - Changed button color from gradient to solid blue
+  - Added unique ticket ID generation (TICKET-timestamp-random)
+  - Added name field for better identification
+  - Email now required for follow-up
+  - Improved Discord embed with better formatting
+  - Added detailed "How it works" explanation in dialog
+  - Tickets go to admin-only #tickets channel
+  - Responses sent to #ticket-responses channel
+  - Better error handling and user feedback
+
+### Changed
+- Updated README with detailed ticket system explanation
+- Version bumped to 2.0.4
+- Improved ticket submission flow
+
+---
+
 ## [2.0.3] - 2026-01-25
 
 ### Added
@@ -15,7 +41,7 @@ All notable changes to KSYK Maps will be documented in this file.
 ### Fixed
 - Windows compatibility for dev script (NODE_ENV command)
 - Copyright dates updated to 2026 only
-- Discord webhook now properly configured in .env
+- Discord webhook properly configured in .env
 
 ### Changed
 - Version info button and ticket button positioned to avoid overlap
@@ -87,22 +113,6 @@ All notable changes to KSYK Maps will be documented in this file.
 - Mobile responsive design
 - Dark mode support
 - Professional gradients and transitions
-
----
-
-## Upcoming Features
-
-### Version 2.1.0 (Planned)
-- Event calendar with room booking
-- Analytics dashboard
-- Push notifications
-- QR code integration
-
-### Version 2.2.0 (Planned)
-- 3D map view
-- AI navigation assistant
-- Photo gallery
-- Enhanced accessibility
 
 ---
 
