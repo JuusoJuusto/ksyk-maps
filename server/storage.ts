@@ -79,6 +79,13 @@ export interface IStorage {
   updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement>;
   deleteAnnouncement(id: string): Promise<void>;
   
+  // Ticket operations
+  getTickets(): Promise<any[]>;
+  getTicket(id: string): Promise<any | undefined>;
+  createTicket(ticket: any): Promise<any>;
+  updateTicket(id: string, ticket: any): Promise<any>;
+  deleteTicket(id: string): Promise<void>;
+  
   // App Settings operations
   getAppSettings(): Promise<AppSettings>;
   updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings>;
@@ -331,6 +338,42 @@ class MemStorage implements IStorage {
     const index = this.mockAnnouncements.findIndex(a => a.id === id);
     if (index !== -1) {
       this.mockAnnouncements.splice(index, 1);
+    }
+  }
+
+  // Ticket operations
+  private mockTickets: any[] = [];
+  
+  async getTickets(): Promise<any[]> {
+    return this.mockTickets;
+  }
+  
+  async getTicket(id: string): Promise<any | undefined> {
+    return this.mockTickets.find(t => t.id === id);
+  }
+  
+  async createTicket(ticket: any): Promise<any> {
+    const newTicket = {
+      id: `ticket-${Date.now()}`,
+      ...ticket,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.mockTickets.push(newTicket);
+    return newTicket;
+  }
+  
+  async updateTicket(id: string, ticket: any): Promise<any> {
+    const index = this.mockTickets.findIndex(t => t.id === id);
+    if (index === -1) throw new Error("Ticket not found");
+    this.mockTickets[index] = { ...this.mockTickets[index], ...ticket, updatedAt: new Date() };
+    return this.mockTickets[index];
+  }
+  
+  async deleteTicket(id: string): Promise<void> {
+    const index = this.mockTickets.findIndex(t => t.id === id);
+    if (index !== -1) {
+      this.mockTickets.splice(index, 1);
     }
   }
 

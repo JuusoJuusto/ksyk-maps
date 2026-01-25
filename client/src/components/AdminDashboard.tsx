@@ -25,7 +25,8 @@ import {
   MapPin,
   Clock,
   AlertTriangle,
-  Layers
+  Layers,
+  MessageSquare
 } from "lucide-react";
 
 interface Building {
@@ -612,6 +613,15 @@ export default function AdminDashboard() {
     },
   });
 
+  const { data: tickets = [] } = useQuery({
+    queryKey: ["tickets"],
+    queryFn: async () => {
+      const response = await fetch("/api/tickets", { credentials: 'include' });
+      if (!response.ok) throw new Error("Failed to fetch tickets");
+      return response.json();
+    },
+  });
+
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
     mutationFn: async (announcement: any) => {
@@ -831,9 +841,10 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="tickets">Tickets</TabsTrigger>
           <TabsTrigger value="ksyk-builder">KSYK Builder</TabsTrigger>
           <TabsTrigger value="buildings">Buildings</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
@@ -1313,6 +1324,153 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="tickets" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-6 w-6 text-blue-600" />
+                    Support Tickets
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage support tickets from users
+                  </CardDescription>
+                </div>
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-lg px-4 py-2">
+                  {tickets.length} Total
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {tickets.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <MessageSquare className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No Tickets Yet</h3>
+                  <p className="text-gray-500">Support tickets will appear here when users submit them.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tickets.map((ticket: any) => (
+                    <div key={ticket.id} className="border-2 rounded-lg p-4 hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className={`p-2 rounded-lg ${
+                            ticket.type === 'bug' ? 'bg-red-100' :
+                            ticket.type === 'feature' ? 'bg-blue-100' :
+                            'bg-gray-100'
+                          }`}>
+                            {ticket.type === 'bug' ? '🐛' :
+                             ticket.type === 'feature' ? '✨' :
+                             '💬'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-lg">{ticket.title}</h3>
+                              <Badge className={`text-xs ${
+                                ticket.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                ticket.status === 'resolved' ? 'bg-green-100 text-green-800 border-green-200' :
+                                'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}>
+                                {ticket.status}
+                              </Badge>
+                              <Badge className={`text-xs ${
+                                ticket.priority === 'high' ? 'bg-red-100 text-red-800 border-red-200' :
+                                ticket.priority === 'normal' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}>
+                                {ticket.priority}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {ticket.name || 'Anonymous'}
+                              </span>
+                              {ticket.email && (
+                                <span className="flex items-center gap-1">
+                                  📧 {ticket.email}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(ticket.createdAt).toLocaleDateString()}
+                              </span>
+                              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                {ticket.ticketId}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              const newStatus = prompt('Enter new status (pending, in_progress, resolved, closed):', ticket.status);
+                              if (!newStatus) return;
+                              
+                              try {
+                                const response = await fetch(`/api/tickets/${ticket.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  credentials: 'include',
+                                  body: JSON.stringify({ status: newStatus })
+                                });
+                                
+                                if (response.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ["tickets"] });
+                                  alert('Ticket status updated!');
+                                } else {
+                                  alert('Failed to update ticket');
+                                }
+                              } catch (error) {
+                                console.error('Error updating ticket:', error);
+                                alert('Error updating ticket');
+                              }
+                            }}
+                            className="hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={async () => {
+                              if (!confirm(`Delete ticket ${ticket.ticketId}?`)) return;
+                              
+                              try {
+                                const response = await fetch(`/api/tickets/${ticket.id}`, {
+                                  method: 'DELETE',
+                                  credentials: 'include'
+                                });
+                                
+                                if (response.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ["tickets"] });
+                                  alert('Ticket deleted!');
+                                } else {
+                                  alert('Failed to delete ticket');
+                                }
+                              } catch (error) {
+                                console.error('Error deleting ticket:', error);
+                                alert('Error deleting ticket');
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="ksyk-builder" className="space-y-6">

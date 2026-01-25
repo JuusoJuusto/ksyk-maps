@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Send, AlertCircle, CheckCircle2, Ticket } from "lucide-react";
+import { Send, AlertCircle, CheckCircle2, Ticket } from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 
 export default function TicketSystem() {
@@ -28,7 +28,7 @@ export default function TicketSystem() {
 
     try {
       // Generate unique ticket ID
-      const newTicketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const newTicketId = `TICKET-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
       setTicketId(newTicketId);
 
       // Tickets channel webhook

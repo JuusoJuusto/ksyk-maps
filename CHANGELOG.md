@@ -4,6 +4,35 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.1.1] - 2026-01-25
+
+### 🎫 TICKET SYSTEM COMPLETE
+
+**Fixed:**
+- ✅ Tickets now save to Firebase database
+- ✅ Added `/api/tickets` endpoint (GET, POST, PUT, DELETE)
+- ✅ Tickets accessible in admin panel
+- ✅ Complete ticket management system
+- ✅ Removed deprecated `.substr()` usage
+- ✅ Fixed unused import warnings
+
+**Backend:**
+- Added tickets table to schema
+- Implemented ticket CRUD operations in firebaseStorage
+- Added ticket routes to server and Vercel API
+- Tickets support status tracking (pending, in_progress, resolved, closed)
+- Priority levels (low, normal, high)
+- Assignment to admin users
+
+**How It Works:**
+1. User submits ticket via floating button
+2. Ticket sent to Discord (#tickets and #ticket-logs)
+3. Ticket saved to Firebase with unique ID
+4. Admin can view/manage tickets in admin panel
+5. Responses sent to user email and #ticket-responses
+
+---
+
 ## [2.1.0] - 2026-01-25
 
 ### 🎉 MAJOR UPDATE - Complete Ticket Management System

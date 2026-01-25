@@ -197,6 +197,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Tickets endpoints
+    if (apiPath.startsWith('/tickets')) {
+      if (req.method === 'GET') {
+        const tickets = await storage.getTickets();
+        return res.status(200).json(tickets);
+      }
+      
+      if (req.method === 'POST') {
+        console.log('🎫 Creating ticket:', req.body.ticketId);
+        const ticket = await storage.createTicket(req.body);
+        console.log('✅ Ticket created successfully');
+        return res.status(201).json(ticket);
+      }
+      
+      // Handle /tickets/:id routes
+      const idMatch = apiPath.match(/^\/tickets\/([^\/]+)$/);
+      if (idMatch) {
+        const id = idMatch[1];
+        
+        if (req.method === 'GET') {
+          const ticket = await storage.getTicket(id);
+          if (!ticket) {
+            return res.status(404).json({ message: 'Ticket not found' });
+          }
+          return res.status(200).json(ticket);
+        }
+        
+        if (req.method === 'PUT' || req.method === 'PATCH') {
+          const ticket = await storage.updateTicket(id, req.body);
+          return res.status(200).json(ticket);
+        }
+        
+        if (req.method === 'DELETE') {
+          await storage.deleteTicket(id);
+          return res.status(204).send('');
+        }
+      }
+    }
+    
     // Test email endpoint
     if (apiPath === '/test-email') {
       if (req.method === 'GET') {

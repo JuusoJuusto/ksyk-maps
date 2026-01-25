@@ -194,6 +194,23 @@ export const announcements = pgTable("announcements", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tickets table
+export const tickets = pgTable("tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().unique(),
+  type: varchar("type").notNull(), // bug, feature, support
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  name: varchar("name"),
+  email: varchar("email"),
+  status: varchar("status").default("pending"), // pending, in_progress, resolved, closed
+  priority: varchar("priority").default("normal"), // low, normal, high
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  response: text("response"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),
@@ -303,6 +320,12 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   updatedAt: true,
 });
 
+export const insertTicketSchema = createInsertSchema(tickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // App Settings table
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default('default'),
@@ -351,3 +374,5 @@ export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Announcement = typeof announcements.$inferSelect;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type Ticket = typeof tickets.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;

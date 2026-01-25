@@ -821,6 +821,67 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  // Ticket operations
+  async getTickets(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('tickets').orderBy('createdAt', 'desc').get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting tickets:', error);
+      throw error;
+    }
+  }
+
+  async getTicket(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('tickets').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting ticket:', error);
+      throw error;
+    }
+  }
+
+  async createTicket(ticket: any): Promise<any> {
+    try {
+      const docRef = await db.collection('tickets').add({
+        ...ticket,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      const doc = await docRef.get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      throw error;
+    }
+  }
+
+  async updateTicket(id: string, ticket: any): Promise<any> {
+    try {
+      await db.collection('tickets').doc(id).update({
+        ...ticket,
+        updatedAt: new Date()
+      });
+      const updated = await this.getTicket(id);
+      if (!updated) throw new Error('Ticket not found after update');
+      return updated;
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      throw error;
+    }
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    try {
+      await db.collection('tickets').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      throw error;
+    }
+  }
+
   // App Settings operations
   async getAppSettings(): Promise<AppSettings> {
     try {

@@ -7,9 +7,13 @@
  * Usage: node scripts/notify-discord.js
  */
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Read Discord webhook URL from environment variable
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
@@ -72,11 +76,11 @@ const embed = {
       },
       {
         name: '🔗 Links',
-        value: '[View on GitHub](https://github.com/JuusoJuusto/ksyk-maps)\n[View Full Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)'
+        value: '[View on GitHub](https://github.com/JuusoJuusto/ksyk-maps)\n[View Full Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)\n[Live Site](https://ksykmaps.vercel.app)'
       },
       {
         name: '📧 Support',
-        value: 'juuso.kaikula@ksyk.fi'
+        value: 'Email: juuso.kaikula@ksyk.fi\nDiscord: https://discord.gg/5ERZp9gUpr'
       }
     ],
     footer: {

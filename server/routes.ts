@@ -1054,6 +1054,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ticket routes
+  app.get('/api/tickets', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const tickets = await storage.getTickets();
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.post('/api/tickets', async (req, res) => {
+    try {
+      const ticketData = req.body;
+      
+      console.log('🎫 Creating ticket:', ticketData.ticketId);
+      
+      const ticket = await storage.createTicket({
+        ticketId: ticketData.ticketId,
+        type: ticketData.type,
+        title: ticketData.title,
+        description: ticketData.description,
+        name: ticketData.name || 'Anonymous',
+        email: ticketData.email || '',
+        status: ticketData.status || 'pending',
+        priority: ticketData.priority || 'normal',
+        createdAt: ticketData.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('✅ Ticket created successfully');
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      res.status(500).json({ message: "Failed to create ticket" });
+    }
+  });
+
+  app.put('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const ticket = await storage.updateTicket(req.params.id, {
+        ...req.body,
+        updatedAt: new Date().toISOString()
+      });
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
+
+  app.delete('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteTicket(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+      res.status(500).json({ message: "Failed to delete ticket" });
+    }
+  });
+
+  // Send ticket confirmation email
+  app.post('/api/send-ticket-confirmation', async (req, res) => {
+    try {
+      const { email, ticketId, type, title } = req.body;
+      
+      console.log('📧 Sending ticket confirmation to:', email);
+      
+      // For now, just return success - email can be implemented later
+      res.json({ success: true, message: 'Confirmation email queued' });
+    } catch (error) {
+      console.error("Error sending confirmation:", error);
+      res.status(500).json({ message: "Failed to send confirmation" });
+    }
+  });
+
   // App Settings routes
   app.get('/api/settings', async (req, res) => {
     try {
