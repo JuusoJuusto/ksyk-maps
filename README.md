@@ -2,7 +2,7 @@
 
 Interactive campus navigation system for Kulosaaren Yhteiskoulu (KSYK).
 
-[![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
 ## ✨ Features

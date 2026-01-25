@@ -202,14 +202,14 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Left Sidebar - Navigation - IMPROVED MOBILE */}
-        <div className={`${sidebarOpen ? 'w-full md:w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden fixed md:relative z-[45] h-full`}>
+        <div className={`${sidebarOpen ? 'w-full sm:w-96 md:w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden fixed md:relative z-[45] h-full`}>
           {/* Navigation Button - Clean Header */}
-          <div className={`p-3 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
+          <div className={`p-3 sm:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-12 md:h-14 text-base md:text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-12 sm:h-14 text-sm sm:text-base md:text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
-              <Navigation className="mr-2 h-5 w-5 md:h-6 md:w-6" />
+              <Navigation className="mr-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
               {t('actions.directions')}
             </Button>
           </div>          

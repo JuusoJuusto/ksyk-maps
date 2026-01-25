@@ -4,6 +4,49 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.2.0] - 2026-01-26
+
+### 🦉 OWL APPS INTEGRATION
+
+**Added:**
+- ✅ Ticket system now redirects to OWL Apps website (owlapps.vercel.app)
+- ✅ "Visit OWL Apps" button in Settings tab
+- ✅ Centralized ticket management across all OWL Apps products
+- ✅ App selector in ticket system (KSYK Maps, Helsinki Piilohippa, OWL Apps)
+
+**Changed:**
+- 🔄 Removed local ticket form - now uses OWL Apps unified ticket system
+- 🔄 Ticket button opens OWL Apps in new tab with KSYK Maps pre-selected
+- 🔄 Settings page now includes link to OWL Apps portal
+
+**Improved:**
+- ⚡ Simplified ticket submission process
+- ⚡ Better cross-app support management
+- ⚡ Unified branding across OWL Apps ecosystem
+
+---
+
+## [2.1.3] - 2026-01-26
+
+### 📱 MOBILE & RESPONSIVE DESIGN
+
+**Fixed:**
+- ✅ React useState error in AdminDashboard (duplicate state declarations)
+- ✅ Mobile responsiveness across all components
+- ✅ Header buttons now properly sized for mobile (smaller text, compact spacing)
+- ✅ Admin dashboard tabs now wrap on mobile (4 columns on mobile, 8 on desktop)
+- ✅ Sidebar width optimized for mobile (full width on mobile, 320px on desktop)
+- ✅ Map controls properly sized for touch screens
+
+**Improved:**
+- ⚡ Better touch targets for mobile users
+- ⚡ Responsive text sizes (xs/sm on mobile, base/lg on desktop)
+- ⚡ Compact button spacing on small screens
+- ⚡ Admin panel stats cards now 1 column on mobile, 2 on tablet, 4 on desktop
+- ⚡ Navigation button scales properly on all screen sizes
+
+---
+
 ## [2.1.2] - 2026-01-26
 
 ### 🎯 ENHANCED TICKET SYSTEM & SECURITY
