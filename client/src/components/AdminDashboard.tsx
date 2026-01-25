@@ -1336,12 +1336,20 @@ export default function AdminDashboard() {
                     Support Tickets
                   </CardTitle>
                   <CardDescription>
-                    View and manage support tickets from users
+                    View, manage, and respond to support tickets from users
                   </CardDescription>
                 </div>
-                <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-lg px-4 py-2">
-                  {tickets.length} Total
-                </Badge>
+                <div className="flex gap-3">
+                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 px-3 py-1">
+                    {tickets.filter((t: any) => t.status === 'pending').length} Pending
+                  </Badge>
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
+                    {tickets.filter((t: any) => t.status === 'in_progress').length} In Progress
+                  </Badge>
+                  <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1">
+                    {tickets.filter((t: any) => t.status === 'resolved').length} Resolved
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1353,120 +1361,205 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tickets.map((ticket: any) => (
-                    <div key={ticket.id} className="border-2 rounded-lg p-4 hover:shadow-md transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className={`p-2 rounded-lg ${
-                            ticket.type === 'bug' ? 'bg-red-100' :
-                            ticket.type === 'feature' ? 'bg-blue-100' :
-                            'bg-gray-100'
-                          }`}>
-                            {ticket.type === 'bug' ? '🐛' :
-                             ticket.type === 'feature' ? '✨' :
-                             '💬'}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-lg">{ticket.title}</h3>
-                              <Badge className={`text-xs ${
-                                ticket.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                                ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                ticket.status === 'resolved' ? 'bg-green-100 text-green-800 border-green-200' :
-                                'bg-gray-100 text-gray-800 border-gray-200'
-                              }`}>
-                                {ticket.status}
-                              </Badge>
-                              <Badge className={`text-xs ${
-                                ticket.priority === 'high' ? 'bg-red-100 text-red-800 border-red-200' :
-                                ticket.priority === 'normal' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                'bg-gray-100 text-gray-800 border-gray-200'
-                              }`}>
-                                {ticket.priority}
-                              </Badge>
+                  {tickets.map((ticket: any) => {
+                    const [isExpanded, setIsExpanded] = useState(false);
+                    const [response, setResponse] = useState('');
+                    const [isSending, setIsSending] = useState(false);
+                    
+                    return (
+                      <div key={ticket.id} className="border-2 rounded-lg p-4 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className={`p-2 rounded-lg ${
+                              ticket.type === 'bug' ? 'bg-red-100' :
+                              ticket.type === 'feature' ? 'bg-blue-100' :
+                              'bg-gray-100'
+                            }`}>
+                              {ticket.type === 'bug' ? '🐛' :
+                               ticket.type === 'feature' ? '✨' :
+                               '💬'}
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {ticket.name || 'Anonymous'}
-                              </span>
-                              {ticket.email && (
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-lg">{ticket.title}</h3>
+                                <select
+                                  value={ticket.status}
+                                  onChange={async (e) => {
+                                    try {
+                                      const response = await fetch(`/api/tickets/${ticket.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({ status: e.target.value })
+                                      });
+                                      
+                                      if (response.ok) {
+                                        queryClient.invalidateQueries({ queryKey: ["tickets"] });
+                                      } else {
+                                        alert('Failed to update status');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error updating status:', error);
+                                      alert('Error updating status');
+                                    }
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded border ${
+                                    ticket.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                    ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                    ticket.status === 'resolved' ? 'bg-green-100 text-green-800 border-green-200' :
+                                    'bg-gray-100 text-gray-800 border-gray-200'
+                                  }`}
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="in_progress">In Progress</option>
+                                  <option value="resolved">Resolved</option>
+                                  <option value="closed">Closed</option>
+                                </select>
+                                <Badge className={`text-xs ${
+                                  ticket.priority === 'high' ? 'bg-red-100 text-red-800 border-red-200' :
+                                  ticket.priority === 'normal' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                  'bg-gray-100 text-gray-800 border-gray-200'
+                                }`}>
+                                  {ticket.priority}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
                                 <span className="flex items-center gap-1">
-                                  📧 {ticket.email}
+                                  <Users className="h-3 w-3" />
+                                  {ticket.name || 'Anonymous'}
                                 </span>
+                                {ticket.email && (
+                                  <span className="flex items-center gap-1">
+                                    📧 {ticket.email}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(ticket.createdAt).toLocaleDateString()}
+                                </span>
+                                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {ticket.ticketId}
+                                </span>
+                              </div>
+                              
+                              {/* Response Section */}
+                              {isExpanded && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                  <Label className="text-sm font-semibold mb-2 block">Send Response to User</Label>
+                                  <Textarea
+                                    value={response}
+                                    onChange={(e) => setResponse(e.target.value)}
+                                    placeholder="Type your response here..."
+                                    rows={4}
+                                    className="mb-3"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={async () => {
+                                        if (!response.trim()) {
+                                          alert('Please enter a response');
+                                          return;
+                                        }
+                                        
+                                        setIsSending(true);
+                                        try {
+                                          // Update ticket with response
+                                          await fetch(`/api/tickets/${ticket.id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'include',
+                                            body: JSON.stringify({ 
+                                              response: response,
+                                              status: 'resolved'
+                                            })
+                                          });
+                                          
+                                          // Send email to user
+                                          if (ticket.email) {
+                                            await fetch('/api/send-ticket-response', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                email: ticket.email,
+                                                ticketId: ticket.ticketId,
+                                                title: ticket.title,
+                                                response: response
+                                              })
+                                            });
+                                          }
+                                          
+                                          queryClient.invalidateQueries({ queryKey: ["tickets"] });
+                                          setResponse('');
+                                          setIsExpanded(false);
+                                          alert('Response sent successfully!');
+                                        } catch (error) {
+                                          console.error('Error sending response:', error);
+                                          alert('Error sending response');
+                                        } finally {
+                                          setIsSending(false);
+                                        }
+                                      }}
+                                      disabled={isSending}
+                                      className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                      {isSending ? 'Sending...' : 'Send Response'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setIsExpanded(false);
+                                        setResponse('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
                               )}
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(ticket.createdAt).toLocaleDateString()}
-                              </span>
-                              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                {ticket.ticketId}
-                              </span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              const newStatus = prompt('Enter new status (pending, in_progress, resolved, closed):', ticket.status);
-                              if (!newStatus) return;
-                              
-                              try {
-                                const response = await fetch(`/api/tickets/${ticket.id}`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  credentials: 'include',
-                                  body: JSON.stringify({ status: newStatus })
-                                });
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsExpanded(!isExpanded)}
+                              className="hover:bg-blue-50"
+                            >
+                              {isExpanded ? 'Hide' : 'Respond'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={async () => {
+                                if (!confirm(`Delete ticket ${ticket.ticketId}?`)) return;
                                 
-                                if (response.ok) {
-                                  queryClient.invalidateQueries({ queryKey: ["tickets"] });
-                                  alert('Ticket status updated!');
-                                } else {
-                                  alert('Failed to update ticket');
+                                try {
+                                  const response = await fetch(`/api/tickets/${ticket.id}`, {
+                                    method: 'DELETE',
+                                    credentials: 'include'
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClient.invalidateQueries({ queryKey: ["tickets"] });
+                                  } else {
+                                    alert('Failed to delete ticket');
+                                  }
+                                } catch (error) {
+                                  console.error('Error deleting ticket:', error);
+                                  alert('Error deleting ticket');
                                 }
-                              } catch (error) {
-                                console.error('Error updating ticket:', error);
-                                alert('Error updating ticket');
-                              }
-                            }}
-                            className="hover:bg-blue-50"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={async () => {
-                              if (!confirm(`Delete ticket ${ticket.ticketId}?`)) return;
-                              
-                              try {
-                                const response = await fetch(`/api/tickets/${ticket.id}`, {
-                                  method: 'DELETE',
-                                  credentials: 'include'
-                                });
-                                
-                                if (response.ok) {
-                                  queryClient.invalidateQueries({ queryKey: ["tickets"] });
-                                  alert('Ticket deleted!');
-                                } else {
-                                  alert('Failed to delete ticket');
-                                }
-                              } catch (error) {
-                                console.error('Error deleting ticket:', error);
-                                alert('Error deleting ticket');
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

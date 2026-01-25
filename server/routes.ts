@@ -1145,6 +1145,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send ticket response email
+  app.post('/api/send-ticket-response', async (req, res) => {
+    try {
+      const { email, ticketId, title, response } = req.body;
+      
+      console.log('📧 Sending ticket response to:', email);
+      
+      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      
+      // Send email with response
+      const emailResult = await sendPasswordSetupEmail(
+        email,
+        'KSYK Maps Support',
+        `Ticket ${ticketId} Response:\n\n${response}`
+      );
+      
+      res.json({ success: emailResult.success, message: 'Response email sent' });
+    } catch (error) {
+      console.error("Error sending response:", error);
+      res.status(500).json({ message: "Failed to send response" });
+    }
+  });
+
   // App Settings routes
   app.get('/api/settings', async (req, res) => {
     try {

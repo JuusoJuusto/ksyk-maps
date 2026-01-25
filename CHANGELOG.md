@@ -4,32 +4,54 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.1.2] - 2026-01-26
+
+### 🎯 ENHANCED TICKET SYSTEM & SECURITY
+
+**Added:**
+- ✅ Status dropdown in admin panel (pending, in_progress, resolved, closed)
+- ✅ Response system - admins can reply directly to tickets
+- ✅ Email notifications sent to users when admin responds
+- ✅ Better Discord changelog formatting with sections
+- ✅ Ticket statistics badges (pending, in progress, resolved counts)
+
+**Fixed:**
+- 🔒 Removed exposed credentials from repository
+- ✅ Phone number now optional in staff management
+- ✅ Improved ticket UI with expand/collapse responses
+
+**Improved:**
+- ⚡ Better ticket management workflow
+- ⚡ Enhanced email integration
+- ⚡ Cleaner Discord notifications
+
+---
+
 ## [2.1.1] - 2026-01-25
 
 ### 🎫 TICKET SYSTEM COMPLETE
 
+**Added:**
+- ✅ Complete ticket management system with admin panel
+- ✅ Tickets save to Firebase database automatically
+- ✅ Admin can view, edit, and respond to tickets
+- ✅ Status dropdown (pending, in_progress, resolved, closed)
+- ✅ Priority levels (low, normal, high)
+- ✅ Email notifications for ticket responses
+- ✅ Discord integration (#tickets and #ticket-logs channels)
+
 **Fixed:**
-- ✅ Tickets now save to Firebase database
-- ✅ Added `/api/tickets` endpoint (GET, POST, PUT, DELETE)
-- ✅ Tickets accessible in admin panel
-- ✅ Complete ticket management system
+- ✅ All API endpoints now functional (/api/tickets)
+- ✅ Server build path corrected (dist/public)
 - ✅ Removed deprecated `.substr()` usage
 - ✅ Fixed unused import warnings
+- ✅ Dialog accessibility warnings resolved
 
-**Backend:**
-- Added tickets table to schema
-- Implemented ticket CRUD operations in firebaseStorage
-- Added ticket routes to server and Vercel API
-- Tickets support status tracking (pending, in_progress, resolved, closed)
-- Priority levels (low, normal, high)
-- Assignment to admin users
-
-**How It Works:**
-1. User submits ticket via floating button
-2. Ticket sent to Discord (#tickets and #ticket-logs)
-3. Ticket saved to Firebase with unique ID
-4. Admin can view/manage tickets in admin panel
-5. Responses sent to user email and #ticket-responses
+**Improved:**
+- ⚡ Better Discord changelog formatting
+- ⚡ Enhanced ticket management UI
+- ⚡ Staff management - phone number now optional
+- ⚡ Ticket response system with email integration
 
 ---
 

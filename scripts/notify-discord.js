@@ -57,32 +57,80 @@ for (const line of lines) {
 
 const changelogText = latestEntry.join('\n').trim();
 
-// Truncate if too long (Discord has a 2000 character limit per field)
-const maxLength = 1900;
-const truncatedChangelog = changelogText.length > maxLength 
-  ? changelogText.substring(0, maxLength) + '\n\n... (truncated, see full changelog on GitHub)'
-  : changelogText;
+// Parse changelog sections
+const sections = {
+  added: [],
+  fixed: [],
+  improved: [],
+  changed: []
+};
 
-// Create Discord embed
+let currentSection = null;
+for (const line of changelogText.split('\n')) {
+  if (line.includes('**Added:**')) currentSection = 'added';
+  else if (line.includes('**Fixed:**')) currentSection = 'fixed';
+  else if (line.includes('**Improved:**')) currentSection = 'improved';
+  else if (line.includes('**Changed:**')) currentSection = 'changed';
+  else if (line.trim().startsWith('-') && currentSection) {
+    sections[currentSection].push(line.trim());
+  }
+}
+
+// Create Discord embed with better formatting
+const fields = [];
+
+if (sections.added.length > 0) {
+  fields.push({
+    name: '✨ Added',
+    value: sections.added.join('\n') || 'No additions',
+    inline: false
+  });
+}
+
+if (sections.fixed.length > 0) {
+  fields.push({
+    name: '🔧 Fixed',
+    value: sections.fixed.join('\n') || 'No fixes',
+    inline: false
+  });
+}
+
+if (sections.improved.length > 0) {
+  fields.push({
+    name: '⚡ Improved',
+    value: sections.improved.join('\n') || 'No improvements',
+    inline: false
+  });
+}
+
+if (sections.changed.length > 0) {
+  fields.push({
+    name: '🔄 Changed',
+    value: sections.changed.join('\n') || 'No changes',
+    inline: false
+  });
+}
+
+// Add links field
+fields.push({
+  name: '🔗 Links',
+  value: '[🌐 Live Site](https://ksykmaps.vercel.app) • [📦 GitHub](https://github.com/JuusoJuusto/ksyk-maps) • [📋 Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)',
+  inline: false
+});
+
+// Add support field
+fields.push({
+  name: '💬 Support',
+  value: '📧 juuso.kaikula@ksyk.fi\n💬 [Discord](https://discord.gg/5ERZp9gUpr)',
+  inline: false
+});
+
 const embed = {
   embeds: [{
     title: `🚀 KSYK Maps v${version} Released!`,
     description: 'New version has been deployed to production.',
     color: 3447003, // Blue color
-    fields: [
-      {
-        name: '📋 Changelog',
-        value: '```\n' + truncatedChangelog + '\n```'
-      },
-      {
-        name: '🔗 Links',
-        value: '[View on GitHub](https://github.com/JuusoJuusto/ksyk-maps)\n[View Full Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)\n[Live Site](https://ksykmaps.vercel.app)'
-      },
-      {
-        name: '📧 Support',
-        value: 'Email: juuso.kaikula@ksyk.fi\nDiscord: https://discord.gg/5ERZp9gUpr'
-      }
-    ],
+    fields: fields,
     footer: {
       text: 'KSYK Maps by OWL Apps'
     },
