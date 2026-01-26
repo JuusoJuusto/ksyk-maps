@@ -838,7 +838,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
           <TabsTrigger value="buildings" className="text-xs sm:text-sm">Buildings</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
-          <TabsTrigger value="announcements" className="text-xs sm:text-sm">News</TabsTrigger>
+          <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
