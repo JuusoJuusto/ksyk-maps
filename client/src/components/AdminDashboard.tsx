@@ -488,6 +488,26 @@ export default function AdminDashboard() {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [viewingPassword, setViewingPassword] = useState<string | null>(null);
   
+  // Staff management state
+  const [editingStaff, setEditingStaff] = useState<any>(null);
+  const [showStaffForm, setShowStaffForm] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    position: "",
+    positionEn: "",
+    positionFi: "",
+    department: "",
+    departmentEn: "",
+    departmentFi: "",
+    bio: "",
+    bioEn: "",
+    bioFi: "",
+    isActive: true
+  });
+  
   // Get current user from localStorage
   const getCurrentUser = () => {
     try {
