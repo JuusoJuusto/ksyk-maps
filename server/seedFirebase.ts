@@ -15,37 +15,54 @@ async function seedFirebase() {
   console.log('🌱 Seeding Firebase with KSYK campus data...');
   
   try {
-    // Check if buildings already exist
+    // Get all existing buildings
     const existingBuildings = await firebaseStorage.getBuildings();
     
-    if (existingBuildings.length > 0) {
-      console.log(`✅ Firebase already has ${existingBuildings.length} buildings`);
+    console.log(`📊 Found ${existingBuildings.length} existing buildings`);
+    
+    // Update existing buildings to ensure they have isActive=true
+    for (const existing of existingBuildings) {
+      if (existing.isActive !== true) {
+        console.log(`🔄 Updating building ${existing.name} to set isActive=true`);
+        await firebaseStorage.updateBuilding(existing.id, { ...existing, isActive: true });
+      }
+    }
+    
+    // Check which buildings need to be added
+    const existingNames = new Set(existingBuildings.map(b => b.name));
+    const buildingsToAdd = buildings.filter(b => !existingNames.has(b.name));
+    
+    if (buildingsToAdd.length === 0) {
+      console.log(`✅ All ${buildings.length} buildings already exist`);
       console.log('Buildings:', existingBuildings.map(b => b.name).join(', '));
       return;
     }
     
-    // Add buildings
-    console.log('Adding buildings...');
-    for (const building of buildings) {
+    // Add missing buildings
+    console.log(`➕ Adding ${buildingsToAdd.length} new buildings...`);
+    for (const building of buildingsToAdd) {
       const created = await firebaseStorage.createBuilding(building as any);
       console.log(`✅ Created building: ${created.name}`);
     }
     
     console.log('🎉 Firebase seeding complete!');
+    console.log(`📊 Total buildings: ${existingBuildings.length + buildingsToAdd.length}`);
   } catch (error) {
     console.error('❌ Error seeding Firebase:', error);
     throw error;
   }
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedFirebase()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
+// Run seed function immediately
+console.log('🚀 Starting seed process...');
+seedFirebase()
+  .then(() => {
+    console.log('✅ Seed completed successfully');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Seed failed:', error);
+    process.exit(1);
+  });
 
 export { seedFirebase };
