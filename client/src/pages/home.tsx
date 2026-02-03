@@ -732,8 +732,8 @@ export default function Home() {
                     }
                     
                     // Default rectangle rendering for buildings without custom shape - ENHANCED
-                    const width = 150;
-                    const height = 100;
+                    const width = 140;
+                    const height = 90;
                     
                     return (
                       <g 
@@ -743,51 +743,59 @@ export default function Home() {
                           setSelectedFloor(1);
                         }}
                         className="cursor-pointer transition-all hover:opacity-90"
+                        style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}
                       >
-                        {/* Multi-layer 3D Shadow */}
+                        {/* Multi-layer 3D Shadow - Enhanced */}
                         <rect
-                          x={x + 8}
-                          y={y + 8}
-                          width={width}
-                          height={height}
-                          fill="rgba(0,0,0,0.15)"
-                          rx="10"
-                          opacity="0.6"
-                        />
-                        <rect
-                          x={x + 5}
-                          y={y + 5}
+                          x={x + 10}
+                          y={y + 10}
                           width={width}
                           height={height}
                           fill="rgba(0,0,0,0.2)"
-                          rx="10"
-                          opacity="0.5"
+                          rx="12"
+                          opacity="0.7"
                         />
                         <rect
-                          x={x + 2}
-                          y={y + 2}
+                          x={x + 6}
+                          y={y + 6}
                           width={width}
                           height={height}
                           fill="rgba(0,0,0,0.25)"
-                          rx="10"
-                          opacity="0.4"
+                          rx="12"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x={x + 3}
+                          y={y + 3}
+                          width={width}
+                          height={height}
+                          fill="rgba(0,0,0,0.3)"
+                          rx="12"
+                          opacity="0.5"
                         />
                         
-                        {/* Building Base with Gradient */}
+                        {/* Building Base with Enhanced Gradient */}
                         <defs>
                           <linearGradient id={`buildingGrad-${building.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 1 }} />
-                            <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.7 }} />
+                            <stop offset="50%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.9 }} />
+                            <stop offset="100%" style={{ stopColor: building.colorCode || '#3B82F6', stopOpacity: 0.75 }} />
                           </linearGradient>
                           <filter id={`glow-${building.id}`}>
-                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                             <feMerge>
                               <feMergeNode in="coloredBlur"/>
                               <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                           </filter>
+                          <linearGradient id={`shine-${building.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: 'white', stopOpacity: 0.6 }} />
+                            <stop offset="50%" style={{ stopColor: 'white', stopOpacity: 0.2 }} />
+                            <stop offset="100%" style={{ stopColor: 'white', stopOpacity: 0 }} />
+                          </linearGradient>
                         </defs>
                         
+                        {/* Main Building Body */}
                         <rect
                           x={x}
                           y={y}
@@ -795,77 +803,106 @@ export default function Home() {
                           height={height}
                           fill={`url(#buildingGrad-${building.id})`}
                           stroke="white"
-                          strokeWidth="5"
-                          rx="10"
-                          opacity="0.98"
+                          strokeWidth="4"
+                          rx="12"
+                          opacity="1"
                           filter={`url(#glow-${building.id})`}
                         />
                         
-                        {/* Glass Shine Effect */}
+                        {/* Glass Shine Effect - Enhanced */}
                         <rect
                           x={x}
                           y={y}
                           width={width}
-                          height={height}
-                          fill="url(#buildingGradient)"
-                          rx="10"
-                          opacity="0.4"
+                          height={height / 2}
+                          fill={`url(#shine-${building.id})`}
+                          rx="12"
+                          opacity="0.5"
+                          style={{ pointerEvents: 'none' }}
                         />
                         
-                        {/* Building Name - Enhanced */}
+                        {/* Building Name - Enhanced with Better Shadow */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 - 12}
+                          y={y + height / 2 - 8}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="34"
+                          fontSize="42"
                           fontWeight="900"
                           style={{ 
-                            pointerEvents: 'none', 
-                            textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)',
-                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))'
+                            pointerEvents: 'none',
+                            paintOrder: 'stroke fill',
+                            stroke: 'rgba(0,0,0,0.8)',
+                            strokeWidth: '4px',
+                            filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.9))'
                           }}
                         >
                           {building.name}
                         </text>
+                        
+                        {/* Building Subtitle */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 + 14}
+                          y={y + height / 2 + 20}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
                           fontSize="13"
-                          fontWeight="600"
-                          style={{ pointerEvents: 'none', opacity: 0.95, textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}
+                          fontWeight="700"
+                          style={{ 
+                            pointerEvents: 'none',
+                            paintOrder: 'stroke fill',
+                            stroke: 'rgba(0,0,0,0.7)',
+                            strokeWidth: '2px',
+                            opacity: 0.95
+                          }}
                         >
                           {building.nameEn || building.nameFi}
                         </text>
                         
-                        {/* Floor Badge */}
+                        {/* Floor Badge - Enhanced */}
                         <g transform={`translate(${x + 10}, ${y + 10})`}>
                           <rect
                             x="0"
                             y="0"
-                            width="45"
-                            height="22"
-                            fill="rgba(0,0,0,0.7)"
-                            rx="11"
+                            width="50"
+                            height="26"
+                            fill="rgba(0,0,0,0.85)"
+                            rx="13"
                             stroke="white"
-                            strokeWidth="2"
+                            strokeWidth="2.5"
                           />
                           <text
-                            x="22.5"
-                            y="11"
+                            x="25"
+                            y="13"
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="11"
+                            fontSize="13"
                             fontWeight="bold"
                           >
                             {building.floors}F
                           </text>
                         </g>
+                        
+                        {/* Hover Effect Border */}
+                        <rect
+                          x={x - 2}
+                          y={y - 2}
+                          width={width + 4}
+                          height={height + 4}
+                          fill="none"
+                          stroke="rgba(255,255,255,0.5)"
+                          strokeWidth="3"
+                          rx="14"
+                          opacity="0"
+                          className="hover-border"
+                          style={{ 
+                            pointerEvents: 'none',
+                            transition: 'opacity 0.3s ease'
+                          }}
+                        />
                       </g>
                     );
                   })}
