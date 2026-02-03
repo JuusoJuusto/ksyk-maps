@@ -731,9 +731,9 @@ export default function Home() {
                       );
                     }
                     
-                    // Default rectangle rendering for buildings without custom shape - ENHANCED
-                    const width = 140;
-                    const height = 90;
+                    // Default rectangle rendering for buildings without custom shape - MUCH BIGGER
+                    const width = 280; // Doubled from 140
+                    const height = 180; // Doubled from 90
                     
                     return (
                       <g 
@@ -821,65 +821,65 @@ export default function Home() {
                           style={{ pointerEvents: 'none' }}
                         />
                         
-                        {/* Building Name - Enhanced with Better Shadow */}
+                        {/* Building Name - Much Larger */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 - 8}
+                          y={y + height / 2 - 15}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="42"
+                          fontSize="72"
                           fontWeight="900"
                           style={{ 
                             pointerEvents: 'none',
                             paintOrder: 'stroke fill',
                             stroke: 'rgba(0,0,0,0.8)',
-                            strokeWidth: '4px',
-                            filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.9))'
+                            strokeWidth: '6px',
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.9))'
                           }}
                         >
                           {building.name}
                         </text>
                         
-                        {/* Building Subtitle */}
+                        {/* Building Subtitle - Larger */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 + 20}
+                          y={y + height / 2 + 35}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="13"
+                          fontSize="22"
                           fontWeight="700"
                           style={{ 
                             pointerEvents: 'none',
                             paintOrder: 'stroke fill',
                             stroke: 'rgba(0,0,0,0.7)',
-                            strokeWidth: '2px',
+                            strokeWidth: '3px',
                             opacity: 0.95
                           }}
                         >
                           {building.nameEn || building.nameFi}
                         </text>
                         
-                        {/* Floor Badge - Enhanced */}
-                        <g transform={`translate(${x + 10}, ${y + 10})`}>
+                        {/* Floor Badge - Much Larger */}
+                        <g transform={`translate(${x + 15}, ${y + 15})`}>
                           <rect
                             x="0"
                             y="0"
-                            width="50"
-                            height="26"
+                            width="70"
+                            height="38"
                             fill="rgba(0,0,0,0.85)"
-                            rx="13"
+                            rx="19"
                             stroke="white"
-                            strokeWidth="2.5"
+                            strokeWidth="3"
                           />
                           <text
-                            x="25"
-                            y="13"
+                            x="35"
+                            y="19"
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="13"
+                            fontSize="20"
                             fontWeight="bold"
                           >
                             {building.floors}F

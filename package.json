@@ -1,6 +1,6 @@
 {
   "name": "ksyk-maps",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "type": "module",
   "license": "UNLICENSED",
   "description": "Professional Interactive Campus Navigation System for KSYK",
@@ -14,7 +14,7 @@
     "seed:firebase": "tsx server/seedFirebase.ts",
     "seed:rooms": "tsx server/seedRooms.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
-    "clean:firebase": "tsx server/cleanFirebase.ts",
+    "clean:firebase": "tsx server/cleanAndReseed.ts",
     "notify:discord": "node scripts/notify-discord.js"
   },
   "dependencies": {

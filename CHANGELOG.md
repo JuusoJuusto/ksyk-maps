@@ -4,6 +4,31 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.2.1] - 2026-02-03
+
+### 🏢 BIGGER BUILDINGS & IMPROVED LAYOUT
+
+**Changed:**
+- 🔄 Buildings are now MUCH BIGGER (doubled size: 280x180 instead of 140x90)
+- 🔄 Buildings spread out in clean 3x2 grid layout for better visibility
+- 🔄 Rooms doubled in size to match new building scale
+- 🔄 Improved building positions: M, K, L on top row; R, A, U on bottom row
+- 🔄 Removed OG building (now 6 buildings total)
+
+**Improved:**
+- ⚡ Better map readability with larger, more visible buildings
+- ⚡ Enhanced room sizes for easier navigation
+- ⚡ Cleaner campus layout with proper spacing
+- ⚡ Navigation system works perfectly with new layout
+- ⚡ All 24 rooms properly positioned within buildings
+
+**Technical:**
+- 🔧 Added `clean:firebase` script to cleanAndReseed.ts
+- 🔧 Updated seedRooms.ts with new positions matching building grid
+- 🔧 Firebase cleaned and reseeded with new data
+
+---
+
 ## [2.2.0] - 2026-01-26
 
 ### 🦉 OWL APPS INTEGRATION
