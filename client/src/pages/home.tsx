@@ -256,17 +256,21 @@ export default function Home() {
       {/* Ticket System Button */}
       <TicketSystem />
       
-      <div className="flex h-[calc(100vh-4rem)] relative">
+      <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
         {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet */}
         <div className={`
-          ${sidebarOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-          ${sidebarOpen ? 'w-full md:w-80' : 'w-0 md:w-0'}
           ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'}
-          backdrop-blur-sm border-r md:border-t-0 border-t-4 border-t-blue-500
-          flex flex-col shadow-2xl transition-all duration-300 overflow-hidden
+          backdrop-blur-sm
+          flex flex-col shadow-2xl overflow-hidden
+          transition-all duration-300 ease-in-out
+          ${sidebarOpen 
+            ? 'translate-y-0 md:translate-x-0 opacity-100' 
+            : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
+          }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[85vh] md:h-full
+          z-[45] h-[80vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
+          border-t-4 md:border-t-0 md:border-r border-t-blue-500
         `}>
           {/* Mobile Drag Handle - Only visible on mobile */}
           <div className="md:hidden flex justify-center pt-2 pb-1">
@@ -446,42 +450,60 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - MOBILE BOTTOM SHEET STYLE */}
+        {/* Sidebar Toggle Button - FIXED for both mobile and desktop */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
             fixed z-[50] 
             bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
             shadow-2xl hover:from-blue-700 hover:to-indigo-700 
-            transition-all duration-300 transform hover:scale-105
+            transition-all duration-300 ease-in-out
             active:scale-95
+            
             ${sidebarOpen 
-              ? 'bottom-[85vh] md:top-1/2 md:-translate-y-1/2 md:left-[320px] left-1/2 -translate-x-1/2 md:translate-x-0 rounded-t-xl md:rounded-r-xl md:rounded-l-none px-6 py-2 md:p-4' 
-              : 'bottom-4 md:top-1/2 md:-translate-y-1/2 md:left-0 left-1/2 -translate-x-1/2 md:translate-x-0 rounded-full md:rounded-r-xl md:rounded-l-none px-6 py-3 md:p-4'
+              ? 'bottom-[80vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-2.5' 
+              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-6 py-3'
+            }
+            
+            md:bottom-auto md:left-auto md:translate-x-0
+            ${sidebarOpen 
+              ? 'md:top-1/2 md:-translate-y-1/2 md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4' 
+              : 'md:top-1/2 md:-translate-y-1/2 md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4'
             }
           `}
           title={sidebarOpen ? 'Close' : 'Open Menu'}
         >
           <div className="flex items-center justify-center gap-2">
-            {sidebarOpen ? (
-              <>
-                <span className="text-xl md:text-2xl font-bold md:hidden">✕</span>
-                <span className="text-2xl font-bold hidden md:inline">◀</span>
-              </>
-            ) : (
-              <>
-                <MapPin className="h-5 w-5 md:hidden" />
-                <span className="text-sm font-bold md:hidden">Menu</span>
-                <span className="text-2xl font-bold hidden md:inline">▶</span>
-              </>
-            )}
+            {/* Mobile icons */}
+            <div className="md:hidden flex items-center gap-2">
+              {sidebarOpen ? (
+                <>
+                  <X className="h-5 w-5" />
+                  <span className="text-sm font-bold">Close</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-5 w-5" />
+                  <span className="text-sm font-bold">Menu</span>
+                </>
+              )}
+            </div>
+            
+            {/* Desktop icons */}
+            <div className="hidden md:block">
+              {sidebarOpen ? (
+                <span className="text-2xl font-bold">◀</span>
+              ) : (
+                <span className="text-2xl font-bold">▶</span>
+              )}
+            </div>
           </div>
         </button>
         
         {/* Mobile Overlay - Dimmed background */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/60 z-[40] md:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-[40] md:hidden backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -489,18 +511,18 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className={`absolute top-4 left-4 z-10 shadow-lg border flex-col md:flex-row ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <TabsTrigger value="map" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+            <TabsList className={`absolute top-4 left-4 z-10 shadow-lg border rounded-lg ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex flex-row md:flex-row gap-1 p-1`}>
+              <TabsTrigger value="map" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
                 <MapPin className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">{t('nav.map')}</span>
+                <span className="hidden sm:inline">{t('nav.map')}</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+              <TabsTrigger value="schedule" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
                 <Calendar className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">{t('nav.schedule')}</span>
+                <span className="hidden sm:inline">{t('nav.schedule')}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+              <TabsTrigger value="settings" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
                 <Settings className="h-3 md:h-4 w-3 md:w-4" />
-                <span className="hidden md:inline">{t('admin.settings')}</span>
+                <span className="hidden sm:inline">{t('admin.settings')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -508,70 +530,70 @@ export default function Home() {
             <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
-              {/* Google Maps-Style Navigation Popup */}
+              {/* Google Maps-Style Navigation Popup - Mobile Optimized */}
               {showNavigationPopup && navigationPath.length > 0 && (
-                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-2xl shadow-2xl border-2 border-blue-500 p-6 max-w-md animate-in slide-in-from-top">
+                <div className="absolute top-20 md:top-20 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <Navigation className="h-6 w-6 text-blue-600" />
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                        <Navigation className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900">Route Found!</h3>
-                        <p className="text-sm text-gray-600">{navigationPath.length} steps</p>
+                        <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white">Route Found!</h3>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">{navigationPath.length} steps</p>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowNavigationPopup(false)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 -mt-1 -mr-1"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                   
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-green-700">{navigationFrom}</p>
-                        <p className="text-xs text-green-600">Starting point</p>
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">A</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-400 truncate">{navigationFrom}</p>
+                        <p className="text-xs text-green-600 dark:text-green-500">Starting point</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-center">
-                      <div className="h-12 w-0.5 bg-blue-300"></div>
+                      <div className="h-8 w-0.5 bg-blue-300 dark:bg-blue-600"></div>
                     </div>
                     
-                    <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
-                      <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold">B</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-red-700">{navigationTo}</p>
-                        <p className="text-xs text-red-600">Destination</p>
+                    <div className="flex items-center space-x-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">B</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-red-700 dark:text-red-400 truncate">{navigationTo}</p>
+                        <p className="text-xs text-red-600 dark:text-red-500">Destination</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-600 text-center">Follow the blue path on the map</p>
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Follow the blue path on the map</p>
                   </div>
                 </div>
               )}
               
-              {/* Compact Navigation Bar */}
+              {/* Compact Navigation Bar - Mobile Optimized */}
               {navigationFrom && navigationTo && !showNavigationPopup && (
-                <div className="absolute top-20 left-4 right-4 z-20 bg-white/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div className="absolute top-16 md:top-20 left-4 right-4 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 md:p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+                      <div className="flex items-center space-x-1.5 md:space-x-2">
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full"></div>
+                        <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full"></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-700 truncate">Active route</span>
+                      <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">Active route</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 md:space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -601,66 +623,68 @@ export default function Home() {
               <div className={`h-full p-0 overflow-hidden relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
                 {/* Mobile Hint - Pinch to Zoom */}
                 {showMobileHint && (
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 md:hidden">
-                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl p-6 max-w-xs animate-in fade-in slide-in-from-bottom-4`}>
-                      <div className="text-center">
-                        <div className="text-4xl mb-3">👆✌️</div>
-                        <p className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                          Pinch to zoom
-                        </p>
-                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Use two fingers to zoom in/out
-                        </p>
-                        <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Drag with one finger to pan
-                        </p>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setShowMobileHint(false);
-                            localStorage.setItem('mobileHintSeen', 'true');
-                          }}
-                          className="mt-4 bg-blue-600 hover:bg-blue-700"
-                        >
-                          Got it!
-                        </Button>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 md:hidden pointer-events-none">
+                    <div className="pointer-events-auto animate-in fade-in zoom-in-95 duration-500">
+                      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-2 rounded-2xl shadow-2xl p-6 max-w-xs`}>
+                        <div className="text-center">
+                          <div className="text-5xl mb-3 animate-pulse">👆✌️</div>
+                          <p className={`text-base font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Pinch to zoom
+                          </p>
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>
+                            Use two fingers to zoom
+                          </p>
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Drag with one finger to pan
+                          </p>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setShowMobileHint(false);
+                              localStorage.setItem('mobileHintSeen', 'true');
+                            }}
+                            className="mt-4 bg-blue-600 hover:bg-blue-700 w-full"
+                          >
+                            Got it!
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
                 
                 {/* Map Controls - MOBILE OPTIMIZED with bigger touch targets */}
-                <div className="absolute top-4 md:top-20 right-2 md:right-4 z-20 flex flex-col space-y-2 md:space-y-2">
+                <div className="absolute bottom-24 md:top-20 right-4 z-20 flex flex-col space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
+                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-5 md:h-5 w-5 md:w-5" />
+                    <Plus className="h-6 md:h-5 w-6 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
+                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-5 md:h-5 w-5 md:w-5" />
+                    <Minus className="h-6 md:h-5 w-6 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
+                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all`}
                     onClick={() => {
-                      setZoom(1); // Reset to normal zoom
+                      setZoom(1);
                       setPanX(0);
                       setPanY(0);
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-5 md:h-5 w-5 md:w-5" />
+                    <RotateCcw className="h-6 md:h-5 w-6 md:w-5" />
                   </Button>
                 </div>
 

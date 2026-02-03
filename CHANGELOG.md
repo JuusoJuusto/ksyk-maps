@@ -4,6 +4,44 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.2.3] - 2026-02-03
+
+### 🎨 ANIMATION & LAYOUT FIXES
+
+**Fixed:**
+- ✅ Sidebar collapse button now properly positioned on desktop (left side)
+- ✅ Sidebar animations smooth on both mobile and desktop
+- ✅ Fixed mobile overlapping issues with tabs and controls
+- ✅ Map controls moved to bottom-right on mobile (above menu button)
+- ✅ Navigation popups now responsive and don't overflow on mobile
+- ✅ Tabs show icons only on mobile, text on larger screens
+- ✅ Better z-index management to prevent overlapping
+
+**Improved:**
+- ⚡ Sidebar now slides from left on desktop, bottom on mobile
+- ⚡ Smoother transitions with ease-in-out timing
+- ⚡ Better button sizing: 56px on mobile, 48px on desktop
+- ⚡ Map controls positioned at bottom-24 on mobile (above toggle button)
+- ⚡ Improved mobile hint with better animation and styling
+- ⚡ Dark mode support for all navigation popups
+- ⚡ Compact navigation bar with better mobile spacing
+
+**Mobile Layout:**
+- 📱 Bottom sheet: 80vh height (was 85vh)
+- 📱 Toggle button: Bottom center with "Menu" text
+- 📱 Map controls: Bottom right, above menu button
+- 📱 Tabs: Top left, icon-only on mobile
+- 📱 No overlapping elements
+
+**Desktop Layout:**
+- 💻 Sidebar: 320px width, slides from left
+- 💻 Toggle button: Left side, middle of screen
+- 💻 Map controls: Top right corner
+- 💻 Tabs: Top left with text labels
+- 💻 Clean, professional layout
+
+---
+
 ## [2.2.2] - 2026-02-03
 
 ### 📱 MOBILE EXPERIENCE OVERHAUL
