@@ -6,26 +6,33 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ## [2.2.1] - 2026-02-03
 
-### 🏢 BIGGER BUILDINGS & IMPROVED LAYOUT
+### 🏢 EVEN BIGGER BUILDINGS & CROSS-BUILDING NAVIGATION
 
 **Changed:**
-- 🔄 Buildings are now MUCH BIGGER (doubled size: 280x180 instead of 140x90)
-- 🔄 Buildings spread out in clean 3x2 grid layout for better visibility
-- 🔄 Rooms doubled in size to match new building scale
-- 🔄 Improved building positions: M, K, L on top row; R, A, U on bottom row
-- 🔄 Removed OG building (now 6 buildings total)
+- 🔄 Buildings are now EVEN BIGGER (400x260 instead of 280x180)
+- 🔄 Building text increased: name 96px (was 72px), subtitle 28px (was 22px)
+- 🔄 Floor badges enlarged: 90x50 with 26px text
+- 🔄 Buildings more spread out: 50px spacing instead of cramped layout
+- 🔄 Rooms significantly bigger (120x80, 100x70, etc.) with 18px text
+- 🔄 Room borders thicker (3.5px) and more rounded (8px radius)
+
+**Added:**
+- ✅ 7 connector hallways between buildings for cross-building navigation
+- ✅ Horizontal connectors: M-K, K-L, R-A, A-U
+- ✅ Vertical connectors: M-R, K-A, L-U
+- ✅ Navigation now works between ANY buildings on campus
+- ✅ New `seed:connectors` script to add connector hallways
 
 **Improved:**
-- ⚡ Better map readability with larger, more visible buildings
-- ⚡ Enhanced room sizes for easier navigation
-- ⚡ Cleaner campus layout with proper spacing
-- ⚡ Navigation system works perfectly with new layout
-- ⚡ All 24 rooms properly positioned within buildings
+- ⚡ Much better visibility of all buildings and rooms
+- ⚡ Navigation system can route between buildings via connectors
+- ⚡ Cleaner campus layout with proper spacing (50,50 / 550,50 / 1050,50 / 50,450 / 550,450 / 1050,450)
+- ⚡ All 31 rooms (24 regular + 7 connectors) properly positioned
 
 **Technical:**
-- 🔧 Added `clean:firebase` script to cleanAndReseed.ts
-- 🔧 Updated seedRooms.ts with new positions matching building grid
-- 🔧 Firebase cleaned and reseeded with new data
+- 🔧 Created `server/seedConnectors.ts` for connector hallways
+- 🔧 Updated building positions for better spread
+- 🔧 Enhanced room rendering with bigger text and borders
 
 ---
 

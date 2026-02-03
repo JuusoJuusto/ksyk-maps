@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push",
     "seed:firebase": "tsx server/seedFirebase.ts",
     "seed:rooms": "tsx server/seedRooms.ts",
+    "seed:connectors": "tsx server/seedConnectors.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
     "clean:firebase": "tsx server/cleanAndReseed.ts",
     "notify:discord": "node scripts/notify-discord.js"

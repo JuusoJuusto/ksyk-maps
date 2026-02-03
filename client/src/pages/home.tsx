@@ -731,9 +731,9 @@ export default function Home() {
                       );
                     }
                     
-                    // Default rectangle rendering for buildings without custom shape - MUCH BIGGER
-                    const width = 280; // Doubled from 140
-                    const height = 180; // Doubled from 90
+                    // Default rectangle rendering for buildings without custom shape - EVEN BIGGER
+                    const width = 400; // Increased from 280
+                    const height = 260; // Increased from 180
                     
                     return (
                       <g 
@@ -821,14 +821,14 @@ export default function Home() {
                           style={{ pointerEvents: 'none' }}
                         />
                         
-                        {/* Building Name - Much Larger */}
+                        {/* Building Name - EVEN LARGER */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 - 15}
+                          y={y + height / 2 - 20}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="72"
+                          fontSize="96"
                           fontWeight="900"
                           style={{ 
                             pointerEvents: 'none',
@@ -841,14 +841,14 @@ export default function Home() {
                           {building.name}
                         </text>
                         
-                        {/* Building Subtitle - Larger */}
+                        {/* Building Subtitle - LARGER */}
                         <text
                           x={x + width / 2}
-                          y={y + height / 2 + 35}
+                          y={y + height / 2 + 50}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="22"
+                          fontSize="28"
                           fontWeight="700"
                           style={{ 
                             pointerEvents: 'none',
@@ -861,25 +861,25 @@ export default function Home() {
                           {building.nameEn || building.nameFi}
                         </text>
                         
-                        {/* Floor Badge - Much Larger */}
-                        <g transform={`translate(${x + 15}, ${y + 15})`}>
+                        {/* Floor Badge - EVEN LARGER */}
+                        <g transform={`translate(${x + 20}, ${y + 20})`}>
                           <rect
                             x="0"
                             y="0"
-                            width="70"
-                            height="38"
+                            width="90"
+                            height="50"
                             fill="rgba(0,0,0,0.85)"
-                            rx="19"
+                            rx="25"
                             stroke="white"
-                            strokeWidth="3"
+                            strokeWidth="4"
                           />
                           <text
-                            x="35"
-                            y="19"
+                            x="45"
+                            y="25"
                             textAnchor="middle"
                             dominantBaseline="middle"
                             fill="white"
-                            fontSize="20"
+                            fontSize="26"
                             fontWeight="bold"
                           >
                             {building.floors}F
@@ -949,7 +949,7 @@ export default function Home() {
                           fill="rgba(0,0,0,0.15)"
                           rx="5"
                         />
-                        {/* Room - Full color */}
+                        {/* Room - Full color with thicker border */}
                         <rect
                           x={room.mapPositionX}
                           y={room.mapPositionY}
@@ -957,8 +957,8 @@ export default function Home() {
                           height={roomHeight}
                           fill={roomColor}
                           stroke="white"
-                          strokeWidth="2.5"
-                          rx="5"
+                          strokeWidth="3.5"
+                          rx="8"
                           opacity="0.95"
                         />
                         {/* Glass shine effect */}
@@ -971,16 +971,16 @@ export default function Home() {
                           rx="5"
                           opacity="0.2"
                         />
-                        {/* Room number */}
+                        {/* Room number - BIGGER */}
                         <text
                           x={room.mapPositionX + roomWidth / 2}
                           y={room.mapPositionY + roomHeight / 2}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="white"
-                          fontSize="12"
+                          fontSize="18"
                           fontWeight="bold"
-                          style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                          style={{ pointerEvents: 'none', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}
                         >
                           {room.roomNumber}
                         </text>
