@@ -4,6 +4,47 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.2.5] - 2026-02-03
+
+### 📱 MOBILE ANNOUNCEMENT BANNER OPTIMIZATION
+
+**Fixed:**
+- ✅ Announcement banner MUCH smaller on mobile
+- ✅ Banner positioned at top-14 on mobile (below tabs)
+- ✅ Navigation popups moved to top-32 on mobile (below banner)
+- ✅ Compact navigation bar at top-28 on mobile
+- ✅ ZERO overlaps with any elements
+
+**Mobile Banner Improvements:**
+- 📱 Smaller padding: p-2 (was p-4)
+- 📱 Smaller text: 10px-11px (was 12px-14px)
+- 📱 Smaller icons: scale-75 (was full size)
+- 📱 Smaller badges: 9px text (was 12px)
+- 📱 Smaller buttons: h-5 (was h-6)
+- 📱 Line clamp on content (2 lines max)
+- 📱 Compact navigation dots: 1.5px (was 2px)
+
+**Mobile Spacing (PERFECT):**
+```
+Top:
+├─ Tabs: top-2 (8px)
+├─ Announcement: top-14 (56px)
+├─ Nav bar: top-28 (112px)
+└─ Nav popup: top-32 (128px)
+
+Bottom:
+├─ Menu button: bottom-6 (24px)
+├─ Map controls: bottom-32 (128px)
+└─ Sidebar: 75vh height
+```
+
+**Desktop:**
+- 💻 Banner stays same size (full featured)
+- 💻 Positioned at top-4, right-4
+- 💻 No changes to desktop layout
+
+---
+
 ## [2.2.4] - 2026-02-03
 
 ### ✨ PERFECT MOBILE & DESKTOP LAYOUT

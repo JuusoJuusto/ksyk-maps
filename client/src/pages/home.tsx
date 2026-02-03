@@ -531,9 +531,9 @@ export default function Home() {
             <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
-              {/* Google Maps-Style Navigation Popup - NO OVERLAP */}
+              {/* Google Maps-Style Navigation Popup - NO OVERLAP with announcement */}
               {showNavigationPopup && navigationPath.length > 0 && (
-                <div className="absolute top-14 md:top-20 left-2 right-2 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
+                <div className="absolute top-32 md:top-20 left-2 right-2 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
                   <div className="flex items-start justify-between mb-3 md:mb-4">
                     <div className="flex items-center space-x-2 md:space-x-3">
                       <div className="p-1.5 md:p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -582,9 +582,9 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Compact Navigation Bar - NO OVERLAP */}
+              {/* Compact Navigation Bar - NO OVERLAP with announcement */}
               {navigationFrom && navigationTo && !showNavigationPopup && (
-                <div className="absolute top-12 md:top-20 left-2 right-2 md:left-4 md:right-4 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 md:p-3">
+                <div className="absolute top-28 md:top-20 left-2 right-2 md:left-4 md:right-4 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 md:p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-1.5 md:space-x-3 flex-1 min-w-0">
                       <div className="flex items-center space-x-1 md:space-x-2">

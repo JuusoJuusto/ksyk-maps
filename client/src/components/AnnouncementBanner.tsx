@@ -102,7 +102,7 @@ export default function AnnouncementBanner() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="absolute top-4 right-4 z-10 max-w-md"
+      className="absolute top-14 md:top-4 left-2 right-2 md:left-auto md:right-4 z-10 max-w-md"
     >
       <Card className="shadow-2xl border-blue-200 bg-white overflow-hidden">
         <div className={`h-1 ${
@@ -113,16 +113,18 @@ export default function AnnouncementBanner() {
             : "bg-gradient-to-r from-blue-500 to-blue-600"
         }`} />
         
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
+        <CardContent className="p-2 md:p-4">
+          <div className="flex items-start justify-between mb-2 md:mb-3">
             <div 
-              className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center space-x-1.5 md:space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setIsDialogOpen(true)}
             >
-              {getPriorityIcon(currentAnnouncement.priority)}
-              <h3 className="font-bold text-blue-900">{t('announcements.title')}</h3>
+              <div className="scale-75 md:scale-100">
+                {getPriorityIcon(currentAnnouncement.priority)}
+              </div>
+              <h3 className="font-bold text-blue-900 text-xs md:text-base">{t('announcements.title')}</h3>
               {activeAnnouncements.length > 1 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px] md:text-xs px-1 md:px-2 py-0 md:py-0.5">
                   {currentIndex + 1} / {activeAnnouncements.length}
                 </Badge>
               )}
@@ -131,9 +133,9 @@ export default function AnnouncementBanner() {
               variant="ghost"
               size="sm"
               onClick={() => setIsVisible(false)}
-              className="h-6 w-6 p-0 hover:bg-red-100"
+              className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-red-100"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
           </div>
 
@@ -146,25 +148,24 @@ export default function AnnouncementBanner() {
               transition={{ duration: 0.3 }}
             >
               <div 
-                className="p-3 bg-blue-50 rounded-lg border border-blue-100 mb-3 cursor-pointer hover:bg-blue-100 transition-colors"
+                className="p-2 md:p-3 bg-blue-50 rounded-lg border border-blue-100 mb-2 md:mb-3 cursor-pointer hover:bg-blue-100 transition-colors"
                 onClick={() => setIsDialogOpen(true)}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-sm text-blue-900 flex-1">
+                <div className="flex items-start justify-between mb-1 md:mb-2">
+                  <h4 className="font-semibold text-[11px] md:text-sm text-blue-900 flex-1 leading-tight">
                     {getLocalizedTitle(currentAnnouncement)}
                   </h4>
-                  <Badge className={`text-xs ml-2 ${getPriorityColor(currentAnnouncement.priority)}`}>
+                  <Badge className={`text-[9px] md:text-xs ml-1 md:ml-2 px-1 md:px-2 py-0 md:py-0.5 ${getPriorityColor(currentAnnouncement.priority)}`}>
                     {currentAnnouncement.priority}
                   </Badge>
                 </div>
-                <p className="text-xs text-blue-700 mb-2 leading-relaxed">
+                <p className="text-[10px] md:text-xs text-blue-700 mb-1 md:mb-2 leading-snug md:leading-relaxed line-clamp-2 md:line-clamp-none">
                   {getLocalizedContent(currentAnnouncement)}
                 </p>
-                <div className="flex items-center text-xs text-blue-600">
-                  <Clock className="h-3 w-3 mr-1" />
+                <div className="flex items-center text-[9px] md:text-xs text-blue-600">
+                  <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
                   {(() => {
                     try {
-                      // Handle different date formats
                       const timestamp = currentAnnouncement.createdAt;
                       let date: Date;
                       
@@ -172,16 +173,13 @@ export default function AnnouncementBanner() {
                         return t('announcements.recently');
                       }
                       
-                      // Handle Firebase Timestamp format
                       if (typeof timestamp === 'object' && timestamp._seconds) {
                         date = new Date(timestamp._seconds * 1000);
                       } 
-                      // Handle ISO string or other formats
                       else {
                         date = new Date(timestamp);
                       }
                       
-                      // Check if date is valid
                       if (isNaN(date.getTime())) {
                         return t('announcements.recently');
                       }
@@ -193,10 +191,10 @@ export default function AnnouncementBanner() {
                   })()}
                 </div>
                 <div 
-                  className="flex items-center justify-center mt-2 text-xs text-blue-600 cursor-pointer hover:text-blue-800 transition-colors"
+                  className="flex items-center justify-center mt-1 md:mt-2 text-[9px] md:text-xs text-blue-600 cursor-pointer hover:text-blue-800 transition-colors"
                   onClick={() => setIsDialogOpen(true)}
                 >
-                  <Info className="h-3 w-3 mr-1" />
+                  <Info className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
                   <span>{t('announcements.clickDetails')}</span>
                 </div>
               </div>
@@ -280,22 +278,22 @@ export default function AnnouncementBanner() {
           </Dialog>
 
           {activeAnnouncements.length > 1 && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-2 md:mt-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={prevAnnouncement}
-                className="h-8 px-2"
+                className="h-6 md:h-8 px-1.5 md:px-2"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
-              <div className="flex space-x-1">
+              <div className="flex space-x-0.5 md:space-x-1">
                 {activeAnnouncements.map((_: any, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentIndex(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      idx === currentIndex ? "bg-blue-600 w-4" : "bg-blue-200"
+                    className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${
+                      idx === currentIndex ? "bg-blue-600 w-3 md:w-4" : "bg-blue-200"
                     }`}
                   />
                 ))}
@@ -304,9 +302,9 @@ export default function AnnouncementBanner() {
                 variant="outline"
                 size="sm"
                 onClick={nextAnnouncement}
-                className="h-8 px-2"
+                className="h-6 md:h-8 px-1.5 md:px-2"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
             </div>
           )}
