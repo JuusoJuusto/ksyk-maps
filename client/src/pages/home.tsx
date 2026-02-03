@@ -73,11 +73,26 @@ export default function Home() {
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [navigationFrom, setNavigationFrom] = useState<string>("");
   const [navigationTo, setNavigationTo] = useState<string>("");
   const [navigationPath, setNavigationPath] = useState<Room[]>([]);
   const [showNavigationPopup, setShowNavigationPopup] = useState(false);
+  const [showMobileHint, setShowMobileHint] = useState(() => {
+    const seen = localStorage.getItem('mobileHintSeen');
+    return !seen && window.innerWidth < 768;
+  });
+  
+  useEffect(() => {
+    if (showMobileHint) {
+      const timer = setTimeout(() => {
+        setShowMobileHint(false);
+        localStorage.setItem('mobileHintSeen', 'true');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showMobileHint]);
   
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
@@ -149,7 +164,7 @@ export default function Home() {
   // Get rooms for selected floor
   const floorRooms = rooms.filter((room: Room) => room.floor === selectedFloor);
 
-  // Drag handlers
+  // Drag handlers with touch support
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
@@ -163,6 +178,47 @@ export default function Home() {
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      // Single touch - pan
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - panX, y: e.touches[0].clientY - panY });
+    } else if (e.touches.length === 2) {
+      // Two fingers - prepare for pinch zoom
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      setLastTouchDistance(distance);
+      setIsDragging(false);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      // Single touch - pan
+      setPanX(e.touches[0].clientX - dragStart.x);
+      setPanY(e.touches[0].clientY - dragStart.y);
+    } else if (e.touches.length === 2 && lastTouchDistance) {
+      // Two fingers - pinch zoom
+      e.preventDefault();
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = distance - lastTouchDistance;
+      const zoomDelta = delta * 0.01;
+      setZoom(Math.max(0.5, Math.min(3, zoom + zoomDelta)));
+      setLastTouchDistance(distance);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setLastTouchDistance(null);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -201,8 +257,22 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Left Sidebar - Navigation - IMPROVED MOBILE */}
-        <div className={`${sidebarOpen ? 'w-full sm:w-96 md:w-80' : 'w-0'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm border-r flex flex-col shadow-2xl transition-all duration-300 overflow-hidden fixed md:relative z-[45] h-full`}>
+        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet */}
+        <div className={`
+          ${sidebarOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
+          ${sidebarOpen ? 'w-full md:w-80' : 'w-0 md:w-0'}
+          ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'}
+          backdrop-blur-sm border-r md:border-t-0 border-t-4 border-t-blue-500
+          flex flex-col shadow-2xl transition-all duration-300 overflow-hidden
+          fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
+          z-[45] h-[85vh] md:h-full
+          rounded-t-3xl md:rounded-none
+        `}>
+          {/* Mobile Drag Handle - Only visible on mobile */}
+          <div className="md:hidden flex justify-center pt-2 pb-1">
+            <div className={`w-12 h-1.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+          </div>
+          
           {/* Navigation Button - Clean Header */}
           <div className={`p-3 sm:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
@@ -376,30 +446,42 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - MOBILE OPTIMIZED */}
+        {/* Sidebar Toggle Button - MOBILE BOTTOM SHEET STYLE */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`fixed top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-r-xl shadow-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-110 ${
-            sidebarOpen ? 'left-[calc(100%-3rem)] md:left-[320px]' : 'left-0'
-          } p-3 md:p-4`}
-          style={{
-            left: sidebarOpen ? (window.innerWidth < 768 ? 'calc(100% - 3rem)' : '320px') : '0px'
-          }}
-          title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
+          className={`
+            fixed z-[50] 
+            bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
+            shadow-2xl hover:from-blue-700 hover:to-indigo-700 
+            transition-all duration-300 transform hover:scale-105
+            active:scale-95
+            ${sidebarOpen 
+              ? 'bottom-[85vh] md:top-1/2 md:-translate-y-1/2 md:left-[320px] left-1/2 -translate-x-1/2 md:translate-x-0 rounded-t-xl md:rounded-r-xl md:rounded-l-none px-6 py-2 md:p-4' 
+              : 'bottom-4 md:top-1/2 md:-translate-y-1/2 md:left-0 left-1/2 -translate-x-1/2 md:translate-x-0 rounded-full md:rounded-r-xl md:rounded-l-none px-6 py-3 md:p-4'
+            }
+          `}
+          title={sidebarOpen ? 'Close' : 'Open Menu'}
         >
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center gap-2">
             {sidebarOpen ? (
-              <span className="text-2xl md:text-3xl font-bold">◀</span>
+              <>
+                <span className="text-xl md:text-2xl font-bold md:hidden">✕</span>
+                <span className="text-2xl font-bold hidden md:inline">◀</span>
+              </>
             ) : (
-              <span className="text-2xl md:text-3xl font-bold">▶</span>
+              <>
+                <MapPin className="h-5 w-5 md:hidden" />
+                <span className="text-sm font-bold md:hidden">Menu</span>
+                <span className="text-2xl font-bold hidden md:inline">▶</span>
+              </>
             )}
           </div>
         </button>
         
-        {/* Mobile Overlay */}
+        {/* Mobile Overlay - Dimmed background */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-[35] md:hidden"
+            className="fixed inset-0 bg-black/60 z-[40] md:hidden backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -517,30 +599,60 @@ export default function Home() {
               
               {/* Campus Map - CLEAN GRID ONLY */}
               <div className={`h-full p-0 overflow-hidden relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-                {/* Map Controls - MOBILE FRIENDLY */}
-                <div className="absolute top-16 md:top-20 right-2 md:right-4 z-20 flex flex-col space-y-1 md:space-y-2">
+                {/* Mobile Hint - Pinch to Zoom */}
+                {showMobileHint && (
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 md:hidden">
+                    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl p-6 max-w-xs animate-in fade-in slide-in-from-bottom-4`}>
+                      <div className="text-center">
+                        <div className="text-4xl mb-3">👆✌️</div>
+                        <p className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          Pinch to zoom
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Use two fingers to zoom in/out
+                        </p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Drag with one finger to pan
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setShowMobileHint(false);
+                            localStorage.setItem('mobileHintSeen', 'true');
+                          }}
+                          className="mt-4 bg-blue-600 hover:bg-blue-700"
+                        >
+                          Got it!
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Map Controls - MOBILE OPTIMIZED with bigger touch targets */}
+                <div className="absolute top-4 md:top-20 right-2 md:right-4 z-20 flex flex-col space-y-2 md:space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
+                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-4 md:h-5 w-4 md:w-5" />
+                    <Plus className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
+                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-4 md:h-5 w-4 md:w-5" />
+                    <Minus className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'}`}
+                    className={`w-12 h-12 md:w-10 md:h-10 p-0 shadow-xl rounded-full md:rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700' : 'bg-white hover:bg-blue-50'} active:scale-95 transition-transform`}
                     onClick={() => {
                       setZoom(1); // Reset to normal zoom
                       setPanX(0);
@@ -548,27 +660,19 @@ export default function Home() {
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-4 md:h-5 w-4 md:w-5" />
-                  </Button>
-                  
-                  {/* Mobile Navigation Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 md:w-10 md:h-10 p-0 bg-blue-600 text-white shadow-lg hover:bg-blue-700 md:hidden"
-                    onClick={() => setNavigationOpen(true)}
-                    title="Navigation"
-                  >
-                    <Navigation className="h-4 w-4" />
+                    <RotateCcw className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                 </div>
 
                 <div 
-                  className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   onWheel={handleWheel}
                   style={{ 
                     transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, 

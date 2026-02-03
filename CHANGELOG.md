@@ -4,6 +4,43 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.2.2] - 2026-02-03
+
+### 📱 MOBILE EXPERIENCE OVERHAUL
+
+**Added:**
+- ✅ Bottom sheet style sidebar on mobile (slides up from bottom)
+- ✅ Pinch-to-zoom gesture support for mobile devices
+- ✅ Touch-optimized drag and pan controls
+- ✅ Mobile hint popup showing pinch-to-zoom instructions (shows once)
+- ✅ Drag handle indicator on mobile bottom sheet
+- ✅ Bigger touch targets for map controls (48px on mobile)
+- ✅ Rounded floating buttons for better mobile UX
+
+**Improved:**
+- ⚡ Sidebar now 85vh height on mobile with rounded top corners
+- ⚡ Toggle button repositioned to bottom center on mobile
+- ⚡ Map controls moved to top-right with larger circular buttons
+- ⚡ Better backdrop blur and dimming when sidebar is open
+- ⚡ Smooth animations and transitions for all mobile interactions
+- ⚡ Active state feedback on all touch interactions
+- ⚡ Touch-none class prevents text selection while dragging
+
+**Mobile Gestures:**
+- 👆 Single finger: Pan/drag the map
+- ✌️ Two fingers: Pinch to zoom in/out
+- 👉 Tap controls: Zoom +/-, Reset view
+- 📱 Swipe up: Open menu from bottom
+- 📱 Tap outside: Close menu
+
+**Technical:**
+- 🔧 Added touch event handlers (touchStart, touchMove, touchEnd)
+- 🔧 Implemented pinch-to-zoom distance calculation
+- 🔧 Mobile-first responsive design with Tailwind breakpoints
+- 🔧 LocalStorage for mobile hint (shows only once)
+
+---
+
 ## [2.2.1] - 2026-02-03
 
 ### 🏢 EVEN BIGGER BUILDINGS & CROSS-BUILDING NAVIGATION
