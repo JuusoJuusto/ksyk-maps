@@ -259,8 +259,8 @@ export default function Home() {
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
         {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet */}
         <div className={`
-          ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/95 border-gray-200'}
-          backdrop-blur-sm
+          ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
+          backdrop-blur-md
           flex flex-col shadow-2xl overflow-hidden
           transition-all duration-300 ease-in-out
           ${sidebarOpen 
@@ -268,14 +268,14 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[75vh] md:h-full w-full md:w-80
+          z-[45] h-[70vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
         `}>
-          {/* Mobile Drag Handle - Only visible on mobile */}
-          <div className="md:hidden flex justify-center pt-2 pb-1">
-            <div className={`w-12 h-1.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+          {/* Mobile Drag Handle - BIGGER and more visible */}
+          <div className="md:hidden flex justify-center pt-3 pb-2">
+            <div className={`w-16 h-1.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-400'} shadow-sm`}></div>
           </div>
           
           {/* Navigation Button - Clean Header */}
@@ -462,14 +462,14 @@ export default function Home() {
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[75vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-2.5' 
-              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-6 py-3'
+              ? 'bottom-[70vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
+              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
             }
             
             md:bottom-auto md:left-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
             ${sidebarOpen 
-              ? 'md:left-[320px] md:rounded-r-2xl md:rounded-l-none md:px-4 md:py-5' 
-              : 'md:left-0 md:rounded-r-2xl md:rounded-l-none md:px-4 md:py-5'
+              ? 'md:left-[320px] md:rounded-r-2xl md:rounded-l-none md:px-5 md:py-6 md:shadow-2xl' 
+              : 'md:left-0 md:rounded-r-2xl md:rounded-l-none md:px-5 md:py-6 md:shadow-xl'
             }
           `}
           title={sidebarOpen ? 'Close' : 'Open Menu'}
@@ -490,21 +490,21 @@ export default function Home() {
               )}
             </div>
             
-            {/* Desktop icons - larger and clearer */}
+            {/* Desktop icons - EVEN LARGER and clearer */}
             <div className="hidden md:block">
               {sidebarOpen ? (
-                <span className="text-3xl font-bold leading-none">◀</span>
+                <span className="text-4xl font-black leading-none">◀</span>
               ) : (
-                <span className="text-3xl font-bold leading-none">▶</span>
+                <span className="text-4xl font-black leading-none">▶</span>
               )}
             </div>
           </div>
         </button>
         
-        {/* Mobile Overlay - Dimmed background */}
+        {/* Mobile Overlay - DARKER for better focus */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/60 z-[40] md:hidden backdrop-blur-sm transition-opacity duration-300"
+            className="fixed inset-0 bg-black/70 z-[40] md:hidden backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -512,18 +512,18 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className={`absolute top-2 left-2 md:top-4 md:left-4 z-10 shadow-lg border rounded-lg ${darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-0.5 md:gap-1 p-0.5 md:p-1 backdrop-blur-sm`}>
-              <TabsTrigger value="map" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2 min-w-[2.5rem] md:min-w-0">
-                <MapPin className="h-3.5 md:h-4 w-3.5 md:w-4" />
-                <span className="hidden sm:inline">{t('nav.map')}</span>
+            <TabsList className={`absolute top-2 left-2 md:top-4 md:left-4 z-10 shadow-xl border-2 rounded-xl ${darkMode ? 'bg-gray-800/98 border-gray-600' : 'bg-white/98 border-gray-300'} flex flex-row gap-0.5 md:gap-1 p-1 md:p-1.5 backdrop-blur-md`}>
+              <TabsTrigger value="map" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
+                <MapPin className="h-4 md:h-4 w-4 md:w-4" />
+                <span className="hidden sm:inline font-medium">{t('nav.map')}</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2 min-w-[2.5rem] md:min-w-0">
-                <Calendar className="h-3.5 md:h-4 w-3.5 md:w-4" />
-                <span className="hidden sm:inline">{t('nav.schedule')}</span>
+              <TabsTrigger value="schedule" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
+                <Calendar className="h-4 md:h-4 w-4 md:w-4" />
+                <span className="hidden sm:inline font-medium">{t('nav.schedule')}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2 min-w-[2.5rem] md:min-w-0">
-                <Settings className="h-3.5 md:h-4 w-3.5 md:w-4" />
-                <span className="hidden sm:inline">{t('admin.settings')}</span>
+              <TabsTrigger value="settings" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
+                <Settings className="h-4 md:h-4 w-4 md:w-4" />
+                <span className="hidden sm:inline font-medium">{t('admin.settings')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -654,30 +654,30 @@ export default function Home() {
                   </div>
                 )}
                 
-                {/* Map Controls - NO OVERLAP on mobile */}
-                <div className="absolute bottom-32 md:top-20 right-4 z-20 flex flex-col space-y-2.5">
+                {/* Map Controls - EVEN BIGGER on mobile, NO OVERLAP */}
+                <div className="absolute bottom-36 md:top-20 right-4 z-20 flex flex-col space-y-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-sm`}
+                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-6 md:h-5 w-6 md:w-5" />
+                    <Plus className="h-7 md:h-5 w-7 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-sm`}
+                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-6 md:h-5 w-6 md:w-5" />
+                    <Minus className="h-7 md:h-5 w-7 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-14 h-14 md:w-12 md:h-12 p-0 shadow-xl rounded-full ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-sm`}
+                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => {
                       setZoom(1);
                       setPanX(0);
@@ -685,7 +685,7 @@ export default function Home() {
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-6 md:h-5 w-6 md:w-5" />
+                    <RotateCcw className="h-7 md:h-5 w-7 md:w-5" />
                   </Button>
                 </div>
 
