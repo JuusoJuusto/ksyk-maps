@@ -6,7 +6,7 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "2.2.6";
+  const version = "2.2.7";
   const releaseDate = "February 3, 2026";
   const originalReleaseDate = "August 20, 2025";
   
@@ -14,7 +14,7 @@ export default function VersionInfo() {
     <>
       <button
         onClick={() => setShowChangelog(true)}
-        className="fixed bottom-4 right-4 z-30 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center space-x-2 text-sm font-semibold"
+        className="fixed bottom-4 right-4 md:bottom-4 md:right-4 z-30 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center space-x-2 text-sm font-semibold"
         title="View Version Info & Changelog"
       >
         <Info className="h-4 w-4" />

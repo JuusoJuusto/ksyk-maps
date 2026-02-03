@@ -257,7 +257,7 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet */}
+        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet, 65vh to avoid overlaps */}
         <div className={`
           ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
           backdrop-blur-md
@@ -268,7 +268,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[70vh] md:h-full w-full md:w-80
+          z-[45] h-[65vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
@@ -451,25 +451,25 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - OUTSIDE edge on desktop, bottom on mobile */}
+        {/* Sidebar Toggle Button - SMALLER on PC, clean on mobile */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
             fixed z-[50] 
             bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
-            shadow-2xl hover:from-blue-700 hover:to-indigo-700 
+            shadow-xl hover:from-blue-700 hover:to-indigo-700 
             transition-all duration-300 ease-in-out
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[70vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
+              ? 'bottom-[65vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
               : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
             }
             
             md:bottom-auto md:left-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
             ${sidebarOpen 
-              ? 'md:left-[320px] md:rounded-r-2xl md:rounded-l-none md:px-5 md:py-6 md:shadow-2xl' 
-              : 'md:left-0 md:rounded-r-2xl md:rounded-l-none md:px-5 md:py-6 md:shadow-xl'
+              ? 'md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4 md:shadow-lg' 
+              : 'md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4 md:shadow-lg'
             }
           `}
           title={sidebarOpen ? 'Close' : 'Open Menu'}
@@ -490,12 +490,12 @@ export default function Home() {
               )}
             </div>
             
-            {/* Desktop icons - EVEN LARGER and clearer */}
+            {/* Desktop icons - SMALLER and cleaner */}
             <div className="hidden md:block">
               {sidebarOpen ? (
-                <span className="text-4xl font-black leading-none">◀</span>
+                <span className="text-2xl font-bold leading-none">◀</span>
               ) : (
-                <span className="text-4xl font-black leading-none">▶</span>
+                <span className="text-2xl font-bold leading-none">▶</span>
               )}
             </div>
           </div>
@@ -654,8 +654,8 @@ export default function Home() {
                   </div>
                 )}
                 
-                {/* Map Controls - EVEN BIGGER on mobile, NO OVERLAP */}
-                <div className="absolute bottom-36 md:top-20 right-4 z-20 flex flex-col space-y-3">
+                {/* Map Controls - Higher on mobile to avoid bottom buttons */}
+                <div className="absolute bottom-40 md:top-20 right-4 z-20 flex flex-col space-y-3">
                   <Button
                     variant="outline"
                     size="sm"
