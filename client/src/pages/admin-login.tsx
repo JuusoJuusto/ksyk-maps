@@ -74,8 +74,11 @@ export default function AdminLogin() {
       return;
     }
     
-    // Simple backend login - works for everyone
-    loginMutation.mutate({ email, password });
+    // Normalize email to lowercase for case-insensitive login
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Simple backend login with normalized email
+    loginMutation.mutate({ email: normalizedEmail, password });
   };
 
   const handlePasswordChange = async () => {

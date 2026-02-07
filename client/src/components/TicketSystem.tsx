@@ -2,8 +2,8 @@ import { Ticket } from "lucide-react";
 
 export default function TicketSystem() {
   const handleOpenTickets = () => {
-    // Redirect to OWL Apps ticket system with KSYK Maps pre-selected
-    window.open('https://owlapps.vercel.app/tickets?app=ksyk-maps', '_blank');
+    // Redirect to StudiOWL ticket system with KSYK Maps pre-selected
+    window.open('https://studiowl.vercel.app/tickets?app=ksyk-maps', '_blank');
   };
 
   return (

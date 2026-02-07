@@ -188,7 +188,7 @@ export default function CampusNavigator() {
 
             <div>
               <h1 className="text-2xl font-bold text-gray-900">KSYK Map</h1>
-              <p className="text-sm text-gray-600">by Owl Apps</p>
+              <p className="text-sm text-gray-600">by StudiOWL</p>
             </div>
           </div>
           <div className="flex items-center gap-4">

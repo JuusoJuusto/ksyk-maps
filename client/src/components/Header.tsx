@@ -173,7 +173,7 @@ export default function Header() {
                 >
                   KSYK Maps
                 </h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">by OWL Apps</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">by StudiOWL</p>
               </div>
             </Link>
           </div>

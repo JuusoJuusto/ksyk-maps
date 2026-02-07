@@ -1,10 +1,10 @@
 {
   "name": "ksyk-maps",
-  "version": "2.2.7",
+  "version": "2.3.0",
   "type": "module",
   "license": "UNLICENSED",
   "description": "Professional Interactive Campus Navigation System for KSYK",
-  "author": "OWL Apps",
+  "author": "StudiOWL",
   "scripts": {
     "dev": "set NODE_ENV=development && tsx server/index.ts",
     "build": "vite build",
@@ -16,6 +16,7 @@
     "seed:connectors": "tsx server/seedConnectors.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
     "clean:firebase": "tsx server/cleanAndReseed.ts",
+    "add:rebrand-announcement": "tsx server/addRebrandAnnouncement.ts",
     "notify:discord": "node scripts/notify-discord.js"
   },
   "dependencies": {

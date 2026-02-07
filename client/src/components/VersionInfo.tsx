@@ -6,7 +6,7 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "2.2.7";
+  const version = "2.3.0";
   const releaseDate = "February 3, 2026";
   const originalReleaseDate = "August 20, 2025";
   
@@ -249,13 +249,13 @@ export default function VersionInfo() {
               
               <div className="text-gray-600 dark:text-gray-400 text-sm space-y-1">
                 <p className="font-semibold">
-                  Made with ❤️ by <strong className="text-blue-600 dark:text-blue-400">OWL Apps</strong> for KSYK
+                  Made with ❤️ by <strong className="text-blue-600 dark:text-blue-400">StudiOWL</strong> for KSYK
                 </p>
                 <p className="text-xs">
                   Originally released: {originalReleaseDate}
                 </p>
                 <p className="text-xs">
-                  © 2026 OWL Apps. All rights reserved.
+                  © 2026 StudiOWL. All rights reserved.
                 </p>
               </div>
             </div>

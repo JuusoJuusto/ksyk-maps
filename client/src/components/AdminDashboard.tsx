@@ -2200,7 +2200,7 @@ export default function AdminDashboard() {
                     <span className="text-2xl">🦉</span>
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-base">Visit OWL Apps</div>
+                    <div className="font-semibold text-base">Visit StudiOWL</div>
                     <div className="text-xs text-muted-foreground">View all our apps and services</div>
                   </div>
                   <span className="text-muted-foreground">↗</span>

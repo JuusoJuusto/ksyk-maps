@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Mail, MessageSquare, Github, Globe, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 
-export default function OWLApps() {
+export default function StudiOWL() {
   const { darkMode } = useDarkMode();
   const [, setLocation] = useLocation();
 
@@ -32,7 +32,7 @@ export default function OWLApps() {
             <span className="text-4xl font-black text-white">OWL</span>
           </div>
           <h1 className={`text-5xl font-black mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            OWL Apps
+            StudiOWL
           </h1>
           <p className={`text-xl ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             Building innovative solutions for education
@@ -84,7 +84,7 @@ export default function OWLApps() {
               About Us
             </h2>
             <p className={`text-lg leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              OWL Apps is a software development team dedicated to creating innovative solutions for educational institutions. 
+              StudiOWL is a software development team dedicated to creating innovative solutions for educational institutions. 
               We specialize in building intuitive, user-friendly applications that enhance the learning experience and streamline 
               campus operations.
             </p>
@@ -217,10 +217,10 @@ export default function OWLApps() {
         {/* Footer */}
         <div className="text-center py-8">
           <p className={`flex items-center justify-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by OWL Apps
+            Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by StudiOWL
           </p>
           <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-            © 2026 OWL Apps. All rights reserved.
+            © 2026 StudiOWL. All rights reserved.
           </p>
         </div>
       </div>

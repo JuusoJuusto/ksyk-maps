@@ -257,7 +257,7 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet, 65vh to avoid overlaps */}
+        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet, perfect spacing */}
         <div className={`
           ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
           backdrop-blur-md
@@ -268,7 +268,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[65vh] md:h-full w-full md:w-80
+          z-[45] h-[60vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
@@ -451,7 +451,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - SMALLER on PC, clean on mobile */}
+        {/* Sidebar Toggle Button - Perfect sizing, no overlaps */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
@@ -462,7 +462,7 @@ export default function Home() {
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[65vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
+              ? 'bottom-[60vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
               : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
             }
             
@@ -1463,7 +1463,7 @@ export default function Home() {
                       </div>
                       <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         <p><strong>School:</strong> Kulosaaren Yhteiskoulu (KSYK)</p>
-                        <p><strong>Developer:</strong> OWL Apps</p>
+                        <p><strong>Developer:</strong> StudiOWL</p>
                       </div>
                     </div>
                   </CardContent>
@@ -1479,14 +1479,14 @@ export default function Home() {
                         <p>Version 2.1.0</p>
                         <p>Latest Update: January 25, 2026</p>
                         <p>Originally Released: August 20, 2025</p>
-                        <p>© 2026 OWL Apps</p>
+                        <p>© 2026 StudiOWL</p>
                       </div>
                       
                       <Button
                         onClick={() => window.open('https://owlapps.vercel.app', '_blank')}
                         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                       >
-                        Learn More About OWL Apps
+                        Learn More About StudiOWL
                       </Button>
                     </div>
                   </CardContent>
