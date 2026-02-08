@@ -478,16 +478,16 @@ export default function Home() {
               : 'bottom-8 left-1/2 -translate-x-1/2 rounded-full px-6 py-2.5'
             }
             
-            md:bottom-auto md:left-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
+            md:bottom-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
             ${sidebarOpen 
               ? 'md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4' 
               : 'md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4'
             }
           `}
-          title={sidebarOpen ? 'Close' : 'Open Menu'}
+          title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
         >
           <div className="flex items-center justify-center gap-2">
-            {/* Mobile icons - FIXED: Show Menu when closed, Close when open */}
+            {/* Mobile icons */}
             <div className="md:hidden flex items-center gap-1.5">
               {sidebarOpen ? (
                 <>

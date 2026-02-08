@@ -4,6 +4,40 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.4] - 2026-02-08
+
+### 🎯 PERFECT SIDEBAR BUTTON & ENHANCED NAVIGATION
+
+**Fixed PC Sidebar Button:**
+- ✅ Button now properly positioned at right edge of sidebar
+- ✅ Removed `md:left-auto` that was causing left wall positioning
+- ✅ Button smoothly transitions when sidebar opens/closes
+- ✅ Perfect positioning on both mobile and desktop
+
+**Enhanced Navigation System:**
+- 🧭 Advanced A* pathfinding algorithm with distance-based routing
+- 🗺️ Smart route calculation through hallways, stairways, and elevators
+- ⏱️ Accurate time estimates based on path complexity
+- 📏 Distance calculation using map positions
+- 🎯 Better error messages with helpful suggestions
+- ✨ Beautiful route preview with gradient line
+- 🚶 Step-by-step directions with icons
+- 🪜 Stairway and elevator detection
+- 📍 Floor change indicators
+- 🎨 Enhanced UI with gradient backgrounds
+
+**Navigation Features:**
+- Real-time route calculation
+- Multi-floor navigation support
+- Optimal path selection
+- Visual route preview
+- Estimated walking time
+- Distance in meters
+- Floor-by-floor directions
+- Error handling with helpful tips
+
+---
+
 ## [2.9.3] - 2026-02-08
 
 ### 🎯 SINGLE ANNOUNCEMENT BANNER - MOBILE & DESKTOP
