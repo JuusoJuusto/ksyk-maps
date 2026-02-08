@@ -4,6 +4,21 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.6.1] - 2026-02-08
+
+### 🐛 BUG FIXES
+
+**Fixed:**
+- ✅ Fixed missing closing div for scrollable content in sidebar
+- ✅ Sidebar scrolling now works properly on mobile
+- ✅ All sections in mobile menu are now accessible
+
+**Technical:**
+- 🔧 Added proper closing tag for scrollable content container
+- 🔧 Improved sidebar structure for better scrolling behavior
+
+---
+
 ## [2.2.5] - 2026-02-03
 
 ### 📱 MOBILE ANNOUNCEMENT BANNER OPTIMIZATION

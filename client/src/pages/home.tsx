@@ -260,25 +260,28 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - BEAUTIFUL mobile UI */}
+        {/* Left Sidebar - PERFECT scrollable mobile UI */}
         <div className={`
           ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}
           backdrop-blur-xl
-          flex flex-col shadow-2xl overflow-hidden
+          flex flex-col shadow-2xl
           transition-all duration-300 ease-in-out
           ${sidebarOpen 
             ? 'translate-y-0 md:translate-x-0 opacity-100' 
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] max-h-[50vh] md:h-full w-full md:w-80
+          z-[45] max-h-[55vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-2 md:border-t-0 md:border-r border-t-blue-500
         `}>
           {/* Mobile Drag Handle */}
-          <div className="md:hidden flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+          <div className="md:hidden flex-shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
             <div className={`w-12 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
           </div>
+          
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-transparent">
           
           {/* Navigation Button - Beautiful gradient */}
           <div className={`px-3 py-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-700' : 'border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
@@ -453,6 +456,7 @@ export default function Home() {
               </div>
             )}
           </div>
+          </div> {/* Close scrollable content */}
         </div>
 
         {/* Sidebar Toggle Button - Perfect positioning */}

@@ -111,7 +111,7 @@ export default function EasterEgg() {
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="text-6xl md:text-8xl font-black mb-6"
+          className="text-4xl md:text-8xl font-black mb-6"
         >
           {"YOU FOUND IT!".split("").map((char, i) => (
             <motion.span
@@ -147,7 +147,7 @@ export default function EasterEgg() {
         >
           <div className="bg-gray-900 px-8 py-4 rounded-2xl">
             <motion.p
-              className="text-3xl md:text-5xl font-bold text-white flex items-center gap-3"
+              className="text-2xl md:text-5xl font-bold text-white flex items-center gap-3"
               animate={{
                 textShadow: [
                   "0 0 20px #fff",
