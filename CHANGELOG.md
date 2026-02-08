@@ -4,6 +4,40 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.1] - 2026-02-08
+
+### 🎨 BEAUTIFUL ORANGE ANNOUNCEMENT BANNER
+
+**New Design:**
+- 🟠 Solid orange color (bg-orange-500)
+- ✨ Hover effect (hover:bg-orange-600)
+- 🖱️ Entire banner is clickable
+- 📱 Better mobile layout
+- 🎯 Cleaner, more professional look
+
+**Improvements:**
+- ✅ Removed gradient (now solid orange)
+- ✅ Added hover transition effect
+- ✅ Icon in white circle background
+- ✅ Larger, bolder text
+- ✅ Better spacing on mobile
+- ✅ Smooth color transitions
+- ✅ Click anywhere to see details
+
+**Mobile Optimizations:**
+- 📱 Better padding (py-2.5 md:py-3)
+- 📱 Larger touch targets (h-8 w-8)
+- 📱 Clearer text hierarchy
+- 📱 Improved button spacing
+
+**Dialog:**
+- 🎨 Orange-themed dialog
+- 🎨 Icon in orange circle
+- 🎨 Orange close button
+- 🎨 Clean, modern design
+
+---
+
 ## [2.9.0] - 2026-02-08
 
 ### 📱 PERFECT MOBILE & PC UI - NO OVERLAPPING
