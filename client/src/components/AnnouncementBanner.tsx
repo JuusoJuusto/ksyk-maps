@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Info } from "lucide-react";
+import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Info, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 // Helper function to convert Firebase Timestamp to Date
@@ -36,6 +36,7 @@ export default function AnnouncementBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const { data: announcements = [] } = useQuery({
     queryKey: ["announcements"],
@@ -47,6 +48,17 @@ export default function AnnouncementBanner() {
   });
 
   const activeAnnouncements = announcements.filter((a: Announcement) => a.isActive);
+
+  // Auto-scroll every 10 seconds
+  useEffect(() => {
+    if (activeAnnouncements.length <= 1 || isPaused) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
+    }, 10000); // 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [activeAnnouncements.length, isPaused]);
 
   if (!isVisible || activeAnnouncements.length === 0) {
     return null;
@@ -102,7 +114,7 @@ export default function AnnouncementBanner() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="absolute top-14 md:top-4 left-2 right-2 md:left-auto md:right-4 z-10 max-w-md"
+      className="absolute top-14 left-2 right-2 md:top-16 md:left-4 md:right-auto z-10 max-w-md"
     >
       <Card className="shadow-2xl border-blue-200 bg-white overflow-hidden">
         <div className={`h-1 ${
@@ -287,16 +299,31 @@ export default function AnnouncementBanner() {
               >
                 <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
-              <div className="flex space-x-0.5 md:space-x-1">
-                {activeAnnouncements.map((_: any, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${
-                      idx === currentIndex ? "bg-blue-600 w-3 md:w-4" : "bg-blue-200"
-                    }`}
-                  />
-                ))}
+              <div className="flex items-center space-x-1 md:space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsPaused(!isPaused)}
+                  className="h-6 md:h-8 px-1.5 md:px-2"
+                  title={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+                >
+                  {isPaused ? (
+                    <Play className="h-3 w-3 md:h-4 md:w-4" />
+                  ) : (
+                    <Pause className="h-3 w-3 md:h-4 md:w-4" />
+                  )}
+                </Button>
+                <div className="flex space-x-0.5 md:space-x-1">
+                  {activeAnnouncements.map((_: any, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${
+                        idx === currentIndex ? "bg-blue-600 w-3 md:w-4" : "bg-blue-200"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
               <Button
                 variant="outline"

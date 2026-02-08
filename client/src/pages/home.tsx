@@ -257,7 +257,7 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - MOBILE OPTIMIZED with Bottom Sheet, perfect spacing */}
+        {/* Left Sidebar - PERFECT mobile experience, 55vh for maximum space */}
         <div className={`
           ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
           backdrop-blur-md
@@ -268,7 +268,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[60vh] md:h-full w-full md:w-80
+          z-[45] h-[55vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
@@ -451,7 +451,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - Perfect sizing, no overlaps */}
+        {/* Sidebar Toggle Button - Perfect sizing and positioning */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
@@ -462,7 +462,7 @@ export default function Home() {
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[60vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
+              ? 'bottom-[55vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
               : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
             }
             
@@ -490,7 +490,7 @@ export default function Home() {
               )}
             </div>
             
-            {/* Desktop icons - SMALLER and cleaner */}
+            {/* Desktop icons - Clean and minimal */}
             <div className="hidden md:block">
               {sidebarOpen ? (
                 <span className="text-2xl font-bold leading-none">◀</span>
@@ -531,9 +531,9 @@ export default function Home() {
             <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
-              {/* Google Maps-Style Navigation Popup - NO OVERLAP with announcement */}
+              {/* Google Maps-Style Navigation Popup - Positioned below announcement */}
               {showNavigationPopup && navigationPath.length > 0 && (
-                <div className="absolute top-32 md:top-20 left-2 right-2 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
+                <div className="absolute top-36 md:top-28 left-2 right-2 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
                   <div className="flex items-start justify-between mb-3 md:mb-4">
                     <div className="flex items-center space-x-2 md:space-x-3">
                       <div className="p-1.5 md:p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -582,9 +582,9 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Compact Navigation Bar - NO OVERLAP with announcement */}
+              {/* Compact Navigation Bar - Positioned below announcement */}
               {navigationFrom && navigationTo && !showNavigationPopup && (
-                <div className="absolute top-28 md:top-20 left-2 right-2 md:left-4 md:right-4 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 md:p-3">
+                <div className="absolute top-32 md:top-28 left-2 right-2 md:left-4 md:right-auto md:max-w-md z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 md:p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-1.5 md:space-x-3 flex-1 min-w-0">
                       <div className="flex items-center space-x-1 md:space-x-2">
@@ -654,30 +654,30 @@ export default function Home() {
                   </div>
                 )}
                 
-                {/* Map Controls - Higher on mobile to avoid bottom buttons */}
-                <div className="absolute bottom-40 md:top-20 right-4 z-20 flex flex-col space-y-3">
+                {/* Map Controls - TOP RIGHT, perfect positioning */}
+                <div className="absolute top-20 md:top-4 right-2 md:right-4 z-20 flex flex-col space-y-2 md:space-y-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-7 md:h-5 w-7 md:w-5" />
+                    <Plus className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-7 md:h-5 w-7 md:w-5" />
+                    <Minus className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-16 h-16 md:w-12 md:h-12 p-0 shadow-2xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => {
                       setZoom(1);
                       setPanX(0);
@@ -685,7 +685,7 @@ export default function Home() {
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-7 md:h-5 w-7 md:w-5" />
+                    <RotateCcw className="h-5 md:h-5 w-5 md:w-5" />
                   </Button>
                 </div>
 
