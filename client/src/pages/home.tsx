@@ -204,7 +204,7 @@ export default function Home() {
       setPanY(e.touches[0].clientY - dragStart.y);
     } else if (e.touches.length === 2 && lastTouchDistance) {
       // Two fingers - pinch zoom
-      e.preventDefault();
+      // Removed preventDefault to fix passive event listener warning
       const distance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -222,7 +222,7 @@ export default function Home() {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
+    // Removed preventDefault to fix passive event listener warning
     const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
     setZoom(Math.max(0.5, Math.min(3, zoom + zoomDelta)));
   };
@@ -454,25 +454,25 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - PERFECT mobile positioning */}
+        {/* Sidebar Toggle Button - ALWAYS VISIBLE on mobile */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
-            fixed z-[50] 
+            fixed z-[50] pointer-events-auto
             bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
-            shadow-xl hover:from-blue-700 hover:to-indigo-700 
+            shadow-2xl hover:from-blue-700 hover:to-indigo-700 
             transition-all duration-300 ease-in-out
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[45vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-2.5 shadow-2xl' 
-              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3 shadow-xl'
+              ? 'bottom-[45vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-2.5' 
+              : 'bottom-8 left-1/2 -translate-x-1/2 rounded-full px-8 py-3'
             }
             
             md:bottom-auto md:left-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
             ${sidebarOpen 
-              ? 'md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4 md:shadow-lg' 
-              : 'md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4 md:shadow-lg'
+              ? 'md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4' 
+              : 'md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4'
             }
           `}
           title={sidebarOpen ? 'Close' : 'Open Menu'}
@@ -690,7 +690,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
+                  className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none select-none`}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
@@ -702,7 +702,8 @@ export default function Home() {
                   style={{ 
                     transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, 
                     transformOrigin: 'center',
-                    transition: isDragging ? 'none' : 'transform 0.1s ease'
+                    transition: isDragging ? 'none' : 'transform 0.1s ease',
+                    touchAction: 'none' // Prevents default touch behaviors
                   }}
                 >
                 <svg viewBox="0 0 2000 1200" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '100%', minHeight: '100%' }}>

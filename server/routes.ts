@@ -54,14 +54,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (OWNER_EMAIL && OWNER_PASSWORD && normalizedEmail === OWNER_EMAIL && password === OWNER_PASSWORD) {
         console.log('✅ OWNER LOGIN DETECTED');
-        // Owner login
-        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
+        // Owner login - use the original OWNER_EMAIL from env (not normalized) for database
+        const originalOwnerEmail = process.env.OWNER_EMAIL;
+        let ownerUser = await storage.getUserByEmail(originalOwnerEmail!);
         
         if (!ownerUser) {
           console.log('📝 Creating owner user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
-            email: OWNER_EMAIL,
+            email: originalOwnerEmail!,
             firstName: 'Juuso',
             lastName: 'Kaikula',
             role: 'owner',
