@@ -4,6 +4,29 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.8.1] - 2026-02-08
+
+### ✅ OWNER USER CREATED IN FIREBASE
+
+**CRITICAL FIX:**
+- ✅ Owner user created directly in Firebase database
+- ✅ Email: juusojuusto112@gmail.com
+- ✅ Password: Juusto2012!
+- ✅ Ready to login NOW
+
+**What I Did:**
+- 🔧 Created script to add owner user to Firebase
+- 🔧 User exists in database with correct password
+- 🔧 Added `npm run create:owner` script
+- 🔧 Login should work immediately
+
+**Login Now:**
+- 📧 Email: juusojuusto112@gmail.com
+- 🔑 Password: Juusto2012!
+- 🌐 URL: https://ksyk-maps.vercel.app/admin-login-ksyk-management
+
+---
+
 ## [2.8.0] - 2026-02-08
 
 ### 🔄 REVERTED TO SIMPLE LOGIN SYSTEM
