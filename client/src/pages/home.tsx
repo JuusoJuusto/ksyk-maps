@@ -243,9 +243,13 @@ export default function Home() {
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
       
       {/* Top Announcement Banner - Full width, auto-scroll */}
-      <AnnouncementBanner />
+      <div className="relative z-[60]">
+        <AnnouncementBanner />
+      </div>
       
-      <Header />
+      <div className="relative z-[55]">
+        <Header />
+      </div>
       
       <NavigationModal 
         isOpen={navigationOpen} 
@@ -253,11 +257,15 @@ export default function Home() {
         onNavigate={handleNavigate}
       />
       
-      {/* Version Info Button */}
-      <VersionInfo />
+      {/* Version Info Button - Fixed positioning */}
+      <div className="fixed bottom-4 right-4 z-[30]">
+        <VersionInfo />
+      </div>
       
-      {/* Ticket System Button */}
-      <TicketSystem />
+      {/* Ticket System Button - Fixed positioning */}
+      <div className="fixed bottom-20 right-4 z-[30]">
+        <TicketSystem />
+      </div>
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
         {/* Left Sidebar - PERFECT scrollable mobile UI */}
@@ -271,7 +279,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] max-h-[60vh] md:max-h-full md:h-full w-full md:w-80
+          z-[40] max-h-[55vh] md:max-h-full md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-2 md:border-t-0 md:border-r border-t-blue-500
         `}>
@@ -463,14 +471,14 @@ export default function Home() {
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
-            fixed z-[50] pointer-events-auto
+            fixed z-[45] pointer-events-auto
             bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
             shadow-2xl hover:from-blue-700 hover:to-indigo-700 
             transition-all duration-300 ease-in-out
             active:scale-95 border border-white/20
             
             ${sidebarOpen 
-              ? 'bottom-[60vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-6 py-2' 
+              ? 'bottom-[55vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-6 py-2' 
               : 'bottom-8 left-1/2 -translate-x-1/2 rounded-full px-6 py-2.5'
             }
             
@@ -659,30 +667,30 @@ export default function Home() {
                   </div>
                 )}
                 
-                {/* Map Controls - TOP RIGHT, perfect positioning */}
-                <div className="absolute top-20 md:top-4 right-2 md:right-4 z-20 flex flex-col space-y-2 md:space-y-3">
+                {/* Map Controls - TOP RIGHT, no overlap */}
+                <div className="absolute top-4 right-4 z-20 flex flex-col space-y-2 md:space-y-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
-                    <Plus className="h-5 md:h-5 w-5 md:w-5" />
+                    <Plus className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
-                    <Minus className="h-5 md:h-5 w-5 md:w-5" />
+                    <Minus className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-12 h-12 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
                     onClick={() => {
                       setZoom(1);
                       setPanX(0);
@@ -690,7 +698,7 @@ export default function Home() {
                     }}
                     title="Reset View"
                   >
-                    <RotateCcw className="h-5 md:h-5 w-5 md:w-5" />
+                    <RotateCcw className="h-5 w-5" />
                   </Button>
                 </div>
 
