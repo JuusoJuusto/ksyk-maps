@@ -48,26 +48,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const OWNER_PASSWORD = process.env.OWNER_PASSWORD;
       
       console.log('🔑 Checking owner credentials...');
-      console.log('   Owner email set:', !!OWNER_EMAIL);
+      console.log('   Owner email from env:', process.env.OWNER_EMAIL);
+      console.log('   Owner email normalized:', OWNER_EMAIL);
       console.log('   Owner password set:', !!OWNER_PASSWORD);
+      console.log('   Owner password value:', OWNER_PASSWORD);
+      console.log('   Provided email:', normalizedEmail);
+      console.log('   Provided password:', password);
       console.log('   Email match:', normalizedEmail === OWNER_EMAIL);
+      console.log('   Password match:', password === OWNER_PASSWORD);
       
       if (OWNER_EMAIL && OWNER_PASSWORD && normalizedEmail === OWNER_EMAIL && password === OWNER_PASSWORD) {
-        console.log('✅ OWNER LOGIN DETECTED');
+        console.log('✅ OWNER LOGIN DETECTED - ALL CHECKS PASSED');
         // Owner login - use the original OWNER_EMAIL from env (not normalized) for database
         const originalOwnerEmail = process.env.OWNER_EMAIL;
-        let ownerUser = await storage.getUserByEmail(originalOwnerEmail!);
+        let ownerUser = await storage.getUserByEmail(normalizedEmail);
         
         if (!ownerUser) {
           console.log('📝 Creating owner user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
-            email: originalOwnerEmail!,
+            email: normalizedEmail,
             firstName: 'Juuso',
             lastName: 'Kaikula',
             role: 'owner',
-            profileImageUrl: null
+            profileImageUrl: null,
+            canLoginToKsykMaps: true,
+            apps: ['ksykmaps', 'studiowl'],
+            isStaff: true
           });
+          console.log('✅ Owner user created:', ownerUser);
+        } else {
+          console.log('✅ Owner user found in database:', ownerUser);
         }
 
         req.login({
@@ -88,6 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
         });
         return;
+      } else {
+        console.log('❌ Owner credentials check failed');
+        console.log('   Reason: Email or password mismatch');
       }
       
       // Check Firestore database for admin users

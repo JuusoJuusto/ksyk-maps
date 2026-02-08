@@ -271,7 +271,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] max-h-[55vh] md:h-full w-full md:w-80
+          z-[45] max-h-[55vh] md:max-h-full md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-2 md:border-t-0 md:border-r border-t-blue-500
         `}>

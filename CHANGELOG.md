@@ -4,6 +4,34 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.7.1] - 2026-02-08
+
+### 🐛 CRITICAL FIXES
+
+**Fixed:**
+- ✅ PC sidebar now displays full height (was cut in half)
+- ✅ Reverted login page to original blue background design
+- ✅ Owner credentials login working with enhanced logging
+- ✅ Owner user automatically gets KSYK Maps access
+
+**PC Sidebar Fix:**
+- 🖥️ Added `md:max-h-full` to prevent height restriction on desktop
+- 🖥️ Sidebar now properly fills the screen on PC
+- 📱 Mobile sidebar still works perfectly at 55vh
+
+**Login Page:**
+- 🎨 Restored original blue gradient background
+- 🎨 Removed animated elements for cleaner look
+- 🎨 Professional and simple design
+
+**Owner Login:**
+- 🔐 Enhanced logging for debugging
+- 🔐 Owner user automatically created with KSYK Maps access
+- 🔐 Added `canLoginToKsykMaps: true` and `apps: ['ksykmaps', 'studiowl']`
+- 🔐 Better error messages
+
+---
+
 ## [2.7.0] - 2026-02-08
 
 ### 🎨 STUNNING LOGIN UI REDESIGN
