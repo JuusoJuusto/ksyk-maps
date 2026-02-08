@@ -243,13 +243,9 @@ export default function Home() {
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
       
       {/* Top Announcement Banner - Full width, auto-scroll */}
-      <div className="relative z-[60]">
-        <AnnouncementBanner />
-      </div>
+      <AnnouncementBanner />
       
-      <div className="relative z-[55]">
-        <Header />
-      </div>
+      <Header />
       
       <NavigationModal 
         isOpen={navigationOpen} 
@@ -491,7 +487,7 @@ export default function Home() {
           title={sidebarOpen ? 'Close' : 'Open Menu'}
         >
           <div className="flex items-center justify-center gap-2">
-            {/* Mobile icons */}
+            {/* Mobile icons - FIXED: Show Menu when closed, Close when open */}
             <div className="md:hidden flex items-center gap-1.5">
               {sidebarOpen ? (
                 <>
@@ -520,7 +516,7 @@ export default function Home() {
         {/* Mobile Overlay - DARKER for better focus */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/70 z-[40] md:hidden backdrop-blur-sm transition-opacity duration-300"
+            className="fixed inset-0 bg-black/70 z-[35] md:hidden backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setSidebarOpen(false)}
           />
         )}

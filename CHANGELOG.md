@@ -4,6 +4,30 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.2] - 2026-02-08
+
+### 🐛 CRITICAL MOBILE FIXES
+
+**Fixed Mobile Menu Button:**
+- ✅ Fixed z-index issue where overlay was covering sidebar
+- ✅ Mobile overlay now at z-35 (below sidebar at z-40)
+- ✅ Menu button now properly opens sidebar on mobile
+- ✅ Sidebar content is now accessible when opened
+
+**Fixed Announcement Banner Overlap:**
+- ✅ Changed banner from `fixed` to `relative` positioning
+- ✅ Banner now part of normal document flow
+- ✅ No more overlap with header
+- ✅ Proper spacing between banner and header
+
+**Mobile Experience:**
+- ✅ Sidebar opens smoothly from bottom
+- ✅ All menu sections accessible
+- ✅ No overlapping elements
+- ✅ Perfect mobile UI
+
+---
+
 ## [2.9.1] - 2026-02-08
 
 ### 🎨 BEAUTIFUL ORANGE ANNOUNCEMENT BANNER
