@@ -114,107 +114,85 @@ export default function AnnouncementBanner() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="absolute top-14 left-2 right-2 md:top-16 md:left-4 md:right-auto z-10 max-w-md"
+      className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg"
     >
-      <Card className="shadow-2xl border-blue-200 bg-white overflow-hidden">
-        <div className={`h-1 ${
-          currentAnnouncement.priority === "urgent"
-            ? "bg-gradient-to-r from-red-500 to-red-600"
-            : currentAnnouncement.priority === "high"
-            ? "bg-gradient-to-r from-orange-500 to-orange-600"
-            : "bg-gradient-to-r from-blue-500 to-blue-600"
-        }`} />
-        
-        <CardContent className="p-2 md:p-4">
-          <div className="flex items-start justify-between mb-2 md:mb-3">
-            <div 
-              className="flex items-center space-x-1.5 md:space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <div className="scale-75 md:scale-100">
-                {getPriorityIcon(currentAnnouncement.priority)}
-              </div>
-              <h3 className="font-bold text-blue-900 text-xs md:text-base">{t('announcements.title')}</h3>
-              {activeAnnouncements.length > 1 && (
-                <Badge variant="outline" className="text-[10px] md:text-xs px-1 md:px-2 py-0 md:py-0.5">
-                  {currentIndex + 1} / {activeAnnouncements.length}
-                </Badge>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsVisible(false)}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-red-100"
-            >
-              <X className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
-          </div>
-
+      <div className="max-w-7xl mx-auto px-2 md:px-4">
+        <div className="flex items-center justify-between py-2 md:py-2.5">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAnnouncement.id}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0"
+              onClick={() => setIsDialogOpen(true)}
             >
-              <div 
-                className="p-2 md:p-3 bg-blue-50 rounded-lg border border-blue-100 mb-2 md:mb-3 cursor-pointer hover:bg-blue-100 transition-colors"
-                onClick={() => setIsDialogOpen(true)}
-              >
-                <div className="flex items-start justify-between mb-1 md:mb-2">
-                  <h4 className="font-semibold text-[11px] md:text-sm text-blue-900 flex-1 leading-tight">
-                    {getLocalizedTitle(currentAnnouncement)}
-                  </h4>
-                  <Badge className={`text-[9px] md:text-xs ml-1 md:ml-2 px-1 md:px-2 py-0 md:py-0.5 ${getPriorityColor(currentAnnouncement.priority)}`}>
-                    {currentAnnouncement.priority}
-                  </Badge>
-                </div>
-                <p className="text-[10px] md:text-xs text-blue-700 mb-1 md:mb-2 leading-snug md:leading-relaxed line-clamp-2 md:line-clamp-none">
+              <div className="flex-shrink-0">
+                {getPriorityIcon(currentAnnouncement.priority)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-xs md:text-sm truncate">
+                  {getLocalizedTitle(currentAnnouncement)}
+                </p>
+                <p className="text-blue-100 text-[10px] md:text-xs truncate">
                   {getLocalizedContent(currentAnnouncement)}
                 </p>
-                <div className="flex items-center text-[9px] md:text-xs text-blue-600">
-                  <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
-                  {(() => {
-                    try {
-                      const timestamp = currentAnnouncement.createdAt;
-                      let date: Date;
-                      
-                      if (!timestamp) {
-                        return t('announcements.recently');
-                      }
-                      
-                      if (typeof timestamp === 'object' && timestamp._seconds) {
-                        date = new Date(timestamp._seconds * 1000);
-                      } 
-                      else {
-                        date = new Date(timestamp);
-                      }
-                      
-                      if (isNaN(date.getTime())) {
-                        return t('announcements.recently');
-                      }
-                      
-                      return formatDistanceToNow(date, { addSuffix: true });
-                    } catch {
-                      return 'Recently';
-                    }
-                  })()}
-                </div>
-                <div 
-                  className="flex items-center justify-center mt-1 md:mt-2 text-[9px] md:text-xs text-blue-600 cursor-pointer hover:text-blue-800 transition-colors"
-                  onClick={() => setIsDialogOpen(true)}
-                >
-                  <Info className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
-                  <span>{t('announcements.clickDetails')}</span>
-                </div>
               </div>
             </motion.div>
           </AnimatePresence>
           
-          {/* Announcement Detail Dialog */}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+            {activeAnnouncements.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsPaused(!isPaused)}
+                  className="h-7 w-7 md:h-8 md:w-8 p-0 text-white hover:bg-white/20"
+                  title={isPaused ? "Resume" : "Pause"}
+                >
+                  {isPaused ? (
+                    <Play className="h-3 w-3 md:h-4 md:w-4" />
+                  ) : (
+                    <Pause className="h-3 w-3 md:h-4 md:w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={prevAnnouncement}
+                  className="h-7 w-7 md:h-8 md:w-8 p-0 text-white hover:bg-white/20"
+                >
+                  <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
+                </Button>
+                <Badge variant="outline" className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 bg-white/20 text-white border-white/30">
+                  {currentIndex + 1}/{activeAnnouncements.length}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={nextAnnouncement}
+                  className="h-7 w-7 md:h-8 md:w-8 p-0 text-white hover:bg-white/20"
+                >
+                  <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsVisible(false)}
+              className="h-7 w-7 md:h-8 md:w-8 p-0 text-white hover:bg-red-500/50"
+            >
+              <X className="h-3 w-3 md:h-4 md:w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Announcement Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <div className="flex items-center justify-between mb-2">
@@ -288,55 +266,6 @@ export default function AnnouncementBanner() {
               </div>
             </DialogContent>
           </Dialog>
-
-          {activeAnnouncements.length > 1 && (
-            <div className="flex items-center justify-between mt-2 md:mt-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={prevAnnouncement}
-                className="h-6 md:h-8 px-1.5 md:px-2"
-              >
-                <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
-              </Button>
-              <div className="flex items-center space-x-1 md:space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsPaused(!isPaused)}
-                  className="h-6 md:h-8 px-1.5 md:px-2"
-                  title={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
-                >
-                  {isPaused ? (
-                    <Play className="h-3 w-3 md:h-4 md:w-4" />
-                  ) : (
-                    <Pause className="h-3 w-3 md:h-4 md:w-4" />
-                  )}
-                </Button>
-                <div className="flex space-x-0.5 md:space-x-1">
-                  {activeAnnouncements.map((_: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentIndex(idx)}
-                      className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${
-                        idx === currentIndex ? "bg-blue-600 w-3 md:w-4" : "bg-blue-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={nextAnnouncement}
-                className="h-6 md:h-8 px-1.5 md:px-2"
-              >
-                <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </motion.div>
   );
 }

@@ -242,6 +242,9 @@ export default function Home() {
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
       
+      {/* Top Announcement Banner - Full width, auto-scroll */}
+      <AnnouncementBanner />
+      
       <Header />
       
       <NavigationModal 
@@ -257,7 +260,7 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - PERFECT mobile experience, 55vh for maximum space */}
+        {/* Left Sidebar - AMAZING mobile experience with better menu */}
         <div className={`
           ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
           backdrop-blur-md
@@ -268,7 +271,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[55vh] md:h-full w-full md:w-80
+          z-[45] h-[50vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
@@ -451,7 +454,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - Perfect sizing and positioning */}
+        {/* Sidebar Toggle Button - Perfect for mobile */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
@@ -462,7 +465,7 @@ export default function Home() {
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[55vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
+              ? 'bottom-[50vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
               : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
             }
             
@@ -490,7 +493,7 @@ export default function Home() {
               )}
             </div>
             
-            {/* Desktop icons - Clean and minimal */}
+            {/* Desktop icons */}
             <div className="hidden md:block">
               {sidebarOpen ? (
                 <span className="text-2xl font-bold leading-none">◀</span>
@@ -526,9 +529,6 @@ export default function Home() {
                 <span className="hidden sm:inline font-medium">{t('admin.settings')}</span>
               </TabsTrigger>
             </TabsList>
-
-            {/* Enhanced Announcements Banner with animations */}
-            <AnnouncementBanner />
 
             <TabsContent value="map" className="h-full m-0 p-0">
               {/* Google Maps-Style Navigation Popup - Positioned below announcement */}
