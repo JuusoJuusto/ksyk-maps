@@ -6,7 +6,7 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "2.9.4";
+  const version = "2.9.5";
   const releaseDate = "February 8, 2026";
   const originalReleaseDate = "August 20, 2025";
   
@@ -41,13 +41,39 @@ export default function VersionInfo() {
           
           <div className="flex-1 overflow-y-auto pr-3 space-y-6 mt-6 pb-6" style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto' }}>
             <div className="space-y-6">
-            {/* Version 2.9.4 Updates */}
+            {/* Version 2.9.5 Updates */}
             <div className="bg-blue-50 p-6 rounded-xl border-2 border-blue-200">
               <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
                 <Sparkles className="h-6 w-6" />
-                Version 2.9.4 - Latest Updates
+                Version 2.9.5 - Latest Updates
               </h3>
               <div className="space-y-3 text-blue-800">
+                <div>
+                  <h4 className="font-bold mb-2">Fixed:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Announcement dialog close button now works properly</li>
+                    <li>• Dialog moved outside clickable area to prevent conflicts</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Database Cleanup:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Removed all rooms from database (75 rooms)</li>
+                    <li>• Removed all hallways from database (1 hallway)</li>
+                    <li>• Clean slate for fresh data</li>
+                    <li>• Added cleanup script for future use</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            {/* Version 2.9.4 Updates */}
+            <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
+              <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
+                <Zap className="h-6 w-6" />
+                Version 2.9.4 - Recent Updates
+              </h3>
+              <div className="space-y-3 text-green-800">
                 <div>
                   <h4 className="font-bold mb-2">Fixed:</h4>
                   <ul className="space-y-1 text-sm ml-4">
@@ -74,12 +100,12 @@ export default function VersionInfo() {
             </div>
             
             {/* Version 2.9.0-2.9.3 Updates */}
-            <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
-              <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
+            <div className="bg-orange-50 p-6 rounded-xl border-2 border-orange-200">
+              <h3 className="text-xl font-bold text-orange-900 mb-4 flex items-center gap-2">
                 <Zap className="h-6 w-6" />
-                Version 2.9.0-2.9.3 - Recent Updates
+                Version 2.9.0-2.9.3 - Earlier Updates
               </h3>
-              <div className="space-y-3 text-green-800">
+              <div className="space-y-3 text-orange-800">
                 <div>
                   <h4 className="font-bold mb-2">Rebranding:</h4>
                   <ul className="space-y-1 text-sm ml-4">
@@ -257,7 +283,7 @@ export default function VersionInfo() {
                 </p>
                 <div className="space-y-2">
                   <a 
-                    href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.9.4)"
+                    href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.9.5)"
                     className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold text-base transition-colors"
                   >
                     <span>📧</span>

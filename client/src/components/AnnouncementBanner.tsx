@@ -110,12 +110,13 @@ export default function AnnouncementBanner() {
   };
 
   return (
-    <div
-      className="relative z-50 bg-orange-500 hover:bg-orange-600 shadow-lg transition-colors duration-300 cursor-pointer"
-      onClick={() => setIsDialogOpen(true)}
-    >
-      <div className="max-w-7xl mx-auto px-3 md:px-6">
-        <div className="flex items-center justify-between py-2">
+    <>
+      <div
+        className="relative z-50 bg-orange-500 hover:bg-orange-600 shadow-lg transition-colors duration-300 cursor-pointer"
+        onClick={() => setIsDialogOpen(true)}
+      >
+        <div className="max-w-7xl mx-auto px-3 md:px-6">
+          <div className="flex items-center justify-between py-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAnnouncement.id}
@@ -277,6 +278,6 @@ export default function AnnouncementBanner() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

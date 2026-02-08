@@ -4,6 +4,29 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.5] - 2026-02-08
+
+### 🐛 FIXES & DATABASE CLEANUP
+
+**Fixed Announcement Dialog:**
+- ✅ Dialog now properly closes when clicking close button
+- ✅ Moved dialog outside clickable div to prevent event conflicts
+- ✅ Close button fully functional
+
+**Database Cleanup:**
+- 🧹 Removed all rooms from database (75 rooms deleted)
+- 🧹 Removed all hallways from database (1 hallway deleted)
+- 🧹 Removed all connectors from database
+- 🧹 Clean slate for fresh data
+- ✅ Added `npm run clean:rooms` script for future cleanups
+
+**Script Added:**
+- New cleanup script: `server/cleanRoomsAndHallways.ts`
+- Safely deletes all rooms, hallways, and connectors
+- Provides detailed summary of deletions
+
+---
+
 ## [2.9.4] - 2026-02-08
 
 ### 🎯 PERFECT SIDEBAR BUTTON & ENHANCED NAVIGATION
