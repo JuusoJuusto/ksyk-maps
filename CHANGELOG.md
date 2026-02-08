@@ -4,6 +4,25 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.3] - 2026-02-08
+
+### 🎯 SINGLE ANNOUNCEMENT BANNER - MOBILE & DESKTOP
+
+**Removed Duplicate Banner:**
+- ✅ Removed old announcement bar from Header component
+- ✅ Kept only the new orange auto-scrolling banner
+- ✅ Banner now shows on BOTH mobile and desktop
+- ✅ No more duplicate banners on PC
+- ✅ Mobile users see the new orange banner
+
+**Clean Code:**
+- ✅ Removed unused announcement code from Header
+- ✅ Removed unused imports (Dialog, useQuery, Megaphone, etc.)
+- ✅ Single source of truth for announcements
+- ✅ Cleaner, more maintainable code
+
+---
+
 ## [2.9.2] - 2026-02-08
 
 ### 🐛 CRITICAL MOBILE FIXES

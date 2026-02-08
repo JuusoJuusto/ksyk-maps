@@ -1,13 +1,11 @@
 ﻿import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import NavigationModal from "@/components/NavigationModal";
-import { Megaphone, ChevronLeft, ChevronRight, Sun, Moon, X } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 
 export default function Header() {
   const [location] = useLocation();
@@ -15,7 +13,7 @@ export default function Header() {
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
-  const [showAnnouncementDialog, setShowAnnouncementDialog] = useState(false);
+  const [showNavigationModal, setShowNavigationModal] = useState(false);
   
   useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
@@ -24,36 +22,10 @@ export default function Header() {
       setCurrentLang(saved);
     }
   }, []);
-  
-  const [showNavigationModal, setShowNavigationModal] = useState(false);
-  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
 
   const isActive = (path: string) => location === path;
   const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
   const isInAdminPanel = location === '/admin-ksyk-management-portal';
-
-  // Fetch announcements
-  const { data: announcements = [] } = useQuery({
-    queryKey: ["announcements"],
-    queryFn: async () => {
-      const response = await fetch("/api/announcements?limit=10");
-      if (!response.ok) return [];
-      return response.json();
-    },
-  });
-
-  const activeAnnouncements = announcements.filter((a: any) => a.isActive);
-  const currentAnnouncement = activeAnnouncements[currentAnnouncementIndex];
-
-  const nextAnnouncement = () => {
-    setCurrentAnnouncementIndex((prev) => (prev + 1) % activeAnnouncements.length);
-  };
-
-  const prevAnnouncement = () => {
-    setCurrentAnnouncementIndex(
-      (prev) => (prev - 1 + activeAnnouncements.length) % activeAnnouncements.length
-    );
-  };
 
   const handleLanguageChange = (lang: string) => {
     localStorage.setItem('ksyk_language', lang);
@@ -91,72 +63,6 @@ export default function Header() {
 
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
-      {/* Announcement Bar - TOP CENTER */}
-      {activeAnnouncements.length > 0 && currentAnnouncement && (
-        <div className={`${
-          currentAnnouncement.priority === 'urgent' 
-            ? 'bg-gradient-to-r from-red-500 to-red-600' 
-            : currentAnnouncement.priority === 'high'
-            ? 'bg-gradient-to-r from-orange-500 to-orange-600'
-            : 'bg-gradient-to-r from-blue-500 to-blue-600'
-        } text-white py-2 px-4`}>
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <button
-              onClick={prevAnnouncement}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
-              disabled={activeAnnouncements.length <= 1}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            
-            <div 
-              className="flex items-center space-x-3 flex-1 justify-center cursor-pointer hover:bg-white/10 rounded-lg px-4 py-1 transition-colors"
-              onClick={() => setShowAnnouncementDialog(true)}
-            >
-              <Megaphone className="h-5 w-5 animate-pulse" />
-              <div className="text-center">
-                <span className="font-semibold">{currentAnnouncement.title}</span>
-                <span className="mx-2">•</span>
-                <span className="text-sm opacity-90">{currentAnnouncement.content}</span>
-              </div>
-            </div>
-            
-            <button
-              onClick={nextAnnouncement}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
-              disabled={activeAnnouncements.length <= 1}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Announcement Dialog */}
-      <Dialog open={showAnnouncementDialog} onOpenChange={setShowAnnouncementDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Megaphone className="h-6 w-6 text-blue-600" />
-              {currentAnnouncement?.title}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Priority: {currentAnnouncement?.priority}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-              {currentAnnouncement?.content}
-            </p>
-          </div>
-          <div className="mt-6 flex justify-end">
-            <Button onClick={() => setShowAnnouncementDialog(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center space-x-2 sm:space-x-4">

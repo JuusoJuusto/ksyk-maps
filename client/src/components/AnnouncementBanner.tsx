@@ -111,7 +111,7 @@ export default function AnnouncementBanner() {
 
   return (
     <div
-      className="hidden md:block relative z-50 bg-orange-500 hover:bg-orange-600 shadow-lg transition-colors duration-300 cursor-pointer"
+      className="relative z-50 bg-orange-500 hover:bg-orange-600 shadow-lg transition-colors duration-300 cursor-pointer"
       onClick={() => setIsDialogOpen(true)}
     >
       <div className="max-w-7xl mx-auto px-3 md:px-6">
