@@ -260,7 +260,7 @@ export default function Home() {
       <TicketSystem />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
-        {/* Left Sidebar - AMAZING mobile experience with better menu */}
+        {/* Left Sidebar - PERFECT mobile UI with compact design */}
         <div className={`
           ${darkMode ? 'bg-gray-800/98 border-gray-700' : 'bg-white/98 border-gray-200'}
           backdrop-blur-md
@@ -271,30 +271,30 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] h-[50vh] md:h-full w-full md:w-80
+          z-[45] h-[45vh] md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-4 md:border-t-0 md:border-r border-t-blue-500
           safe-area-inset-bottom
         `}>
-          {/* Mobile Drag Handle - BIGGER and more visible */}
-          <div className="md:hidden flex justify-center pt-3 pb-2">
-            <div className={`w-16 h-1.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-400'} shadow-sm`}></div>
+          {/* Mobile Drag Handle - BIGGER */}
+          <div className="md:hidden flex justify-center pt-2 pb-1">
+            <div className={`w-20 h-1.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-400'} shadow-sm`}></div>
           </div>
           
-          {/* Navigation Button - Clean Header */}
-          <div className={`p-3 sm:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
+          {/* Navigation Button - Compact on mobile */}
+          <div className={`p-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900' : 'border-gray-200 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'}`}>
             <Button
               onClick={() => setNavigationOpen(true)}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-12 sm:h-14 text-sm sm:text-base md:text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+              className="w-full bg-white/20 hover:bg-white/30 text-white border-2 border-white/40 h-10 md:h-14 text-sm md:text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
-              <Navigation className="mr-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+              <Navigation className="mr-2 h-4 w-4 md:h-6 md:w-6" />
               {t('actions.directions')}
             </Button>
           </div>          
-          {/* Search Rooms - MOBILE OPTIMIZED */}
-          <div className={`p-3 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-blue-50'}`}>
-            <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-              <Search className={`inline h-4 w-4 md:h-5 md:w-5 mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+          {/* Search Rooms - COMPACT on mobile */}
+          <div className={`p-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-blue-50'}`}>
+            <label className={`block text-xs md:text-sm font-bold mb-1.5 md:mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              <Search className={`inline h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               {t('search.rooms')}
             </label>
             <Input
@@ -302,16 +302,16 @@ export default function Home() {
               placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full border-2 shadow-sm text-sm md:text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-blue-200 focus:border-blue-500'}`}
+              className={`w-full border-2 shadow-sm text-sm md:text-base h-9 md:h-10 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-blue-200 focus:border-blue-500'}`}
             />
             
-            {/* Search Results */}
+            {/* Search Results - Compact */}
             {searchResults.length > 0 && (
-              <div className={`mt-3 max-h-64 overflow-y-auto border-2 rounded-xl shadow-lg ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-blue-200 bg-white'}`}>
+              <div className={`mt-2 max-h-48 md:max-h-64 overflow-y-auto border-2 rounded-xl shadow-lg ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-blue-200 bg-white'}`}>
                 {searchResults.map((room: Room) => (
                   <div
                     key={room.id}
-                    className={`p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-gray-200'}`}
+                    className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-gray-200'}`}
                     onClick={() => {
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
@@ -319,42 +319,42 @@ export default function Home() {
                       setSearchResults([]);
                     }}
                   >
-                    <div className={`font-bold text-lg ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{room.roomNumber}</div>
-                    <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{room.name || room.nameEn}</div>
-                    <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Floor {room.floor} • {room.type.replace('_', ' ')}</div>
+                    <div className={`font-bold text-base md:text-lg ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{room.roomNumber}</div>
+                    <div className={`text-xs md:text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{room.name || room.nameEn}</div>
+                    <div className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Floor {room.floor} • {room.type.replace('_', ' ')}</div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Floor Navigation */}
-          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-purple-50'}`}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className={`text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{t('map.floors')} ({floorRooms.length} rooms)</h3>
+          {/* Floor Navigation - Compact */}
+          <div className={`p-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900' : 'border-gray-200 bg-gradient-to-br from-white to-purple-50'}`}>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <h3 className={`text-xs md:text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{t('map.floors')} ({floorRooms.length})</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFloor(1)}
-                className={`h-8 w-8 p-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-100'}`}
+                className={`h-7 w-7 md:h-8 md:w-8 p-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-100'}`}
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Button>
             </div>
             
-            {/* Floor Controls */}
-            <div className="flex items-center justify-center space-x-4">
+            {/* Floor Controls - Compact */}
+            <div className="flex items-center justify-center space-x-3 md:space-x-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedFloor(Math.max(selectedFloor - 1, 0))}
                 disabled={selectedFloor <= 0}
-                className={`w-12 h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
+                className={`w-10 h-10 md:w-12 md:h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
               >
-                <Minus className="h-5 w-5" />
+                <Minus className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               
-              <div className={`flex items-center justify-center w-20 h-20 font-black text-3xl rounded-2xl shadow-2xl transform hover:scale-110 transition-transform ${darkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-900 text-white' : 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white'}`}>
+              <div className={`flex items-center justify-center w-16 h-16 md:w-20 md:h-20 font-black text-2xl md:text-3xl rounded-2xl shadow-2xl transform hover:scale-110 transition-transform ${darkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-900 text-white' : 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white'}`}>
                 {selectedFloor}
               </div>
               
@@ -363,9 +363,9 @@ export default function Home() {
                 size="sm"
                 onClick={() => setSelectedFloor(Math.min(selectedFloor + 1, 3))}
                 disabled={selectedFloor >= 3}
-                className={`w-12 h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
+                className={`w-10 h-10 md:w-12 md:h-12 p-0 border-2 disabled:opacity-30 ${darkMode ? 'border-gray-600 hover:bg-gray-700 bg-gray-800' : 'border-blue-300 hover:bg-blue-50'}`}
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </div>
           </div>
@@ -454,7 +454,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button - Perfect for mobile */}
+        {/* Sidebar Toggle Button - PERFECT mobile positioning */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
@@ -465,8 +465,8 @@ export default function Home() {
             active:scale-95
             
             ${sidebarOpen 
-              ? 'bottom-[50vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-3 shadow-2xl' 
-              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3.5 shadow-xl'
+              ? 'bottom-[45vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-8 py-2.5 shadow-2xl' 
+              : 'bottom-6 left-1/2 -translate-x-1/2 rounded-full px-8 py-3 shadow-xl'
             }
             
             md:bottom-auto md:left-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
@@ -482,13 +482,13 @@ export default function Home() {
             <div className="md:hidden flex items-center gap-2">
               {sidebarOpen ? (
                 <>
-                  <X className="h-5 w-5" />
-                  <span className="text-sm font-bold">Close</span>
+                  <X className="h-4 w-4" />
+                  <span className="text-xs font-bold">Close</span>
                 </>
               ) : (
                 <>
-                  <MapPin className="h-5 w-5" />
-                  <span className="text-sm font-bold">Menu</span>
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-xs font-bold">Menu</span>
                 </>
               )}
             </div>

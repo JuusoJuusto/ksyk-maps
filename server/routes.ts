@@ -29,26 +29,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
+      // Normalize email to lowercase for case-insensitive comparison
+      const normalizedEmail = email?.toLowerCase().trim();
+      
       console.log('\n🔐 ========== LOGIN ATTEMPT ==========');
-      console.log('Email:', email);
+      console.log('Original Email:', email);
+      console.log('Normalized Email:', normalizedEmail);
       console.log('Password length:', password?.length);
       console.log('Timestamp:', new Date().toISOString());
       
-      if (!email || !password) {
+      if (!normalizedEmail || !password) {
         console.log('❌ Missing email or password');
         return res.status(400).json({ message: "Email and password required" });
       }
       
       // Check owner credentials from environment variables (secure, server-side only)
-      const OWNER_EMAIL = process.env.OWNER_EMAIL;
+      const OWNER_EMAIL = process.env.OWNER_EMAIL?.toLowerCase().trim();
       const OWNER_PASSWORD = process.env.OWNER_PASSWORD;
       
       console.log('🔑 Checking owner credentials...');
       console.log('   Owner email set:', !!OWNER_EMAIL);
       console.log('   Owner password set:', !!OWNER_PASSWORD);
-      console.log('   Email match:', email === OWNER_EMAIL);
+      console.log('   Email match:', normalizedEmail === OWNER_EMAIL);
       
-      if (OWNER_EMAIL && OWNER_PASSWORD && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+      if (OWNER_EMAIL && OWNER_PASSWORD && normalizedEmail === OWNER_EMAIL && password === OWNER_PASSWORD) {
         console.log('✅ OWNER LOGIN DETECTED');
         // Owner login
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
@@ -87,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check Firestore database for admin users
       console.log('📊 Checking Firestore database...');
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(normalizedEmail);
       
       console.log('🔍 Database lookup result:');
       console.log('   User found:', !!user);
