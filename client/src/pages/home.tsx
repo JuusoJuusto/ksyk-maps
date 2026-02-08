@@ -271,7 +271,7 @@ export default function Home() {
             : 'translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 md:opacity-100'
           }
           fixed bottom-0 left-0 right-0 md:relative md:bottom-auto
-          z-[45] max-h-[55vh] md:max-h-full md:h-full w-full md:w-80
+          z-[45] max-h-[60vh] md:max-h-full md:h-full w-full md:w-80
           rounded-t-3xl md:rounded-none
           border-t-2 md:border-t-0 md:border-r border-t-blue-500
         `}>
@@ -470,7 +470,7 @@ export default function Home() {
             active:scale-95 border border-white/20
             
             ${sidebarOpen 
-              ? 'bottom-[50vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-6 py-2' 
+              ? 'bottom-[60vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-6 py-2' 
               : 'bottom-8 left-1/2 -translate-x-1/2 rounded-full px-6 py-2.5'
             }
             

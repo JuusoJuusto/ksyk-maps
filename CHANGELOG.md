@@ -4,6 +4,32 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.7.2] - 2026-02-08
+
+### 🔐 OWNER LOGIN FIXED + MOBILE UI IMPROVED
+
+**Owner Login - BULLETPROOF:**
+- ✅ Password trimming added (removes extra spaces)
+- ✅ Enhanced logging shows exact password comparison
+- ✅ Owner user automatically updated with access on every login
+- ✅ Better error messages showing which credential failed
+- ✅ Email: juusojuusto112@gmail.com (case-insensitive)
+- ✅ Password: Juusto2012! (trimmed)
+
+**Mobile UI Improvements:**
+- 📱 Sidebar height increased: 55vh → 60vh (more content visible)
+- 📱 Toggle button repositioned to match new height
+- 📱 Better spacing and readability
+- 📱 Smoother animations
+
+**Technical:**
+- 🔧 Added `.trim()` to password for bulletproof matching
+- 🔧 Owner user gets `canLoginToKsykMaps: true` on every login
+- 🔧 Owner user gets `apps: ['ksykmaps', 'studiowl']` on every login
+- 🔧 Detailed logging for debugging
+
+---
+
 ## [2.7.1] - 2026-02-08
 
 ### 🐛 CRITICAL FIXES

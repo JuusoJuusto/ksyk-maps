@@ -29,38 +29,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      // Normalize email to lowercase for case-insensitive comparison
+      // Normalize email to lowercase and trim both email and password
       const normalizedEmail = email?.toLowerCase().trim();
+      const trimmedPassword = password?.trim();
       
       console.log('\n🔐 ========== LOGIN ATTEMPT ==========');
       console.log('Original Email:', email);
       console.log('Normalized Email:', normalizedEmail);
-      console.log('Password length:', password?.length);
+      console.log('Original Password:', password);
+      console.log('Trimmed Password:', trimmedPassword);
+      console.log('Password length:', trimmedPassword?.length);
       console.log('Timestamp:', new Date().toISOString());
       
-      if (!normalizedEmail || !password) {
+      if (!normalizedEmail || !trimmedPassword) {
         console.log('❌ Missing email or password');
         return res.status(400).json({ message: "Email and password required" });
       }
       
       // Check owner credentials from environment variables (secure, server-side only)
       const OWNER_EMAIL = process.env.OWNER_EMAIL?.toLowerCase().trim();
-      const OWNER_PASSWORD = process.env.OWNER_PASSWORD;
+      const OWNER_PASSWORD = process.env.OWNER_PASSWORD?.trim();
       
       console.log('🔑 Checking owner credentials...');
       console.log('   Owner email from env:', process.env.OWNER_EMAIL);
       console.log('   Owner email normalized:', OWNER_EMAIL);
-      console.log('   Owner password set:', !!OWNER_PASSWORD);
-      console.log('   Owner password value:', OWNER_PASSWORD);
+      console.log('   Owner password from env:', process.env.OWNER_PASSWORD);
+      console.log('   Owner password trimmed:', OWNER_PASSWORD);
       console.log('   Provided email:', normalizedEmail);
-      console.log('   Provided password:', password);
+      console.log('   Provided password:', trimmedPassword);
       console.log('   Email match:', normalizedEmail === OWNER_EMAIL);
-      console.log('   Password match:', password === OWNER_PASSWORD);
+      console.log('   Password match:', trimmedPassword === OWNER_PASSWORD);
       
-      if (OWNER_EMAIL && OWNER_PASSWORD && normalizedEmail === OWNER_EMAIL && password === OWNER_PASSWORD) {
+      if (OWNER_EMAIL && OWNER_PASSWORD && normalizedEmail === OWNER_EMAIL && trimmedPassword === OWNER_PASSWORD) {
         console.log('✅ OWNER LOGIN DETECTED - ALL CHECKS PASSED');
-        // Owner login - use the original OWNER_EMAIL from env (not normalized) for database
-        const originalOwnerEmail = process.env.OWNER_EMAIL;
+        
+        // Create or get owner user
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
         
         if (!ownerUser) {
@@ -79,6 +82,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('✅ Owner user created:', ownerUser);
         } else {
           console.log('✅ Owner user found in database:', ownerUser);
+          // Update owner user to ensure they have access
+          ownerUser = await storage.upsertUser({
+            id: ownerUser.id,
+            email: normalizedEmail,
+            firstName: 'Juuso',
+            lastName: 'Kaikula',
+            role: 'owner',
+            profileImageUrl: ownerUser.profileImageUrl,
+            canLoginToKsykMaps: true,
+            apps: ['ksykmaps', 'studiowl'],
+            isStaff: true
+          });
+          console.log('✅ Owner user updated with access');
         }
 
         req.login({
@@ -101,7 +117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       } else {
         console.log('❌ Owner credentials check failed');
-        console.log('   Reason: Email or password mismatch');
+        if (normalizedEmail === OWNER_EMAIL) {
+          console.log('   Email matches but password does not');
+          console.log('   Expected password:', OWNER_PASSWORD);
+          console.log('   Got password:', trimmedPassword);
+        } else {
+          console.log('   Email does not match');
+        }
       }
       
       // Check Firestore database for admin users
@@ -150,12 +172,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
       
-      if (user.password !== password) {
+      if (user.password !== trimmedPassword) {
         console.log('❌ Password mismatch!');
         console.log('   Expected:', user.password);
-        console.log('   Got:', password);
+        console.log('   Got:', trimmedPassword);
         console.log('   Type of expected:', typeof user.password);
-        console.log('   Type of got:', typeof password);
+        console.log('   Type of got:', typeof trimmedPassword);
         console.log('=====================================\n');
         return res.status(401).json({ message: "Invalid credentials" });
       }
