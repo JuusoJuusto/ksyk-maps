@@ -4,6 +4,42 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.7.0] - 2026-02-08
+
+### 🎨 STUNNING LOGIN UI REDESIGN
+
+**New Features:**
+- ✨ Beautiful gradient background with animated elements
+- ✨ Modern glassmorphism card design
+- ✨ Smooth animations with Framer Motion
+- ✨ Enhanced password change screen
+- ✨ Professional icon integration
+- ✨ Improved visual hierarchy
+
+**Login Page Improvements:**
+- 🎨 Gradient background: Blue → Indigo → Purple
+- 🎨 Animated floating orbs in background
+- 🎨 Larger, more prominent shield icon (24px → 48px)
+- 🎨 Better spacing and typography
+- 🎨 Enhanced input fields with icons
+- 🎨 Gradient button with hover effects
+- 🎨 Professional info card with secure access badge
+- 🎨 Version info in footer
+
+**Password Change Screen:**
+- 🔒 Animated lock icon
+- 🔒 Clear visual feedback
+- 🔒 Better password strength indicators
+- 🔒 Smooth transitions
+
+**Technical:**
+- 🔧 Added Framer Motion animations
+- 🔧 Improved accessibility
+- 🔧 Better mobile responsiveness
+- 🔧 Enhanced user experience
+
+---
+
 ## [2.6.2] - 2026-02-08
 
 ### 🔐 AUTHENTICATION & UI FIXES
