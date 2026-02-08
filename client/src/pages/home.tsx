@@ -409,7 +409,7 @@ export default function Home() {
           )}
 
           {/* How to use - Clean Guide */}
-          <div className="p-4 flex-1 overflow-y-auto">
+          <div className="p-4">
             <div className={`p-4 rounded-lg border ${darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'}`}>
               <h4 className={`text-base font-bold mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-blue-900'}`}>
                 <Zap className={`mr-2 h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />

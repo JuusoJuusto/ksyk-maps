@@ -4,6 +4,35 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.6.2] - 2026-02-08
+
+### 🔐 AUTHENTICATION & UI FIXES
+
+**Fixed:**
+- ✅ Fixed PC sidebar scrolling (removed unnecessary overflow on desktop)
+- ✅ StudiOWL users can now login to KSYK Maps
+- ✅ Owner account login working properly
+- ✅ Added KSYK Maps access check for users
+
+**Authentication:**
+- 🔐 Users with `canLoginToKsykMaps: true` can login
+- 🔐 Users with `apps` array containing 'ksykmaps' can login
+- 🔐 Owner credentials from .env work correctly
+- 🔐 Case-insensitive email login (JOHN@EMAIL.COM = john@email.com)
+
+**Schema Updates:**
+- 📊 Added `apps` field to users (array of app names)
+- 📊 Added `canLoginToKsykMaps` boolean field
+- 📊 Added `isStaff` boolean field
+- 📊 Added `title` field for job titles
+
+**Technical:**
+- 🔧 Shared users collection with StudiOWL
+- 🔧 Proper access control for KSYK Maps
+- 🔧 Fixed sidebar overflow on desktop
+
+---
+
 ## [2.6.1] - 2026-02-08
 
 ### 🐛 BUG FIXES
