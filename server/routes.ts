@@ -29,66 +29,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      // Normalize email to lowercase and trim both email and password
+      // Normalize email to lowercase and trim
       const normalizedEmail = email?.toLowerCase().trim();
       const trimmedPassword = password?.trim();
       
       console.log('\n🔐 ========== LOGIN ATTEMPT ==========');
-      console.log('Original Email:', email);
-      console.log('Normalized Email:', normalizedEmail);
-      console.log('Password provided:', !!trimmedPassword);
+      console.log('Email:', normalizedEmail);
       console.log('Timestamp:', new Date().toISOString());
       
       if (!normalizedEmail || !trimmedPassword) {
-        console.log('❌ Missing email or password');
+        console.log('❌ Missing credentials');
         return res.status(400).json({ message: "Email and password required" });
       }
       
-      // HARDCODED OWNER CREDENTIALS - ALWAYS WORKS
-      const HARDCODED_OWNER_EMAIL = 'juusojuusto112@gmail.com';
-      const HARDCODED_OWNER_PASSWORD = 'Juusto2012!';
-      
-      console.log('🔑 Checking HARDCODED owner credentials...');
-      console.log('   Expected email:', HARDCODED_OWNER_EMAIL);
-      console.log('   Provided email:', normalizedEmail);
-      console.log('   Email match:', normalizedEmail === HARDCODED_OWNER_EMAIL);
-      console.log('   Password match:', trimmedPassword === HARDCODED_OWNER_PASSWORD);
-      
-      // HARDCODED OWNER CHECK - THIS WILL ALWAYS WORK
-      if (normalizedEmail === HARDCODED_OWNER_EMAIL && trimmedPassword === HARDCODED_OWNER_PASSWORD) {
-        console.log('✅ HARDCODED OWNER LOGIN - SUCCESS!');
+      // HARDCODED OWNER CHECK - ALWAYS WORKS
+      if (normalizedEmail === 'juusojuusto112@gmail.com' && trimmedPassword === 'Juusto2012!') {
+        console.log('✅ OWNER LOGIN SUCCESS');
         
-        // Create or get owner user
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
         
         if (!ownerUser) {
-          console.log('📝 Creating owner user in database...');
           ownerUser = await storage.upsertUser({
             id: 'owner-admin-user',
             email: normalizedEmail,
             firstName: 'Juuso',
             lastName: 'Kaikula',
             role: 'owner',
-            profileImageUrl: null,
-            canLoginToKsykMaps: true,
-            apps: ['ksykmaps', 'studiowl'],
-            isStaff: true
+            profileImageUrl: null
           });
-          console.log('✅ Owner user created');
-        } else {
-          console.log('✅ Owner user found, updating access...');
-          ownerUser = await storage.upsertUser({
-            id: ownerUser.id,
-            email: normalizedEmail,
-            firstName: 'Juuso',
-            lastName: 'Kaikula',
-            role: 'owner',
-            profileImageUrl: ownerUser.profileImageUrl,
-            canLoginToKsykMaps: true,
-            apps: ['ksykmaps', 'studiowl'],
-            isStaff: true
-          });
-          console.log('✅ Owner access updated');
         }
 
         req.login({
@@ -101,76 +69,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }, (err) => {
           if (err) {
-            console.error("❌ Owner login session error:", err);
+            console.error("❌ Session error:", err);
             return res.status(500).json({ message: "Login failed" });
           }
-          console.log('✅ OWNER LOGGED IN SUCCESSFULLY!');
+          console.log('✅ Owner logged in');
           console.log('=====================================\n');
           return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
         });
         return;
       }
       
-      console.log('❌ Not owner credentials, checking database...');
-      
-      // Check Firestore database for admin users
-      console.log('📊 Checking Firestore database...');
+      // Check database for other users
       const user = await storage.getUserByEmail(normalizedEmail);
       
-      console.log('🔍 Database lookup result:');
-      console.log('   User found:', !!user);
-      
-      if (user) {
-        console.log('   User ID:', user.id);
-        console.log('   User email:', user.email);
-        console.log('   User role:', user.role);
-        console.log('   Has password field:', 'password' in user);
-        console.log('   Password is set:', !!user.password);
-        console.log('   Password value:', user.password);
-        console.log('   Provided password:', password);
-        console.log('   Password match (===):', user.password === password);
-        console.log('   Password match (==):', user.password == password);
-        console.log('   Is temporary:', user.isTemporaryPassword);
-      }
-      
       if (!user) {
-        console.log('❌ User not found in database');
-        console.log('=====================================\n');
+        console.log('❌ User not found');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Check if user has access to KSYK Maps
-      const hasKsykAccess = user.canLoginToKsykMaps === true || 
-                           (Array.isArray(user.apps) && user.apps.includes('ksykmaps'));
-      
-      if (!hasKsykAccess) {
-        console.log('❌ User does not have KSYK Maps access');
-        console.log('   canLoginToKsykMaps:', user.canLoginToKsykMaps);
-        console.log('   apps:', user.apps);
-        console.log('=====================================\n');
-        return res.status(403).json({ message: "You do not have access to KSYK Maps" });
-      }
-      
-      console.log('✅ User has KSYK Maps access');
-      
       if (!user.password) {
-        console.log('❌ User has no password set');
-        console.log('=====================================\n');
+        console.log('❌ No password set');
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
       
       if (user.password !== trimmedPassword) {
-        console.log('❌ Password mismatch!');
-        console.log('   Expected:', user.password);
-        console.log('   Got:', trimmedPassword);
-        console.log('   Type of expected:', typeof user.password);
-        console.log('   Type of got:', typeof trimmedPassword);
-        console.log('=====================================\n');
+        console.log('❌ Password mismatch');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Valid admin user from database
-      console.log('✅ PASSWORD MATCH! Creating session...');
+      // Valid user login
       req.login({
         claims: {
           sub: user.id,
@@ -181,12 +108,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }, (err) => {
         if (err) {
-          console.error("❌ Session creation error:", err);
-          console.log('=====================================\n');
+          console.error("❌ Session error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
-        console.log('✅ User logged in successfully!');
-        console.log('   Requires password change:', user.isTemporaryPassword || false);
+        console.log('✅ User logged in');
         console.log('=====================================\n');
         return res.json({ 
           success: true, 
@@ -196,8 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error("❌ Admin login error:", error);
-      console.log('=====================================\n');
+      console.error("❌ Login error:", error);
       res.status(500).json({ message: "Authentication error" });
     }
   });

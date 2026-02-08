@@ -4,6 +4,38 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.8.0] - 2026-02-08
+
+### 🔄 REVERTED TO SIMPLE LOGIN SYSTEM
+
+**Major Changes:**
+- ✅ Removed StudiOWL integration completely
+- ✅ Back to simple, original login system
+- ✅ Owner login hardcoded and working
+- ✅ Clean, simple authentication
+
+**What Was Removed:**
+- ❌ StudiOWL user integration
+- ❌ `canLoginToKsykMaps` field
+- ❌ `apps` array field
+- ❌ `isStaff` field
+- ❌ `title` field
+- ❌ Complex access checks
+
+**What Works Now:**
+- ✅ Owner login: juusojuusto112@gmail.com / Juusto2012!
+- ✅ Regular admin users with password in database
+- ✅ Simple, clean authentication flow
+- ✅ No environment variable dependencies
+
+**Login System:**
+- 🔐 Hardcoded owner credentials (always works)
+- 🔐 Database users with passwords
+- 🔐 Case-insensitive email
+- 🔐 Clean error messages
+
+---
+
 ## [2.7.3] - 2026-02-08
 
 ### 🔐 HARDCODED OWNER LOGIN - GUARANTEED TO WORK

@@ -36,11 +36,6 @@ export const users = pgTable("users", {
   role: varchar("role").default("user"),
   password: varchar("password"),
   isTemporaryPassword: boolean("is_temporary_password").default(false),
-  // StudiOWL integration fields
-  apps: text("apps").array(), // Array of app names: ['studiowl', 'ksykmaps']
-  canLoginToKsykMaps: boolean("can_login_to_ksyk_maps").default(false),
-  isStaff: boolean("is_staff").default(false),
-  title: varchar("title"), // Job title
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
