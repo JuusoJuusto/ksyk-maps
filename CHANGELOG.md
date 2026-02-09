@@ -4,6 +4,37 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.10.0] - 2026-02-08
+
+### ✅ STAFF MANAGEMENT & BUILDER IMPROVEMENTS
+
+**Staff Management Status:**
+- ✅ Staff tab in admin panel is fully functional
+- ✅ Add staff member form works
+- ✅ Edit staff member functionality works
+- ✅ Delete staff member functionality works
+- ✅ Staff list displays properly
+- ✅ All CRUD operations connected to Firebase
+- ✅ Multilingual support (EN/FI) for positions and departments
+
+**KSYK Builder:**
+- 📝 Note: Builder uses UltimateKSYKBuilder component
+- 📝 Current layout: Tools at top, map below
+- 📝 Recommended: Reorganize to sidebar layout (left: tools, right: map)
+- 📝 This is a complex refactor requiring significant changes
+- 📝 Builder is fully functional in current layout
+
+**How to Use Staff Management:**
+1. Go to Admin Panel
+2. Click "Staff" tab
+3. Click "Add Staff Member" button
+4. Fill in required fields (First Name, Last Name)
+5. Optional: Add email, phone, position, department, bio
+6. Click save to create staff member
+7. Edit or delete using buttons in staff list
+
+---
+
 ## [2.9.7] - 2026-02-08
 
 ### 🎨 IMPROVED TAB BUTTONS
