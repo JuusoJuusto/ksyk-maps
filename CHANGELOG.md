@@ -4,6 +4,41 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.11.0] - 2026-02-09
+
+### 🎨 KSYK BUILDER SIDEBAR LAYOUT
+
+**Major Builder Redesign:**
+- ✅ **Sidebar layout**: Tools & Properties on the left (320px fixed width)
+- ✅ **Map on the right**: Takes remaining space, no more scrolling!
+- ✅ **Full height**: Uses `h-screen` and flexbox for perfect layout
+- ✅ **Fixed header**: Compact header at top with stats
+- ✅ **Scrollable sidebar**: Tools panel scrolls independently
+- ✅ **No more grid**: Replaced grid layout with flex for better control
+- ✅ **Removed gradients**: Cleaner solid colors throughout
+
+**Layout Structure:**
+```
+┌─────────────────────────────────────┐
+│         Header (Stats)              │
+├──────────┬──────────────────────────┤
+│  Tools   │                          │
+│    &     │        Map Canvas        │
+│Properties│      (Full Height)       │
+│(Sidebar) │                          │
+│          │                          │
+└──────────┴──────────────────────────┘
+```
+
+**Benefits:**
+- No more scrolling to find the map
+- Tools always visible on the left
+- Map gets maximum space
+- Professional IDE-like layout
+- Better workflow
+
+---
+
 ## [2.10.1] - 2026-02-09
 
 ### 🎨 IMPROVED BRANDING & UI POLISH

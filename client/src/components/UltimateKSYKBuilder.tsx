@@ -574,15 +574,16 @@ export default function UltimateKSYKBuilder() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-4">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Builder..." />}
       
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Card className="shadow-2xl border-2 border-blue-500 mb-4">
-          <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white py-4 md:py-6">
-            <CardTitle className="text-xl md:text-3xl flex flex-col md:flex-row items-center justify-between gap-2">
+        <Card className="shadow-lg border-b-2 border-blue-500 rounded-none">
+          <CardHeader className="bg-blue-600 text-white py-3">
+            <CardTitle className="text-xl md:text-2xl flex flex-col md:flex-row items-center justify-between gap-2">
               <span className="flex items-center gap-2">
-                <Zap className="h-6 w-6 md:h-8 md:w-8" />
+                <Zap className="h-6 w-6" />
                 <span>KSYK Campus Builder Pro</span>
               </span>
               <div className="flex flex-wrap gap-2 justify-center">
@@ -595,16 +596,16 @@ export default function UltimateKSYKBuilder() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="xl:col-span-1">
-          <Card className="shadow-xl border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Edit3 className="h-5 w-5" />
-                Tools & Properties
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
+      {/* Main Content: Sidebar + Map */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - Tools & Properties */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }} 
+          animate={{ opacity: 1, x: 0 }} 
+          transition={{ duration: 0.5, delay: 0.1 }} 
+          className="w-80 flex-shrink-0 overflow-y-auto bg-white border-r-2 border-gray-200 shadow-lg"
+        >
+          <div className="p-4 space-y-4">
               <div>
                 <Label className="text-sm font-bold mb-2 block">Select Tool</Label>
                 <div className="grid grid-cols-1 gap-2">
@@ -833,33 +834,27 @@ export default function UltimateKSYKBuilder() {
                   </motion.div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="xl:col-span-3">
-          <Card className="shadow-2xl border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
+        {/* Right Side - Map Canvas */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          transition={{ duration: 0.5, delay: 0.2 }} 
+          className="flex-1 flex flex-col overflow-hidden bg-white"
+        >
+          <div className="bg-gray-800 text-white py-2 px-4 flex items-center justify-between border-b-2 border-gray-700">
+            <div className="flex items-center gap-2">
                   <Layers className="h-5 w-5" />
                   Live Campus Map
-                </CardTitle>
-                <Badge className={`${isDrawing ? "bg-green-500 animate-pulse" : "bg-gray-500"} text-white px-3 py-1`}>
-                  {isDrawing ? (shapeMode === "rectangle" ? "Drawing Rectangle" : `Drawing: ${currentPoints.length} pts`) : "View Mode"}
-                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div 
-                className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden" 
-                style={{ height: "calc(100vh - 250px)", minHeight: "500px" }}
-                onWheel={(e) => {
-                  // Prevent page zoom when over the map
-                  if (e.ctrlKey) {
-                    e.preventDefault();
-                  }
-                }}
+              <Badge className={`${isDrawing ? "bg-green-500 animate-pulse" : "bg-gray-500"} text-white px-3 py-1`}>
+                {isDrawing ? (shapeMode === "rectangle" ? "Drawing Rectangle" : `Drawing: ${currentPoints.length} pts`) : "View Mode"}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex-1 relative bg-gray-50 overflow-hidden">
               >
                 {/* Enhanced Zoom Controls with better styling */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
@@ -1670,9 +1665,9 @@ export default function UltimateKSYKBuilder() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
