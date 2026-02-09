@@ -4,6 +4,33 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.6] - 2026-02-08
+
+### 🔐 STUDIOWL INTEGRATION & NAVIGATION
+
+**StudiOWL Account Login:**
+- ✅ Added `canLoginToKsykMaps` field to user schema
+- ✅ Login now checks if user has permission to access KSYK Maps
+- ✅ Users with `canLoginToKsykMaps: false` cannot login
+- ✅ Clear error message for unauthorized users
+- ✅ StudiOWL accounts can now login if they have permission
+
+**Navigation System:**
+- ✅ Navigation system fully functional
+- ✅ Get Directions button works properly
+- ✅ Path visualization with animated blue lines
+- ✅ Start (green) and end (red) markers with pulsing animation
+- ✅ Numbered waypoints along the route
+- ✅ Step-by-step directions with icons
+- ✅ A* pathfinding algorithm for optimal routes
+- ⚠️ Note: Requires rooms in database to function
+
+**Schema Updates:**
+- Added `canLoginToKsykMaps` boolean field (default: true)
+- Field allows control over which StudiOWL users can access KSYK Maps
+
+---
+
 ## [2.9.5] - 2026-02-08
 
 ### 🐛 FIXES & DATABASE CLEANUP

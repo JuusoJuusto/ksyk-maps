@@ -87,6 +87,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Check if user has permission to login to KSYK Maps
+      if (user.canLoginToKsykMaps === false) {
+        console.log('❌ User does not have permission to login to KSYK Maps');
+        return res.status(403).json({ message: "You do not have permission to access KSYK Maps. Please contact support." });
+      }
+      
       if (!user.password) {
         console.log('❌ No password set');
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });

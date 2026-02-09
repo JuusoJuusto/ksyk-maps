@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   role: varchar("role").default("user"),
   password: varchar("password"),
   isTemporaryPassword: boolean("is_temporary_password").default(false),
+  canLoginToKsykMaps: boolean("can_login_to_ksyk_maps").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
