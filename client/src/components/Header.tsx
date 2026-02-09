@@ -69,17 +69,18 @@ export default function Header() {
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
               <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="KSYK Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-lg shadow-sm group-hover:shadow-md transition-shadow" />
               <div>
-                <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition-all`} 
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-600 cursor-pointer hover:text-blue-700 transition-colors tracking-tight" 
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     window.location.href = '/secret-easter-egg';
                   }}
                   title="Click for a surprise! 🎉"
+                  style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif" }}
                 >
                   KSYK Maps
                 </h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">by StudiOWL</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by StudiOWL</p>
               </div>
             </Link>
           </div>

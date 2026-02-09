@@ -4,6 +4,38 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.10.1] - 2026-02-09
+
+### 🎨 IMPROVED BRANDING & UI POLISH
+
+**Better KSYK Maps Logo:**
+- ✅ Solid blue color (no gradient) - `text-blue-600`
+- ✅ Better font: Inter/SF Pro Display with font-black weight
+- ✅ Tighter letter spacing with `tracking-tight`
+- ✅ Cleaner, more professional appearance
+- ✅ Hover effect: `hover:text-blue-700`
+
+**Centered Layout:**
+- ✅ App now centers when sidebar is collapsed
+- ✅ Added `justify-center` to main flex container
+- ✅ Better visual balance
+
+**Removed Gradient Colors:**
+- ✅ Get Directions button: solid blue (`bg-blue-600`)
+- ✅ Navigation modal header: solid blue
+- ✅ Route preview: solid blue background
+- ✅ Settings background: solid slate
+- ✅ StudiOWL button: solid blue
+- ✅ Cleaner, more consistent design
+
+**Updated Settings/About:**
+- ✅ Version updated to 2.10.1
+- ✅ Date updated to February 9, 2026
+- ✅ StudiOWL URL updated to studiowl.vercel.app
+- ✅ Removed gradient from Learn More button
+
+---
+
 ## [2.10.0] - 2026-02-08
 
 ### ✅ STAFF MANAGEMENT & BUILDER IMPROVEMENTS

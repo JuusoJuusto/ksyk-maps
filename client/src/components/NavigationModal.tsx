@@ -300,7 +300,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border-0">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
+        <CardHeader className="bg-blue-600 text-white">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl flex items-center">
               <Navigation className="mr-3 h-7 w-7" />
@@ -462,7 +462,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
               size="lg"
               onClick={handleNavigation}
               disabled={!selectedFrom || !selectedTo}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-12 py-4 text-lg shadow-xl disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 px-12 py-4 text-lg shadow-xl disabled:opacity-50"
             >
               <Route className="mr-3 h-6 w-6" />
               Get Directions
@@ -472,7 +472,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
 
           {/* Route Preview */}
           {selectedFrom && selectedTo && (
-            <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+            <div className="mt-6 p-6 bg-blue-50 rounded-xl border border-blue-200">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <Zap className="mr-2 h-5 w-5 text-blue-600" />
                 Route Preview

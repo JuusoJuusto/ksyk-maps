@@ -263,7 +263,7 @@ export default function Home() {
         <TicketSystem />
       </div>
       
-      <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
+      <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden justify-center">
         {/* Left Sidebar - PERFECT scrollable mobile UI */}
         <div className={`
           ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}
@@ -1334,7 +1334,7 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-blue-50'}`}>
+            <TabsContent value="settings" className={`h-full m-0 p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
               <div className="max-w-4xl mx-auto">
                 <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('admin.settings')}</h2>
                 
@@ -1495,15 +1495,15 @@ export default function Home() {
                     <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <div className="space-y-2">
                         <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                        <p>Version 2.1.0</p>
-                        <p>Latest Update: January 25, 2026</p>
+                        <p>Version 2.10.0</p>
+                        <p>Latest Update: February 9, 2026</p>
                         <p>Originally Released: August 20, 2025</p>
                         <p>© 2026 StudiOWL</p>
                       </div>
                       
                       <Button
-                        onClick={() => window.open('https://owlapps.vercel.app', '_blank')}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                        onClick={() => window.open('https://studiowl.vercel.app', '_blank')}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
                       >
                         Learn More About StudiOWL
                       </Button>
