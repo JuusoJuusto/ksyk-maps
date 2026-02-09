@@ -524,18 +524,27 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className={`absolute top-2 left-2 md:top-4 md:left-4 z-10 shadow-xl border-2 rounded-xl ${darkMode ? 'bg-gray-800/98 border-gray-600' : 'bg-white/98 border-gray-300'} flex flex-row gap-0.5 md:gap-1 p-1 md:p-1.5 backdrop-blur-md`}>
-              <TabsTrigger value="map" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
-                <MapPin className="h-4 md:h-4 w-4 md:w-4" />
-                <span className="hidden sm:inline font-medium">{t('nav.map')}</span>
+            <TabsList className={`absolute top-4 left-4 z-20 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+              <TabsTrigger 
+                value="map" 
+                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
+              >
+                <MapPin className="h-5 w-5" />
+                <span className="hidden sm:inline">{t('nav.map')}</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
-                <Calendar className="h-4 md:h-4 w-4 md:w-4" />
-                <span className="hidden sm:inline font-medium">{t('nav.schedule')}</span>
+              <TabsTrigger 
+                value="schedule" 
+                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
+              >
+                <Calendar className="h-5 w-5" />
+                <span className="hidden sm:inline">{t('nav.schedule')}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center justify-center space-x-1 md:space-x-2 text-xs md:text-sm px-2.5 md:px-4 py-2 md:py-2.5 min-w-[2.5rem] md:min-w-0 rounded-lg transition-all">
-                <Settings className="h-4 md:h-4 w-4 md:w-4" />
-                <span className="hidden sm:inline font-medium">{t('admin.settings')}</span>
+              <TabsTrigger 
+                value="settings" 
+                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
+              >
+                <Settings className="h-5 w-5" />
+                <span className="hidden sm:inline">{t('admin.settings')}</span>
               </TabsTrigger>
             </TabsList>
 

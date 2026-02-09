@@ -4,6 +4,27 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.9.7] - 2026-02-08
+
+### 🎨 IMPROVED TAB BUTTONS
+
+**Better Tab Design:**
+- ✅ Larger, more prominent buttons (px-4 py-3)
+- ✅ Bigger icons (h-5 w-5)
+- ✅ Better spacing with gap-2
+- ✅ Rounded corners (rounded-2xl for container, rounded-xl for buttons)
+- ✅ Active state with blue background (bg-blue-600)
+- ✅ Hover effects for better interactivity
+- ✅ Improved backdrop blur (backdrop-blur-lg)
+- ✅ Better shadow (shadow-2xl)
+- ✅ Semibold font weight for better readability
+- ✅ Cleaner, more modern appearance
+
+**Fixed:**
+- JSX syntax error in AnnouncementBanner (missing closing div tag)
+
+---
+
 ## [2.9.6] - 2026-02-08
 
 ### 🔐 STUDIOWL INTEGRATION & NAVIGATION
