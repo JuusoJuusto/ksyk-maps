@@ -852,7 +852,6 @@ export default function UltimateKSYKBuilder() {
               <Badge className={`${isDrawing ? "bg-green-500 animate-pulse" : "bg-gray-500"} text-white px-3 py-1`}>
                 {isDrawing ? (shapeMode === "rectangle" ? "Drawing Rectangle" : `Drawing: ${currentPoints.length} pts`) : "View Mode"}
               </Badge>
-            </div>
           </div>
           <div className="flex-1 relative bg-gray-50 overflow-hidden">
                 {/* Enhanced Zoom Controls with better styling */}
@@ -1441,7 +1440,6 @@ export default function UltimateKSYKBuilder() {
                   <line x1="2500" y1="0" x2="2500" y2="3000" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.3" />
                   <line x1="0" y1="1500" x2="5000" y2="1500" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.3" />
                 </svg>
-              </div>
           </div>
         </motion.div>
       </div>
@@ -1663,9 +1661,9 @@ export default function UltimateKSYKBuilder() {
                 })}
               </div>
             )}
-          </div>
-        </motion.div>
-      </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
