@@ -855,7 +855,6 @@ export default function UltimateKSYKBuilder() {
             </div>
           </div>
           <div className="flex-1 relative bg-gray-50 overflow-hidden">
-              >
                 {/* Enhanced Zoom Controls with better styling */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
                   <motion.button 
@@ -1443,8 +1442,7 @@ export default function UltimateKSYKBuilder() {
                   <line x1="0" y1="1500" x2="5000" y2="1500" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.3" />
                 </svg>
               </div>
-            </CardContent>
-          </Card>
+          </div>
         </motion.div>
       </div>
 
