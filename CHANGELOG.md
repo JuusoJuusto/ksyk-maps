@@ -4,6 +4,44 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.12.0] - 2026-02-09
+
+### 🚀 MAJOR IMPROVEMENTS - BUILDER, NAVIGATION & MOBILE
+
+**KSYK Builder Enhancements:**
+- ✅ **Simplified Builder Page**: Now uses UltimateKSYKBuilder as the main tool
+- ✅ **Professional Header**: Blue gradient header with clear description
+- ✅ **Single Tab Interface**: Focused on the Ultimate Builder for best experience
+- ✅ **Full-Screen Canvas**: Builder takes full viewport for maximum workspace
+- ✅ **Working Map Display**: SVG canvas properly renders buildings, rooms, and hallways
+- ✅ **Fixed JSX Errors**: Resolved all closing tag mismatches
+
+**Navigation System Improvements:**
+- ✅ **Enhanced Pathfinding**: A* algorithm with distance-based routing
+- ✅ **Visual Route Display**: Shows path through hallways and stairways
+- ✅ **Better Error Messages**: Clear feedback when routes can't be found
+- ✅ **Route Preview**: Shows estimated time and distance
+- ✅ **Step-by-Step Directions**: Detailed navigation instructions with icons
+- ✅ **Active Route Indicator**: Compact bar showing current navigation
+- ✅ **Google Maps-Style Popup**: Beautiful route display with A/B markers
+
+**Mobile Experience:**
+- ✅ **Better Sidebar Height**: Reduced to 55vh for better map visibility
+- ✅ **Improved Touch Controls**: Pinch-to-zoom and drag-to-pan work smoothly
+- ✅ **Responsive Navigation**: Mobile-optimized navigation modal
+- ✅ **Better Button Sizing**: Larger touch targets on mobile
+- ✅ **Overlay Improvements**: Darker overlay for better focus
+- ✅ **Mobile Hint**: Shows pinch-to-zoom instructions on first visit
+
+**Overall App Polish:**
+- ✅ **Cleaner UI**: Removed unnecessary gradients, solid colors throughout
+- ✅ **Better Performance**: Optimized rendering and caching
+- ✅ **Improved Accessibility**: Better contrast and touch targets
+- ✅ **Consistent Design**: Unified color scheme and spacing
+- ✅ **Fixed Z-Index Issues**: Proper layering of UI elements
+
+---
+
 ## [2.11.0] - 2026-02-09
 
 ### 🎨 KSYK BUILDER SIDEBAR LAYOUT
