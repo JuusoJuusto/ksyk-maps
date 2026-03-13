@@ -5,7 +5,6 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
-import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import VersionInfo from "@/components/VersionInfo";
 import TicketSystem from "@/components/TicketSystem";
@@ -24,8 +23,7 @@ import {
   X,
   Navigation,
   ArrowRight,
-  Zap,
-  Hammer
+  Zap
 } from "lucide-react";
 
 interface Building {
@@ -533,13 +531,6 @@ export default function Home() {
               >
                 <MapPin className="h-5 w-5" />
                 <span className="hidden sm:inline">{t('nav.map')}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="builder" 
-                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
-              >
-                <Hammer className="h-5 w-5" />
-                <span className="hidden sm:inline">Builder</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="schedule" 
@@ -1329,12 +1320,6 @@ export default function Home() {
                   )}
                 </svg>
                 </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="builder" className="h-full m-0 p-0">
-              <div className="h-full">
-                <UltimateKSYKBuilder />
               </div>
             </TabsContent>
 

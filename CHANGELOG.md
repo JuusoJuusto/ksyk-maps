@@ -4,6 +4,34 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.14.0] - 2026-02-09
+
+### 🔧 BUILDER IN ADMIN PANEL (CORRECT LOCATION!)
+
+**Fixed Builder Location:**
+- ✅ **Removed Builder from Home Page**: Builder tab removed from front page
+- ✅ **Builder in Admin Panel**: Correctly placed in admin dashboard
+- ✅ **Admin Access Only**: Only admins can access the builder
+- ✅ **Full UltimateKSYKBuilder**: Complete tool with map canvas
+- ✅ **Sidebar + Map Layout**: Tools on left, map on right
+- ✅ **Working Map Display**: SVG canvas shows buildings, rooms, hallways
+
+**How to Access Builder:**
+1. Login as admin (juusojuusto112@gmail.com)
+2. Go to Admin Panel
+3. Click "Builder" tab
+4. Start creating buildings, rooms, hallways!
+
+**Builder Features:**
+- Draw custom building shapes
+- Add rooms with room numbers
+- Create hallways for navigation
+- Add stairways/elevators
+- Full map canvas for visual editing
+- Sidebar with all tools and properties
+
+---
+
 ## [2.13.0] - 2026-02-09
 
 ### 🔨 BUILDER INTEGRATED INTO MAIN APP!
