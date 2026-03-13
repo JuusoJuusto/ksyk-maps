@@ -179,7 +179,7 @@ export default function Header() {
                   {darkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </button>
                 
-                {/* Admin Panel - Only HSL and Logout */}
+                {/* Admin Panel - HSL and Logout */}
                 <Link href="/hsl">
                   <Button 
                     variant="outline"
