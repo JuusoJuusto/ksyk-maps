@@ -4,6 +4,34 @@ All notable changes to KSYK Maps will be documented in this file.
 
 ---
 
+## [2.13.0] - 2026-02-09
+
+### 🔨 BUILDER INTEGRATED INTO MAIN APP!
+
+**Builder Now in Home Page:**
+- ✅ **New "Builder" Tab**: Added between Map and Schedule tabs
+- ✅ **Full UltimateKSYKBuilder**: Complete building/room/hallway creation tool
+- ✅ **Instant Access**: No need to navigate to separate builder page
+- ✅ **Same Powerful Features**: Draw custom shapes, add buildings, rooms, hallways
+- ✅ **Seamless Integration**: Switch between Map and Builder with one click
+- ✅ **Full-Screen Canvas**: Builder takes entire viewport for maximum workspace
+
+**How to Use:**
+1. Open KSYK Maps home page
+2. Click "Builder" tab (hammer icon 🔨)
+3. Select tool (Building, Room, Hallway, etc.)
+4. Draw on canvas
+5. Switch back to "Map" tab to see your creations!
+
+**Benefits:**
+- No more switching between pages
+- Build and view in same interface
+- Faster workflow
+- Better user experience
+- All tools in one place
+
+---
+
 ## [2.12.0] - 2026-02-09
 
 ### 🚀 MAJOR IMPROVEMENTS - BUILDER, NAVIGATION & MOBILE
