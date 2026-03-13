@@ -141,6 +141,18 @@ export default function Header() {
                   </button>
                 </div>
                 
+                {/* Lunch Button */}
+                <Link href="/lunch">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="bg-orange-500 border-orange-600 text-white hover:bg-orange-600 font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    data-testid="button-lunch"
+                  >
+                    🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
+                  </Button>
+                </Link>
+                
                 {/* HSL Button */}
                 <Link href="/hsl">
                   <Button 
@@ -179,7 +191,18 @@ export default function Header() {
                   {darkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </button>
                 
-                {/* Admin Panel - HSL and Logout */}
+                {/* Admin Panel - Lunch and HSL */}
+                <Link href="/lunch">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="bg-orange-500 border-orange-600 text-white hover:bg-orange-600 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    data-testid="button-lunch"
+                  >
+                    🍽️
+                  </Button>
+                </Link>
+                
                 <Link href="/hsl">
                   <Button 
                     variant="outline"

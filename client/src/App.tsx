@@ -13,6 +13,7 @@ import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import Builder from "@/pages/builder";
 import HSL from "@/pages/hsl";
+import Lunch from "@/pages/lunch";
 import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
 import DebugBuildings from "@/pages/debug-buildings";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/builder" component={Builder} />
       <Route path="/hsl" component={HSL} />
+      <Route path="/lunch" component={Lunch} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={StudiOWL} />
