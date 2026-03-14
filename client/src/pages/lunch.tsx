@@ -80,7 +80,7 @@ export default function Lunch() {
             <UtensilsCrossed className="h-12 w-12 text-orange-600" />
             <h1 className="text-4xl md:text-5xl font-black text-gray-900">{i18n.language === "fi" ? "Ruokalista" : "Lunch Menu"}</h1>
           </div>
-          <p className="text-lg text-gray-600 mb-4">{i18n.language === "fi" ? "Kulis - Kulosaaren yhteiskoulu" : "Kulis - Kulosaari Joint School"}</p>
+          <p className="text-lg text-gray-600 mb-4">Amica - Kulis</p>
           <Button onClick={fetchMenu} variant="outline" size="sm" className="gap-2"><RefreshCw className="h-4 w-4" />{i18n.language === "fi" ? "Päivitä" : "Refresh"}</Button>
         </div>
         {loading && <LoadingSpinner fullScreen={false} message={i18n.language === "fi" ? "Ladataan ruokalistaa..." : "Loading menu..."} />}
@@ -107,7 +107,7 @@ export default function Lunch() {
                 </Card>
               ))}</div>
             </div>
-            <Card className="bg-blue-50 border-blue-200"><CardContent className="pt-6"><div className="text-center space-y-2"><p className="text-sm text-gray-600">{i18n.language === "fi" ? "Ruokalista tarjoaa Compass Group Finland" : "Menu provided by Compass Group Finland"}</p><p className="text-xs text-gray-500">{i18n.language === "fi" ? "Ruokalista voi muuttua ilman ennakkoilmoitusta" : "Menu subject to change without notice"}</p></div></CardContent></Card>
+            <Card className="bg-blue-50 border-blue-200"><CardContent className="pt-6"><div className="text-center space-y-2"><p className="text-sm text-gray-600">{i18n.language === "fi" ? "Ruokalista tarjoaa Amica / Compass Group Finland" : "Menu provided by Amica / Compass Group Finland"}</p><p className="text-xs text-gray-500">{i18n.language === "fi" ? "Ruokalista voi muuttua ilman ennakkoilmoitusta" : "Menu subject to change without notice"}</p></div></CardContent></Card>
           </>
         )}
       </div>
