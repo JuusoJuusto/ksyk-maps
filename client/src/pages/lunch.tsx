@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Header from "@/components/Header";
-import { Calendar, UtensilsCrossed, Leaf, AlertCircle, RefreshCw } from "lucide-react";
+import { Calendar, UtensilsCrossed, Leaf, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 
 interface MenuItem {
   date: string;
@@ -15,12 +16,25 @@ interface MenuItem {
   dessert?: string;
 }
 
+const translateText = async (text: string, targetLang: string): Promise<string> => {
+  if (targetLang === "fi" || !text || text === "Ei saatavilla") return text;
+  try {
+    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fi&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+    const data = await response.json();
+    return data[0][0][0] || text;
+  } catch {
+    return text;
+  }
+};
+
 export default function Lunch() {
   const { i18n } = useTranslation();
+  const [, setLocation] = useLocation();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayIndex, setTodayIndex] = useState(0);
+  const [isWeekend, setIsWeekend] = useState(false);
 
   const fetchMenu = async () => {
     setLoading(true);
@@ -33,8 +47,11 @@ export default function Lunch() {
       const items = xml.querySelectorAll("item");
       const parsedMenu: MenuItem[] = [];
       const today = new Date();
+      const dayOfWeek = today.getDay();
+      setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
       let foundTodayIndex = 0;
-      items.forEach((item, index) => {
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
         const title = item.querySelector("title")?.textContent || "";
         const description = item.querySelector("description")?.textContent || "";
         const dateMatch = title.match(/(\d{2})-(\d{2})-(\d{4})/);
@@ -52,8 +69,13 @@ export default function Lunch() {
           else if (line.includes("Lounas:")) { regular = line.replace("Lounas:", "").trim(); }
           else if (line.includes("Jälkiruoka:")) { dessert = line.replace("Jälkiruoka:", "").trim(); }
         });
+        if (i18n.language === "en") {
+          vegetarian = await translateText(vegetarian, "en");
+          regular = await translateText(regular, "en");
+          if (dessert) dessert = await translateText(dessert, "en");
+        }
         parsedMenu.push({ date: title, dayName, vegetarian: vegetarian || "Ei saatavilla", regular: regular || "Ei saatavilla", dessert });
-      });
+      }
       setMenuItems(parsedMenu);
       setTodayIndex(foundTodayIndex);
     } catch (err) {
@@ -64,7 +86,7 @@ export default function Lunch() {
     }
   };
 
-  useEffect(() => { fetchMenu(); }, []);
+  useEffect(() => { fetchMenu(); }, [i18n.language]);
 
   const getDayColor = (index: number) => {
     const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500"];
@@ -75,6 +97,10 @@ export default function Lunch() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <Button onClick={() => setLocation("/")} variant="outline" className="mb-4 gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          {i18n.language === "fi" ? "Takaisin" : "Back"}
+        </Button>
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <UtensilsCrossed className="h-12 w-12 text-orange-600" />
@@ -85,7 +111,10 @@ export default function Lunch() {
         </div>
         {loading && <LoadingSpinner fullScreen={false} message={i18n.language === "fi" ? "Ladataan ruokalistaa..." : "Loading menu..."} />}
         {error && <Card className="border-red-200 bg-red-50"><CardContent className="pt-6"><div className="flex items-center gap-3 text-red-700"><AlertCircle className="h-6 w-6" /><p className="font-semibold">{error}</p></div></CardContent></Card>}
-        {!loading && !error && menuItems.length > 0 && (
+        {isWeekend && !loading && (
+          <Card className="border-blue-200 bg-blue-50"><CardContent className="pt-6"><div className="text-center"><p className="text-lg font-semibold text-blue-700">{i18n.language === "fi" ? "Ravintola on suljettu viikonloppuisin" : "Restaurant is closed on weekends"}</p><p className="text-sm text-blue-600 mt-2">{i18n.language === "fi" ? "Ruokalista on saatavilla maanantaista perjantaihin" : "Menu is available Monday to Friday"}</p></div></CardContent></Card>
+        )}
+        {!loading && !error && !isWeekend && menuItems.length > 0 && (
           <>
             <Card className="mb-8 border-4 border-orange-500 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
               <CardHeader className="bg-orange-500 text-white"><CardTitle className="flex items-center justify-between"><span className="flex items-center gap-2"><Calendar className="h-6 w-6" />{i18n.language === "fi" ? "Tänään" : "Today"}</span><Badge className="bg-white text-orange-600 text-lg px-4 py-1">{menuItems[todayIndex]?.dayName}</Badge></CardTitle></CardHeader>
