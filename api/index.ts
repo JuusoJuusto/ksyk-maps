@@ -197,6 +197,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Lunch menu proxy to bypass CORS
+    if (apiPath === '/lunch-menu' && req.method === 'GET') {
+      try {
+        const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
+        const text = await response.text();
+        res.setHeader("Content-Type", "application/xml");
+        return res.status(200).send(text);
+      } catch (error: any) {
+        console.error("Failed to fetch lunch menu:", error);
+        return res.status(500).json({ error: "Failed to fetch lunch menu" });
+      }
+    }
+    
     // Tickets endpoints
     if (apiPath.startsWith('/tickets')) {
       if (req.method === 'GET') {
