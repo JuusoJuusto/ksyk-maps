@@ -164,9 +164,9 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col">
         {/* Welcome Header */}
         <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
           <div className="flex justify-between items-center">
@@ -189,7 +189,7 @@ export default function Admin() {
         </div>
         
         {/* Dashboard Content */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col">
           <AdminDashboard />
         </div>
       </main>

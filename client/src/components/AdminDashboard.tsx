@@ -808,7 +808,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col p-6">
       {/* Overview Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat) => (
@@ -831,7 +831,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
@@ -1316,7 +1316,7 @@ export default function AdminDashboard() {
           )}
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="h-full">
+        <TabsContent value="ksyk-builder" className="h-full flex-1 overflow-hidden">
           <UltimateKSYKBuilder />
         </TabsContent>
 
