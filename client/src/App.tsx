@@ -7,6 +7,7 @@ import { HelpProvider } from "@/contexts/HelpContext";
 import { DarkModeProvider } from "@/contexts/DarkModeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { Analytics } from "@vercel/analytics/react";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
@@ -50,6 +51,7 @@ function App() {
               <HelpBubble>
                 <Toaster />
                 <Router />
+                <Analytics />
               </HelpBubble>
             </HelpProvider>
           </TooltipProvider>

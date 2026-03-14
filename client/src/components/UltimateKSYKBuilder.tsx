@@ -454,7 +454,7 @@ export default function UltimateKSYKBuilder() {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       alert("Room created!");
       cancelDrawing();
-      setRoomData({ buildingId: "", roomNumber: "", name: "", nameEn: "", nameFi: "", floor: 1, capacity: 30, type: "classroom" });
+      setRoomData({ buildingId: "", roomNumber: "", name: "", nameEn: "", nameFi: "", floor: 1, capacity: 30, type: "classroom", connectedRoomId: "" });
     },
     onError: (error) => {
       console.error('Room creation error:', error);
@@ -483,7 +483,7 @@ export default function UltimateKSYKBuilder() {
       queryClient.invalidateQueries({ queryKey: ["hallways"] });
       alert("Hallway created!");
       cancelDrawing();
-      setHallwayData({ buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1 });
+      setHallwayData({ buildingId: "", name: "", nameEn: "", nameFi: "", floor: 1, width: 3 });
     },
     onError: (error) => {
       console.error('Hallway creation error:', error);
@@ -699,10 +699,28 @@ export default function UltimateKSYKBuilder() {
                       </div>
                     </div>
                     <div>
+                      <Label className="text-xs font-bold">Room Name</Label>
+                      <Input value={roomData.name} onChange={(e) => setRoomData({ ...roomData, name: e.target.value })} placeholder="Music Room" className="mt-1 h-9" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-bold">English Name</Label>
+                        <Input value={roomData.nameEn} onChange={(e) => setRoomData({ ...roomData, nameEn: e.target.value })} placeholder="Music Room" className="mt-1 h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Finnish Name</Label>
+                        <Input value={roomData.nameFi} onChange={(e) => setRoomData({ ...roomData, nameFi: e.target.value })} placeholder="Musiikkihuone" className="mt-1 h-9" />
+                      </div>
+                    </div>
+                    <div>
                       <Label className="text-xs font-bold">Type</Label>
                       <select value={roomData.type} onChange={(e) => setRoomData({ ...roomData, type: e.target.value })} className="w-full p-2 border-2 rounded-lg mt-1 text-sm">
                         {roomTypes.map((type) => (<option key={type.value} value={type.value}>{type.label}</option>))}
                       </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Capacity</Label>
+                      <Input type="number" min="1" value={roomData.capacity} onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 30 })} placeholder="30" className="mt-1 h-9" />
                     </div>
                   </motion.div>
                 )}
@@ -744,6 +762,16 @@ export default function UltimateKSYKBuilder() {
                     <div>
                       <Label className="text-xs font-bold">Hallway Name *</Label>
                       <Input value={hallwayData.name} onChange={(e) => setHallwayData({ ...hallwayData, name: e.target.value })} placeholder="Main Hallway" className="mt-1 h-9" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-bold">English Name</Label>
+                        <Input value={hallwayData.nameEn} onChange={(e) => setHallwayData({ ...hallwayData, nameEn: e.target.value })} placeholder="Main Hallway" className="mt-1 h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Finnish Name</Label>
+                        <Input value={hallwayData.nameFi} onChange={(e) => setHallwayData({ ...hallwayData, nameFi: e.target.value })} placeholder="Pääkäytävä" className="mt-1 h-9" />
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>

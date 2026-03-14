@@ -2,6 +2,26 @@
 
 All notable changes to KSYK Maps will be documented in this file.
 
+## [2.18.0] - 2026-02-09
+
+### Added
+- Vercel Analytics integration for visitor tracking and page views
+- Complete room form with all required fields (name, nameEn, nameFi, capacity)
+- Complete hallway form with bilingual name fields (nameEn, nameFi)
+- Professional KSYK Builder with proper height constraints
+
+### Fixed
+- KSYK Builder map now fully visible in Admin Panel
+- Fixed layout chain from admin page → AdminDashboard → Tabs → Builder
+- Room creation now includes all name fields and capacity
+- Hallway creation now includes English and Finnish names
+- Proper flexbox layout for full-height map canvas
+
+### Improved
+- Better form validation and field organization
+- Enhanced user experience in Builder tab
+- Professional layout with proper spacing and overflow handling
+
 ## [2.15.0] - 2026-02-09
 
 ### Added
