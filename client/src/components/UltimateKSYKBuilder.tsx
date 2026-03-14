@@ -574,7 +574,7 @@ export default function UltimateKSYKBuilder() {
 
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-200px)] bg-slate-50 flex flex-col overflow-hidden">
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Builder..." />}
       
       {/* Header */}
