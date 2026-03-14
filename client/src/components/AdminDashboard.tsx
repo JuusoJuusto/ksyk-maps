@@ -1316,7 +1316,7 @@ export default function AdminDashboard() {
           )}
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="space-y-6">
+        <TabsContent value="ksyk-builder" className="h-full">
           <UltimateKSYKBuilder />
         </TabsContent>
 
