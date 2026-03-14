@@ -26,7 +26,7 @@ export default function Lunch() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
+      const response = await fetch("/api/lunch-menu");
       const text = await response.text();
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "text/xml");
