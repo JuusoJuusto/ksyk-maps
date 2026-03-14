@@ -146,7 +146,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-orange-500 border-orange-600 text-white hover:bg-orange-600 font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
                     data-testid="button-lunch"
                   >
                     🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
@@ -196,7 +196,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-orange-500 border-orange-600 text-white hover:bg-orange-600 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
                     data-testid="button-lunch"
                   >
                     🍽️

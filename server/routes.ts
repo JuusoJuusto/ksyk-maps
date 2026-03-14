@@ -1166,6 +1166,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lunch menu proxy to bypass CORS
+  app.get("/api/lunch-menu", async (req, res) => {
+    try {
+      const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
+      const text = await response.text();
+      res.setHeader("Content-Type", "application/xml");
+      res.send(text);
+    } catch (error) {
+      console.error("Failed to fetch lunch menu:", error);
+      res.status(500).json({ error: "Failed to fetch lunch menu" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
