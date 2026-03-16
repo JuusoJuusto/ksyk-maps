@@ -37,6 +37,10 @@ export default function UltimateKSYKBuilder() {
   const [showGrid, setShowGrid] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [buildingToDelete, setBuildingToDelete] = useState<any>(null);
+  const [floorPlanImage, setFloorPlanImage] = useState<string | null>(null);
+  const [floorPlanOpacity, setFloorPlanOpacity] = useState(0.5);
+  const [floorPlanScale, setFloorPlanScale] = useState(1);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [buildingData, setBuildingData] = useState({
     name: "", nameEn: "", nameFi: "", floors: [1] as number[],
@@ -146,6 +150,32 @@ export default function UltimateKSYKBuilder() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBuilding, copiedBuilding, isDrawing, showGrid, snapEnabled]);
+
+  // Floor plan image upload handler
+  const handleFloorPlanUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, etc.)');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setFloorPlanImage(imageUrl);
+      alert('Floor plan loaded! Adjust opacity and scale using the controls.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeFloorPlan = () => {
+    setFloorPlanImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const snapToGrid = (point: Point): Point => {
     if (!snapEnabled) return point;
@@ -844,6 +874,78 @@ export default function UltimateKSYKBuilder() {
                 </motion.button>
               </div>
 
+              {/* Floor Plan Import Section */}
+              <div className="border-t pt-4 space-y-3">
+                <Label className="text-xs font-bold mb-2 block">Floor Plan (Pohjapiirrustus)</Label>
+                
+                {!floorPlanImage ? (
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFloorPlanUpload}
+                      className="hidden"
+                      id="floor-plan-upload"
+                    />
+                    <label htmlFor="floor-plan-upload">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all text-center"
+                      >
+                        <Plus className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                        <p className="text-sm font-semibold text-purple-700">Upload Floor Plan</p>
+                        <p className="text-xs text-purple-600 mt-1">PNG, JPG, PDF</p>
+                      </motion.div>
+                    </label>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 mt-2">
+                      💡 Upload a building floor plan to trace rooms and hallways accurately
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs text-green-700 flex items-center justify-between">
+                      <span>✅ Floor plan loaded</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeFloorPlan}
+                        className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-xs font-bold mb-1 block">Opacity: {Math.round(floorPlanOpacity * 100)}%</Label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={floorPlanOpacity}
+                        onChange={(e) => setFloorPlanOpacity(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-xs font-bold mb-1 block">Scale: {floorPlanScale.toFixed(1)}x</Label>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3"
+                        step="0.1"
+                        value={floorPlanScale}
+                        onChange={(e) => setFloorPlanScale(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t pt-4 space-y-2">
                 {!isDrawing ? (
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -1022,6 +1124,20 @@ export default function UltimateKSYKBuilder() {
                   </defs>
                   <rect width="5000" height="3000" fill="white" />
                   {showGrid && <rect width="5000" height="3000" fill="url(#largeGrid)" />}
+                  
+                  {/* Floor Plan Background Image */}
+                  {floorPlanImage && (
+                    <image
+                      href={floorPlanImage}
+                      x="0"
+                      y="0"
+                      width={5000 * floorPlanScale}
+                      height={3000 * floorPlanScale}
+                      opacity={floorPlanOpacity}
+                      preserveAspectRatio="xMidYMid meet"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  )}
                   
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;
