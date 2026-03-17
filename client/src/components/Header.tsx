@@ -269,115 +269,115 @@ export default function Header() {
 
         {/* Mobile Dropdown Menu */}
         {showMobileMenu && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50 animate-slide-in-bottom">
             <div className="px-4 py-3 space-y-3">
               {!isInAdminPanel ? (
                 <>
                   {/* Theme Selector */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Theme</label>
+                  <div className="space-y-2 animate-slide-in-left">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={() => {
                           handleThemeChange('light');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'light' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ☀️ Light
+                        ☀️ {t('theme.light')}
                       </button>
                       <button
                         onClick={() => {
                           handleThemeChange('dark');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'dark' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🌙 Dark
+                        🌙 {t('theme.dark')}
                       </button>
                       <button
                         onClick={() => {
                           handleThemeChange('blueprint');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'blueprint' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gradient-to-r from-cyan-100 to-blue-100 border-cyan-500 text-cyan-700 shadow-lg' 
+                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-600 hover:from-blue-100 hover:to-indigo-100 hover:shadow-md'
                         }`}
                       >
-                        ⚡ Blueprint
+                        ⚡ {t('theme.blueprint')}
                       </button>
                     </div>
                   </div>
 
                   {/* Language Selector */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Language</label>
+                  <div className="space-y-2 animate-slide-in-right">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.language')}</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
                           handleLanguageChange('en');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-sm rounded-lg border transition-all ${
+                        className={`p-2 text-sm rounded-lg border transition-all animate-zoom-in ${
                           currentLang === 'en' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🇬🇧 English
+                        🇬🇧 {t('language.english')}
                       </button>
                       <button
                         onClick={() => {
                           handleLanguageChange('fi');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-sm rounded-lg border transition-all ${
+                        className={`p-2 text-sm rounded-lg border transition-all animate-zoom-in ${
                           currentLang === 'fi' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🇫🇮 Suomi
+                        🇫🇮 {t('language.suomi')}
                       </button>
                     </div>
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Quick Actions</label>
+                  <div className="space-y-2 animate-slide-in-bottom">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.quickActions')}</label>
                     <div className="space-y-2">
                       <Link href="/lunch">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 text-orange-700 hover:from-orange-100 hover:to-red-100 transition-all"
+                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 text-orange-700 hover:from-orange-100 hover:to-red-100 transition-all hover:shadow-lg animate-heartbeat"
                         >
-                          🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch Menu'}
+                          🍽️ {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100 transition-all"
+                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100 transition-all hover:shadow-lg"
                         >
-                          🚌 HSL Transport
+                          🚌 {t('quickActions.transport')}
                         </button>
                       </Link>
                       <Link href="/admin-login">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all"
+                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
                         >
-                          ⚙️ Admin Panel
+                          ⚙️ {t('quickActions.admin')}
                         </button>
                       </Link>
                     </div>
@@ -386,68 +386,68 @@ export default function Header() {
               ) : (
                 <>
                   {/* Admin Panel Mobile Menu */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Theme</label>
+                  <div className="space-y-2 animate-slide-in-left">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={() => {
                           handleThemeChange('light');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'light' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ☀️ Light
+                        ☀️ {t('theme.light')}
                       </button>
                       <button
                         onClick={() => {
                           handleThemeChange('dark');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'dark' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🌙 Dark
+                        🌙 {t('theme.dark')}
                       </button>
                       <button
                         onClick={() => {
                           handleThemeChange('blueprint');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'blueprint' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gradient-to-r from-cyan-100 to-blue-100 border-cyan-500 text-cyan-700 shadow-lg' 
+                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-600 hover:from-blue-100 hover:to-indigo-100 hover:shadow-md'
                         }`}
                       >
-                        ⚡ Blueprint
+                        ⚡ {t('theme.blueprint')}
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Quick Actions</label>
+                  <div className="space-y-2 animate-slide-in-right">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.quickActions')}</label>
                     <div className="space-y-2">
                       <Link href="/lunch">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all"
+                          className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg animate-heartbeat"
                         >
-                          🍽️ Lunch
+                          🍽️ {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all"
+                          className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          🚌 HSL
+                          🚌 {t('quickActions.transport')}
                         </button>
                       </Link>
                       <button
@@ -455,9 +455,9 @@ export default function Header() {
                           handleLogout();
                           setShowMobileMenu(false);
                         }}
-                        className="w-full p-3 text-left rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all"
+                        className="w-full p-3 text-left rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all hover:shadow-lg"
                       >
-                        🚪 Logout
+                        🚪 {t('logout')}
                       </button>
                     </div>
                   </div>

@@ -526,7 +526,7 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <Tabs defaultValue="map" className="h-full">
-            <TabsList className={`absolute top-4 left-4 z-20 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+            <TabsList className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
               <TabsTrigger 
                 value="map" 
                 className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
@@ -1325,9 +1325,9 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="schedule" className="h-full m-0 p-8 overflow-auto">
+            <TabsContent value="schedule" className="h-full m-0 pt-24 sm:pt-28 p-4 sm:p-8 overflow-auto">
               <div className="max-w-4xl mx-auto">
-                <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('nav.schedule')}</h2>
+                <h2 className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('nav.schedule')}</h2>
                 <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-8">
                     <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('loading')}...</p>
@@ -1336,9 +1336,9 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+            <TabsContent value="settings" className={`h-full m-0 pt-24 sm:pt-28 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
               <div className="max-w-4xl mx-auto">
-                <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('admin.settings')}</h2>
+                <h2 className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('admin.settings')}</h2>
                 
                 {/* Language Settings */}
                 <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
@@ -1383,7 +1383,11 @@ export default function Home() {
                           {/* Light Theme */}
                           <div 
                             className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
-                              theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                              theme === 'light' 
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                : darkMode 
+                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
+                                  : 'border-gray-200 hover:border-blue-400'
                             }`}
                             onClick={async () => {
                               setTheme('light');
@@ -1412,8 +1416,8 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm">☀️ Light</h4>
-                            <p className="text-xs text-gray-600">Clean & bright</p>
+                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>☀️ Light</h4>
+                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Clean & bright</p>
                             {theme === 'light' && (
                               <div className="mt-1">
                                 <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
@@ -1424,7 +1428,11 @@ export default function Home() {
                           {/* Dark Theme */}
                           <div 
                             className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
-                              theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                              theme === 'dark' 
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                : darkMode 
+                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
+                                  : 'border-gray-200 hover:border-blue-400'
                             }`}
                             onClick={async () => {
                               setTheme('dark');
@@ -1453,8 +1461,8 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm">🌙 Dark</h4>
-                            <p className="text-xs text-gray-600">Easy on eyes</p>
+                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>🌙 Dark</h4>
+                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Easy on eyes</p>
                             {theme === 'dark' && (
                               <div className="mt-1">
                                 <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
@@ -1466,8 +1474,10 @@ export default function Home() {
                           <div 
                             className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
                               theme === 'blueprint' 
-                                ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100' 
-                                : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
+                                ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-cyan-900/20 dark:to-blue-900/20' 
+                                : darkMode
+                                  ? 'border-blue-400 bg-gradient-to-br from-blue-900/20 to-indigo-900/20 hover:border-cyan-400'
+                                  : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
                             }`}
                             onClick={async () => {
                               setTheme('blueprint');
@@ -1497,7 +1507,7 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm text-blue-900">⚡ Blueprint</h4>
+                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-cyan-400' : 'text-blue-900'}`}>⚡ Blueprint</h4>
                             <p className="text-xs text-blue-700">Futuristic neon</p>
                             <div className="mt-1">
                               {theme === 'blueprint' ? (

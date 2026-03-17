@@ -492,6 +492,124 @@ body {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
+/* Advanced Animation System */
+@keyframes slideInFromBottom {
+  0% {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rotateIn {
+  0% {
+    transform: rotate(-180deg) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Animation Classes */
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.5s ease-out;
+}
+
+.animate-rotate-in {
+  animation: rotateIn 0.8s ease-out;
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.animate-typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2s steps(40, end);
+}
+
+.animate-blink {
+  animation: blink 1s infinite;
+}
+
 /* Staggered Animation Delays */
 .animate-delay-100 {
   animation-delay: 0.1s;
@@ -587,7 +705,7 @@ body {
   position: relative;
 }
 
-/* Blueprint grid pattern overlay */
+/* Enhanced Blueprint grid pattern overlay */
 .blueprint::before {
   content: '';
   position: fixed;
@@ -596,14 +714,17 @@ body {
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(rgba(0, 212, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+  background-size: 20px 20px, 20px 20px, 200px 200px, 200px 200px;
   pointer-events: none;
   z-index: -1;
+  animation: blueprint-grid-pulse 8s ease-in-out infinite;
 }
 
-/* Blueprint glowing circuit lines */
+/* Enhanced Blueprint glowing circuit lines */
 .blueprint::after {
   content: '';
   position: fixed;
@@ -612,13 +733,62 @@ body {
   width: 100%;
   height: 100%;
   background-image: 
-    radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.06) 0%, transparent 50%);
+    radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 40%, rgba(0, 212, 255, 0.05) 50%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, rgba(14, 165, 233, 0.03) 50%, transparent 60%);
   pointer-events: none;
   z-index: -1;
+  animation: blueprint-circuit-flow 12s linear infinite;
 }
 
+/* Blueprint animations */
+@keyframes blueprint-grid-pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes blueprint-circuit-flow {
+  0% {
+    transform: translateX(-10px) translateY(-10px);
+  }
+  25% {
+    transform: translateX(10px) translateY(-5px);
+  }
+  50% {
+    transform: translateX(5px) translateY(10px);
+  }
+  75% {
+    transform: translateX(-5px) translateY(5px);
+  }
+  100% {
+    transform: translateX(-10px) translateY(-10px);
+  }
+}
+
+@keyframes blueprint-data-stream {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Enhanced Blueprint elements */
 .blueprint * {
   border-color: #1e40af !important;
 }
@@ -629,23 +799,39 @@ body {
   border: 1px solid #00d4ff !important;
   backdrop-filter: blur(15px);
   box-shadow: 
-    0 0 20px rgba(0, 212, 255, 0.15),
-    inset 0 1px 0 rgba(0, 212, 255, 0.1) !important;
+    0 0 25px rgba(0, 212, 255, 0.2),
+    inset 0 1px 0 rgba(0, 212, 255, 0.15),
+    0 0 0 1px rgba(0, 212, 255, 0.1) !important;
+  position: relative;
+}
+
+/* Blueprint data stream effect */
+.blueprint .bg-white::before,
+.blueprint .bg-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  animation: blueprint-data-stream 3s ease-in-out infinite;
 }
 
 .blueprint .bg-gray-50,
 .blueprint .bg-slate-50,
 .blueprint .bg-muted {
-  background: rgba(30, 58, 138, 0.25) !important;
+  background: rgba(30, 58, 138, 0.3) !important;
   border: 1px solid #1e40af !important;
   backdrop-filter: blur(10px);
+  box-shadow: 0 0 15px rgba(30, 64, 175, 0.2);
 }
 
 .blueprint .text-gray-900,
 .blueprint .text-slate-900,
 .blueprint .text-foreground {
   color: #00d4ff !important;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
 }
 
 .blueprint .text-gray-600,
@@ -653,13 +839,14 @@ body {
 .blueprint .text-gray-800,
 .blueprint .text-muted-foreground {
   color: #7dd3fc !important;
+  text-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
 }
 
 .blueprint .border-gray-200,
 .blueprint .border-gray-300,
 .blueprint .border {
   border-color: #1e40af !important;
-  box-shadow: 0 0 5px rgba(30, 64, 175, 0.3);
+  box-shadow: 0 0 8px rgba(30, 64, 175, 0.4);
 }
 
 .blueprint .bg-blue-600,
@@ -667,42 +854,66 @@ body {
 .blueprint .bg-primary {
   background: linear-gradient(135deg, #0ea5e9, #00d4ff) !important;
   box-shadow: 
-    0 0 20px rgba(0, 212, 255, 0.4),
-    0 0 40px rgba(0, 212, 255, 0.2) !important;
+    0 0 25px rgba(0, 212, 255, 0.5),
+    0 0 50px rgba(0, 212, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   border: 1px solid #00d4ff !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Enhanced button glow effect */
+.blueprint .bg-blue-600::after,
+.blueprint .bg-blue-500::after,
+.blueprint .bg-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.blueprint .bg-blue-600:hover::after,
+.blueprint .bg-blue-500:hover::after,
+.blueprint .bg-primary:hover::after {
+  left: 100%;
 }
 
 .blueprint .bg-purple-600,
 .blueprint .bg-purple-500 {
   background: linear-gradient(135deg, #8b5cf6, #00d4ff) !important;
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.4) !important;
 }
 
 .blueprint .shadow-lg,
 .blueprint .shadow-xl {
   box-shadow: 
-    0 0 25px rgba(0, 212, 255, 0.2),
-    0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    0 0 30px rgba(0, 212, 255, 0.25),
+    0 15px 35px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(0, 212, 255, 0.1) !important;
 }
 
 .blueprint svg {
-  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.5));
 }
 
 .blueprint .bg-gradient-to-br,
 .blueprint .bg-gradient-to-r {
-  background: radial-gradient(circle at center, rgba(10, 22, 40, 0.9) 0%, rgba(30, 58, 138, 0.4) 100%) !important;
+  background: radial-gradient(circle at center, rgba(10, 22, 40, 0.95) 0%, rgba(30, 58, 138, 0.5) 100%) !important;
 }
 
 .blueprint input,
 .blueprint textarea,
 .blueprint select {
-  background: rgba(10, 22, 40, 0.9) !important;
+  background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #00d4ff !important;
   color: #00d4ff !important;
   box-shadow: 
-    inset 0 0 15px rgba(0, 212, 255, 0.1),
-    0 0 10px rgba(0, 212, 255, 0.2) !important;
+    inset 0 0 20px rgba(0, 212, 255, 0.15),
+    0 0 15px rgba(0, 212, 255, 0.25) !important;
 }
 
 .blueprint input::placeholder,
@@ -714,33 +925,36 @@ body {
 .blueprint textarea:focus,
 .blueprint select:focus {
   box-shadow: 
-    inset 0 0 15px rgba(0, 212, 255, 0.2),
-    0 0 20px rgba(0, 212, 255, 0.4) !important;
+    inset 0 0 20px rgba(0, 212, 255, 0.25),
+    0 0 25px rgba(0, 212, 255, 0.5) !important;
+  border-color: #00d4ff !important;
 }
 
 .blueprint button {
   border: 1px solid #00d4ff !important;
   transition: all 0.3s ease !important;
-  background: rgba(10, 22, 40, 0.8) !important;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  background: rgba(10, 22, 40, 0.9) !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
 .blueprint button:hover {
   box-shadow: 
-    0 0 20px rgba(0, 212, 255, 0.5),
-    0 0 40px rgba(0, 212, 255, 0.3) !important;
+    0 0 25px rgba(0, 212, 255, 0.6),
+    0 0 50px rgba(0, 212, 255, 0.4) !important;
   transform: translateY(-2px) !important;
-  background: rgba(10, 22, 40, 0.9) !important;
+  background: rgba(10, 22, 40, 0.95) !important;
 }
 
 .blueprint .card,
 .blueprint [class*="card"] {
   background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #1e40af !important;
-  backdrop-filter: blur(15px) !important;
+  backdrop-filter: blur(20px) !important;
   box-shadow: 
-    0 0 25px rgba(0, 212, 255, 0.15),
-    inset 0 1px 0 rgba(0, 212, 255, 0.1) !important;
+    0 0 30px rgba(0, 212, 255, 0.2),
+    inset 0 1px 0 rgba(0, 212, 255, 0.15) !important;
 }
 
 .blueprint ::-webkit-scrollbar-track {
@@ -750,92 +964,345 @@ body {
 .blueprint ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #00d4ff, #0ea5e9);
   border-color: #1e40af;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
 }
 
 .blueprint ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0ea5e9, #00d4ff);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.7);
 }
 
 .blueprint * {
   scrollbar-color: #00d4ff #0a1628;
 }
 
-/* Blueprint glow animations */
+/* Enhanced Blueprint glow animations */
 .blueprint .animate-pulse {
-  animation: blueprint-pulse 2s ease-in-out infinite;
+  animation: blueprint-enhanced-pulse 2s ease-in-out infinite;
 }
 
-@keyframes blueprint-pulse {
+@keyframes blueprint-enhanced-pulse {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
   }
   50% {
     box-shadow: 
-      0 0 25px rgba(0, 212, 255, 0.8), 
-      0 0 40px rgba(0, 212, 255, 0.6);
+      0 0 30px rgba(0, 212, 255, 0.8), 
+      0 0 50px rgba(0, 212, 255, 0.6),
+      0 0 70px rgba(0, 212, 255, 0.4);
   }
 }
 
 /* Blueprint specific color overrides */
 .blueprint .bg-orange-50,
 .blueprint .bg-orange-100 {
-  background: rgba(255, 165, 0, 0.15) !important;
+  background: rgba(255, 165, 0, 0.2) !important;
   border-color: #ff8c00 !important;
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
 }
 
 .blueprint .text-orange-700 {
   color: #ffa500 !important;
-  text-shadow: 0 0 8px rgba(255, 165, 0, 0.3);
+  text-shadow: 0 0 12px rgba(255, 165, 0, 0.4);
 }
 
 .blueprint .bg-green-50,
 .blueprint .bg-green-100 {
-  background: rgba(0, 255, 127, 0.15) !important;
+  background: rgba(0, 255, 127, 0.2) !important;
   border-color: #00ff7f !important;
-  box-shadow: 0 0 10px rgba(0, 255, 127, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 127, 0.3);
 }
 
 .blueprint .text-green-700 {
   color: #00ff7f !important;
-  text-shadow: 0 0 8px rgba(0, 255, 127, 0.3);
+  text-shadow: 0 0 12px rgba(0, 255, 127, 0.4);
 }
 
 .blueprint .bg-red-50,
 .blueprint .bg-red-100 {
-  background: rgba(255, 69, 0, 0.15) !important;
+  background: rgba(255, 69, 0, 0.2) !important;
   border-color: #ff4500 !important;
-  box-shadow: 0 0 10px rgba(255, 69, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
 }
 
 .blueprint .text-red-700 {
   color: #ff6347 !important;
-  text-shadow: 0 0 8px rgba(255, 99, 71, 0.3);
+  text-shadow: 0 0 12px rgba(255, 99, 71, 0.4);
 }
 
-/* Blueprint header enhancements */
+/* Enhanced Blueprint header */
 .blueprint .bg-card {
   background: rgba(10, 22, 40, 0.98) !important;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(25px);
   border-bottom: 1px solid #00d4ff !important;
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+  box-shadow: 0 4px 25px rgba(0, 212, 255, 0.25);
 }
 
-/* Blueprint mobile menu */
+/* Enhanced Blueprint mobile menu */
 .blueprint .md\\:hidden button {
-  background: rgba(10, 22, 40, 0.9) !important;
+  background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #00d4ff !important;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
 }
 
-/* Blueprint dropdown menu */
+/* Enhanced Blueprint dropdown menu */
 .blueprint .absolute.top-full {
   background: rgba(10, 22, 40, 0.98) !important;
   border: 1px solid #00d4ff !important;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(25px);
   box-shadow: 
-    0 0 30px rgba(0, 212, 255, 0.3),
-    0 10px 40px rgba(0, 0, 0, 0.4);
+    0 0 35px rgba(0, 212, 255, 0.4),
+    0 15px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Enhanced Blueprint Theme Animations */
+@keyframes blueprint-ambient {
+  0%, 100% {
+    background: radial-gradient(ellipse at top, #0a1628 0%, #020617 50%, #000510 100%);
+  }
+  25% {
+    background: radial-gradient(ellipse at top right, #0a1628 0%, #1e3a8a 30%, #020617 70%, #000510 100%);
+  }
+  50% {
+    background: radial-gradient(ellipse at bottom, #0a1628 0%, #1e40af 20%, #020617 60%, #000510 100%);
+  }
+  75% {
+    background: radial-gradient(ellipse at top left, #0a1628 0%, #1e3a8a 30%, #020617 70%, #000510 100%);
+  }
+}
+
+@keyframes blueprint-grid-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    background-size: 20px 20px;
+  }
+  50% {
+    opacity: 0.6;
+    background-size: 25px 25px;
+  }
+}
+
+@keyframes blueprint-circuit-flow {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 100%, 100% 0%;
+  }
+  25% {
+    background-position: 25% 25%, 75% 75%, 75% 75%, 75% 25%;
+  }
+  50% {
+    background-position: 50% 50%, 50% 50%, 100% 50%, 50% 50%;
+  }
+  75% {
+    background-position: 75% 25%, 25% 75%, 25% 25%, 25% 75%;
+  }
+  100% {
+    background-position: 100% 0%, 0% 100%, 0% 0%, 0% 100%;
+  }
+}
+
+@keyframes blueprint-card-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(0, 212, 255, 0.15),
+      inset 0 1px 0 rgba(0, 212, 255, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(0, 212, 255, 0.25),
+      inset 0 1px 0 rgba(0, 212, 255, 0.2);
+  }
+}
+
+@keyframes blueprint-button-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(0, 212, 255, 0.4),
+      0 0 40px rgba(0, 212, 255, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(0, 212, 255, 0.6),
+      0 0 60px rgba(0, 212, 255, 0.4);
+  }
+}
+
+@keyframes blueprint-input-glow {
+  0%, 100% {
+    box-shadow: 
+      inset 0 0 15px rgba(0, 212, 255, 0.1),
+      0 0 10px rgba(0, 212, 255, 0.2);
+  }
+  50% {
+    box-shadow: 
+      inset 0 0 20px rgba(0, 212, 255, 0.15),
+      0 0 15px rgba(0, 212, 255, 0.3);
+  }
+}
+
+/* Enhanced Blueprint Theme Styles */
+.blueprint {
+  animation: blueprint-ambient 20s ease-in-out infinite;
+}
+
+.blueprint::before {
+  animation: blueprint-grid-pulse 8s ease-in-out infinite;
+}
+
+.blueprint::after {
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 60% 20%, rgba(34, 197, 94, 0.08) 0%, transparent 40%);
+  animation: blueprint-circuit-flow 15s ease-in-out infinite;
+}
+
+.blueprint .bg-white,
+.blueprint .bg-card {
+  animation: blueprint-card-glow 4s ease-in-out infinite;
+}
+
+.blueprint .bg-blue-600,
+.blueprint .bg-blue-500,
+.blueprint .bg-primary {
+  animation: blueprint-button-pulse 3s ease-in-out infinite;
+}
+
+.blueprint input,
+.blueprint textarea,
+.blueprint select {
+  animation: blueprint-input-glow 2s ease-in-out infinite;
+}
+
+/* Enhanced Light Theme */
+.light {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  animation: light-ambient 25s ease-in-out infinite;
+}
+
+@keyframes light-ambient {
+  0%, 100% {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  }
+  33% {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #d1d5db 100%);
+  }
+  66% {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 50%, #e5e7eb 100%);
+  }
+}
+
+/* Enhanced Dark Theme */
+.dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  animation: dark-ambient 30s ease-in-out infinite;
+}
+
+@keyframes dark-ambient {
+  0%, 100% {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  }
+  25% {
+    background: linear-gradient(135deg, #0c1220 0%, #1a202c 50%, #2d3748 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+  }
+  75% {
+    background: linear-gradient(135deg, #0f1419 0%, #1c2532 50%, #2f3a4a 100%);
+  }
+}
+
+/* Enhanced Mobile Animations */
+@keyframes mobile-slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-zoom-in {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: mobile-slide-in 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: mobile-slide-in 0.3s ease-out 0.1s both;
+}
+
+.animate-slide-in-right {
+  animation: mobile-slide-in 0.3s ease-out 0.2s both;
+}
+
+.animate-zoom-in {
+  animation: mobile-zoom-in 0.2s ease-out;
+}
+
+.animate-heartbeat {
+  animation: mobile-heartbeat 2s ease-in-out infinite;
+}
+
+/* Enhanced Button Hover Effects */
+.btn-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-enhanced:hover::before {
+  left: 100%;
+}
+
+.btn-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced Card Animations */
+.card-enhanced {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-enhanced:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced Theme Transition */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

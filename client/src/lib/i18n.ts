@@ -93,6 +93,31 @@ const resources = {
       'admin.announcements': 'Announcements',
       'admin.settings': 'Settings',
       
+      // Mobile Menu & Themes
+      'mobile.menu': 'Menu',
+      'mobile.close': 'Close',
+      'mobile.theme': 'Theme',
+      'mobile.language': 'Language',
+      'mobile.quickActions': 'Quick Actions',
+      'theme.light': 'Light',
+      'theme.dark': 'Dark',
+      'theme.blueprint': 'Blueprint',
+      'theme.light.desc': 'Clean & bright interface',
+      'theme.dark.desc': 'Easy on the eyes',
+      'theme.blueprint.desc': 'Futuristic neon design',
+      'theme.current': 'Current theme',
+      'theme.clickToCycle': 'Click to cycle themes',
+      
+      // Languages
+      'language.english': 'English',
+      'language.finnish': 'Finnish',
+      'language.suomi': 'Suomi',
+      
+      // Quick Actions Mobile
+      'quickActions.lunch': 'Lunch Menu',
+      'quickActions.transport': 'HSL Transport',
+      'quickActions.admin': 'Admin Panel',
+      
       // Common
       'login': 'Log In',
       'logout': 'Log Out',
@@ -194,6 +219,31 @@ const resources = {
       'admin.addStaff': 'Lisää henkilöstö',
       'admin.announcements': 'Ilmoitukset',
       'admin.settings': 'Asetukset',
+      
+      // Mobile Menu & Themes
+      'mobile.menu': 'Valikko',
+      'mobile.close': 'Sulje',
+      'mobile.theme': 'Teema',
+      'mobile.language': 'Kieli',
+      'mobile.quickActions': 'Pikatoiminnot',
+      'theme.light': 'Vaalea',
+      'theme.dark': 'Tumma',
+      'theme.blueprint': 'Blueprint',
+      'theme.light.desc': 'Puhdas ja kirkas käyttöliittymä',
+      'theme.dark.desc': 'Hellävarainen silmille',
+      'theme.blueprint.desc': 'Futuristinen neon-muotoilu',
+      'theme.current': 'Nykyinen teema',
+      'theme.clickToCycle': 'Klikkaa vaihtaaksesi teemoja',
+      
+      // Languages
+      'language.english': 'Englanti',
+      'language.finnish': 'Suomi',
+      'language.suomi': 'Suomi',
+      
+      // Quick Actions Mobile
+      'quickActions.lunch': 'Ruokalista',
+      'quickActions.transport': 'HSL Liikenne',
+      'quickActions.admin': 'Hallintapaneeli',
       
       // Common
       'login': 'Kirjaudu sisään',

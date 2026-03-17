@@ -1,3 +1,4 @@
+import * as dotenv from 'dotenv';
 import {
   type User,
   type UpsertUser,
@@ -18,6 +19,9 @@ import {
   type AppSettings,
   type InsertAppSettings,
 } from "@shared/schema";
+
+// Load environment variables
+dotenv.config();
 
 // Interface for storage operations
 export interface IStorage {
