@@ -26,7 +26,11 @@ import {
   Clock,
   AlertTriangle,
   Layers,
-  MessageSquare
+  MessageSquare,
+  Settings,
+  Sparkles,
+  Brain,
+  Zap
 } from "lucide-react";
 
 interface Building {
@@ -2187,13 +2191,306 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
+          {/* App Customization Settings */}
+          <Card className="border-2 border-purple-200 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+              <CardTitle className="text-2xl flex items-center">
+                <Settings className="mr-3 h-7 w-7" />
+                🎨 App Customization & Themes
+              </CardTitle>
+              <CardDescription className="text-purple-100 text-lg">
+                Customize the look, feel, and behavior of KSYK Maps
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-8">
+              {/* Theme Settings */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  Theme & Appearance
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Light Theme */}
+                  <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer">
+                    <div className="bg-white rounded-lg p-3 mb-3 shadow-sm border">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="w-full h-2 bg-blue-500 rounded"></div>
+                        <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
+                        <div className="w-1/2 h-1 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                    <h4 className="font-semibold text-gray-900">Light Theme</h4>
+                    <p className="text-sm text-gray-600">Clean and professional</p>
+                  </div>
+
+                  {/* Dark Theme */}
+                  <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer">
+                    <div className="bg-gray-900 rounded-lg p-3 mb-3 shadow-sm border border-gray-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="w-full h-2 bg-blue-400 rounded"></div>
+                        <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
+                        <div className="w-1/2 h-1 bg-gray-700 rounded"></div>
+                      </div>
+                    </div>
+                    <h4 className="font-semibold text-gray-900">Dark Theme</h4>
+                    <p className="text-sm text-gray-600">Easy on the eyes</p>
+                  </div>
+
+                  {/* Blueprint Theme */}
+                  <div className="border-2 border-blue-400 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-100 cursor-pointer shadow-lg">
+                    <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-lg p-3 mb-3 shadow-sm border border-blue-500 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
+                      <div className="relative flex items-center justify-between mb-2">
+                        <div className="w-3 h-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"></div>
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full shadow-sm shadow-blue-400/50"></div>
+                          <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-sm shadow-indigo-400/50"></div>
+                        </div>
+                      </div>
+                      <div className="relative space-y-1">
+                        <div className="w-full h-2 bg-cyan-400 rounded shadow-lg shadow-cyan-400/30"></div>
+                        <div className="w-3/4 h-1 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
+                        <div className="w-1/2 h-1 bg-indigo-300 rounded shadow-sm shadow-indigo-300/30"></div>
+                      </div>
+                    </div>
+                    <h4 className="font-semibold text-blue-900">Blueprint Theme ✨</h4>
+                    <p className="text-sm text-blue-700">Futuristic neon design</p>
+                    <Badge className="mt-2 bg-blue-500 text-white">NEW</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Customization */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-5 h-5 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 rounded-full"></div>
+                  Color Customization
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold">Primary Brand Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input type="color" defaultValue="#3B82F6" className="w-12 h-10 rounded-lg border-2 border-gray-300 cursor-pointer" />
+                      <Input defaultValue="#3B82F6" placeholder="#3B82F6" className="font-mono" />
+                    </div>
+                    <p className="text-xs text-gray-500">Used for buttons, links, and accents</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold">Secondary Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input type="color" defaultValue="#F59E0B" className="w-12 h-10 rounded-lg border-2 border-gray-300 cursor-pointer" />
+                      <Input defaultValue="#F59E0B" placeholder="#F59E0B" className="font-mono" />
+                    </div>
+                    <p className="text-xs text-gray-500">Used for highlights and secondary elements</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold">Success Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input type="color" defaultValue="#10B981" className="w-12 h-10 rounded-lg border-2 border-gray-300 cursor-pointer" />
+                      <Input defaultValue="#10B981" placeholder="#10B981" className="font-mono" />
+                    </div>
+                    <p className="text-xs text-gray-500">Used for success messages and confirmations</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold">Warning Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input type="color" defaultValue="#EF4444" className="w-12 h-10 rounded-lg border-2 border-gray-300 cursor-pointer" />
+                      <Input defaultValue="#EF4444" placeholder="#EF4444" className="font-mono" />
+                    </div>
+                    <p className="text-xs text-gray-500">Used for errors and warnings</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Layout & Behavior */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-green-600" />
+                  Layout & Behavior
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Animations</Label>
+                        <p className="text-xs text-gray-500">Enable smooth transitions and effects</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Auto-save</Label>
+                        <p className="text-xs text-gray-500">Automatically save changes</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Compact Mode</Label>
+                        <p className="text-xs text-gray-500">Reduce spacing for more content</p>
+                      </div>
+                      <input type="checkbox" className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold">Default Language</Label>
+                      <select className="w-full p-2 border-2 border-gray-300 rounded-lg">
+                        <option value="en">English</option>
+                        <option value="fi">Finnish</option>
+                        <option value="auto">Auto-detect</option>
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold">Map Zoom Level</Label>
+                      <input type="range" min="0.5" max="3" step="0.1" defaultValue="1" className="w-full" />
+                      <p className="text-xs text-gray-500">Default zoom level for maps</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI & Advanced Features */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                  AI & Advanced Features
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">AI Wall Detection</Label>
+                        <p className="text-xs text-gray-500">Enable automatic wall detection in floor plans</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-purple-600 rounded" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Smart Snap</Label>
+                        <p className="text-xs text-gray-500">Automatically snap to detected walls</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-purple-600 rounded" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold">AI Sensitivity</Label>
+                      <input type="range" min="0.1" max="1" step="0.1" defaultValue="0.7" className="w-full" />
+                      <p className="text-xs text-gray-500">Higher values detect more features</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Room Auto-Creation</Label>
+                        <p className="text-xs text-gray-500">Automatically create rooms from detected areas</p>
+                      </div>
+                      <input type="checkbox" className="w-5 h-5 text-purple-600 rounded" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Advanced Analytics</Label>
+                        <p className="text-xs text-gray-500">Enable detailed usage analytics</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-purple-600 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Performance & Optimization */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-600" />
+                  Performance & Optimization
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold">Cache Duration (minutes)</Label>
+                      <Input type="number" defaultValue="30" min="5" max="120" />
+                      <p className="text-xs text-gray-500">How long to cache data locally</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold">Max Image Size (MB)</Label>
+                      <Input type="number" defaultValue="10" min="1" max="50" />
+                      <p className="text-xs text-gray-500">Maximum size for uploaded floor plans</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Preload Images</Label>
+                        <p className="text-xs text-gray-500">Preload images for faster loading</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-yellow-600 rounded" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-bold">Lazy Loading</Label>
+                        <p className="text-xs text-gray-500">Load content as needed</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-yellow-600 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Settings */}
+              <div className="flex justify-end space-x-3 pt-6 border-t">
+                <Button variant="outline">
+                  Reset to Defaults
+                </Button>
+                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                  <Save className="mr-2 h-4 w-4" />
+                  Save All Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* OWL Apps Link */}
           <Card>
             <CardContent className="p-6">
               <Button 
                 variant="outline"
                 className="w-full justify-start text-left h-auto py-4"
-                onClick={() => window.open('https://owlapps.vercel.app', '_blank')}
+                onClick={() => window.open('https://studiowl.vercel.app', '_blank')}
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">

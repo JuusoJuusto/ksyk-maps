@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
@@ -59,6 +60,7 @@ export default function Home() {
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -1387,6 +1389,114 @@ export default function Home() {
                         >
                           {darkMode ? '🌙 On' : '☀️ Off'}
                         </Button>
+                      </div>
+                      
+                      <div className="border-t pt-4">
+                        <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Theme Selection
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {/* Light Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
+                              theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            }`}
+                            onClick={() => setTheme('light')}
+                          >
+                            <div className="bg-white rounded-lg p-2 mb-2 shadow-sm border">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                <div className="flex gap-1">
+                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="w-full h-1 bg-blue-500 rounded"></div>
+                                <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
+                              </div>
+                            </div>
+                            <h4 className="font-semibold text-sm">Light</h4>
+                            <p className="text-xs text-gray-600">Clean & bright</p>
+                            {theme === 'light' && (
+                              <div className="mt-1">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Dark Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
+                              theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            }`}
+                            onClick={() => setTheme('dark')}
+                          >
+                            <div className="bg-gray-900 rounded-lg p-2 mb-2 shadow-sm border border-gray-700">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                                <div className="flex gap-1">
+                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="w-full h-1 bg-blue-400 rounded"></div>
+                                <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
+                              </div>
+                            </div>
+                            <h4 className="font-semibold text-sm">Dark</h4>
+                            <p className="text-xs text-gray-600">Easy on eyes</p>
+                            {theme === 'dark' && (
+                              <div className="mt-1">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Blueprint Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
+                              theme === 'blueprint' 
+                                ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100' 
+                                : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
+                            }`}
+                            onClick={() => setTheme('blueprint')}
+                          >
+                            <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-lg p-2 mb-2 shadow-sm border border-blue-500 relative overflow-hidden">
+                              <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
+                              <div className="relative flex items-center justify-between mb-1">
+                                <div className="w-2 h-2 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
+                                <div className="flex gap-1">
+                                  <div className="w-1 h-1 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
+                                  <div className="w-1 h-1 bg-blue-400 rounded-full shadow-sm shadow-blue-400/50"></div>
+                                  <div className="w-1 h-1 bg-indigo-400 rounded-full shadow-sm shadow-indigo-400/50"></div>
+                                </div>
+                              </div>
+                              <div className="relative space-y-1">
+                                <div className="w-full h-1 bg-cyan-400 rounded shadow-sm shadow-cyan-400/30"></div>
+                                <div className="w-3/4 h-1 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
+                              </div>
+                            </div>
+                            <h4 className="font-semibold text-sm text-blue-900">Blueprint ✨</h4>
+                            <p className="text-xs text-blue-700">Futuristic neon</p>
+                            <div className="mt-1">
+                              {theme === 'blueprint' ? (
+                                <span className="inline-block bg-cyan-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              ) : (
+                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">NEW</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            💡 <strong>Blueprint Theme:</strong> Experience the future with our new neon-inspired design featuring glowing elements and a dark blue aesthetic perfect for technical work.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
