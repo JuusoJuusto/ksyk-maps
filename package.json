@@ -1,6 +1,6 @@
 {
   "name": "ksyk-maps",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "type": "module",
   "license": "UNLICENSED",
   "description": "Professional Interactive Campus Navigation System for KSYK",
@@ -16,6 +16,8 @@
     "seed:connectors": "tsx server/seedConnectors.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
     "create:owner": "tsx server/createOwnerNow.ts",
+    "setup:owner": "tsx server/setupOwnerSecure.ts",
+    "set:owner-password": "tsx server/setOwnerPassword.ts",
     "clean:firebase": "tsx server/cleanAndReseed.ts",
     "clean:rooms": "tsx server/cleanRoomsAndHallways.ts",
     "add:rebrand-announcement": "tsx server/addRebrandAnnouncement.ts",

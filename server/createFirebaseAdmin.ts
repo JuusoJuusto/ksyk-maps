@@ -18,7 +18,7 @@ const auth = getAuth();
 
 async function createAdminUser() {
   const email = 'JuusoJuusto112@gmail.com';
-  const password = 'Juusto2012!';
+  const password = '[REMOVED FOR SECURITY]';
   
   try {
     // Check if user already exists

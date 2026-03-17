@@ -82,7 +82,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@ksyk.fi"
+                placeholder="your-email@example.com"
                 required
                 className="h-12"
                 data-testid="admin-email-input"

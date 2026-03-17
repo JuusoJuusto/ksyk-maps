@@ -1,19 +1,14 @@
 import * as dotenv from 'dotenv';
-
-// Load environment variables FIRST
-dotenv.config();
-
 import { storage } from "./storage";
 
-export async function createOwnerAdmin() {
+// Load environment variables
+dotenv.config();
+
+export async function setupOwnerSecure() {
   try {
-    console.log("🔐 Creating owner admin account in database...");
+    console.log("🔐 Setting up secure owner account...");
     
-    // Get owner credentials from environment variables
-    const OWNER_EMAIL = process.env.OWNER_EMAIL || "juusojuusto112@gmail.com";
-    const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "Juusto2012!";
-    
-    console.log(`📧 Using owner email: ${OWNER_EMAIL}`);
+    const OWNER_EMAIL = 'juusojuusto112@gmail.com';
     
     // Check if owner already exists
     let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
@@ -38,38 +33,40 @@ export async function createOwnerAdmin() {
     }
     
     // Create owner admin user in database
+    // NOTE: Password must be set manually for security
     ownerUser = await storage.upsertUser({
       id: 'owner-admin-user',
       email: OWNER_EMAIL,
-      firstName: process.env.OWNER_FIRST_NAME || 'Juuso',
-      lastName: process.env.OWNER_LAST_NAME || 'Kaikula',
+      firstName: 'Juuso',
+      lastName: 'Kaikula',
       role: 'admin',
       profileImageUrl: null,
       canLoginToKsykMaps: true,
-      password: null, // We use hardcoded auth
+      password: null, // Must be set manually
       isTemporaryPassword: false
     });
     
     console.log("✅ Owner admin created successfully in database!");
     console.log("   📧 Email:", OWNER_EMAIL);
-    console.log("   🔑 Password:", OWNER_PASSWORD);
     console.log("   👤 Name: Juuso Kaikula");
     console.log("   🆔 User ID:", ownerUser.id);
     console.log("   🎭 Role:", ownerUser.role);
     console.log("   🔓 Can Login:", ownerUser.canLoginToKsykMaps);
+    console.log("   ⚠️  PASSWORD MUST BE SET MANUALLY FOR SECURITY");
     
     return ownerUser;
   } catch (error) {
-    console.error("❌ Error creating owner admin:", error);
+    console.error("❌ Error setting up owner admin:", error);
     throw error;
   }
 }
 
 // Call the function if this script is run directly
-if (import.meta.url.endsWith(process.argv[1]) || process.argv[1].includes('createOwnerAdmin')) {
-  createOwnerAdmin()
+if (import.meta.url.endsWith(process.argv[1]) || process.argv[1].includes('setupOwnerSecure')) {
+  setupOwnerSecure()
     .then(() => {
       console.log('✅ Owner admin setup completed successfully!');
+      console.log('⚠️  IMPORTANT: Set password manually in admin panel for security');
       process.exit(0);
     })
     .catch((error) => {

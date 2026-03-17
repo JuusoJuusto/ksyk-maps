@@ -42,22 +42,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password required" });
       }
       
-      // HARDCODED OWNER CHECK - ALWAYS WORKS
-      if (normalizedEmail === 'juusojuusto112@gmail.com' && trimmedPassword === 'Juusto2012!') {
-        console.log('✅ OWNER LOGIN SUCCESS');
+      // SECURE OWNER CHECK - Database lookup only
+      if (normalizedEmail === 'juusojuusto112@gmail.com') {
+        console.log('🔍 Checking owner credentials in database...');
         
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
         
         if (!ownerUser) {
-          ownerUser = await storage.upsertUser({
-            id: 'owner-admin-user',
-            email: normalizedEmail,
-            firstName: 'Juuso',
-            lastName: 'Kaikula',
-            role: 'owner',
-            profileImageUrl: null
-          });
+          console.log('❌ Owner user not found in database');
+          return res.status(401).json({ message: "Invalid credentials" });
         }
+
+        // Check password against database
+        if (!ownerUser.password || ownerUser.password !== trimmedPassword) {
+          console.log('❌ Invalid owner password');
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        console.log('✅ OWNER LOGIN SUCCESS');
 
         req.login({
           claims: {
@@ -218,56 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Development login bypass (for testing only)
-  if (process.env.NODE_ENV === 'development') {
-    app.post('/api/auth/dev-login', async (req, res) => {
-      try {
-        console.log("Development login attempt");
-        const OWNER_EMAIL = process.env.OWNER_EMAIL;
-        
-        if (!OWNER_EMAIL) {
-          return res.status(500).json({ error: "Owner email not configured" });
-        }
-        
-        // Use owner user for dev login
-        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
-        
-        if (!ownerUser) {
-          ownerUser = await storage.upsertUser({
-            id: 'owner-admin-user',
-            email: OWNER_EMAIL,
-            firstName: 'Juuso',
-            lastName: 'Kaikula',
-            role: 'admin',
-            profileImageUrl: null
-          });
-        }
-        
-        if (ownerUser) {
-          req.login({
-            claims: {
-              sub: ownerUser.id,
-              email: ownerUser.email,
-              first_name: ownerUser.firstName,
-              last_name: ownerUser.lastName,
-              profile_image_url: ownerUser.profileImageUrl
-            }
-          }, (err) => {
-            if (err) {
-              console.error("Dev login error:", err);
-              return res.status(500).json({ error: "Login failed" });
-            }
-            res.json({ success: true, user: ownerUser });
-          });
-        } else {
-          res.status(404).json({ error: "User not found" });
-        }
-      } catch (error) {
-        console.error("Dev login error:", error);
-        res.status(500).json({ error: "Login failed" });
-      }
-    });
-  }
+  // Development login bypass (for testing only) - REMOVED FOR SECURITY
 
   // Building routes
   app.get('/api/buildings', async (req, res) => {

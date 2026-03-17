@@ -77,7 +77,7 @@
 5. Click refresh to reload
 
 ### KSYK Builder
-1. Login as admin: juusojuusto112@gmail.com / Juusto2012!
+1. Login as admin: [CREDENTIALS REMOVED FOR SECURITY]
 2. Navigate to Admin Panel
 3. Click "Builder" tab (3rd tab)
 4. Use tools in left sidebar

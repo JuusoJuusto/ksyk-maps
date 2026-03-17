@@ -359,9 +359,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ message: "Email and password required", success: false });
       }
       
-      // Check owner credentials from environment variables
-      const OWNER_EMAIL = process.env.OWNER_EMAIL || 'JuusoJuusto112@gmail.com';
-      const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'Juusto2012!';
+      // Check owner credentials from database only
+      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
       
       console.log('🔑 Checking owner credentials...');
       console.log('   Email match:', email === OWNER_EMAIL);

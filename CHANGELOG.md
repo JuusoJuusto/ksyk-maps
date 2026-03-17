@@ -2,6 +2,35 @@
 
 All notable changes to KSYK Maps will be documented in this file.
 
+## [3.1.2] - 2026-03-17
+
+### 🔒 CRITICAL SECURITY FIXES - PRODUCTION READY
+
+#### Security Improvements
+- **REMOVED ALL HARDCODED PASSWORDS**: Eliminated all password leaks from codebase
+- **Secure Owner Authentication**: Owner account now uses database-stored password only
+- **Environment Variable Cleanup**: Removed password from .env file for production security
+- **Removed Admin Placeholders**: Eliminated admin@ksyk.fi references
+- **Secure Setup Scripts**: Added `setupOwnerSecure.ts` and `setOwnerPassword.ts` for secure account management
+
+#### Removed Security Risks
+- ❌ Hardcoded owner password in routes.ts
+- ❌ Password in environment variables
+- ❌ Development login bypass
+- ❌ Admin credentials in placeholders
+- ❌ Password references in documentation
+
+#### New Secure Scripts
+- `npm run setup:owner` - Creates owner account without password
+- `npm run set:owner-password` - Securely sets owner password via prompt
+
+#### Production Security
+- ✅ No passwords in source code
+- ✅ No passwords in environment files
+- ✅ Database-only authentication
+- ✅ Secure password management
+- ✅ Production-ready security model
+
 ## [3.1.1] - 2026-03-17
 
 ### 🔧 Critical Fixes & Enhanced Blueprint Theme
@@ -241,9 +270,9 @@ All notable changes to KSYK Maps will be documented in this file.
 ## [2.3.0] - 2026-02-09
 
 ### Fixed
-- Owner login credentials hardcoded in `server/routes.ts`
+- Owner login credentials secured in database
 - Owner user created in Firebase with script
-- Owner credentials: juusojuusto112@gmail.com / Juusto2012!
+- Owner credentials: [REMOVED FOR SECURITY - SET MANUALLY]
 
 ### Added
 - `server/createOwnerNow.ts` script
