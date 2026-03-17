@@ -105,6 +105,8 @@ export interface IStorage {
     failureReason?: string | null;
     sessionId?: string | null;
   }): Promise<void>;
+  
+  getAdminLoginLogs(limit?: number): Promise<any[]>;
 }
 
 

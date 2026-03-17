@@ -23,28 +23,25 @@
     @apply bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-300 hover:bg-black/25 hover:-translate-y-1;
   }
   
-  /* Premium Gradients */
-  .gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Premium Solid Colors */
+  .solid-primary {
+    background: #667eea;
   }
   
-  .gradient-secondary {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  .solid-secondary {
+    background: #f093fb;
   }
   
-  .gradient-success {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  .solid-success {
+    background: #4facfe;
   }
   
-  .gradient-purple {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  .solid-purple {
+    background: #667eea;
   }
   
-  .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .solid-text {
+    color: #667eea;
   }
   
   /* Shimmer Animation */
@@ -938,8 +935,8 @@ body {
   filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.5));
 }
 
-.blueprint .bg-gradient-to-br,
-.blueprint .bg-gradient-to-r {
+.blueprint .bg-white,
+.blueprint .bg-card {
   background: radial-gradient(circle at center, rgba(10, 22, 40, 0.95) 0%, rgba(30, 58, 138, 0.5) 100%) !important;
 }
 

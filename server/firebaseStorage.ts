@@ -935,6 +935,48 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Admin Login Log operations
+  async createAdminLoginLog(log: {
+    userId: string | null;
+    email: string;
+    userName?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    loginStatus: string;
+    failureReason?: string | null;
+    sessionId?: string | null;
+  }): Promise<void> {
+    try {
+      const docRef = db.collection('adminLoginLogs').doc();
+      const logData = {
+        ...log,
+        id: docRef.id,
+        createdAt: new Date(),
+      };
+      
+      console.log('Creating admin login log in Firebase:', logData);
+      await docRef.set(logData);
+      console.log('Admin login log created successfully:', docRef.id);
+    } catch (error) {
+      console.error('Error creating admin login log:', error);
+      // Don't throw - logging should not break the login flow
+    }
+  }
+
+  async getAdminLoginLogs(limit: number = 100): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('adminLoginLogs')
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+      
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting admin login logs:', error);
+      return [];
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

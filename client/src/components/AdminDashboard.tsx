@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
+import LoginLogsManager from "@/components/LoginLogsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -840,7 +841,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
-          <TabsTrigger value="buildings" className="text-xs sm:text-sm">Buildings</TabsTrigger>
+          <TabsTrigger value="login-logs" className="text-xs sm:text-sm">Login Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
@@ -1719,53 +1720,8 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="buildings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-2xl">Buildings Management</CardTitle>
-                  <CardDescription>
-                    Manage campus buildings, their properties, and associated rooms
-                  </CardDescription>
-                </div>
-                <Button 
-                  onClick={() => setActiveTab('ksyk-builder')}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Building
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {buildings.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Building className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Buildings Yet</h3>
-                    <p className="text-gray-500 mb-4">Get started by adding your first building</p>
-                    <Button onClick={() => setActiveTab('ksyk-builder')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add First Building
-                    </Button>
-                  </div>
-                ) : (
-                  buildings.map((building: Building) => (
-                    <BuildingCard 
-                      key={building.id} 
-                      building={building} 
-                      rooms={rooms}
-                      queryClient={queryClient}
-                      setActiveTab={setActiveTab}
-                      setBuilderMode={setBuilderMode}
-                      setEditingRoom={setEditingRoom}
-                    />
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="login-logs" className="space-y-6">
+          <LoginLogsManager />
         </TabsContent>
 
         <TabsContent value="rooms" className="space-y-6">
