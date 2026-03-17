@@ -1375,22 +1375,6 @@ export default function Home() {
                   <CardContent className="p-6">
                     <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Dark Mode
-                          </label>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Toggle dark theme</p>
-                        </div>
-                        <Button
-                          variant={darkMode ? 'default' : 'outline'}
-                          onClick={toggleDarkMode}
-                          className="w-24"
-                        >
-                          {darkMode ? '🌙 On' : '☀️ Off'}
-                        </Button>
-                      </div>
-                      
                       <div className="border-t pt-4">
                         <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Theme Selection
@@ -1401,7 +1385,18 @@ export default function Home() {
                             className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}
-                            onClick={() => setTheme('light')}
+                            onClick={async () => {
+                              setTheme('light');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'light' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
                           >
                             <div className="bg-white rounded-lg p-2 mb-2 shadow-sm border">
                               <div className="flex items-center justify-between mb-1">
@@ -1431,7 +1426,18 @@ export default function Home() {
                             className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}
-                            onClick={() => setTheme('dark')}
+                            onClick={async () => {
+                              setTheme('dark');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'dark' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
                           >
                             <div className="bg-gray-900 rounded-lg p-2 mb-2 shadow-sm border border-gray-700">
                               <div className="flex items-center justify-between mb-1">
@@ -1463,7 +1469,18 @@ export default function Home() {
                                 ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100' 
                                 : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
                             }`}
-                            onClick={() => setTheme('blueprint')}
+                            onClick={async () => {
+                              setTheme('blueprint');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'blueprint' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
                           >
                             <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-lg p-2 mb-2 shadow-sm border border-blue-500 relative overflow-hidden">
                               <div className="absolute inset-0 bg-blue-500 opacity-10"></div>

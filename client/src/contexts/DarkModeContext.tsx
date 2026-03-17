@@ -15,16 +15,39 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    // Listen for theme changes from the theme context
+    const handleThemeChange = (event: CustomEvent) => {
+      setDarkModeState(event.detail.isDark);
+    };
+    
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    // Don't manage dark class here anymore - let theme context handle it
   }, [darkMode]);
 
   const toggleDarkMode = () => {
-    setDarkModeState(!darkMode);
+    // This will be handled by the theme system now
+    const currentTheme = localStorage.getItem('ksyk-theme') || 'light';
+    let newTheme: 'light' | 'dark' | 'blueprint';
+    
+    if (currentTheme === 'light') {
+      newTheme = 'dark';
+    } else if (currentTheme === 'dark') {
+      newTheme = 'blueprint';
+    } else {
+      newTheme = 'light';
+    }
+    
+    // Trigger theme change
+    const themeChangeEvent = new CustomEvent('manualThemeChange', { detail: { theme: newTheme } });
+    window.dispatchEvent(themeChangeEvent);
   };
 
   const setDarkMode = (value: boolean) => {

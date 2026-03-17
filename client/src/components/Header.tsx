@@ -3,9 +3,10 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import NavigationModal from "@/components/NavigationModal";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Menu, X, ChevronDown } from "lucide-react";
 
 export default function Header() {
   const [location] = useLocation();
@@ -13,7 +14,9 @@ export default function Header() {
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
+  const { theme, setTheme } = useTheme();
   const [showNavigationModal, setShowNavigationModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
@@ -33,6 +36,19 @@ export default function Header() {
       // Immediate reload
       window.location.reload();
     });
+  };
+
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'blueprint') => {
+    setTheme(newTheme);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: newTheme })
+      });
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+    }
   };
 
   const handleLogout = async () => {
@@ -85,7 +101,7 @@ export default function Header() {
             </Link>
           </div>
           
-          {/* Show different navigation based on admin panel or regular app */}
+          {/* Desktop Navigation */}
           {!isInAdminPanel ? (
             <nav className="hidden md:flex space-x-8">
               {/* Clean navigation - no extra links */}
@@ -98,27 +114,34 @@ export default function Header() {
             </nav>
           )}
 
-          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
-            {/* Show different buttons based on admin panel or regular app */}
+          {/* Desktop Controls */}
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
             {!isInAdminPanel ? (
               <>
-                {/* Dark Mode Toggle */}
-                <button
-                  onClick={toggleDarkMode}
-                  className={`p-1.5 sm:p-2 rounded-lg transition-all ${
-                    darkMode 
-                      ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                >
-                  {darkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                </button>
+                {/* Theme Toggle */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      const themes = ['light', 'dark', 'blueprint'] as const;
+                      const currentIndex = themes.indexOf(theme);
+                      const nextTheme = themes[(currentIndex + 1) % themes.length];
+                      handleThemeChange(nextTheme);
+                    }}
+                    className={`p-2 rounded-lg transition-all ${
+                      theme === 'dark' || theme === 'blueprint'
+                        ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    title={`Current: ${theme} theme - Click to cycle`}
+                  >
+                    {theme === 'dark' || theme === 'blueprint' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </button>
+                </div>
                 
                 {/* Language Toggle */}
-                <div className="language-toggle flex bg-muted rounded-md p-0.5 sm:p-1">
+                <div className="language-toggle flex bg-muted rounded-md p-1">
                   <button 
-                    className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-sm ${
+                    className={`px-3 py-1 text-sm font-medium rounded-sm ${
                       currentLang === 'en' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -129,7 +152,7 @@ export default function Header() {
                     EN
                   </button>
                   <button 
-                    className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-sm ${
+                    className={`px-3 py-1 text-sm font-medium rounded-sm ${
                       currentLang === 'fi' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -146,7 +169,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 font-semibold shadow-sm"
                     data-testid="button-lunch"
                   >
                     🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
@@ -158,7 +181,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:from-green-100 hover:to-emerald-100 font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:from-green-100 hover:to-emerald-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
                     HSL
@@ -169,7 +192,7 @@ export default function Header() {
                 <Link href="/admin-login">
                   <Button 
                     variant={isActive('/admin-login') ? 'default' : 'outline'}
-                    className="font-semibold shadow-sm text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="font-semibold shadow-sm"
                     data-testid="button-admin"
                   >
                     Admin
@@ -178,17 +201,22 @@ export default function Header() {
               </>
             ) : (
               <>
-                {/* Dark Mode Toggle in Admin Panel */}
+                {/* Theme Toggle in Admin Panel */}
                 <button
-                  onClick={toggleDarkMode}
-                  className={`p-1.5 sm:p-2 rounded-lg transition-all ${
-                    darkMode 
+                  onClick={() => {
+                    const themes = ['light', 'dark', 'blueprint'] as const;
+                    const currentIndex = themes.indexOf(theme);
+                    const nextTheme = themes[(currentIndex + 1) % themes.length];
+                    handleThemeChange(nextTheme);
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    theme === 'dark' || theme === 'blueprint'
                       ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
-                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                  title={`Current: ${theme} theme - Click to cycle`}
                 >
-                  {darkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                  {theme === 'dark' || theme === 'blueprint' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </button>
                 
                 {/* Admin Panel - Lunch and HSL */}
@@ -196,7 +224,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100"
                     data-testid="button-lunch"
                   >
                     🍽️
@@ -207,7 +235,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                    className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
                     data-testid="button-hsl"
                   >
                     HSL
@@ -218,7 +246,7 @@ export default function Header() {
                 <Button 
                   variant="outline" 
                   onClick={handleLogout}
-                  className="bg-red-50 border-red-600 text-red-700 hover:bg-red-100 text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                  className="bg-red-50 border-red-600 text-red-700 hover:bg-red-100"
                   data-testid="button-logout"
                 >
                   Logout
@@ -226,7 +254,218 @@ export default function Header() {
               </>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {showMobileMenu && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+            <div className="px-4 py-3 space-y-3">
+              {!isInAdminPanel ? (
+                <>
+                  {/* Theme Selector */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Theme</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => {
+                          handleThemeChange('light');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'light' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        ☀️ Light
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleThemeChange('dark');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'dark' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        🌙 Dark
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleThemeChange('blueprint');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'blueprint' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        ⚡ Blueprint
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Language Selector */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Language</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('en');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-sm rounded-lg border transition-all ${
+                          currentLang === 'en' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        🇬🇧 English
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('fi');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-sm rounded-lg border transition-all ${
+                          currentLang === 'fi' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        🇫🇮 Suomi
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Quick Actions</label>
+                    <div className="space-y-2">
+                      <Link href="/lunch">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 text-orange-700 hover:from-orange-100 hover:to-red-100 transition-all"
+                        >
+                          🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch Menu'}
+                        </button>
+                      </Link>
+                      <Link href="/hsl">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100 transition-all"
+                        >
+                          🚌 HSL Transport
+                        </button>
+                      </Link>
+                      <Link href="/admin-login">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all"
+                        >
+                          ⚙️ Admin Panel
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Admin Panel Mobile Menu */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Theme</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => {
+                          handleThemeChange('light');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'light' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        ☀️ Light
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleThemeChange('dark');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'dark' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        🌙 Dark
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleThemeChange('blueprint');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-xs rounded-lg border transition-all ${
+                          theme === 'blueprint' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        ⚡ Blueprint
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Quick Actions</label>
+                    <div className="space-y-2">
+                      <Link href="/lunch">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all"
+                        >
+                          🍽️ Lunch
+                        </button>
+                      </Link>
+                      <Link href="/hsl">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all"
+                        >
+                          🚌 HSL
+                        </button>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full p-3 text-left rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all"
+                      >
+                        🚪 Logout
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       <NavigationModal 

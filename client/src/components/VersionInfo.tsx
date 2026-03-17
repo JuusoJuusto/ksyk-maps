@@ -6,8 +6,8 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "2.9.5";
-  const releaseDate = "February 8, 2026";
+  const version = "3.1.0";
+  const releaseDate = "March 17, 2026";
   const originalReleaseDate = "August 20, 2025";
   
   return (
@@ -41,6 +41,48 @@ export default function VersionInfo() {
           
           <div className="flex-1 overflow-y-auto pr-3 space-y-6 mt-6 pb-6" style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto' }}>
             <div className="space-y-6">
+            {/* Version 3.1.0 Updates */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
+              <h3 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+                <Sparkles className="h-6 w-6" />
+                Version 3.1.0 - Revolutionary AI & Customization Update
+              </h3>
+              <div className="space-y-3 text-purple-800">
+                <div>
+                  <h4 className="font-bold mb-2">🤖 Ultra-Enhanced AI v3.1:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Complete rewrite with advanced computer vision algorithms</li>
+                    <li>• Advanced Canny Edge Detection with non-maximum suppression</li>
+                    <li>• Enhanced Sobel Operators optimized for architectural features</li>
+                    <li>• Hough Line Transform for precise wall detection</li>
+                    <li>• Morphological Operations for contour analysis</li>
+                    <li>• Multi-Algorithm Fusion combining multiple edge detection methods</li>
+                    <li>• Real-time progress tracking with visual algorithm indicators</li>
+                    <li>• Increased resolution to 1500px for better accuracy</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">🎨 Comprehensive Customization:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Complete admin settings panel with theme management</li>
+                    <li>• Color customization for all UI elements</li>
+                    <li>• Layout, behavior, and performance controls</li>
+                    <li>• AI configuration with sensitivity sliders</li>
+                    <li>• Language and accessibility options</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">🌟 Blueprint Theme:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Futuristic neon design with blue aesthetic</li>
+                    <li>• Interactive theme switcher in main settings</li>
+                    <li>• Glowing effects and radial gradients</li>
+                    <li>• Live theme switching without page reload</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             {/* Version 2.9.5 Updates */}
             <div className="bg-blue-50 p-6 rounded-xl border-2 border-blue-200">
               <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">

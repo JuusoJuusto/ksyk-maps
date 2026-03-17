@@ -2473,10 +2473,106 @@ export default function AdminDashboard() {
 
               {/* Save Settings */}
               <div className="flex justify-end space-x-3 pt-6 border-t">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={async () => {
+                    if (confirm('Reset all settings to default values?')) {
+                      try {
+                        const response = await fetch('/api/settings', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({
+                            primaryColor: '#3B82F6',
+                            secondaryColor: '#F59E0B',
+                            successColor: '#10B981',
+                            warningColor: '#EF4444',
+                            theme: 'light',
+                            enableAnimations: true,
+                            enableAutoSave: true,
+                            compactMode: false,
+                            defaultLanguage: 'en',
+                            aiSensitivity: 0.7,
+                            enableSmartSnap: true,
+                            enableRoomAutoCreation: false,
+                            cacheMinutes: 30,
+                            maxImageSizeMB: 10,
+                            enablePreloadImages: true,
+                            enableLazyLoading: true,
+                            defaultZoomLevel: 1.0
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          alert('Settings reset to defaults!');
+                          window.location.reload();
+                        } else {
+                          alert('Failed to reset settings');
+                        }
+                      } catch (error) {
+                        alert('Error resetting settings');
+                      }
+                    }
+                  }}
+                >
                   Reset to Defaults
                 </Button>
-                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                <Button 
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  onClick={async () => {
+                    try {
+                      // Collect all form values
+                      const form = document.querySelector('form') as HTMLFormElement;
+                      if (!form) {
+                        // Collect values manually from the settings form
+                        const primaryColor = (document.querySelector('input[type="color"]') as HTMLInputElement)?.value || '#3B82F6';
+                        const secondaryColor = (document.querySelectorAll('input[type="color"]')[1] as HTMLInputElement)?.value || '#F59E0B';
+                        const successColor = (document.querySelectorAll('input[type="color"]')[2] as HTMLInputElement)?.value || '#10B981';
+                        const warningColor = (document.querySelectorAll('input[type="color"]')[3] as HTMLInputElement)?.value || '#EF4444';
+                        
+                        const settings = {
+                          primaryColor,
+                          secondaryColor,
+                          successColor,
+                          warningColor,
+                          enableAnimations: (document.querySelector('input[type="checkbox"]') as HTMLInputElement)?.checked ?? true,
+                          enableAutoSave: (document.querySelectorAll('input[type="checkbox"]')[1] as HTMLInputElement)?.checked ?? true,
+                          compactMode: (document.querySelectorAll('input[type="checkbox"]')[2] as HTMLInputElement)?.checked ?? false,
+                          defaultLanguage: (document.querySelector('select') as HTMLSelectElement)?.value || 'en',
+                          aiSensitivity: parseFloat((document.querySelector('input[type="range"]') as HTMLInputElement)?.value || '0.7'),
+                          enableSmartSnap: (document.querySelectorAll('input[type="checkbox"]')[3] as HTMLInputElement)?.checked ?? true,
+                          enableRoomAutoCreation: (document.querySelectorAll('input[type="checkbox"]')[4] as HTMLInputElement)?.checked ?? false,
+                          cacheMinutes: parseInt((document.querySelector('input[type="number"]') as HTMLInputElement)?.value || '30'),
+                          maxImageSizeMB: parseInt((document.querySelectorAll('input[type="number"]')[1] as HTMLInputElement)?.value || '10'),
+                          enablePreloadImages: (document.querySelectorAll('input[type="checkbox"]')[5] as HTMLInputElement)?.checked ?? true,
+                          enableLazyLoading: (document.querySelectorAll('input[type="checkbox"]')[6] as HTMLInputElement)?.checked ?? true,
+                          defaultZoomLevel: parseFloat((document.querySelectorAll('input[type="range"]')[1] as HTMLInputElement)?.value || '1.0')
+                        };
+                        
+                        const response = await fetch('/api/settings', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify(settings)
+                        });
+                        
+                        if (response.ok) {
+                          alert('✅ Settings saved successfully!');
+                          // Apply theme immediately
+                          const savedSettings = await response.json();
+                          if (savedSettings.theme) {
+                            document.documentElement.className = savedSettings.theme;
+                          }
+                        } else {
+                          alert('Failed to save settings');
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error saving settings:', error);
+                      alert('Error saving settings');
+                    }
+                  }}
+                >
                   <Save className="mr-2 h-4 w-4" />
                   Save All Settings
                 </Button>

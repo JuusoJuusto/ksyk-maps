@@ -586,29 +586,65 @@ body {
 }
 
 .blueprint {
-  background: radial-gradient(circle at 25% 25%, #1e3a8a 0%, #0a0f1c 50%) !important;
+  background: radial-gradient(ellipse at top, #0a1628 0%, #020617 50%, #000510 100%) !important;
   color: #00d4ff !important;
+  min-height: 100vh;
 }
 
-.blueprint .bg-white {
-  background: rgba(30, 58, 138, 0.1) !important;
-  border: 1px solid #00d4ff !important;
-}
-
-.blueprint .text-gray-900 {
-  color: #00d4ff !important;
-}
-
-.blueprint .border-gray-200 {
+.blueprint * {
   border-color: #1e40af !important;
 }
 
-.blueprint .bg-blue-600 {
-  background: linear-gradient(135deg, #0ea5e9, #00d4ff) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3) !important;
+.blueprint .bg-white,
+.blueprint .bg-card {
+  background: rgba(10, 22, 40, 0.9) !important;
+  border: 1px solid #00d4ff !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
 }
 
-.blueprint .shadow-lg {
+.blueprint .bg-gray-50,
+.blueprint .bg-slate-50,
+.blueprint .bg-muted {
+  background: rgba(30, 58, 138, 0.2) !important;
+  border: 1px solid #1e40af !important;
+}
+
+.blueprint .text-gray-900,
+.blueprint .text-slate-900,
+.blueprint .text-foreground {
+  color: #00d4ff !important;
+}
+
+.blueprint .text-gray-600,
+.blueprint .text-gray-700,
+.blueprint .text-gray-800,
+.blueprint .text-muted-foreground {
+  color: #7dd3fc !important;
+}
+
+.blueprint .border-gray-200,
+.blueprint .border-gray-300,
+.blueprint .border {
+  border-color: #1e40af !important;
+}
+
+.blueprint .bg-blue-600,
+.blueprint .bg-blue-500,
+.blueprint .bg-primary {
+  background: linear-gradient(135deg, #0ea5e9, #00d4ff) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+  border: 1px solid #00d4ff !important;
+}
+
+.blueprint .bg-purple-600,
+.blueprint .bg-purple-500 {
+  background: linear-gradient(135deg, #8b5cf6, #00d4ff) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+}
+
+.blueprint .shadow-lg,
+.blueprint .shadow-xl {
   box-shadow: 0 0 25px rgba(0, 212, 255, 0.2) !important;
 }
 
@@ -616,20 +652,121 @@ body {
   filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.3));
 }
 
+.blueprint .bg-gradient-to-br,
+.blueprint .bg-gradient-to-r {
+  background: radial-gradient(circle at center, rgba(10, 22, 40, 0.8) 0%, rgba(30, 58, 138, 0.3) 100%) !important;
+}
+
+.blueprint input,
+.blueprint textarea,
+.blueprint select {
+  background: rgba(10, 22, 40, 0.8) !important;
+  border: 1px solid #00d4ff !important;
+  color: #00d4ff !important;
+  box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.1) !important;
+}
+
+.blueprint input::placeholder,
+.blueprint textarea::placeholder {
+  color: #7dd3fc !important;
+}
+
+.blueprint button {
+  border: 1px solid #00d4ff !important;
+  transition: all 0.3s ease !important;
+  background: rgba(10, 22, 40, 0.6) !important;
+}
+
+.blueprint button:hover {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
+  transform: translateY(-1px) !important;
+  background: rgba(10, 22, 40, 0.8) !important;
+}
+
+.blueprint .card,
+.blueprint [class*="card"] {
+  background: rgba(10, 22, 40, 0.9) !important;
+  border: 1px solid #1e40af !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
+}
+
 .blueprint ::-webkit-scrollbar-track {
-  background: #0a0f1c;
+  background: #0a1628;
 }
 
 .blueprint ::-webkit-scrollbar-thumb {
-  background: #00d4ff;
+  background: linear-gradient(135deg, #00d4ff, #0ea5e9);
   border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 .blueprint ::-webkit-scrollbar-thumb:hover {
-  background: #0ea5e9;
-  border-color: #00d4ff;
+  background: linear-gradient(135deg, #0ea5e9, #00d4ff);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
 }
 
 .blueprint * {
-  scrollbar-color: #00d4ff #0a0f1c;
+  scrollbar-color: #00d4ff #0a1628;
+}
+
+/* Blueprint glow animations */
+.blueprint .animate-pulse {
+  animation: blueprint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes blueprint-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.6);
+  }
+}
+
+/* Blueprint specific elements */
+.blueprint .bg-orange-50,
+.blueprint .bg-orange-100 {
+  background: rgba(255, 165, 0, 0.1) !important;
+  border-color: #ff8c00 !important;
+}
+
+.blueprint .text-orange-700 {
+  color: #ffa500 !important;
+}
+
+.blueprint .bg-green-50,
+.blueprint .bg-green-100 {
+  background: rgba(0, 255, 127, 0.1) !important;
+  border-color: #00ff7f !important;
+}
+
+.blueprint .text-green-700 {
+  color: #00ff7f !important;
+}
+
+.blueprint .bg-red-50,
+.blueprint .bg-red-100 {
+  background: rgba(255, 69, 0, 0.1) !important;
+  border-color: #ff4500 !important;
+}
+
+.blueprint .text-red-700 {
+  color: #ff6347 !important;
+}
+
+/* Blueprint grid pattern */
+.blueprint::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
 }

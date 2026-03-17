@@ -17,6 +17,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
+    // Load theme from server settings on app start
+    const loadThemeFromServer = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.theme && settings.theme !== theme) {
+            setTheme(settings.theme);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load theme from server:', error);
+      }
+    };
+    
+    // Listen for manual theme changes from dark mode toggle
+    const handleManualThemeChange = (event: CustomEvent) => {
+      setTheme(event.detail.theme);
+    };
+    
+    loadThemeFromServer();
+    window.addEventListener('manualThemeChange', handleManualThemeChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('manualThemeChange', handleManualThemeChange as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('ksyk-theme', theme);
     
     // Remove all theme classes
@@ -27,8 +56,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Apply theme-specific styles
     if (theme === 'blueprint') {
-      document.documentElement.style.setProperty('--bg-primary', '#0a0f1c');
-      document.documentElement.style.setProperty('--bg-secondary', '#1a2332');
+      document.documentElement.style.setProperty('--bg-primary', '#0a1628');
+      document.documentElement.style.setProperty('--bg-secondary', '#1e3a8a');
       document.documentElement.style.setProperty('--text-primary', '#00d4ff');
       document.documentElement.style.setProperty('--text-secondary', '#7dd3fc');
       document.documentElement.style.setProperty('--accent', '#0ea5e9');
@@ -48,6 +77,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--accent', '#3b82f6');
       document.documentElement.style.setProperty('--border', '#e2e8f0');
     }
+    
+    // Sync with dark mode context for backward compatibility
+    const isDark = theme === 'dark' || theme === 'blueprint';
+    const darkModeEvent = new CustomEvent('themeChange', { detail: { isDark } });
+    window.dispatchEvent(darkModeEvent);
   }, [theme]);
 
   const toggleTheme = () => {
