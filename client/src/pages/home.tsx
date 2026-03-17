@@ -1325,7 +1325,7 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="schedule" className="h-full m-0 pt-24 sm:pt-28 p-4 sm:p-8 overflow-auto">
+            <TabsContent value="schedule" className="h-full m-0 pt-32 sm:pt-36 p-4 sm:p-8 overflow-auto">
               <div className="max-w-4xl mx-auto">
                 <h2 className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('nav.schedule')}</h2>
                 <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
@@ -1336,7 +1336,7 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 pt-24 sm:pt-28 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+            <TabsContent value="settings" className={`h-full m-0 pt-32 sm:pt-36 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
               <div className="max-w-4xl mx-auto">
                 <h2 className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('admin.settings')}</h2>
                 

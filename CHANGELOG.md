@@ -2,6 +2,32 @@
 
 All notable changes to KSYK Maps will be documented in this file.
 
+## [3.1.1] - 2026-03-17
+
+### 🔧 Critical Fixes & Enhanced Blueprint Theme
+
+#### Fixed Issues
+- **Tab Overlapping Fix**: Increased padding from `pt-24 sm:pt-28` to `pt-32 sm:pt-36` for schedule and settings tabs to prevent overlapping with navigation tabs
+- **Dark Mode Improvements**: Fixed remaining white elements in dark mode with comprehensive CSS overrides
+- **Owner Account Configuration**: Verified environment variables are properly used instead of hardcoded values
+
+#### Enhanced Blueprint Theme
+- **Advanced Animations**: Added hologram effects, scanning lines, and matrix-style animations
+- **Enhanced Button Effects**: Improved glow effects with sweep animations on hover
+- **Better Text Rendering**: Added text shadows and holographic effects for headers
+- **Mobile Menu Enhancement**: Enhanced backdrop blur and border effects
+- **Loading Spinner**: Added drop-shadow effects for better visibility
+
+#### Technical Improvements
+- **CSS Dark Mode Fixes**: Added comprehensive dark mode overrides for all white elements
+- **Environment Variables**: Confirmed proper usage of OWNER_EMAIL, OWNER_PASSWORD, OWNER_FIRST_NAME, OWNER_LAST_NAME
+- **Theme System**: Enhanced theme switching with better visual feedback
+
+### Performance
+- Improved theme switching animations
+- Better visual hierarchy with proper z-index management
+- Enhanced mobile responsiveness
+
 ## [3.1.0] - 2026-02-09
 
 ### 🚀 Major AI & Customization Update
