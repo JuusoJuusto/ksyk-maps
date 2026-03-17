@@ -45,7 +45,7 @@ export default function VersionInfo() {
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
               <h3 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
                 <Sparkles className="h-6 w-6" />
-                Version 3.1.0 - Revolutionary AI & Customization Update
+                Version 3.1.0 - Revolutionary AI & Enhanced Mobile Experience
               </h3>
               <div className="space-y-3 text-purple-800">
                 <div>
@@ -62,22 +62,45 @@ export default function VersionInfo() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">🎨 Comprehensive Customization:</h4>
+                  <h4 className="font-bold mb-2">📱 Perfect Mobile Experience:</h4>
                   <ul className="space-y-1 text-sm ml-4">
-                    <li>• Complete admin settings panel with theme management</li>
-                    <li>• Color customization for all UI elements</li>
-                    <li>• Layout, behavior, and performance controls</li>
-                    <li>• AI configuration with sensitivity sliders</li>
-                    <li>• Language and accessibility options</li>
+                    <li>• Complete mobile dropdown menu with organized sections</li>
+                    <li>• Theme selector with visual preview buttons</li>
+                    <li>• Language switcher with flag icons</li>
+                    <li>• Quick actions for lunch, HSL, and admin access</li>
+                    <li>• Fixed all mobile overlapping issues</li>
+                    <li>• Proper z-index management and responsive design</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">🌟 Blueprint Theme:</h4>
+                  <h4 className="font-bold mb-2">🎨 Comprehensive Admin Settings:</h4>
                   <ul className="space-y-1 text-sm ml-4">
-                    <li>• Futuristic neon design with blue aesthetic</li>
-                    <li>• Interactive theme switcher in main settings</li>
-                    <li>• Glowing effects and radial gradients</li>
-                    <li>• Live theme switching without page reload</li>
+                    <li>• Complete admin settings panel with 6 comprehensive tabs</li>
+                    <li>• Global theme management (Light, Dark, Blueprint)</li>
+                    <li>• Color customization for all UI elements</li>
+                    <li>• Performance controls and AI configuration</li>
+                    <li>• All settings save to database and apply globally</li>
+                    <li>• Real-time theme switching without page reload</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">⚡ Enhanced Blueprint Theme:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Stunning blue and neon aesthetic with grid patterns</li>
+                    <li>• Glowing circuit line overlays and radial gradients</li>
+                    <li>• Enhanced glow effects and text shadows</li>
+                    <li>• Perfect contrast and readability</li>
+                    <li>• Futuristic design perfect for technical environments</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">🔧 Technical Improvements:</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Synced theme system with dark mode context</li>
+                    <li>• Removed redundant dark mode toggle from settings</li>
+                    <li>• Unified theme cycling: Light → Dark → Blueprint</li>
+                    <li>• Database persistence for all theme changes</li>
+                    <li>• Improved mobile menu positioning and animations</li>
                   </ul>
                 </div>
               </div>

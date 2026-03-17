@@ -8,6 +8,7 @@ import {
   text,
   integer,
   boolean,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -354,14 +355,14 @@ export const appSettings = pgTable("app_settings", {
   enableAutoSave: boolean("enable_auto_save").default(true),
   compactMode: boolean("compact_mode").default(false),
   defaultLanguage: varchar("default_language").default("en"),
-  aiSensitivity: real("ai_sensitivity").default(0.7),
+  aiSensitivity: numeric("ai_sensitivity").default("0.7"),
   enableSmartSnap: boolean("enable_smart_snap").default(true),
   enableRoomAutoCreation: boolean("enable_room_auto_creation").default(false),
   cacheMinutes: integer("cache_minutes").default(30),
   maxImageSizeMB: integer("max_image_size_mb").default(10),
   enablePreloadImages: boolean("enable_preload_images").default(true),
   enableLazyLoading: boolean("enable_lazy_loading").default(true),
-  defaultZoomLevel: real("default_zoom_level").default(1.0),
+  defaultZoomLevel: numeric("default_zoom_level").default("1.0"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

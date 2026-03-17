@@ -557,7 +557,7 @@ body {
   scrollbar-color: #334155 #1e293b;
 }
 
-/* Blueprint Theme */
+/* Blueprint Theme - Enhanced Blue & Neon Aesthetic */
 .blueprint {
   --background: hsl(215, 100%, 6%);
   --foreground: hsl(195, 100%, 75%);
@@ -578,17 +578,45 @@ body {
   --border: hsl(215, 50%, 25%);
   --input: hsl(215, 50%, 15%);
   --ring: hsl(195, 100%, 50%);
-  --chart-1: hsl(195, 100%, 50%);
-  --chart-2: hsl(160, 100%, 45%);
-  --chart-3: hsl(30, 100%, 55%);
-  --chart-4: hsl(280, 100%, 60%);
-  --chart-5: hsl(340, 100%, 55%);
 }
 
 .blueprint {
   background: radial-gradient(ellipse at top, #0a1628 0%, #020617 50%, #000510 100%) !important;
   color: #00d4ff !important;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Blueprint grid pattern overlay */
+.blueprint::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Blueprint glowing circuit lines */
+.blueprint::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .blueprint * {
@@ -597,23 +625,27 @@ body {
 
 .blueprint .bg-white,
 .blueprint .bg-card {
-  background: rgba(10, 22, 40, 0.9) !important;
+  background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #00d4ff !important;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
+  backdrop-filter: blur(15px);
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.15),
+    inset 0 1px 0 rgba(0, 212, 255, 0.1) !important;
 }
 
 .blueprint .bg-gray-50,
 .blueprint .bg-slate-50,
 .blueprint .bg-muted {
-  background: rgba(30, 58, 138, 0.2) !important;
+  background: rgba(30, 58, 138, 0.25) !important;
   border: 1px solid #1e40af !important;
+  backdrop-filter: blur(10px);
 }
 
 .blueprint .text-gray-900,
 .blueprint .text-slate-900,
 .blueprint .text-foreground {
   color: #00d4ff !important;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 .blueprint .text-gray-600,
@@ -627,13 +659,16 @@ body {
 .blueprint .border-gray-300,
 .blueprint .border {
   border-color: #1e40af !important;
+  box-shadow: 0 0 5px rgba(30, 64, 175, 0.3);
 }
 
 .blueprint .bg-blue-600,
 .blueprint .bg-blue-500,
 .blueprint .bg-primary {
   background: linear-gradient(135deg, #0ea5e9, #00d4ff) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.4),
+    0 0 40px rgba(0, 212, 255, 0.2) !important;
   border: 1px solid #00d4ff !important;
 }
 
@@ -645,25 +680,29 @@ body {
 
 .blueprint .shadow-lg,
 .blueprint .shadow-xl {
-  box-shadow: 0 0 25px rgba(0, 212, 255, 0.2) !important;
+  box-shadow: 
+    0 0 25px rgba(0, 212, 255, 0.2),
+    0 10px 30px rgba(0, 0, 0, 0.3) !important;
 }
 
 .blueprint svg {
-  filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.3));
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
 }
 
 .blueprint .bg-gradient-to-br,
 .blueprint .bg-gradient-to-r {
-  background: radial-gradient(circle at center, rgba(10, 22, 40, 0.8) 0%, rgba(30, 58, 138, 0.3) 100%) !important;
+  background: radial-gradient(circle at center, rgba(10, 22, 40, 0.9) 0%, rgba(30, 58, 138, 0.4) 100%) !important;
 }
 
 .blueprint input,
 .blueprint textarea,
 .blueprint select {
-  background: rgba(10, 22, 40, 0.8) !important;
+  background: rgba(10, 22, 40, 0.9) !important;
   border: 1px solid #00d4ff !important;
   color: #00d4ff !important;
-  box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.1) !important;
+  box-shadow: 
+    inset 0 0 15px rgba(0, 212, 255, 0.1),
+    0 0 10px rgba(0, 212, 255, 0.2) !important;
 }
 
 .blueprint input::placeholder,
@@ -671,24 +710,37 @@ body {
   color: #7dd3fc !important;
 }
 
+.blueprint input:focus,
+.blueprint textarea:focus,
+.blueprint select:focus {
+  box-shadow: 
+    inset 0 0 15px rgba(0, 212, 255, 0.2),
+    0 0 20px rgba(0, 212, 255, 0.4) !important;
+}
+
 .blueprint button {
   border: 1px solid #00d4ff !important;
   transition: all 0.3s ease !important;
-  background: rgba(10, 22, 40, 0.6) !important;
+  background: rgba(10, 22, 40, 0.8) !important;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
 }
 
 .blueprint button:hover {
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
-  transform: translateY(-1px) !important;
-  background: rgba(10, 22, 40, 0.8) !important;
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.5),
+    0 0 40px rgba(0, 212, 255, 0.3) !important;
+  transform: translateY(-2px) !important;
+  background: rgba(10, 22, 40, 0.9) !important;
 }
 
 .blueprint .card,
 .blueprint [class*="card"] {
-  background: rgba(10, 22, 40, 0.9) !important;
+  background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #1e40af !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
+  backdrop-filter: blur(15px) !important;
+  box-shadow: 
+    0 0 25px rgba(0, 212, 255, 0.15),
+    inset 0 1px 0 rgba(0, 212, 255, 0.1) !important;
 }
 
 .blueprint ::-webkit-scrollbar-track {
@@ -698,12 +750,12 @@ body {
 .blueprint ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #00d4ff, #0ea5e9);
   border-color: #1e40af;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
 }
 
 .blueprint ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0ea5e9, #00d4ff);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
 }
 
 .blueprint * {
@@ -717,56 +769,73 @@ body {
 
 @keyframes blueprint-pulse {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.6);
+    box-shadow: 
+      0 0 25px rgba(0, 212, 255, 0.8), 
+      0 0 40px rgba(0, 212, 255, 0.6);
   }
 }
 
-/* Blueprint specific elements */
+/* Blueprint specific color overrides */
 .blueprint .bg-orange-50,
 .blueprint .bg-orange-100 {
-  background: rgba(255, 165, 0, 0.1) !important;
+  background: rgba(255, 165, 0, 0.15) !important;
   border-color: #ff8c00 !important;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.2);
 }
 
 .blueprint .text-orange-700 {
   color: #ffa500 !important;
+  text-shadow: 0 0 8px rgba(255, 165, 0, 0.3);
 }
 
 .blueprint .bg-green-50,
 .blueprint .bg-green-100 {
-  background: rgba(0, 255, 127, 0.1) !important;
+  background: rgba(0, 255, 127, 0.15) !important;
   border-color: #00ff7f !important;
+  box-shadow: 0 0 10px rgba(0, 255, 127, 0.2);
 }
 
 .blueprint .text-green-700 {
   color: #00ff7f !important;
+  text-shadow: 0 0 8px rgba(0, 255, 127, 0.3);
 }
 
 .blueprint .bg-red-50,
 .blueprint .bg-red-100 {
-  background: rgba(255, 69, 0, 0.1) !important;
+  background: rgba(255, 69, 0, 0.15) !important;
   border-color: #ff4500 !important;
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.2);
 }
 
 .blueprint .text-red-700 {
   color: #ff6347 !important;
+  text-shadow: 0 0 8px rgba(255, 99, 71, 0.3);
 }
 
-/* Blueprint grid pattern */
-.blueprint::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  pointer-events: none;
-  z-index: -1;
+/* Blueprint header enhancements */
+.blueprint .bg-card {
+  background: rgba(10, 22, 40, 0.98) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid #00d4ff !important;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+}
+
+/* Blueprint mobile menu */
+.blueprint .md\\:hidden button {
+  background: rgba(10, 22, 40, 0.9) !important;
+  border: 1px solid #00d4ff !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+/* Blueprint dropdown menu */
+.blueprint .absolute.top-full {
+  background: rgba(10, 22, 40, 0.98) !important;
+  border: 1px solid #00d4ff !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 0 30px rgba(0, 212, 255, 0.3),
+    0 10px 40px rgba(0, 0, 0, 0.4);
 }

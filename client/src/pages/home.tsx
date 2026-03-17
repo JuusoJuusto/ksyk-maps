@@ -1412,7 +1412,7 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm">Light</h4>
+                            <h4 className="font-semibold text-sm">☀️ Light</h4>
                             <p className="text-xs text-gray-600">Clean & bright</p>
                             {theme === 'light' && (
                               <div className="mt-1">
@@ -1453,7 +1453,7 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm">Dark</h4>
+                            <h4 className="font-semibold text-sm">🌙 Dark</h4>
                             <p className="text-xs text-gray-600">Easy on eyes</p>
                             {theme === 'dark' && (
                               <div className="mt-1">
@@ -1497,7 +1497,7 @@ export default function Home() {
                                 <div className="w-3/4 h-1 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-sm text-blue-900">Blueprint ✨</h4>
+                            <h4 className="font-semibold text-sm text-blue-900">⚡ Blueprint</h4>
                             <p className="text-xs text-blue-700">Futuristic neon</p>
                             <div className="mt-1">
                               {theme === 'blueprint' ? (
@@ -1511,7 +1511,7 @@ export default function Home() {
                         
                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-sm text-blue-800">
-                            💡 <strong>Blueprint Theme:</strong> Experience the future with our new neon-inspired design featuring glowing elements and a dark blue aesthetic perfect for technical work.
+                            💡 <strong>Theme System:</strong> Choose from Light, Dark, or Blueprint themes. Changes are saved automatically and apply globally. The Blueprint theme features a futuristic blue and neon aesthetic perfect for technical environments.
                           </p>
                         </div>
                       </div>
