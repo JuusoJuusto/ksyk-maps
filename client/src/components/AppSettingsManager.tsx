@@ -237,12 +237,12 @@ export default function AppSettingsManager() {
                   <div 
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                       settings.theme === 'blueprint' 
-                        ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100' 
-                        : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
+                        ? 'border-cyan-400 bg-cyan-50' 
+                        : 'border-blue-400 bg-blue-50 hover:border-cyan-400'
                     }`}
                     onClick={() => setSettings({ ...settings, theme: 'blueprint' })}
                   >
-                    <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-lg p-3 mb-3 shadow-sm border border-blue-500 relative overflow-hidden">
+                    <div className="bg-blue-900 rounded-lg p-3 mb-3 shadow-sm border border-blue-500 relative overflow-hidden">
                       <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
                       <div className="relative flex items-center justify-between mb-2">
                         <div className="w-3 h-3 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>

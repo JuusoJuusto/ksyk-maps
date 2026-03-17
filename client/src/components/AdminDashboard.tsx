@@ -4,7 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
-import LoginLogsManager from "@/components/LoginLogsManager";
+import AppLogsManager from "@/components/AppLogsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -841,7 +841,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
-          <TabsTrigger value="login-logs" className="text-xs sm:text-sm">Login Logs</TabsTrigger>
+          <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
@@ -1720,8 +1720,8 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="login-logs" className="space-y-6">
-          <LoginLogsManager />
+        <TabsContent value="logs" className="space-y-6">
+          <AppLogsManager />
         </TabsContent>
 
         <TabsContent value="rooms" className="space-y-6">
