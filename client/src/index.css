@@ -556,3 +556,80 @@ body {
 .dark * {
   scrollbar-color: #334155 #1e293b;
 }
+
+/* Blueprint Theme */
+.blueprint {
+  --background: hsl(215, 100%, 6%);
+  --foreground: hsl(195, 100%, 75%);
+  --card: hsl(215, 100%, 8%);
+  --card-foreground: hsl(195, 100%, 75%);
+  --popover: hsl(215, 100%, 8%);
+  --popover-foreground: hsl(195, 100%, 75%);
+  --primary: hsl(195, 100%, 50%);
+  --primary-foreground: hsl(215, 100%, 6%);
+  --secondary: hsl(215, 50%, 15%);
+  --secondary-foreground: hsl(195, 100%, 75%);
+  --muted: hsl(215, 50%, 15%);
+  --muted-foreground: hsl(195, 50%, 60%);
+  --accent: hsl(195, 100%, 50%);
+  --accent-foreground: hsl(215, 100%, 6%);
+  --destructive: hsl(0, 100%, 50%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(215, 50%, 25%);
+  --input: hsl(215, 50%, 15%);
+  --ring: hsl(195, 100%, 50%);
+  --chart-1: hsl(195, 100%, 50%);
+  --chart-2: hsl(160, 100%, 45%);
+  --chart-3: hsl(30, 100%, 55%);
+  --chart-4: hsl(280, 100%, 60%);
+  --chart-5: hsl(340, 100%, 55%);
+}
+
+.blueprint {
+  background: radial-gradient(circle at 25% 25%, #1e3a8a 0%, #0a0f1c 50%) !important;
+  color: #00d4ff !important;
+}
+
+.blueprint .bg-white {
+  background: rgba(30, 58, 138, 0.1) !important;
+  border: 1px solid #00d4ff !important;
+}
+
+.blueprint .text-gray-900 {
+  color: #00d4ff !important;
+}
+
+.blueprint .border-gray-200 {
+  border-color: #1e40af !important;
+}
+
+.blueprint .bg-blue-600 {
+  background: linear-gradient(135deg, #0ea5e9, #00d4ff) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3) !important;
+}
+
+.blueprint .shadow-lg {
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.2) !important;
+}
+
+.blueprint svg {
+  filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.3));
+}
+
+.blueprint ::-webkit-scrollbar-track {
+  background: #0a0f1c;
+}
+
+.blueprint ::-webkit-scrollbar-thumb {
+  background: #00d4ff;
+  border-color: #1e40af;
+}
+
+.blueprint ::-webkit-scrollbar-thumb:hover {
+  background: #0ea5e9;
+  border-color: #00d4ff;
+}
+
+.blueprint * {
+  scrollbar-color: #00d4ff #0a0f1c;
+}

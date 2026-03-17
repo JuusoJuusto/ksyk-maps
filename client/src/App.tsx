@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HelpProvider } from "@/contexts/HelpContext";
 import { DarkModeProvider } from "@/contexts/DarkModeContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Analytics } from "@vercel/analytics/react";
@@ -45,17 +46,19 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <DarkModeProvider>
-          <TooltipProvider>
-            <HelpProvider>
-              <HelpBubble>
-                <Toaster />
-                <Router />
-                <Analytics />
-              </HelpBubble>
-            </HelpProvider>
-          </TooltipProvider>
-        </DarkModeProvider>
+        <ThemeProvider>
+          <DarkModeProvider>
+            <TooltipProvider>
+              <HelpProvider>
+                <HelpBubble>
+                  <Toaster />
+                  <Router />
+                  <Analytics />
+                </HelpBubble>
+              </HelpProvider>
+            </TooltipProvider>
+          </DarkModeProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

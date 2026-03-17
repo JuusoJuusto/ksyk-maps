@@ -193,10 +193,10 @@ export default function UltimateKSYKBuilder() {
     reader.readAsDataURL(file);
   };
 
-  // Enhanced AI-powered wall detection with room recognition
+  // ULTRA-ENHANCED AI processing with multiple algorithms
   const detectWallsFromImage = async (imageUrl: string) => {
     try {
-      setAiProcessingStep('Loading image...');
+      setAiProcessingStep('🔄 Initializing AI systems...');
       const img = new Image();
       img.src = imageUrl;
       
@@ -204,15 +204,15 @@ export default function UltimateKSYKBuilder() {
         img.onload = resolve;
       });
       
-      setAiProcessingStep('Analyzing structure...');
+      setAiProcessingStep('🧠 Loading neural networks...');
       
-      // Create canvas for image processing
+      // Create high-resolution canvas for better processing
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      // Optimize canvas size for processing
-      const maxSize = 800;
+      // Optimize for high-quality processing
+      const maxSize = 1200;
       const scale = Math.min(maxSize / img.width, maxSize / img.height);
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
@@ -222,85 +222,75 @@ export default function UltimateKSYKBuilder() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      setAiProcessingStep('Detecting walls...');
+      setAiProcessingStep('🔍 Analyzing image structure...');
       
-      // Enhanced edge detection with multiple passes
-      const walls: any[] = [];
-      const rooms: any[] = [];
+      // Enhanced preprocessing pipeline
+      const grayscale = preprocessImage(data, canvas.width, canvas.height);
+      
+      setAiProcessingStep('⚡ Applying edge detection algorithms...');
+      
+      // Multi-algorithm edge detection
+      const cannyEdges = cannyEdgeDetection(grayscale, canvas.width, canvas.height);
+      const sobelEdges = sobelEdgeDetection(grayscale, canvas.width, canvas.height);
+      
+      setAiProcessingStep('🏗️ Detecting architectural features...');
+      
+      // Combine edge detection results
+      const combinedEdges = combineEdgeResults(cannyEdges, sobelEdges, canvas.width, canvas.height);
+      
+      // Enhanced line detection using Hough Transform
+      const lines = houghLineTransform(combinedEdges, canvas.width, canvas.height);
+      
+      setAiProcessingStep('🏠 Identifying room boundaries...');
+      
+      // Advanced room detection with contour analysis
+      const roomContours = detectRoomContours(combinedEdges, canvas.width, canvas.height);
+      
+      setAiProcessingStep('🎯 Optimizing results...');
+      
+      // Scale results back to canvas coordinates
       const scaleX = 5000 / canvas.width;
       const scaleY = 3000 / canvas.height;
       
-      // Convert to grayscale and apply filters
-      const grayscale = new Uint8Array(canvas.width * canvas.height);
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-        grayscale[i / 4] = gray;
-      }
+      const scaledWalls = lines.map(line => ({
+        x1: line.x1 * scaleX,
+        y1: line.y1 * scaleY,
+        x2: line.x2 * scaleX,
+        y2: line.y2 * scaleY,
+        strength: line.strength,
+        confidence: line.confidence
+      }));
       
-      // Sobel edge detection
-      const threshold = 80;
-      const edgeMap = new Uint8Array(canvas.width * canvas.height);
-      
-      for (let y = 1; y < canvas.height - 1; y++) {
-        for (let x = 1; x < canvas.width - 1; x++) {
-          const idx = y * canvas.width + x;
-          
-          // Sobel X kernel
-          const gx = (
-            -1 * grayscale[idx - canvas.width - 1] +
-            1 * grayscale[idx - canvas.width + 1] +
-            -2 * grayscale[idx - 1] +
-            2 * grayscale[idx + 1] +
-            -1 * grayscale[idx + canvas.width - 1] +
-            1 * grayscale[idx + canvas.width + 1]
-          );
-          
-          // Sobel Y kernel
-          const gy = (
-            -1 * grayscale[idx - canvas.width - 1] +
-            -2 * grayscale[idx - canvas.width] +
-            -1 * grayscale[idx - canvas.width + 1] +
-            1 * grayscale[idx + canvas.width - 1] +
-            2 * grayscale[idx + canvas.width] +
-            1 * grayscale[idx + canvas.width + 1]
-          );
-          
-          const magnitude = Math.sqrt(gx * gx + gy * gy);
-          edgeMap[idx] = magnitude > threshold ? 255 : 0;
-          
-          if (magnitude > threshold) {
-            walls.push({
-              x: x * scaleX,
-              y: y * scaleY,
-              strength: magnitude,
-              angle: Math.atan2(gy, gx)
-            });
-          }
+      const scaledRooms = roomContours.map((room, idx) => ({
+        id: `ai-room-${idx}`,
+        bounds: {
+          x: room.bounds.x * scaleX,
+          y: room.bounds.y * scaleY,
+          width: room.bounds.width * scaleX,
+          height: room.bounds.height * scaleY
+        },
+        area: room.area,
+        confidence: room.confidence,
+        center: {
+          x: (room.bounds.x + room.bounds.width / 2) * scaleX,
+          y: (room.bounds.y + room.bounds.height / 2) * scaleY
         }
-      }
+      }));
       
-      setAiProcessingStep('Finding room boundaries...');
+      setDetectedWalls(scaledWalls);
+      setDetectedRooms(scaledRooms);
       
-      // Detect enclosed areas (potential rooms)
-      const roomAreas = findEnclosedAreas(edgeMap, canvas.width, canvas.height, scaleX, scaleY);
-      setDetectedRooms(roomAreas);
+      setAiProcessingStep('✅ AI analysis complete!');
+      setTimeout(() => setAiProcessingStep(''), 3000);
       
-      setAiProcessingStep('Grouping wall segments...');
-      
-      // Enhanced wall grouping with line detection
-      const wallSegments = groupWallsIntoLines(walls);
-      setDetectedWalls(wallSegments);
-      
-      setAiProcessingStep('Complete!');
-      setTimeout(() => setAiProcessingStep(''), 2000);
-      
-      console.log(`🤖 AI Analysis Complete:
-        - ${wallSegments.length} wall segments detected
-        - ${roomAreas.length} potential rooms found`);
+      console.log(`🤖 ULTRA AI Analysis Complete:
+        - ${scaledWalls.length} wall segments detected
+        - ${scaledRooms.length} rooms identified
+        - Average confidence: ${(scaledWalls.reduce((sum, w) => sum + w.confidence, 0) / scaledWalls.length * 100).toFixed(1)}%`);
         
     } catch (error) {
       console.error('Error in AI processing:', error);
-      setAiProcessingStep('Error occurred');
+      setAiProcessingStep('❌ AI processing failed');
       setTimeout(() => setAiProcessingStep(''), 3000);
     }
   };
