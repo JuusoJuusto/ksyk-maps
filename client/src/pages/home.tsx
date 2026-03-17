@@ -144,7 +144,19 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
 
-  const isLoading = buildingsLoading || roomsLoading;
+  // Fetch app settings
+  const { data: appSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      return response.json();
+    },
+    staleTime: 300000, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = buildingsLoading || roomsLoading || settingsLoading;
 
 
 

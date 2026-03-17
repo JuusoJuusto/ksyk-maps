@@ -390,7 +390,7 @@
 
 /* Premium Background */
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #667eea;
   min-height: 100vh;
 }
 
@@ -734,7 +734,7 @@ body {
 }
 
 .blueprint {
-  background: radial-gradient(ellipse at top, #0a1628 0%, #020617 50%, #000510 100%) !important;
+  background: #0a1628 !important;
   color: #00d4ff !important;
   min-height: 100vh;
   position: relative;
@@ -1077,7 +1077,33 @@ body {
 .blueprint .md\\:hidden button {
   background: rgba(10, 22, 40, 0.95) !important;
   border: 1px solid #00d4ff !important;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+  color: #00d4ff !important;
+}
+
+.blueprint .md\\:hidden button:hover {
+  background: rgba(10, 22, 40, 1) !important;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Fix Blueprint menu button specifically */
+.blueprint button[aria-expanded] {
+  background: rgba(10, 22, 40, 0.95) !important;
+  border: 1px solid #00d4ff !important;
+  color: #00d4ff !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+}
+
+.blueprint button[aria-expanded]:hover {
+  background: rgba(10, 22, 40, 1) !important;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.6) !important;
+}
+
+/* Blueprint hamburger menu icon */
+.blueprint .md\\:hidden svg {
+  color: #00d4ff !important;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5)) !important;
 }
 
 /* Enhanced Blueprint dropdown menu */
@@ -1093,16 +1119,16 @@ body {
 /* Enhanced Blueprint Theme Animations */
 @keyframes blueprint-ambient {
   0%, 100% {
-    background: radial-gradient(ellipse at top, #0a1628 0%, #020617 50%, #000510 100%);
+    background: #0a1628;
   }
   25% {
-    background: radial-gradient(ellipse at top right, #0a1628 0%, #1e3a8a 30%, #020617 70%, #000510 100%);
+    background: #1e3a8a;
   }
   50% {
-    background: radial-gradient(ellipse at bottom, #0a1628 0%, #1e40af 20%, #020617 60%, #000510 100%);
+    background: #1e40af;
   }
   75% {
-    background: radial-gradient(ellipse at top left, #0a1628 0%, #1e3a8a 30%, #020617 70%, #000510 100%);
+    background: #1e3a8a;
   }
 }
 
@@ -1287,40 +1313,40 @@ body {
 
 /* Enhanced Light Theme */
 .light {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  background: #f8fafc;
   animation: light-ambient 25s ease-in-out infinite;
 }
 
 @keyframes light-ambient {
   0%, 100% {
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    background: #f8fafc;
   }
   33% {
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #d1d5db 100%);
+    background: #f1f5f9;
   }
   66% {
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 50%, #e5e7eb 100%);
+    background: #f9fafb;
   }
 }
 
 /* Enhanced Dark Theme */
 .dark {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: #0f172a;
   animation: dark-ambient 30s ease-in-out infinite;
 }
 
 @keyframes dark-ambient {
   0%, 100% {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    background: #0f172a;
   }
   25% {
-    background: linear-gradient(135deg, #0c1220 0%, #1a202c 50%, #2d3748 100%);
+    background: #0c1220;
   }
   50% {
-    background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+    background: #111827;
   }
   75% {
-    background: linear-gradient(135deg, #0f1419 0%, #1c2532 50%, #2f3a4a 100%);
+    background: #0f1419;
   }
 }
 
