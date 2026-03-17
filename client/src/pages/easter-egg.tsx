@@ -143,7 +143,7 @@ export default function EasterEgg() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", delay: 0.5, bounce: 0.6 }}
-          className="inline-block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 p-1 rounded-2xl mb-8"
+          className="inline-block bg-purple-600 p-1 rounded-2xl mb-8"
         >
           <div className="bg-gray-900 px-8 py-4 rounded-2xl">
             <motion.p
@@ -268,7 +268,7 @@ export default function EasterEgg() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setLocation("/")}
-          className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-2xl hover:shadow-pink-500/50 transition-all"
+          className="bg-purple-600 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-2xl hover:shadow-pink-500/50 transition-all"
         >
           Back to Home
         </motion.button>
