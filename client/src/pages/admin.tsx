@@ -77,7 +77,7 @@ export default function Admin() {
 
   if (showPasswordChange) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-2xl border-2 border-blue-200 p-8 max-w-md w-full">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-blue-900 mb-2">Change Your Password</h2>
@@ -164,11 +164,11 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
+    <div className="min-h-screen bg-blue-50 flex flex-col">
       <Header />
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col">
         {/* Welcome Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
+        <div className="mb-8 bg-blue-600 rounded-xl shadow-lg p-8 text-white">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>

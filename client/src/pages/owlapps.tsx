@@ -9,7 +9,7 @@ export default function StudiOWL() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-blue-50'}`}>
       {/* Header */}
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-sm`}>
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -28,7 +28,7 @@ export default function StudiOWL() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl mb-6 shadow-2xl">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-600 rounded-3xl mb-6 shadow-2xl">
             <span className="text-4xl font-black text-white">OWL</span>
           </div>
           <h1 className={`text-5xl font-black mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>

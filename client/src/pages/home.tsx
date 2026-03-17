@@ -241,7 +241,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-blue-50'}`}>
       {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
       
       {/* Top Announcement Banner - Full width, auto-scroll */}
@@ -289,8 +289,8 @@ export default function Home() {
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-transparent">
           
-          {/* Navigation Button - Beautiful gradient */}
-          <div className={`px-3 py-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-700' : 'border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
+          {/* Navigation Button */}
+          <div className={`px-3 py-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-blue-600' : 'border-gray-200 bg-blue-500'}`}>
             <Button
               onClick={() => setNavigationOpen(true)}
               className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/40 h-11 md:h-14 text-sm md:text-lg font-bold shadow-lg hover:shadow-xl transition-all"
@@ -319,7 +319,7 @@ export default function Home() {
                 {searchResults.map((room: Room) => (
                   <div
                     key={room.id}
-                    className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-gray-200'}`}
+                    className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-blue-100 border-gray-200'}`}
                     onClick={() => {
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
@@ -364,7 +364,7 @@ export default function Home() {
                 <Minus className="h-5 w-5" />
               </Button>
               
-              <div className={`flex items-center justify-center w-16 h-16 md:w-20 md:h-20 font-black text-3xl md:text-3xl rounded-xl shadow-lg ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'}`}>
+              <div className={`flex items-center justify-center w-16 h-16 md:w-20 md:h-20 font-black text-3xl md:text-3xl rounded-xl shadow-lg ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}`}>
                 {selectedFloor}
               </div>
               
@@ -416,7 +416,7 @@ export default function Home() {
 
           {/* How to use - Clean Guide */}
           <div className="p-4">
-            <div className={`p-4 rounded-lg border ${darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'}`}>
+            <div className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'}`}>
               <h4 className={`text-base font-bold mb-3 flex items-center ${darkMode ? 'text-gray-200' : 'text-blue-900'}`}>
                 <Zap className={`mr-2 h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 Quick Guide
@@ -470,8 +470,8 @@ export default function Home() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
             fixed z-[45] pointer-events-auto
-            bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
-            shadow-2xl hover:from-blue-700 hover:to-indigo-700 
+            bg-blue-600 text-white 
+            shadow-2xl hover:bg-blue-700 
             transition-all duration-300 ease-in-out
             active:scale-95 border border-white/20
             
@@ -1325,17 +1325,21 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="schedule" className="h-full m-0 p-4 sm:p-8 overflow-auto">
-              <div className="max-w-4xl mx-auto">
-                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
-                  <CardContent className="p-8">
-                    <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('loading')}...</p>
-                  </CardContent>
-                </Card>
+            <TabsContent value="schedule" className="h-full m-0 p-4 sm:p-8 overflow-auto flex items-center justify-center">
+              <div className="max-w-2xl mx-auto text-center">
+                <div className={`p-12 rounded-2xl ${darkMode ? 'bg-gray-800 border-2 border-gray-700' : 'bg-white border-2 border-blue-200'}`}>
+                  <div className="text-6xl mb-6">📅</div>
+                  <h2 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Coming Soon
+                  </h2>
+                  <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Schedule feature is under development and will be available soon!
+                  </p>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+            <TabsContent value="settings" className={`h-full m-0 pt-20 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
               <div className="max-w-4xl mx-auto">
                 
                 {/* Language Settings */}

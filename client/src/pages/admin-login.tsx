@@ -117,7 +117,7 @@ export default function AdminLogin() {
 
   if (showPasswordChange) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4">
         <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200">
           <CardHeader className="text-center bg-white border-b-2 border-blue-100">
             <CardTitle className="text-2xl font-bold text-blue-900">Change Your Password</CardTitle>
@@ -193,7 +193,7 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4">
       <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 relative z-10">
         <CardHeader className="text-center bg-white border-b-2 border-blue-100 rounded-t-lg">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">

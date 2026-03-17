@@ -23,7 +23,7 @@ export default function EasterEgg() {
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 overflow-hidden relative flex items-center justify-center p-4">
+    <div className="min-h-screen bg-purple-900 overflow-hidden relative flex items-center justify-center p-4">
       {/* Animated background stars */}
       {Array.from({ length: 100 }).map((_, i) => (
         <motion.div

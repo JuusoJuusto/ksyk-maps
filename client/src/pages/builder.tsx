@@ -16,7 +16,7 @@ export default function Builder() {
       
       <div className="max-w-full mx-auto px-0 py-0">
         {/* Header */}
-        <div className="mb-4 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-6 px-4">
+        <div className="mb-4 text-center bg-blue-600 text-white py-6 px-4">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center justify-center gap-3">
             <Zap className="h-8 w-8" />
             KSYK Builder Pro

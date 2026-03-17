@@ -169,7 +169,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100 font-semibold shadow-sm"
+                    className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100 font-semibold shadow-sm"
                     data-testid="button-lunch"
                   >
                     🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
@@ -181,7 +181,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:from-green-100 hover:to-emerald-100 font-semibold shadow-sm"
+                    className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
                     HSL
@@ -224,7 +224,7 @@ export default function Header() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-600 text-orange-700 hover:from-orange-100 hover:to-red-100"
+                    className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100"
                     data-testid="button-lunch"
                   >
                     🍽️
@@ -310,8 +310,8 @@ export default function Header() {
                         }}
                         className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'blueprint' 
-                            ? 'bg-gradient-to-r from-cyan-100 to-blue-100 border-cyan-500 text-cyan-700 shadow-lg' 
-                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-600 hover:from-blue-100 hover:to-indigo-100 hover:shadow-md'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
                         ⚡ {t('theme.blueprint')}
@@ -353,13 +353,13 @@ export default function Header() {
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="space-y-2 animate-slide-in-bottom">
+                  <div className="space-y-3 animate-slide-in-bottom mt-4">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.quickActions')}</label>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <Link href="/lunch">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 text-orange-700 hover:from-orange-100 hover:to-red-100 transition-all hover:shadow-lg animate-heartbeat"
+                          className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-300 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg"
                         >
                           🍽️ {t('quickActions.lunch')}
                         </button>
@@ -367,7 +367,7 @@ export default function Header() {
                       <Link href="/hsl">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100 transition-all hover:shadow-lg"
+                          className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
                           🚌 {t('quickActions.transport')}
                         </button>
@@ -375,7 +375,7 @@ export default function Header() {
                       <Link href="/admin-login">
                         <button
                           onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
+                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
                         >
                           ⚙️ {t('quickActions.admin')}
                         </button>
@@ -422,8 +422,8 @@ export default function Header() {
                         }}
                         className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
                           theme === 'blueprint' 
-                            ? 'bg-gradient-to-r from-cyan-100 to-blue-100 border-cyan-500 text-cyan-700 shadow-lg' 
-                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-600 hover:from-blue-100 hover:to-indigo-100 hover:shadow-md'
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
                         ⚡ {t('theme.blueprint')}

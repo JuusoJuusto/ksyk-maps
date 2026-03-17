@@ -54,7 +54,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Add current theme class
     document.documentElement.classList.add(theme);
     
-    // Apply theme-specific styles
+    // Apply theme-specific styles and tooltip colors
     if (theme === 'blueprint') {
       document.documentElement.style.setProperty('--bg-primary', '#0a1628');
       document.documentElement.style.setProperty('--bg-secondary', '#1e3a8a');
@@ -62,6 +62,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--text-secondary', '#7dd3fc');
       document.documentElement.style.setProperty('--accent', '#0ea5e9');
       document.documentElement.style.setProperty('--border', '#1e40af');
+      document.documentElement.style.setProperty('--tooltip-bg', '#0a1628');
+      document.documentElement.style.setProperty('--tooltip-text', '#00d4ff');
     } else if (theme === 'dark') {
       document.documentElement.style.setProperty('--bg-primary', '#0f172a');
       document.documentElement.style.setProperty('--bg-secondary', '#1e293b');
@@ -69,6 +71,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--text-secondary', '#cbd5e1');
       document.documentElement.style.setProperty('--accent', '#3b82f6');
       document.documentElement.style.setProperty('--border', '#334155');
+      document.documentElement.style.setProperty('--tooltip-bg', '#1f2937');
+      document.documentElement.style.setProperty('--tooltip-text', '#f1f5f9');
     } else {
       document.documentElement.style.setProperty('--bg-primary', '#ffffff');
       document.documentElement.style.setProperty('--bg-secondary', '#f8fafc');
@@ -76,6 +80,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--text-secondary', '#475569');
       document.documentElement.style.setProperty('--accent', '#3b82f6');
       document.documentElement.style.setProperty('--border', '#e2e8f0');
+      document.documentElement.style.setProperty('--tooltip-bg', '#1f2937');
+      document.documentElement.style.setProperty('--tooltip-text', '#ffffff');
     }
     
     // Sync with dark mode context for backward compatibility
