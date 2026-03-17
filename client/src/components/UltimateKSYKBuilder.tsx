@@ -8,7 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3 } from "lucide-react";
+import { 
+  Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, 
+  Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3,
+  Wand2, Target, Eye, EyeOff, RotateCcw, Download, Upload, Sparkles, Brain,
+  Settings, Play, Pause, FastForward
+} from "lucide-react";
 
 interface Point { x: number; y: number; }
 
@@ -40,7 +45,18 @@ export default function UltimateKSYKBuilder() {
   const [floorPlanImage, setFloorPlanImage] = useState<string | null>(null);
   const [floorPlanOpacity, setFloorPlanOpacity] = useState(0.5);
   const [floorPlanScale, setFloorPlanScale] = useState(1);
+  const [floorPlanPosition, setFloorPlanPosition] = useState({ x: 0, y: 0 });
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [detectedWalls, setDetectedWalls] = useState<any[]>([]);
+  const [showDetectedWalls, setShowDetectedWalls] = useState(true);
+  const [autoTraceMode, setAutoTraceMode] = useState(false);
+  const [smartSnapEnabled, setSmartSnapEnabled] = useState(true);
+  const [detectedRooms, setDetectedRooms] = useState<any[]>([]);
+  const [showDetectedRooms, setShowDetectedRooms] = useState(true);
+  const [aiProcessingStep, setAiProcessingStep] = useState('');
+  const [quickBuildMode, setQuickBuildMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [buildingData, setBuildingData] = useState({
     name: "", nameEn: "", nameFi: "", floors: [1] as number[],
@@ -151,8 +167,8 @@ export default function UltimateKSYKBuilder() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBuilding, copiedBuilding, isDrawing, showGrid, snapEnabled]);
 
-  // Floor plan image upload handler
-  const handleFloorPlanUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Floor plan image upload handler with AI processing
+  const handleFloorPlanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -161,17 +177,358 @@ export default function UltimateKSYKBuilder() {
       return;
     }
     
+    setIsProcessingImage(true);
+    
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const imageUrl = event.target?.result as string;
       setFloorPlanImage(imageUrl);
-      alert('Floor plan loaded! Adjust opacity and scale using the controls.');
+      
+      // Process image for wall detection
+      await detectWallsFromImage(imageUrl);
+      
+      setIsProcessingImage(false);
+      alert('✅ Floor plan loaded! AI detected walls are highlighted. Adjust settings in the panel.');
     };
     reader.readAsDataURL(file);
   };
 
+  // Enhanced AI-powered wall detection with room recognition
+  const detectWallsFromImage = async (imageUrl: string) => {
+    try {
+      setAiProcessingStep('Loading image...');
+      const img = new Image();
+      img.src = imageUrl;
+      
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+      
+      setAiProcessingStep('Analyzing structure...');
+      
+      // Create canvas for image processing
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      // Optimize canvas size for processing
+      const maxSize = 800;
+      const scale = Math.min(maxSize / img.width, maxSize / img.height);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      setAiProcessingStep('Detecting walls...');
+      
+      // Enhanced edge detection with multiple passes
+      const walls: any[] = [];
+      const rooms: any[] = [];
+      const scaleX = 5000 / canvas.width;
+      const scaleY = 3000 / canvas.height;
+      
+      // Convert to grayscale and apply filters
+      const grayscale = new Uint8Array(canvas.width * canvas.height);
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        grayscale[i / 4] = gray;
+      }
+      
+      // Sobel edge detection
+      const threshold = 80;
+      const edgeMap = new Uint8Array(canvas.width * canvas.height);
+      
+      for (let y = 1; y < canvas.height - 1; y++) {
+        for (let x = 1; x < canvas.width - 1; x++) {
+          const idx = y * canvas.width + x;
+          
+          // Sobel X kernel
+          const gx = (
+            -1 * grayscale[idx - canvas.width - 1] +
+            1 * grayscale[idx - canvas.width + 1] +
+            -2 * grayscale[idx - 1] +
+            2 * grayscale[idx + 1] +
+            -1 * grayscale[idx + canvas.width - 1] +
+            1 * grayscale[idx + canvas.width + 1]
+          );
+          
+          // Sobel Y kernel
+          const gy = (
+            -1 * grayscale[idx - canvas.width - 1] +
+            -2 * grayscale[idx - canvas.width] +
+            -1 * grayscale[idx - canvas.width + 1] +
+            1 * grayscale[idx + canvas.width - 1] +
+            2 * grayscale[idx + canvas.width] +
+            1 * grayscale[idx + canvas.width + 1]
+          );
+          
+          const magnitude = Math.sqrt(gx * gx + gy * gy);
+          edgeMap[idx] = magnitude > threshold ? 255 : 0;
+          
+          if (magnitude > threshold) {
+            walls.push({
+              x: x * scaleX,
+              y: y * scaleY,
+              strength: magnitude,
+              angle: Math.atan2(gy, gx)
+            });
+          }
+        }
+      }
+      
+      setAiProcessingStep('Finding room boundaries...');
+      
+      // Detect enclosed areas (potential rooms)
+      const roomAreas = findEnclosedAreas(edgeMap, canvas.width, canvas.height, scaleX, scaleY);
+      setDetectedRooms(roomAreas);
+      
+      setAiProcessingStep('Grouping wall segments...');
+      
+      // Enhanced wall grouping with line detection
+      const wallSegments = groupWallsIntoLines(walls);
+      setDetectedWalls(wallSegments);
+      
+      setAiProcessingStep('Complete!');
+      setTimeout(() => setAiProcessingStep(''), 2000);
+      
+      console.log(`🤖 AI Analysis Complete:
+        - ${wallSegments.length} wall segments detected
+        - ${roomAreas.length} potential rooms found`);
+        
+    } catch (error) {
+      console.error('Error in AI processing:', error);
+      setAiProcessingStep('Error occurred');
+      setTimeout(() => setAiProcessingStep(''), 3000);
+    }
+  };
+
+  // Find enclosed areas that could be rooms
+  const findEnclosedAreas = (edgeMap: Uint8Array, width: number, height: number, scaleX: number, scaleY: number) => {
+    const rooms: any[] = [];
+    const visited = new Set();
+    const minRoomSize = 500; // Minimum pixels for a room
+    
+    // Flood fill to find enclosed areas
+    for (let y = 10; y < height - 10; y += 5) {
+      for (let x = 10; x < width - 10; x += 5) {
+        const idx = y * width + x;
+        if (visited.has(idx) || edgeMap[idx] > 0) continue;
+        
+        const area = floodFill(edgeMap, width, height, x, y, visited);
+        
+        if (area.size > minRoomSize && area.size < (width * height) / 4) {
+          const points = Array.from(area).map((idx: any) => ({
+            x: (idx % width) * scaleX,
+            y: Math.floor(idx / width) * scaleY
+          }));
+          
+          const bounds = getBoundingBox(points);
+          if (bounds.width > 100 && bounds.height > 100) {
+            rooms.push({
+              id: `room-${rooms.length}`,
+              bounds,
+              area: area.size,
+              center: {
+                x: bounds.x + bounds.width / 2,
+                y: bounds.y + bounds.height / 2
+              }
+            });
+          }
+        }
+      }
+    }
+    
+    return rooms;
+  };
+
+  // Flood fill algorithm for area detection
+  const floodFill = (edgeMap: Uint8Array, width: number, height: number, startX: number, startY: number, visited: Set<number>) => {
+    const area = new Set();
+    const stack = [{ x: startX, y: startY }];
+    
+    while (stack.length > 0) {
+      const { x, y } = stack.pop()!;
+      const idx = y * width + x;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || visited.has(idx) || edgeMap[idx] > 0) {
+        continue;
+      }
+      
+      visited.add(idx);
+      area.add(idx);
+      
+      // Add neighbors
+      stack.push({ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 });
+    }
+    
+    return area;
+  };
+
+  // Get bounding box from points
+  const getBoundingBox = (points: any[]) => {
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  };
+
+  // Enhanced wall grouping with line detection
+  const groupWallsIntoLines = (points: any[]) => {
+    const lines: any[] = [];
+    const used = new Set();
+    const angleThreshold = 0.3; // radians
+    const distanceThreshold = 50;
+    
+    for (let i = 0; i < points.length; i++) {
+      if (used.has(i)) continue;
+      
+      const basePoint = points[i];
+      const line = [basePoint];
+      used.add(i);
+      
+      // Find points that form a line with similar angle
+      for (let j = i + 1; j < points.length; j++) {
+        if (used.has(j)) continue;
+        
+        const point = points[j];
+        const distance = Math.sqrt(
+          Math.pow(basePoint.x - point.x, 2) + 
+          Math.pow(basePoint.y - point.y, 2)
+        );
+        
+        const angleDiff = Math.abs(basePoint.angle - point.angle);
+        
+        if (distance < distanceThreshold && angleDiff < angleThreshold) {
+          line.push(point);
+          used.add(j);
+        }
+      }
+      
+      if (line.length > 5) {
+        // Create line segment from points
+        const xs = line.map(p => p.x);
+        const ys = line.map(p => p.y);
+        
+        lines.push({
+          x1: Math.min(...xs),
+          y1: Math.min(...ys),
+          x2: Math.max(...xs),
+          y2: Math.max(...ys),
+          points: line.length,
+          strength: line.reduce((sum, p) => sum + p.strength, 0) / line.length
+        });
+      }
+    }
+    
+    return lines.sort((a, b) => b.strength - a.strength);
+  };
+
+  // Smart snap to detected walls
+  const snapToWall = (point: Point): Point => {
+    if (!smartSnapEnabled || detectedWalls.length === 0) return point;
+    
+    const snapDistance = 30;
+    let closestPoint = point;
+    let minDistance = snapDistance;
+    
+    for (const wall of detectedWalls) {
+      // Calculate distance to line segment
+      const distance = distanceToLineSegment(point, wall);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = closestPointOnLineSegment(point, wall);
+      }
+    }
+    
+    return closestPoint;
+  };
+
+  // Distance from point to line segment
+  const distanceToLineSegment = (point: Point, wall: any) => {
+    const A = point.x - wall.x1;
+    const B = point.y - wall.y1;
+    const C = wall.x2 - wall.x1;
+    const D = wall.y2 - wall.y1;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return Math.sqrt(A * A + B * B);
+    
+    let param = dot / lenSq;
+    param = Math.max(0, Math.min(1, param));
+    
+    const xx = wall.x1 + param * C;
+    const yy = wall.y1 + param * D;
+    
+    const dx = point.x - xx;
+    const dy = point.y - yy;
+    
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Closest point on line segment
+  const closestPointOnLineSegment = (point: Point, wall: any): Point => {
+    const A = point.x - wall.x1;
+    const B = point.y - wall.y1;
+    const C = wall.x2 - wall.x1;
+    const D = wall.y2 - wall.y1;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return { x: wall.x1, y: wall.y1 };
+    
+    let param = dot / lenSq;
+    param = Math.max(0, Math.min(1, param));
+    
+    return {
+      x: wall.x1 + param * C,
+      y: wall.y1 + param * D
+    };
+  };
+
+  // Auto-create room from detected area
+  const createRoomFromDetection = (detectedRoom: any) => {
+    if (!buildingData.name) {
+      alert('Please create a building first!');
+      return;
+    }
+    
+    const roomNumber = `R${rooms.length + 1}`;
+    const roomData = {
+      buildingId: selectedBuilding?.id || '',
+      roomNumber,
+      name: `Room ${roomNumber}`,
+      nameEn: `Room ${roomNumber}`,
+      nameFi: `Huone ${roomNumber}`,
+      floor: 1,
+      capacity: Math.max(10, Math.floor(detectedRoom.area / 100)),
+      type: 'classroom',
+      mapPositionX: detectedRoom.bounds.x,
+      mapPositionY: detectedRoom.bounds.y,
+      width: detectedRoom.bounds.width,
+      height: detectedRoom.bounds.height
+    };
+    
+    createRoomMutation.mutate(roomData);
+  };
+
   const removeFloorPlan = () => {
     setFloorPlanImage(null);
+    setDetectedWalls([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -194,7 +551,16 @@ export default function UltimateKSYKBuilder() {
     const x = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.width;
     const y = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.height;
     
-    return snapToGrid({ x, y });
+    let point = { x, y };
+    
+    // Apply smart snapping to walls first, then grid
+    if (smartSnapEnabled && detectedWalls.length > 0) {
+      point = snapToWall(point);
+    } else if (snapEnabled) {
+      point = snapToGrid(point);
+    }
+    
+    return point;
   };
 
   // Zoom functions - FIXED to zoom viewBox, not the whole page
@@ -594,12 +960,12 @@ export default function UltimateKSYKBuilder() {
   };
 
   const tools = [
-    { id: "select" as Tool, icon: MousePointer, label: "Select", color: "bg-gray-700", hoverColor: "hover:bg-gray-800" },
-    { id: "building" as Tool, icon: Building, label: "Building", color: "bg-blue-600", hoverColor: "hover:bg-blue-700" },
-    { id: "room" as Tool, icon: Home, label: "Room", color: "bg-purple-600", hoverColor: "hover:bg-purple-700" },
-    { id: "hallway" as Tool, icon: Move, label: "Hallway", color: "bg-gray-600", hoverColor: "hover:bg-gray-700" },
-    { id: "stairway" as Tool, icon: Layers, label: "Stairway/Elevator", color: "bg-green-600", hoverColor: "hover:bg-green-700" },
-    { id: "door" as Tool, icon: Square, label: "Door", color: "bg-amber-600", hoverColor: "hover:bg-amber-700" },
+    { id: "select" as Tool, icon: MousePointer, label: "Select", description: "Select & edit objects", color: "bg-gray-700", hoverColor: "hover:bg-gray-800" },
+    { id: "building" as Tool, icon: Building, label: "Building", description: "Create building outline", color: "bg-blue-600", hoverColor: "hover:bg-blue-700" },
+    { id: "room" as Tool, icon: Home, label: "Room", description: "Add rooms & spaces", color: "bg-purple-600", hoverColor: "hover:bg-purple-700" },
+    { id: "hallway" as Tool, icon: Move, label: "Hallway", description: "Connect with corridors", color: "bg-gray-600", hoverColor: "hover:bg-gray-700" },
+    { id: "stairway" as Tool, icon: Layers, label: "Stairs/Elevator", description: "Vertical connections", color: "bg-green-600", hoverColor: "hover:bg-green-700" },
+    { id: "door" as Tool, icon: Square, label: "Door", description: "Entry points", color: "bg-amber-600", hoverColor: "hover:bg-amber-700" },
   ];
 
 
@@ -636,8 +1002,12 @@ export default function UltimateKSYKBuilder() {
           className="w-80 flex-shrink-0 overflow-y-auto bg-white border-r-2 border-gray-200 shadow-lg"
         >
           <div className="p-4 space-y-4">
+              {/* Enhanced Tool Selection with AI Features */}
               <div>
-                <Label className="text-sm font-bold mb-2 block">Select Tool</Label>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-blue-600" />
+                  Smart Building Tools
+                </Label>
                 <div className="grid grid-cols-1 gap-2">
                   {tools.map((tool) => (
                     <motion.button
@@ -645,17 +1015,40 @@ export default function UltimateKSYKBuilder() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => { setActiveTool(tool.id); cancelDrawing(); }}
-                      className={`p-3 rounded-lg border-2 flex items-center gap-3 transition-all ${
+                      className={`p-3 rounded-lg border-2 flex items-center gap-3 transition-all relative ${
                         activeTool === tool.id
                           ? `${tool.color} text-white border-transparent shadow-lg`
                           : `bg-white border-gray-300 ${tool.hoverColor} hover:text-white`
                       }`}
                     >
                       <tool.icon className="h-5 w-5" />
-                      <span className="font-semibold">{tool.label}</span>
+                      <div className="flex-1 text-left">
+                        <span className="font-semibold block">{tool.label}</span>
+                        <span className="text-xs opacity-75">{tool.description}</span>
+                      </div>
+                      {tool.id === 'room' && detectedRooms.length > 0 && (
+                        <Badge className="bg-green-500 text-white text-xs px-1 py-0">
+                          {detectedRooms.length}
+                        </Badge>
+                      )}
                     </motion.button>
                   ))}
                 </div>
+                
+                {/* Quick Build Mode Toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setQuickBuildMode(!quickBuildMode)}
+                  className={`w-full mt-2 p-2 rounded-lg border-2 flex items-center justify-center gap-2 transition-all text-sm ${
+                    quickBuildMode 
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent shadow-lg" 
+                      : "bg-white border-purple-300 hover:border-purple-400 text-purple-700"
+                  }`}
+                >
+                  <FastForward className="h-4 w-4" />
+                  Quick Build Mode {quickBuildMode ? "ON" : "OFF"}
+                </motion.button>
               </div>
 
               <AnimatePresence mode="wait">
@@ -874,9 +1267,12 @@ export default function UltimateKSYKBuilder() {
                 </motion.button>
               </div>
 
-              {/* Floor Plan Import Section */}
+              {/* Floor Plan Import Section - ENHANCED */}
               <div className="border-t pt-4 space-y-3">
-                <Label className="text-xs font-bold mb-2 block">Floor Plan (Pohjapiirrustus)</Label>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-purple-600" />
+                  AI Floor Plan Assistant
+                </Label>
                 
                 {!floorPlanImage ? (
                   <div>
@@ -887,61 +1283,234 @@ export default function UltimateKSYKBuilder() {
                       onChange={handleFloorPlanUpload}
                       className="hidden"
                       id="floor-plan-upload"
+                      disabled={isProcessingImage}
                     />
                     <label htmlFor="floor-plan-upload">
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="w-full p-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all text-center"
+                        className={`w-full p-4 rounded-lg border-2 border-dashed ${
+                          isProcessingImage 
+                            ? 'border-blue-300 bg-blue-50 cursor-wait' 
+                            : 'border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer'
+                        } transition-all text-center`}
                       >
-                        <Plus className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                        <p className="text-sm font-semibold text-purple-700">Upload Floor Plan</p>
-                        <p className="text-xs text-purple-600 mt-1">PNG, JPG, PDF</p>
+                    {isProcessingImage ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-center">
+                              <div className="relative">
+                                <div className="animate-spin h-12 w-12 border-4 border-purple-600 border-t-transparent rounded-full" />
+                                <Brain className="absolute inset-0 m-auto h-6 w-6 text-purple-600" />
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-semibold text-purple-700">AI Processing...</p>
+                              <p className="text-xs text-purple-600 mt-1">{aiProcessingStep}</p>
+                            </div>
+                            <div className="bg-purple-100 rounded-lg p-2">
+                              <div className="h-2 bg-purple-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" 
+                                     style={{ width: aiProcessingStep.includes('Complete') ? '100%' : '60%' }} />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <Zap className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                            <p className="text-sm font-semibold text-purple-700">Upload Floor Plan</p>
+                            <p className="text-xs text-purple-600 mt-1">PNG, JPG - AI will detect walls</p>
+                          </>
+                        )}
                       </motion.div>
                     </label>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 mt-2">
-                      💡 Upload a building floor plan to trace rooms and hallways accurately
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-purple-200 rounded-lg p-3 text-xs mt-2">
+                      <div className="font-bold text-purple-800 mb-1">🤖 AI Features:</div>
+                      <ul className="text-purple-700 space-y-1 ml-3">
+                        <li>• Automatic wall detection</li>
+                        <li>• Room boundary recognition</li>
+                        <li>• Smart snap-to-wall</li>
+                        <li>• One-click room creation</li>
+                      </ul>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs text-green-700 flex items-center justify-between">
-                      <span>✅ Floor plan loaded</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeFloorPlan}
-                        className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                  <div className="space-y-3">
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-xs font-bold text-green-800">Floor Plan Active</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeFloorPlan}
+                          className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      {detectedWalls.length > 0 && (
+                        <div className="text-xs text-green-700 flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          AI detected {detectedWalls.length} wall segments
+                        </div>
+                      )}
                     </div>
                     
+                    {/* AI Detection Results */}
+                    {(detectedWalls.length > 0 || detectedRooms.length > 0) && (
+                      <div className="space-y-2">
+                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-300 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Brain className="h-4 w-4 text-emerald-600" />
+                            <span className="text-xs font-bold text-emerald-800">AI Analysis Results</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="font-bold text-blue-600">{detectedWalls.length}</div>
+                              <div className="text-gray-600">Walls</div>
+                            </div>
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="font-bold text-purple-600">{detectedRooms.length}</div>
+                              <div className="text-gray-600">Rooms</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Smart Controls */}
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer bg-blue-50 p-2 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={showDetectedWalls}
+                              onChange={(e) => setShowDetectedWalls(e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <Eye className="h-3 w-3 text-blue-600" />
+                            <span className="text-xs font-semibold text-blue-800">Show Wall Detection</span>
+                          </label>
+                          
+                          <label className="flex items-center gap-2 cursor-pointer bg-purple-50 p-2 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={showDetectedRooms}
+                              onChange={(e) => setShowDetectedRooms(e.target.checked)}
+                              className="w-4 h-4 text-purple-600 rounded"
+                            />
+                            <Eye className="h-3 w-3 text-purple-600" />
+                            <span className="text-xs font-semibold text-purple-800">Show Room Areas</span>
+                          </label>
+                          
+                          <label className="flex items-center gap-2 cursor-pointer bg-green-50 p-2 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={smartSnapEnabled}
+                              onChange={(e) => setSmartSnapEnabled(e.target.checked)}
+                              className="w-4 h-4 text-green-600 rounded"
+                            />
+                            <Target className="h-3 w-3 text-green-600" />
+                            <span className="text-xs font-semibold text-green-800">Smart Snap to Walls</span>
+                          </label>
+                        </div>
+                        
+                        {/* Quick Room Creation */}
+                        {detectedRooms.length > 0 && (
+                          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Wand2 className="h-4 w-4 text-orange-600" />
+                              <span className="text-xs font-bold text-orange-800">Quick Actions</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                detectedRooms.forEach(room => createRoomFromDetection(room));
+                              }}
+                              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white h-8 text-xs"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Create All {detectedRooms.length} Rooms
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* AI Wall Detection Toggle */}
+                    {detectedWalls.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showDetectedWalls}
+                            onChange={(e) => setShowDetectedWalls(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 rounded"
+                          />
+                          <span className="text-xs font-semibold text-blue-800">Show AI Detected Walls</span>
+                        </label>
+                      </div>
+                    )}
+                    
                     <div>
-                      <Label className="text-xs font-bold mb-1 block">Opacity: {Math.round(floorPlanOpacity * 100)}%</Label>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label className="text-xs font-bold">Opacity</Label>
+                        <span className="text-xs font-mono text-purple-600">{Math.round(floorPlanOpacity * 100)}%</span>
+                      </div>
                       <input
                         type="range"
                         min="0"
                         max="1"
-                        step="0.1"
+                        step="0.05"
                         value={floorPlanOpacity}
                         onChange={(e) => setFloorPlanOpacity(parseFloat(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(to right, #9333ea ${floorPlanOpacity * 100}%, #e9d5ff ${floorPlanOpacity * 100}%)`
+                        }}
                       />
                     </div>
                     
                     <div>
-                      <Label className="text-xs font-bold mb-1 block">Scale: {floorPlanScale.toFixed(1)}x</Label>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label className="text-xs font-bold">Scale</Label>
+                        <span className="text-xs font-mono text-purple-600">{floorPlanScale.toFixed(1)}x</span>
+                      </div>
                       <input
                         type="range"
-                        min="0.5"
-                        max="3"
+                        min="0.3"
+                        max="5"
                         step="0.1"
                         value={floorPlanScale}
                         onChange={(e) => setFloorPlanScale(parseFloat(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFloorPlanScale(1)}
+                        className="text-xs h-8"
+                      >
+                        Reset Scale
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFloorPlanOpacity(0.5)}
+                        className="text-xs h-8"
+                      >
+                        Reset Opacity
+                      </Button>
+                    </div>
+                    
+                    {autoTraceMode && (
+                      <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-2 text-xs text-yellow-800">
+                        <div className="font-bold mb-1">🎯 Auto-Trace Mode Active</div>
+                        <p>Click near walls to snap automatically!</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1129,8 +1698,8 @@ export default function UltimateKSYKBuilder() {
                   {floorPlanImage && (
                     <image
                       href={floorPlanImage}
-                      x="0"
-                      y="0"
+                      x={floorPlanPosition.x}
+                      y={floorPlanPosition.y}
                       width={5000 * floorPlanScale}
                       height={3000 * floorPlanScale}
                       opacity={floorPlanOpacity}
@@ -1138,6 +1707,79 @@ export default function UltimateKSYKBuilder() {
                       style={{ pointerEvents: 'none' }}
                     />
                   )}
+                  
+                  {/* AI Detected Walls Overlay */}
+                  {showDetectedWalls && detectedWalls.map((wall, idx) => (
+                    <g key={`wall-${idx}`}>
+                      <line
+                        x1={wall.x1}
+                        y1={wall.y1}
+                        x2={wall.x2}
+                        y2={wall.y2}
+                        stroke="#FF6B6B"
+                        strokeWidth="3"
+                        opacity="0.7"
+                        strokeDasharray="8,4"
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      <circle
+                        cx={wall.x1}
+                        cy={wall.y1}
+                        r="4"
+                        fill="#FF6B6B"
+                        opacity="0.8"
+                      />
+                      <circle
+                        cx={wall.x2}
+                        cy={wall.y2}
+                        r="4"
+                        fill="#FF6B6B"
+                        opacity="0.8"
+                      />
+                    </g>
+                  ))}
+                  
+                  {/* AI Detected Room Areas */}
+                  {showDetectedRooms && detectedRooms.map((room, idx) => (
+                    <g key={`detected-room-${idx}`}>
+                      <rect
+                        x={room.bounds.x}
+                        y={room.bounds.y}
+                        width={room.bounds.width}
+                        height={room.bounds.height}
+                        fill="rgba(147, 51, 234, 0.1)"
+                        stroke="#9333EA"
+                        strokeWidth="2"
+                        strokeDasharray="12,6"
+                        rx="8"
+                        className="cursor-pointer hover:fill-opacity-20 transition-all"
+                        onClick={() => createRoomFromDetection(room)}
+                      />
+                      <text
+                        x={room.center.x}
+                        y={room.center.y}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="#9333EA"
+                        fontSize="14"
+                        fontWeight="bold"
+                        className="pointer-events-none"
+                      >
+                        🤖 Room {idx + 1}
+                      </text>
+                      <text
+                        x={room.center.x}
+                        y={room.center.y + 20}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="#9333EA"
+                        fontSize="10"
+                        className="pointer-events-none"
+                      >
+                        Click to create
+                      </text>
+                    </g>
+                  ))}
                   
                   {buildings.map((building: any) => {
                     const x = building.mapPositionX || 100, y = building.mapPositionY || 100;
