@@ -61,6 +61,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log('✅ OWNER LOGIN SUCCESS');
 
+        // Log successful login
+        await storage.createAdminLoginLog({
+          userId: ownerUser.id,
+          email: normalizedEmail,
+          userName: `${ownerUser.firstName} ${ownerUser.lastName}`,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          loginStatus: 'success',
+          sessionId: req.sessionID || null
+        });
+
         req.login({
           claims: {
             sub: ownerUser.id,
@@ -86,6 +97,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user) {
         console.log('❌ User not found');
+        
+        // Log failed login attempt
+        await storage.createAdminLoginLog({
+          userId: null,
+          email: normalizedEmail,
+          userName: null,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          loginStatus: 'failed',
+          failureReason: 'User not found'
+        });
+        
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
@@ -102,6 +125,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user.password !== trimmedPassword) {
         console.log('❌ Password mismatch');
+        
+        // Log failed login attempt
+        await storage.createAdminLoginLog({
+          userId: user.id,
+          email: normalizedEmail,
+          userName: `${user.firstName} ${user.lastName}`,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          loginStatus: 'failed',
+          failureReason: 'Invalid password'
+        });
+        
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
@@ -114,11 +149,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           last_name: user.lastName,
           profile_image_url: user.profileImageUrl
         }
-      }, (err) => {
+      }, async (err) => {
         if (err) {
           console.error("❌ Session error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
+        
+        // Log successful login
+        await storage.createAdminLoginLog({
+          userId: user.id,
+          email: normalizedEmail,
+          userName: `${user.firstName} ${user.lastName}`,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          loginStatus: 'success',
+          sessionId: req.sessionID || null
+        });
+        
         console.log('✅ User logged in');
         console.log('=====================================\n');
         return res.json({ 

@@ -93,6 +93,18 @@ export interface IStorage {
   // App Settings operations
   getAppSettings(): Promise<AppSettings>;
   updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings>;
+  
+  // Admin Login Log operations
+  createAdminLoginLog(log: {
+    userId: string | null;
+    email: string;
+    userName: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    loginStatus: 'success' | 'failed';
+    failureReason?: string | null;
+    sessionId?: string | null;
+  }): Promise<void>;
 }
 
 
@@ -426,6 +438,24 @@ class MemStorage implements IStorage {
   async updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings> {
     this.mockAppSettings = { ...this.mockAppSettings, ...settings, updatedAt: new Date() };
     return this.mockAppSettings;
+  }
+
+  // Admin Login Log operations
+  async createAdminLoginLog(log: {
+    userId: string | null;
+    email: string;
+    userName: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    loginStatus: 'success' | 'failed';
+    failureReason?: string | null;
+    sessionId?: string | null;
+  }): Promise<void> {
+    // In-memory storage - just log to console for now
+    console.log('📝 Admin Login Log:', {
+      ...log,
+      timestamp: new Date().toISOString()
+    });
   }
 }
 

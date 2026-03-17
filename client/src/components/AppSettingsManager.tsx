@@ -43,6 +43,12 @@ interface AppSettings {
   enablePreloadImages: boolean;
   enableLazyLoading: boolean;
   defaultZoomLevel: number;
+  enableEasterEgg?: boolean;
+  enableEvents?: boolean;
+  enableTicketSystem?: boolean;
+  enableVersionInfo?: boolean;
+  maintenanceMode?: boolean;
+  maintenanceMessage?: string | null;
 }
 
 export default function AppSettingsManager() {
@@ -598,6 +604,84 @@ export default function AppSettingsManager() {
                     Higher values make AI more sensitive to detecting rooms and features
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="font-semibold mb-4">Additional Features</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enableEasterEgg">Enable Easter Egg</Label>
+                      <p className="text-sm text-muted-foreground">Show hidden Easter egg feature</p>
+                    </div>
+                    <Switch
+                      id="enableEasterEgg"
+                      checked={settings.enableEasterEgg ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableEasterEgg: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enableEvents">Enable Events</Label>
+                      <p className="text-sm text-muted-foreground">Show events system</p>
+                    </div>
+                    <Switch
+                      id="enableEvents"
+                      checked={settings.enableEvents ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableEvents: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enableTicketSystem">Enable Ticket System</Label>
+                      <p className="text-sm text-muted-foreground">Show support ticket system</p>
+                    </div>
+                    <Switch
+                      id="enableTicketSystem"
+                      checked={settings.enableTicketSystem ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableTicketSystem: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enableVersionInfo">Enable Version Info</Label>
+                      <p className="text-sm text-muted-foreground">Show version information button</p>
+                    </div>
+                    <Switch
+                      id="enableVersionInfo"
+                      checked={settings.enableVersionInfo ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableVersionInfo: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+                      <p className="text-sm text-muted-foreground">Put app in maintenance mode</p>
+                    </div>
+                    <Switch
+                      id="maintenanceMode"
+                      checked={settings.maintenanceMode ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, maintenanceMode: checked })}
+                    />
+                  </div>
+                </div>
+
+                {settings.maintenanceMode && (
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="maintenanceMessage">Maintenance Message</Label>
+                    <Input
+                      id="maintenanceMessage"
+                      value={settings.maintenanceMessage || ''}
+                      onChange={(e) => setSettings({ ...settings, maintenanceMessage: e.target.value })}
+                      placeholder="We are currently performing maintenance. Please check back soon."
+                    />
+                    <p className="text-sm text-muted-foreground">Message shown to users during maintenance</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

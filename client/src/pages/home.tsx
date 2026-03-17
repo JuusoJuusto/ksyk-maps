@@ -1328,7 +1328,6 @@ export default function Home() {
             <TabsContent value="schedule" className="h-full m-0 p-4 sm:p-8 overflow-auto flex items-center justify-center">
               <div className="max-w-2xl mx-auto text-center">
                 <div className={`p-12 rounded-2xl ${darkMode ? 'bg-gray-800 border-2 border-gray-700' : 'bg-white border-2 border-blue-200'}`}>
-                  <div className="text-6xl mb-6">📅</div>
                   <h2 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                     Coming Soon
                   </h2>
@@ -1476,10 +1475,10 @@ export default function Home() {
                           <div 
                             className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
                               theme === 'blueprint' 
-                                ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-cyan-900/20 dark:to-blue-900/20' 
+                                ? 'border-cyan-400 bg-blue-100' 
                                 : darkMode
-                                  ? 'border-blue-400 bg-gradient-to-br from-blue-900/20 to-indigo-900/20 hover:border-cyan-400'
-                                  : 'border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-100 hover:border-cyan-400'
+                                  ? 'border-blue-400 bg-blue-900/20 hover:border-cyan-400'
+                                  : 'border-blue-400 bg-blue-50 hover:border-cyan-400'
                             }`}
                             onClick={async () => {
                               setTheme('blueprint');
@@ -1494,7 +1493,7 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-lg p-2 mb-2 shadow-sm border border-blue-500 relative overflow-hidden">
+                            <div className="bg-blue-900 rounded-lg p-2 mb-2 shadow-sm border border-blue-500 relative overflow-hidden">
                               <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
                               <div className="relative flex items-center justify-between mb-1">
                                 <div className="w-2 h-2 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>

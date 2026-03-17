@@ -446,9 +446,9 @@ export default function UltimateKSYKBuilder() {
       }
     }
     
-    // Step 3: Double thresholding and hysteresis
-    const lowThreshold = 50;
-    const highThreshold = 150;
+    // Step 3: Double thresholding and hysteresis - IMPROVED THRESHOLDS
+    const lowThreshold = 30;  // Lowered from 50 for better detection
+    const highThreshold = 90; // Lowered from 150 for better detection
     const edges = new Uint8Array(width * height);
     
     // Mark strong and weak edges
