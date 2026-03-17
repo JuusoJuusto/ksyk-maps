@@ -213,6 +213,20 @@ export const tickets = pgTable("tickets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Admin Login Logs table
+export const adminLoginLogs = pgTable("admin_login_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  email: varchar("email").notNull(),
+  userName: varchar("user_name"),
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  loginStatus: varchar("login_status").notNull(), // success, failed
+  failureReason: varchar("failure_reason"),
+  sessionId: varchar("session_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),
@@ -328,6 +342,11 @@ export const insertTicketSchema = createInsertSchema(tickets).omit({
   updatedAt: true,
 });
 
+export const insertAdminLoginLogSchema = createInsertSchema(adminLoginLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // App Settings table
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default('default'),
@@ -363,6 +382,12 @@ export const appSettings = pgTable("app_settings", {
   enablePreloadImages: boolean("enable_preload_images").default(true),
   enableLazyLoading: boolean("enable_lazy_loading").default(true),
   defaultZoomLevel: numeric("default_zoom_level").default("1.0"),
+  enableEasterEgg: boolean("enable_easter_egg").default(true),
+  enableEvents: boolean("enable_events").default(true),
+  enableTicketSystem: boolean("enable_ticket_system").default(true),
+  enableVersionInfo: boolean("enable_version_info").default(true),
+  maintenanceMode: boolean("maintenance_mode").default(false),
+  maintenanceMessage: text("maintenance_message"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -392,3 +417,6 @@ export type Announcement = typeof announcements.$inferSelect;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type Ticket = typeof tickets.$inferSelect;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
+export type AdminLoginLog = typeof adminLoginLogs.$inferSelect;
+export type InsertAdminLoginLog = z.infer<typeof insertAdminLoginLogSchema>;
+
