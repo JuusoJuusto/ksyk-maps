@@ -1751,7 +1751,7 @@ export default function UltimateKSYKBuilder() {
                         <option value="">No connection</option>
                         <optgroup label="Buildings">
                           {buildings.filter((b: any) => b.id !== roomData.buildingId).map((building: any) => (
-                            <option key={`building-${building.id}`} value={`building-${building.id}`}>≡ƒÅó {building.name} - {building.nameEn}</option>
+                            <option key={`building-${building.id}`} value={`building-${building.id}`}>🏢 {building.name} - {building.nameEn}</option>
                           ))}
                         </optgroup>
                         <optgroup label="Rooms">
@@ -2165,11 +2165,11 @@ export default function UltimateKSYKBuilder() {
                     <div className="h-8 w-px bg-white/30"></div>
                     <div className="text-sm text-white/90 space-y-1">
                       <div className="flex items-center gap-2 font-semibold">
-                        <span>≡ƒû▒∩╕Å</span>
+                        <span>⌨️</span>
                         <span>Shift + Drag to Pan</span>
                       </div>
                       <div className="flex items-center gap-2 font-semibold">
-                        <span>Γî¿∩╕Å</span>
+                        <span>🖱️</span>
                         <span>Ctrl + Scroll to Zoom</span>
                       </div>
                     </div>
@@ -3007,7 +3007,7 @@ export default function UltimateKSYKBuilder() {
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1 text-gray-500">
-                                  <span>({hallway.startX}, {hallway.startY}) ΓåÆ ({hallway.endX}, {hallway.endY})</span>
+                                  <span>({hallway.startX}, {hallway.startY}) → ({hallway.endX}, {hallway.endY})</span>
                                 </div>
                               </div>
                             </motion.div>
