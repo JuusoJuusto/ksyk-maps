@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HelpProvider } from "@/contexts/HelpContext";
@@ -8,6 +8,7 @@ import { DarkModeProvider } from "@/contexts/DarkModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import MaintenanceMode from "@/components/MaintenanceMode";
 import { Analytics } from "@vercel/analytics/react";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -24,6 +25,22 @@ import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
 function Router() {
+  // Check maintenance mode
+  const { data: settings } = useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) return null;
+      return response.json();
+    },
+    staleTime: 60000,
+  });
+
+  // Show maintenance mode if enabled
+  if (settings?.maintenanceMode) {
+    return <MaintenanceMode message={settings.maintenanceMessage} />;
+  }
+
   return (
     <Switch>
       <Route path="/" component={Home} />
