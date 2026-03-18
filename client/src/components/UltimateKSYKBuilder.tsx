@@ -17,7 +17,7 @@ import {
 
 interface Point { x: number; y: number; }
 
-type Tool = "select" | "building" | "room" | "stairway" | "hallway" | "door";
+type Tool = "select" | "building" | "room" | "stairway" | "hallway" | "door" | "eraser";
 type ShapeMode = "rectangle" | "custom";
 
 export default function UltimateKSYKBuilder() {
@@ -87,11 +87,11 @@ export default function UltimateKSYKBuilder() {
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
-      console.log('≡ƒÅá Fetching rooms from API...');
+      console.log('🔄 Fetching rooms from API...');
       const response = await fetch("/api/rooms");
       if (!response.ok) throw new Error("Failed to fetch rooms");
       const data = await response.json();
-      console.log('Γ£à Received rooms:', data.length, data);
+      console.log('✅ Received rooms:', data.length, data);
       return data;
     },
     staleTime: 30000, // Cache for 30 seconds
@@ -101,11 +101,11 @@ export default function UltimateKSYKBuilder() {
   const { data: hallways = [], isLoading: hallwaysLoading } = useQuery({
     queryKey: ["hallways"],
     queryFn: async () => {
-      console.log('≡ƒÜ╢ Fetching hallways from API...');
+      console.log('🔄 Fetching hallways from API...');
       const response = await fetch("/api/hallways");
       if (!response.ok) throw new Error("Failed to fetch hallways");
       const data = await response.json();
-      console.log('Γ£à Received hallways:', data.length, data);
+      console.log('✅ Received hallways:', data.length, data);
       return data;
     },
     staleTime: 30000,
@@ -198,7 +198,7 @@ export default function UltimateKSYKBuilder() {
   // Enhanced AI processing with detailed progress tracking
   const detectWallsFromImage = async (imageUrl: string) => {
     try {
-      setAiProcessingStep('≡ƒöä Initializing quantum AI systems...');
+      setAiProcessingStep('🚀 Initializing quantum AI systems...');
       const img = new Image();
       img.src = imageUrl;
       
@@ -206,7 +206,7 @@ export default function UltimateKSYKBuilder() {
         img.onload = resolve;
       });
       
-      setAiProcessingStep('≡ƒºá Loading neural networks & deep learning models...');
+      setAiProcessingStep('🧠 Loading neural networks & deep learning models...');
       await new Promise(resolve => setTimeout(resolve, 800)); // Visual feedback delay
       
       // Create high-resolution canvas for better processing
@@ -225,20 +225,20 @@ export default function UltimateKSYKBuilder() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      setAiProcessingStep('≡ƒöì Analyzing architectural structure with computer vision...');
+      setAiProcessingStep('🏗️ Analyzing architectural structure with computer vision...');
       await new Promise(resolve => setTimeout(resolve, 600));
       
       // Enhanced preprocessing pipeline
       const grayscale = preprocessImage(data, canvas.width, canvas.height);
       
-      setAiProcessingStep('ΓÜí Applying advanced edge detection algorithms...');
+      setAiProcessingStep('🔍 Applying advanced edge detection algorithms...');
       await new Promise(resolve => setTimeout(resolve, 700));
       
       // Multi-algorithm edge detection
       const cannyEdges = cannyEdgeDetection(grayscale, canvas.width, canvas.height);
       const sobelEdges = sobelEdgeDetection(grayscale, canvas.width, canvas.height);
       
-      setAiProcessingStep('≡ƒÅù∩╕Å Detecting walls & architectural features...');
+      setAiProcessingStep('🧱 Detecting walls & architectural features...');
       await new Promise(resolve => setTimeout(resolve, 800));
       
       // Combine edge detection results
@@ -247,13 +247,13 @@ export default function UltimateKSYKBuilder() {
       // Enhanced line detection using Hough Transform
       const lines = houghLineTransform(combinedEdges, canvas.width, canvas.height);
       
-      setAiProcessingStep('≡ƒÅá Identifying room boundaries with contour analysis...');
+      setAiProcessingStep('🏠 Identifying room boundaries with contour analysis...');
       await new Promise(resolve => setTimeout(resolve, 900));
       
       // Advanced room detection with contour analysis
       const roomContours = detectRoomContours(combinedEdges, canvas.width, canvas.height);
       
-      setAiProcessingStep('≡ƒÄ» Optimizing results with machine learning...');
+      setAiProcessingStep('⚡ Optimizing results with machine learning...');
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Scale results back to canvas coordinates
@@ -288,10 +288,10 @@ export default function UltimateKSYKBuilder() {
       setDetectedWalls(scaledWalls);
       setDetectedRooms(scaledRooms);
       
-      setAiProcessingStep('Γ£à AI analysis complete! Ready for building.');
+      setAiProcessingStep('✅ AI analysis complete! Ready for building.');
       setTimeout(() => setAiProcessingStep(''), 4000);
       
-      console.log(`≡ƒñû ULTRA AI Analysis Complete v3.1:
+      console.log(`🤖 ULTRA AI Analysis Complete v3.1:
         - ${scaledWalls.length} wall segments detected
         - ${scaledRooms.length} rooms identified
         - Average confidence: ${(scaledWalls.reduce((sum, w) => sum + w.confidence, 0) / scaledWalls.length * 100).toFixed(1)}%
@@ -299,7 +299,7 @@ export default function UltimateKSYKBuilder() {
         
     } catch (error) {
       console.error('Error in AI processing:', error);
-      setAiProcessingStep('Γ¥î AI processing failed - Please try again');
+      setAiProcessingStep('❌ AI processing failed - Please try again');
       setTimeout(() => setAiProcessingStep(''), 4000);
     }
   };
@@ -1479,6 +1479,7 @@ export default function UltimateKSYKBuilder() {
     { id: "hallway" as Tool, icon: Move, label: "Hallway", description: "Connect with corridors", color: "bg-gray-600", hoverColor: "hover:bg-gray-700" },
     { id: "stairway" as Tool, icon: Layers, label: "Stairs/Elevator", description: "Vertical connections", color: "bg-green-600", hoverColor: "hover:bg-green-700" },
     { id: "door" as Tool, icon: Square, label: "Door", description: "Entry points", color: "bg-amber-600", hoverColor: "hover:bg-amber-700" },
+    { id: "eraser" as Tool, icon: Trash2, label: "Eraser", description: "Click to remove objects", color: "bg-red-600", hoverColor: "hover:bg-red-700" },
   ];
 
 
@@ -1819,7 +1820,7 @@ export default function UltimateKSYKBuilder() {
                               </div>
                             </div>
                             <div className="text-center space-y-2">
-                              <p className="text-lg font-bold text-purple-700">≡ƒñû AI Processing v3.1</p>
+                              <p className="text-lg font-bold text-purple-700">🤖 AI Processing v3.1</p>
                               <p className="text-sm text-purple-600 font-medium">{aiProcessingStep}</p>
                             </div>
                             <div className="bg-purple-100 rounded-lg p-3 space-y-2">
@@ -2322,7 +2323,7 @@ export default function UltimateKSYKBuilder() {
                         fontWeight="bold"
                         className="pointer-events-none"
                       >
-                        ≡ƒñû Room {idx + 1}
+                        🏠 Room {idx + 1}
                       </text>
                       <text
                         x={room.center.x}
@@ -2349,7 +2350,14 @@ export default function UltimateKSYKBuilder() {
                       const xs = customShape.map((p: Point) => p.x), ys = customShape.map((p: Point) => p.y);
                       const centerX = (Math.min(...xs) + Math.max(...xs)) / 2, centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
                       return (
-                        <g key={building.id} className="cursor-pointer transition-all hover:opacity-100" onClick={() => setSelectedBuilding(building)}>
+                        <g key={building.id} className="cursor-pointer transition-all hover:opacity-100" onClick={() => {
+                          if (activeTool === "eraser") {
+                            setBuildingToDelete(building);
+                            setDeleteConfirmOpen(true);
+                          } else {
+                            setSelectedBuilding(building);
+                          }
+                        }}>
                           {/* Enhanced 3D shadow for custom shapes */}
                           <polygon points={customShape.map((p: Point) => `${p.x + 8},${p.y + 8}`).join(" ")} fill="rgba(0,0,0,0.15)" />
                           <polygon points={customShape.map((p: Point) => `${p.x + 6},${p.y + 6}`).join(" ")} fill="rgba(0,0,0,0.2)" />
@@ -2404,7 +2412,14 @@ export default function UltimateKSYKBuilder() {
                     }
                     
                     return (
-                      <g key={building.id} className="cursor-pointer transition-all" onClick={() => setSelectedBuilding(building)}>
+                      <g key={building.id} className="cursor-pointer transition-all" onClick={() => {
+                        if (activeTool === "eraser") {
+                          setBuildingToDelete(building);
+                          setDeleteConfirmOpen(true);
+                        } else {
+                          setSelectedBuilding(building);
+                        }
+                      }}>
                         {/* 3D Shadow layers for depth */}
                         <rect x={x + 8} y={y + 8} width="150" height="100" fill="rgba(0,0,0,0.15)" rx="14" />
                         <rect x={x + 6} y={y + 6} width="150" height="100" fill="rgba(0,0,0,0.2)" rx="13" />
