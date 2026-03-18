@@ -1520,7 +1520,7 @@ export default function Home() {
                               </div>
                             </div>
                             <h4 className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>🖥️ System</h4>
-                            <p className="text-xs text-gray-700">Follows device</p>
+                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-700'}`}>Follows device</p>
                             <div className="mt-1">
                               {theme === 'system' ? (
                                 <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
@@ -1531,8 +1531,8 @@ export default function Home() {
                           </div>
                         </div>
                         
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-800">
+                        <div className={`mt-4 p-3 rounded-lg border ${darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                          <p className={`text-sm ${darkMode ? 'text-blue-300' : 'text-blue-800'}`}>
                             💡 <strong>Theme System:</strong> Choose from Light, Dark, or System themes. Changes are saved automatically and apply globally. The System theme automatically follows your device's light/dark mode preference.
                           </p>
                         </div>
