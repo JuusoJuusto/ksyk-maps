@@ -1352,26 +1352,154 @@ export default function Home() {
 
             <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
               
-              {/* MASSIVE TEST ELEMENT */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'red',
-                color: 'white',
-                fontSize: '48px',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999
-              }}>
-                SETTINGS TAB CONTENT IS HERE!!!
-              </div>
-              
               <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
+                
+                {/* Language Settings */}
+                <Card className="shadow-lg border-2 bg-white border-gray-300">
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-bold mb-4 text-gray-800">🌐 Language Settings</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-gray-700">
+                          Language / Kieli
+                        </label>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant={currentLang === 'en' ? 'default' : 'outline'}
+                            onClick={() => handleLanguageChange('en')}
+                            className="flex-1"
+                          >
+                            🇬🇧 English
+                          </Button>
+                          <Button
+                            variant={currentLang === 'fi' ? 'default' : 'outline'}
+                            onClick={() => handleLanguageChange('fi')}
+                            className="flex-1"
+                          >
+                            🇫🇮 Suomi
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Appearance Settings */}
+                <Card className="shadow-lg border-2 bg-white border-gray-300">
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-bold mb-4 text-gray-800">🎨 Appearance</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-3 text-gray-700">
+                          Theme Selection
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {/* Light Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
+                              theme === 'light' 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-300 bg-white'
+                            }`}
+                            onClick={async () => {
+                              setTheme('light');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'light' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
+                          >
+                            <h4 className="font-semibold text-lg text-gray-900">☀️ Light</h4>
+                            <p className="text-sm text-gray-600">Clean & bright</p>
+                            {theme === 'light' && (
+                              <div className="mt-2">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">✓ Active</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Dark Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
+                              theme === 'dark' 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-300 bg-white'
+                            }`}
+                            onClick={async () => {
+                              setTheme('dark');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'dark' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
+                          >
+                            <h4 className="font-semibold text-lg text-gray-900">🌙 Dark</h4>
+                            <p className="text-sm text-gray-600">Easy on eyes</p>
+                            {theme === 'dark' && (
+                              <div className="mt-2">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">✓ Active</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* System Theme */}
+                          <div 
+                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
+                              theme === 'system' 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-300 bg-white'
+                            }`}
+                            onClick={async () => {
+                              setTheme('system');
+                              try {
+                                await fetch('/api/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ theme: 'system' })
+                                });
+                              } catch (error) {
+                                console.error('Failed to save theme:', error);
+                              }
+                            }}
+                          >
+                            <h4 className="font-semibold text-lg text-gray-900">🖥️ System</h4>
+                            <p className="text-sm text-gray-600">Follows device</p>
+                            {theme === 'system' && (
+                              <div className="mt-2">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">✓ Active</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* About */}
+                <Card className="shadow-lg border-2 bg-white border-gray-300">
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-bold mb-4 text-gray-800">ℹ️ About</h3>
+                    <div className="space-y-4 text-sm text-gray-600">
+                      <div className="space-y-2">
+                        <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
+                        <p>Version 3.1.0</p>
+                        <p>© 2026 StudiOWL</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
                 
                 {/* Language Settings */}
                 <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
