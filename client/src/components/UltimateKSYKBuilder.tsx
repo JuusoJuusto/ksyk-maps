@@ -1626,7 +1626,7 @@ export default function UltimateKSYKBuilder() {
           rooms.push({
             bounds: region.bounds,
             area: region.area,
-            confidence: calculateRoomConfidence(region),
+            confidence: calculateRegionConfidence(region),
             suggestedType: roomType
           });
         }
@@ -1681,7 +1681,7 @@ export default function UltimateKSYKBuilder() {
   };
 
   // Calculate room confidence based on geometric properties
-  const calculateRoomConfidence = (region: any): number => {
+  const calculateRegionConfidence = (region: any): number => {
     const aspectRatio = region.bounds.width / region.bounds.height;
     const rectangularity = region.area / (region.bounds.width * region.bounds.height);
     
