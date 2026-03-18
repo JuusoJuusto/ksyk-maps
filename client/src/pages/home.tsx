@@ -1350,13 +1350,13 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 pt-20 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
-              <div className="max-w-4xl mx-auto">
+            <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+              <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
                 
                 {/* Language Settings */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
                   <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 {t('nav.information')}</h3>
+                    <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 Language Settings</h3>
                     <div className="space-y-4">
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1384,9 +1384,9 @@ export default function Home() {
                 </Card>
                 
                 {/* Appearance Settings */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
                   <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
+                    <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
                     <div className="space-y-4">
                       <div className="border-t pt-4">
                         <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
