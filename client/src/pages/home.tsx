@@ -57,10 +57,16 @@ interface Room {
 
 
 export default function Home() {
+  console.log('🏠 HOME COMPONENT RENDERING');
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, toggleTheme } = useTheme();
+  
+  console.log('  - Translation function available:', !!t);
+  console.log('  - Current language:', currentLang);
+  console.log('  - Dark mode:', darkMode);
+  console.log('  - Theme:', theme);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -101,20 +107,34 @@ export default function Home() {
   }, [sidebarOpen]);
   
   const handleLanguageChange = (lang: string) => {
-    localStorage.setItem('ksyk_language', lang);
-    i18n.changeLanguage(lang).then(() => {
-      setCurrentLang(lang);
-      window.location.reload();
-    });
+    console.log('🌐 Language change requested:', lang);
+    try {
+      localStorage.setItem('ksyk_language', lang);
+      i18n.changeLanguage(lang).then(() => {
+        setCurrentLang(lang);
+        console.log('✅ Language changed successfully to:', lang);
+        window.location.reload();
+      }).catch(error => {
+        console.error('❌ Language change failed:', error);
+      });
+    } catch (error) {
+      console.error('❌ Language change error:', error);
+    }
   };
   
   const handleResetMap = () => {
-    setZoom(1); // Reset to normal zoom
-    setPanX(0);
-    setPanY(0);
-    setSelectedFloor(1);
-    setSelectedRoom(null);
-    setSelectedBuilding(null);
+    console.log('🗺️ Map reset requested');
+    try {
+      setZoom(1); // Reset to normal zoom
+      setPanX(0);
+      setPanY(0);
+      setSelectedFloor(1);
+      setSelectedRoom(null);
+      setSelectedBuilding(null);
+      console.log('✅ Map reset successfully');
+    } catch (error) {
+      console.error('❌ Map reset error:', error);
+    }
   };
 
   // Fetch buildings with caching
@@ -556,6 +576,7 @@ export default function Home() {
               <TabsTrigger 
                 value="settings" 
                 className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
+                onClick={() => console.log('⚙️ SETTINGS TAB CLICKED')}
               >
                 <Settings className="h-5 w-5" />
                 <span className="hidden sm:inline">{t('admin.settings')}</span>
@@ -1351,6 +1372,20 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="settings" className={`h-full m-0 pt-20 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+              {(() => {
+                console.log('🔧 SETTINGS TAB RENDERING');
+                console.log('  - darkMode:', darkMode);
+                console.log('  - theme:', theme);
+                console.log('  - currentLang:', currentLang);
+                console.log('  - zoom:', zoom);
+                return null;
+              })()}
+              
+              {/* DEBUG: Visible test element */}
+              <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-4 z-50 text-center font-bold">
+                SETTINGS TAB IS RENDERING - If you see this, the tab works!
+              </div>
+              
               <div className="max-w-4xl mx-auto space-y-6">
                 
                 {/* Language Settings */}
