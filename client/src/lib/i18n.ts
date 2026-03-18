@@ -297,7 +297,7 @@ const resources = {
       
       // Quick Actions
       'actions.title': 'Quick Actions (speedy like)',
-      'actions.directions': 'Get Directions, innit (show me the way)',
+      'actions.directions': 'Get Directions, innit',
       'actions.findStaff': 'Find Staff (where they at, bruv?)',
       'actions.events': "Today's Events (what\'s happening, mate?)",
       'actions.emergency': 'Emergency Info (hopefully you won\'t need this, innit)',

@@ -41,19 +41,20 @@ export default function EasterEgg() {
           initial={{ opacity: 0, scale: 0.5, y: -100 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.5, y: -100 }}
-          className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 p-1 rounded-2xl shadow-2xl"
+          className="fixed top-4 left-4 right-4 md:top-8 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-50 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 p-1 rounded-2xl shadow-2xl max-w-md mx-auto"
         >
-          <div className="bg-gray-900 px-8 py-6 rounded-2xl">
-            <div className="flex items-center gap-4">
+          <div className="bg-gray-900 px-4 py-4 md:px-8 md:py-6 rounded-2xl">
+            <div className="flex items-center gap-3 md:gap-4">
               <motion.div
                 animate={{ rotate: [0, 360] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="flex-shrink-0"
               >
-                <Unlock className="w-12 h-12 text-yellow-400" />
+                <Unlock className="w-8 h-8 md:w-12 md:h-12 text-yellow-400" />
               </motion.div>
-              <div>
-                <h3 className="text-2xl font-black text-white mb-1">SECRET UNLOCKED!</h3>
-                <p className="text-lg text-yellow-300">British English language available in Settings, innit! 🇬🇧</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg md:text-2xl font-black text-white mb-1">SECRET UNLOCKED!</h3>
+                <p className="text-sm md:text-lg text-yellow-300 break-words">British English in Settings, innit! 🇬🇧</p>
               </div>
             </div>
           </div>
