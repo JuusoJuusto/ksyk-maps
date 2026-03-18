@@ -200,17 +200,23 @@ export const announcements = pgTable("announcements", {
 export const tickets = pgTable("tickets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketId: varchar("ticket_id").notNull().unique(),
-  type: varchar("type").notNull(), // bug, feature, support
+  type: varchar("type").notNull(), // bug, feature, support, error
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   name: varchar("name"),
   email: varchar("email"),
   status: varchar("status").default("pending"), // pending, in_progress, resolved, closed
-  priority: varchar("priority").default("normal"), // low, normal, high
+  priority: varchar("priority").default("normal"), // low, normal, high, critical
   assignedTo: varchar("assigned_to").references(() => users.id),
   response: text("response"),
+  errorReferenceId: varchar("error_reference_id"), // For automatic error submissions
+  errorStack: text("error_stack"), // Stack trace
+  errorInfo: jsonb("error_info"), // Additional error context
+  userAgent: text("user_agent"), // Browser info
+  url: text("url"), // Page where error occurred
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
 });
 
 // Admin Login Logs table
@@ -224,6 +230,21 @@ export const adminLoginLogs = pgTable("admin_login_logs", {
   loginStatus: varchar("login_status").notNull(), // success, failed
   failureReason: varchar("failure_reason"),
   sessionId: varchar("session_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// App Logs table for error tracking
+export const appLogs = pgTable("app_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  level: varchar("level").notNull(), // error, warn, info, debug
+  message: text("message").notNull(),
+  errorReferenceId: varchar("error_reference_id").unique(), // Unique ID for errors
+  errorStack: text("error_stack"),
+  errorInfo: jsonb("error_info"),
+  userAgent: text("user_agent"),
+  url: text("url"),
+  userId: varchar("user_id").references(() => users.id),
+  ipAddress: varchar("ip_address"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -343,6 +364,11 @@ export const insertTicketSchema = createInsertSchema(tickets).omit({
 });
 
 export const insertAdminLoginLogSchema = createInsertSchema(adminLoginLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAppLogSchema = createInsertSchema(appLogs).omit({
   id: true,
   createdAt: true,
 });

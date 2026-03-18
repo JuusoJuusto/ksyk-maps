@@ -1,198 +1,195 @@
-import React from "react";
-import { AlertTriangle, RefreshCw, Home, Mail, HelpCircle, Keyboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
 
-interface ErrorBoundaryState {
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
   hasError: boolean;
-  error?: Error;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  errorReferenceId: string | null;
+  ticketSubmitted: boolean;
 }
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-}
-
-export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      errorReferenceId: null,
+      ticketSubmitted: false,
+    };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+  async componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Generate unique error reference ID
+    const errorReferenceId = `${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    // Log to admin panel
-    fetch('/api/logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'error',
-        message: `React Error Boundary: ${error.message}`,
-        details: {
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          errorName: error.name
-        },
-        timestamp: new Date().toISOString(),
-        source: 'ErrorBoundary'
-      })
-    }).catch(logError => {
-      console.error('Failed to log error to admin panel:', logError);
+    console.error('Error caught by boundary:', error, errorInfo);
+    console.error('Error Reference ID:', errorReferenceId);
+    
+    this.setState({ 
+      errorInfo,
+      errorReferenceId 
     });
+
+    // Log error to backend with reference ID
+    try {
+      await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: 'error',
+          message: `React Error: ${error.message}`,
+          errorReferenceId,
+          errorStack: error.stack,
+          errorInfo: {
+            componentStack: errorInfo.componentStack,
+            errorBoundary: true,
+          },
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        }),
+      });
+
+      // Auto-create ticket for critical errors
+      await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'error',
+          title: `Auto-reported Error: ${error.message}`,
+          description: `An error was automatically detected and reported.\n\nError: ${error.message}\n\nStack: ${error.stack}\n\nComponent Stack: ${errorInfo.componentStack}`,
+          priority: 'critical',
+          errorReferenceId,
+          errorStack: error.stack,
+          errorInfo: {
+            componentStack: errorInfo.componentStack,
+          },
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to log error:', err);
+    }
   }
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  handleGoHome = () => {
+    window.location.href = '/';
+  };
+
+  handleSubmitTicket = async () => {
+    const { error, errorInfo, errorReferenceId } = this.state;
+    
+    try {
+      await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bug',
+          title: `User-reported Error: ${error?.message}`,
+          description: `User manually submitted error report.\n\nError: ${error?.message}\n\nStack: ${error?.stack}\n\nComponent Stack: ${errorInfo?.componentStack}`,
+          priority: 'high',
+          errorReferenceId,
+          errorStack: error?.stack,
+          errorInfo: {
+            componentStack: errorInfo?.componentStack,
+          },
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        }),
+      });
+      
+      this.setState({ ticketSubmitted: true });
+    } catch (err) {
+      console.error('Failed to submit ticket:', err);
+    }
+  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl shadow-2xl border-2 border-red-200">
-            <CardHeader className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white text-center py-8">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/20 shadow-lg animate-pulse">
-                <AlertTriangle className="h-10 w-10 text-white" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <Card className="max-w-2xl w-full">
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <AlertTriangle className="h-16 w-16 text-red-500" />
               </div>
-              <CardTitle className="text-4xl font-bold mb-2">Oops! Something went wrong</CardTitle>
-              <p className="text-red-100 text-lg">
-                The KSYK Map encountered an unexpected error
-              </p>
+              <CardTitle className="text-2xl">Oops! Something went wrong</CardTitle>
             </CardHeader>
-            
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                {/* Error Details */}
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-5 shadow-inner">
-                  <h3 className="font-bold text-red-800 mb-3 flex items-center text-lg">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
-                    Error Details
-                  </h3>
-                  <p className="text-sm text-gray-700 font-mono bg-white p-4 rounded-lg border border-red-200 shadow-sm">
-                    {this.state.error?.message || "Unknown error occurred"}
+            <CardContent className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-red-800 mb-2">Error Reference ID:</p>
+                <p className="text-lg font-mono text-red-900 bg-white px-3 py-2 rounded border border-red-300">
+                  {this.state.errorReferenceId}
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  Save this ID for support reference
+                </p>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Error Details:</p>
+                <p className="text-sm text-gray-900 font-mono">
+                  {this.state.error?.message}
+                </p>
+              </div>
+
+              {this.state.ticketSubmitted && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    ✓ Error report submitted successfully! Our team will investigate.
                   </p>
                 </div>
-                
-                {/* Solutions */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-inner">
-                  <h3 className="font-bold text-blue-800 mb-4 text-lg flex items-center">
-                    <HelpCircle className="h-5 w-5 mr-2" />
-                    Quick Solutions
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
-                          1
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-1">Refresh the Page</h4>
-                          <p className="text-sm text-gray-600">Click the refresh button below or press F5</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
-                          2
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-1">Clear Browser Cache</h4>
-                          <div className="flex items-center gap-2 mt-2 bg-gray-50 p-2 rounded border">
-                            <Keyboard className="h-4 w-4 text-gray-600" />
-                            <code className="text-xs font-mono font-bold text-gray-700">Ctrl + Shift + R</code>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Windows/Linux</p>
-                          <div className="flex items-center gap-2 mt-1 bg-gray-50 p-2 rounded border">
-                            <Keyboard className="h-4 w-4 text-gray-600" />
-                            <code className="text-xs font-mono font-bold text-gray-700">Cmd + Shift + R</code>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Mac</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start">
-                        <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
-                          3
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-1">Wait & Retry</h4>
-                          <p className="text-sm text-gray-600">Try again in a few minutes</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-lg border border-orange-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start">
-                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
-                          4
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-1">Return Home</h4>
-                          <p className="text-sm text-gray-600">Go back to the main page</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-wrap justify-center gap-4">
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={this.handleReload}
+                  className="flex-1 flex items-center justify-center gap-2"
+                  variant="default"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reload Page
+                </Button>
+                <Button
+                  onClick={this.handleGoHome}
+                  className="flex-1 flex items-center justify-center gap-2"
+                  variant="outline"
+                >
+                  <Home className="h-4 w-4" />
+                  Go Home
+                </Button>
+                {!this.state.ticketSubmitted && (
                   <Button
-                    onClick={() => window.location.reload()}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all"
+                    onClick={this.handleSubmitTicket}
+                    className="flex-1 flex items-center justify-center gap-2"
+                    variant="secondary"
                   >
-                    <RefreshCw className="mr-2 h-5 w-5" />
-                    Refresh Page
+                    <Send className="h-4 w-4" />
+                    Report Error
                   </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => window.location.href = "/"}
-                    className="px-8 py-4 text-lg border-2 hover:bg-gray-50 shadow-lg"
-                  >
-                    <Home className="mr-2 h-5 w-5" />
-                    Go Home
-                  </Button>
-                </div>
-                
-                {/* Support Contact */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-xl p-6 shadow-inner">
-                  <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center justify-center">
-                    <Mail className="h-5 w-5 mr-2" />
-                    Need Help? Contact Support
-                  </h3>
-                  <div className="text-center space-y-3">
-                    <p className="text-gray-700">
-                      If the problem persists, please contact the <strong>KSYK Maps IT Support Team</strong>
-                    </p>
-                    <a 
-                      href="mailto:Juuso.Kaikula@ksyk.fi?subject=KSYK Maps Error Report&body=Error ID: {Date.now()}%0D%0A%0D%0APlease describe the issue:"
-                      className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <Mail className="h-5 w-5" />
-                      Juuso.Kaikula@ksyk.fi
-                    </a>
-                    <p className="text-sm text-gray-600">
-                      We'll help you resolve this issue as quickly as possible
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Error ID */}
-                <div className="text-center">
-                  <div className="inline-block bg-gray-100 border border-gray-300 rounded-lg px-4 py-2">
-                    <p className="text-xs text-gray-500 mb-1">Error Reference ID</p>
-                    <p className="font-mono text-sm font-bold text-gray-700">
-                      {Date.now()}-{Math.random().toString(36).substr(2, 9).toUpperCase()}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Include this ID when contacting support</p>
-                  </div>
-                </div>
+                )}
               </div>
+
+              <p className="text-xs text-center text-gray-500">
+                This error has been automatically logged. If the problem persists, please contact support with the reference ID above.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -202,3 +199,5 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;
