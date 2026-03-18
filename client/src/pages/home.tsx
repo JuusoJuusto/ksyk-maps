@@ -312,6 +312,51 @@ export default function Home() {
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-transparent">
           
+          {/* Tab Buttons - Moved to Sidebar */}
+          <div className={`px-3 py-3 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white'}`}>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setActiveTab('map')}
+                className={`flex items-center gap-3 text-sm px-4 py-3 rounded-xl transition-all font-semibold ${
+                  activeTab === 'map'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : darkMode
+                    ? 'hover:bg-gray-700 text-gray-300 bg-gray-700/50'
+                    : 'hover:bg-gray-100 text-gray-700 bg-gray-50'
+                }`}
+              >
+                <MapPin className="h-5 w-5" />
+                <span>{t('nav.map')}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('schedule')}
+                className={`flex items-center gap-3 text-sm px-4 py-3 rounded-xl transition-all font-semibold ${
+                  activeTab === 'schedule'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : darkMode
+                    ? 'hover:bg-gray-700 text-gray-300 bg-gray-700/50'
+                    : 'hover:bg-gray-100 text-gray-700 bg-gray-50'
+                }`}
+              >
+                <Calendar className="h-5 w-5" />
+                <span>{t('nav.schedule')}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-3 text-sm px-4 py-3 rounded-xl transition-all font-semibold ${
+                  activeTab === 'settings'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : darkMode
+                    ? 'hover:bg-gray-700 text-gray-300 bg-gray-700/50'
+                    : 'hover:bg-gray-100 text-gray-700 bg-gray-50'
+                }`}
+              >
+                <Settings className="h-5 w-5" />
+                <span>{t('admin.settings')}</span>
+              </button>
+            </div>
+          </div>
+          
           {/* Navigation Button */}
           <div className={`px-3 py-2 md:p-4 border-b ${darkMode ? 'border-gray-700 bg-blue-600' : 'border-gray-200 bg-blue-500'}`}>
             <Button
@@ -533,48 +578,6 @@ export default function Home() {
         
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-          {/* Tab Buttons */}
-          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
-            <button
-              onClick={() => setActiveTab('map')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
-                activeTab === 'map'
-                  ? 'bg-blue-600 text-white'
-                  : darkMode
-                  ? 'hover:bg-gray-800 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <MapPin className="h-5 w-5" />
-              <span className="hidden sm:inline">{t('nav.map')}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('schedule')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
-                activeTab === 'schedule'
-                  ? 'bg-blue-600 text-white'
-                  : darkMode
-                  ? 'hover:bg-gray-800 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <Calendar className="h-5 w-5" />
-              <span className="hidden sm:inline">{t('nav.schedule')}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
-                activeTab === 'settings'
-                  ? 'bg-blue-600 text-white'
-                  : darkMode
-                  ? 'hover:bg-gray-800 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <Settings className="h-5 w-5" />
-              <span className="hidden sm:inline">{t('admin.settings')}</span>
-            </button>
-          </div>
 
           {/* Map Tab Content */}
           {activeTab === 'map' && (

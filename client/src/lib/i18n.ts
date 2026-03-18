@@ -255,63 +255,63 @@ const resources = {
   'en-GB': {
     translation: {
       // Navigation
-      'nav.map': 'Map',
+      'nav.map': 'Map, innit',
       'nav.directory': 'Directory',
-      'nav.schedule': 'Schedule',
+      'nav.schedule': 'Timetable',
       'nav.events': 'Events',
       'nav.information': 'Information',
       'nav.admin': 'Admin',
       
       // Hero section
-      'hero.title': 'Welcome to KSYK Map, innit',
-      'hero.subtitle': 'Navigate our campus with ease, bruv • 1151 students • 40+ nationalities',
+      'hero.title': 'Welcome to KSYK Map, innit bruv',
+      'hero.subtitle': 'Navigate our campus with ease, mate • 1151 students • 40+ nationalities',
       
       // Search
       'search.placeholder': 'Search for rooms, staff, facilities, mate...',
       'search.rooms': 'Search Rooms',
-      'search.navigate': 'Navigate',
+      'search.navigate': 'Navigate, yeah?',
       
       // Map
       'map.title': 'Campus Map',
-      'map.zoomIn': 'Zoom In',
-      'map.floors': 'Floors',
+      'map.zoomIn': 'Zoom In, bruv',
+      'map.floors': 'Floors (not the dance kind)',
       'map.legend': 'Legend',
       'map.academic': 'Academic',
       'map.sports': 'Sports',
-      'map.library': 'Library',
+      'map.library': 'Library (quiet zone, innit)',
       'map.music': 'Music',
       
       // Buildings
-      'building.uwing': 'U-Wing',
+      'building.uwing': 'U-Wing (not the Star Wars kind)',
       'building.uwing.desc': 'Classrooms',
-      'building.main': 'Main Building',
+      'building.main': 'Main Building (the big one, mate)',
       'building.main.desc': 'Administration',
       'building.library': 'Library',
-      'building.library.desc': 'Study Spaces',
+      'building.library.desc': 'Study Spaces (bring your cuppa)',
       'building.music': 'School of Rock',
-      'building.music.desc': 'Music Building',
+      'building.music.desc': 'Music Building (proper loud)',
       'building.gym': 'Gymnasiums',
-      'building.gym.desc': 'Sports Facilities',
+      'building.gym.desc': 'Sports Facilities (get your trainers on)',
       'building.lab': 'Laboratories',
-      'building.lab.desc': 'Science Labs',
+      'building.lab.desc': 'Science Labs (no explosions please)',
       
       // Quick Actions
       'actions.title': 'Quick Actions',
       'actions.directions': 'Get Directions, innit',
-      'actions.findStaff': 'Find Staff',
+      'actions.findStaff': 'Find Staff (where they at?)',
       'actions.events': "Today's Events",
-      'actions.emergency': 'Emergency Info',
+      'actions.emergency': 'Emergency Info (hopefully you won\'t need this)',
       
       // Status
       'status.title': 'Campus Status',
       'status.buildingHours': 'Building Hours',
       'status.library': 'Library',
-      'status.cafeteria': 'Cafeteria',
-      'status.itSupport': 'IT Support',
+      'status.cafeteria': 'Cafeteria (get your scran)',
+      'status.itSupport': 'IT Support (have you tried turning it off and on again?)',
       'status.open': 'Open',
-      'status.closed': 'Closed',
+      'status.closed': 'Closed (sorry mate)',
       'status.available': 'Available',
-      'status.openUntil': 'Open until 20:00',
+      'status.openUntil': 'Open until 20:00 (that\'s 8pm for you)',
       
       // Announcements
       'announcements.title': 'Announcements',
@@ -321,15 +321,15 @@ const resources = {
       'announcements.high': 'This is well important, mate. Please review carefully, yeah?',
       
       // Staff Directory
-      'staff.title': 'Staff Directory',
+      'staff.title': 'Staff Directory (the grown-ups)',
       'staff.add': 'Add Staff',
       'staff.search': 'Search staff...',
       'staff.allDepartments': 'All Departments',
-      'staff.administration': 'Administration',
-      'staff.teaching': 'Teaching Staff',
-      'staff.support': 'Support Staff',
+      'staff.administration': 'Administration (the bosses)',
+      'staff.teaching': 'Teaching Staff (the legends)',
+      'staff.support': 'Support Staff (the real MVPs)',
       'staff.locate': 'Locate',
-      'staff.contact': 'Contact',
+      'staff.contact': 'Contact (give \'em a bell)',
       
       // Admin
       'admin.title': 'Admin Dashboard',
@@ -349,8 +349,8 @@ const resources = {
       'mobile.theme': 'Theme',
       'mobile.language': 'Language',
       'mobile.quickActions': 'Quick Actions',
-      'theme.light': 'Light',
-      'theme.dark': 'Dark',
+      'theme.light': 'Light (bright as the Queen\'s crown)',
+      'theme.dark': 'Dark (like a proper British winter)',
       'theme.light.desc': 'Proper bright, innit',
       'theme.dark.desc': 'Easy on the eyes, mate',
       'theme.current': 'Current theme',
@@ -360,22 +360,22 @@ const resources = {
       'language.english': 'English',
       'language.finnish': 'Finnish',
       'language.suomi': 'Suomi',
-      'language.british': 'British English (Bri\'ish)',
+      'language.british': 'British English (Bri\'ish, innit)',
       
       // Quick Actions Mobile
-      'quickActions.lunch': 'Lunch Menu',
-      'quickActions.transport': 'HSL Transport',
+      'quickActions.lunch': 'Lunch Menu (what\'s for scran?)',
+      'quickActions.transport': 'HSL Transport (the bus, mate)',
       'quickActions.admin': 'Admin Panel',
       
       // Common
       'login': 'Log In',
-      'logout': 'Log Out',
+      'logout': 'Log Out (cheerio!)',
       'close': 'Close',
-      'save': 'Save',
-      'cancel': 'Cancel',
-      'loading': 'Loading, innit...',
-      'unauthorized': 'Unauthorised',
-      'unauthorized.desc': 'You\'re logged out, bruv. Logging in again...',
+      'save': 'Save (keep it safe, bruv)',
+      'cancel': 'Cancel (never mind)',
+      'loading': 'Loading, innit... (fancy a cuppa while you wait?)',
+      'unauthorized': 'Unauthorised (oi, you can\'t be here!)',
+      'unauthorized.desc': 'You\'re logged out, bruv. Logging in again... (Bob\'s your uncle)',
     }
   }
 };
