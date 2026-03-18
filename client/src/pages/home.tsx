@@ -544,7 +544,7 @@ export default function Home() {
         
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-          <Tabs defaultValue="map" className="h-full">
+          <Tabs defaultValue="map" className="h-full" onValueChange={(value) => console.log('TAB CHANGED TO:', value)}>
             <TabsList className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
               <TabsTrigger 
                 value="map" 
