@@ -710,7 +710,7 @@ body {
   color: hsl(215, 16%, 70%) !important;
 }
 
-/* Blueprint Theme REMOVED - Use Light, Dark, or System themes instead */`n`n/* Enhanced Light Theme */
+/* Enhanced Light Theme */
 .light {
   background: #f8fafc;
   animation: light-ambient 25s ease-in-out infinite;

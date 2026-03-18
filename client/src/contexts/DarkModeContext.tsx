@@ -35,12 +35,10 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
   const toggleDarkMode = () => {
     // This will be handled by the theme system now
     const currentTheme = localStorage.getItem('ksyk-theme') || 'light';
-    let newTheme: 'light' | 'dark' | 'blueprint';
+    let newTheme: 'light' | 'dark';
     
     if (currentTheme === 'light') {
       newTheme = 'dark';
-    } else if (currentTheme === 'dark') {
-      newTheme = 'blueprint';
     } else {
       newTheme = 'light';
     }

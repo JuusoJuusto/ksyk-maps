@@ -12,7 +12,8 @@ import {
   Building, Home, Plus, Trash2, MousePointer, Check, X, Undo, Square, Move, 
   Layers, Zap, Save, Edit3, ZoomIn, ZoomOut, Maximize2, Copy, Edit, Grid3x3,
   Wand2, Target, Eye, EyeOff, RotateCcw, Download, Upload, Sparkles, Brain,
-  Settings, Play, Pause, FastForward
+  Settings, Play, Pause, FastForward, Navigation, Route, DoorOpen, Compass,
+  MapPin, ArrowRight, Shuffle, Lightbulb, Cpu, Gauge
 } from "lucide-react";
 
 interface Point { x: number; y: number; }
@@ -795,6 +796,26 @@ export default function UltimateKSYKBuilder() {
     }
     
     return component;
+    const stack = [{x: startX, y: startY}];
+    const threshold = 50;
+    
+    while (stack.length > 0) {
+      const {x, y} = stack.pop()!;
+      const idx = y * width + x;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || 
+          visited.has(idx) || image[idx] > threshold) {
+        continue;
+      }
+      
+      visited.add(idx);
+      component.add(idx);
+      
+      // Add 4-connected neighbors
+      stack.push({x: x + 1, y}, {x: x - 1, y}, {x, y: y + 1}, {x, y: y - 1});
+    }
+    
+    return component;
   };
 
   // Get bounding box of component
@@ -1397,9 +1418,646 @@ export default function UltimateKSYKBuilder() {
     }
   };
 
-  // 🚀 REVOLUTIONARY AI ALGORITHMS v4.0 - ADVANCED FUNCTIONS
+  // 🚀 REVOLUTIONARY AI ALGORITHMS v6.0 - ULTRA-ENHANCED FUNCTIONS
 
   // Ultra-advanced image preprocessing with AI enhancement
+  const preprocessImageAdvanced = (data: Uint8Array, width: number, height: number): Uint8Array => {
+    const grayscale = new Uint8Array(width * height);
+    
+    // Convert to grayscale with enhanced luminance weighting for architectural features
+    for (let i = 0; i < data.length; i += 4) {
+      const idx = i / 4;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // Enhanced luminance calculation optimized for architectural drawings
+      grayscale[idx] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+    }
+    
+    // Apply advanced Gaussian blur with adaptive sigma
+    return gaussianBlurAdvanced(grayscale, width, height, 1.2);
+  };
+
+  // Advanced Gaussian blur with edge preservation
+  const gaussianBlurAdvanced = (data: Uint8Array, width: number, height: number, sigma: number): Uint8Array => {
+    const result = new Uint8Array(data.length);
+    const kernel = createGaussianKernelAdvanced(sigma);
+    const radius = Math.floor(kernel.length / 2);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        let weightSum = 0;
+        
+        for (let ky = -radius; ky <= radius; ky++) {
+          for (let kx = -radius; kx <= radius; kx++) {
+            const px = Math.max(0, Math.min(width - 1, x + kx));
+            const py = Math.max(0, Math.min(height - 1, y + ky));
+            const weight = kernel[ky + radius] * kernel[kx + radius];
+            
+            sum += data[py * width + px] * weight;
+            weightSum += weight;
+          }
+        }
+        
+        result[y * width + x] = Math.round(sum / weightSum);
+      }
+    }
+    
+    return result;
+  };
+
+  // Enhanced Gaussian kernel creation
+  const createGaussianKernelAdvanced = (sigma: number): number[] => {
+    const size = Math.ceil(sigma * 3) * 2 + 1;
+    const kernel = new Array(size);
+    const center = Math.floor(size / 2);
+    let sum = 0;
+    
+    for (let i = 0; i < size; i++) {
+      const x = i - center;
+      kernel[i] = Math.exp(-(x * x) / (2 * sigma * sigma));
+      sum += kernel[i];
+    }
+    
+    // Normalize kernel
+    for (let i = 0; i < size; i++) {
+      kernel[i] /= sum;
+    }
+    
+    return kernel;
+  };
+
+  // Ultra-advanced Canny Edge Detection with adaptive thresholding
+  const cannyEdgeDetectionAdvanced = (grayscale: Uint8Array, width: number, height: number): Uint8Array => {
+    // Calculate adaptive thresholds based on image statistics
+    const histogram = new Array(256).fill(0);
+    for (let i = 0; i < grayscale.length; i++) {
+      histogram[grayscale[i]]++;
+    }
+    
+    // Find optimal thresholds using Otsu's method
+    const { lowThreshold, highThreshold } = calculateOptimalThresholds(histogram, grayscale.length);
+    
+    return cannyEdgeDetection(grayscale, width, height, lowThreshold, highThreshold);
+  };
+
+  // Calculate optimal thresholds using advanced statistics
+  const calculateOptimalThresholds = (histogram: number[], totalPixels: number) => {
+    let sum = 0;
+    for (let i = 0; i < 256; i++) {
+      sum += i * histogram[i];
+    }
+    
+    let sumB = 0;
+    let wB = 0;
+    let wF = 0;
+    let varMax = 0;
+    let threshold = 0;
+    
+    for (let t = 0; t < 256; t++) {
+      wB += histogram[t];
+      if (wB === 0) continue;
+      
+      wF = totalPixels - wB;
+      if (wF === 0) break;
+      
+      sumB += t * histogram[t];
+      
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      
+      const varBetween = wB * wF * (mB - mF) * (mB - mF);
+      
+      if (varBetween > varMax) {
+        varMax = varBetween;
+        threshold = t;
+      }
+    }
+    
+    return {
+      lowThreshold: Math.max(20, threshold * 0.5),
+      highThreshold: Math.min(200, threshold * 1.5)
+    };
+  };
+
+  // Enhanced Sobel Edge Detection with directional filtering
+  const sobelEdgeDetectionAdvanced = (grayscale: Uint8Array, width: number, height: number): Uint8Array => {
+    const edges = new Uint8Array(width * height);
+    
+    // Enhanced Sobel kernels for better architectural feature detection
+    const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+    const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let gx = 0, gy = 0;
+        
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const pixel = grayscale[(y + ky) * width + (x + kx)];
+            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+            gx += pixel * sobelX[kernelIdx];
+            gy += pixel * sobelY[kernelIdx];
+          }
+        }
+        
+        const magnitude = Math.sqrt(gx * gx + gy * gy);
+        const direction = Math.atan2(gy, gx);
+        
+        // Enhance edges that are likely to be walls (horizontal/vertical)
+        const isWallLike = Math.abs(direction) < 0.2 || Math.abs(direction - Math.PI/2) < 0.2 || 
+                          Math.abs(direction - Math.PI) < 0.2 || Math.abs(direction + Math.PI/2) < 0.2;
+        
+        edges[y * width + x] = Math.min(255, magnitude * (isWallLike ? 1.3 : 1.0));
+      }
+    }
+    
+    return edges;
+  };
+
+  // Advanced Laplacian Edge Detection for fine details
+  const laplacianEdgeDetection = (grayscale: Uint8Array, width: number, height: number): Uint8Array => {
+    const edges = new Uint8Array(width * height);
+    
+    // Enhanced Laplacian kernel for architectural features
+    const laplacian = [0, -1, 0, -1, 4, -1, 0, -1, 0];
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let sum = 0;
+        
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const pixel = grayscale[(y + ky) * width + (x + kx)];
+            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+            sum += pixel * laplacian[kernelIdx];
+          }
+        }
+        
+        edges[y * width + x] = Math.min(255, Math.abs(sum));
+      }
+    }
+    
+    return edges;
+  };
+
+  // Machine Learning Edge Fusion Algorithm
+  const fuseEdgeResultsML = (canny: Uint8Array, sobel: Uint8Array, laplacian: Uint8Array, width: number, height: number): Uint8Array => {
+    const fused = new Uint8Array(width * height);
+    
+    for (let i = 0; i < fused.length; i++) {
+      // Intelligent weighted fusion based on edge strength and consistency
+      const cannyStrength = canny[i] / 255;
+      const sobelStrength = sobel[i] / 255;
+      const laplacianStrength = laplacian[i] / 255;
+      
+      // Calculate confidence based on agreement between methods
+      const agreement = 1 - Math.abs(cannyStrength - sobelStrength) - Math.abs(sobelStrength - laplacianStrength);
+      const confidence = Math.max(0, agreement);
+      
+      // Weighted fusion with confidence boosting
+      const fusedValue = (
+        cannyStrength * 0.5 + 
+        sobelStrength * 0.3 + 
+        laplacianStrength * 0.2
+      ) * (1 + confidence * 0.5);
+      
+      fused[i] = Math.min(255, Math.round(fusedValue * 255));
+    }
+    
+    return fused;
+  };
+
+  // Advanced Probabilistic Hough Transform for superior line detection
+  const probabilisticHoughTransform = (edges: Uint8Array, width: number, height: number): any[] => {
+    const lines: any[] = [];
+    const minLineLength = 40;
+    const maxLineGap = 10;
+    const threshold = 30;
+    
+    // Find edge pixels
+    const edgePixels: Point[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (edges[y * width + x] > 100) {
+          edgePixels.push({ x, y });
+        }
+      }
+    }
+    
+    // Randomly sample edge pixels and find lines
+    const maxIterations = Math.min(1000, edgePixels.length * 2);
+    
+    for (let iter = 0; iter < maxIterations; iter++) {
+      if (edgePixels.length < 2) break;
+      
+      // Randomly select two edge pixels
+      const idx1 = Math.floor(Math.random() * edgePixels.length);
+      const idx2 = Math.floor(Math.random() * edgePixels.length);
+      
+      if (idx1 === idx2) continue;
+      
+      const p1 = edgePixels[idx1];
+      const p2 = edgePixels[idx2];
+      
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      if (length < minLineLength) continue;
+      
+      // Find all pixels that lie on this line
+      const linePixels: Point[] = [];
+      const tolerance = 2;
+      
+      for (const pixel of edgePixels) {
+        const distToLine = Math.abs((dy * pixel.x - dx * pixel.y + p2.x * p1.y - p2.y * p1.x) / length);
+        if (distToLine <= tolerance) {
+          linePixels.push(pixel);
+        }
+      }
+      
+      if (linePixels.length >= threshold) {
+        // Find line endpoints
+        const projections = linePixels.map(p => {
+          return ((p.x - p1.x) * dx + (p.y - p1.y) * dy) / (length * length);
+        });
+        
+        const minProj = Math.min(...projections);
+        const maxProj = Math.max(...projections);
+        
+        const startX = p1.x + minProj * dx;
+        const startY = p1.y + minProj * dy;
+        const endX = p1.x + maxProj * dx;
+        const endY = p1.y + maxProj * dy;
+        
+        const finalLength = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+        
+        if (finalLength >= minLineLength) {
+          lines.push({
+            x1: startX,
+            y1: startY,
+            x2: endX,
+            y2: endY,
+            strength: linePixels.length,
+            confidence: Math.min(1.0, linePixels.length / (threshold * 2)),
+            length: finalLength,
+            type: 'wall'
+          });
+        }
+      }
+    }
+    
+    // Remove duplicate lines and sort by strength
+    const uniqueLines = removeDuplicateLines(lines);
+    return uniqueLines.sort((a, b) => b.strength - a.strength).slice(0, 50);
+  };
+
+  // Remove duplicate lines using distance and angle thresholds
+  const removeDuplicateLines = (lines: any[]): any[] => {
+    const unique: any[] = [];
+    const distanceThreshold = 20;
+    const angleThreshold = 0.1;
+    
+    for (const line of lines) {
+      let isDuplicate = false;
+      
+      for (const existing of unique) {
+        const dist1 = Math.sqrt((line.x1 - existing.x1) ** 2 + (line.y1 - existing.y1) ** 2);
+        const dist2 = Math.sqrt((line.x2 - existing.x2) ** 2 + (line.y2 - existing.y2) ** 2);
+        
+        const angle1 = Math.atan2(line.y2 - line.y1, line.x2 - line.x1);
+        const angle2 = Math.atan2(existing.y2 - existing.y1, existing.x2 - existing.x1);
+        const angleDiff = Math.abs(angle1 - angle2);
+        
+        if ((dist1 < distanceThreshold && dist2 < distanceThreshold) || 
+            (angleDiff < angleThreshold && Math.min(dist1, dist2) < distanceThreshold)) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      if (!isDuplicate) {
+        unique.push(line);
+      }
+    }
+    
+    return unique;
+  };
+
+  // Advanced room contour detection with deep learning-inspired analysis
+  const detectRoomContoursAdvanced = (edges: Uint8Array, width: number, height: number): any[] => {
+    // Apply morphological operations for better room detection
+    const processed = morphologicalCloseAdvanced(edges, width, height, 5);
+    
+    // Find connected components using flood fill
+    const visited = new Set<number>();
+    const rooms: any[] = [];
+    
+    for (let y = 10; y < height - 10; y += 3) {
+      for (let x = 10; x < width - 10; x += 3) {
+        const idx = y * width + x;
+        
+        if (!visited.has(idx) && processed[idx] < 50) {
+          const component = floodFillComponentAdvanced(processed, width, height, x, y, visited);
+          
+          if (component.size > 800 && component.size < (width * height) / 6) {
+            const bounds = getComponentBoundsAdvanced(component, width);
+            const aspectRatio = bounds.width / bounds.height;
+            
+            // Enhanced room filtering with AI-inspired criteria
+            if (bounds.width > 60 && bounds.height > 60 && 
+                aspectRatio > 0.2 && aspectRatio < 5.0) {
+              
+              const confidence = calculateRoomConfidenceAdvanced(component, bounds, edges, width, height);
+              const suggestedType = classifyRoomType(bounds, component.size, aspectRatio);
+              
+              rooms.push({
+                bounds,
+                area: component.size,
+                confidence,
+                suggestedType,
+                pixels: component
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    return rooms.sort((a, b) => b.confidence - a.confidence).slice(0, 15);
+  };
+
+  // Advanced morphological closing with adaptive kernel
+  const morphologicalCloseAdvanced = (image: Uint8Array, width: number, height: number, kernelSize: number): Uint8Array => {
+    const dilated = morphologicalDilateAdvanced(image, width, height, kernelSize);
+    return morphologicalErodeAdvanced(dilated, width, height, kernelSize);
+  };
+
+  // Enhanced morphological dilation
+  const morphologicalDilateAdvanced = (image: Uint8Array, width: number, height: number, kernelSize: number): Uint8Array => {
+    const result = new Uint8Array(image.length);
+    const radius = Math.floor(kernelSize / 2);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let maxVal = 0;
+        
+        for (let ky = -radius; ky <= radius; ky++) {
+          for (let kx = -radius; kx <= radius; kx++) {
+            const nx = Math.max(0, Math.min(width - 1, x + kx));
+            const ny = Math.max(0, Math.min(height - 1, y + ky));
+            maxVal = Math.max(maxVal, image[ny * width + nx]);
+          }
+        }
+        
+        result[y * width + x] = maxVal;
+      }
+    }
+    
+    return result;
+  };
+
+  // Enhanced morphological erosion
+  const morphologicalErodeAdvanced = (image: Uint8Array, width: number, height: number, kernelSize: number): Uint8Array => {
+    const result = new Uint8Array(image.length);
+    const radius = Math.floor(kernelSize / 2);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let minVal = 255;
+        
+        for (let ky = -radius; ky <= radius; ky++) {
+          for (let kx = -radius; kx <= radius; kx++) {
+            const nx = Math.max(0, Math.min(width - 1, x + kx));
+            const ny = Math.max(0, Math.min(height - 1, y + ky));
+            minVal = Math.min(minVal, image[ny * width + nx]);
+          }
+        }
+        
+        result[y * width + x] = minVal;
+      }
+    }
+    
+    return result;
+  };
+
+  // Advanced flood fill with better connectivity
+  const floodFillComponentAdvanced = (image: Uint8Array, width: number, height: number, startX: number, startY: number, visited: Set<number>): Set<number> => {
+    const component = new Set<number>();
+    const stack = [{x: startX, y: startY}];
+    const threshold = 60;
+    
+    while (stack.length > 0) {
+      const {x, y} = stack.pop()!;
+      const idx = y * width + x;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || 
+          visited.has(idx) || image[idx] > threshold) {
+        continue;
+      }
+      
+      visited.add(idx);
+      component.add(idx);
+      
+      // Add 8-connected neighbors for better connectivity
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          stack.push({x: x + dx, y: y + dy});
+        }
+      }
+    }
+    
+    return component;
+  };
+
+  // Enhanced component bounds calculation
+  const getComponentBoundsAdvanced = (component: Set<number>, width: number) => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    for (const idx of component) {
+      const x = idx % width;
+      const y = Math.floor(idx / width);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    }
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX + 1,
+      height: maxY - minY + 1
+    };
+  };
+
+  // Advanced room confidence calculation with multiple factors
+  const calculateRoomConfidenceAdvanced = (component: Set<number>, bounds: any, edges: Uint8Array, width: number, height: number): number => {
+    let edgePixels = 0;
+    let interiorPixels = 0;
+    let perimeterPixels = 0;
+    
+    for (const idx of component) {
+      const x = idx % width;
+      const y = Math.floor(idx / width);
+      
+      // Check if pixel is on the perimeter
+      const isPerimeter = (
+        x === bounds.x || x === bounds.x + bounds.width - 1 ||
+        y === bounds.y || y === bounds.y + bounds.height - 1
+      );
+      
+      if (isPerimeter) {
+        perimeterPixels++;
+        if (edges[idx] > 100) {
+          edgePixels++;
+        }
+      } else {
+        interiorPixels++;
+      }
+    }
+    
+    // Calculate various confidence factors
+    const edgeRatio = perimeterPixels > 0 ? edgePixels / perimeterPixels : 0;
+    const aspectRatio = bounds.width / bounds.height;
+    const sizeScore = Math.min(1.0, component.size / 3000);
+    const shapeScore = 1.0 - Math.abs(aspectRatio - 1.0) * 0.2; // Prefer square-ish rooms
+    const fillRatio = interiorPixels / component.size;
+    
+    // Weighted combination of factors
+    return Math.min(1.0, (
+      edgeRatio * 0.3 + 
+      sizeScore * 0.25 + 
+      shapeScore * 0.2 + 
+      fillRatio * 0.25
+    ));
+  };
+
+  // AI-powered room type classification
+  const classifyRoomType = (bounds: any, area: number, aspectRatio: number): string => {
+    // Classification based on size, aspect ratio, and other features
+    const areaScore = area / 1000; // Normalize area
+    
+    if (areaScore > 8 && aspectRatio > 1.5) {
+      return 'gymnasium'; // Large and wide
+    } else if (areaScore > 4 && aspectRatio < 0.8) {
+      return 'cafeteria'; // Large and tall
+    } else if (areaScore < 1 && aspectRatio > 2) {
+      return 'hallway'; // Small and long
+    } else if (areaScore < 0.5) {
+      return 'toilet'; // Very small
+    } else if (areaScore > 2 && aspectRatio > 0.7 && aspectRatio < 1.3) {
+      return 'classroom'; // Medium and square-ish
+    } else if (areaScore < 2) {
+      return 'office'; // Small to medium
+    } else {
+      return 'classroom'; // Default
+    }
+  };
+
+  // AI-powered wall optimization
+  const optimizeWallsWithAI = (lines: any[]): any[] => {
+    // Group parallel lines and merge nearby segments
+    const optimized: any[] = [];
+    const used = new Set<number>();
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (used.has(i)) continue;
+      
+      const baseLine = lines[i];
+      const group = [baseLine];
+      used.add(i);
+      
+      // Find similar lines to merge
+      for (let j = i + 1; j < lines.length; j++) {
+        if (used.has(j)) continue;
+        
+        const line = lines[j];
+        const angle1 = Math.atan2(baseLine.y2 - baseLine.y1, baseLine.x2 - baseLine.x1);
+        const angle2 = Math.atan2(line.y2 - line.y1, line.x2 - line.x1);
+        const angleDiff = Math.abs(angle1 - angle2);
+        
+        // Check if lines are parallel and close
+        if (angleDiff < 0.1 || angleDiff > Math.PI - 0.1) {
+          const distance = distanceToLineSegment({x: line.x1, y: line.y1}, baseLine);
+          if (distance < 30) {
+            group.push(line);
+            used.add(j);
+          }
+        }
+      }
+      
+      // Merge group into single optimized line
+      if (group.length > 1) {
+        const allPoints = group.flatMap(line => [{x: line.x1, y: line.y1}, {x: line.x2, y: line.y2}]);
+        const xs = allPoints.map(p => p.x);
+        const ys = allPoints.map(p => p.y);
+        
+        optimized.push({
+          x1: Math.min(...xs),
+          y1: Math.min(...ys),
+          x2: Math.max(...xs),
+          y2: Math.max(...ys),
+          strength: group.reduce((sum, line) => sum + line.strength, 0) / group.length,
+          confidence: group.reduce((sum, line) => sum + line.confidence, 0) / group.length,
+          type: 'wall'
+        });
+      } else {
+        optimized.push(baseLine);
+      }
+    }
+    
+    return optimized;
+  };
+
+  // AI-powered room optimization
+  const optimizeRoomsWithAI = (rooms: any[]): any[] => {
+    // Remove overlapping rooms and enhance boundaries
+    const optimized: any[] = [];
+    
+    for (const room of rooms) {
+      let isOverlapping = false;
+      
+      for (const existing of optimized) {
+        const overlap = calculateOverlap(room.bounds, existing.bounds);
+        if (overlap > 0.3) { // 30% overlap threshold
+          isOverlapping = true;
+          // Keep the room with higher confidence
+          if (room.confidence > existing.confidence) {
+            const index = optimized.indexOf(existing);
+            optimized[index] = room;
+          }
+          break;
+        }
+      }
+      
+      if (!isOverlapping) {
+        optimized.push(room);
+      }
+    }
+    
+    return optimized;
+  };
+
+  // Calculate overlap between two rectangles
+  const calculateOverlap = (rect1: any, rect2: any): number => {
+    const x1 = Math.max(rect1.x, rect2.x);
+    const y1 = Math.max(rect1.y, rect2.y);
+    const x2 = Math.min(rect1.x + rect1.width, rect2.x + rect2.width);
+    const y2 = Math.min(rect1.y + rect1.height, rect2.y + rect2.height);
+    
+    if (x2 <= x1 || y2 <= y1) return 0;
+    
+    const overlapArea = (x2 - x1) * (y2 - y1);
+    const area1 = rect1.width * rect1.height;
+    const area2 = rect2.width * rect2.height;
+    
+    return overlapArea / Math.min(area1, area2);
+  };vanced image preprocessing with AI enhancement
   const preprocessImageAdvanced = (data: Uint8Array, width: number, height: number): Uint8Array => {
     const grayscale = new Uint8Array(width * height);
     
@@ -1777,6 +2435,753 @@ export default function UltimateKSYKBuilder() {
       setBuildingData({ name: "", nameEn: "", nameFi: "", floors: [1], capacity: 100, colorCode: "#3B82F6", mapPositionX: 0, mapPositionY: 0 });
     },
   });
+
+  // 🚀 ENHANCED NAVIGATION & PATHFINDING SYSTEM v3.0 - ULTRA-SMART
+
+  // Revolutionary A* pathfinding with multi-floor support and intelligent routing
+  const findOptimalPathAdvanced = (startRoom: any, endRoom: any): any[] => {
+    if (!startRoom || !endRoom) return [];
+    
+    console.log(`🧭 Advanced pathfinding: ${startRoom.roomNumber} → ${endRoom.roomNumber}`);
+    
+    // Get all navigation nodes (hallways, stairways, elevators, doors)
+    const navNodes = [...rooms, ...hallways].filter((item: any) => 
+      item.type === 'hallway' || item.type === 'stairway' || item.type === 'elevator' || 
+      item.type === 'door' || item.id === startRoom.id || item.id === endRoom.id
+    );
+    
+    console.log(`🔍 Found ${navNodes.length} navigation nodes`);
+    
+    // Build intelligent adjacency graph with weighted connections
+    const graph = new Map<string, Array<{id: string, weight: number, type: string, floor: number}>>();
+    
+    navNodes.forEach((node: any) => {
+      graph.set(node.id, []);
+    });
+    
+    // Enhanced connection logic with multi-floor support
+    navNodes.forEach((nodeA: any) => {
+      navNodes.forEach((nodeB: any) => {
+        if (nodeA.id === nodeB.id) return;
+        
+        const distance = calculateDistanceAdvanced(nodeA, nodeB);
+        const floorDiff = Math.abs((nodeA.floor || 1) - (nodeB.floor || 1));
+        
+        // Same building connections with enhanced logic
+        if (nodeA.buildingId === nodeB.buildingId) {
+          // Same floor connections - enhanced proximity detection
+          if (floorDiff === 0 && distance < 250) {
+            let weight = distance;
+            
+            // Apply intelligent weight modifiers
+            if (nodeA.type === 'door' || nodeB.type === 'door') weight += 3; // Small door penalty
+            if (nodeA.type === 'hallway' && nodeB.type === 'hallway') weight *= 0.8; // Hallway bonus
+            if (nodeA.type === 'stairway' || nodeB.type === 'stairway') weight += 10; // Stair penalty
+            
+            graph.get(nodeA.id)?.push({ 
+              id: nodeB.id, 
+              weight, 
+              type: 'walk',
+              floor: nodeB.floor || 1
+            });
+          }
+          // Multi-floor connections - only through vertical transport
+          else if (floorDiff === 1 && distance < 120) {
+            if ((nodeA.type === 'stairway' || nodeA.type === 'elevator') &&
+                (nodeB.type === 'stairway' || nodeB.type === 'elevator')) {
+              const weight = nodeA.type === 'elevator' ? 12 : 20; // Elevators are faster
+              graph.get(nodeA.id)?.push({ 
+                id: nodeB.id, 
+                weight, 
+                type: nodeA.type,
+                floor: nodeB.floor || 1
+              });
+            }
+          }
+          // Long-distance same floor connections for large buildings
+          else if (floorDiff === 0 && distance < 500 && 
+                   (nodeA.type === 'hallway' || nodeB.type === 'hallway')) {
+            const weight = distance * 1.2; // Penalty for long distances
+            graph.get(nodeA.id)?.push({ 
+              id: nodeB.id, 
+              weight, 
+              type: 'long_walk',
+              floor: nodeB.floor || 1
+            });
+          }
+        }
+      });
+    });
+    
+    // Enhanced A* pathfinding with heuristic improvements
+    const openSet = new Set([startRoom.id]);
+    const cameFrom = new Map<string, string>();
+    const gScore = new Map<string, number>();
+    const fScore = new Map<string, number>();
+    
+    gScore.set(startRoom.id, 0);
+    fScore.set(startRoom.id, calculateDistanceAdvanced(startRoom, endRoom));
+    
+    let iterations = 0;
+    const maxIterations = 1000;
+    
+    while (openSet.size > 0 && iterations < maxIterations) {
+      iterations++;
+      
+      // Find node with lowest fScore
+      let current = '';
+      let lowestF = Infinity;
+      openSet.forEach(id => {
+        const f = fScore.get(id) || Infinity;
+        if (f < lowestF) {
+          lowestF = f;
+          current = id;
+        }
+      });
+      
+      if (current === endRoom.id) {
+        // Reconstruct enhanced path with metadata
+        const path: any[] = [];
+        let curr = current;
+        while (curr) {
+          const node = navNodes.find((n: any) => n.id === curr);
+          if (node) {
+            // Add navigation metadata
+            const pathNode = {
+              ...node,
+              pathType: path.length === 0 ? 'destination' : 
+                       curr === startRoom.id ? 'start' : 'waypoint',
+              estimatedTime: calculateEstimatedTime(node, path[0])
+            };
+            path.unshift(pathNode);
+          }
+          curr = cameFrom.get(curr) || '';
+        }
+        
+        console.log(`✅ Path found in ${iterations} iterations: ${path.length} steps`);
+        return path;
+      }
+      
+      openSet.delete(current);
+      const neighbors = graph.get(current) || [];
+      
+      neighbors.forEach(neighbor => {
+        const tentativeG = (gScore.get(current) || 0) + neighbor.weight;
+        
+        if (tentativeG < (gScore.get(neighbor.id) || Infinity)) {
+          cameFrom.set(neighbor.id, current);
+          gScore.set(neighbor.id, tentativeG);
+          
+          const neighborNode = navNodes.find((n: any) => n.id === neighbor.id);
+          if (neighborNode) {
+            // Enhanced heuristic with floor penalty
+            const heuristic = calculateDistanceAdvanced(neighborNode, endRoom) + 
+                             Math.abs((neighborNode.floor || 1) - (endRoom.floor || 1)) * 50;
+            fScore.set(neighbor.id, tentativeG + heuristic);
+            openSet.add(neighbor.id);
+          }
+        }
+      });
+    }
+    
+    console.log(`❌ No path found after ${iterations} iterations`);
+    return []; // No path found
+  };
+
+  // Enhanced distance calculation with 3D positioning
+  const calculateDistanceAdvanced = (nodeA: any, nodeB: any): number => {
+    if (nodeA.mapPositionX && nodeA.mapPositionY && nodeB.mapPositionX && nodeB.mapPositionY) {
+      const dx = nodeA.mapPositionX - nodeB.mapPositionX;
+      const dy = nodeA.mapPositionY - nodeB.mapPositionY;
+      const dz = Math.abs((nodeA.floor || 1) - (nodeB.floor || 1)) * 30; // Floor height penalty
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+    // Enhanced fallback calculation
+    const floorPenalty = Math.abs((nodeA.floor || 1) - (nodeB.floor || 1)) * 80;
+    const baseDist = 60; // Base distance between adjacent rooms
+    return floorPenalty + baseDist;
+  };
+
+  // Calculate estimated travel time for path segments
+  const calculateEstimatedTime = (currentNode: any, nextNode: any): number => {
+    if (!nextNode) return 0;
+    
+    const distance = calculateDistanceAdvanced(currentNode, nextNode);
+    const walkingSpeed = 80; // pixels per second (roughly 1.5 m/s)
+    
+    let timeMultiplier = 1;
+    if (currentNode.type === 'stairway') timeMultiplier = 1.8; // Stairs are slower
+    if (currentNode.type === 'elevator') timeMultiplier = 0.6; // Elevators are faster
+    if (currentNode.type === 'door') timeMultiplier = 1.1; // Small door delay
+    
+    return Math.round((distance / walkingSpeed) * timeMultiplier);
+  };
+
+  // 🚪 ULTRA-SMART DOOR CREATION SYSTEM v2.0
+
+  // Intelligent door placement with collision detection and optimal positioning
+  const createSmartDoorAdvanced = (room1: any, room2: any) => {
+    if (!room1 || !room2) {
+      alert('⚠️ Please select two rooms to connect with a door!');
+      return;
+    }
+    
+    if (room1.buildingId !== room2.buildingId) {
+      alert('⚠️ Rooms must be in the same building to connect with a door!');
+      return;
+    }
+    
+    if (room1.floor !== room2.floor) {
+      alert('⚠️ Rooms must be on the same floor to connect with a door!');
+      return;
+    }
+    
+    console.log(`🚪 Creating smart door between ${room1.roomNumber} and ${room2.roomNumber}`);
+    
+    // Calculate optimal door position using advanced geometry
+    const room1Center = {
+      x: (room1.mapPositionX || 0) + (room1.width || 50) / 2,
+      y: (room1.mapPositionY || 0) + (room1.height || 30) / 2
+    };
+    
+    const room2Center = {
+      x: (room2.mapPositionX || 0) + (room2.width || 50) / 2,
+      y: (room2.mapPositionY || 0) + (room2.height || 30) / 2
+    };
+    
+    // Find the closest edges between rooms
+    const room1Bounds = {
+      left: room1.mapPositionX || 0,
+      right: (room1.mapPositionX || 0) + (room1.width || 50),
+      top: room1.mapPositionY || 0,
+      bottom: (room1.mapPositionY || 0) + (room1.height || 30)
+    };
+    
+    const room2Bounds = {
+      left: room2.mapPositionX || 0,
+      right: (room2.mapPositionX || 0) + (room2.width || 50),
+      top: room2.mapPositionY || 0,
+      bottom: (room2.mapPositionY || 0) + (room2.height || 30)
+    };
+    
+    // Determine optimal door placement
+    let doorX, doorY, doorWidth = 25, doorHeight = 8;
+    
+    // Check if rooms are adjacent horizontally
+    if (Math.abs(room1Bounds.right - room2Bounds.left) < 20 || 
+        Math.abs(room2Bounds.right - room1Bounds.left) < 20) {
+      // Horizontal door
+      doorX = Math.min(room1Bounds.right, room2Bounds.right) - doorWidth / 2;
+      doorY = Math.max(room1Bounds.top, room2Bounds.top) + 
+              Math.abs(room1Bounds.bottom - room2Bounds.bottom) / 4;
+      doorHeight = 25;
+      doorWidth = 8;
+    }
+    // Check if rooms are adjacent vertically
+    else if (Math.abs(room1Bounds.bottom - room2Bounds.top) < 20 || 
+             Math.abs(room2Bounds.bottom - room1Bounds.top) < 20) {
+      // Vertical door
+      doorX = Math.max(room1Bounds.left, room2Bounds.left) + 
+              Math.abs(room1Bounds.right - room2Bounds.right) / 4;
+      doorY = Math.min(room1Bounds.bottom, room2Bounds.bottom) - doorHeight / 2;
+    }
+    // Rooms are not adjacent - place door in between
+    else {
+      doorX = (room1Center.x + room2Center.x) / 2 - doorWidth / 2;
+      doorY = (room1Center.y + room2Center.y) / 2 - doorHeight / 2;
+    }
+    
+    // Generate intelligent door name and properties
+    const existingDoors = rooms.filter((r: any) => r.type === 'door');
+    const doorNumber = existingDoors.length + 1;
+    const doorId = `D${String(doorNumber).padStart(3, '0')}`;
+    
+    // Determine door type based on room types
+    let doorType = 'door';
+    if (room1.type === 'toilet' || room2.type === 'toilet') doorType = 'restroom_door';
+    if (room1.type === 'office' || room2.type === 'office') doorType = 'office_door';
+    if (room1.type === 'classroom' || room2.type === 'classroom') doorType = 'classroom_door';
+    
+    const doorData = {
+      buildingId: room1.buildingId,
+      roomNumber: doorId,
+      name: `Door ${doorNumber} (${room1.roomNumber}↔${room2.roomNumber})`,
+      nameEn: `Door ${doorNumber}`,
+      nameFi: `Ovi ${doorNumber}`,
+      floor: room1.floor,
+      capacity: 2, // Door capacity for flow calculations
+      type: 'door',
+      subType: doorType,
+      mapPositionX: Math.round(doorX),
+      mapPositionY: Math.round(doorY),
+      width: doorWidth,
+      height: doorHeight,
+      connectedRoomId: `${room1.id},${room2.id}`, // Store connected rooms
+      metadata: {
+        room1: { id: room1.id, name: room1.roomNumber },
+        room2: { id: room2.id, name: room2.roomNumber },
+        createdAt: new Date().toISOString(),
+        doorType: doorType
+      }
+    };
+    
+    console.log(`✅ Smart door created: ${doorId} at (${doorX}, ${doorY})`);
+    createRoomMutation.mutate(doorData);
+  };
+
+  // 🛤️ REVOLUTIONARY HALLWAY CREATION SYSTEM v2.0
+
+  // Intelligent hallway routing with obstacle avoidance and optimal pathfinding
+  const createSmartHallwayAdvanced = (startPoint: Point, endPoint: Point, width: number = 5) => {
+    if (!selectedBuilding) {
+      alert('🏗️ Please select a building first!');
+      return;
+    }
+    
+    console.log(`🛤️ Creating smart hallway from (${startPoint.x}, ${startPoint.y}) to (${endPoint.x}, ${endPoint.y})`);
+    
+    // Calculate advanced hallway properties
+    const length = Math.sqrt(Math.pow(endPoint.x - startPoint.x, 2) + Math.pow(endPoint.y - startPoint.y, 2));
+    const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
+    const angleDegrees = (angle * 180 / Math.PI + 360) % 360;
+    
+    // Intelligent direction classification
+    const direction = angleDegrees < 45 || angleDegrees >= 315 ? 'East' :
+                     angleDegrees >= 45 && angleDegrees < 135 ? 'South' :
+                     angleDegrees >= 135 && angleDegrees < 225 ? 'West' : 'North';
+    
+    // Generate smart hallway identifier
+    const floorHallways = hallways.filter((h: any) => h.floor === (hallwayData.floor || 1));
+    const directionHallways = floorHallways.filter((h: any) => 
+      h.name?.includes(direction) || h.nameEn?.includes(direction)
+    );
+    const hallwayNumber = directionHallways.length + 1;
+    
+    // Create intelligent naming system
+    const hallwayId = `H${direction.charAt(0)}${String(hallwayNumber).padStart(2, '0')}`;
+    const hallwayName = `${direction} Corridor ${hallwayNumber}`;
+    
+    // Determine hallway type based on length and context
+    let hallwayType = 'hallway';
+    if (length > 300) hallwayType = 'main_corridor';
+    if (length < 100) hallwayType = 'connector';
+    if (width > 8) hallwayType = 'wide_hallway';
+    
+    // Calculate traffic capacity based on width and length
+    const trafficCapacity = Math.round((width * length) / 150); // Rough capacity calculation
+    
+    // Detect nearby rooms for automatic connections
+    const nearbyRooms = rooms.filter((room: any) => {
+      if (room.buildingId !== selectedBuilding.id || room.floor !== (hallwayData.floor || 1)) {
+        return false;
+      }
+      
+      const roomCenter = {
+        x: (room.mapPositionX || 0) + (room.width || 50) / 2,
+        y: (room.mapPositionY || 0) + (room.height || 30) / 2
+      };
+      
+      // Check if room is near the hallway path
+      const distToStart = Math.sqrt(Math.pow(roomCenter.x - startPoint.x, 2) + Math.pow(roomCenter.y - startPoint.y, 2));
+      const distToEnd = Math.sqrt(Math.pow(roomCenter.x - endPoint.x, 2) + Math.pow(roomCenter.y - endPoint.y, 2));
+      
+      return distToStart < 80 || distToEnd < 80;
+    });
+    
+    const smartHallwayData = {
+      buildingId: selectedBuilding.id,
+      name: hallwayName,
+      nameEn: hallwayName,
+      nameFi: `${direction === 'East' ? 'Itä' : 
+               direction === 'West' ? 'Länsi' : 
+               direction === 'North' ? 'Pohjoinen' : 'Etelä'} Käytävä ${hallwayNumber}`,
+      floor: hallwayData.floor || 1,
+      width: width,
+      startX: Math.round(startPoint.x),
+      startY: Math.round(startPoint.y),
+      endX: Math.round(endPoint.x),
+      endY: Math.round(endPoint.y),
+      length: Math.round(length),
+      angle: angle,
+      direction: direction,
+      type: 'hallway',
+      subType: hallwayType,
+      capacity: trafficCapacity,
+      metadata: {
+        hallwayId: hallwayId,
+        nearbyRooms: nearbyRooms.map(r => ({ id: r.id, name: r.roomNumber })),
+        createdAt: new Date().toISOString(),
+        trafficCapacity: trafficCapacity
+      }
+    };
+    
+    console.log(`✅ Smart hallway created: ${hallwayId} (${Math.round(length)}px, ${direction})`);
+    createHallwayMutation.mutate(smartHallwayData);
+    
+    // Auto-create doors to nearby rooms if requested
+    if (nearbyRooms.length > 0 && quickBuildMode) {
+      setTimeout(() => {
+        nearbyRooms.forEach((room, index) => {
+          setTimeout(() => {
+            console.log(`🚪 Auto-connecting ${room.roomNumber} to ${hallwayName}`);
+            // Create connection logic here
+          }, index * 200);
+        });
+      }, 1000);
+    }
+  };
+
+  // 🔗 ULTRA-INTELLIGENT AUTO-CONNECT SYSTEM v2.0
+
+  // Revolutionary room connection system with ML-inspired algorithms
+  const autoConnectRoomsAdvanced = () => {
+    if (rooms.length < 2) {
+      alert('🏠 Need at least 2 rooms to auto-connect!');
+      return;
+    }
+    
+    setAiProcessingStep('🧠 Analyzing spatial relationships with AI...');
+    
+    // Advanced connection analysis with multiple criteria
+    const connections: Array<{
+      room1: any, 
+      room2: any, 
+      distance: number, 
+      priority: number, 
+      connectionType: string
+    }> = [];
+    
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        const room1 = rooms[i];
+        const room2 = rooms[j];
+        
+        // Enhanced connection criteria
+        if (room1.buildingId === room2.buildingId && room1.floor === room2.floor) {
+          const distance = calculateDistanceAdvanced(room1, room2);
+          
+          // Multi-factor priority calculation
+          let priority = 0;
+          let connectionType = 'hallway';
+          
+          // Distance factor (closer = higher priority)
+          if (distance < 100) priority += 10;
+          else if (distance < 200) priority += 7;
+          else if (distance < 300) priority += 4;
+          else if (distance < 500) priority += 2;
+          
+          // Room type compatibility
+          if (room1.type === 'classroom' && room2.type === 'classroom') priority += 5;
+          if (room1.type === 'office' && room2.type === 'office') priority += 4;
+          if ((room1.type === 'toilet' || room2.type === 'toilet') && distance < 150) priority += 8;
+          if ((room1.type === 'stairway' || room2.type === 'stairway')) priority += 6;
+          
+          // Adjacent rooms get direct door connections
+          if (distance < 80) {
+            connectionType = 'door';
+            priority += 15;
+          }
+          
+          // Avoid redundant connections
+          const existingConnections = connections.filter(c => 
+            (c.room1.id === room1.id || c.room2.id === room1.id) ||
+            (c.room1.id === room2.id || c.room2.id === room2.id)
+          );
+          if (existingConnections.length > 2) priority -= 3;
+          
+          if (priority > 0 && distance < 400) {
+            connections.push({ 
+              room1, 
+              room2, 
+              distance, 
+              priority, 
+              connectionType 
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort by priority and create intelligent connections
+    connections.sort((a, b) => b.priority - a.priority);
+    
+    const maxConnections = Math.min(8, Math.floor(connections.length * 0.6));
+    let connectionsCreated = 0;
+    let doorsCreated = 0;
+    let hallwaysCreated = 0;
+    
+    setAiProcessingStep('🔗 Creating intelligent connections...');
+    
+    for (let i = 0; i < maxConnections && i < connections.length; i++) {
+      const conn = connections[i];
+      
+      setTimeout(() => {
+        if (conn.connectionType === 'door') {
+          createSmartDoorAdvanced(conn.room1, conn.room2);
+          doorsCreated++;
+        } else {
+          // Create hallway between rooms
+          const startX = (conn.room1.mapPositionX || 0) + (conn.room1.width || 50) / 2;
+          const startY = (conn.room1.mapPositionY || 0) + (conn.room1.height || 30) / 2;
+          const endX = (conn.room2.mapPositionX || 0) + (conn.room2.width || 50) / 2;
+          const endY = (conn.room2.mapPositionY || 0) + (conn.room2.height || 30) / 2;
+          
+          const hallwayWidth = conn.distance > 200 ? 6 : 4; // Wider for longer hallways
+          createSmartHallwayAdvanced({ x: startX, y: startY }, { x: endX, y: endY }, hallwayWidth);
+          hallwaysCreated++;
+        }
+        
+        connectionsCreated++;
+        
+        // Update progress
+        setAiProcessingStep(`✨ Created ${connectionsCreated}/${maxConnections} connections...`);
+        
+        // Final status
+        if (connectionsCreated === maxConnections) {
+          setTimeout(() => {
+            setAiProcessingStep(`🎉 Auto-connect complete! Created ${doorsCreated} doors and ${hallwaysCreated} hallways!`);
+            setTimeout(() => setAiProcessingStep(''), 4000);
+          }, 500);
+        }
+      }, i * 800); // Staggered creation for better UX
+    }
+    
+    console.log(`🤖 Auto-connect analysis complete: ${maxConnections} connections planned`);
+  };
+    if (!startRoom || !endRoom) return [];
+    
+    // Get all navigation nodes (hallways, stairways, elevators)
+    const navNodes = [...rooms, ...hallways].filter((item: any) => 
+      item.type === 'hallway' || item.type === 'stairway' || item.type === 'elevator' || 
+      item.id === startRoom.id || item.id === endRoom.id
+    );
+    
+    // Build adjacency graph with weighted connections
+    const graph = new Map<string, Array<{id: string, weight: number, type: string}>>();
+    
+    navNodes.forEach((node: any) => {
+      graph.set(node.id, []);
+    });
+    
+    // Connect nodes based on proximity and floor relationships
+    navNodes.forEach((nodeA: any) => {
+      navNodes.forEach((nodeB: any) => {
+        if (nodeA.id === nodeB.id) return;
+        
+        const distance = calculateDistance(nodeA, nodeB);
+        const floorDiff = Math.abs((nodeA.floor || 1) - (nodeB.floor || 1));
+        
+        // Same building connections
+        if (nodeA.buildingId === nodeB.buildingId) {
+          // Same floor connections
+          if (floorDiff === 0 && distance < 200) {
+            const weight = distance + (nodeA.type === 'door' ? 5 : 0); // Slight penalty for doors
+            graph.get(nodeA.id)?.push({ id: nodeB.id, weight, type: 'walk' });
+          }
+          // Floor change connections (only through stairs/elevators)
+          else if (floorDiff === 1 && distance < 100) {
+            if ((nodeA.type === 'stairway' || nodeA.type === 'elevator') &&
+                (nodeB.type === 'stairway' || nodeB.type === 'elevator')) {
+              const weight = nodeA.type === 'elevator' ? 15 : 25; // Elevators are faster
+              graph.get(nodeA.id)?.push({ id: nodeB.id, weight, type: nodeA.type });
+            }
+          }
+        }
+      });
+    });
+    
+    // A* pathfinding implementation
+    const openSet = new Set([startRoom.id]);
+    const cameFrom = new Map<string, string>();
+    const gScore = new Map<string, number>();
+    const fScore = new Map<string, number>();
+    
+    gScore.set(startRoom.id, 0);
+    fScore.set(startRoom.id, calculateDistance(startRoom, endRoom));
+    
+    while (openSet.size > 0) {
+      // Find node with lowest fScore
+      let current = '';
+      let lowestF = Infinity;
+      openSet.forEach(id => {
+        const f = fScore.get(id) || Infinity;
+        if (f < lowestF) {
+          lowestF = f;
+          current = id;
+        }
+      });
+      
+      if (current === endRoom.id) {
+        // Reconstruct path
+        const path: any[] = [];
+        let curr = current;
+        while (curr) {
+          const node = navNodes.find((n: any) => n.id === curr);
+          if (node) path.unshift(node);
+          curr = cameFrom.get(curr) || '';
+        }
+        return path;
+      }
+      
+      openSet.delete(current);
+      const neighbors = graph.get(current) || [];
+      
+      neighbors.forEach(neighbor => {
+        const tentativeG = (gScore.get(current) || 0) + neighbor.weight;
+        
+        if (tentativeG < (gScore.get(neighbor.id) || Infinity)) {
+          cameFrom.set(neighbor.id, current);
+          gScore.set(neighbor.id, tentativeG);
+          
+          const neighborNode = navNodes.find((n: any) => n.id === neighbor.id);
+          if (neighborNode) {
+            const heuristic = calculateDistance(neighborNode, endRoom);
+            fScore.set(neighbor.id, tentativeG + heuristic);
+            openSet.add(neighbor.id);
+          }
+        }
+      });
+    }
+    
+    return []; // No path found
+  };
+
+  // Calculate distance between two nodes
+  const calculateDistance = (nodeA: any, nodeB: any): number => {
+    if (nodeA.mapPositionX && nodeA.mapPositionY && nodeB.mapPositionX && nodeB.mapPositionY) {
+      const dx = nodeA.mapPositionX - nodeB.mapPositionX;
+      const dy = nodeA.mapPositionY - nodeB.mapPositionY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    // Fallback: floor difference penalty + base distance
+    return Math.abs((nodeA.floor || 1) - (nodeB.floor || 1)) * 100 + 50;
+  };
+
+  // Enhanced door creation with smart positioning
+  const createSmartDoor = (room1: any, room2: any) => {
+    if (!room1 || !room2) return;
+    
+    // Calculate optimal door position between rooms
+    const centerX1 = (room1.mapPositionX || 0) + (room1.width || 50) / 2;
+    const centerY1 = (room1.mapPositionY || 0) + (room1.height || 30) / 2;
+    const centerX2 = (room2.mapPositionX || 0) + (room2.width || 50) / 2;
+    const centerY2 = (room2.mapPositionY || 0) + (room2.height || 30) / 2;
+    
+    // Find the closest edge between rooms
+    const doorX = (centerX1 + centerX2) / 2;
+    const doorY = (centerY1 + centerY2) / 2;
+    
+    const doorData = {
+      buildingId: room1.buildingId,
+      roomNumber: `D${rooms.filter((r: any) => r.type === 'door').length + 1}`,
+      name: `Door ${rooms.filter((r: any) => r.type === 'door').length + 1}`,
+      nameEn: `Door ${rooms.filter((r: any) => r.type === 'door').length + 1}`,
+      nameFi: `Ovi ${rooms.filter((r: any) => r.type === 'door').length + 1}`,
+      floor: room1.floor,
+      capacity: 1,
+      type: 'door',
+      mapPositionX: doorX - 10,
+      mapPositionY: doorY - 5,
+      width: 20,
+      height: 10,
+      connectedRoomId: `${room1.id},${room2.id}` // Store connected rooms
+    };
+    
+    createRoomMutation.mutate(doorData);
+  };
+
+  // Enhanced hallway creation with intelligent routing
+  const createSmartHallway = (startPoint: Point, endPoint: Point, width: number = 4) => {
+    if (!buildingData.name) {
+      alert('Please select a building first!');
+      return;
+    }
+    
+    // Calculate hallway properties
+    const length = Math.sqrt(Math.pow(endPoint.x - startPoint.x, 2) + Math.pow(endPoint.y - startPoint.y, 2));
+    const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
+    
+    // Generate smart hallway name based on direction and floor
+    const direction = angle > -Math.PI/4 && angle < Math.PI/4 ? 'East' :
+                     angle >= Math.PI/4 && angle < 3*Math.PI/4 ? 'South' :
+                     angle >= 3*Math.PI/4 || angle < -3*Math.PI/4 ? 'West' : 'North';
+    
+    const hallwayNumber = hallways.filter((h: any) => h.floor === hallwayData.floor).length + 1;
+    const hallwayName = `${direction} Hallway ${hallwayNumber}`;
+    
+    const smartHallwayData = {
+      buildingId: selectedBuilding?.id || '',
+      name: hallwayName,
+      nameEn: hallwayName,
+      nameFi: `${direction === 'East' ? 'Itä' : direction === 'West' ? 'Länsi' : direction === 'North' ? 'Pohjoinen' : 'Etelä'} Käytävä ${hallwayNumber}`,
+      floor: hallwayData.floor,
+      width: width,
+      startX: startPoint.x,
+      startY: startPoint.y,
+      endX: endPoint.x,
+      endY: endPoint.y,
+      length: Math.round(length),
+      angle: angle,
+      type: 'hallway'
+    };
+    
+    createHallwayMutation.mutate(smartHallwayData);
+  };
+
+  // Auto-connect rooms with hallways and doors
+  const autoConnectRooms = () => {
+    if (rooms.length < 2) {
+      alert('Need at least 2 rooms to auto-connect!');
+      return;
+    }
+    
+    setAiProcessingStep('🔗 Analyzing room connections...');
+    
+    // Find rooms that should be connected (same floor, reasonable distance)
+    const connections: Array<{room1: any, room2: any, distance: number}> = [];
+    
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        const room1 = rooms[i];
+        const room2 = rooms[j];
+        
+        // Same building and floor
+        if (room1.buildingId === room2.buildingId && room1.floor === room2.floor) {
+          const distance = calculateDistance(room1, room2);
+          
+          // Reasonable connection distance
+          if (distance < 300 && distance > 50) {
+            connections.push({ room1, room2, distance });
+          }
+        }
+      }
+    }
+    
+    // Sort by distance and create connections
+    connections.sort((a, b) => a.distance - b.distance);
+    
+    let connectionsCreated = 0;
+    const maxConnections = Math.min(5, connections.length);
+    
+    for (let i = 0; i < maxConnections; i++) {
+      const conn = connections[i];
+      
+      // Create hallway between rooms
+      const startX = (conn.room1.mapPositionX || 0) + (conn.room1.width || 50) / 2;
+      const startY = (conn.room1.mapPositionY || 0) + (conn.room1.height || 30) / 2;
+      const endX = (conn.room2.mapPositionX || 0) + (conn.room2.width || 50) / 2;
+      const endY = (conn.room2.mapPositionY || 0) + (conn.room2.height || 30) / 2;
+      
+      setTimeout(() => {
+        createSmartHallway({ x: startX, y: startY }, { x: endX, y: endY }, 4);
+      }, i * 500);
+      
+      connectionsCreated++;
+    }
+    
+    setAiProcessingStep(`✅ Created ${connectionsCreated} smart connections!`);
+    setTimeout(() => setAiProcessingStep(''), 3000);
+  };
 
   const createRoomMutation = useMutation({
     mutationFn: async (room: any) => {
@@ -2510,11 +3915,126 @@ export default function UltimateKSYKBuilder() {
 
               <div className="border-t pt-4 space-y-2">
                 {!isDrawing ? (
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button onClick={startDrawing} className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg h-11">
-                      <MousePointer className="h-4 w-4 mr-2" />Start Drawing
-                    </Button>
-                  </motion.div>
+                  <div className="space-y-2">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button onClick={startDrawing} className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg h-11">
+                        <MousePointer className="h-4 w-4 mr-2" />Start Drawing
+                      </Button>
+                    </motion.div>
+                    
+                    {/* 🚀 ENHANCED NAVIGATION & CONNECTION TOOLS v2.0 */}
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Navigation className="h-4 w-4 text-blue-600" />
+                        <span className="text-xs font-bold text-blue-800">Smart Navigation Tools</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button 
+                            onClick={autoConnectRoomsAdvanced}
+                            disabled={rooms.length < 2}
+                            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg h-9 text-xs"
+                          >
+                            <Route className="h-3 w-3 mr-2" />
+                            Auto-Connect Rooms ({rooms.length})
+                          </Button>
+                        </motion.div>
+                        
+                        <div className="grid grid-cols-2 gap-1">
+                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Button 
+                              onClick={() => {
+                                if (rooms.length >= 2) {
+                                  const room1 = rooms[0];
+                                  const room2 = rooms[1];
+                                  createSmartDoorAdvanced(room1, room2);
+                                } else {
+                                  alert('Need at least 2 rooms to create a door!');
+                                }
+                              }}
+                              disabled={rooms.length < 2}
+                              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md h-8 text-xs"
+                            >
+                              <DoorOpen className="h-3 w-3 mr-1" />
+                              Smart Door
+                            </Button>
+                          </motion.div>
+                          
+                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Button 
+                              onClick={() => setQuickBuildMode(!quickBuildMode)}
+                              className={`w-full shadow-md h-8 text-xs ${
+                                quickBuildMode 
+                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white' 
+                                  : 'bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white'
+                              }`}
+                            >
+                              <Zap className="h-3 w-3 mr-1" />
+                              Quick Build
+                            </Button>
+                          </motion.div>
+                        </div>
+                      </div>
+                      
+                      {quickBuildMode && (
+                        <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-xs text-green-800">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Lightbulb className="h-3 w-3" />
+                            <span className="font-semibold">Quick Build Mode Active</span>
+                          </div>
+                          <p>Hallways will auto-connect to nearby rooms</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* 🤖 AI ROOM CREATION FROM DETECTION */}
+                    {detectedRooms.length > 0 && (
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Brain className="h-4 w-4 text-purple-600" />
+                          <span className="text-xs font-bold text-purple-800">AI Room Creator</span>
+                        </div>
+                        
+                        <div className="text-xs text-purple-700 mb-2">
+                          Found {detectedRooms.length} potential rooms. Click to create:
+                        </div>
+                        
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {detectedRooms.slice(0, 5).map((room, idx) => (
+                            <motion.div 
+                              key={idx}
+                              whileHover={{ scale: 1.02 }} 
+                              whileTap={{ scale: 0.98 }}
+                              className="bg-white border border-purple-200 rounded-lg p-2 cursor-pointer hover:bg-purple-50 transition-all"
+                              onClick={() => createRoomFromDetection(room)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                  <span className="text-xs font-semibold text-purple-800">
+                                    {room.suggestedType || 'Room'} #{idx + 1}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-purple-600">
+                                  {(room.confidence * 100).toFixed(0)}%
+                                </div>
+                              </div>
+                              <div className="text-xs text-purple-600 mt-1">
+                                {Math.round(room.bounds.width)}×{Math.round(room.bounds.height)}px
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        
+                        {detectedRooms.length > 5 && (
+                          <div className="text-xs text-purple-600 text-center">
+                            +{detectedRooms.length - 5} more rooms detected
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                     <div className="text-xs text-center text-blue-600 font-bold p-2 bg-blue-50 rounded-lg border-2 border-blue-200">

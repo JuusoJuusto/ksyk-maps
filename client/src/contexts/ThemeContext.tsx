@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
@@ -49,35 +49,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('ksyk-theme', theme);
     
     // Remove all theme classes
-    document.documentElement.classList.remove('light', 'dark', 'system');
+    document.documentElement.classList.remove('light', 'dark');
     
-    // Handle system theme
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
-      
-      // Listen for system theme changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-        document.documentElement.classList.remove('light', 'dark');
-        document.documentElement.classList.add(e.matches ? 'dark' : 'light');
-        applyThemeStyles(e.matches ? 'dark' : 'light');
-      };
-      
-      mediaQuery.addEventListener('change', handleSystemThemeChange);
-      applyThemeStyles(prefersDark ? 'dark' : 'light');
-      
-      return () => {
-        mediaQuery.removeEventListener('change', handleSystemThemeChange);
-      };
-    } else {
-      // Add current theme class
-      document.documentElement.classList.add(theme);
-      applyThemeStyles(theme);
-    }
+    // Add current theme class
+    document.documentElement.classList.add(theme);
+    applyThemeStyles(theme);
     
     // Sync with dark mode context for backward compatibility
-    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark = theme === 'dark';
     const darkModeEvent = new CustomEvent('themeChange', { detail: { isDark } });
     window.dispatchEvent(darkModeEvent);
   }, [theme]);
@@ -105,10 +84,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'system'];
-    const currentIndex = themes.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    setTheme(themes[nextIndex]);
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
   };
 
   return (

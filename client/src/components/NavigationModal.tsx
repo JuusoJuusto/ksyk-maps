@@ -84,68 +84,81 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     }
   };
 
-  // Enhanced pathfinding algorithm with distance-based routing
+  // Enhanced pathfinding algorithm with distance-based routing and multi-floor support
   const findPath = (from: Room, to: Room): Room[] | null => {
     // If same room, no path needed
     if (from.id === to.id) return [from];
     
+    console.log(`🧭 Enhanced pathfinding: ${from.roomNumber} → ${to.roomNumber}`);
+    
     // Get all hallways and stairways (navigation nodes)
     const navRooms = rooms.filter((r: Room) => 
-      r.type === 'hallway' || r.type === 'stairway' || r.type === 'elevator'
+      r.type === 'hallway' || r.type === 'stairway' || r.type === 'elevator' || r.type === 'door'
     );
+    
+    console.log(`🔍 Found ${navRooms.length} navigation nodes`);
     
     // Calculate distance between two rooms (using map positions if available)
     const getDistance = (roomA: Room, roomB: Room): number => {
       if (roomA.mapPositionX && roomA.mapPositionY && roomB.mapPositionX && roomB.mapPositionY) {
         const dx = roomA.mapPositionX - roomB.mapPositionX;
         const dy = roomA.mapPositionY - roomB.mapPositionY;
-        return Math.sqrt(dx * dx + dy * dy);
+        const floorPenalty = Math.abs(roomA.floor - roomB.floor) * 100; // Floor change penalty
+        return Math.sqrt(dx * dx + dy * dy) + floorPenalty;
       }
-      // Fallback: floor difference penalty
-      return Math.abs(roomA.floor - roomB.floor) * 50 + 10;
+      // Fallback: floor difference penalty + base distance
+      return Math.abs(roomA.floor - roomB.floor) * 80 + 50;
     };
     
-    // Build adjacency graph with weighted edges
+    // Build enhanced adjacency graph with weighted edges
     const buildGraph = () => {
-      const graph = new Map<string, Array<{id: string, weight: number}>>();
+      const graph = new Map<string, Array<{id: string, weight: number, type: string}>>();
       
-      // Add start and end rooms
+      // Add start and end rooms plus navigation nodes
       const allNodes = [from, to, ...navRooms];
       
       allNodes.forEach(room => {
         graph.set(room.id, []);
       });
       
-      // Connect rooms in same building
+      // Enhanced connection logic
       allNodes.forEach(roomA => {
         allNodes.forEach(roomB => {
           if (roomA.id === roomB.id) return;
           
+          const distance = getDistance(roomA, roomB);
+          const floorDiff = Math.abs(roomA.floor - roomB.floor);
+          
           // Same building connections
           if (roomA.buildingId === roomB.buildingId) {
-            // Same floor - can connect if both are nav rooms or one is start/end
-            if (roomA.floor === roomB.floor) {
-              const isNavConnection = 
-                (roomA.type === 'hallway' || roomA.type === 'stairway' || roomA.type === 'elevator') &&
-                (roomB.type === 'hallway' || roomB.type === 'stairway' || roomB.type === 'elevator');
+            // Same floor connections - enhanced proximity and type-based logic
+            if (floorDiff === 0 && distance < 250) {
+              let weight = distance;
               
-              const isStartEnd = 
-                (roomA.id === from.id || roomA.id === to.id) ||
-                (roomB.id === from.id || roomB.id === to.id);
+              // Apply intelligent weight modifiers
+              if (roomA.type === 'door' || roomB.type === 'door') weight += 5; // Door penalty
+              if (roomA.type === 'hallway' && roomB.type === 'hallway') weight *= 0.7; // Hallway bonus
+              if (roomA.type === 'stairway' || roomB.type === 'stairway') weight += 15; // Stair penalty
               
-              if (isNavConnection || isStartEnd) {
-                const distance = getDistance(roomA, roomB);
-                graph.get(roomA.id)?.push({ id: roomB.id, weight: distance });
-              }
+              // Connection type classification
+              const connectionType = roomA.type === 'hallway' || roomB.type === 'hallway' ? 'corridor' :
+                                   roomA.type === 'door' || roomB.type === 'door' ? 'door' : 'walk';
+              
+              graph.get(roomA.id)?.push({ id: roomB.id, weight, type: connectionType });
             }
-            // Adjacent floors - only through stairways/elevators
-            else if (Math.abs(roomA.floor - roomB.floor) === 1) {
+            // Multi-floor connections - only through vertical transport
+            else if (floorDiff === 1 && distance < 100) {
               if ((roomA.type === 'stairway' || roomA.type === 'elevator') &&
                   (roomB.type === 'stairway' || roomB.type === 'elevator')) {
-                // Elevators are faster than stairs
-                const weight = roomA.type === 'elevator' ? 20 : 30;
-                graph.get(roomA.id)?.push({ id: roomB.id, weight });
+                const weight = roomA.type === 'elevator' ? 15 : 25; // Elevators are faster
+                graph.get(roomA.id)?.push({ id: roomB.id, weight, type: roomA.type });
               }
+            }
+            // Long-distance same-floor connections for large buildings
+            else if (floorDiff === 0 && distance < 400 && 
+                     (roomA.type === 'hallway' || roomB.type === 'hallway')) {
+              const weight = distance * 1.3; // Penalty for long distances
+              graph.get(roomA.id)?.push({ id: roomB.id, weight, type: 'long_corridor' });
             }
           }
         });
@@ -154,7 +167,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       return graph;
     };
     
-    // A* pathfinding with distance-based heuristic
+    // Enhanced A* pathfinding implementation
     const graph = buildGraph();
     const openSet = new Set([from.id]);
     const cameFrom = new Map<string, string>();
@@ -164,7 +177,12 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     gScore.set(from.id, 0);
     fScore.set(from.id, getDistance(from, to));
     
-    while (openSet.size > 0) {
+    let iterations = 0;
+    const maxIterations = 500;
+    
+    while (openSet.size > 0 && iterations < maxIterations) {
+      iterations++;
+      
       // Get node with lowest fScore
       let current = '';
       let lowestF = Infinity;
@@ -177,7 +195,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       });
       
       if (current === to.id) {
-        // Reconstruct path
+        // Reconstruct enhanced path
         const path: Room[] = [];
         let curr = current;
         while (curr) {
@@ -185,6 +203,8 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
           path.unshift(room);
           curr = cameFrom.get(curr) || '';
         }
+        
+        console.log(`✅ Enhanced path found in ${iterations} iterations: ${path.length} steps`);
         return path;
       }
       
@@ -199,13 +219,16 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
           gScore.set(neighbor.id, tentativeG);
           
           const neighborRoom = rooms.find((r: Room) => r.id === neighbor.id) || to;
-          const heuristic = getDistance(neighborRoom, to);
+          // Enhanced heuristic with floor penalty
+          const heuristic = getDistance(neighborRoom, to) + 
+                           Math.abs(neighborRoom.floor - to.floor) * 30;
           fScore.set(neighbor.id, tentativeG + heuristic);
           openSet.add(neighbor.id);
         }
       });
     }
     
+    console.log(`❌ No enhanced path found after ${iterations} iterations`);
     return null; // No path found
   };
 

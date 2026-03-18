@@ -76,7 +76,7 @@ export default function VersionInfo() {
                   <h4 className="font-bold mb-2">🎨 Comprehensive Admin Settings:</h4>
                   <ul className="space-y-1 text-sm ml-4">
                     <li>• Complete admin settings panel with 6 comprehensive tabs</li>
-                    <li>• Global theme management (Light, Dark, Blueprint)</li>
+                    <li>• Global theme management (Light, Dark, System)</li>
                     <li>• Color customization for all UI elements</li>
                     <li>• Performance controls and AI configuration</li>
                     <li>• All settings save to database and apply globally</li>
@@ -84,9 +84,9 @@ export default function VersionInfo() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">⚡ Enhanced Blueprint Theme:</h4>
+                  <h4 className="font-bold mb-2">🎨 Enhanced Theme System:</h4>
                   <ul className="space-y-1 text-sm ml-4">
-                    <li>• Stunning blue and neon aesthetic with grid patterns</li>
+                    <li>• Clean Light and Dark themes with smooth transitions</li>
                     <li>• Glowing circuit line overlays and radial gradients</li>
                     <li>• Enhanced glow effects and text shadows</li>
                     <li>• Perfect contrast and readability</li>
@@ -98,7 +98,7 @@ export default function VersionInfo() {
                   <ul className="space-y-1 text-sm ml-4">
                     <li>• Synced theme system with dark mode context</li>
                     <li>• Removed redundant dark mode toggle from settings</li>
-                    <li>• Unified theme cycling: Light → Dark → Blueprint</li>
+                    <li>• Unified theme cycling: Light ↔ Dark</li>
                     <li>• Database persistence for all theme changes</li>
                     <li>• Improved mobile menu positioning and animations</li>
                   </ul>

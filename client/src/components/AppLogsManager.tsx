@@ -67,7 +67,7 @@ export default function AppLogsManager() {
       id: 'app-2',
       level: 'success',
       message: 'Settings updated',
-      details: 'App theme changed to Blueprint',
+      details: 'App theme changed to Dark',
       userId: 'owner-admin-user',
       userName: 'Juuso Kaikula',
       action: 'UPDATE_SETTINGS',

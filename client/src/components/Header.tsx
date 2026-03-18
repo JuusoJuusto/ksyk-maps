@@ -38,7 +38,7 @@ export default function Header() {
     });
   };
 
-  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'blueprint') => {
+  const handleThemeChange = async (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);
     try {
       await fetch('/api/settings', {
@@ -122,19 +122,17 @@ export default function Header() {
                 <div className="relative">
                   <button
                     onClick={() => {
-                      const themes = ['light', 'dark', 'blueprint'] as const;
-                      const currentIndex = themes.indexOf(theme);
-                      const nextTheme = themes[(currentIndex + 1) % themes.length];
+                      const nextTheme = theme === 'light' ? 'dark' : 'light';
                       handleThemeChange(nextTheme);
                     }}
                     className={`p-2 rounded-lg transition-all ${
-                      theme === 'dark' || theme === 'blueprint'
+                      theme === 'dark'
                         ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
-                    title={`Current: ${theme} theme - Click to cycle`}
+                    title={`Current: ${theme} theme - Click to toggle`}
                   >
-                    {theme === 'dark' || theme === 'blueprint' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                   </button>
                 </div>
                 
@@ -204,19 +202,17 @@ export default function Header() {
                 {/* Theme Toggle in Admin Panel */}
                 <button
                   onClick={() => {
-                    const themes = ['light', 'dark', 'blueprint'] as const;
-                    const currentIndex = themes.indexOf(theme);
-                    const nextTheme = themes[(currentIndex + 1) % themes.length];
+                    const nextTheme = theme === 'light' ? 'dark' : 'light';
                     handleThemeChange(nextTheme);
                   }}
                   className={`p-2 rounded-lg transition-all ${
-                    theme === 'dark' || theme === 'blueprint'
+                    theme === 'dark'
                       ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
-                  title={`Current: ${theme} theme - Click to cycle`}
+                  title={`Current: ${theme} theme - Click to toggle`}
                 >
-                  {theme === 'dark' || theme === 'blueprint' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </button>
                 
                 {/* Admin Panel - Lunch and HSL */}
@@ -276,7 +272,7 @@ export default function Header() {
                   {/* Theme Selector */}
                   <div className="space-y-2 animate-slide-in-left">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
                           handleThemeChange('light');
@@ -302,19 +298,6 @@ export default function Header() {
                         }`}
                       >
                         🌙 {t('theme.dark')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleThemeChange('blueprint');
-                          setShowMobileMenu(false);
-                        }}
-                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
-                          theme === 'blueprint' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
-                        }`}
-                      >
-                        ⚡ {t('theme.blueprint')}
                       </button>
                     </div>
                   </div>
@@ -388,7 +371,7 @@ export default function Header() {
                   {/* Admin Panel Mobile Menu */}
                   <div className="space-y-2 animate-slide-in-left">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
                           handleThemeChange('light');
@@ -414,19 +397,6 @@ export default function Header() {
                         }`}
                       >
                         🌙 {t('theme.dark')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleThemeChange('blueprint');
-                          setShowMobileMenu(false);
-                        }}
-                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
-                          theme === 'blueprint' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
-                        }`}
-                      >
-                        ⚡ {t('theme.blueprint')}
                       </button>
                     </div>
                   </div>

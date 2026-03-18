@@ -101,10 +101,8 @@ const resources = {
       'mobile.quickActions': 'Quick Actions',
       'theme.light': 'Light',
       'theme.dark': 'Dark',
-      'theme.blueprint': 'Blueprint',
       'theme.light.desc': 'Clean & bright interface',
       'theme.dark.desc': 'Easy on the eyes',
-      'theme.blueprint.desc': 'Futuristic neon design',
       'theme.current': 'Current theme',
       'theme.clickToCycle': 'Click to cycle themes',
       
@@ -228,10 +226,8 @@ const resources = {
       'mobile.quickActions': 'Pikatoiminnot',
       'theme.light': 'Vaalea',
       'theme.dark': 'Tumma',
-      'theme.blueprint': 'Blueprint',
       'theme.light.desc': 'Puhdas ja kirkas käyttöliittymä',
       'theme.dark.desc': 'Hellävarainen silmille',
-      'theme.blueprint.desc': 'Futuristinen neon-muotoilu',
       'theme.current': 'Nykyinen teema',
       'theme.clickToCycle': 'Klikkaa vaihtaaksesi teemoja',
       
