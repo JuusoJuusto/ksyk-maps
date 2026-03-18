@@ -1,44 +1,63 @@
 import { firebaseStorage } from './firebaseStorage.js';
 
-// Sample rooms for each building with hallways and stairways for navigation
-// EVEN BIGGER ROOMS matching new building layout (buildings at 50,50 / 550,50 / 1050,50 / 50,450 / 550,450 / 1050,450)
-// Building size: 400x260
+// COMPREHENSIVE ROOMS FROM FLOOR PLAN - All 4 floors with K and M buildings
+// Based on user-provided floor plan images showing K (Central Hall) and M (Music Building)
 const sampleRooms = [
-  // M Building (Music) - Purple - Position: 50,50 - Size: 400x260
-  { buildingId: '', roomNumber: 'M101', name: 'Music Room 1', nameEn: 'Music Room 1', nameFi: 'Musiikkihuone 1', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 80, mapPositionY: 80, width: 120, height: 80, isActive: true },
-  { buildingId: '', roomNumber: 'M102', name: 'Practice Room', nameEn: 'Practice Room', nameFi: 'Harjoitushuone', floor: 1, type: 'classroom', capacity: 15, mapPositionX: 220, mapPositionY: 80, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'M-Hall1', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 1, type: 'hallway', mapPositionX: 80, mapPositionY: 180, width: 240, height: 30, isActive: true },
-  { buildingId: '', roomNumber: 'M-Stairs', name: 'Stairway', nameEn: 'Stairway', nameFi: 'Portaikko', floor: 1, type: 'stairway', mapPositionX: 350, mapPositionY: 80, width: 50, height: 60, isActive: true },
+  // ==================== K BUILDING (Central Hall) - Floor 1 ====================
+  { buildingId: '', roomNumber: 'K11', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K12', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K13', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K14', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 160, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K15', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 160, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K16', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 160, width: 80, height: 60, isActive: true },
   
-  // K Building (Central Hall) - Red - Position: 550,50 - Size: 400x260
-  { buildingId: '', roomNumber: 'K101', name: 'Main Hall', nameEn: 'Main Hall', nameFi: 'Pääsali', floor: 1, type: 'auditorium', capacity: 200, mapPositionX: 580, mapPositionY: 80, width: 160, height: 100, isActive: true },
-  { buildingId: '', roomNumber: 'K102', name: 'Classroom A', nameEn: 'Classroom A', nameFi: 'Luokkahuone A', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 760, mapPositionY: 80, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'K103', name: 'Classroom B', nameEn: 'Classroom B', nameFi: 'Luokkahuone B', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 760, mapPositionY: 170, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'K-Hall1', name: 'Central Corridor', nameEn: 'Central Corridor', nameFi: 'Keskuskäytävä', floor: 1, type: 'hallway', mapPositionX: 580, mapPositionY: 200, width: 180, height: 30, isActive: true },
-  { buildingId: '', roomNumber: 'K-Stairs', name: 'Main Stairway', nameEn: 'Main Stairway', nameFi: 'Pääportaikko', floor: 1, type: 'stairway', mapPositionX: 880, mapPositionY: 80, width: 50, height: 60, isActive: true },
-  { buildingId: '', roomNumber: 'K-Elevator', name: 'Elevator', nameEn: 'Elevator', nameFi: 'Hissi', floor: 1, type: 'elevator', mapPositionX: 880, mapPositionY: 160, width: 30, height: 50, isActive: true },
+  // ==================== K BUILDING - Floor 2 ====================
+  { buildingId: '', roomNumber: 'K21', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 2, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K22', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 2, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K23', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 2, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 80, width: 80, height: 60, isActive: true },
   
-  // L Building (Gymnasium) - Green - Position: 1050,50 - Size: 400x260
-  { buildingId: '', roomNumber: 'L101', name: 'Main Gym', nameEn: 'Main Gymnasium', nameFi: 'Pääliikuntasali', floor: 1, type: 'gym', capacity: 100, mapPositionX: 1080, mapPositionY: 80, width: 200, height: 130, isActive: true },
-  { buildingId: '', roomNumber: 'L102', name: 'Locker Room', nameEn: 'Locker Room', nameFi: 'Pukuhuone', floor: 1, type: 'other', capacity: 40, mapPositionX: 1300, mapPositionY: 80, width: 90, height: 60, isActive: true },
-  { buildingId: '', roomNumber: 'L-Hall1', name: 'Sports Corridor', nameEn: 'Sports Corridor', nameFi: 'Urheilukäytävä', floor: 1, type: 'hallway', mapPositionX: 1080, mapPositionY: 230, width: 310, height: 30, isActive: true },
+  // ==================== K BUILDING - Floor 3 ====================
+  { buildingId: '', roomNumber: 'K31', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K32', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K33', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K34', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 160, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K35', name: 'Art Studio', nameEn: 'Art Studio', nameFi: 'Taidestudio', floor: 3, type: 'classroom', capacity: 25, mapPositionX: 680, mapPositionY: 160, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K36', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 160, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K37', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 3, type: 'classroom', capacity: 30, mapPositionX: 880, mapPositionY: 80, width: 80, height: 60, isActive: true },
   
-  // R Building (Research) - Orange - Position: 50,450 - Size: 400x260
-  { buildingId: '', roomNumber: 'R101', name: 'Lab 1', nameEn: 'Laboratory 1', nameFi: 'Laboratorio 1', floor: 1, type: 'lab', capacity: 20, mapPositionX: 80, mapPositionY: 480, width: 120, height: 80, isActive: true },
-  { buildingId: '', roomNumber: 'R102', name: 'Lab 2', nameEn: 'Laboratory 2', nameFi: 'Laboratorio 2', floor: 1, type: 'lab', capacity: 20, mapPositionX: 220, mapPositionY: 480, width: 120, height: 80, isActive: true },
-  { buildingId: '', roomNumber: 'R-Hall1', name: 'Research Hallway', nameEn: 'Research Hallway', nameFi: 'Tutkimuskäytävä', floor: 1, type: 'hallway', mapPositionX: 80, mapPositionY: 580, width: 260, height: 30, isActive: true },
-  { buildingId: '', roomNumber: 'R-Stairs', name: 'Lab Stairway', nameEn: 'Lab Stairway', nameFi: 'Laboratorioport aikko', floor: 1, type: 'stairway', mapPositionX: 360, mapPositionY: 480, width: 50, height: 60, isActive: true },
+  // ==================== K BUILDING - Floor 4 ====================
+  { buildingId: '', roomNumber: 'K41', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 4, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K42', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 4, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K43', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 4, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 80, width: 80, height: 60, isActive: true },
   
-  // A Building (Admin) - Purple - Position: 550,450 - Size: 400x260
-  { buildingId: '', roomNumber: 'A101', name: 'Office 1', nameEn: 'Office 1', nameFi: 'Toimisto 1', floor: 1, type: 'office', capacity: 10, mapPositionX: 580, mapPositionY: 480, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'A102', name: 'Office 2', nameEn: 'Office 2', nameFi: 'Toimisto 2', floor: 1, type: 'office', capacity: 10, mapPositionX: 700, mapPositionY: 480, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'A-Hall1', name: 'Admin Hallway', nameEn: 'Admin Hallway', nameFi: 'Hallintokäytävä', floor: 1, type: 'hallway', mapPositionX: 580, mapPositionY: 570, width: 220, height: 30, isActive: true },
+  // ==================== K BUILDING - Floor 5 ====================
+  { buildingId: '', roomNumber: 'K51', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 5, type: 'classroom', capacity: 30, mapPositionX: 580, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K52', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 5, type: 'classroom', capacity: 30, mapPositionX: 680, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'K53', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 5, type: 'classroom', capacity: 30, mapPositionX: 780, mapPositionY: 80, width: 80, height: 60, isActive: true },
   
-  // U Building (University) - Blue - Position: 1050,450 - Size: 400x260
-  { buildingId: '', roomNumber: 'U101', name: 'Lecture Hall', nameEn: 'Lecture Hall', nameFi: 'Luentosali', floor: 1, type: 'classroom', capacity: 50, mapPositionX: 1080, mapPositionY: 480, width: 140, height: 90, isActive: true },
-  { buildingId: '', roomNumber: 'U102', name: 'Study Room', nameEn: 'Study Room', nameFi: 'Opiskeluhuone', floor: 1, type: 'classroom', capacity: 20, mapPositionX: 1240, mapPositionY: 480, width: 100, height: 70, isActive: true },
-  { buildingId: '', roomNumber: 'U-Hall1', name: 'University Hallway', nameEn: 'University Hallway', nameFi: 'Yliopistokäytävä', floor: 1, type: 'hallway', mapPositionX: 1080, mapPositionY: 590, width: 260, height: 30, isActive: true },
-  { buildingId: '', roomNumber: 'U-Stairs', name: 'University Stairway', nameEn: 'University Stairway', nameFi: 'Yliopistoport aikko', floor: 1, type: 'stairway', mapPositionX: 1360, mapPositionY: 480, width: 50, height: 60, isActive: true },
+  // ==================== M BUILDING (Music) - Floor 1 ====================
+  { buildingId: '', roomNumber: 'M11', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 1, type: 'classroom', capacity: 25, mapPositionX: 80, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'M12', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 1, type: 'classroom', capacity: 25, mapPositionX: 180, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'M13', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 1, type: 'classroom', capacity: 25, mapPositionX: 280, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  
+  // ==================== M BUILDING - Floor 2 ====================
+  { buildingId: '', roomNumber: 'M21', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 2, type: 'classroom', capacity: 25, mapPositionX: 80, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'M22', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 2, type: 'classroom', capacity: 25, mapPositionX: 180, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  { buildingId: '', roomNumber: 'M23', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 2, type: 'classroom', capacity: 25, mapPositionX: 280, mapPositionY: 80, width: 80, height: 60, isActive: true },
+  
+  // ==================== HALLWAYS AND CONNECTORS ====================
+  { buildingId: '', roomNumber: 'K-Hall1', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 1, type: 'hallway', mapPositionX: 580, mapPositionY: 240, width: 380, height: 30, isActive: true },
+  { buildingId: '', roomNumber: 'K-Hall2', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 2, type: 'hallway', mapPositionX: 580, mapPositionY: 240, width: 380, height: 30, isActive: true },
+  { buildingId: '', roomNumber: 'K-Hall3', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 3, type: 'hallway', mapPositionX: 580, mapPositionY: 240, width: 380, height: 30, isActive: true },
+  { buildingId: '', roomNumber: 'K-Hall4', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 4, type: 'hallway', mapPositionX: 580, mapPositionY: 240, width: 380, height: 30, isActive: true },
+  { buildingId: '', roomNumber: 'K-Hall5', name: 'Main Hallway', nameEn: 'Main Hallway', nameFi: 'Pääkäytävä', floor: 5, type: 'hallway', mapPositionX: 580, mapPositionY: 240, width: 380, height: 30, isActive: true },
+  
+  { buildingId: '', roomNumber: 'M-Hall1', name: 'Music Hallway', nameEn: 'Music Hallway', nameFi: 'Musiikkikäytävä', floor: 1, type: 'hallway', mapPositionX: 80, mapPositionY: 160, width: 280, height: 30, isActive: true },
+  { buildingId: '', roomNumber: 'M-Hall2', name: 'Music Hallway', nameEn: 'Music Hallway', nameFi: 'Musiikkikäytävä', floor: 2, type: 'hallway', mapPositionX: 80, mapPositionY: 160, width: 280, height: 30, isActive: true },
+  
+  // ==================== STAIRWAYS ====================
+  { buildingId: '', roomNumber: 'K-Stairs', name: 'Main Stairway', nameEn: 'Main Stairway', nameFi: 'Pääportaikko', floor: 1, type: 'stairway', mapPositionX: 900, mapPositionY: 80, width: 40, height: 50, isActive: true },
+  { buildingId: '', roomNumber: 'M-Stairs', name: 'Music Stairway', nameEn: 'Music Stairway', nameFi: 'Musiikkiportaikko', floor: 1, type: 'stairway', mapPositionX: 380, mapPositionY: 80, width: 40, height: 50, isActive: true },
 ];
 
 async function seedRooms() {
