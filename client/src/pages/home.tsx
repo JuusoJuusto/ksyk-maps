@@ -63,6 +63,9 @@ export default function Home() {
   const { theme, setTheme, toggleTheme } = useTheme();
   const [ticketOpen, setTicketOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('map'); // Add state for active tab
+  const [britishUnlocked, setBritishUnlocked] = useState(() => {
+    return localStorage.getItem('ksyk_british_unlocked') === 'true';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -485,11 +488,11 @@ export default function Home() {
           </div> {/* Close scrollable content */}
         </div>
 
-        {/* Sidebar Toggle Button - Perfect positioning */}
+        {/* Sidebar Toggle Button - Perfect positioning - MOBILE ONLY */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`
-            fixed z-[45] pointer-events-auto
+            fixed z-[45] pointer-events-auto md:hidden
             bg-blue-600 text-white 
             shadow-2xl hover:bg-blue-700 
             transition-all duration-300 ease-in-out
@@ -499,18 +502,12 @@ export default function Home() {
               ? 'bottom-[55vh] left-1/2 -translate-x-1/2 rounded-t-2xl px-6 py-2' 
               : 'bottom-8 left-1/2 -translate-x-1/2 rounded-full px-6 py-2.5'
             }
-            
-            md:bottom-auto md:translate-x-0 md:top-1/2 md:-translate-y-1/2
-            ${sidebarOpen 
-              ? 'md:left-[320px] md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4' 
-              : 'md:left-0 md:rounded-r-xl md:rounded-l-none md:px-3 md:py-4'
-            }
           `}
           title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
         >
           <div className="flex items-center justify-center gap-2">
             {/* Mobile icons */}
-            <div className="md:hidden flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               {sidebarOpen ? (
                 <>
                   <X className="h-4 w-4" />
@@ -521,15 +518,6 @@ export default function Home() {
                   <MapPin className="h-4 w-4" />
                   <span className="text-xs font-semibold">Menu</span>
                 </>
-              )}
-            </div>
-            
-            {/* Desktop icons */}
-            <div className="hidden md:block">
-              {sidebarOpen ? (
-                <span className="text-2xl font-bold leading-none">◀</span>
-              ) : (
-                <span className="text-2xl font-bold leading-none">▶</span>
               )}
             </div>
           </div>
@@ -546,7 +534,7 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           {/* Tab Buttons */}
-          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+          <div className={`absolute top-20 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
             <button
               onClick={() => setActiveTab('map')}
               className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
@@ -1392,25 +1380,34 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        🌐 Language / Kieli
+                        {currentLang === 'fi' ? '🌐 Kieli' : '🌐 Language'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
                         <Button
                           variant={currentLang === 'en' ? 'default' : 'outline'}
                           onClick={() => handleLanguageChange('en')}
-                          className="flex-1"
+                          className="flex-1 min-w-[120px]"
                         >
                           🇬🇧 English
                         </Button>
                         <Button
                           variant={currentLang === 'fi' ? 'default' : 'outline'}
                           onClick={() => handleLanguageChange('fi')}
-                          className="flex-1"
+                          className="flex-1 min-w-[120px]"
                         >
                           🇫🇮 Suomi
                         </Button>
+                        {britishUnlocked && (
+                          <Button
+                            variant={currentLang === 'en-GB' ? 'default' : 'outline'}
+                            onClick={() => handleLanguageChange('en-GB')}
+                            className="flex-1 min-w-[120px]"
+                          >
+                            🇬🇧 British English
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1419,7 +1416,7 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        🎨 Theme / Teema
+                        {currentLang === 'fi' ? '🎨 Teema' : '🎨 Theme'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1428,40 +1425,72 @@ export default function Home() {
                           onClick={() => setTheme('light')}
                           className={`p-4 rounded-lg border-2 transition-all ${
                             theme === 'light'
-                              ? 'border-blue-500 bg-blue-50'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
                               : 'border-gray-300 hover:border-blue-300'
                           }`}
                         >
                           <div className="text-4xl mb-2">☀️</div>
-                          <div className="font-semibold">Light</div>
-                          <div className="text-sm text-gray-600">Bright theme</div>
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Light</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Bright theme</div>
                         </button>
                         
                         <button
                           onClick={() => setTheme('dark')}
                           className={`p-4 rounded-lg border-2 transition-all ${
                             theme === 'dark'
-                              ? 'border-blue-500 bg-blue-50'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
                               : 'border-gray-300 hover:border-blue-300'
                           }`}
                         >
                           <div className="text-4xl mb-2">🌙</div>
-                          <div className="font-semibold">Dark</div>
-                          <div className="text-sm text-gray-600">Easy on eyes</div>
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Dark</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Easy on eyes</div>
                         </button>
                         
                         <button
                           onClick={() => setTheme('system')}
                           className={`p-4 rounded-lg border-2 transition-all ${
                             theme === 'system'
-                              ? 'border-blue-500 bg-blue-50'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
                               : 'border-gray-300 hover:border-blue-300'
                           }`}
                         >
                           <div className="text-4xl mb-2">🖥️</div>
-                          <div className="font-semibold">System</div>
-                          <div className="text-sm text-gray-600">Auto</div>
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>System</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto</div>
                         </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Support */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
+                        {currentLang === 'fi' ? '🎫 Tuki' : '🎫 Support'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <p>{currentLang === 'fi' ? 'Tarvitsetko apua? Lähetä tukipyyntö!' : 'Need help? Submit a support ticket!'}</p>
+                        <Button
+                          onClick={() => setTicketOpen(true)}
+                          className="w-full"
+                        >
+                          {currentLang === 'fi' ? '📝 Lähetä tukipyyntö' : '📝 Submit Support Ticket'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -1470,7 +1499,7 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        ℹ️ About / Tietoja
+                        {currentLang === 'fi' ? 'ℹ️ Tietoja' : 'ℹ️ About'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1482,7 +1511,7 @@ export default function Home() {
                           onClick={() => window.open('https://studiowl.vercel.app', '_blank')}
                           className="w-full mt-4"
                         >
-                          Learn More
+                          {currentLang === 'fi' ? 'Lue lisää' : 'Learn More'}
                         </Button>
                       </div>
                     </CardContent>

@@ -18,6 +18,9 @@ export default function EasterEgg() {
 
     // Mark easter egg as found
     localStorage.setItem("ksyk_easter_egg_found", "true");
+    
+    // Enable British English language option
+    localStorage.setItem("ksyk_british_unlocked", "true");
   }, []);
 
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"];

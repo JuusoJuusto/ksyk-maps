@@ -251,6 +251,132 @@ const resources = {
       'unauthorized': 'Ei käyttöoikeutta',
       'unauthorized.desc': 'Olet kirjautunut ulos. Kirjaudutaan sisään uudelleen...',
     }
+  },
+  'en-GB': {
+    translation: {
+      // Navigation
+      'nav.map': 'Map',
+      'nav.directory': 'Directory',
+      'nav.schedule': 'Schedule',
+      'nav.events': 'Events',
+      'nav.information': 'Information',
+      'nav.admin': 'Admin',
+      
+      // Hero section
+      'hero.title': 'Welcome to KSYK Map, innit',
+      'hero.subtitle': 'Navigate our campus with ease, bruv • 1151 students • 40+ nationalities',
+      
+      // Search
+      'search.placeholder': 'Search for rooms, staff, facilities, mate...',
+      'search.rooms': 'Search Rooms',
+      'search.navigate': 'Navigate',
+      
+      // Map
+      'map.title': 'Campus Map',
+      'map.zoomIn': 'Zoom In',
+      'map.floors': 'Floors',
+      'map.legend': 'Legend',
+      'map.academic': 'Academic',
+      'map.sports': 'Sports',
+      'map.library': 'Library',
+      'map.music': 'Music',
+      
+      // Buildings
+      'building.uwing': 'U-Wing',
+      'building.uwing.desc': 'Classrooms',
+      'building.main': 'Main Building',
+      'building.main.desc': 'Administration',
+      'building.library': 'Library',
+      'building.library.desc': 'Study Spaces',
+      'building.music': 'School of Rock',
+      'building.music.desc': 'Music Building',
+      'building.gym': 'Gymnasiums',
+      'building.gym.desc': 'Sports Facilities',
+      'building.lab': 'Laboratories',
+      'building.lab.desc': 'Science Labs',
+      
+      // Quick Actions
+      'actions.title': 'Quick Actions',
+      'actions.directions': 'Get Directions',
+      'actions.findStaff': 'Find Staff',
+      'actions.events': "Today's Events",
+      'actions.emergency': 'Emergency Info',
+      
+      // Status
+      'status.title': 'Campus Status',
+      'status.buildingHours': 'Building Hours',
+      'status.library': 'Library',
+      'status.cafeteria': 'Cafeteria',
+      'status.itSupport': 'IT Support',
+      'status.open': 'Open',
+      'status.closed': 'Closed',
+      'status.available': 'Available',
+      'status.openUntil': 'Open until 20:00',
+      
+      // Announcements
+      'announcements.title': 'Announcements',
+      'announcements.clickDetails': 'Click for more details',
+      'announcements.recently': 'Recently',
+      'announcements.urgent': 'This is an urgent announcement, innit. Please take immediate action if required.',
+      'announcements.high': 'This is a high priority announcement, mate. Please review carefully.',
+      
+      // Staff Directory
+      'staff.title': 'Staff Directory',
+      'staff.add': 'Add Staff',
+      'staff.search': 'Search staff...',
+      'staff.allDepartments': 'All Departments',
+      'staff.administration': 'Administration',
+      'staff.teaching': 'Teaching Staff',
+      'staff.support': 'Support Staff',
+      'staff.locate': 'Locate',
+      'staff.contact': 'Contact',
+      
+      // Admin
+      'admin.title': 'Admin Dashboard',
+      'admin.totalStudents': 'Total Students',
+      'admin.staffMembers': 'Staff Members',
+      'admin.buildings': 'Buildings',
+      'admin.recentActivity': 'Recent Activity',
+      'admin.adminTools': 'Admin Tools',
+      'admin.editMap': 'Edit Map',
+      'admin.addStaff': 'Add Staff',
+      'admin.announcements': 'Announcements',
+      'admin.settings': 'Settings',
+      
+      // Mobile Menu & Themes
+      'mobile.menu': 'Menu',
+      'mobile.close': 'Close',
+      'mobile.theme': 'Theme',
+      'mobile.language': 'Language',
+      'mobile.quickActions': 'Quick Actions',
+      'theme.light': 'Light',
+      'theme.dark': 'Dark',
+      'theme.light.desc': 'Clean & bright interface',
+      'theme.dark.desc': 'Easy on the eyes',
+      'theme.current': 'Current theme',
+      'theme.clickToCycle': 'Click to cycle themes',
+      
+      // Languages
+      'language.english': 'English',
+      'language.finnish': 'Finnish',
+      'language.suomi': 'Suomi',
+      'language.british': 'British English',
+      
+      // Quick Actions Mobile
+      'quickActions.lunch': 'Lunch Menu',
+      'quickActions.transport': 'HSL Transport',
+      'quickActions.admin': 'Admin Panel',
+      
+      // Common
+      'login': 'Log In',
+      'logout': 'Log Out',
+      'close': 'Close',
+      'save': 'Save',
+      'cancel': 'Cancel',
+      'loading': 'Loading, innit...',
+      'unauthorized': 'Unauthorised',
+      'unauthorized.desc': 'You are logged out, bruv. Logging in again...',
+    }
   }
 };
 
