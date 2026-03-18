@@ -12,7 +12,6 @@ import TicketSystemNew from "@/components/TicketSystemNew";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, 
   MapPin, 
@@ -24,7 +23,8 @@ import {
   X,
   Navigation,
   ArrowRight,
-  Zap
+  Zap,
+  Ticket
 } from "lucide-react";
 
 interface Building {
@@ -62,6 +62,7 @@ export default function Home() {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, toggleTheme } = useTheme();
   const [ticketOpen, setTicketOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('map'); // Add state for active tab
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -274,13 +275,13 @@ export default function Home() {
       </div>
       
       {/* Ticket System Button - Fixed positioning */}
-      <Button
+      <button
         onClick={() => setTicketOpen(true)}
-        className="fixed bottom-20 right-4 z-[30] rounded-full h-14 w-14 shadow-lg"
+        className="fixed bottom-20 right-4 z-[30] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
         title="Submit Support Ticket"
       >
-        🎫
-      </Button>
+        <Ticket className="h-5 w-5" />
+      </button>
       
       <TicketSystemNew isOpen={ticketOpen} onClose={() => setTicketOpen(false)} />
       
@@ -544,32 +545,52 @@ export default function Home() {
         
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-          <Tabs defaultValue="map" className="h-full" onValueChange={(value) => console.log('TAB CHANGED TO:', value)}>
-            <TabsList className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
-              <TabsTrigger 
-                value="map" 
-                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
-              >
-                <MapPin className="h-5 w-5" />
-                <span className="hidden sm:inline">{t('nav.map')}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="schedule" 
-                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
-              >
-                <Calendar className="h-5 w-5" />
-                <span className="hidden sm:inline">{t('nav.schedule')}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="settings" 
-                className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${darkMode ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-800' : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-gray-100'}`}
-              >
-                <Settings className="h-5 w-5" />
-                <span className="hidden sm:inline">{t('admin.settings')}</span>
-              </TabsTrigger>
-            </TabsList>
+          {/* Tab Buttons */}
+          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+                activeTab === 'map'
+                  ? 'bg-blue-600 text-white'
+                  : darkMode
+                  ? 'hover:bg-gray-800 text-gray-300'
+                  : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <MapPin className="h-5 w-5" />
+              <span className="hidden sm:inline">{t('nav.map')}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+                activeTab === 'schedule'
+                  ? 'bg-blue-600 text-white'
+                  : darkMode
+                  ? 'hover:bg-gray-800 text-gray-300'
+                  : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Calendar className="h-5 w-5" />
+              <span className="hidden sm:inline">{t('nav.schedule')}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+                activeTab === 'settings'
+                  ? 'bg-blue-600 text-white'
+                  : darkMode
+                  ? 'hover:bg-gray-800 text-gray-300'
+                  : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Settings className="h-5 w-5" />
+              <span className="hidden sm:inline">{t('admin.settings')}</span>
+            </button>
+          </div>
 
-            <TabsContent value="map" className="h-full m-0 p-0">
+          {/* Map Tab Content */}
+          {activeTab === 'map' && (
+            <div className="h-full">
               {/* Google Maps-Style Navigation Popup - Positioned below announcement */}
               {showNavigationPopup && navigationPath.length > 0 && (
                 <div className="absolute top-36 md:top-28 left-2 right-2 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-blue-500 p-4 md:p-6 max-w-md animate-in slide-in-from-top duration-300">
@@ -1342,9 +1363,12 @@ export default function Home() {
                 </svg>
                 </div>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            <TabsContent value="schedule" className="h-full m-0 p-4 sm:p-8 overflow-auto flex items-center justify-center">
+          {/* Schedule Tab Content */}
+          {activeTab === 'schedule' && (
+            <div className="h-full m-0 p-4 sm:p-8 overflow-auto flex items-center justify-center">
               <div className="max-w-2xl mx-auto text-center">
                 <div className={`p-12 rounded-2xl ${darkMode ? 'bg-gray-800 border-2 border-gray-700' : 'bg-white border-2 border-blue-200'}`}>
                   <h2 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -1355,24 +1379,13 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            <TabsContent value="settings" className="h-full m-0 p-0 overflow-auto block">
-              <div style={{ minHeight: '100vh', backgroundColor: '#EF4444', padding: '2rem' }}>
-                {/* SUPER VISIBLE TEST */}
-                <div style={{ 
-                  backgroundColor: '#FFFFFF', 
-                  color: '#000000', 
-                  padding: '3rem', 
-                  textAlign: 'center', 
-                  fontSize: '3rem', 
-                  fontWeight: 'bold',
-                  border: '10px solid #000000',
-                  marginBottom: '2rem'
-                }}>
-                  ✓✓✓ SETTINGS TAB IS HERE ✓✓✓
-                </div>
-                
+          {/* Settings Tab Content */}
+          {activeTab === 'settings' && (
+            <div className="h-full overflow-auto">
+              <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
                 <div className="max-w-4xl mx-auto space-y-6">
                   
                   {/* Language Settings */}
@@ -1477,8 +1490,9 @@ export default function Home() {
 
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
