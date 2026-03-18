@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Password changed for user:', userId);
       res.json({ success: true, message: "Password changed successfully" });
     } catch (error) {
-      console.error("Password change error:", error);
+      await logError(error, 'POST /api/auth/change-password', { userId: req.user?.claims?.sub });
       res.status(500).json({ message: "Failed to change password" });
     }
   });
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const buildings = await storage.getBuildings();
       res.json(buildings);
     } catch (error) {
-      console.error("Error fetching buildings:", error);
+      await logError(error, 'GET /api/buildings');
       res.status(500).json({ message: "Failed to fetch buildings" });
     }
   });
@@ -333,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(building);
     } catch (error) {
-      console.error("Error fetching building:", error);
+      await logError(error, 'GET /api/buildings/:id', { buildingId: req.params.id });
       res.status(500).json({ message: "Failed to fetch building" });
     }
   });
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const building = await storage.createBuilding(validatedData);
       res.status(201).json(building);
     } catch (error) {
-      console.error("Error creating building:", error);
+      await logError(error, 'POST /api/buildings', { buildingData: req.body });
       res.status(500).json({ message: "Failed to create building" });
     }
   });
@@ -365,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const building = await storage.updateBuilding(req.params.id, validatedData);
       res.json(building);
     } catch (error) {
-      console.error("Error updating building:", error);
+      await logError(error, 'PUT /api/buildings/:id', { buildingId: req.params.id });
       res.status(500).json({ message: "Failed to update building" });
     }
   });
@@ -380,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteBuilding(req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting building:", error);
+      await logError(error, 'DELETE /api/buildings/:id', { buildingId: req.params.id });
       res.status(500).json({ message: "Failed to delete building" });
     }
   });
@@ -392,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const floors = await storage.getFloors(buildingId);
       res.json(floors);
     } catch (error) {
-      console.error("Error fetching floors:", error);
+      await logError(error, 'GET /api/floors', { buildingId: req.query.buildingId });
       res.status(500).json({ message: "Failed to fetch floors" });
     }
   });
@@ -405,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(floor);
     } catch (error) {
-      console.error("Error fetching floor:", error);
+      await logError(error, 'GET /api/floors/:id', { floorId: req.params.id });
       res.status(500).json({ message: "Failed to fetch floor" });
     }
   });
@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const floor = await storage.createFloor(validatedData);
       res.status(201).json(floor);
     } catch (error) {
-      console.error("Error creating floor:", error);
+      await logError(error, 'POST /api/floors', { floorData: req.body });
       res.status(500).json({ message: "Failed to create floor" });
     }
   });
@@ -437,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const floor = await storage.updateFloor(req.params.id, validatedData);
       res.json(floor);
     } catch (error) {
-      console.error("Error updating floor:", error);
+      await logError(error, 'PUT /api/floors/:id', { floorId: req.params.id });
       res.status(500).json({ message: "Failed to update floor" });
     }
   });
@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteFloor(req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting floor:", error);
+      await logError(error, 'DELETE /api/floors/:id', { floorId: req.params.id });
       res.status(500).json({ message: "Failed to delete floor" });
     }
   });
@@ -466,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rooms = await storage.getRooms(buildingId);
       res.json(rooms);
     } catch (error) {
-      console.error("Error fetching rooms:", error);
+      await logError(error, 'GET /api/rooms', { buildingId: req.query.buildingId });
       res.status(500).json({ message: "Failed to fetch rooms" });
     }
   });
@@ -480,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rooms = await storage.searchRooms(query);
       res.json(rooms);
     } catch (error) {
-      console.error("Error searching rooms:", error);
+      await logError(error, 'GET /api/rooms/search', { query: req.query.q });
       res.status(500).json({ message: "Failed to search rooms" });
     }
   });
@@ -493,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(room);
     } catch (error) {
-      console.error("Error fetching room:", error);
+      await logError(error, 'GET /api/rooms/:id', { roomId: req.params.id });
       res.status(500).json({ message: "Failed to fetch room" });
     }
   });
@@ -509,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = await storage.createRoom(validatedData);
       res.status(201).json(room);
     } catch (error) {
-      console.error("Error creating room:", error);
+      await logError(error, 'POST /api/rooms', { roomData: req.body });
       res.status(500).json({ message: "Failed to create room" });
     }
   });
@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = await storage.updateRoom(req.params.id, validatedData);
       res.json(room);
     } catch (error) {
-      console.error("Error updating room:", error);
+      await logError(error, 'PUT /api/rooms/:id', { roomId: req.params.id });
       res.status(500).json({ message: "Failed to update room" });
     }
   });
@@ -540,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteRoom(req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting room:", error);
+      await logError(error, 'DELETE /api/rooms/:id', { roomId: req.params.id });
       res.status(500).json({ message: "Failed to delete room" });
     }
   });
@@ -552,7 +552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hallways = await storage.getHallways(buildingId);
       res.json(hallways);
     } catch (error) {
-      console.error("Error fetching hallways:", error);
+      await logError(error, 'GET /api/hallways', { buildingId: req.query.buildingId });
       res.status(500).json({ message: "Failed to fetch hallways" });
     }
   });
@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hallway = await storage.createHallway(hallwayData);
       res.json(hallway);
     } catch (error) {
-      console.error("Error creating hallway:", error);
+      await logError(error, 'POST /api/hallways', { hallwayData: req.body });
       res.status(500).json({ message: "Failed to create hallway" });
     }
   });
@@ -583,7 +583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteHallway(req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting hallway:", error);
+      await logError(error, 'DELETE /api/hallways/:id', { hallwayId: req.params.id });
       res.status(500).json({ message: "Failed to delete hallway" });
     }
   });
@@ -600,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allUsers = await storage.getAllUsers();
       res.json(allUsers);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      await logError(error, 'GET /api/users', { isAuthenticated: req.isAuthenticated() });
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
@@ -673,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({ ...newUser, password: finalPassword });
     } catch (error) {
-      console.error("Error creating user:", error);
+      await logError(error, 'POST /api/users', { email: req.body?.email });
       res.status(500).json({ message: "Failed to create user" });
     }
   });
@@ -709,7 +709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedUser = await storage.upsertUser(updateData);
       res.json(updatedUser);
     } catch (error) {
-      console.error("Error updating user:", error);
+      await logError(error, 'PUT /api/users/:id', { userId: req.params.id });
       res.status(500).json({ message: "Failed to update user" });
     }
   });
@@ -737,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteUser(id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting user:", error);
+      await logError(error, 'DELETE /api/users/:id', { userId: req.params.id });
       res.status(500).json({ message: "Failed to delete user" });
     }
   });
@@ -754,7 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logs = await storage.getAdminLoginLogs(limit);
       res.json(logs);
     } catch (error) {
-      console.error("Error fetching admin login logs:", error);
+      await logError(error, 'GET /api/admin/login-logs', { limit: req.query.limit });
       res.status(500).json({ message: "Failed to fetch login logs" });
     }
   });
@@ -765,7 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const staff = await storage.getStaff();
       res.json(staff);
     } catch (error) {
-      console.error("Error fetching staff:", error);
+      await logError(error, 'GET /api/staff');
       res.status(500).json({ message: "Failed to fetch staff" });
     }
   });
@@ -780,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const staff = await storage.searchStaff(query, department);
       res.json(staff);
     } catch (error) {
-      console.error("Error searching staff:", error);
+      await logError(error, 'GET /api/staff/search', { query: req.query.q, department: req.query.department });
       res.status(500).json({ message: "Failed to search staff" });
     }
   });
@@ -796,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const staffMember = await storage.createStaffMember(validatedData);
       res.status(201).json(staffMember);
     } catch (error) {
-      console.error("Error creating staff member:", error);
+      await logError(error, 'POST /api/staff', { staffData: req.body });
       res.status(500).json({ message: "Failed to create staff member" });
     }
   });
@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const staffMember = await storage.updateStaffMember(req.params.id, validatedData);
       res.json(staffMember);
     } catch (error) {
-      console.error("Error updating staff member:", error);
+      await logError(error, 'PUT /api/staff/:id', { staffId: req.params.id });
       res.status(500).json({ message: "Failed to update staff member" });
     }
   });
@@ -827,7 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteStaffMember(req.params.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting staff member:", error);
+      await logError(error, 'DELETE /api/staff/:id', { staffId: req.params.id });
       res.status(500).json({ message: "Failed to delete staff member" });
     }
   });
@@ -840,7 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const events = await storage.getEvents(startDate, endDate);
       res.json(events);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      await logError(error, 'GET /api/events', { startDate: req.query.startDate, endDate: req.query.endDate });
       res.status(500).json({ message: "Failed to fetch events" });
     }
   });
@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const event = await storage.createEvent(validatedData);
       res.status(201).json(event);
     } catch (error) {
-      console.error("Error creating event:", error);
+      await logError(error, 'POST /api/events', { eventData: req.body });
       res.status(500).json({ message: "Failed to create event" });
     }
   });
@@ -868,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const announcements = await storage.getAnnouncements(limit);
       res.json(announcements);
     } catch (error) {
-      console.error("Error fetching announcements:", error);
+      await logError(error, 'GET /api/announcements', { limit: req.query.limit });
       res.status(500).json({ message: "Failed to fetch announcements" });
     }
   });
@@ -884,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const announcement = await storage.createAnnouncement(validatedData);
       res.status(201).json(announcement);
     } catch (error) {
-      console.error("Error creating announcement:", error);
+      await logError(error, 'POST /api/announcements', { announcementData: req.body });
       res.status(500).json({ message: "Failed to create announcement" });
     }
   });
@@ -900,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const announcement = await storage.updateAnnouncement(req.params.id, validatedData);
       res.json(announcement);
     } catch (error) {
-      console.error("Error updating announcement:", error);
+      await logError(error, 'PUT /api/announcements/:id', { announcementId: req.params.id });
       res.status(500).json({ message: "Failed to update announcement" });
     }
   });
