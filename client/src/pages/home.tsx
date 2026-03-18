@@ -8,7 +8,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import VersionInfo from "@/components/VersionInfo";
-import TicketSystem from "@/components/TicketSystem";
+import TicketSystemNew from "@/components/TicketSystemNew";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,7 @@ export default function Home() {
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, toggleTheme } = useTheme();
+  const [ticketOpen, setTicketOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
     return saved ? JSON.parse(saved) : window.innerWidth > 768;
@@ -273,9 +274,15 @@ export default function Home() {
       </div>
       
       {/* Ticket System Button - Fixed positioning */}
-      <div className="fixed bottom-20 right-4 z-[30]">
-        <TicketSystem />
-      </div>
+      <Button
+        onClick={() => setTicketOpen(true)}
+        className="fixed bottom-20 right-4 z-[30] rounded-full h-14 w-14 shadow-lg"
+        title="Submit Support Ticket"
+      >
+        🎫
+      </Button>
+      
+      <TicketSystemNew isOpen={ticketOpen} onClose={() => setTicketOpen(false)} />
       
       <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden justify-center">
         {/* Left Sidebar - PERFECT scrollable mobile UI */}

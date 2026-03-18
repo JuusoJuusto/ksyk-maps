@@ -5,6 +5,7 @@ import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
+import TicketManager from "@/components/TicketManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -837,10 +838,11 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
+          <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
@@ -1722,6 +1724,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="logs" className="space-y-6">
           <AppLogsManager />
+        </TabsContent>
+
+        <TabsContent value="tickets" className="space-y-6">
+          <TicketManager />
         </TabsContent>
 
         <TabsContent value="rooms" className="space-y-6">
