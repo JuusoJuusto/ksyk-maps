@@ -49,6 +49,37 @@ interface AppSettings {
   enableVersionInfo?: boolean;
   maintenanceMode?: boolean;
   maintenanceMessage?: string | null;
+  // NEW ADVANCED FEATURES
+  enableDarkModeToggle?: boolean;
+  enableNotifications?: boolean;
+  enableOfflineMode?: boolean;
+  enableAnalytics?: boolean;
+  enableAccessibilityMode?: boolean;
+  enableKeyboardShortcuts?: boolean;
+  enableAdvancedSearch?: boolean;
+  enableRoomBooking?: boolean;
+  enableQRCodeScanning?: boolean;
+  enableARMode?: boolean;
+  enable3DView?: boolean;
+  enableVoiceCommands?: boolean;
+  enableMultiLanguage?: boolean;
+  enableExportData?: boolean;
+  enableImportData?: boolean;
+  enableBulkOperations?: boolean;
+  enableAdvancedFilters?: boolean;
+  enableCustomFields?: boolean;
+  enableWebhooks?: boolean;
+  enableAPIAccess?: boolean;
+  maxUploadSizeMB?: number;
+  sessionTimeoutMinutes?: number;
+  maxLoginAttempts?: number;
+  passwordMinLength?: number;
+  requireStrongPassword?: boolean;
+  enable2FA?: boolean;
+  enableSSO?: boolean;
+  enableAuditLog?: boolean;
+  enableBackups?: boolean;
+  backupFrequencyHours?: number;
 }
 
 export default function AppSettingsManager() {
@@ -136,7 +167,7 @@ export default function AppSettingsManager() {
       </div>
 
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="appearance">
             <Paintbrush className="w-4 h-4 mr-2" />
             Appearance
@@ -160,6 +191,10 @@ export default function AppSettingsManager() {
           <TabsTrigger value="contact">
             <Mail className="w-4 h-4 mr-2" />
             Contact
+          </TabsTrigger>
+          <TabsTrigger value="advanced">
+            <Settings className="w-4 h-4 mr-2" />
+            Advanced
           </TabsTrigger>
         </TabsList>
 
@@ -777,6 +812,392 @@ export default function AppSettingsManager() {
                   onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
                   placeholder="+358 123 456 789"
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="advanced" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>🚀 Advanced Features</CardTitle>
+              <CardDescription>Enable cutting-edge features and experimental functionality</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  ⚡ <strong>Power User Settings:</strong> These advanced features provide enterprise-level functionality. Some features may be experimental.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="font-semibold text-lg">UI/UX Enhancements</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Dark Mode Toggle</Label>
+                      <p className="text-sm text-muted-foreground">Show dark mode toggle in UI</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableDarkModeToggle ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableDarkModeToggle: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Enable push notifications</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableNotifications ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableNotifications: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Offline Mode</Label>
+                      <p className="text-sm text-muted-foreground">Work without internet connection</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableOfflineMode ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableOfflineMode: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Accessibility Mode</Label>
+                      <p className="text-sm text-muted-foreground">Enhanced accessibility features</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAccessibilityMode ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAccessibilityMode: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Keyboard Shortcuts</Label>
+                      <p className="text-sm text-muted-foreground">Enable keyboard navigation</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableKeyboardShortcuts ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableKeyboardShortcuts: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Multi-Language</Label>
+                      <p className="text-sm text-muted-foreground">Support multiple languages</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableMultiLanguage ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableMultiLanguage: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg">Advanced Functionality</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Advanced Search</Label>
+                      <p className="text-sm text-muted-foreground">Enhanced search with filters</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAdvancedSearch ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAdvancedSearch: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Room Booking</Label>
+                      <p className="text-sm text-muted-foreground">Allow users to book rooms</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableRoomBooking ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableRoomBooking: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>QR Code Scanning</Label>
+                      <p className="text-sm text-muted-foreground">Scan QR codes for quick access</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableQRCodeScanning ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableQRCodeScanning: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Analytics</Label>
+                      <p className="text-sm text-muted-foreground">Track usage and statistics</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAnalytics ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAnalytics: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Advanced Filters</Label>
+                      <p className="text-sm text-muted-foreground">Complex filtering options</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAdvancedFilters ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAdvancedFilters: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Bulk Operations</Label>
+                      <p className="text-sm text-muted-foreground">Perform actions on multiple items</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableBulkOperations ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableBulkOperations: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg">🔬 Experimental Features</h3>
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ <strong>Warning:</strong> These features are experimental and may not work as expected.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>AR Mode</Label>
+                      <p className="text-sm text-muted-foreground">Augmented reality navigation</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableARMode ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableARMode: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>3D View</Label>
+                      <p className="text-sm text-muted-foreground">3D building visualization</p>
+                    </div>
+                    <Switch
+                      checked={settings.enable3DView ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enable3DView: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Voice Commands</Label>
+                      <p className="text-sm text-muted-foreground">Control with voice</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableVoiceCommands ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableVoiceCommands: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Custom Fields</Label>
+                      <p className="text-sm text-muted-foreground">Add custom data fields</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableCustomFields ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableCustomFields: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg">🔌 Integration & API</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Export Data</Label>
+                      <p className="text-sm text-muted-foreground">Allow data export</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableExportData ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableExportData: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Import Data</Label>
+                      <p className="text-sm text-muted-foreground">Allow data import</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableImportData ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableImportData: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Webhooks</Label>
+                      <p className="text-sm text-muted-foreground">Send events to external services</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableWebhooks ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableWebhooks: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>API Access</Label>
+                      <p className="text-sm text-muted-foreground">Enable REST API</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAPIAccess ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAPIAccess: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg">🔒 Security Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Max Upload Size (MB)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={settings.maxUploadSizeMB ?? 50}
+                      onChange={(e) => setSettings({ ...settings, maxUploadSizeMB: parseInt(e.target.value) || 50 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Maximum file upload size</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Session Timeout (minutes)</Label>
+                    <Input
+                      type="number"
+                      min="5"
+                      max="1440"
+                      value={settings.sessionTimeoutMinutes ?? 60}
+                      onChange={(e) => setSettings({ ...settings, sessionTimeoutMinutes: parseInt(e.target.value) || 60 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Auto-logout after inactivity</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Max Login Attempts</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={settings.maxLoginAttempts ?? 5}
+                      onChange={(e) => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) || 5 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Lock account after failed attempts</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Password Min Length</Label>
+                    <Input
+                      type="number"
+                      min="6"
+                      max="32"
+                      value={settings.passwordMinLength ?? 8}
+                      onChange={(e) => setSettings({ ...settings, passwordMinLength: parseInt(e.target.value) || 8 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Minimum password characters</p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Strong Password Required</Label>
+                      <p className="text-sm text-muted-foreground">Require special characters</p>
+                    </div>
+                    <Switch
+                      checked={settings.requireStrongPassword ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, requireStrongPassword: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Two-Factor Authentication</Label>
+                      <p className="text-sm text-muted-foreground">Enable 2FA for all users</p>
+                    </div>
+                    <Switch
+                      checked={settings.enable2FA ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enable2FA: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Single Sign-On (SSO)</Label>
+                      <p className="text-sm text-muted-foreground">Enable SSO integration</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableSSO ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableSSO: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Audit Log</Label>
+                      <p className="text-sm text-muted-foreground">Track all user actions</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAuditLog ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableAuditLog: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg">💾 Backup & Recovery</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Automated Backups</Label>
+                      <p className="text-sm text-muted-foreground">Enable automatic backups</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableBackups ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enableBackups: checked })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Backup Frequency (hours)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={settings.backupFrequencyHours ?? 24}
+                      onChange={(e) => setSettings({ ...settings, backupFrequencyHours: parseInt(e.target.value) || 24 })}
+                    />
+                    <p className="text-sm text-muted-foreground">How often to backup data</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
