@@ -1351,7 +1351,9 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+              {console.log('SETTINGS TAB RENDERING - darkMode:', darkMode, 'theme:', theme)}
               <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
+                {console.log('SETTINGS CONTENT DIV RENDERING')}
                 
                 {/* Language Settings */}
                 <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
