@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket } from "lucide-react";
+import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket, Unlock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function EasterEgg() {
   const [, setLocation] = useLocation();
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; delay: number }>>([]);
+  const [showUnlockPopup, setShowUnlockPopup] = useState(false);
 
   useEffect(() => {
     // Generate confetti
@@ -20,13 +21,45 @@ export default function EasterEgg() {
     localStorage.setItem("ksyk_easter_egg_found", "true");
     
     // Enable British English language option
+    const wasAlreadyUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
     localStorage.setItem("ksyk_british_unlocked", "true");
+    
+    // Show unlock popup if it wasn't already unlocked
+    if (!wasAlreadyUnlocked) {
+      setShowUnlockPopup(true);
+      setTimeout(() => setShowUnlockPopup(false), 5000);
+    }
   }, []);
 
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"];
 
   return (
     <div className="min-h-screen bg-purple-900 overflow-hidden relative flex items-center justify-center p-4">
+      {/* Secret Unlocked Popup */}
+      {showUnlockPopup && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5, y: -100 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.5, y: -100 }}
+          className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 p-1 rounded-2xl shadow-2xl"
+        >
+          <div className="bg-gray-900 px-8 py-6 rounded-2xl">
+            <div className="flex items-center gap-4">
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Unlock className="w-12 h-12 text-yellow-400" />
+              </motion.div>
+              <div>
+                <h3 className="text-2xl font-black text-white mb-1">SECRET UNLOCKED!</h3>
+                <p className="text-lg text-yellow-300">British English language available in Settings, innit! 🇬🇧</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+      
       {/* Animated background stars */}
       {Array.from({ length: 100 }).map((_, i) => (
         <motion.div

@@ -1881,12 +1881,12 @@ export default function UltimateKSYKBuilder() {
                       </motion.div>
                     </label>
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-purple-200 rounded-lg p-3 text-xs mt-2">
-                      <div className="font-bold text-purple-800 mb-1">≡ƒñû AI Features:</div>
+                      <div className="font-bold text-purple-800 mb-1">🤖 AI Features:</div>
                       <ul className="text-purple-700 space-y-1 ml-3">
-                        <li>ΓÇó Automatic wall detection</li>
-                        <li>ΓÇó Room boundary recognition</li>
-                        <li>ΓÇó Smart snap-to-wall</li>
-                        <li>ΓÇó One-click room creation</li>
+                        <li>• Automatic wall detection</li>
+                        <li>• Room boundary recognition</li>
+                        <li>• Smart snap-to-wall</li>
+                        <li>• One-click room creation</li>
                       </ul>
                     </div>
                   </div>

@@ -297,7 +297,7 @@ const resources = {
       
       // Quick Actions
       'actions.title': 'Quick Actions',
-      'actions.directions': 'Get Directions',
+      'actions.directions': 'Get Directions, innit',
       'actions.findStaff': 'Find Staff',
       'actions.events': "Today's Events",
       'actions.emergency': 'Emergency Info',
@@ -315,10 +315,10 @@ const resources = {
       
       // Announcements
       'announcements.title': 'Announcements',
-      'announcements.clickDetails': 'Click for more details',
+      'announcements.clickDetails': 'Click for more details, mate',
       'announcements.recently': 'Recently',
-      'announcements.urgent': 'This is an urgent announcement, innit. Please take immediate action if required.',
-      'announcements.high': 'This is a high priority announcement, mate. Please review carefully.',
+      'announcements.urgent': 'This is proper urgent, innit. Please take immediate action if required, bruv.',
+      'announcements.high': 'This is well important, mate. Please review carefully, yeah?',
       
       // Staff Directory
       'staff.title': 'Staff Directory',
@@ -351,8 +351,8 @@ const resources = {
       'mobile.quickActions': 'Quick Actions',
       'theme.light': 'Light',
       'theme.dark': 'Dark',
-      'theme.light.desc': 'Clean & bright interface',
-      'theme.dark.desc': 'Easy on the eyes',
+      'theme.light.desc': 'Proper bright, innit',
+      'theme.dark.desc': 'Easy on the eyes, mate',
       'theme.current': 'Current theme',
       'theme.clickToCycle': 'Click to cycle themes',
       
@@ -360,7 +360,7 @@ const resources = {
       'language.english': 'English',
       'language.finnish': 'Finnish',
       'language.suomi': 'Suomi',
-      'language.british': 'British English',
+      'language.british': 'British English (Bri\'ish)',
       
       // Quick Actions Mobile
       'quickActions.lunch': 'Lunch Menu',
@@ -375,7 +375,7 @@ const resources = {
       'cancel': 'Cancel',
       'loading': 'Loading, innit...',
       'unauthorized': 'Unauthorised',
-      'unauthorized.desc': 'You are logged out, bruv. Logging in again...',
+      'unauthorized.desc': 'You\'re logged out, bruv. Logging in again...',
     }
   }
 };
