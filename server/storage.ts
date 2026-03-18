@@ -107,6 +107,14 @@ export interface IStorage {
   }): Promise<void>;
   
   getAdminLoginLogs(limit?: number): Promise<any[]>;
+  
+  // App Log operations
+  createAppLog(log: {
+    type: string;
+    message: string;
+    details?: string | null;
+    timestamp: Date;
+  }): Promise<void>;
 }
 
 
@@ -213,6 +221,7 @@ class MemStorage implements IStorage {
       role: userData.role || 'user',
       password: null,
       isTemporaryPassword: null,
+      canLoginToKsykMaps: userData.canLoginToKsykMaps ?? null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -458,6 +467,25 @@ class MemStorage implements IStorage {
       ...log,
       timestamp: new Date().toISOString()
     });
+  }
+
+  async getAdminLoginLogs(limit?: number): Promise<any[]> {
+    // In-memory storage - return empty array
+    return [];
+  }
+
+  // App Log operations
+  async createAppLog(log: {
+    type: string;
+    message: string;
+    details?: string | null;
+    timestamp: Date;
+  }): Promise<void> {
+    // In-memory storage - just log to console
+    console.log(`📝 App Log [${log.type.toUpperCase()}]:`, log.message);
+    if (log.details) {
+      console.log('  Details:', log.details);
+    }
   }
 }
 

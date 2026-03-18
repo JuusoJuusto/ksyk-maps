@@ -977,6 +977,29 @@ export class FirebaseStorage implements IStorage {
       return [];
     }
   }
+
+  // App Log operations
+  async createAppLog(log: {
+    type: string;
+    message: string;
+    details?: string | null;
+    timestamp: Date;
+  }): Promise<void> {
+    try {
+      const docRef = db.collection('appLogs').doc();
+      const logData = {
+        ...log,
+        id: docRef.id,
+        createdAt: log.timestamp || new Date(),
+      };
+      
+      await docRef.set(logData);
+      console.log(`📝 App Log [${log.type.toUpperCase()}] saved to Firebase:`, log.message);
+    } catch (error) {
+      console.error('Error creating app log:', error);
+      // Don't throw - logging should not break the application flow
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

@@ -382,4 +382,59 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date()
     };
   }
+
+  // Ticket operations (stub implementations)
+  async getTickets(): Promise<any[]> {
+    return [];
+  }
+
+  async getTicket(id: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createTicket(ticket: any): Promise<any> {
+    return ticket;
+  }
+
+  async updateTicket(id: string, ticket: any): Promise<any> {
+    return ticket;
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Admin Login Log operations
+  async createAdminLoginLog(log: {
+    userId: string | null;
+    email: string;
+    userName: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    loginStatus: 'success' | 'failed';
+    failureReason?: string | null;
+    sessionId?: string | null;
+  }): Promise<void> {
+    console.log('📝 Admin Login Log:', {
+      ...log,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  async getAdminLoginLogs(limit?: number): Promise<any[]> {
+    return [];
+  }
+
+  // App Log operations
+  async createAppLog(log: {
+    type: string;
+    message: string;
+    details?: string | null;
+    timestamp: Date;
+  }): Promise<void> {
+    console.log(`📝 App Log [${log.type.toUpperCase()}]:`, log.message);
+    if (log.details) {
+      console.log('  Details:', log.details);
+    }
+  }
 }
