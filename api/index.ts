@@ -249,6 +249,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Settings endpoints
+    if (apiPath === '/settings') {
+      if (req.method === 'GET') {
+        const settings = await storage.getAppSettings();
+        return res.status(200).json(settings);
+      }
+      
+      if (req.method === 'PUT' || req.method === 'PATCH') {
+        const settings = await storage.updateAppSettings(req.body);
+        return res.status(200).json(settings);
+      }
+    }
+    
     // Test email endpoint
     if (apiPath === '/test-email') {
       if (req.method === 'GET') {
@@ -365,20 +378,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('🔑 Checking owner credentials...');
       console.log('   Email match:', email === OWNER_EMAIL);
       
-      if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+      if (email === OWNER_EMAIL) {
         console.log('✅ OWNER LOGIN DETECTED');
         // Check if owner user exists in database, create if not
         let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
         
         if (!ownerUser) {
-          console.log('📝 Creating owner admin user in database...');
-          ownerUser = await storage.upsertUser({
-            id: 'owner-admin-user',
-            email: OWNER_EMAIL,
-            firstName: 'Juuso',
-            lastName: 'Kaikula',
-            role: 'owner',
-            profileImageUrl: null
+          console.log('❌ Owner user not found in database');
+          console.log('=====================================\n');
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid credentials'
+          });
+        }
+
+        // Check password against database
+        if (!ownerUser.password || ownerUser.password !== password) {
+          console.log('❌ Invalid owner password');
+          console.log('=====================================\n');
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid credentials'
           });
         }
         
@@ -615,6 +635,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/staff',
         '/announcements',
         '/users',
+        '/settings',
         '/auth/user',
         '/auth/admin-login',
         '/test-email (POST)'
