@@ -534,10 +534,10 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           {/* Tab Buttons */}
-          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-1.5 p-1.5 backdrop-blur-lg`}>
             <button
               onClick={() => setActiveTab('map')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+              className={`flex items-center justify-center gap-1.5 text-xs px-3 py-2 min-w-[2.5rem] rounded-lg transition-all font-semibold ${
                 activeTab === 'map'
                   ? 'bg-blue-600 text-white'
                   : darkMode
@@ -545,12 +545,12 @@ export default function Home() {
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <MapPin className="h-5 w-5" />
+              <MapPin className="h-4 w-4" />
               <span className="hidden sm:inline">{t('nav.map')}</span>
             </button>
             <button
               onClick={() => setActiveTab('schedule')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+              className={`flex items-center justify-center gap-1.5 text-xs px-3 py-2 min-w-[2.5rem] rounded-lg transition-all font-semibold ${
                 activeTab === 'schedule'
                   ? 'bg-blue-600 text-white'
                   : darkMode
@@ -558,12 +558,12 @@ export default function Home() {
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <Calendar className="h-5 w-5" />
+              <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">{t('nav.schedule')}</span>
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
+              className={`flex items-center justify-center gap-1.5 text-xs px-3 py-2 min-w-[2.5rem] rounded-lg transition-all font-semibold ${
                 activeTab === 'settings'
                   ? 'bg-blue-600 text-white'
                   : darkMode
@@ -571,7 +571,7 @@ export default function Home() {
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">{t('admin.settings')}</span>
             </button>
           </div>
@@ -1372,7 +1372,7 @@ export default function Home() {
 
           {/* Settings Tab Content */}
           {activeTab === 'settings' && (
-            <div className="h-full overflow-auto">
+            <div className="h-full overflow-auto pt-16">
               <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
                 <div className="max-w-4xl mx-auto space-y-6">
                   
