@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark' | 'blueprint';
+type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
@@ -49,22 +49,41 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('ksyk-theme', theme);
     
     // Remove all theme classes
-    document.documentElement.classList.remove('light', 'dark', 'blueprint');
+    document.documentElement.classList.remove('light', 'dark', 'system');
     
-    // Add current theme class
-    document.documentElement.classList.add(theme);
+    // Handle system theme
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+      
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(e.matches ? 'dark' : 'light');
+        applyThemeStyles(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+      applyThemeStyles(prefersDark ? 'dark' : 'light');
+      
+      return () => {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      };
+    } else {
+      // Add current theme class
+      document.documentElement.classList.add(theme);
+      applyThemeStyles(theme);
+    }
     
-    // Apply theme-specific styles and tooltip colors
-    if (theme === 'blueprint') {
-      document.documentElement.style.setProperty('--bg-primary', '#0a1628');
-      document.documentElement.style.setProperty('--bg-secondary', '#1e3a8a');
-      document.documentElement.style.setProperty('--text-primary', '#00d4ff');
-      document.documentElement.style.setProperty('--text-secondary', '#7dd3fc');
-      document.documentElement.style.setProperty('--accent', '#0ea5e9');
-      document.documentElement.style.setProperty('--border', '#1e40af');
-      document.documentElement.style.setProperty('--tooltip-bg', '#0a1628');
-      document.documentElement.style.setProperty('--tooltip-text', '#00d4ff');
-    } else if (theme === 'dark') {
+    // Sync with dark mode context for backward compatibility
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const darkModeEvent = new CustomEvent('themeChange', { detail: { isDark } });
+    window.dispatchEvent(darkModeEvent);
+  }, [theme]);
+
+  const applyThemeStyles = (activeTheme: 'light' | 'dark') => {
+    if (activeTheme === 'dark') {
       document.documentElement.style.setProperty('--bg-primary', '#0f172a');
       document.documentElement.style.setProperty('--bg-secondary', '#1e293b');
       document.documentElement.style.setProperty('--text-primary', '#f1f5f9');
@@ -83,15 +102,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--tooltip-bg', '#1f2937');
       document.documentElement.style.setProperty('--tooltip-text', '#ffffff');
     }
-    
-    // Sync with dark mode context for backward compatibility
-    const isDark = theme === 'dark' || theme === 'blueprint';
-    const darkModeEvent = new CustomEvent('themeChange', { detail: { isDark } });
-    window.dispatchEvent(darkModeEvent);
-  }, [theme]);
+  };
 
   const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'blueprint'];
+    const themes: Theme[] = ['light', 'dark', 'system'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     setTheme(themes[nextIndex]);

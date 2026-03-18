@@ -1483,50 +1483,49 @@ export default function Home() {
                             )}
                           </div>
 
-                          {/* Blueprint Theme */}
+                          {/* System Theme */}
                           <div 
                             className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
-                              theme === 'blueprint' 
-                                ? 'border-cyan-400 bg-blue-100' 
+                              theme === 'system' 
+                                ? 'border-blue-500 bg-blue-100' 
                                 : darkMode
-                                  ? 'border-blue-400 bg-blue-900/20 hover:border-cyan-400'
-                                  : 'border-blue-400 bg-blue-50 hover:border-cyan-400'
+                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400'
+                                  : 'border-gray-200 hover:border-blue-400'
                             }`}
                             onClick={async () => {
-                              setTheme('blueprint');
+                              setTheme('system');
                               try {
                                 await fetch('/api/settings', {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ theme: 'blueprint' })
+                                  body: JSON.stringify({ theme: 'system' })
                                 });
                               } catch (error) {
                                 console.error('Failed to save theme:', error);
                               }
                             }}
                           >
-                            <div className="bg-blue-900 rounded-lg p-2 mb-2 shadow-sm border border-blue-500 relative overflow-hidden">
-                              <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
-                              <div className="relative flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
+                            <div className="bg-gray-100 rounded-lg p-2 mb-2 shadow-sm border relative overflow-hidden">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                                 <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
-                                  <div className="w-1 h-1 bg-blue-400 rounded-full shadow-sm shadow-blue-400/50"></div>
-                                  <div className="w-1 h-1 bg-indigo-400 rounded-full shadow-sm shadow-indigo-400/50"></div>
+                                  <div className="w-1 h-1 bg-blue-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                  <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
                                 </div>
                               </div>
-                              <div className="relative space-y-1">
-                                <div className="w-full h-1 bg-cyan-400 rounded shadow-sm shadow-cyan-400/30"></div>
-                                <div className="w-3/4 h-1 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
+                              <div className="space-y-1">
+                                <div className="w-full h-1 bg-blue-500 rounded"></div>
+                                <div className="w-3/4 h-1 bg-gray-400 rounded"></div>
                               </div>
                             </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-cyan-400' : 'text-blue-900'}`}>⚡ Blueprint</h4>
-                            <p className="text-xs text-blue-700">Futuristic neon</p>
+                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>🖥️ System</h4>
+                            <p className="text-xs text-gray-700">Follows device</p>
                             <div className="mt-1">
-                              {theme === 'blueprint' ? (
-                                <span className="inline-block bg-cyan-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              {theme === 'system' ? (
+                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
                               ) : (
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">NEW</span>
+                                <span className="inline-block bg-gray-500 text-white text-xs px-2 py-0.5 rounded-full">Available</span>
                               )}
                             </div>
                           </div>
@@ -1534,7 +1533,7 @@ export default function Home() {
                         
                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-sm text-blue-800">
-                            💡 <strong>Theme System:</strong> Choose from Light, Dark, or Blueprint themes. Changes are saved automatically and apply globally. The Blueprint theme features a futuristic blue and neon aesthetic perfect for technical environments.
+                            💡 <strong>Theme System:</strong> Choose from Light, Dark, or System themes. Changes are saved automatically and apply globally. The System theme automatically follows your device's light/dark mode preference.
                           </p>
                         </div>
                       </div>

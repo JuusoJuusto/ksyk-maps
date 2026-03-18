@@ -92,7 +92,7 @@ export default function AppSettingsManager() {
         
         // Apply theme change immediately
         if (settings.theme) {
-          document.documentElement.classList.remove('light', 'dark', 'blueprint');
+          document.documentElement.classList.remove('light', 'dark', 'system');
           document.documentElement.classList.add(settings.theme);
           
           // Trigger theme change event
@@ -233,35 +233,34 @@ export default function AppSettingsManager() {
                     )}
                   </div>
 
-                  {/* Blueprint Theme */}
+                  {/* System Theme */}
                   <div 
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      settings.theme === 'blueprint' 
-                        ? 'border-cyan-400 bg-cyan-50' 
-                        : 'border-blue-400 bg-blue-50 hover:border-cyan-400'
+                      settings.theme === 'system' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 hover:border-blue-400'
                     }`}
-                    onClick={() => setSettings({ ...settings, theme: 'blueprint' })}
+                    onClick={() => setSettings({ ...settings, theme: 'system' })}
                   >
-                    <div className="bg-blue-900 rounded-lg p-3 mb-3 shadow-sm border border-blue-500 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-blue-500 opacity-10"></div>
-                      <div className="relative flex items-center justify-between mb-2">
-                        <div className="w-3 h-3 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
+                    <div className="bg-gray-100 rounded-lg p-3 mb-3 shadow-sm border relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
                         <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50"></div>
-                          <div className="w-2 h-2 bg-blue-400 rounded-full shadow-sm shadow-blue-400/50"></div>
-                          <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-sm shadow-indigo-400/50"></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                         </div>
                       </div>
-                      <div className="relative space-y-2">
-                        <div className="w-full h-2 bg-cyan-400 rounded shadow-sm shadow-cyan-400/30"></div>
-                        <div className="w-3/4 h-2 bg-blue-300 rounded shadow-sm shadow-blue-300/30"></div>
+                      <div className="space-y-2">
+                        <div className="w-full h-2 bg-blue-500 rounded"></div>
+                        <div className="w-3/4 h-2 bg-gray-400 rounded"></div>
                       </div>
                     </div>
-                    <h4 className="font-semibold text-blue-900">⚡ Blueprint Theme</h4>
-                    <p className="text-sm text-blue-700">Futuristic neon design</p>
-                    {settings.theme === 'blueprint' && (
+                    <h4 className="font-semibold text-gray-900">🖥️ System Theme</h4>
+                    <p className="text-sm text-gray-700">Follows system preference</p>
+                    {settings.theme === 'system' && (
                       <div className="mt-2">
-                        <span className="inline-block bg-cyan-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
+                        <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
                       </div>
                     )}
                   </div>
@@ -269,7 +268,7 @@ export default function AppSettingsManager() {
                 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-800">
-                    💡 <strong>Theme changes apply globally</strong> to all users and are saved to the database. The Blueprint theme features a futuristic blue and neon aesthetic perfect for technical environments.
+                    💡 <strong>Theme changes apply globally</strong> to all users and are saved to the database. The System theme automatically follows your device's light/dark mode preference.
                   </p>
                 </div>
               </div>

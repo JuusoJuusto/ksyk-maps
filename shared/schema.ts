@@ -358,7 +358,7 @@ export const appSettings = pgTable("app_settings", {
   secondaryColor: varchar("secondary_color").default("#F59E0B"),
   successColor: varchar("success_color").default("#10B981"),
   warningColor: varchar("warning_color").default("#EF4444"),
-  theme: varchar("theme").default("light"), // light, dark, blueprint
+  theme: varchar("theme").default("light"), // light, dark, system
   headerTitle: varchar("header_title").default("Campus Map"),
   headerTitleEn: varchar("header_title_en").default("Campus Map"),
   headerTitleFi: varchar("header_title_fi").default("Kampuskartta"),
