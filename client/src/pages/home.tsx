@@ -534,7 +534,7 @@ export default function Home() {
         {/* Main Content - Campus Map */}
         <div className={`flex-1 relative ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           {/* Tab Buttons */}
-          <div className={`absolute top-20 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
+          <div className={`absolute top-4 left-4 z-30 shadow-2xl border-2 rounded-2xl ${darkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} flex flex-row gap-2 p-2 backdrop-blur-lg`}>
             <button
               onClick={() => setActiveTab('map')}
               className={`flex items-center justify-center gap-2 text-sm px-4 py-3 min-w-[3rem] rounded-xl transition-all font-semibold ${
