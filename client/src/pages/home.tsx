@@ -1371,7 +1371,7 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 pt-20 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+            <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
               {(() => {
                 console.log('🔧 SETTINGS TAB RENDERING');
                 console.log('  - darkMode:', darkMode);
@@ -1382,11 +1382,20 @@ export default function Home() {
               })()}
               
               {/* DEBUG: Visible test element */}
-              <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-4 z-50 text-center font-bold">
-                SETTINGS TAB IS RENDERING - If you see this, the tab works!
+              <div className="bg-red-500 text-white p-4 mb-4 text-center font-bold rounded-lg">
+                SETTINGS TAB IS RENDERING - Content should appear below
               </div>
               
-              <div className="max-w-4xl mx-auto space-y-6">
+              {/* DEBUG: Test card */}
+              <Card className="bg-green-500 border-4 border-black">
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold text-white">TEST CARD - If you see this, cards work!</h2>
+                  <p className="text-white mt-2">Current theme: {theme}</p>
+                  <p className="text-white">Dark mode: {darkMode ? 'YES' : 'NO'}</p>
+                </CardContent>
+              </Card>
+              
+              <div className="max-w-4xl mx-auto space-y-6 pb-20">
                 
                 {/* Language Settings */}
                 <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
