@@ -33,21 +33,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Logs API endpoint - for frontend error logging
   app.post('/api/logs', async (req, res) => {
     try {
-      const { type, message, details, timestamp, source } = req.body;
+      const { 
+        level, 
+        message, 
+        errorReferenceId, 
+        errorStack, 
+        errorInfo, 
+        userAgent, 
+        url,
+        userId,
+        ipAddress 
+      } = req.body;
       
       await storage.createAppLog({
-        type: type || 'info',
+        level: level || 'info',
         message: message || 'No message provided',
-        details: details ? JSON.stringify(details) : null,
-        timestamp: timestamp ? new Date(timestamp) : new Date()
+        errorReferenceId: errorReferenceId || null,
+        errorStack: errorStack || null,
+        errorInfo: errorInfo || null,
+        userAgent: userAgent || req.get('user-agent') || null,
+        url: url || null,
+        userId: userId || null,
+        ipAddress: ipAddress || req.ip || null,
       });
       
-      console.log(`[${source || 'Frontend'}] ${type?.toUpperCase()}: ${message}`);
+      console.log(`[${level?.toUpperCase() || 'INFO'}] ${message}${errorReferenceId ? ` [Ref: ${errorReferenceId}]` : ''}`);
       
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to create log:', error);
       res.status(500).json({ message: 'Failed to create log' });
+    }
+  });
+
+  // Get app logs (admin only)
+  app.get('/api/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit) : 100;
+      const logs = await storage.getAppLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      await logError(error, 'GET /api/logs');
+      res.status(500).json({ message: 'Failed to fetch logs' });
     }
   });
 
@@ -1108,10 +1140,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ticketData = req.body;
       
-      console.log('🎫 Creating ticket:', ticketData.ticketId);
+      // Generate ticket ID if not provided
+      const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      console.log('🎫 Creating ticket:', ticketId);
       
       const ticket = await storage.createTicket({
-        ticketId: ticketData.ticketId,
+        ticketId,
         type: ticketData.type,
         title: ticketData.title,
         description: ticketData.description,
@@ -1119,15 +1154,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: ticketData.email || '',
         status: ticketData.status || 'pending',
         priority: ticketData.priority || 'normal',
-        createdAt: ticketData.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        errorReferenceId: ticketData.errorReferenceId || null,
+        errorStack: ticketData.errorStack || null,
+        errorInfo: ticketData.errorInfo || null,
+        userAgent: ticketData.userAgent || req.get('user-agent') || null,
+        url: ticketData.url || null,
       });
+      
+      // Send email notification to owner
+      if (ticketData.email) {
+        try {
+          const ownerEmail = process.env.OWNER_EMAIL || 'juuso.kaikula@ksyk.fi';
+          
+          // Send notification to owner
+          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ownerEmail,
+              ticketId,
+              type: ticketData.type,
+              title: ticketData.title,
+              description: ticketData.description,
+              email: ticketData.email,
+              name: ticketData.name,
+              errorReferenceId: ticketData.errorReferenceId,
+            }),
+          });
+          
+          // Send auto-reply to user
+          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-confirmation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: ticketData.email,
+              ticketId,
+              type: ticketData.type,
+              title: ticketData.title,
+            }),
+          });
+        } catch (emailError) {
+          console.error('Failed to send ticket emails:', emailError);
+        }
+      }
       
       console.log('✅ Ticket created successfully');
       res.status(201).json(ticket);
     } catch (error) {
       console.error("Error creating ticket:", error);
       res.status(500).json({ message: "Failed to create ticket" });
+    }
+  });
+
+  // Update ticket (admin only)
+  app.patch('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const ticket = await storage.updateTicket(req.params.id, req.body);
+      
+      // If status changed to resolved/closed and there's a response, send email
+      if ((req.body.status === 'resolved' || req.body.status === 'closed') && req.body.response && ticket.email) {
+        try {
+          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-response`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: ticket.email,
+              ticketId: ticket.ticketId,
+              title: ticket.title,
+              response: req.body.response,
+            }),
+          });
+        } catch (emailError) {
+          console.error('Failed to send ticket response email:', emailError);
+        }
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      await logError(error, 'PATCH /api/tickets/:id');
+      res.status(500).json({ message: 'Failed to update ticket' });
     }
   });
 
@@ -1165,14 +1275,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send ticket confirmation email
+  // Send ticket notification to owner
+  app.post('/api/send-ticket-notification', async (req, res) => {
+    try {
+      const { ownerEmail, ticketId, type, title, description, email, name, errorReferenceId } = req.body;
+      
+      console.log('📧 Sending ticket notification to owner:', ownerEmail);
+      
+      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      
+      const emailBody = `
+New Support Ticket Received
+
+Ticket ID: ${ticketId}
+Type: ${type}
+Priority: ${req.body.priority || 'normal'}
+${errorReferenceId ? `Error Reference: ${errorReferenceId}` : ''}
+
+Title: ${title}
+
+Description:
+${description}
+
+Submitted by: ${name || 'Anonymous'}
+Email: ${email || 'Not provided'}
+
+View and manage this ticket in the admin panel:
+https://ksykmaps.vercel.app/admin-ksyk-management-portal
+
+---
+KSYK Maps Support System
+      `.trim();
+      
+      await sendPasswordSetupEmail(ownerEmail, `New Ticket: ${ticketId}`, emailBody);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      res.status(500).json({ message: "Failed to send notification" });
+    }
+  });
+
+  // Send ticket confirmation email
   app.post('/api/send-ticket-confirmation', async (req, res) => {
     try {
       const { email, ticketId, type, title } = req.body;
       
       console.log('📧 Sending ticket confirmation to:', email);
       
-      // For now, just return success - email can be implemented later
-      res.json({ success: true, message: 'Confirmation email queued' });
+      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      
+      const emailBody = `
+Thank you for contacting KSYK Maps Support!
+
+Your ticket has been received and assigned ID: ${ticketId}
+
+Type: ${type}
+Title: ${title}
+
+Our team will review your request and respond as soon as possible. You will receive an email notification when there is an update.
+
+For reference, please save your ticket ID: ${ticketId}
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+      `.trim();
+      
+      await sendPasswordSetupEmail(email, `Ticket Received: ${ticketId}`, emailBody);
+      
+      res.json({ success: true, message: 'Confirmation email sent' });
     } catch (error) {
       console.error("Error sending confirmation:", error);
       res.status(500).json({ message: "Failed to send confirmation" });
@@ -1188,14 +1360,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { sendPasswordSetupEmail } = await import('./emailService.js');
       
-      // Send email with response
-      const emailResult = await sendPasswordSetupEmail(
-        email,
-        'KSYK Maps Support',
-        `Ticket ${ticketId} Response:\n\n${response}`
-      );
+      const emailBody = `
+Your support ticket has been updated!
+
+Ticket ID: ${ticketId}
+Title: ${title}
+
+Response from KSYK Maps Support:
+${response}
+
+If you have any further questions, please reply to this email or create a new ticket.
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+      `.trim();
       
-      res.json({ success: emailResult.success, message: 'Response email sent' });
+      await sendPasswordSetupEmail(email, `Ticket Update: ${ticketId}`, emailBody);
+      
+      res.json({ success: true, message: 'Response email sent' });
     } catch (error) {
       console.error("Error sending response:", error);
       res.status(500).json({ message: "Failed to send response" });

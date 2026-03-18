@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { createOwnerAdmin } from "./createOwnerAdmin";
+// import { createOwnerAdmin } from "./createOwnerAdmin"; // TODO: Re-enable when file exists
 
 const app = express();
 app.use(express.json());
@@ -68,11 +68,11 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     
     // Always create owner admin on startup
-    try {
-      await createOwnerAdmin();
-    } catch (error) {
-      console.error("Failed to create owner admin:", error);
-    }
+    // try {
+    //   await createOwnerAdmin();
+    // } catch (error) {
+    //   console.error("Failed to create owner admin:", error);
+    // }
     
     // Seed some initial data for demo
     if (process.env.NODE_ENV === 'development') {

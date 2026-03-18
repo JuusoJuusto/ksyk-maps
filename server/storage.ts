@@ -110,11 +110,18 @@ export interface IStorage {
   
   // App Log operations
   createAppLog(log: {
-    type: string;
+    level: string;
     message: string;
-    details?: string | null;
-    timestamp: Date;
+    errorReferenceId?: string | null;
+    errorStack?: string | null;
+    errorInfo?: any;
+    userAgent?: string | null;
+    url?: string | null;
+    userId?: string | null;
+    ipAddress?: string | null;
   }): Promise<void>;
+  
+  getAppLogs(limit?: number): Promise<any[]>;
 }
 
 
@@ -476,16 +483,29 @@ class MemStorage implements IStorage {
 
   // App Log operations
   async createAppLog(log: {
-    type: string;
+    level: string;
     message: string;
-    details?: string | null;
-    timestamp: Date;
+    errorReferenceId?: string | null;
+    errorStack?: string | null;
+    errorInfo?: any;
+    userAgent?: string | null;
+    url?: string | null;
+    userId?: string | null;
+    ipAddress?: string | null;
   }): Promise<void> {
     // In-memory storage - just log to console
-    console.log(`📝 App Log [${log.type.toUpperCase()}]:`, log.message);
-    if (log.details) {
-      console.log('  Details:', log.details);
+    console.log(`📝 App Log [${log.level.toUpperCase()}]:`, log.message);
+    if (log.errorReferenceId) {
+      console.log('  Error Ref:', log.errorReferenceId);
     }
+    if (log.errorStack) {
+      console.log('  Stack:', log.errorStack.substring(0, 200));
+    }
+  }
+
+  async getAppLogs(limit: number = 100): Promise<any[]> {
+    // In-memory storage - return empty array
+    return [];
   }
 }
 
