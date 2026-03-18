@@ -1359,6 +1359,11 @@ export default function Home() {
 
             <TabsContent value="settings" className="h-full m-0 p-0 overflow-auto">
               <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
+                {/* DEBUG: Visible test banner */}
+                <div className="bg-red-500 text-white p-4 text-center text-2xl font-bold mb-4">
+                  ✓ SETTINGS TAB IS RENDERING - YOU CAN SEE THIS!
+                </div>
+                
                 <div className="max-w-4xl mx-auto space-y-6">
                   
                   {/* Language Settings */}
