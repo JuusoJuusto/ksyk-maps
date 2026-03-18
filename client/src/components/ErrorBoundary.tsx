@@ -24,6 +24,25 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
+    
+    // Log to admin panel
+    fetch('/api/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'error',
+        message: `React Error Boundary: ${error.message}`,
+        details: {
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          errorName: error.name
+        },
+        timestamp: new Date().toISOString(),
+        source: 'ErrorBoundary'
+      })
+    }).catch(logError => {
+      console.error('Failed to log error to admin panel:', logError);
+    });
   }
 
   render() {

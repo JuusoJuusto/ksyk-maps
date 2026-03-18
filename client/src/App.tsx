@@ -10,6 +10,7 @@ import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
 import { Analytics } from "@vercel/analytics/react";
+import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
@@ -60,6 +61,63 @@ function Router() {
 }
 
 function App() {
+  // Global error handler
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error:', event.error);
+      
+      // Log to admin panel
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'error',
+          message: `Global Error: ${event.message}`,
+          details: {
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            stack: event.error?.stack
+          },
+          timestamp: new Date().toISOString(),
+          source: 'window.onerror'
+        })
+      }).catch(logError => {
+        console.error('Failed to log error:', logError);
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      
+      // Log to admin panel
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'error',
+          message: `Unhandled Promise Rejection: ${event.reason}`,
+          details: {
+            reason: String(event.reason),
+            promise: String(event.promise)
+          },
+          timestamp: new Date().toISOString(),
+          source: 'unhandledrejection'
+        })
+      }).catch(logError => {
+        console.error('Failed to log error:', logError);
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
@@ -29,6 +29,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Failed to load theme from server:', error);
+        // Log to admin panel
+        try {
+          await fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'error',
+              message: `Theme loading error: ${error instanceof Error ? error.message : String(error)}`,
+              timestamp: new Date().toISOString(),
+              source: 'ThemeContext'
+            })
+          });
+        } catch (logError) {
+          console.error('Failed to log error:', logError);
+        }
       }
     };
     
@@ -48,15 +63,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem('ksyk-theme', theme);
     
+    // Determine the actual theme to apply
+    let actualTheme: 'light' | 'dark' = 'light';
+    if (theme === 'system') {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      actualTheme = prefersDark ? 'dark' : 'light';
+    } else {
+      actualTheme = theme;
+    }
+    
     // Remove all theme classes
     document.documentElement.classList.remove('light', 'dark');
     
     // Add current theme class
-    document.documentElement.classList.add(theme);
-    applyThemeStyles(theme);
+    document.documentElement.classList.add(actualTheme);
+    applyThemeStyles(actualTheme);
     
     // Sync with dark mode context for backward compatibility
-    const isDark = theme === 'dark';
+    const isDark = actualTheme === 'dark';
     const darkModeEvent = new CustomEvent('themeChange', { detail: { isDark } });
     window.dispatchEvent(darkModeEvent);
   }, [theme]);
@@ -84,6 +109,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
+    // Cycle through: light -> dark -> light (skip system in toggle)
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
   };

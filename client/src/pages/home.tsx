@@ -1351,12 +1351,12 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="settings" className={`h-full m-0 pt-20 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto space-y-6">
                 
                 {/* Language Settings */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 {t('nav.information')}</h3>
+                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 Language Settings</h3>
                     <div className="space-y-4">
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1384,18 +1384,18 @@ export default function Home() {
                 </Card>
                 
                 {/* Appearance Settings */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
                   <CardContent className="p-6">
                     <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
                     <div className="space-y-4">
-                      <div className="border-t pt-4">
+                      <div>
                         <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Theme Selection
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Light Theme */}
                           <div 
-                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
+                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'light' 
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                                 : darkMode 
@@ -1415,32 +1415,32 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className="bg-white rounded-lg p-2 mb-2 shadow-sm border">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <div className="bg-white rounded-lg p-3 mb-3 shadow-sm border">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
                                 <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                                 </div>
                               </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-500 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
+                              <div className="space-y-2">
+                                <div className="w-full h-2 bg-blue-500 rounded"></div>
+                                <div className="w-3/4 h-2 bg-gray-300 rounded"></div>
                               </div>
                             </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>☀️ Light</h4>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Clean & bright</p>
+                            <h4 className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>☀️ Light Theme</h4>
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Clean & bright interface</p>
                             {theme === 'light' && (
-                              <div className="mt-1">
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              <div className="mt-2">
+                                <span className="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">✓ Active</span>
                               </div>
                             )}
                           </div>
 
                           {/* Dark Theme */}
                           <div 
-                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
+                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'dark' 
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                                 : darkMode 

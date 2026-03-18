@@ -6,6 +6,51 @@ import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoo
 import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Error logging helper
+  const logError = async (error: any, source: string, details?: any) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error(`[${source}] Error:`, errorMessage);
+    if (errorStack) console.error('Stack:', errorStack);
+    if (details) console.error('Details:', details);
+    
+    try {
+      await storage.createAppLog({
+        type: 'error',
+        message: `[${source}] ${errorMessage}`,
+        details: JSON.stringify({
+          stack: errorStack,
+          ...details
+        }),
+        timestamp: new Date()
+      });
+    } catch (logErr) {
+      console.error('Failed to log error to database:', logErr);
+    }
+  };
+
+  // Logs API endpoint - for frontend error logging
+  app.post('/api/logs', async (req, res) => {
+    try {
+      const { type, message, details, timestamp, source } = req.body;
+      
+      await storage.createAppLog({
+        type: type || 'info',
+        message: message || 'No message provided',
+        details: details ? JSON.stringify(details) : null,
+        timestamp: timestamp ? new Date(timestamp) : new Date()
+      });
+      
+      console.log(`[${source || 'Frontend'}] ${type?.toUpperCase()}: ${message}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to create log:', error);
+      res.status(500).json({ message: 'Failed to create log' });
+    }
+  });
+
   // Auth middleware
   await setupAuth(app);
 
@@ -19,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
+      await logError(error, 'GET /api/auth/user', { userId: req.user?.claims?.sub });
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
@@ -176,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error("❌ Login error:", error);
+      await logError(error, 'POST /api/auth/admin-login', { email: req.body?.email });
       res.status(500).json({ message: "Authentication error" });
     }
   });
