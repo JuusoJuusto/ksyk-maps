@@ -1398,26 +1398,26 @@ export default function Home() {
               <div className="max-w-4xl mx-auto space-y-6 pb-20">
                 
                 {/* Language Settings */}
-                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg border-4 border-purple-500 ${darkMode ? 'bg-purple-900 border-purple-500' : 'bg-purple-100'}`}>
                   <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 Language Settings</h3>
+                    <h3 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 LANGUAGE SETTINGS</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <label className={`block text-lg font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Language / Kieli
                         </label>
                         <div className="flex space-x-2">
                           <Button
                             variant={currentLang === 'en' ? 'default' : 'outline'}
                             onClick={() => handleLanguageChange('en')}
-                            className="flex-1"
+                            className="flex-1 text-lg py-6"
                           >
                             🇬🇧 English
                           </Button>
                           <Button
                             variant={currentLang === 'fi' ? 'default' : 'outline'}
                             onClick={() => handleLanguageChange('fi')}
-                            className="flex-1"
+                            className="flex-1 text-lg py-6"
                           >
                             🇫🇮 Suomi
                           </Button>
@@ -1428,25 +1428,24 @@ export default function Home() {
                 </Card>
                 
                 {/* Appearance Settings */}
-                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
+                <Card className={`shadow-lg border-4 border-blue-500 ${darkMode ? 'bg-blue-900 border-blue-500' : 'bg-blue-100'}`}>
                   <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
+                    <h3 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 APPEARANCE / THEME</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Theme Selection
+                        <label className={`block text-lg font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Choose Your Theme
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* Light Theme */}
                           <div 
-                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
+                            className={`border-4 rounded-lg p-6 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'light' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                                : darkMode 
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
-                                  : 'border-gray-200 hover:border-blue-400'
+                                ? 'border-blue-500 bg-yellow-200' 
+                                : 'border-gray-400 bg-white'
                             }`}
                             onClick={async () => {
+                              console.log('☀️ Light theme clicked');
                               setTheme('light');
                               try {
                                 await fetch('/api/settings', {
@@ -1459,39 +1458,24 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className="bg-white rounded-lg p-3 mb-3 shadow-sm border">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="w-full h-2 bg-blue-500 rounded"></div>
-                                <div className="w-3/4 h-2 bg-gray-300 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>☀️ Light Theme</h4>
-                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Clean & bright interface</p>
+                            <h4 className="font-bold text-2xl text-gray-900 mb-2">☀️ LIGHT</h4>
+                            <p className="text-base text-gray-700">Bright interface</p>
                             {theme === 'light' && (
-                              <div className="mt-2">
-                                <span className="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">✓ Active</span>
+                              <div className="mt-3">
+                                <span className="inline-block bg-blue-500 text-white text-sm px-4 py-2 rounded-full font-bold">✓ ACTIVE</span>
                               </div>
                             )}
                           </div>
 
                           {/* Dark Theme */}
                           <div 
-                            className={`border-2 rounded-lg p-4 hover:border-blue-400 transition-all cursor-pointer ${
+                            className={`border-4 rounded-lg p-6 hover:border-blue-400 transition-all cursor-pointer ${
                               theme === 'dark' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                                : darkMode 
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
-                                  : 'border-gray-200 hover:border-blue-400'
+                                ? 'border-blue-500 bg-gray-800' 
+                                : 'border-gray-400 bg-gray-700'
                             }`}
                             onClick={async () => {
+                              console.log('🌙 Dark theme clicked');
                               setTheme('dark');
                               try {
                                 await fetch('/api/settings', {
@@ -1504,39 +1488,24 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className="bg-gray-900 rounded-lg p-2 mb-2 shadow-sm border border-gray-700">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-400 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>🌙 Dark</h4>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Easy on eyes</p>
+                            <h4 className="font-bold text-2xl text-white mb-2">🌙 DARK</h4>
+                            <p className="text-base text-gray-300">Easy on eyes</p>
                             {theme === 'dark' && (
-                              <div className="mt-1">
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                              <div className="mt-3">
+                                <span className="inline-block bg-blue-500 text-white text-sm px-4 py-2 rounded-full font-bold">✓ ACTIVE</span>
                               </div>
                             )}
                           </div>
 
                           {/* System Theme */}
                           <div 
-                            className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
+                            className={`border-4 rounded-lg p-6 cursor-pointer transition-all ${
                               theme === 'system' 
-                                ? 'border-blue-500 bg-blue-100' 
-                                : darkMode
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400'
-                                  : 'border-gray-200 hover:border-blue-400'
+                                ? 'border-blue-500 bg-gradient-to-r from-yellow-200 to-gray-700' 
+                                : 'border-gray-400 bg-gradient-to-r from-white to-gray-600'
                             }`}
                             onClick={async () => {
+                              console.log('🖥️ System theme clicked');
                               setTheme('system');
                               try {
                                 await fetch('/api/settings', {
@@ -1549,29 +1518,13 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className="bg-gray-100 rounded-lg p-2 mb-2 shadow-sm border relative overflow-hidden">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-blue-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-                                </div>
+                            <h4 className="font-bold text-2xl text-gray-900 mb-2">🖥️ SYSTEM</h4>
+                            <p className="text-base text-gray-800">Follows device</p>
+                            {theme === 'system' && (
+                              <div className="mt-3">
+                                <span className="inline-block bg-blue-500 text-white text-sm px-4 py-2 rounded-full font-bold">✓ ACTIVE</span>
                               </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-500 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-400 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>🖥️ System</h4>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-700'}`}>Follows device</p>
-                            <div className="mt-1">
-                              {theme === 'system' ? (
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                              ) : (
-                                <span className="inline-block bg-gray-500 text-white text-xs px-2 py-0.5 rounded-full">Available</span>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                         
