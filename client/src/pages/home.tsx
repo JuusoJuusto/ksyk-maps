@@ -1350,317 +1350,111 @@ export default function Home() {
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-              {console.log('SETTINGS TAB RENDERING - darkMode:', darkMode, 'theme:', theme)}
-              <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
-                {console.log('SETTINGS CONTENT DIV RENDERING')}
-                
-                {/* Language Settings */}
-                <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-                  <CardContent className="p-6">
-                    <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🌐 Language Settings</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Language / Kieli
-                        </label>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant={currentLang === 'en' ? 'default' : 'outline'}
-                            onClick={() => handleLanguageChange('en')}
-                            className="flex-1"
-                          >
-                            🇬🇧 English
-                          </Button>
-                          <Button
-                            variant={currentLang === 'fi' ? 'default' : 'outline'}
-                            onClick={() => handleLanguageChange('fi')}
-                            className="flex-1"
-                          >
-                            🇫🇮 Suomi
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Appearance Settings */}
-                <Card className={`shadow-lg mb-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-                  <CardContent className="p-6">
-                    <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🎨 Appearance</h3>
-                    <div className="space-y-4">
-                      <div className="border-t pt-4">
-                        <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Theme Selection
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {/* Light Theme */}
-                          <div 
-                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
-                              theme === 'light' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                                : darkMode 
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
-                                  : 'border-gray-200 hover:border-blue-400'
-                            }`}
-                            onClick={async () => {
-                              setTheme('light');
-                              try {
-                                await fetch('/api/settings', {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ theme: 'light' })
-                                });
-                              } catch (error) {
-                                console.error('Failed to save theme:', error);
-                              }
-                            }}
-                          >
-                            <div className="bg-white rounded-lg p-2 mb-2 shadow-sm border">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-500 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-300 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>☀️ Light</h4>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Clean & bright</p>
-                            {theme === 'light' && (
-                              <div className="mt-1">
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Dark Theme */}
-                          <div 
-                            className={`border-2 rounded-lg p-3 hover:border-blue-400 transition-all cursor-pointer ${
-                              theme === 'dark' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                                : darkMode 
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400' 
-                                  : 'border-gray-200 hover:border-blue-400'
-                            }`}
-                            onClick={async () => {
-                              setTheme('dark');
-                              try {
-                                await fetch('/api/settings', {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ theme: 'dark' })
-                                });
-                              } catch (error) {
-                                console.error('Failed to save theme:', error);
-                              }
-                            }}
-                          >
-                            <div className="bg-gray-900 rounded-lg p-2 mb-2 shadow-sm border border-gray-700">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-400 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-600 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>🌙 Dark</h4>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Easy on eyes</p>
-                            {theme === 'dark' && (
-                              <div className="mt-1">
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* System Theme */}
-                          <div 
-                            className={`border-2 rounded-lg p-3 cursor-pointer shadow-lg transition-all ${
-                              theme === 'system' 
-                                ? 'border-blue-500 bg-blue-100' 
-                                : darkMode
-                                  ? 'border-gray-600 bg-gray-700 hover:border-blue-400'
-                                  : 'border-gray-200 hover:border-blue-400'
-                            }`}
-                            onClick={async () => {
-                              setTheme('system');
-                              try {
-                                await fetch('/api/settings', {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ theme: 'system' })
-                                });
-                              } catch (error) {
-                                console.error('Failed to save theme:', error);
-                              }
-                            }}
-                          >
-                            <div className="bg-gray-100 rounded-lg p-2 mb-2 shadow-sm border relative overflow-hidden">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                <div className="flex gap-1">
-                                  <div className="w-1 h-1 bg-blue-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                  <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-blue-500 rounded"></div>
-                                <div className="w-3/4 h-1 bg-gray-400 rounded"></div>
-                              </div>
-                            </div>
-                            <h4 className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>🖥️ System</h4>
-                            <p className="text-xs text-gray-700">Follows device</p>
-                            <div className="mt-1">
-                              {theme === 'system' ? (
-                                <span className="inline-block bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                              ) : (
-                                <span className="inline-block bg-gray-500 text-white text-xs px-2 py-0.5 rounded-full">Available</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-800">
-                            💡 <strong>Theme System:</strong> Choose from Light, Dark, or System themes. Changes are saved automatically and apply globally. The System theme automatically follows your device's light/dark mode preference.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Map Settings */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
-                  <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>🗺️ {t('map.title')}</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Reset Map View
-                          </label>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Return to default position and zoom</p>
-                        </div>
+            <TabsContent value="settings" className="h-full m-0 p-0 overflow-auto">
+              <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
+                <div className="max-w-4xl mx-auto space-y-6">
+                  
+                  {/* Language Settings */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
+                        🌐 Language / Kieli
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-3">
                         <Button
-                          variant="outline"
-                          onClick={handleResetMap}
-                          className="flex items-center space-x-2"
+                          variant={currentLang === 'en' ? 'default' : 'outline'}
+                          onClick={() => handleLanguageChange('en')}
+                          className="flex-1"
                         >
-                          <RotateCcw className="h-4 w-4" />
-                          <span>Reset</span>
+                          🇬🇧 English
+                        </Button>
+                        <Button
+                          variant={currentLang === 'fi' ? 'default' : 'outline'}
+                          onClick={() => handleLanguageChange('fi')}
+                          className="flex-1"
+                        >
+                          🇫🇮 Suomi
                         </Button>
                       </div>
-                      
-                      <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : ''}`}>
-                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Current Zoom: {(zoom * 100).toFixed(0)}%
-                        </label>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))}
-                            className={darkMode ? 'border-gray-600 hover:bg-gray-700' : ''}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <div className={`flex-1 flex items-center justify-center rounded px-4 ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}>
-                            {(zoom * 100).toFixed(0)}%
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setZoom(Math.min(zoom + 0.1, 3))}
-                            className={darkMode ? 'border-gray-600 hover:bg-gray-700' : ''}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Theme Settings */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
+                        🎨 Theme / Teema
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button
+                          onClick={() => setTheme('light')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'light'
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="text-4xl mb-2">☀️</div>
+                          <div className="font-semibold">Light</div>
+                          <div className="text-sm text-gray-600">Bright theme</div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setTheme('dark')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'dark'
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="text-4xl mb-2">🌙</div>
+                          <div className="font-semibold">Dark</div>
+                          <div className="text-sm text-gray-600">Easy on eyes</div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setTheme('system')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'system'
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="text-4xl mb-2">🖥️</div>
+                          <div className="font-semibold">System</div>
+                          <div className="text-sm text-gray-600">Auto</div>
+                        </button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Support */}
-                <Card className={`shadow-lg mb-6 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
-                  <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>📞 Support</h3>
-                    <div className={`space-y-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-2">Need Help?</h4>
-                        <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
-                          For technical support, bug reports, or feature requests:
-                        </p>
-                        <div className="space-y-2">
-                          <a 
-                            href="mailto:juuso.kaikula@ksyk.fi?subject=KSYK Maps Support (v2.0.1)"
-                            className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
-                          >
-                            <span>📧</span>
-                            <span>juuso.kaikula@ksyk.fi</span>
-                          </a>
-                          <br />
-                          <a 
-                            href="https://discord.gg/5ERZp9gUpr"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm"
-                          >
-                            <span>💬</span>
-                            <span>Join Discord Community</span>
-                          </a>
-                        </div>
-                        <p className="text-blue-600 dark:text-blue-400 text-xs mt-3">
-                          ⏱️ Response time: Usually within 24 hours
-                        </p>
-                        <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                          💬 Please include version number (v2.0.1) when reporting issues
-                        </p>
-                      </div>
-                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <p><strong>School:</strong> Kulosaaren Yhteiskoulu (KSYK)</p>
-                        <p><strong>Developer:</strong> StudiOWL</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* About */}
-                <Card className={`shadow-lg ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
-                  <CardContent className="p-6">
-                    <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>ℹ️ About</h3>
-                    <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      <div className="space-y-2">
+                    </CardContent>
+                  </Card>
+
+                  {/* About */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
+                        ℹ️ About / Tietoja
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                        <p>Version 2.10.0</p>
-                        <p>Latest Update: February 9, 2026</p>
-                        <p>Originally Released: August 20, 2025</p>
+                        <p>Version 3.1.2</p>
                         <p>© 2026 StudiOWL</p>
+                        <Button
+                          onClick={() => window.open('https://studiowl.vercel.app', '_blank')}
+                          className="w-full mt-4"
+                        >
+                          Learn More
+                        </Button>
                       </div>
-                      
-                      <Button
-                        onClick={() => window.open('https://studiowl.vercel.app', '_blank')}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                      >
-                        Learn More About StudiOWL
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+
+                </div>
               </div>
             </TabsContent>
           </Tabs>
