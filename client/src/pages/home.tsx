@@ -1351,6 +1351,26 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="settings" className={`h-full m-0 p-4 sm:p-8 overflow-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+              
+              {/* MASSIVE TEST ELEMENT */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'red',
+                color: 'white',
+                fontSize: '48px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999
+              }}>
+                SETTINGS TAB CONTENT IS HERE!!!
+              </div>
+              
               <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
                 
                 {/* Language Settings */}
