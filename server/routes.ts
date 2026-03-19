@@ -1230,7 +1230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email notification if status changed OR if response provided
       if (ticket.email && (oldTicket?.status !== ticket.status || req.body.response)) {
         try {
-          console.log('📧 Sending update email...');
+          console.log('📧 ========== SENDING EMAIL ==========');
+          console.log('To:', ticket.email);
+          console.log('Status changed:', oldTicket?.status, '->', ticket.status);
+          console.log('Response provided:', !!req.body.response);
           
           const statusMessages = {
             pending: 'Your ticket is pending review. We will look into it shortly.',
@@ -1268,7 +1271,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? `Ticket Resolved: ${ticket.ticketId}`
             : `Ticket Update: ${ticket.ticketId}`;
           
-          await sendTicketEmail(
+          console.log('📤 Calling sendTicketEmail...');
+          console.log('Subject:', subject);
+          console.log('Body preview:', emailBody.substring(0, 100));
+          
+          const emailResult = await sendTicketEmail(
             ticket.email, 
             subject,
             emailBody,
@@ -1279,12 +1286,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: ticket.status
             }
           );
+          
+          console.log('📧 Email result:', emailResult);
           console.log('✅ Update email sent to:', ticket.email);
+          console.log('=====================================\n');
         } catch (emailError: any) {
-          console.error('❌ Email error:', emailError.message);
+          console.error('❌ ========== EMAIL ERROR ==========');
+          console.error('Error:', emailError);
+          console.error('Message:', emailError.message);
+          console.error('Stack:', emailError.stack);
+          console.error('=====================================\n');
         }
       } else {
-        console.log('⚠️ No email sent - no changes or no email address');
+        console.log('⚠️ ========== NO EMAIL SENT ==========');
+        console.log('Has email:', !!ticket.email);
+        console.log('Email address:', ticket.email);
+        console.log('Status changed:', oldTicket?.status !== ticket.status);
+        console.log('Has response:', !!req.body.response);
+        console.log('=====================================\n');
       }
       
       res.json(ticket);
