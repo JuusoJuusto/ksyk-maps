@@ -1199,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log('✅ Ticket created successfully');
-      res.status(201).json(ticket);
+      res.status(201).json({ ...ticket, ticketId });
     } catch (error) {
       console.error("Error creating ticket:", error);
       res.status(500).json({ message: "Failed to create ticket" });

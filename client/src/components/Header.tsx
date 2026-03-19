@@ -265,39 +265,55 @@ export default function Header() {
 
         {/* Mobile Dropdown Menu */}
         {showMobileMenu && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50 animate-slide-in-bottom">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50 animate-slide-in-top">
             <div className="px-4 py-3 space-y-3">
               {!isInAdminPanel ? (
                 <>
                   {/* Theme Selector */}
                   <div className="space-y-2 animate-slide-in-left">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={() => {
                           handleThemeChange('light');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
+                        className={`p-3 text-xs rounded-lg border transition-all animate-zoom-in flex flex-col items-center gap-1 ${
                           theme === 'light' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg ring-2 ring-blue-500' 
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ☀️ {t('theme.light')}
+                        <Sun className="h-5 w-5" />
+                        <span className="font-semibold">{t('theme.light')}</span>
                       </button>
                       <button
                         onClick={() => {
                           handleThemeChange('dark');
                           setShowMobileMenu(false);
                         }}
-                        className={`p-2 text-xs rounded-lg border transition-all animate-zoom-in ${
+                        className={`p-3 text-xs rounded-lg border transition-all animate-zoom-in flex flex-col items-center gap-1 ${
                           theme === 'dark' 
-                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg ring-2 ring-blue-500' 
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🌙 {t('theme.dark')}
+                        <Moon className="h-5 w-5" />
+                        <span className="font-semibold">{t('theme.dark')}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleThemeChange('system');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-3 text-xs rounded-lg border transition-all animate-zoom-in flex flex-col items-center gap-1 ${
+                          theme === 'system' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg ring-2 ring-blue-500' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
+                        }`}
+                      >
+                        <span className="text-lg">🖥️</span>
+                        <span className="font-semibold">System</span>
                       </button>
                     </div>
                   </div>
