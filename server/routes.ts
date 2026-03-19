@@ -1170,49 +1170,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ Ticket created in database:', ticket);
       console.log('📋 Ticket ID to return:', ticketId);
       
-      // Send email notification to owner
+      // Send email notifications DIRECTLY
       if (ticketData.email) {
         try {
           const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
           
-          console.log('\n📧 ========== SENDING EMAILS ==========');
+          console.log('\n📧 ========== SENDING EMAILS DIRECTLY ==========');
           console.log('Owner email:', ownerEmail);
           console.log('User email:', ticketData.email);
-          console.log('======================================\n');
+          console.log('===============================================\n');
           
           // Send notification to owner
           console.log('📤 Sending notification to owner...');
-          const ownerResponse = await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-notification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ownerEmail,
-              ticketId,
-              type: ticketData.type,
-              title: ticketData.title,
-              description: ticketData.description,
-              email: ticketData.email,
-              name: ticketData.name,
-              errorReferenceId: ticketData.errorReferenceId,
-            }),
-          });
-          console.log('📧 Owner notification response:', ownerResponse.status, await ownerResponse.text());
+          const ownerEmailBody = `
+New Support Ticket Received
+
+Ticket ID: ${ticketId}
+Type: ${ticketData.type}
+Priority: ${ticketData.priority || 'normal'}
+${ticketData.errorReferenceId ? `Error Reference: ${ticketData.errorReferenceId}` : ''}
+
+Title: ${ticketData.title}
+
+Description:
+${ticketData.description}
+
+Submitted by: ${ticketData.name || 'Anonymous'}
+Email: ${ticketData.email || 'Not provided'}
+
+View and manage this ticket in the admin panel:
+https://ksykmaps.vercel.app/admin-ksyk-management-portal
+
+---
+KSYK Maps Support System
+          `.trim();
+          
+          const ownerResult = await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
+          console.log('📧 Owner notification result:', ownerResult);
           
           // Send auto-reply to user
           console.log('📤 Sending confirmation to user...');
-          const userResponse = await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-confirmation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: ticketData.email,
-              ticketId,
-              type: ticketData.type,
-              title: ticketData.title,
-            }),
-          });
-          console.log('📧 User confirmation response:', userResponse.status, await userResponse.text());
+          const userEmailBody = `
+Thank you for contacting KSYK Maps Support!
+
+Your ticket has been received and assigned ID: ${ticketId}
+
+Type: ${ticketData.type}
+Title: ${ticketData.title}
+
+Our team will review your request and respond as soon as possible. You will receive an email notification when there is an update.
+
+For reference, please save your ticket ID: ${ticketId}
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+          `.trim();
           
-          console.log('✅ All emails sent successfully!\n');
+          const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
+          console.log('📧 User confirmation result:', userResult);
+          
+          console.log('✅ All emails processed!\n');
         } catch (emailError) {
           console.error('❌ Failed to send ticket emails:', emailError);
           console.error('   Error details:', emailError);
@@ -1246,22 +1264,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oldTicket = await storage.getTicket(req.params.id);
       const ticket = await storage.updateTicket(req.params.id, req.body);
       
-      // Send email notification if status changed
+      // Send email notification if status changed - DIRECTLY
       if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
         try {
-          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-status-update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: ticket.email,
-              ticketId: ticket.ticketId,
-              status: ticket.status,
-              title: ticket.title,
-              response: req.body.response || '',
-            }),
-          });
+          console.log('📧 Sending status update email directly...');
+          
+          const statusMessages = {
+            pending: 'Your ticket is pending review. We will look into it shortly.',
+            in_progress: 'Good news! Your ticket is now being investigated by our team. We are actively working on resolving your issue.',
+            resolved: 'Your ticket has been resolved! We hope this solution helps.',
+            closed: 'Your ticket has been closed. Thank you for your patience.'
+          };
+          
+          const statusEmojis = {
+            pending: '⏳',
+            in_progress: '🔍',
+            resolved: '✅',
+            closed: '🔒'
+          };
+          
+          const emailBody = `
+Your support ticket status has been updated!
+
+Ticket ID: ${ticket.ticketId}
+Title: ${ticket.title}
+New Status: ${statusEmojis[ticket.status as keyof typeof statusEmojis] || '📋'} ${ticket.status.toUpperCase().replace('_', ' ')}
+
+${statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.'}
+
+${req.body.response ? `\nMessage from support:\n${req.body.response}` : ''}
+
+${ticket.status === 'in_progress' ? '\n🔍 Our team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.' : ''}
+
+${ticket.status === 'resolved' || ticket.status === 'closed' ? '\nIf you need further assistance, please create a new ticket.' : '\nWe will keep you updated on any progress.'}
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+          `.trim();
+          
+          await sendTicketEmail(ticket.email, `Ticket ${ticket.status.toUpperCase().replace('_', ' ')}: ${ticket.ticketId}`, emailBody);
+          console.log('✅ Status update email sent!');
         } catch (emailError) {
-          console.error('Failed to send ticket status update email:', emailError);
+          console.error('❌ Failed to send ticket status update email:', emailError);
         }
       }
       

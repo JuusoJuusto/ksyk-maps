@@ -175,21 +175,10 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
         <p><strong>⚠️ Important:</strong> Please change this password after your first login for security purposes. You can update your password in the admin panel settings.</p>
       </div>
       
-      <div style="text-align: center;">
-        <a href="https://ksykmaps.vercel.app/admin-login" class="button">
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app/admin-login" class="button" style="color: #ffffff; text-decoration: none;">
           Login to Admin Panel →
         </a>
-      </div>
-      
-      <div class="message" style="margin-top: 30px;">
-        <strong>What you can do:</strong>
-        <ul style="color: #4b5563; line-height: 1.8;">
-          <li>Manage buildings and rooms</li>
-          <li>Update campus maps</li>
-          <li>Handle support tickets</li>
-          <li>View analytics and logs</li>
-          <li>Manage announcements</li>
-        </ul>
       </div>
     </div>
     
