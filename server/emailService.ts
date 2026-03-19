@@ -240,10 +240,6 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     return { success: false, mode: 'console', error: 'Email not configured' };
   }
 
-  // All emails use blue theme
-  const headerColor = '#2563eb';
-  const headerEmoji = '📧';
-
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -254,7 +250,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background-color: #f3f4f6;
     }
     .container {
@@ -266,92 +262,95 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .header {
-      background: #2563eb;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       padding: 40px 30px;
       text-align: center;
-    }
-    .header-emoji {
-      font-size: 48px;
-      margin-bottom: 10px;
     }
     .header h1 {
       margin: 0;
       color: #ffffff;
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 700;
     }
     .header p {
       margin: 10px 0 0 0;
-      color: rgba(255, 255, 255, 0.95);
+      color: #dbeafe;
       font-size: 16px;
     }
     .content {
       padding: 40px 30px;
-      color: #374151;
-      font-size: 16px;
-      line-height: 1.8;
     }
-    .ticket-id-box {
+    .greeting {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+    .message {
+      color: #4b5563;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      white-space: pre-wrap;
+    }
+    .ticket-box {
       background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
       border: 2px solid #3b82f6;
       border-radius: 12px;
-      padding: 20px;
+      padding: 30px;
       text-align: center;
-      margin: 25px 0;
+      margin: 30px 0;
     }
-    .ticket-id-label {
+    .ticket-label {
       color: #6b7280;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
     .ticket-id {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 700;
       color: #1e40af;
       font-family: 'Courier New', monospace;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
+      background-color: #ffffff;
+      padding: 15px 25px;
+      border-radius: 8px;
+      display: inline-block;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    .info-box {
+    .info-section {
       background-color: #f9fafb;
       border-left: 4px solid #2563eb;
       padding: 20px;
       border-radius: 8px;
       margin: 25px 0;
     }
-    .info-box h3 {
+    .info-section h3 {
       margin: 0 0 15px 0;
       color: #1f2937;
       font-size: 18px;
       font-weight: 600;
     }
-    .info-box p {
+    .info-item {
       margin: 8px 0;
       color: #4b5563;
       font-size: 15px;
     }
-    .info-box strong {
+    .info-item strong {
       color: #1f2937;
       font-weight: 600;
     }
-    .message-box {
-      background-color: #ffffff;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 25px;
-      margin: 25px 0;
-      white-space: pre-wrap;
-      line-height: 1.8;
-    }
     .status-badge {
       display: inline-block;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
       font-weight: 600;
-      margin: 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .status-resolved {
       background-color: #d1fae5;
@@ -367,7 +366,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     }
     .button {
       display: inline-block;
-      background: #2563eb;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: #ffffff;
       text-decoration: none;
       padding: 14px 32px;
@@ -397,60 +396,34 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
 <body>
   <div class="container">
     <div class="header">
-      <div class="header-emoji">${headerEmoji}</div>
-      <h1>KSYK Maps Support</h1>
+      <h1>🎫 KSYK Maps Support</h1>
       <p>${subject}</p>
     </div>
     
     <div class="content">
+      <div class="greeting">Hello! 👋</div>
+      
       ${ticketData?.ticketId ? `
-      <div class="ticket-id-box">
-        <div class="ticket-id-label">YOUR TICKET ID</div>
+      <div class="ticket-box">
+        <div class="ticket-label">YOUR TICKET ID</div>
         <div class="ticket-id">${ticketData.ticketId}</div>
       </div>
       ` : ''}
       
       ${ticketData ? `
-      <div class="info-box">
-        <h3>Ticket Details</h3>
-        ${ticketData.type ? `<p><strong>Type:</strong> ${ticketData.type.toUpperCase()}</p>` : ''}
-        ${ticketData.title ? `<p><strong>Title:</strong> ${ticketData.title}</p>` : ''}
-        ${ticketData.status ? `<p><strong>Status:</strong> <span class="status-badge status-${ticketData.status}">${ticketData.status.toUpperCase().replace('_', ' ')}</span></p>` : ''}
+      <div class="info-section">
+        <h3>Ticket Information</h3>
+        ${ticketData.type ? `<div class="info-item"><strong>Type:</strong> ${ticketData.type.toUpperCase()}</div>` : ''}
+        ${ticketData.title ? `<div class="info-item"><strong>Subject:</strong> ${ticketData.title}</div>` : ''}
+        ${ticketData.status ? `<div class="info-item"><strong>Status:</strong> <span class="status-badge status-${ticketData.status}">${ticketData.status.replace('_', ' ')}</span></div>` : ''}
       </div>
       ` : ''}
       
-      <div class="message-box">
-${body.split('\n').map(line => {
-  // Remove separator lines
-  if (line.trim().startsWith('━━━')) return '';
-  if (line.trim().startsWith('---')) return '';
-  
-  // Handle bullet points
-  if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
-    return `        <div style="margin-bottom: 4px;">
-          <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
-          <span>${line.trim().replace(/^[•-]\s*/, '')}</span>
-        </div>`;
-  }
-  
-  // Handle section headers (lines ending with :)
-  if (line.trim().endsWith(':') && line.trim().length < 60 && !line.includes('http')) {
-    return `        <div style="font-weight: 600; color: #1f2937; margin-top: 12px; margin-bottom: 6px; font-size: 16px;">
-          ${line.trim()}
-        </div>`;
-  }
-  
-  // Empty lines become small breaks
-  if (line.trim() === '') return '<div style="margin-bottom: 8px;"></div>';
-  
-  // Regular text
-  return `        <div style="margin-bottom: 4px;">${line.trim()}</div>`;
-}).filter(line => line !== '').join('\n')}
-      </div>
+      <div class="message">${body}</div>
       
       <div style="text-align: center; margin: 30px 0;">
         <a href="https://ksykmaps.vercel.app" class="button" style="color: #ffffff; text-decoration: none;">
-          Visit KSYK Maps
+          Visit KSYK Maps →
         </a>
       </div>
     </div>

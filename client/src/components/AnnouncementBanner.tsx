@@ -75,10 +75,15 @@ export default function AnnouncementBanner() {
   };
   
   const getLocalizedContent = (announcement: Announcement) => {
+    let content = '';
     if (i18n.language === 'fi' && announcement.contentFi) {
-      return announcement.contentFi;
+      content = announcement.contentFi;
+    } else {
+      content = announcement.contentEn || announcement.content;
     }
-    return announcement.contentEn || announcement.content;
+    
+    // Fix bullet points for all languages
+    return content.replace(/^[•-]\s*/gm, '• ');
   };
 
   const getPriorityColor = (priority: string) => {
@@ -244,9 +249,45 @@ export default function AnnouncementBanner() {
           
           <div className="mt-4 space-y-4">
             <div className="prose max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {getLocalizedContent(currentAnnouncement)}
-              </p>
+              <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {getLocalizedContent(currentAnnouncement).split('\n').map((line, index) => {
+                  // Handle bullet points
+                  if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+                    return (
+                      <div key={index} className="flex items-start mb-2">
+                        <span className="text-blue-600 font-bold mr-2 mt-1">•</span>
+                        <span>{line.trim().replace(/^[•-]\s*/, '')}</span>
+                      </div>
+                    );
+                  }
+                  
+                  // Handle section headers (lines ending with :)
+                  if (line.trim().endsWith(':') && line.trim().length < 60 && !line.includes('http')) {
+                    return (
+                      <div key={index} className="font-semibold text-gray-900 mt-4 mb-2">
+                        {line.trim()}
+                      </div>
+                    );
+                  }
+                  
+                  // Handle separator lines
+                  if (line.trim().startsWith('---') || line.trim().startsWith('━━━')) {
+                    return <hr key={index} className="my-4 border-gray-300" />;
+                  }
+                  
+                  // Empty lines
+                  if (line.trim() === '') {
+                    return <div key={index} className="mb-2"></div>;
+                  }
+                  
+                  // Regular text
+                  return (
+                    <div key={index} className="mb-2">
+                      {line}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             
             {currentAnnouncement.priority === 'urgent' && (

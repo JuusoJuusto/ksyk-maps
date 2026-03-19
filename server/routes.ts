@@ -898,7 +898,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const announcements = await storage.getAnnouncements(limit);
-      res.json(announcements);
+      
+      // Auto-delete expired announcements
+      const now = new Date();
+      const expiredAnnouncements = announcements.filter(announcement => {
+        if (!announcement.expiresAt) return false;
+        
+        let expiryDate: Date;
+        if (typeof announcement.expiresAt === 'object' && (announcement.expiresAt as any)._seconds) {
+          expiryDate = new Date((announcement.expiresAt as any)._seconds * 1000);
+        } else {
+          expiryDate = new Date(announcement.expiresAt);
+        }
+        
+        return expiryDate < now;
+      });
+      
+      // Delete expired announcements
+      for (const expired of expiredAnnouncements) {
+        try {
+          await storage.deleteAnnouncement(expired.id);
+          console.log(`🗑️ Auto-deleted expired announcement: ${expired.id} (${expired.title})`);
+        } catch (deleteError) {
+          console.error(`❌ Failed to delete expired announcement ${expired.id}:`, deleteError);
+        }
+      }
+      
+      // Return only non-expired announcements
+      const activeAnnouncements = announcements.filter(announcement => {
+        if (!announcement.expiresAt) return true;
+        
+        let expiryDate: Date;
+        if (typeof announcement.expiresAt === 'object' && (announcement.expiresAt as any)._seconds) {
+          expiryDate = new Date((announcement.expiresAt as any)._seconds * 1000);
+        } else {
+          expiryDate = new Date(announcement.expiresAt);
+        }
+        
+        return expiryDate >= now;
+      });
+      
+      res.json(activeAnnouncements);
     } catch (error) {
       await logError(error, 'GET /api/announcements', { limit: req.query.limit });
       res.status(500).json({ message: "Failed to fetch announcements" });

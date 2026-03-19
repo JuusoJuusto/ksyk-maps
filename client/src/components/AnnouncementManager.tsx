@@ -109,12 +109,12 @@ export default function AnnouncementManager() {
     const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     
     setFormData({
-      title: "Important Announcement",
-      titleEn: "Important Announcement",
-      titleFi: "Tärkeä ilmoitus",
-      content: "Please read this important information about campus updates.",
-      contentEn: "Please read this important information about campus updates.",
-      contentFi: "Lue tämä tärkeä tieto kampuksen päivityksistä.",
+      title: "",
+      titleEn: "",
+      titleFi: "",
+      content: "",
+      contentEn: "",
+      contentFi: "",
       priority: "normal",
       isActive: true,
       publishedAt: localDateTime,
@@ -256,7 +256,7 @@ export default function AnnouncementManager() {
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Announcement title"
+                  placeholder="Enter announcement title"
                   required
                 />
               </div>
@@ -345,7 +345,7 @@ export default function AnnouncementManager() {
                   id="content"
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Announcement content&#10;&#10;Use formatting buttons above to add:&#10;• Bullet points&#10;• Horizontal lines&#10;• Section separators"
+                  placeholder="Enter announcement content here..."
                   rows={6}
                   required
                 />
