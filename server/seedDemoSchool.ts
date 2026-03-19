@@ -364,16 +364,14 @@ async function seedDemoSchool() {
 }
 
 // Run if called directly
-if (require.main === module) {
-  seedDemoSchool()
-    .then(() => {
-      console.log('\n✅ Seeding completed successfully!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('\n❌ Seeding failed:', error);
-      process.exit(1);
-    });
-}
+seedDemoSchool()
+  .then(() => {
+    console.log('\n✅ Seeding completed successfully!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('\n❌ Seeding failed:', error);
+    process.exit(1);
+  });
 
 export { seedDemoSchool };
