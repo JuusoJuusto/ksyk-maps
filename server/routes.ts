@@ -1224,7 +1224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Has Response:', !!req.body.response);
       console.log('Response Text:', req.body.response?.substring(0, 100));
       console.log('Status Changed:', oldTicket?.status !== ticket.status);
-      console.log('Should Send Email:', !!(ticket.email && (oldTicket?.status !== ticket.status || req.body.response)));
+      console.log('Should Send Email:', !!(ticket.email && req.body.response));
       console.log('=====================================\n');
       
       // ALWAYS send email if there's an email address and a response
@@ -1233,9 +1233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
           console.log('To:', ticket.email);
           console.log('Response:', req.body.response.substring(0, 100));
-          
-          // Simple email body with just the response
-          const emailBody = req.body.response;
           
           const subject = ticket.status === 'resolved' 
             ? `✅ Ticket Resolved: ${ticket.ticketId}`
@@ -1246,7 +1243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const emailResult = await sendTicketEmail(
             ticket.email, 
             subject,
-            emailBody,
+            req.body.response,
             {
               ticketId: ticket.ticketId,
               type: ticket.type,
@@ -1262,6 +1259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('❌ ========== EMAIL ERROR ==========');
           console.error('Error:', emailError);
           console.error('Message:', emailError.message);
+          console.error('Stack:', emailError.stack);
           console.error('=====================================\n');
         }
       } else {

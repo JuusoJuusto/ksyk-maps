@@ -12,14 +12,15 @@ import {
 
 interface Point { x: number; y: number; }
 
-type Tool = "wall" | "room" | "select";
+type Tool = "outline" | "wall" | "room" | "select";
 
 export default function ImprovedKSYKBuilder() {
   const queryClient = useQueryClient();
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const [activeTool, setActiveTool] = useState<Tool>("wall");
+  const [activeTool, setActiveTool] = useState<Tool>("outline");
   const [isDrawing, setIsDrawing] = useState(false);
+  const [campusOutline, setCampusOutline] = useState<Point[]>([]);
   const [walls, setWalls] = useState<Point[][]>([]);
   const [currentWall, setCurrentWall] = useState<Point[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -79,7 +80,10 @@ export default function ImprovedKSYKBuilder() {
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     const point = getSVGPoint(e);
     
-    if (activeTool === "wall") {
+    if (activeTool === "outline") {
+      setIsDrawing(true);
+      setCampusOutline([...campusOutline, point]);
+    } else if (activeTool === "wall") {
       setIsDrawing(true);
       setCurrentWall([...currentWall, point]);
     } else if (activeTool === "room") {
@@ -89,15 +93,24 @@ export default function ImprovedKSYKBuilder() {
 
   // Handle mouse move on SVG
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing || activeTool !== "wall") return;
+    if (!isDrawing) return;
     // Preview line while drawing
   };
 
   // Handle mouse up
   const handleMouseUp = () => {
-    if (activeTool === "wall" && isDrawing) {
-      // Continue drawing wall
+    if (isDrawing && (activeTool === "wall" || activeTool === "outline")) {
+      // Continue drawing
     }
+  };
+
+  // Finish drawing current outline
+  const finishOutline = () => {
+    if (campusOutline.length > 2) {
+      // Close the outline by connecting to first point
+      setCampusOutline([...campusOutline, campusOutline[0]]);
+    }
+    setIsDrawing(false);
   };
 
   // Finish drawing current wall
@@ -111,7 +124,11 @@ export default function ImprovedKSYKBuilder() {
 
   // Cancel drawing
   const cancelDrawing = () => {
-    setCurrentWall([]);
+    if (activeTool === "outline") {
+      setCampusOutline([]);
+    } else if (activeTool === "wall") {
+      setCurrentWall([]);
+    }
     setIsDrawing(false);
   };
 
@@ -123,7 +140,25 @@ export default function ImprovedKSYKBuilder() {
 
   // Validate room number format (A32, M1, U205 - letter followed by numbers, no dash)
   const validateRoomNumber = (roomNumber: string): boolean => {
-    return /^[A-Z]\d+$/i.test(roomNumber);
+    // Allow specific formats: A32, A21, M1, M2, U205, K15, L10, R5
+    const validBuildings = ['A', 'M', 'U', 'K', 'L', 'R'];
+    const match = roomNumber.match(/^([A-Z])(\d+)$/i);
+    
+    if (!match) return false;
+    
+    const building = match[1].toUpperCase();
+    const number = parseInt(match[2]);
+    
+    // Check if building is valid
+    if (!validBuildings.includes(building)) return false;
+    
+    // Special rules for M building (only M1, M2)
+    if (building === 'M' && (number < 1 || number > 2)) return false;
+    
+    // For other buildings, allow reasonable room numbers
+    if (building !== 'M' && (number < 1 || number > 999)) return false;
+    
+    return true;
   };
 
   // Add room
@@ -134,7 +169,7 @@ export default function ImprovedKSYKBuilder() {
     }
     
     if (!validateRoomNumber(roomData.roomNumber)) {
-      alert("Room number must be a letter followed by numbers (e.g., A32, M1, U205)\nNo dashes or spaces!");
+      alert("Invalid room number format!\n\nValid formats:\n• A32, A21 (A building)\n• M1, M2 (M building - only 1 and 2)\n• U205, K15, L10, R5 (other buildings)\n\nNo dashes or spaces allowed!");
       return;
     }
     
@@ -293,6 +328,14 @@ export default function ImprovedKSYKBuilder() {
           
           <div className="flex gap-2">
             <Button
+              variant={activeTool === "outline" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTool("outline")}
+            >
+              <Layers className="h-4 w-4 mr-2" />
+              Campus Outline
+            </Button>
+            <Button
               variant={activeTool === "wall" ? "default" : "outline"}
               size="sm"
               onClick={() => setActiveTool("wall")}
@@ -357,6 +400,15 @@ export default function ImprovedKSYKBuilder() {
             <Save className="h-4 w-4 mr-2" />
             {saveMutation.isPending ? 'Saving...' : 'Save All'}
           </Button>
+          {campusOutline.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCampusOutline([])}
+            >
+              Clear Outline
+            </Button>
+          )}
         </div>
       </div>
 
@@ -372,12 +424,12 @@ export default function ImprovedKSYKBuilder() {
                 <Label htmlFor="roomNumber">Room Number *</Label>
                 <Input
                   id="roomNumber"
-                  placeholder="e.g., A32, A21, M1, U205"
+                  placeholder="A32, A21, M1, M2, U205..."
                   value={roomData.roomNumber}
                   onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value.toUpperCase() })}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Format: {extractBuilding(roomData.roomNumber) || 'A'}32 or M1 (letter + number, no dash)
+                  Buildings: A, M (M1-M2 only), U, K, L, R + numbers (no dashes)
                 </p>
               </div>
               
@@ -518,6 +570,19 @@ export default function ImprovedKSYKBuilder() {
             )}
             {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
             
+            {/* Campus Outline */}
+            {campusOutline.length > 0 && (
+              <polygon
+                points={campusOutline.map(p => `${p.x},${p.y}`).join(' ')}
+                fill="rgba(59, 130, 246, 0.1)"
+                stroke="#3B82F6"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="15,10"
+              />
+            )}
+            
             {/* Walls */}
             {walls.map((wall, idx) => (
               <polyline
@@ -577,16 +642,19 @@ export default function ImprovedKSYKBuilder() {
           </svg>
           
           {/* Drawing Instructions */}
-          {isDrawing && activeTool === "wall" && (
+          {isDrawing && (activeTool === "wall" || activeTool === "outline") && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-              Click to add points. Press ESC to cancel or click "Finish Wall" when done.
+              {activeTool === "outline" 
+                ? "Click to add campus outline points. Press 'Finish Outline' when done."
+                : "Click to add wall points. Press 'Finish Wall' when done."
+              }
               <Button
                 size="sm"
                 variant="secondary"
                 className="ml-4"
-                onClick={finishWall}
+                onClick={activeTool === "outline" ? finishOutline : finishWall}
               >
-                Finish Wall
+                {activeTool === "outline" ? "Finish Outline" : "Finish Wall"}
               </Button>
               <Button
                 size="sm"
