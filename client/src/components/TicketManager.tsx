@@ -228,7 +228,10 @@ export default function TicketManager() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <Badge className="bg-blue-600 text-white border-blue-700 text-sm font-bold px-3 py-1">
+                            ID: {ticket.ticketId}
+                          </Badge>
                           <Badge className={`${getStatusColor(ticket.status)} border`}>
                             {getStatusIcon(ticket.status)}
                             <span className="ml-1">{ticket.status}</span>
@@ -237,9 +240,6 @@ export default function TicketManager() {
                             {ticket.priority}
                           </Badge>
                           <Badge variant="outline">{ticket.type}</Badge>
-                          <span className="text-xs text-gray-500 font-mono">
-                            {ticket.ticketId}
-                          </span>
                         </div>
                         <h3 className="font-semibold text-lg mb-1 truncate">
                           {ticket.title}
@@ -293,7 +293,12 @@ export default function TicketManager() {
           <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
+                  <div className="mb-3">
+                    <Badge className="bg-blue-600 text-white border-blue-700 text-lg font-bold px-4 py-2">
+                      TICKET ID: {selectedTicket.ticketId}
+                    </Badge>
+                  </div>
                   <CardTitle className="text-2xl mb-2">{selectedTicket.title}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge className={`${getStatusColor(selectedTicket.status)} border`}>
@@ -302,9 +307,6 @@ export default function TicketManager() {
                     <Badge className={`${getPriorityColor(selectedTicket.priority)} border`}>
                       {selectedTicket.priority}
                     </Badge>
-                    <span className="text-sm text-gray-500 font-mono">
-                      {selectedTicket.ticketId}
-                    </span>
                   </div>
                 </div>
                 <Button variant="ghost" onClick={() => setSelectedTicket(null)}>

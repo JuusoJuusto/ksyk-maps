@@ -1170,8 +1170,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ Ticket created in database:', ticket);
       console.log('📋 Ticket ID to return:', ticketId);
       
+      // CRITICAL: Check email before attempting to send
+      console.log('\n🔍 ========== EMAIL CHECK ==========');
+      console.log('ticketData.email value:', ticketData.email);
+      console.log('ticketData.email type:', typeof ticketData.email);
+      console.log('ticketData.email truthy:', !!ticketData.email);
+      console.log('ticketData.email length:', ticketData.email?.length);
+      console.log('===================================\n');
+      
       // Send email notifications DIRECTLY
-      if (ticketData.email) {
+      if (ticketData.email && ticketData.email.trim()) {
         console.log('\n📧 ========== ATTEMPTING TO SEND EMAILS ==========');
         console.log('Email provided:', ticketData.email);
         console.log('sendTicketEmail function exists:', typeof sendTicketEmail);
@@ -1254,7 +1262,10 @@ https://ksykmaps.vercel.app
           console.error('====================================\n');
         }
       } else {
-        console.log('⚠️ No email provided, skipping email notifications');
+        console.log('\n⚠️ ========== NO EMAIL PROVIDED ==========');
+        console.log('Skipping email notifications');
+        console.log('ticketData.email:', ticketData.email);
+        console.log('==========================================\n');
       }
       
       console.log('\n✅ ========== TICKET CREATION COMPLETE ==========');
