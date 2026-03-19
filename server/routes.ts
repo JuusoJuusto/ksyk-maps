@@ -1257,11 +1257,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Ticket not found' });
       }
       
+      console.log('\n🔍 ========== OLD TICKET DATA ==========');
+      console.log('Old Ticket:', JSON.stringify(oldTicket, null, 2));
+      console.log('Old Ticket Email:', oldTicket.email);
+      console.log('Old Ticket Email Type:', typeof oldTicket.email);
+      console.log('=====================================\n');
+      
       // CRITICAL: Preserve email field when updating
       const updateData = {
         ...req.body,
         email: oldTicket.email // Always preserve the original email
       };
+      
+      console.log('\n📦 ========== UPDATE DATA ==========');
+      console.log('Update Data:', JSON.stringify(updateData, null, 2));
+      console.log('Update Data Email:', updateData.email);
+      console.log('=====================================\n');
       
       const ticket = await storage.updateTicket(req.params.id, updateData);
       
