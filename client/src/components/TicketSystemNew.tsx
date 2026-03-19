@@ -44,10 +44,13 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Failed to create ticket');
-      return response.json();
+      const result = await response.json();
+      console.log('✅ Ticket created:', result);
+      return result;
     },
     onSuccess: (data) => {
-      setTicketId(data.ticketId);
+      console.log('📋 Setting ticket ID:', data.ticketId);
+      setTicketId(data.ticketId || 'ERROR-NO-ID');
       setSubmitted(true);
     },
   });
