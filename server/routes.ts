@@ -1172,16 +1172,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send email notifications DIRECTLY
       if (ticketData.email) {
+        console.log('\n📧 ========== ATTEMPTING TO SEND EMAILS ==========');
+        console.log('Email provided:', ticketData.email);
+        console.log('sendTicketEmail function exists:', typeof sendTicketEmail);
+        console.log('================================================\n');
+        
         try {
           const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
           
-          console.log('\n📧 ========== SENDING EMAILS DIRECTLY ==========');
           console.log('Owner email:', ownerEmail);
           console.log('User email:', ticketData.email);
-          console.log('===============================================\n');
           
           // Send notification to owner
-          console.log('📤 Sending notification to owner...');
+          console.log('\n📤 CALLING sendTicketEmail for OWNER...');
           const ownerEmailBody = `
 New Support Ticket Received
 
@@ -1205,11 +1208,17 @@ https://ksykmaps.vercel.app/admin-ksyk-management-portal
 KSYK Maps Support System
           `.trim();
           
+          console.log('Calling sendTicketEmail with:', {
+            to: ownerEmail,
+            subject: `New Ticket: ${ticketId}`,
+            bodyLength: ownerEmailBody.length
+          });
+          
           const ownerResult = await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
-          console.log('📧 Owner notification result:', ownerResult);
+          console.log('✅ Owner email result:', JSON.stringify(ownerResult));
           
           // Send auto-reply to user
-          console.log('📤 Sending confirmation to user...');
+          console.log('\n📤 CALLING sendTicketEmail for USER...');
           const userEmailBody = `
 Thank you for contacting KSYK Maps Support!
 
@@ -1227,13 +1236,22 @@ KSYK Maps Support Team
 https://ksykmaps.vercel.app
           `.trim();
           
-          const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
-          console.log('📧 User confirmation result:', userResult);
+          console.log('Calling sendTicketEmail with:', {
+            to: ticketData.email,
+            subject: `Ticket Received: ${ticketId}`,
+            bodyLength: userEmailBody.length
+          });
           
-          console.log('✅ All emails processed!\n');
-        } catch (emailError) {
-          console.error('❌ Failed to send ticket emails:', emailError);
-          console.error('   Error details:', emailError);
+          const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
+          console.log('✅ User email result:', JSON.stringify(userResult));
+          
+          console.log('\n✅ ========== EMAIL SENDING COMPLETE ==========\n');
+        } catch (emailError: any) {
+          console.error('\n❌ ========== EMAIL ERROR ==========');
+          console.error('Error type:', emailError.constructor.name);
+          console.error('Error message:', emailError.message);
+          console.error('Error stack:', emailError.stack);
+          console.error('====================================\n');
         }
       } else {
         console.log('⚠️ No email provided, skipping email notifications');
