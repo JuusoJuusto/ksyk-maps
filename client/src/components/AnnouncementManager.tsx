@@ -283,15 +283,75 @@ export default function AnnouncementManager() {
               </div>
 
               <div>
-                <Label htmlFor="content">Content (Default) *</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="content">Content (Default) *</Label>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = formData.content;
+                        const before = text.substring(0, start);
+                        const selected = text.substring(start, end);
+                        const after = text.substring(end);
+                        setFormData({ ...formData, content: before + '• ' + selected + after });
+                        setTimeout(() => textarea.focus(), 0);
+                      }}
+                      title="Add bullet point"
+                    >
+                      • Bullet
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
+                        const start = textarea.selectionStart;
+                        const text = formData.content;
+                        const before = text.substring(0, start);
+                        const after = text.substring(start);
+                        setFormData({ ...formData, content: before + '\n---\n' + after });
+                        setTimeout(() => textarea.focus(), 0);
+                      }}
+                      title="Add horizontal line"
+                    >
+                      ─ Line
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
+                        const start = textarea.selectionStart;
+                        const text = formData.content;
+                        const before = text.substring(0, start);
+                        const after = text.substring(start);
+                        setFormData({ ...formData, content: before + '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' + after });
+                        setTimeout(() => textarea.focus(), 0);
+                      }}
+                      title="Add thick line"
+                    >
+                      ━ Thick Line
+                    </Button>
+                  </div>
+                </div>
                 <Textarea
                   id="content"
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Announcement content"
-                  rows={4}
+                  placeholder="Announcement content&#10;&#10;Use formatting buttons above to add:&#10;• Bullet points&#10;• Horizontal lines&#10;• Section separators"
+                  rows={6}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Tip: Use bullet points (•) for lists, lines (---) for sections, and colons (:) for headers
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

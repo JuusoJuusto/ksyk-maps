@@ -420,7 +420,32 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
       ` : ''}
       
       <div class="message-box">
-        ${body}
+${body.split('\n').map(line => {
+  // Remove separator lines
+  if (line.trim().startsWith('━━━')) return '';
+  if (line.trim().startsWith('---')) return '';
+  
+  // Handle bullet points
+  if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+    return `        <div style="margin-left: 20px; margin-bottom: 8px;">
+          <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+          <span>${line.trim().replace(/^[•-]\s*/, '')}</span>
+        </div>`;
+  }
+  
+  // Handle section headers (lines ending with :)
+  if (line.trim().endsWith(':') && line.trim().length < 60 && !line.includes('http')) {
+    return `        <div style="font-weight: 600; color: #1f2937; margin-top: 16px; margin-bottom: 8px; font-size: 16px;">
+          ${line.trim()}
+        </div>`;
+  }
+  
+  // Empty lines become breaks
+  if (line.trim() === '') return '<br>';
+  
+  // Regular text
+  return `        <p style="margin-bottom: 8px;">${line.trim()}</p>`;
+}).filter(line => line !== '').join('\n')}
       </div>
       
       <div style="text-align: center; margin: 30px 0;">

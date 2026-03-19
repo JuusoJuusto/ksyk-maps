@@ -22,6 +22,7 @@ import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
 import DebugBuildings from "@/pages/debug-buildings";
 import StudiOWL from "@/pages/owlapps";
+import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -45,6 +46,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/support" component={Support} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/builder" component={Builder} />

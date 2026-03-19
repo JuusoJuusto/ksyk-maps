@@ -51,14 +51,14 @@ export default function AnnouncementBanner() {
 
   // Auto-scroll every 10 seconds
   useEffect(() => {
-    if (activeAnnouncements.length <= 1 || isPaused) return;
+    if (activeAnnouncements.length <= 1 || isPaused || isDialogOpen) return;
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
     }, 10000); // 10 seconds
     
     return () => clearInterval(interval);
-  }, [activeAnnouncements.length, isPaused]);
+  }, [activeAnnouncements.length, isPaused, isDialogOpen]);
 
   if (!isVisible || activeAnnouncements.length === 0) {
     return null;

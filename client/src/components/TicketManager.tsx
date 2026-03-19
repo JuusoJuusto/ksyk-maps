@@ -210,17 +210,25 @@ export default function TicketManager() {
     }
   };
 
-  const handleSendResponse = () => {
+  const handleSendResponse = async () => {
     if (!selectedTicket || !response.trim()) return;
     
-    updateTicketMutation.mutate({
-      id: selectedTicket.id,
-      data: {
-        status: 'resolved',
-        response: response.trim(),
-        resolvedAt: new Date().toISOString(),
-      },
-    });
+    try {
+      // Update ticket status and send email
+      await updateTicketMutation.mutateAsync({
+        id: selectedTicket.id,
+        data: {
+          status: 'resolved',
+          response: response.trim(),
+          resolvedAt: new Date().toISOString(),
+        },
+      });
+      
+      console.log('✅ Ticket resolved and email sent');
+    } catch (error) {
+      console.error('❌ Failed to resolve ticket:', error);
+      alert('Failed to send response. Please try again.');
+    }
   };
 
   const handleStatusChange = (ticketId: string, newStatus: string) => {
