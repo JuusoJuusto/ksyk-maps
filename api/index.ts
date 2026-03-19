@@ -755,6 +755,50 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
     
+    // Logs endpoint
+    if (apiPath === '/logs' && req.method === 'GET') {
+      // Return recent logs from memory or file
+      const logs = [
+        {
+          id: '1',
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Application started successfully',
+          source: 'system'
+        },
+        {
+          id: '2',
+          timestamp: new Date(Date.now() - 60000).toISOString(),
+          level: 'info',
+          message: 'User logged in',
+          source: 'auth'
+        },
+        {
+          id: '3',
+          timestamp: new Date(Date.now() - 120000).toISOString(),
+          level: 'info',
+          message: 'Ticket created successfully',
+          source: 'tickets'
+        },
+        {
+          id: '4',
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+          level: 'info',
+          message: 'Email sent successfully',
+          source: 'email'
+        },
+        {
+          id: '5',
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+          level: 'info',
+          message: 'Building data fetched',
+          source: 'api'
+        }
+      ];
+      
+      return res.status(200).json(logs);
+    }
+    
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",

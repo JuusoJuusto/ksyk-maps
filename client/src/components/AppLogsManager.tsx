@@ -50,40 +50,27 @@ export default function AppLogsManager() {
     refetchInterval: 30000,
   });
 
-  // Mock app logs for now - you can implement real app logging later
-  const appLogs: AppLog[] = [
-    {
-      id: 'app-1',
-      level: 'info',
-      message: 'Building created',
-      details: 'New building "M - Music Building" was created',
-      userId: 'owner-admin-user',
-      userName: 'Juuso Kaikula',
-      action: 'CREATE_BUILDING',
-      createdAt: new Date(),
-      type: 'app'
+  // Fetch app logs from API
+  const { data: appLogs = [], isLoading: appLogsLoading } = useQuery({
+    queryKey: ['app-logs'],
+    queryFn: async () => {
+      const response = await fetch('/api/logs', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch app logs');
+      const data = await response.json();
+      return data.map((log: any) => ({
+        id: log.id,
+        level: log.level as 'info' | 'warning' | 'error' | 'success',
+        message: log.message,
+        details: log.source,
+        action: log.source.toUpperCase(),
+        createdAt: log.timestamp,
+        type: 'app' as const
+      }));
     },
-    {
-      id: 'app-2',
-      level: 'success',
-      message: 'Settings updated',
-      details: 'App theme changed to Dark',
-      userId: 'owner-admin-user',
-      userName: 'Juuso Kaikula',
-      action: 'UPDATE_SETTINGS',
-      createdAt: new Date(Date.now() - 300000),
-      type: 'app'
-    },
-    {
-      id: 'app-3',
-      level: 'warning',
-      message: 'High login failure rate',
-      details: '5 failed login attempts in the last 10 minutes',
-      action: 'SECURITY_ALERT',
-      createdAt: new Date(Date.now() - 600000),
-      type: 'app'
-    },
-  ];
+    refetchInterval: 30000,
+  });
 
   const allLogs: LogEntry[] = [...loginLogs, ...appLogs].sort((a, b) => {
     const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
@@ -109,7 +96,7 @@ export default function AppLogsManager() {
   const appInfoCount = appLogs.filter(log => log.level === 'info' || log.level === 'success').length;
   const appWarningCount = appLogs.filter(log => log.level === 'warning' || log.level === 'error').length;
 
-  const isLoading = loginLogsLoading;
+  const isLoading = loginLogsLoading || appLogsLoading;
 
   if (isLoading) {
     return (
