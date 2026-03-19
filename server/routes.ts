@@ -1167,117 +1167,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: ticketData.url || null,
       });
       
-      console.log('✅ Ticket created in database:', ticket);
-      console.log('📋 Ticket ID to return:', ticketId);
+      console.log('✅ Ticket created in database');
       
-      // CRITICAL: Check email before attempting to send
-      console.log('\n🔍 ========== EMAIL CHECK ==========');
-      console.log('ticketData.email value:', ticketData.email);
-      console.log('ticketData.email type:', typeof ticketData.email);
-      console.log('ticketData.email truthy:', !!ticketData.email);
-      console.log('ticketData.email length:', ticketData.email?.length);
-      console.log('===================================\n');
+      // SEND EMAILS FIRST BEFORE RESPONDING
+      console.log('\n🔍 EMAIL CHECK - ticketData.email:', ticketData.email);
       
-      // Send email notifications DIRECTLY
       if (ticketData.email && ticketData.email.trim()) {
-        console.log('\n📧 ========== ATTEMPTING TO SEND EMAILS ==========');
-        console.log('Email provided:', ticketData.email);
-        console.log('sendTicketEmail function exists:', typeof sendTicketEmail);
-        console.log('================================================\n');
+        console.log('📧 EMAIL PROVIDED - SENDING NOW');
         
         try {
           const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
           
-          console.log('Owner email:', ownerEmail);
-          console.log('User email:', ticketData.email);
+          const ownerEmailBody = `New Support Ticket: ${ticketId}\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nDescription:\n${ticketData.description}\n\nFrom: ${ticketData.name || 'Anonymous'}\nEmail: ${ticketData.email}`;
           
-          // Send notification to owner
-          console.log('\n📤 CALLING sendTicketEmail for OWNER...');
-          const ownerEmailBody = `
-New Support Ticket Received
-
-Ticket ID: ${ticketId}
-Type: ${ticketData.type}
-Priority: ${ticketData.priority || 'normal'}
-${ticketData.errorReferenceId ? `Error Reference: ${ticketData.errorReferenceId}` : ''}
-
-Title: ${ticketData.title}
-
-Description:
-${ticketData.description}
-
-Submitted by: ${ticketData.name || 'Anonymous'}
-Email: ${ticketData.email || 'Not provided'}
-
-View and manage this ticket in the admin panel:
-https://ksykmaps.vercel.app/admin-ksyk-management-portal
-
----
-KSYK Maps Support System
-          `.trim();
+          console.log('📤 Sending to owner:', ownerEmail);
+          await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
+          console.log('✅ Owner email sent');
           
-          console.log('Calling sendTicketEmail with:', {
-            to: ownerEmail,
-            subject: `New Ticket: ${ticketId}`,
-            bodyLength: ownerEmailBody.length
-          });
+          const userEmailBody = `Thank you! Your ticket ${ticketId} has been received.\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nWe'll respond soon!`;
           
-          const ownerResult = await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
-          console.log('✅ Owner email result:', JSON.stringify(ownerResult));
-          
-          // Send auto-reply to user
-          console.log('\n📤 CALLING sendTicketEmail for USER...');
-          const userEmailBody = `
-Thank you for contacting KSYK Maps Support!
-
-Your ticket has been received and assigned ID: ${ticketId}
-
-Type: ${ticketData.type}
-Title: ${ticketData.title}
-
-Our team will review your request and respond as soon as possible. You will receive an email notification when there is an update.
-
-For reference, please save your ticket ID: ${ticketId}
-
----
-KSYK Maps Support Team
-https://ksykmaps.vercel.app
-          `.trim();
-          
-          console.log('Calling sendTicketEmail with:', {
-            to: ticketData.email,
-            subject: `Ticket Received: ${ticketId}`,
-            bodyLength: userEmailBody.length
-          });
-          
-          const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
-          console.log('✅ User email result:', JSON.stringify(userResult));
-          
-          console.log('\n✅ ========== EMAIL SENDING COMPLETE ==========\n');
+          console.log('📤 Sending to user:', ticketData.email);
+          await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
+          console.log('✅ User email sent');
         } catch (emailError: any) {
-          console.error('\n❌ ========== EMAIL ERROR ==========');
-          console.error('Error type:', emailError.constructor.name);
-          console.error('Error message:', emailError.message);
-          console.error('Error stack:', emailError.stack);
-          console.error('====================================\n');
+          console.error('❌ EMAIL ERROR:', emailError.message);
         }
       } else {
-        console.log('\n⚠️ ========== NO EMAIL PROVIDED ==========');
-        console.log('Skipping email notifications');
-        console.log('ticketData.email:', ticketData.email);
-        console.log('==========================================\n');
+        console.log('⚠️ NO EMAIL - skipping');
       }
       
-      console.log('\n✅ ========== TICKET CREATION COMPLETE ==========');
-      console.log('Returning response with ticketId:', ticketId);
-      console.log('================================================\n');
-      
-      // IMPORTANT: Ensure ticketId is in the response
+      console.log('\n✅ RETURNING RESPONSE');
       res.status(201).json({ ticketId, ...ticket });
     } catch (error) {
-      console.error("\n❌ ========== TICKET CREATION ERROR ==========");
-      console.error("Error:", error);
-      console.error("==============================================\n");
+      console.error('❌ TICKET ERROR:', error);
       res.status(500).json({ message: "Failed to create ticket" });
     }
   });

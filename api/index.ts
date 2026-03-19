@@ -218,10 +218,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       if (req.method === 'POST') {
-        console.log('🎫 Creating ticket:', req.body.ticketId);
-        const ticket = await storage.createTicket(req.body);
-        console.log('✅ Ticket created successfully');
-        return res.status(201).json(ticket);
+        const ticketData = req.body;
+        
+        // Generate ticket ID if not provided
+        const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        
+        console.log('\n🎫 ========== CREATING TICKET ==========');
+        console.log('Ticket ID:', ticketId);
+        console.log('Type:', ticketData.type);
+        console.log('Title:', ticketData.title);
+        console.log('Email:', ticketData.email);
+        console.log('Name:', ticketData.name);
+        console.log('========================================\n');
+        
+        const ticket = await storage.createTicket({
+          ...ticketData,
+          ticketId,
+          name: ticketData.name || 'Anonymous',
+          email: ticketData.email || '',
+          status: ticketData.status || 'pending',
+          priority: ticketData.priority || 'normal',
+        });
+        
+        console.log('✅ Ticket created in database');
+        
+        // SEND EMAILS
+        if (ticketData.email && ticketData.email.trim()) {
+          console.log('📧 EMAIL PROVIDED - SENDING NOW');
+          
+          try {
+            const { sendTicketEmail } = await import('../server/emailService.js');
+            const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
+            
+            const ownerEmailBody = `New Support Ticket: ${ticketId}\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nDescription:\n${ticketData.description}\n\nFrom: ${ticketData.name || 'Anonymous'}\nEmail: ${ticketData.email}`;
+            
+            console.log('📤 Sending to owner:', ownerEmail);
+            await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
+            console.log('✅ Owner email sent');
+            
+            const userEmailBody = `Thank you! Your ticket ${ticketId} has been received.\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nWe'll respond soon!`;
+            
+            console.log('📤 Sending to user:', ticketData.email);
+            await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
+            console.log('✅ User email sent');
+          } catch (emailError: any) {
+            console.error('❌ EMAIL ERROR:', emailError.message);
+          }
+        } else {
+          console.log('⚠️ NO EMAIL - skipping');
+        }
+        
+        console.log('\n✅ RETURNING RESPONSE');
+        return res.status(201).json({ ticketId, ...ticket });
       }
       
       // Handle /tickets/:id routes
