@@ -226,8 +226,8 @@ export function generateTempPassword(): string {
   return password;
 }
 
-// Send ticket-related emails with simple template
-export async function sendTicketEmail(email: string, subject: string, body: string) {
+// Send ticket-related emails with beautiful template
+export async function sendTicketEmail(email: string, subject: string, body: string, ticketData?: any) {
   console.log('\n📧 ========== SENDING TICKET EMAIL ==========');
   console.log('To:', email);
   console.log('Subject:', subject);
@@ -239,6 +239,14 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     console.log('⚠️ Email not configured');
     return { success: false, mode: 'console', error: 'Email not configured' };
   }
+
+  // Determine email type and styling
+  const isResolved = subject.includes('Resolved') || subject.includes('resolved');
+  const isStatusUpdate = subject.includes('Status Update') || subject.includes('status');
+  const isNewTicket = subject.includes('New Ticket') || subject.includes('Received');
+  
+  const headerColor = isResolved ? '#10b981' : isStatusUpdate ? '#3b82f6' : '#6366f1';
+  const headerEmoji = isResolved ? '✅' : isStatusUpdate ? '🔄' : '🎫';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -257,47 +265,190 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
       max-width: 600px;
       margin: 40px auto;
       background-color: #ffffff;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .header {
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      padding: 30px;
+      background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%);
+      padding: 40px 30px;
       text-align: center;
+    }
+    .header-emoji {
+      font-size: 48px;
+      margin-bottom: 10px;
     }
     .header h1 {
       margin: 0;
       color: #ffffff;
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 700;
     }
+    .header p {
+      margin: 10px 0 0 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 16px;
+    }
     .content {
-      padding: 30px;
+      padding: 40px 30px;
       color: #374151;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .ticket-id-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin: 25px 0;
+    }
+    .ticket-id-label {
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .ticket-id {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e40af;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+    .info-box {
+      background-color: #f9fafb;
+      border-left: 4px solid ${headerColor};
+      padding: 20px;
+      border-radius: 8px;
+      margin: 25px 0;
+    }
+    .info-box h3 {
+      margin: 0 0 15px 0;
+      color: #1f2937;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .info-box p {
+      margin: 8px 0;
+      color: #4b5563;
       font-size: 15px;
-      line-height: 1.6;
+    }
+    .info-box strong {
+      color: #1f2937;
+      font-weight: 600;
+    }
+    .message-box {
+      background-color: #ffffff;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 25px 0;
       white-space: pre-wrap;
+      line-height: 1.8;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 10px 0;
+    }
+    .status-resolved {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .status-in-progress {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    .status-pending {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      margin: 20px 0;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .footer {
       background-color: #f9fafb;
-      padding: 20px;
+      padding: 30px;
       text-align: center;
       border-top: 1px solid #e5e7eb;
+    }
+    .footer p {
+      margin: 5px 0;
       color: #6b7280;
-      font-size: 12px;
+      font-size: 13px;
+    }
+    .footer a {
+      color: #3b82f6;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>KSYK Maps</h1>
+      <div class="header-emoji">${headerEmoji}</div>
+      <h1>KSYK Maps Support</h1>
+      <p>${subject}</p>
     </div>
-    <div class="content">${body}</div>
+    
+    <div class="content">
+      ${ticketData?.ticketId ? `
+      <div class="ticket-id-box">
+        <div class="ticket-id-label">YOUR TICKET ID</div>
+        <div class="ticket-id">${ticketData.ticketId}</div>
+      </div>
+      ` : ''}
+      
+      ${ticketData ? `
+      <div class="info-box">
+        <h3>Ticket Details</h3>
+        ${ticketData.type ? `<p><strong>Type:</strong> ${ticketData.type.toUpperCase()}</p>` : ''}
+        ${ticketData.title ? `<p><strong>Title:</strong> ${ticketData.title}</p>` : ''}
+        ${ticketData.status ? `<p><strong>Status:</strong> <span class="status-badge status-${ticketData.status}">${ticketData.status.toUpperCase().replace('_', ' ')}</span></p>` : ''}
+      </div>
+      ` : ''}
+      
+      <div class="message-box">
+        ${body}
+      </div>
+      
+      ${isResolved ? `
+      <div style="text-align: center; margin: 30px 0;">
+        <p style="color: #10b981; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
+          ✅ Your issue has been resolved!
+        </p>
+        <p style="color: #6b7280; font-size: 14px;">
+          If you need further assistance, feel free to create a new ticket.
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app" class="button" style="color: #ffffff; text-decoration: none;">
+          Visit KSYK Maps →
+        </a>
+      </div>
+    </div>
+    
     <div class="footer">
-      © 2026 KSYK Maps by StudiOWL<br>
-      This is an automated message.
+      <p><strong>© 2026 KSYK Maps by StudiOWL</strong></p>
+      <p>Need help? Contact us at <a href="mailto:juusojuusto112@gmail.com">juusojuusto112@gmail.com</a></p>
+      <p>This is an automated message. Please do not reply to this email.</p>
     </div>
   </div>
 </body>

@@ -250,16 +250,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const { sendTicketEmail } = await import('../server/emailService.js');
             const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
             
-            const ownerEmailBody = `New Support Ticket: ${ticketId}\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nDescription:\n${ticketData.description}\n\nFrom: ${ticketData.name || 'Anonymous'}\nEmail: ${ticketData.email}`;
+            // Send to owner
+            const ownerEmailBody = `You have received a new support ticket from ${ticketData.name || 'Anonymous'}.
+
+Description:
+${ticketData.description}
+
+Contact Information:
+Email: ${ticketData.email}
+Name: ${ticketData.name || 'Anonymous'}
+
+Please review and respond to this ticket as soon as possible.`;
             
             console.log('📤 Sending to owner:', ownerEmail);
-            await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
+            await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody, {
+              ticketId,
+              type: ticketData.type,
+              title: ticketData.title,
+              status: 'pending'
+            });
             console.log('✅ Owner email sent');
             
-            const userEmailBody = `Thank you! Your ticket ${ticketId} has been received.\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nWe'll respond soon!`;
+            // Send to user
+            const userEmailBody = `Thank you for contacting KSYK Maps Support!
+
+We have received your ${ticketData.type} ticket and our team will review it shortly.
+
+Your Issue:
+${ticketData.title}
+
+What happens next?
+• Our support team will review your ticket
+• You'll receive email updates when the status changes
+• We aim to respond within 24-48 hours
+
+Keep your ticket ID safe for future reference.`;
             
             console.log('📤 Sending to user:', ticketData.email);
-            await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
+            await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
+              ticketId,
+              type: ticketData.type,
+              title: ticketData.title,
+              status: 'pending'
+            });
             console.log('✅ User email sent');
           } catch (emailError: any) {
             console.error('❌ EMAIL ERROR:', emailError.message);
@@ -323,7 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         if (req.method === 'DELETE') {
           await storage.deleteTicket(id);
-          return res.status(204).send('');
+          return res.status(200).json({ success: true, message: 'Ticket deleted successfully' });
         }
       }
     }

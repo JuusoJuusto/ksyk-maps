@@ -1215,10 +1215,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oldTicket = await storage.getTicket(req.params.id);
       const ticket = await storage.updateTicket(req.params.id, req.body);
       
-      // Send email notification if status changed - DIRECTLY
+      // Send email notification if status changed
       if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
         try {
-          console.log('📧 Sending status update email directly...');
+          console.log('📧 Sending status update email...');
           
           const statusMessages = {
             pending: 'Your ticket is pending review. We will look into it shortly.',
@@ -1234,21 +1234,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             closed: '🔒'
           };
           
-          const emailBody = `
-Your support ticket status has been updated!
+          let emailBody = `Your support ticket status has been updated!
 
-Ticket ID: ${ticket.ticketId}
-Title: ${ticket.title}
-New Status: ${statusEmojis[ticket.status as keyof typeof statusEmojis] || '📋'} ${ticket.status.toUpperCase().replace('_', ' ')}
+${statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.'}`;
 
-${statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.'}
+          if (req.body.response) {
+            emailBody += `\n\nMessage from our support team:\n${req.body.response}`;
+          }
 
-${req.body.response ? `\nMessage from support:\n${req.body.response}` : ''}
+          if (ticket.status === 'in_progress') {
+            emailBody += '\n\nOur team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.';
+          }
 
-${ticket.status === 'in_progress' ? '\n🔍 Our team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.' : ''}
-
-${ticket.status === 'resolved' || ticket.status === 'closed' ? '\nIf you need further assistance, please create a new ticket.' : '\nWe will keep you updated on any progress.'}
-
+          if (ticket.status === 'resolved' || ticket.status === 'closed') {
+            emailBody += '\n\nIf you need further assistance, please feel free to create a new ticket.';
+          } else {
+            emailBody += '\n\nWe will keep you updated on any progress.';
+          }
+          
+          await sendTicketEmail(
+            ticket.email, 
+            `${statusEmojis[ticket.status as keyof typeof statusEmojis]} Ticket ${ticket.status === 'resolved' ? 'Resolved' : 'Status Update'}: ${ticket.ticketId}`,
+            emailBody,
+            {
+              ticketId: ticket.ticketId,
+              type: ticket.type,
+              title: ticket.title,
+              status: ticket.status
+            }
+          );
+          console.log('✅ Status update email sent');
+        } catch (emailError: any) {
+          console.error('❌ Email error:', emailError.message);
+        }
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error('Failed to update ticket:', error);
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
 ---
 KSYK Maps Support Team
 https://ksykmaps.vercel.app
