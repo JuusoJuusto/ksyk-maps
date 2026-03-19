@@ -58,8 +58,19 @@ export default function ImprovedKSYKBuilder() {
     
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / zoom) - panX;
-    const y = ((e.clientY - rect.top) / zoom) - panY;
+    
+    // Get the actual viewBox dimensions
+    const viewBox = svg.viewBox.baseVal;
+    const viewBoxWidth = viewBox.width;
+    const viewBoxHeight = viewBox.height;
+    
+    // Calculate the scale between screen pixels and SVG coordinates
+    const scaleX = viewBoxWidth / rect.width;
+    const scaleY = viewBoxHeight / rect.height;
+    
+    // Convert mouse position to SVG coordinates
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     
     return snapToGrid({ x, y });
   };
@@ -477,7 +488,7 @@ export default function ImprovedKSYKBuilder() {
           <svg
             ref={svgRef}
             className="w-full h-full cursor-crosshair"
-            viewBox={`${-panX} ${-panY} ${5000 / zoom} ${3000 / zoom}`}
+            viewBox={`0 0 10000 6000`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -495,7 +506,7 @@ export default function ImprovedKSYKBuilder() {
                 </pattern>
               </defs>
             )}
-            {showGrid && <rect width="5000" height="3000" fill="url(#grid)" />}
+            {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
             
             {/* Walls */}
             {walls.map((wall, idx) => (
