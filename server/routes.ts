@@ -1286,10 +1286,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('=====================================\n');
       
       // ALWAYS send email if there's an email address and a response
-      if (ticket.email && req.body.response) {
+      // Use ticket.email (from database) as it's the most reliable source
+      const emailToUse = ticket.email || oldTicket.email || updateData.email;
+      
+      if (emailToUse && req.body.response) {
         try {
           console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
-          console.log('To:', ticket.email);
+          console.log('To:', emailToUse);
           console.log('Response:', req.body.response.substring(0, 100));
           console.log('Email User:', process.env.EMAIL_USER);
           console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
@@ -1301,7 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('📤 Calling sendTicketEmail...');
           
           const emailResult = await sendTicketEmail(
-            ticket.email, 
+            emailToUse, 
             subject,
             req.body.response,
             {
@@ -1330,8 +1333,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         console.log('⚠️ No email sent - missing email or response');
-        console.log('Has email:', !!ticket.email);
-        console.log('Email value:', ticket.email);
+        console.log('Has email (ticket):', !!ticket.email);
+        console.log('Has email (oldTicket):', !!oldTicket.email);
+        console.log('Has email (updateData):', !!updateData.email);
+        console.log('Email to use:', emailToUse);
         console.log('Has response:', !!req.body.response);
         console.log('Response value:', req.body.response);
       }
