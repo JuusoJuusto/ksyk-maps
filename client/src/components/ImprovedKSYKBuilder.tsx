@@ -323,7 +323,7 @@ export default function ImprovedKSYKBuilder() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Building className="h-6 w-6" />
-            KSYK Builder v2.0
+            KSYK Builder
           </h1>
           
           <div className="flex gap-2">
