@@ -103,11 +103,11 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           {!isInAdminPanel ? (
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden lg:flex space-x-8">
               {/* Clean navigation - no extra links */}
             </nav>
           ) : (
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden lg:flex space-x-8">
               <span className="px-3 py-2 text-sm font-medium text-blue-600 font-semibold">
                 Admin Management Portal
               </span>
@@ -115,7 +115,7 @@ export default function Header() {
           )}
 
           {/* Desktop Controls */}
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
+          <div className="hidden lg:flex items-center space-x-2 lg:space-x-4">
             {!isInAdminPanel ? (
               <>
                 {/* Theme Toggle */}
@@ -252,7 +252,7 @@ export default function Header() {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
@@ -265,7 +265,7 @@ export default function Header() {
 
         {/* Mobile Dropdown Menu */}
         {showMobileMenu && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50" style={{
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50" style={{
             animation: 'slideDownFromTop 0.3s ease-out'
           }}>
             <div className="px-4 py-3 space-y-3">

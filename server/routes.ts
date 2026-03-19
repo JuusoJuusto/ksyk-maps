@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
-import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
+import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging helper
@@ -1334,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📧 Sending ticket notification to owner:', ownerEmail);
       
-      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      const { sendTicketEmail } = await import('./emailService.js');
       
       const emailBody = `
 New Support Ticket Received
@@ -1359,7 +1359,7 @@ https://ksykmaps.vercel.app/admin-ksyk-management-portal
 KSYK Maps Support System
       `.trim();
       
-      await sendPasswordSetupEmail(ownerEmail, `New Ticket: ${ticketId}`, emailBody);
+      await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, emailBody);
       
       res.json({ success: true });
     } catch (error) {
@@ -1375,7 +1375,7 @@ KSYK Maps Support System
       
       console.log('📧 Sending ticket confirmation to:', email);
       
-      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      const { sendTicketEmail } = await import('./emailService.js');
       
       const emailBody = `
 Thank you for contacting KSYK Maps Support!
@@ -1394,7 +1394,7 @@ KSYK Maps Support Team
 https://ksykmaps.vercel.app
       `.trim();
       
-      await sendPasswordSetupEmail(email, `Ticket Received: ${ticketId}`, emailBody);
+      await sendTicketEmail(email, `Ticket Received: ${ticketId}`, emailBody);
       
       res.json({ success: true, message: 'Confirmation email sent' });
     } catch (error) {
@@ -1410,7 +1410,7 @@ https://ksykmaps.vercel.app
       
       console.log('📧 Sending ticket response to:', email);
       
-      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      const { sendTicketEmail } = await import('./emailService.js');
       
       const emailBody = `
 Your support ticket has been updated!
@@ -1428,7 +1428,7 @@ KSYK Maps Support Team
 https://ksykmaps.vercel.app
       `.trim();
       
-      await sendPasswordSetupEmail(email, `Ticket Update: ${ticketId}`, emailBody);
+      await sendTicketEmail(email, `Ticket Update: ${ticketId}`, emailBody);
       
       res.json({ success: true, message: 'Response email sent' });
     } catch (error) {
@@ -1444,7 +1444,7 @@ https://ksykmaps.vercel.app
       
       console.log('📧 Sending ticket status update to:', email);
       
-      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      const { sendTicketEmail } = await import('./emailService.js');
       
       const statusMessages = {
         pending: 'Your ticket is pending review. We will look into it shortly.',
@@ -1480,7 +1480,7 @@ KSYK Maps Support Team
 https://ksykmaps.vercel.app
       `.trim();
       
-      await sendPasswordSetupEmail(email, `Ticket ${status.toUpperCase().replace('_', ' ')}: ${ticketId}`, emailBody);
+      await sendTicketEmail(email, `Ticket ${status.toUpperCase().replace('_', ' ')}: ${ticketId}`, emailBody);
       
       res.json({ success: true, message: 'Status update email sent' });
     } catch (error) {

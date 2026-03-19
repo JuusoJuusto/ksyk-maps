@@ -166,23 +166,23 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col">
       <Header />
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col">
+      <main className="flex-1 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full flex flex-col">
         {/* Welcome Header */}
-        <div className="mb-8 bg-blue-600 rounded-xl shadow-lg p-8 text-white">
-          <div className="flex justify-between items-center">
+        <div className="mb-4 sm:mb-8 bg-blue-600 rounded-xl shadow-lg p-4 sm:p-8 text-white">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-              <p className="text-blue-100 text-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-blue-100 text-sm sm:text-lg">
                 Welcome back, <span className="font-semibold">{(user as any)?.firstName || (user as any)?.email}</span>
               </p>
-              <p className="text-blue-200 text-sm mt-1">
+              <p className="text-blue-200 text-xs sm:text-sm mt-1">
                 Role: {(user as any)?.role === 'owner' ? 'Owner' : 'Administrator'}
               </p>
             </div>
-            <div className="hidden md:block">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 text-center">
-                <p className="text-sm text-blue-100">System Status</p>
-                <p className="text-2xl font-bold">✅ Online</p>
+            <div className="w-full sm:w-auto">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
+                <p className="text-xs sm:text-sm text-blue-100">System Status</p>
+                <p className="text-xl sm:text-2xl font-bold">✅ Online</p>
               </div>
             </div>
           </div>
