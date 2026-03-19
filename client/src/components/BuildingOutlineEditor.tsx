@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,14 @@ export default function BuildingOutlineEditor() {
     { name: "Pink", value: "#EC4899" },
   ];
 
+  // Redraw canvas whenever buildings or currentPoints change
+  useEffect(() => {
+    drawCanvas();
+  }, [buildings, currentPoints]);
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -46,13 +53,9 @@ export default function BuildingOutlineEditor() {
 
     const newPoint = { x, y };
     setCurrentPoints([...currentPoints, newPoint]);
-    setIsDrawing(true);
-
-    // Redraw canvas
-    drawCanvas([...currentPoints, newPoint]);
   };
 
-  const drawCanvas = (points: Point[]) => {
+  const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -62,9 +65,25 @@ export default function BuildingOutlineEditor() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw grid
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 50) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+    }
+    for (let i = 0; i < canvas.height; i += 50) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(canvas.width, i);
+      ctx.stroke();
+    }
+
     // Draw existing buildings
     buildings.forEach((building) => {
-      if (building.points.length > 0) {
+      if (building.points.length > 2) {
         ctx.beginPath();
         ctx.moveTo(building.points[0].x, building.points[0].y);
         building.points.forEach((point) => {
@@ -72,7 +91,7 @@ export default function BuildingOutlineEditor() {
         });
         ctx.closePath();
         ctx.strokeStyle = building.color;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.stroke();
         ctx.fillStyle = building.color + "20";
         ctx.fill();
@@ -81,18 +100,21 @@ export default function BuildingOutlineEditor() {
         const centerX = building.points.reduce((sum, p) => sum + p.x, 0) / building.points.length;
         const centerY = building.points.reduce((sum, p) => sum + p.y, 0) / building.points.length;
         ctx.fillStyle = building.color;
-        ctx.font = "bold 16px Arial";
+        ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(`${building.name} - Floor ${building.floor}`, centerX, centerY);
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${building.name}`, centerX, centerY);
       }
     });
 
     // Draw current points
-    if (points.length > 0) {
+    if (currentPoints.length > 0) {
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      points.forEach((point) => {
-        ctx.lineTo(point.x, point.y);
+      ctx.moveTo(currentPoints[0].x, currentPoints[0].y);
+      currentPoints.forEach((point, index) => {
+        if (index > 0) {
+          ctx.lineTo(point.x, point.y);
+        }
       });
       ctx.strokeStyle = selectedColor;
       ctx.lineWidth = 3;
@@ -101,11 +123,14 @@ export default function BuildingOutlineEditor() {
       ctx.setLineDash([]);
 
       // Draw points
-      points.forEach((point) => {
+      currentPoints.forEach((point) => {
         ctx.beginPath();
-        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = selectedColor;
         ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
       });
     }
   };
@@ -134,28 +159,21 @@ export default function BuildingOutlineEditor() {
     setIsDrawing(false);
     setBuildingName("");
     setFloor(floor + 1);
-
-    // Redraw canvas
-    setTimeout(() => drawCanvas([]), 0);
   };
 
   const undoLastPoint = () => {
     if (currentPoints.length > 0) {
-      const newPoints = currentPoints.slice(0, -1);
-      setCurrentPoints(newPoints);
-      drawCanvas(newPoints);
+      setCurrentPoints(currentPoints.slice(0, -1));
     }
   };
 
   const cancelDrawing = () => {
     setCurrentPoints([]);
     setIsDrawing(false);
-    drawCanvas([]);
   };
 
   const deleteBuilding = (id: string) => {
     setBuildings(buildings.filter((b) => b.id !== id));
-    setTimeout(() => drawCanvas(currentPoints), 0);
   };
 
   const saveBuildings = () => {
@@ -173,7 +191,7 @@ export default function BuildingOutlineEditor() {
             <Building className="h-6 w-6" />
             Building Outline Editor
           </h1>
-          <p className="text-sm text-gray-600">Click on canvas to draw building outlines</p>
+          <p className="text-sm text-gray-600">Click on canvas to draw building floor outlines</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={saveBuildings} disabled={buildings.length === 0}>
@@ -223,8 +241,8 @@ export default function BuildingOutlineEditor() {
                       key={color.value}
                       onClick={() => setSelectedColor(color.value)}
                       disabled={isDrawing}
-                      className={`h-10 rounded border-2 ${
-                        selectedColor === color.value ? "border-black" : "border-gray-300"
+                      className={`h-10 rounded border-2 transition-all ${
+                        selectedColor === color.value ? "border-black scale-110" : "border-gray-300"
                       }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
@@ -235,7 +253,7 @@ export default function BuildingOutlineEditor() {
 
               {isDrawing && (
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 font-semibold">
                     Points: {currentPoints.length}
                   </p>
                   <div className="flex gap-2">
@@ -247,7 +265,7 @@ export default function BuildingOutlineEditor() {
                       Cancel
                     </Button>
                   </div>
-                  <Button onClick={finishBuilding} className="w-full">
+                  <Button onClick={finishBuilding} className="w-full bg-green-600 hover:bg-green-700">
                     <Plus className="h-4 w-4 mr-2" />
                     Finish Building
                   </Button>
@@ -282,11 +300,11 @@ export default function BuildingOutlineEditor() {
                   {buildings.map((building) => (
                     <div
                       key={building.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-4 h-4 rounded"
+                          className="w-4 h-4 rounded border border-gray-300"
                           style={{ backgroundColor: building.color }}
                         />
                         <div>
@@ -313,18 +331,37 @@ export default function BuildingOutlineEditor() {
 
         {/* Canvas */}
         <div className="flex-1 p-4 overflow-auto bg-gray-100">
-          <canvas
-            ref={canvasRef}
-            width={1200}
-            height={800}
-            onClick={handleCanvasClick}
-            className="bg-white border-2 border-gray-300 rounded-lg shadow-lg cursor-crosshair"
-          />
+          <div className="inline-block">
+            <canvas
+              ref={canvasRef}
+              width={1400}
+              height={900}
+              onClick={handleCanvasClick}
+              className="bg-white border-2 border-gray-300 rounded-lg shadow-lg"
+              style={{ cursor: isDrawing ? 'crosshair' : 'default' }}
+            />
+          </div>
           {isDrawing && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Drawing Mode:</strong> Click on the canvas to add points for the building outline.
-                When done, click "Finish Building" to complete.
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-4xl">
+              <p className="text-sm text-blue-900 font-semibold mb-2">
+                🎯 Drawing Mode Active
+              </p>
+              <p className="text-sm text-blue-800">
+                Click on the canvas to add points for the building outline. When you're done, click "Finish Building" to complete the outline.
+              </p>
+            </div>
+          )}
+          {!isDrawing && buildings.length === 0 && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg max-w-4xl">
+              <p className="text-sm text-green-900 font-semibold mb-2">
+                👋 Welcome to Building Outline Editor!
+              </p>
+              <p className="text-sm text-green-800">
+                1. Enter a building name (e.g., "Floor 1")<br />
+                2. Choose a color<br />
+                3. Click "Start Drawing"<br />
+                4. Click on the canvas to create the building outline<br />
+                5. Click "Finish Building" when done
               </p>
             </div>
           )}
