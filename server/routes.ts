@@ -1248,10 +1248,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
+      const oldTicket = await storage.getTicket(req.params.id);
       const ticket = await storage.updateTicket(req.params.id, {
         ...req.body,
         updatedAt: new Date().toISOString()
       });
+      
+      // Send email notification if status changed
+      if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
+        try {
+          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-status-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: ticket.email,
+              ticketId: ticket.ticketId,
+              status: ticket.status,
+              title: ticket.title,
+              response: req.body.response || '',
+            }),
+          });
+        } catch (emailError) {
+          console.error('Failed to send status update email:', emailError);
+        }
+      }
+      
       res.json(ticket);
     } catch (error) {
       console.error("Error updating ticket:", error);
@@ -1382,6 +1403,86 @@ https://ksykmaps.vercel.app
     } catch (error) {
       console.error("Error sending response:", error);
       res.status(500).json({ message: "Failed to send response" });
+    }
+  });
+
+  // Send ticket status update email
+  app.post('/api/send-ticket-status-update', async (req, res) => {
+    try {
+      const { email, ticketId, status, title, response } = req.body;
+      
+      console.log('📧 Sending ticket status update to:', email);
+      
+      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      
+      const statusMessages = {
+        pending: 'Your ticket is pending review.',
+        in_progress: 'Your ticket is now being worked on by our team.',
+        resolved: 'Your ticket has been resolved!',
+        closed: 'Your ticket has been closed.'
+      };
+      
+      const emailBody = `
+Your support ticket status has been updated!
+
+Ticket ID: ${ticketId}
+Title: ${title}
+New Status: ${status.toUpperCase()}
+
+${statusMessages[status as keyof typeof statusMessages] || 'Status updated.'}
+
+${response ? `\nResponse from support:\n${response}` : ''}
+
+${status === 'resolved' || status === 'closed' ? '\nIf you need further assistance, please create a new ticket.' : '\nWe will keep you updated on any progress.'}
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+      `.trim();
+      
+      await sendPasswordSetupEmail(email, `Ticket ${status.toUpperCase()}: ${ticketId}`, emailBody);
+      
+      res.json({ success: true, message: 'Status update email sent' });
+    } catch (error) {
+      console.error("Error sending status update:", error);
+      res.status(500).json({ message: "Failed to send status update" });
+    }
+  });
+
+  // Test email endpoint
+  app.post('/api/test-email', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email address required" });
+      }
+      
+      console.log('📧 Sending test email to:', email);
+      
+      const { sendPasswordSetupEmail } = await import('./emailService.js');
+      
+      const emailBody = `
+This is a test email from KSYK Maps!
+
+If you received this email, your SMTP configuration is working correctly.
+
+Test Details:
+- Sent at: ${new Date().toISOString()}
+- Recipient: ${email}
+- Server: KSYK Maps Email System
+
+---
+KSYK Maps Support Team
+https://ksykmaps.vercel.app
+      `.trim();
+      
+      await sendPasswordSetupEmail(email, 'KSYK Maps - Test Email', emailBody);
+      
+      res.json({ success: true, message: 'Test email sent successfully!' });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ message: "Failed to send test email", error: String(error) });
     }
   });
 
