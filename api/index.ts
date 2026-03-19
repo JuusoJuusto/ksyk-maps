@@ -242,7 +242,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         console.log('✅ Ticket created in database');
         
-        // SEND EMAILS
+        // SEND EMAILS AND DISCORD NOTIFICATIONS
         if (ticketData.email && ticketData.email.trim()) {
           console.log('📧 EMAIL PROVIDED - SENDING NOW');
           
@@ -266,6 +266,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         } else {
           console.log('⚠️ NO EMAIL - skipping');
+        }
+        
+        // Send Discord notification
+        if (process.env.VITE_DISCORD_TICKETS_WEBHOOK) {
+          try {
+            console.log('📢 Sending Discord notification...');
+            const discordEmbed = {
+              embeds: [{
+                title: `🎫 New Support Ticket: ${ticketId}`,
+                color: ticketData.type === 'bug' ? 0xff0000 : ticketData.type === 'feature' ? 0x00ff00 : 0x0099ff,
+                fields: [
+                  { name: 'Type', value: ticketData.type, inline: true },
+                  { name: 'Status', value: 'pending', inline: true },
+                  { name: 'Title', value: ticketData.title },
+                  { name: 'Description', value: ticketData.description.substring(0, 1000) },
+                  { name: 'From', value: `${ticketData.name || 'Anonymous'} (${ticketData.email})`, inline: true },
+                ],
+                timestamp: new Date().toISOString(),
+                footer: { text: 'KSYK Maps Support System' }
+              }]
+            };
+            
+            await fetch(process.env.VITE_DISCORD_TICKETS_WEBHOOK, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(discordEmbed)
+            });
+            console.log('✅ Discord notification sent');
+          } catch (discordError: any) {
+            console.error('❌ Discord notification error:', discordError.message);
+          }
         }
         
         console.log('\n✅ RETURNING RESPONSE');

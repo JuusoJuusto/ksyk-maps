@@ -335,7 +335,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🇬🇧 {t('language.english')}
+                        🇺🇸 English
                       </button>
                       <button
                         onClick={() => {
@@ -349,6 +349,19 @@ export default function Header() {
                         }`}
                       >
                         🇫🇮 {t('language.suomi')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('en-GB');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`p-2 text-sm rounded-lg border transition-all animate-zoom-in col-span-2 ${
+                          currentLang === 'en-GB' 
+                            ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-lg' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
+                        }`}
+                      >
+                        🇬🇧 British English
                       </button>
                     </div>
                   </div>
