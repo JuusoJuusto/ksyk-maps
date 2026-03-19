@@ -1273,12 +1273,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
           console.log('To:', ticket.email);
           console.log('Response:', req.body.response.substring(0, 100));
+          console.log('Email User:', process.env.EMAIL_USER);
+          console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
           
           const subject = ticket.status === 'resolved' 
             ? `✅ Ticket Resolved: ${ticket.ticketId}`
             : `📝 Ticket Update: ${ticket.ticketId}`;
           
-          console.log('📤 Sending email...');
+          console.log('📤 Calling sendTicketEmail...');
           
           const emailResult = await sendTicketEmail(
             ticket.email, 
@@ -1292,20 +1294,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           );
           
-          console.log('📧 Email result:', emailResult);
-          console.log('✅ Email sent successfully!');
+          console.log('📧 Email result:', JSON.stringify(emailResult, null, 2));
+          
+          if (emailResult.success) {
+            console.log('✅ Email sent successfully! Message ID:', emailResult.messageId);
+          } else {
+            console.error('❌ Email failed:', emailResult.error);
+          }
           console.log('=====================================\n');
         } catch (emailError: any) {
           console.error('❌ ========== EMAIL ERROR ==========');
           console.error('Error:', emailError);
           console.error('Message:', emailError.message);
           console.error('Stack:', emailError.stack);
+          console.error('Code:', emailError.code);
           console.error('=====================================\n');
         }
       } else {
         console.log('⚠️ No email sent - missing email or response');
         console.log('Has email:', !!ticket.email);
+        console.log('Email value:', ticket.email);
         console.log('Has response:', !!req.body.response);
+        console.log('Response value:', req.body.response);
       }
       
       res.json(ticket);
