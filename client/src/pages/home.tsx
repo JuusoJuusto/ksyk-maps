@@ -24,7 +24,9 @@ import {
   Navigation,
   ArrowRight,
   Zap,
-  Ticket
+  Ticket,
+  Sun,
+  Moon
 } from "lucide-react";
 
 interface Building {
@@ -1380,8 +1382,9 @@ export default function Home() {
                   {/* Language Settings */}
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
-                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        {currentLang === 'fi' ? '🌐 Kieli' : '🌐 Language'}
+                      <CardTitle className={`flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <span className="text-2xl">🌐</span>
+                        {currentLang === 'fi' ? 'Kieli' : 'Language'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1418,6 +1421,69 @@ export default function Home() {
                     </CardContent>
                   </Card>
 
+                  {/* Theme Settings */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={`flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <span className="text-2xl">🎨</span>
+                        {currentLang === 'fi' ? 'Teema' : 'Theme'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button
+                          onClick={() => setTheme('light')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'light'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <Sun className="h-8 w-8 mx-auto mb-2" />
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Light</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Bright theme</div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setTheme('dark')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'dark'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <Moon className="h-8 w-8 mx-auto mb-2" />
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Dark</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Easy on eyes</div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setTheme('system')}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            theme === 'system'
+                              ? darkMode 
+                                ? 'border-blue-500 bg-blue-900/30' 
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                              ? 'border-gray-600 hover:border-blue-400 bg-gray-700/50'
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="text-4xl mb-2">🖥️</div>
+                          <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>System</div>
+                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto</div>
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
                   {/* Theme Settings */}
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
