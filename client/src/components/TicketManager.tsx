@@ -87,17 +87,29 @@ export default function TicketManager() {
 
   const deleteTicketMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('🗑️ Deleting ticket:', id);
       const response = await fetch(`/api/tickets/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to delete ticket');
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Delete failed:', error);
+        throw new Error('Failed to delete ticket');
+      }
+      console.log('✅ Ticket deleted successfully');
       return response.json();
     },
     onSuccess: () => {
+      console.log('♻️ Refreshing ticket list...');
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setSelectedTicket(null);
       setDeleteConfirm(null);
     },
+    onError: (error) => {
+      console.error('❌ Delete error:', error);
+      alert('Failed to delete ticket. Please try again.');
+    }
   });
 
   const filteredTickets = tickets.filter((ticket: any) => {
@@ -245,8 +257,8 @@ export default function TicketManager() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <Badge className="bg-blue-600 text-white border-blue-700 text-sm font-bold px-3 py-1">
-                            🎫 {ticket.ticketId || ticket.id || 'NO-ID'}
+                          <Badge variant="outline" className="text-sm font-mono px-3 py-1">
+                            Ticket ID: {ticket.ticketId || ticket.id || 'NO-ID'}
                           </Badge>
                           <Badge className={`${getStatusColor(ticket.status)} border`}>
                             {getStatusIcon(ticket.status)}
@@ -318,8 +330,8 @@ export default function TicketManager() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-3">
-                    <Badge className="bg-blue-600 text-white border-blue-700 text-lg font-bold px-4 py-2">
-                      🎫 TICKET: {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
+                    <Badge variant="outline" className="text-lg font-mono px-4 py-2">
+                      Ticket ID: {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
                     </Badge>
                   </div>
                   <CardTitle className="text-2xl mb-2">{selectedTicket.title}</CardTitle>
