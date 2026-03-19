@@ -14,6 +14,7 @@
     "seed:firebase": "tsx server/seedFirebase.ts",
     "seed:rooms": "tsx server/seedRooms.ts",
     "seed:connectors": "tsx server/seedConnectors.ts",
+    "seed:demo": "tsx server/seedDemoSchool.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
     "create:owner": "tsx server/createOwnerNow.ts",
     "setup:owner": "tsx server/setupOwnerSecure.ts",
