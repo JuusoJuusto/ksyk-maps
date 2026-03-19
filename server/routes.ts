@@ -1385,6 +1385,25 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // Delete ticket (admin only)
+  app.delete('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      console.log('🗑️ Deleting ticket:', req.params.id);
+      await storage.deleteTicket(req.params.id);
+      console.log('✅ Ticket deleted successfully');
+      
+      res.json({ success: true, message: 'Ticket deleted' });
+    } catch (error) {
+      await logError(error, 'DELETE /api/tickets/:id');
+      res.status(500).json({ message: 'Failed to delete ticket' });
+    }
+  });
+
   app.delete('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);

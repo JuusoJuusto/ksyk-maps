@@ -57,6 +57,7 @@ export default function TicketManager() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['tickets'],
@@ -81,6 +82,21 @@ export default function TicketManager() {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setSelectedTicket(null);
       setResponse('');
+    },
+  });
+
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/tickets/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete ticket');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      setSelectedTicket(null);
+      setDeleteConfirm(null);
     },
   });
 
@@ -230,7 +246,7 @@ export default function TicketManager() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge className="bg-blue-600 text-white border-blue-700 text-sm font-bold px-3 py-1">
-                            ID: {ticket.ticketId}
+                            {ticket.ticketId || ticket.id || 'NO-ID'}
                           </Badge>
                           <Badge className={`${getStatusColor(ticket.status)} border`}>
                             {getStatusIcon(ticket.status)}
@@ -296,7 +312,7 @@ export default function TicketManager() {
                 <div className="flex-1">
                   <div className="mb-3">
                     <Badge className="bg-blue-600 text-white border-blue-700 text-lg font-bold px-4 py-2">
-                      TICKET ID: {selectedTicket.ticketId}
+                      {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
                     </Badge>
                   </div>
                   <CardTitle className="text-2xl mb-2">{selectedTicket.title}</CardTitle>
@@ -415,8 +431,53 @@ export default function TicketManager() {
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setDeleteConfirm(selectedTicket.id)}
+                      disabled={deleteTicketMutation.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-xl text-red-600 flex items-center gap-2">
+                <AlertCircle className="h-6 w-6" />
+                Confirm Delete
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-700">
+                Are you sure you want to delete this ticket? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteTicketMutation.mutate(deleteConfirm)}
+                  disabled={deleteTicketMutation.isPending}
+                  className="flex-1"
+                >
+                  {deleteTicketMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deleteTicketMutation.isPending}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </CardContent>
           </Card>
