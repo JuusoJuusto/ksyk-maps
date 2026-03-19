@@ -427,7 +427,7 @@ ${body.split('\n').map(line => {
   
   // Handle bullet points
   if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
-    return `        <div style="margin-left: 20px; margin-bottom: 8px;">
+    return `        <div style="margin-bottom: 4px;">
           <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
           <span>${line.trim().replace(/^[•-]\s*/, '')}</span>
         </div>`;
@@ -435,16 +435,16 @@ ${body.split('\n').map(line => {
   
   // Handle section headers (lines ending with :)
   if (line.trim().endsWith(':') && line.trim().length < 60 && !line.includes('http')) {
-    return `        <div style="font-weight: 600; color: #1f2937; margin-top: 16px; margin-bottom: 8px; font-size: 16px;">
+    return `        <div style="font-weight: 600; color: #1f2937; margin-top: 12px; margin-bottom: 6px; font-size: 16px;">
           ${line.trim()}
         </div>`;
   }
   
-  // Empty lines become breaks
-  if (line.trim() === '') return '<br>';
+  // Empty lines become small breaks
+  if (line.trim() === '') return '<div style="margin-bottom: 8px;"></div>';
   
   // Regular text
-  return `        <p style="margin-bottom: 8px;">${line.trim()}</p>`;
+  return `        <div style="margin-bottom: 4px;">${line.trim()}</div>`;
 }).filter(line => line !== '').join('\n')}
       </div>
       

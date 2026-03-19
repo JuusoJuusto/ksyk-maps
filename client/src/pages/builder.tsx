@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export default function Builder() {
-  const [activeTab, setActiveTab] = useState("v3-builder");
+  const [activeTab, setActiveTab] = useState("improved-builder");
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1227,53 +1227,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Should Send Email:', !!(ticket.email && (oldTicket?.status !== ticket.status || req.body.response)));
       console.log('=====================================\n');
       
-      // Send email notification if status changed OR if response provided
-      if (ticket.email && (oldTicket?.status !== ticket.status || req.body.response)) {
+      // ALWAYS send email if there's an email address and a response
+      if (ticket.email && req.body.response) {
         try {
-          console.log('📧 ========== SENDING EMAIL ==========');
+          console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
           console.log('To:', ticket.email);
-          console.log('Status changed:', oldTicket?.status, '->', ticket.status);
-          console.log('Response provided:', !!req.body.response);
+          console.log('Response:', req.body.response.substring(0, 100));
           
-          const statusMessages = {
-            pending: 'Your ticket is pending review. We will look into it shortly.',
-            in_progress: 'Good news! Your ticket is now being investigated by our team. We are actively working on resolving your issue.',
-            resolved: 'Your ticket has been resolved! We hope this solution helps.',
-            closed: 'Your ticket has been closed. Thank you for your patience.'
-          };
-          
-          let emailBody = '';
-          
-          // If status changed, include status message
-          if (oldTicket?.status !== ticket.status) {
-            emailBody += `Your ticket status has been updated to: ${ticket.status.toUpperCase().replace('_', ' ')}\n\n`;
-            emailBody += statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.';
-            emailBody += '\n\n';
-          }
-
-          // If response provided, include it
-          if (req.body.response) {
-            emailBody += 'Message from our support team:\n\n';
-            emailBody += req.body.response;
-            emailBody += '\n\n';
-          }
-
-          // Add closing message based on status
-          if (ticket.status === 'in_progress') {
-            emailBody += 'Our team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.';
-          } else if (ticket.status === 'resolved' || ticket.status === 'closed') {
-            emailBody += 'If you need further assistance, please feel free to create a new ticket at https://ksykmaps.vercel.app';
-          } else {
-            emailBody += 'We will keep you updated on any progress.';
-          }
+          // Simple email body with just the response
+          const emailBody = req.body.response;
           
           const subject = ticket.status === 'resolved' 
-            ? `Ticket Resolved: ${ticket.ticketId}`
-            : `Ticket Update: ${ticket.ticketId}`;
+            ? `✅ Ticket Resolved: ${ticket.ticketId}`
+            : `📝 Ticket Update: ${ticket.ticketId}`;
           
-          console.log('📤 Calling sendTicketEmail...');
-          console.log('Subject:', subject);
-          console.log('Body preview:', emailBody.substring(0, 100));
+          console.log('📤 Sending email...');
           
           const emailResult = await sendTicketEmail(
             ticket.email, 
@@ -1288,22 +1256,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           
           console.log('📧 Email result:', emailResult);
-          console.log('✅ Update email sent to:', ticket.email);
+          console.log('✅ Email sent successfully!');
           console.log('=====================================\n');
         } catch (emailError: any) {
           console.error('❌ ========== EMAIL ERROR ==========');
           console.error('Error:', emailError);
           console.error('Message:', emailError.message);
-          console.error('Stack:', emailError.stack);
           console.error('=====================================\n');
         }
       } else {
-        console.log('⚠️ ========== NO EMAIL SENT ==========');
+        console.log('⚠️ No email sent - missing email or response');
         console.log('Has email:', !!ticket.email);
-        console.log('Email address:', ticket.email);
-        console.log('Status changed:', oldTicket?.status !== ticket.status);
         console.log('Has response:', !!req.body.response);
-        console.log('=====================================\n');
       }
       
       res.json(ticket);
