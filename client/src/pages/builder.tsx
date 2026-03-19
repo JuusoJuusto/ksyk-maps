@@ -1,14 +1,16 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
+import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building, 
-  Zap
+  Zap,
+  Sparkles
 } from "lucide-react";
 
 export default function Builder() {
-  const [activeTab, setActiveTab] = useState("ultimate-builder");
+  const [activeTab, setActiveTab] = useState("improved-builder");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,12 +29,21 @@ export default function Builder() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-1 gap-2 mb-4 px-4">
+          <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-2 gap-2 mb-4 px-4">
+            <TabsTrigger value="improved-builder" className="flex items-center justify-center text-sm md:text-base py-3">
+              <Sparkles className="mr-2 h-4 md:h-5 w-4 md:w-5" />
+              🎯 Smart Builder - Auto Buildings
+            </TabsTrigger>
             <TabsTrigger value="ultimate-builder" className="flex items-center justify-center text-sm md:text-base py-3">
               <Building className="mr-2 h-4 md:h-5 w-4 md:w-5" />
-              🏗️ Ultimate Builder - Draw Custom Shapes
+              🏗️ Ultimate Builder - Custom Shapes
             </TabsTrigger>
           </TabsList>
+
+          {/* Improved KSYK Builder - NEW */}
+          <TabsContent value="improved-builder" className="m-0 p-0">
+            <ImprovedKSYKBuilder />
+          </TabsContent>
 
           {/* Ultimate KSYK Builder */}
           <TabsContent value="ultimate-builder" className="m-0 p-0">
