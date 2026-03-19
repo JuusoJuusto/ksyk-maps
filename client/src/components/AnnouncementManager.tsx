@@ -104,16 +104,19 @@ export default function AnnouncementManager() {
   });
 
   const resetForm = () => {
+    const now = new Date();
+    const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    
     setFormData({
-      title: "",
-      titleEn: "",
-      titleFi: "",
-      content: "",
-      contentEn: "",
-      contentFi: "",
+      title: "Important Announcement",
+      titleEn: "Important Announcement",
+      titleFi: "Tärkeä ilmoitus",
+      content: "Please read this important information about campus updates.",
+      contentEn: "Please read this important information about campus updates.",
+      contentFi: "Lue tämä tärkeä tieto kampuksen päivityksistä.",
       priority: "normal",
       isActive: true,
-      publishedAt: new Date().toISOString().slice(0, 16),
+      publishedAt: localDateTime,
       expiresAt: ""
     });
     setIsCreating(false);
@@ -226,6 +229,26 @@ export default function AnnouncementManager() {
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Current Time Display */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-900">Current Time:</span>
+                  <span className="text-sm text-blue-700">
+                    {new Date().toLocaleString('en-US', { 
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <Badge className="bg-blue-600 text-white">Live</Badge>
+              </div>
+
               <div>
                 <Label htmlFor="title">Title (Default) *</Label>
                 <Input

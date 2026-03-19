@@ -204,7 +204,7 @@ export default function AnnouncementBanner() {
       
       {/* Announcement Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between mb-2">
               <DialogTitle className="text-2xl flex items-center">

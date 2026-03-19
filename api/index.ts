@@ -245,6 +245,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // SEND EMAILS AND DISCORD NOTIFICATIONS
         if (ticketData.email && ticketData.email.trim()) {
           console.log('📧 EMAIL PROVIDED - SENDING NOW');
+          console.log('📧 Email credentials check:');
+          console.log('   EMAIL_USER:', process.env.EMAIL_USER);
+          console.log('   EMAIL_PASSWORD set:', !!process.env.EMAIL_PASSWORD);
+          console.log('   EMAIL_HOST:', process.env.EMAIL_HOST);
+          console.log('   EMAIL_PORT:', process.env.EMAIL_PORT);
           
           try {
             const { sendTicketEmail } = await import('../server/emailService.js');
@@ -272,13 +277,13 @@ Please review and respond to this ticket in the admin panel.
 Login at: https://ksykmaps.vercel.app/admin-login`;
             
             console.log('📤 Sending to owner:', ownerEmail);
-            await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
+            const ownerResult = await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
               ticketId,
               type: ticketData.type,
               title: ticketData.title,
               status: 'pending'
             });
-            console.log('✅ Owner email sent');
+            console.log('✅ Owner email result:', ownerResult);
             
             // Send to user with friendly confirmation
             const userEmailBody = `Thank you for contacting KSYK Maps Support!
@@ -299,15 +304,17 @@ Keep your ticket ID safe for future reference.
 Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             
             console.log('📤 Sending to user:', ticketData.email);
-            await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
+            const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
               ticketId,
               type: ticketData.type,
               title: ticketData.title,
               status: 'pending'
             });
-            console.log('✅ User email sent');
+            console.log('✅ User email result:', userResult);
           } catch (emailError: any) {
-            console.error('❌ EMAIL ERROR:', emailError.message);
+            console.error('❌ EMAIL ERROR:', emailError);
+            console.error('❌ Error stack:', emailError.stack);
+            console.error('❌ Error message:', emailError.message);
           }
         } else {
           console.log('⚠️ NO EMAIL - skipping');
