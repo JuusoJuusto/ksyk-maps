@@ -214,6 +214,14 @@ export default function TicketManager() {
     if (!selectedTicket || !response.trim()) return;
     
     try {
+      console.log('🎯 ========== FRONTEND: SENDING RESPONSE ==========');
+      console.log('Selected Ticket:', selectedTicket);
+      console.log('Ticket ID:', selectedTicket.id);
+      console.log('Ticket Email:', selectedTicket.email);
+      console.log('Response:', response.substring(0, 100));
+      console.log('Status:', 'resolved');
+      console.log('================================================\n');
+      
       // Update ticket status and send email
       await updateTicketMutation.mutateAsync({
         id: selectedTicket.id,
@@ -224,9 +232,9 @@ export default function TicketManager() {
         },
       });
       
-      console.log('✅ Ticket resolved and email sent');
+      console.log('✅ FRONTEND: Ticket resolved and email sent');
     } catch (error) {
-      console.error('❌ Failed to resolve ticket:', error);
+      console.error('❌ FRONTEND: Failed to resolve ticket:', error);
       alert('Failed to send response. Please try again.');
     }
   };

@@ -860,15 +860,27 @@ export class FirebaseStorage implements IStorage {
 
   async updateTicket(id: string, ticket: any): Promise<any> {
     try {
+      console.log('🔧 FirebaseStorage.updateTicket called');
+      console.log('   Ticket ID:', id);
+      console.log('   Update data:', JSON.stringify(ticket, null, 2));
+      console.log('   Email in update data:', ticket.email);
+      
       await db.collection('tickets').doc(id).update({
         ...ticket,
         updatedAt: new Date()
       });
+      
+      console.log('✅ Firestore update complete, fetching updated ticket...');
       const updated = await this.getTicket(id);
+      
       if (!updated) throw new Error('Ticket not found after update');
+      
+      console.log('📧 Updated ticket email:', updated.email);
+      console.log('📋 Full updated ticket:', JSON.stringify(updated, null, 2));
+      
       return updated;
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      console.error('❌ Error updating ticket:', error);
       throw error;
     }
   }
