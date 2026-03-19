@@ -409,7 +409,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
       
       if (req.method === 'POST') {
-        const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
+        const { sendTicketEmail } = await import('../server/emailService.js');
         
         console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
         console.log('Environment variables check:');
@@ -420,12 +420,21 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         
         const testEmail = req.body.email || process.env.EMAIL_USER || 'test@example.com';
         const testName = req.body.name || 'Test User';
-        const testPassword = 'TestPass123!';
         
         console.log(`\nSending test email to: ${testEmail}`);
         
         try {
-          const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
+          const result = await sendTicketEmail(
+            testEmail, 
+            'Test Email from KSYK Maps',
+            'This is a test email to verify the email system is working correctly.\n\nIf you received this, the email system is functioning properly!',
+            {
+              ticketId: 'TEST-' + Date.now(),
+              type: 'test',
+              title: 'Test Email',
+              status: 'test'
+            }
+          );
           
           console.log('\nTest email result:', result);
           console.log('==========================================\n');
@@ -753,6 +762,20 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           return res.status(204).send('');
         }
       }
+    }
+    
+    // Email diagnostic endpoint
+    if (apiPath === '/email-diagnostic' && req.method === 'GET') {
+      return res.status(200).json({
+        emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
+        emailUser: process.env.EMAIL_USER || 'NOT SET',
+        emailHost: process.env.EMAIL_HOST || 'NOT SET',
+        emailPort: process.env.EMAIL_PORT || 'NOT SET',
+        ownerEmail: process.env.OWNER_EMAIL || 'NOT SET',
+        passwordLength: process.env.EMAIL_PASSWORD?.length || 0,
+        passwordSet: !!process.env.EMAIL_PASSWORD,
+        allEnvVars: Object.keys(process.env).filter(key => key.includes('EMAIL'))
+      });
     }
     
     // Logs endpoint
