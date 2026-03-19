@@ -246,7 +246,7 @@ export default function TicketManager() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge className="bg-blue-600 text-white border-blue-700 text-sm font-bold px-3 py-1">
-                            {ticket.ticketId || ticket.id || 'NO-ID'}
+                            🎫 {ticket.ticketId || ticket.id || 'NO-ID'}
                           </Badge>
                           <Badge className={`${getStatusColor(ticket.status)} border`}>
                             {getStatusIcon(ticket.status)}
@@ -305,14 +305,21 @@ export default function TicketManager() {
 
       {/* Ticket Detail Modal */}
       {selectedTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedTicket(null);
+            }
+          }}
+        >
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-3">
                     <Badge className="bg-blue-600 text-white border-blue-700 text-lg font-bold px-4 py-2">
-                      {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
+                      🎫 TICKET: {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
                     </Badge>
                   </div>
                   <CardTitle className="text-2xl mb-2">{selectedTicket.title}</CardTitle>
@@ -449,8 +456,15 @@ export default function TicketManager() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <Card className="w-full max-w-md">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setDeleteConfirm(null);
+            }
+          }}
+        >
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="text-xl text-red-600 flex items-center gap-2">
                 <AlertCircle className="h-6 w-6" />
