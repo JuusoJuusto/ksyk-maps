@@ -115,22 +115,32 @@ export default function ImprovedKSYKBuilder() {
     setIsDrawing(false);
   };
 
-  // Extract building letter from room number (A12 -> A, M1 -> M, U34 -> U)
+  // Extract building letter from room number (A32 -> A, M1 -> M, U205 -> U)
   const extractBuilding = (roomNumber: string): string => {
     const match = roomNumber.match(/^([A-Z])/i);
     return match ? match[1].toUpperCase() : "";
   };
 
+  // Validate room number format (A32, M1, U205 - letter followed by numbers, no dash)
+  const validateRoomNumber = (roomNumber: string): boolean => {
+    return /^[A-Z]\d+$/i.test(roomNumber);
+  };
+
   // Add room
   const addRoom = () => {
     if (!roomData.roomNumber) {
-      alert("Please enter a room number (e.g., A12, M1, U34)");
+      alert("Please enter a room number (e.g., A32, M1, U205)");
+      return;
+    }
+    
+    if (!validateRoomNumber(roomData.roomNumber)) {
+      alert("Room number must be a letter followed by numbers (e.g., A32, M1, U205)\nNo dashes or spaces!");
       return;
     }
     
     const building = extractBuilding(roomData.roomNumber);
     if (!building) {
-      alert("Room number must start with a building letter (A, M, U, etc.)");
+      alert("Room number must start with a building letter (A, M, U, K, L, R)");
       return;
     }
     
@@ -362,12 +372,12 @@ export default function ImprovedKSYKBuilder() {
                 <Label htmlFor="roomNumber">Room Number *</Label>
                 <Input
                   id="roomNumber"
-                  placeholder="e.g., A12, M1, U34"
+                  placeholder="e.g., A32, A21, M1, U205"
                   value={roomData.roomNumber}
                   onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value.toUpperCase() })}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  First letter = Building (A, M, U, K, L, R)
+                  Format: {extractBuilding(roomData.roomNumber) || 'A'}32 or M1 (letter + number, no dash)
                 </p>
               </div>
               

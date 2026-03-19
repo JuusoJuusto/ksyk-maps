@@ -1220,7 +1220,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Old Status:', oldTicket?.status);
       console.log('New Status:', ticket.status);
       console.log('Has Email:', !!ticket.email);
+      console.log('Email Address:', ticket.email);
       console.log('Has Response:', !!req.body.response);
+      console.log('Response Text:', req.body.response?.substring(0, 100));
+      console.log('Status Changed:', oldTicket?.status !== ticket.status);
+      console.log('Should Send Email:', !!(ticket.email && (oldTicket?.status !== ticket.status || req.body.response)));
       console.log('=====================================\n');
       
       // Send email notification if status changed OR if response provided
