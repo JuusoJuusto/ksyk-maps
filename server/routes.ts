@@ -1215,10 +1215,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oldTicket = await storage.getTicket(req.params.id);
       const ticket = await storage.updateTicket(req.params.id, req.body);
       
-      // Send email notification if status changed
-      if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
+      console.log('\n🔄 ========== TICKET UPDATE ==========');
+      console.log('Ticket ID:', ticket.ticketId);
+      console.log('Old Status:', oldTicket?.status);
+      console.log('New Status:', ticket.status);
+      console.log('Has Email:', !!ticket.email);
+      console.log('Has Response:', !!req.body.response);
+      console.log('=====================================\n');
+      
+      // Send email notification if status changed OR if response provided
+      if (ticket.email && (oldTicket?.status !== ticket.status || req.body.response)) {
         try {
-          console.log('📧 Sending status update email...');
+          console.log('📧 Sending update email...');
           
           const statusMessages = {
             pending: 'Your ticket is pending review. We will look into it shortly.',
@@ -1227,34 +1235,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             closed: 'Your ticket has been closed. Thank you for your patience.'
           };
           
-          const statusEmojis = {
-            pending: '⏳',
-            in_progress: '🔍',
-            resolved: '✅',
-            closed: '🔒'
-          };
+          let emailBody = '';
           
-          let emailBody = `Your support ticket status has been updated!
+          // If status changed, include status message
+          if (oldTicket?.status !== ticket.status) {
+            emailBody += `Your ticket status has been updated to: ${ticket.status.toUpperCase().replace('_', ' ')}\n\n`;
+            emailBody += statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.';
+            emailBody += '\n\n';
+          }
 
-${statusMessages[ticket.status as keyof typeof statusMessages] || 'Status updated.'}`;
-
+          // If response provided, include it
           if (req.body.response) {
-            emailBody += `\n\nMessage from our support team:\n${req.body.response}`;
+            emailBody += 'Message from our support team:\n\n';
+            emailBody += req.body.response;
+            emailBody += '\n\n';
           }
 
+          // Add closing message based on status
           if (ticket.status === 'in_progress') {
-            emailBody += '\n\nOur team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.';
-          }
-
-          if (ticket.status === 'resolved' || ticket.status === 'closed') {
-            emailBody += '\n\nIf you need further assistance, please feel free to create a new ticket.';
+            emailBody += 'Our team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.';
+          } else if (ticket.status === 'resolved' || ticket.status === 'closed') {
+            emailBody += 'If you need further assistance, please feel free to create a new ticket at https://ksykmaps.vercel.app';
           } else {
-            emailBody += '\n\nWe will keep you updated on any progress.';
+            emailBody += 'We will keep you updated on any progress.';
           }
+          
+          const subject = ticket.status === 'resolved' 
+            ? `Ticket Resolved: ${ticket.ticketId}`
+            : `Ticket Update: ${ticket.ticketId}`;
           
           await sendTicketEmail(
             ticket.email, 
-            `${statusEmojis[ticket.status as keyof typeof statusEmojis]} Ticket ${ticket.status === 'resolved' ? 'Resolved' : 'Status Update'}: ${ticket.ticketId}`,
+            subject,
             emailBody,
             {
               ticketId: ticket.ticketId,
@@ -1263,10 +1275,12 @@ ${statusMessages[ticket.status as keyof typeof statusMessages] || 'Status update
               status: ticket.status
             }
           );
-          console.log('✅ Status update email sent');
+          console.log('✅ Update email sent to:', ticket.email);
         } catch (emailError: any) {
           console.error('❌ Email error:', emailError.message);
         }
+      } else {
+        console.log('⚠️ No email sent - no changes or no email address');
       }
       
       res.json(ticket);

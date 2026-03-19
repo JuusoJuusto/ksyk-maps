@@ -240,13 +240,9 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     return { success: false, mode: 'console', error: 'Email not configured' };
   }
 
-  // Determine email type and styling
-  const isResolved = subject.includes('Resolved') || subject.includes('resolved');
-  const isStatusUpdate = subject.includes('Status Update') || subject.includes('status');
-  const isNewTicket = subject.includes('New Ticket') || subject.includes('Received');
-  
-  const headerColor = isResolved ? '#10b981' : isStatusUpdate ? '#3b82f6' : '#6366f1';
-  const headerEmoji = isResolved ? '✅' : isStatusUpdate ? '🔄' : '🎫';
+  // All emails use blue theme
+  const headerColor = '#2563eb';
+  const headerIcon = '📧';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -270,7 +266,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .header {
-      background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%);
+      background: #2563eb;
       padding: 40px 30px;
       text-align: center;
     }
@@ -286,7 +282,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     }
     .header p {
       margin: 10px 0 0 0;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.95);
       font-size: 16px;
     }
     .content {
@@ -320,7 +316,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     }
     .info-box {
       background-color: #f9fafb;
-      border-left: 4px solid ${headerColor};
+      border-left: 4px solid #2563eb;
       padding: 20px;
       border-radius: 8px;
       margin: 25px 0;
@@ -371,7 +367,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     }
     .button {
       display: inline-block;
-      background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%);
+      background: #2563eb;
       color: #ffffff;
       text-decoration: none;
       padding: 14px 32px;
@@ -379,7 +375,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
       font-weight: 600;
       font-size: 16px;
       margin: 20px 0;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     }
     .footer {
       background-color: #f9fafb;
@@ -427,20 +423,9 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
         ${body}
       </div>
       
-      ${isResolved ? `
-      <div style="text-align: center; margin: 30px 0;">
-        <p style="color: #10b981; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
-          ✅ Your issue has been resolved!
-        </p>
-        <p style="color: #6b7280; font-size: 14px;">
-          If you need further assistance, feel free to create a new ticket.
-        </p>
-      </div>
-      ` : ''}
-      
       <div style="text-align: center; margin: 30px 0;">
         <a href="https://ksykmaps.vercel.app" class="button" style="color: #ffffff; text-decoration: none;">
-          Visit KSYK Maps →
+          Visit KSYK Maps
         </a>
       </div>
     </div>

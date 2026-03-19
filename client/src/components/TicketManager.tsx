@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const RESPONSE_TEMPLATES = {
-  resolved: `Thank you for reporting this issue. We've investigated and resolved the problem. 
+  resolved: `Thank you for reporting this issue. We've investigated and resolved the problem.
 
 The fix has been deployed and should be live now. Please let us know if you continue to experience any issues.
 
@@ -45,6 +45,59 @@ KSYK Maps Support Team`,
 [Explain why this is expected behavior]
 
 If you have any questions, please don't hesitate to ask.
+
+Best regards,
+KSYK Maps Support Team`,
+
+  featureAdded: `Great news! We've added the feature you requested.
+
+The new feature is now live and available for use. Here's how to access it:
+
+[Provide instructions]
+
+Thank you for your suggestion!
+
+Best regards,
+KSYK Maps Support Team`,
+
+  featureConsidering: `Thank you for your feature request! We think this is a great idea.
+
+We've added it to our roadmap and will consider it for a future update. We'll keep you posted on the progress.
+
+Best regards,
+KSYK Maps Support Team`,
+
+  cannotReproduce: `Thank you for your report. We've attempted to reproduce this issue but haven't been able to.
+
+Could you please provide:
+- Steps to reproduce the issue
+- What browser/device you're using
+- Any error messages you see
+
+This will help us investigate further.
+
+Best regards,
+KSYK Maps Support Team`,
+
+  duplicate: `Thank you for your report. This issue has already been reported and we're working on it.
+
+We'll update you once it's resolved. You can track the progress in our system.
+
+Best regards,
+KSYK Maps Support Team`,
+
+  workaround: `Thank you for reporting this issue. While we work on a permanent fix, here's a workaround:
+
+[Provide workaround steps]
+
+We'll notify you once the permanent fix is deployed.
+
+Best regards,
+KSYK Maps Support Team`,
+
+  thankYou: `Thank you for your feedback! We really appreciate you taking the time to share your thoughts.
+
+Your input helps us improve KSYK Maps for everyone.
 
 Best regards,
 KSYK Maps Support Team`,

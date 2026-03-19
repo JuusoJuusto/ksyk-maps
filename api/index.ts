@@ -250,20 +250,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const { sendTicketEmail } = await import('../server/emailService.js');
             const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
             
-            // Send to owner
-            const ownerEmailBody = `You have received a new support ticket from ${ticketData.name || 'Anonymous'}.
+            // Send to owner with detailed info
+            const ownerEmailBody = `NEW SUPPORT TICKET RECEIVED
+
+Ticket Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Type: ${ticketData.type.toUpperCase()}
+Title: ${ticketData.title}
+Status: PENDING
 
 Description:
 ${ticketData.description}
 
 Contact Information:
-Email: ${ticketData.email}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Name: ${ticketData.name || 'Anonymous'}
+Email: ${ticketData.email}
 
-Please review and respond to this ticket as soon as possible.`;
+Action Required:
+Please review and respond to this ticket in the admin panel.
+Login at: https://ksykmaps.vercel.app/admin-login`;
             
             console.log('📤 Sending to owner:', ownerEmail);
-            await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody, {
+            await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
               ticketId,
               type: ticketData.type,
               title: ticketData.title,
@@ -271,7 +280,7 @@ Please review and respond to this ticket as soon as possible.`;
             });
             console.log('✅ Owner email sent');
             
-            // Send to user
+            // Send to user with friendly confirmation
             const userEmailBody = `Thank you for contacting KSYK Maps Support!
 
 We have received your ${ticketData.type} ticket and our team will review it shortly.
@@ -280,11 +289,14 @@ Your Issue:
 ${ticketData.title}
 
 What happens next?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Our support team will review your ticket
 • You'll receive email updates when the status changes
 • We aim to respond within 24-48 hours
 
-Keep your ticket ID safe for future reference.`;
+Keep your ticket ID safe for future reference.
+
+Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             
             console.log('📤 Sending to user:', ticketData.email);
             await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
