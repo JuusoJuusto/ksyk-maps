@@ -1,4 +1,8 @@
+import * as dotenv from 'dotenv';
 import { sendPasswordSetupEmail } from './emailService.js';
+
+// Load environment variables
+dotenv.config();
 
 async function sendTestEmail() {
   const testEmail = 'juusojuusto112@gmail.com';
