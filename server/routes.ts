@@ -1143,7 +1143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate ticket ID if not provided
       const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
-      console.log('🎫 Creating ticket:', ticketId);
+      console.log('🎫 Creating ticket with ID:', ticketId);
       
       const ticket = await storage.createTicket({
         ticketId,
@@ -1161,10 +1161,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: ticketData.url || null,
       });
       
+      console.log('✅ Ticket created:', ticket);
+      console.log('📋 Ticket ID to return:', ticketId);
+      
       // Send email notification to owner
       if (ticketData.email) {
         try {
-          const ownerEmail = process.env.OWNER_EMAIL || 'juuso.kaikula@ksyk.fi';
+          const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
           
           // Send notification to owner
           await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-notification`, {
@@ -1198,8 +1201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      console.log('✅ Ticket created successfully');
-      res.status(201).json({ ...ticket, ticketId });
+      console.log('✅ Ticket created successfully, returning:', { ticketId, ...ticket });
+      // IMPORTANT: Ensure ticketId is in the response
+      res.status(201).json({ ticketId, ...ticket });
     } catch (error) {
       console.error("Error creating ticket:", error);
       res.status(500).json({ message: "Failed to create ticket" });
@@ -1214,23 +1218,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Forbidden' });
       }
       
+      const oldTicket = await storage.getTicket(req.params.id);
       const ticket = await storage.updateTicket(req.params.id, req.body);
       
-      // If status changed to resolved/closed and there's a response, send email
-      if ((req.body.status === 'resolved' || req.body.status === 'closed') && req.body.response && ticket.email) {
+      // Send email notification if status changed
+      if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
         try {
-          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-response`, {
+          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-status-update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: ticket.email,
               ticketId: ticket.ticketId,
+              status: ticket.status,
               title: ticket.title,
-              response: req.body.response,
+              response: req.body.response || '',
             }),
           });
         } catch (emailError) {
-          console.error('Failed to send ticket response email:', emailError);
+          console.error('Failed to send ticket status update email:', emailError);
         }
       }
       
@@ -1416,10 +1422,17 @@ https://ksykmaps.vercel.app
       const { sendPasswordSetupEmail } = await import('./emailService.js');
       
       const statusMessages = {
-        pending: 'Your ticket is pending review.',
-        in_progress: 'Your ticket is now being worked on by our team.',
-        resolved: 'Your ticket has been resolved!',
-        closed: 'Your ticket has been closed.'
+        pending: 'Your ticket is pending review. We will look into it shortly.',
+        in_progress: 'Good news! Your ticket is now being investigated by our team. We are actively working on resolving your issue.',
+        resolved: 'Your ticket has been resolved! We hope this solution helps.',
+        closed: 'Your ticket has been closed. Thank you for your patience.'
+      };
+      
+      const statusEmojis = {
+        pending: '⏳',
+        in_progress: '🔍',
+        resolved: '✅',
+        closed: '🔒'
       };
       
       const emailBody = `
@@ -1427,11 +1440,13 @@ Your support ticket status has been updated!
 
 Ticket ID: ${ticketId}
 Title: ${title}
-New Status: ${status.toUpperCase()}
+New Status: ${statusEmojis[status as keyof typeof statusEmojis] || '📋'} ${status.toUpperCase().replace('_', ' ')}
 
 ${statusMessages[status as keyof typeof statusMessages] || 'Status updated.'}
 
-${response ? `\nResponse from support:\n${response}` : ''}
+${response ? `\nMessage from support:\n${response}` : ''}
+
+${status === 'in_progress' ? '\n🔍 Our team is currently investigating your issue. You will receive another update once we have more information or when the issue is resolved.' : ''}
 
 ${status === 'resolved' || status === 'closed' ? '\nIf you need further assistance, please create a new ticket.' : '\nWe will keep you updated on any progress.'}
 
@@ -1440,7 +1455,7 @@ KSYK Maps Support Team
 https://ksykmaps.vercel.app
       `.trim();
       
-      await sendPasswordSetupEmail(email, `Ticket ${status.toUpperCase()}: ${ticketId}`, emailBody);
+      await sendPasswordSetupEmail(email, `Ticket ${status.toUpperCase().replace('_', ' ')}: ${ticketId}`, emailBody);
       
       res.json({ success: true, message: 'Status update email sent' });
     } catch (error) {

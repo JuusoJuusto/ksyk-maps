@@ -1371,7 +1371,10 @@ export default function Home() {
           {/* Settings Tab Content */}
           {activeTab === 'settings' && (
             <div className="h-full overflow-auto">
-              <div className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4 md:p-8 pt-24 pb-8`}>
+              <div className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4 md:p-8`}>
+                {/* Empty space at top to avoid overlap with tabs */}
+                <div className="h-20"></div>
+                
                 <div className="max-w-4xl mx-auto space-y-6">
                   
                   {/* Language Settings */}
