@@ -1143,7 +1143,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate ticket ID if not provided
       const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
-      console.log('🎫 Creating ticket with ID:', ticketId);
+      console.log('\n🎫 ========== CREATING TICKET ==========');
+      console.log('Ticket ID:', ticketId);
+      console.log('Type:', ticketData.type);
+      console.log('Title:', ticketData.title);
+      console.log('Email:', ticketData.email);
+      console.log('Name:', ticketData.name);
+      console.log('========================================\n');
       
       const ticket = await storage.createTicket({
         ticketId,
@@ -1161,7 +1167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: ticketData.url || null,
       });
       
-      console.log('✅ Ticket created:', ticket);
+      console.log('✅ Ticket created in database:', ticket);
       console.log('📋 Ticket ID to return:', ticketId);
       
       // Send email notification to owner
@@ -1169,8 +1175,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
           
+          console.log('\n📧 ========== SENDING EMAILS ==========');
+          console.log('Owner email:', ownerEmail);
+          console.log('User email:', ticketData.email);
+          console.log('======================================\n');
+          
           // Send notification to owner
-          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-notification`, {
+          console.log('📤 Sending notification to owner...');
+          const ownerResponse = await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-notification`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1184,9 +1196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               errorReferenceId: ticketData.errorReferenceId,
             }),
           });
+          console.log('📧 Owner notification response:', ownerResponse.status, await ownerResponse.text());
           
           // Send auto-reply to user
-          await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-confirmation`, {
+          console.log('📤 Sending confirmation to user...');
+          const userResponse = await fetch(`${req.protocol}://${req.get('host')}/api/send-ticket-confirmation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1196,16 +1210,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: ticketData.title,
             }),
           });
+          console.log('📧 User confirmation response:', userResponse.status, await userResponse.text());
+          
+          console.log('✅ All emails sent successfully!\n');
         } catch (emailError) {
-          console.error('Failed to send ticket emails:', emailError);
+          console.error('❌ Failed to send ticket emails:', emailError);
+          console.error('   Error details:', emailError);
         }
+      } else {
+        console.log('⚠️ No email provided, skipping email notifications');
       }
       
-      console.log('✅ Ticket created successfully, returning:', { ticketId, ...ticket });
+      console.log('\n✅ ========== TICKET CREATION COMPLETE ==========');
+      console.log('Returning response with ticketId:', ticketId);
+      console.log('================================================\n');
+      
       // IMPORTANT: Ensure ticketId is in the response
       res.status(201).json({ ticketId, ...ticket });
     } catch (error) {
-      console.error("Error creating ticket:", error);
+      console.error("\n❌ ========== TICKET CREATION ERROR ==========");
+      console.error("Error:", error);
+      console.error("==============================================\n");
       res.status(500).json({ message: "Failed to create ticket" });
     }
   });

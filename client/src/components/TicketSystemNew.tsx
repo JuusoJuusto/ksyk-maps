@@ -38,21 +38,38 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
 
   const createTicketMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      console.log('🎫 Creating ticket with data:', data);
       const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to create ticket');
-      const result = await response.json();
-      console.log('✅ Ticket created:', result);
+      
+      console.log('📡 Response status:', response.status);
+      const responseText = await response.text();
+      console.log('📡 Response text:', responseText);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to create ticket:', responseText);
+        throw new Error('Failed to create ticket');
+      }
+      
+      const result = JSON.parse(responseText);
+      console.log('✅ Ticket created successfully:', result);
+      console.log('📋 Ticket ID from response:', result.ticketId);
+      
       return result;
     },
     onSuccess: (data) => {
-      console.log('📋 Setting ticket ID:', data.ticketId);
-      setTicketId(data.ticketId || 'ERROR-NO-ID');
+      console.log('🎉 onSuccess called with data:', data);
+      const id = data.ticketId || data.id || 'ERROR-NO-ID';
+      console.log('📋 Setting ticket ID to:', id);
+      setTicketId(id);
       setSubmitted(true);
     },
+    onError: (error) => {
+      console.error('❌ Mutation error:', error);
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
