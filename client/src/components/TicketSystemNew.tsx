@@ -13,6 +13,17 @@ interface TicketSystemProps {
   onClose: () => void;
 }
 
+const quickTemplates = [
+  { type: 'bug', title: 'Language switch issue', description: 'The British English mode shows up as regular English when selected.' },
+  { type: 'bug', title: 'Map not loading', description: 'The campus map is not displaying buildings or rooms correctly.' },
+  { type: 'bug', title: 'Navigation not working', description: 'The navigation feature is not showing routes between rooms.' },
+  { type: 'feature', title: 'Add new building', description: 'Request to add a new building to the campus map.' },
+  { type: 'feature', title: 'Room booking system', description: 'Would like to be able to book rooms through the app.' },
+  { type: 'support', title: 'How to use navigation', description: 'Need help understanding how to navigate between rooms.' },
+  { type: 'support', title: 'Account access issue', description: 'Having trouble accessing my account or admin panel.' },
+  { type: 'feedback', title: 'General feedback', description: 'I have some suggestions for improving the app.' },
+];
+
 export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) {
   const [formData, setFormData] = useState({
     type: 'support',
@@ -23,6 +34,7 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
   });
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const createTicketMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -57,11 +69,28 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
     setTicketId('');
   };
 
+  const applyTemplate = (template: typeof quickTemplates[0]) => {
+    setFormData({
+      ...formData,
+      type: template.type,
+      title: template.title,
+      description: template.description,
+    });
+    setShowTemplates(false);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl">
             {submitted ? '✓ Ticket Submitted' : '📝 Submit Support Ticket'}
@@ -99,6 +128,42 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Quick Templates */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-semibold">⚡ Quick Templates</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className="text-xs"
+                  >
+                    {showTemplates ? 'Hide' : 'Show'}
+                  </Button>
+                </div>
+                {showTemplates && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                    {quickTemplates.map((template, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => applyTemplate(template)}
+                        className="text-left p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+                      >
+                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                          {template.type === 'bug' && '🐛 Bug'}
+                          {template.type === 'feature' && '✨ Feature'}
+                          {template.type === 'support' && '❓ Support'}
+                          {template.type === 'feedback' && '💬 Feedback'}
+                        </div>
+                        <div className="text-sm font-medium">{template.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <Label htmlFor="type">Ticket Type</Label>
                 <Select

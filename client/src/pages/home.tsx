@@ -58,7 +58,10 @@ interface Room {
 
 export default function Home() {
   const { t, i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(i18n.language);
+  const [currentLang, setCurrentLang] = useState(() => {
+    const saved = localStorage.getItem('ksyk_language');
+    return saved || i18n.language;
+  });
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, toggleTheme } = useTheme();
   const [ticketOpen, setTicketOpen] = useState(false);
@@ -107,8 +110,8 @@ export default function Home() {
   
   const handleLanguageChange = (lang: string) => {
     localStorage.setItem('ksyk_language', lang);
+    setCurrentLang(lang);
     i18n.changeLanguage(lang).then(() => {
-      setCurrentLang(lang);
       window.location.reload();
     });
   };
@@ -1368,7 +1371,7 @@ export default function Home() {
           {/* Settings Tab Content */}
           {activeTab === 'settings' && (
             <div className="h-full overflow-auto">
-              <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4 md:p-8 pt-20`}>
+              <div className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4 md:p-8 pt-20 pb-8`}>
                 <div className="max-w-4xl mx-auto space-y-6">
                   
                   {/* Language Settings */}
@@ -1521,11 +1524,57 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        {currentLang === 'fi' ? '📋 Versiohistoria' : '📋 Version History'}
+                        {currentLang === 'fi' ? '📋 Versiohistoria ja muutosloki' : '📋 Version History & Changelog'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <VersionInfo />
+                      <div className={`space-y-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div>
+                          <p className="text-lg font-bold mb-2">Current Version: 3.2.1</p>
+                          <p className="text-sm mb-4">Released: March 19, 2026</p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="border-l-4 border-blue-500 pl-4">
+                            <p className="font-semibold">v3.2.1 - Latest</p>
+                            <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
+                              <li>Added comprehensive floor plan rooms (77+ rooms)</li>
+                              <li>Fixed British English language display</li>
+                              <li>Improved ticket system with templates</li>
+                              <li>Enhanced UI/UX across the app</li>
+                              <li>Fixed secret unlock popup visibility</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="border-l-4 border-gray-400 pl-4">
+                            <p className="font-semibold">v3.2.0</p>
+                            <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
+                              <li>Added KSYK Builder with AI assistance</li>
+                              <li>Implemented ticket system</li>
+                              <li>Added error tracking and logging</li>
+                              <li>Enhanced navigation features</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="border-l-4 border-gray-400 pl-4">
+                            <p className="font-semibold">v3.1.0</p>
+                            <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
+                              <li>Added dark mode support</li>
+                              <li>Improved mobile responsiveness</li>
+                              <li>Added multi-language support</li>
+                              <li>Performance optimizations</li>
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          onClick={() => window.open('https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md', '_blank')}
+                          variant="outline"
+                          className="w-full mt-4"
+                        >
+                          {currentLang === 'fi' ? 'Näytä täydellinen muutosloki' : 'View Full Changelog'}
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
 
