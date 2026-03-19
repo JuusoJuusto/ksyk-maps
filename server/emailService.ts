@@ -13,7 +13,7 @@ const createTransporter = () => {
     secure: false, // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
+      pass: process.env.EMAIL_PASSWORD.replace(/\s/g, ''), // Remove spaces from password
     },
   });
 };
@@ -242,7 +242,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
 
   // All emails use blue theme
   const headerColor = '#2563eb';
-  const headerIcon = '📧';
+  const headerEmoji = '📧';
 
   const htmlContent = `
 <!DOCTYPE html>

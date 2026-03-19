@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Email - KSYK Maps</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 KSYK Maps Email Test</h1>
+    <p>Test the email system by sending a test email to yourself.</p>
+    
+    <label for="email">Your Email:</label>
+    <input type="email" id="email" placeholder="your@email.com" value="juusojuusto112@gmail.com">
+    
+    <label for="name">Your Name:</label>
+    <input type="text" id="name" placeholder="Your Name" value="Juuso">
+    
+    <button onclick="sendTestEmail()">📧 Send Test Email</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function sendTestEmail() {
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = '⏳ Sending email...';
+            resultDiv.className = '';
+            
+            try {
+                const response = await fetch('/api/test-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.textContent = '✅ SUCCESS!\n\n' + JSON.stringify(data, null, 2) + '\n\nCheck your email inbox (and spam folder)!';
+                    resultDiv.className = 'success';
+                } else {
+                    resultDiv.textContent = '❌ FAILED!\n\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ ERROR!\n\n' + error.message;
+                resultDiv.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>
