@@ -1253,25 +1253,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const oldTicket = await storage.getTicket(req.params.id);
+      if (!oldTicket) {
+        return res.status(404).json({ message: 'Ticket not found' });
+      }
+      
       const ticket = await storage.updateTicket(req.params.id, req.body);
+      
+      // Use old ticket's email if new ticket doesn't have it
+      const emailToUse = ticket.email || oldTicket.email;
       
       console.log('\n🔄 ========== TICKET UPDATE ==========');
       console.log('Ticket ID:', ticket.ticketId);
-      console.log('Old Status:', oldTicket?.status);
-      console.log('New Status:', ticket.status);
-      console.log('Has Email:', !!ticket.email);
-      console.log('Email Address:', ticket.email);
+      console.log('Old Ticket Email:', oldTicket.email);
+      console.log('New Ticket Email:', ticket.email);
+      console.log('Email To Use:', emailToUse);
       console.log('Has Response:', !!req.body.response);
       console.log('Response Text:', req.body.response?.substring(0, 100));
-      console.log('Status Changed:', oldTicket?.status !== ticket.status);
-      console.log('Should Send Email:', !!(ticket.email && req.body.response));
+      console.log('Should Send Email:', !!(emailToUse && req.body.response));
       console.log('=====================================\n');
       
       // ALWAYS send email if there's an email address and a response
-      if (ticket.email && req.body.response) {
+      if (emailToUse && req.body.response) {
         try {
           console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
-          console.log('To:', ticket.email);
+          console.log('To:', emailToUse);
           console.log('Response:', req.body.response.substring(0, 100));
           console.log('Email User:', process.env.EMAIL_USER);
           console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
@@ -1283,7 +1288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('📤 Calling sendTicketEmail...');
           
           const emailResult = await sendTicketEmail(
-            ticket.email, 
+            emailToUse, 
             subject,
             req.body.response,
             {
@@ -1312,8 +1317,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         console.log('⚠️ No email sent - missing email or response');
-        console.log('Has email:', !!ticket.email);
-        console.log('Email value:', ticket.email);
+        console.log('Has email:', !!emailToUse);
+        console.log('Email value:', emailToUse);
         console.log('Has response:', !!req.body.response);
         console.log('Response value:', req.body.response);
       }
