@@ -265,7 +265,9 @@ export default function Header() {
 
         {/* Mobile Dropdown Menu */}
         {showMobileMenu && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50 animate-slide-in-top">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50" style={{
+            animation: 'slideDownFromTop 0.3s ease-out'
+          }}>
             <div className="px-4 py-3 space-y-3">
               {!isInAdminPanel ? (
                 <>

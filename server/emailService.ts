@@ -38,17 +38,66 @@ export async function sendPasswordSetupEmail(email: string, subject: string, bod
   // Check if this is a simple text email or HTML email
   const isSimpleEmail = !body.includes('<html') && !body.includes('<!DOCTYPE');
   
+  // Create beautiful HTML email template
+  const htmlTemplate = isSimpleEmail ? `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                KSYK Maps
+              </h1>
+              <p style="margin: 10px 0 0 0; color: #dbeafe; font-size: 14px; font-weight: 500;">
+                Interactive Campus Navigation
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <div style="white-space: pre-wrap; color: #374151; font-size: 15px; line-height: 1.6;">
+${body}
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px;">
+                © 2026 KSYK Maps by StudiOWL
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                This is an automated message. Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  ` : body;
+  
   const emailContent = {
     from: `"KSYK Maps Support" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: subject,
-    ...(isSimpleEmail ? {
-      text: body,
-      html: `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${body}</pre>`
-    } : {
-      html: body,
-      text: body.replace(/<[^>]*>/g, '')
-    })
+    text: body.replace(/<[^>]*>/g, ''),
+    html: htmlTemplate
   };
 
   try {

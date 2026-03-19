@@ -752,7 +752,18 @@ body {
 /* Enhanced Mobile Animations */
 @keyframes mobile-slide-in-top {
   from {
-    transform: translateY(-20px);
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDownFromTop {
+  from {
+    transform: translateY(-100%);
     opacity: 0;
   }
   to {
