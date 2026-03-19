@@ -20,7 +20,7 @@ const sampleRooms = [
   { buildingId: '', roomNumber: 'M13', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 1, type: 'classroom', capacity: 25, mapPositionX: 240, mapPositionY: 80, width: 70, height: 50, isActive: true },
   { buildingId: '', roomNumber: 'M14', name: 'Music Room', nameEn: 'Music Room', nameFi: 'Musiikkihuone', floor: 1, type: 'classroom', capacity: 25, mapPositionX: 320, mapPositionY: 80, width: 70, height: 50, isActive: true },
   
-  // U Building rooms
+  // U Building rooms (U-Wing)
   { buildingId: '', roomNumber: 'U11', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 1080, mapPositionY: 80, width: 70, height: 50, isActive: true },
   { buildingId: '', roomNumber: 'U12', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 1160, mapPositionY: 80, width: 70, height: 50, isActive: true },
   { buildingId: '', roomNumber: 'U13', name: 'Classroom', nameEn: 'Classroom', nameFi: 'Luokkahuone', floor: 1, type: 'classroom', capacity: 30, mapPositionX: 1240, mapPositionY: 80, width: 70, height: 50, isActive: true },

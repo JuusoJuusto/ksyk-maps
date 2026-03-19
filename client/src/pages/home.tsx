@@ -272,15 +272,10 @@ export default function Home() {
         onNavigate={handleNavigate}
       />
       
-      {/* Version Info Button - Fixed positioning */}
-      <div className="fixed bottom-4 right-4 z-[30]">
-        <VersionInfo />
-      </div>
-      
       {/* Ticket System Button - Fixed positioning */}
       <button
         onClick={() => setTicketOpen(true)}
-        className="fixed bottom-20 right-4 z-[30] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
+        className="fixed bottom-4 right-4 z-[30] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
         title="Submit Support Ticket"
       >
         <Ticket className="h-5 w-5" />
@@ -1372,8 +1367,8 @@ export default function Home() {
 
           {/* Settings Tab Content */}
           {activeTab === 'settings' && (
-            <div className="h-full overflow-auto pt-16">
-              <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
+            <div className="h-full overflow-auto">
+              <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4 md:p-8 pt-20`}>
                 <div className="max-w-4xl mx-auto space-y-6">
                   
                   {/* Language Settings */}
@@ -1405,10 +1400,15 @@ export default function Home() {
                             onClick={() => handleLanguageChange('en-GB')}
                             className="flex-1 min-w-[120px]"
                           >
-                            🇬🇧 British English
+                            🇬🇧 British English (innit)
                           </Button>
                         )}
                       </div>
+                      {currentLang === 'en-GB' && (
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-3 text-center">
+                          ✨ Secret language unlocked! Proper British, innit bruv
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1514,6 +1514,18 @@ export default function Home() {
                           {currentLang === 'fi' ? 'Lue lisää' : 'Learn More'}
                         </Button>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Version Info & Changelog */}
+                  <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+                    <CardHeader>
+                      <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
+                        {currentLang === 'fi' ? '📋 Versiohistoria' : '📋 Version History'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <VersionInfo />
                     </CardContent>
                   </Card>
 
