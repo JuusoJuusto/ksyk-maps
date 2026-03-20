@@ -206,7 +206,7 @@ async function resetAndCreateBiggerSchool() {
 
     // Building A - Stairways (one per floor for navigation)
     for (let floor = 1; floor <= 4; floor++) {
-      await firebaseStorage.createRoom({
+      const roomData: any = {
         buildingId: buildingA.id,
         roomNumber: `A-STAIRS-${floor}`,
         name: `Main Stairway F${floor}`,
@@ -219,9 +219,15 @@ async function resetAndCreateBiggerSchool() {
         mapPositionY: 700,
         width: 80,
         height: 120,
-        isActive: true,
-        connectedRoomId: floor < 4 ? `A-STAIRS-${floor + 1}` : undefined
-      });
+        isActive: true
+      };
+      
+      // Only add connectedRoomId if not the top floor
+      if (floor < 4) {
+        roomData.connectedRoomId = `A-STAIRS-${floor + 1}`;
+      }
+      
+      await firebaseStorage.createRoom(roomData);
     }
     console.log('✅ Created 4 stairways for Building A (all floors)');
 
