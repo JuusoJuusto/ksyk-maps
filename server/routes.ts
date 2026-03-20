@@ -1264,10 +1264,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('=====================================\n');
       
       // CRITICAL: Preserve email field when updating
-      const updateData = {
-        ...req.body,
-        email: oldTicket.email // Always preserve the original email
-      };
+      // Only include email in update if it exists (don't pass undefined which would delete the field)
+      const updateData: any = { ...req.body };
+      if (oldTicket.email) {
+        updateData.email = oldTicket.email;
+      }
       
       console.log('\n📦 ========== UPDATE DATA ==========');
       console.log('Update Data:', JSON.stringify(updateData, null, 2));
