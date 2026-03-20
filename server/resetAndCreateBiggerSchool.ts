@@ -21,13 +21,13 @@ async function resetAndCreateBiggerSchool() {
     
     console.log('✅ All buildings deleted\n');
     
-    console.log('🏫 ========== CREATING GIGANTIC CENTERED SCHOOL ==========\n');
+    console.log('🏫 ========== CREATING ULTRA-GIGANTIC CENTERED SCHOOL ==========\n');
 
-    // GIGANTIC BUILDINGS - 10X LARGER, moved RIGHT and DOWN for perfect centering!
-    // Shifted right by +1000 and down by +500 for better positioning
+    // ULTRA-GIGANTIC BUILDINGS - 20X LARGER, perfectly centered!
+    // Shifted right by +2000 and down by +1000 for perfect centering
     
-    // Building A - Main Building (GIGANTIC - 3000x2000)
-    console.log('🏢 Creating GIGANTIC Building A - Main Building...');
+    // Building A - Main Building (ULTRA-GIGANTIC - 6000x4000)
+    console.log('🏢 Creating ULTRA-GIGANTIC Building A - Main Building...');
     const buildingA = await firebaseStorage.createBuilding({
       name: 'A',
       nameEn: 'Main Building',
@@ -36,22 +36,22 @@ async function resetAndCreateBiggerSchool() {
       floors: 4,
       capacity: 500,
       colorCode: '#3B82F6',
-      mapPositionX: 1200,
-      mapPositionY: 700,
+      mapPositionX: 2000,
+      mapPositionY: 1500,
       isActive: true,
       description: JSON.stringify({
         customShape: [
-          { x: 1200, y: 700 },
-          { x: 4200, y: 700 },
-          { x: 4200, y: 2700 },
-          { x: 1200, y: 2700 }
+          { x: 2000, y: 1500 },
+          { x: 8000, y: 1500 },
+          { x: 8000, y: 5500 },
+          { x: 2000, y: 5500 }
         ]
       })
     });
     console.log('✅ Building A created:', buildingA.id);
 
-    // Building M - Music Building (GIGANTIC - 2000x1500)
-    console.log('🎵 Creating GIGANTIC Building M - Music Building...');
+    // Building M - Music Building (ULTRA-GIGANTIC - 4000x3000)
+    console.log('🎵 Creating ULTRA-GIGANTIC Building M - Music Building...');
     const buildingM = await firebaseStorage.createBuilding({
       name: 'M',
       nameEn: 'Music Building',
@@ -60,22 +60,22 @@ async function resetAndCreateBiggerSchool() {
       floors: 2,
       capacity: 150,
       colorCode: '#8B5CF6',
-      mapPositionX: 4300,
-      mapPositionY: 700,
+      mapPositionX: 8500,
+      mapPositionY: 1500,
       isActive: true,
       description: JSON.stringify({
         customShape: [
-          { x: 4300, y: 700 },
-          { x: 6300, y: 700 },
-          { x: 6300, y: 2200 },
-          { x: 4300, y: 2200 }
+          { x: 8500, y: 1500 },
+          { x: 12500, y: 1500 },
+          { x: 12500, y: 4500 },
+          { x: 8500, y: 4500 }
         ]
       })
     });
     console.log('✅ Building M created:', buildingM.id);
 
-    // Building K - Cafeteria (GIGANTIC - 2000x1500)
-    console.log('🍽️ Creating GIGANTIC Building K - Cafeteria...');
+    // Building K - Cafeteria (ULTRA-GIGANTIC - 4000x3000)
+    console.log('🍽️ Creating ULTRA-GIGANTIC Building K - Cafeteria...');
     const buildingK = await firebaseStorage.createBuilding({
       name: 'K',
       nameEn: 'Cafeteria',
@@ -84,22 +84,22 @@ async function resetAndCreateBiggerSchool() {
       floors: 1,
       capacity: 200,
       colorCode: '#F59E0B',
-      mapPositionX: 1200,
-      mapPositionY: 2800,
+      mapPositionX: 2000,
+      mapPositionY: 6000,
       isActive: true,
       description: JSON.stringify({
         customShape: [
-          { x: 1200, y: 2800 },
-          { x: 3200, y: 2800 },
-          { x: 3200, y: 4300 },
-          { x: 1200, y: 4300 }
+          { x: 2000, y: 6000 },
+          { x: 6000, y: 6000 },
+          { x: 6000, y: 9000 },
+          { x: 2000, y: 9000 }
         ]
       })
     });
     console.log('✅ Building K created:', buildingK.id);
 
-    // Building L - Library (GIGANTIC - 2000x1500)
-    console.log('📚 Creating GIGANTIC Building L - Library...');
+    // Building L - Library (ULTRA-GIGANTIC - 4000x3000)
+    console.log('📚 Creating ULTRA-GIGANTIC Building L - Library...');
     const buildingL = await firebaseStorage.createBuilding({
       name: 'L',
       nameEn: 'Library',
@@ -108,22 +108,22 @@ async function resetAndCreateBiggerSchool() {
       floors: 3,
       capacity: 300,
       colorCode: '#10B981',
-      mapPositionX: 3300,
-      mapPositionY: 2800,
+      mapPositionX: 6500,
+      mapPositionY: 6000,
       isActive: true,
       description: JSON.stringify({
         customShape: [
-          { x: 3300, y: 2800 },
-          { x: 5300, y: 2800 },
-          { x: 5300, y: 4300 },
-          { x: 3300, y: 4300 }
+          { x: 6500, y: 6000 },
+          { x: 10500, y: 6000 },
+          { x: 10500, y: 9000 },
+          { x: 6500, y: 9000 }
         ]
       })
     });
     console.log('✅ Building L created:', buildingL.id);
 
-    // Building U - Sports Hall (GIGANTIC - 2500x2000)
-    console.log('🏃 Creating GIGANTIC Building U - Sports Hall...');
+    // Building U - Sports Hall (ULTRA-GIGANTIC - 5000x4000)
+    console.log('🏃 Creating ULTRA-GIGANTIC Building U - Sports Hall...');
     const buildingU = await firebaseStorage.createBuilding({
       name: 'U',
       nameEn: 'Sports Hall',
@@ -132,15 +132,15 @@ async function resetAndCreateBiggerSchool() {
       floors: 2,
       capacity: 400,
       colorCode: '#EF4444',
-      mapPositionX: 5400,
-      mapPositionY: 2800,
+      mapPositionX: 11000,
+      mapPositionY: 6000,
       isActive: true,
       description: JSON.stringify({
         customShape: [
-          { x: 5400, y: 2800 },
-          { x: 7900, y: 2800 },
-          { x: 7900, y: 4800 },
-          { x: 5400, y: 4800 }
+          { x: 11000, y: 6000 },
+          { x: 16000, y: 6000 },
+          { x: 16000, y: 10000 },
+          { x: 11000, y: 10000 }
         ]
       })
     });

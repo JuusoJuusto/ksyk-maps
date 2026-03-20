@@ -179,6 +179,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
               }
             }
           }
+        });
       });
       
       return graph;
