@@ -221,8 +221,8 @@ export default function InteractiveCampusMap({
                       x={gridX + buildingWidth / 2}
                       y={gridY + buildingHeight / 2 - 10}
                       textAnchor="middle"
-                      className="fill-white font-bold text-3xl pointer-events-none"
-                      style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
+                      className="fill-white font-bold pointer-events-none"
+                      style={{ fontSize: '48px', textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
                     >
                       {building.name}
                     </text>
@@ -230,10 +230,10 @@ export default function InteractiveCampusMap({
                     {/* Building Name */}
                     <text
                       x={gridX + buildingWidth / 2}
-                      y={gridY + buildingHeight / 2 + 15}
+                      y={gridY + buildingHeight / 2 + 20}
                       textAnchor="middle"
-                      className="fill-white text-sm pointer-events-none"
-                      style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.7)" }}
+                      className="fill-white pointer-events-none"
+                      style={{ fontSize: '20px', textShadow: "1px 1px 2px rgba(0,0,0,0.7)" }}
                     >
                       {building.nameEn || building.name}
                     </text>
@@ -241,9 +241,10 @@ export default function InteractiveCampusMap({
                     {/* Floor indicator */}
                     <text
                       x={gridX + buildingWidth / 2}
-                      y={gridY + buildingHeight / 2 + 30}
+                      y={gridY + buildingHeight / 2 + 40}
                       textAnchor="middle"
-                      className="fill-white text-xs pointer-events-none opacity-90"
+                      className="fill-white pointer-events-none opacity-90"
+                      style={{ fontSize: '16px' }}
                     >
                       {building.floors} Floor{building.floors > 1 ? 's' : ''} • {buildingRooms.length} Rooms
                     </text>

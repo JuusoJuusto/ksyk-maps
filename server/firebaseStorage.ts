@@ -873,10 +873,11 @@ export class FirebaseStorage implements IStorage {
       console.log('   Update data:', JSON.stringify(ticket, null, 2));
       console.log('   Email in update data:', ticket.email);
       
-      await db.collection('tickets').doc(id).update({
+      // CRITICAL FIX: Use set with merge to preserve existing fields like email
+      await db.collection('tickets').doc(id).set({
         ...ticket,
         updatedAt: new Date()
-      });
+      }, { merge: true });
       
       console.log('✅ Firestore update complete, fetching updated ticket...');
       const updated = await this.getTicket(id);

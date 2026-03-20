@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
 import { AdminLogin } from "@/components/AdminLogin";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -166,6 +167,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col">
       <Header />
+      <AnnouncementBanner />
       <main className="flex-1 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full flex flex-col">
         {/* Welcome Header */}
         <div className="mb-4 sm:mb-8 bg-blue-600 rounded-xl shadow-lg p-4 sm:p-8 text-white">
