@@ -15,6 +15,10 @@
       "destination": "/api"
     },
     {
+      "source": "/google7116ce6c6365eddb.html",
+      "destination": "/google7116ce6c6365eddb.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
