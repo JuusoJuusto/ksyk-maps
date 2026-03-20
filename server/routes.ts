@@ -1290,6 +1290,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use ticket.email (from database) as it's the most reliable source
       const emailToUse = ticket.email || oldTicket.email || updateData.email;
       
+      console.log('\n🚨 ========== EMAIL DECISION ==========');
+      console.log('ticket.email:', ticket.email);
+      console.log('oldTicket.email:', oldTicket.email);
+      console.log('updateData.email:', updateData.email);
+      console.log('emailToUse (final):', emailToUse);
+      console.log('Has response:', !!req.body.response);
+      console.log('WILL SEND EMAIL:', !!(emailToUse && req.body.response));
+      console.log('=====================================\n');
+      
       if (emailToUse && req.body.response) {
         try {
           console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
