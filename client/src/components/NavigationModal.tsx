@@ -161,7 +161,24 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
               graph.get(roomA.id)?.push({ id: roomB.id, weight, type: 'long_corridor' });
             }
           }
-        });
+          // CRITICAL: Cross-building connections via hallways (connectors)
+          else if (roomA.buildingId !== roomB.buildingId) {
+            // Allow hallway-to-hallway connections between buildings (connectors)
+            if (floorDiff === 0 && distance < 500 && 
+                (roomA.type === 'hallway' || roomB.type === 'hallway')) {
+              const weight = distance * 1.5; // Penalty for cross-building
+              graph.get(roomA.id)?.push({ id: roomB.id, weight, type: 'connector' });
+              console.log(`🔗 Cross-building connector: ${roomA.roomNumber} (${roomA.buildingId}) ↔ ${roomB.roomNumber} (${roomB.buildingId})`);
+            }
+            // Also allow room-to-hallway connections near building edges
+            else if (floorDiff === 0 && distance < 300) {
+              if ((roomA.type === 'hallway' && roomB.type !== 'hallway') ||
+                  (roomA.type !== 'hallway' && roomB.type === 'hallway')) {
+                const weight = distance * 1.8;
+                graph.get(roomA.id)?.push({ id: roomB.id, weight, type: 'building_edge' });
+              }
+            }
+          }
       });
       
       return graph;

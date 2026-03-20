@@ -834,9 +834,17 @@ export class FirebaseStorage implements IStorage {
 
   async getTicket(id: string): Promise<any | undefined> {
     try {
+      console.log('🔍 FirebaseStorage.getTicket called for ID:', id);
       const doc = await db.collection('tickets').doc(id).get();
-      if (!doc.exists) return undefined;
-      return { id: doc.id, ...doc.data() };
+      if (!doc.exists) {
+        console.log('❌ Ticket not found:', id);
+        return undefined;
+      }
+      const data = doc.data();
+      const ticket = { id: doc.id, ...data };
+      console.log('📧 Ticket email field:', ticket.email);
+      console.log('📋 Full ticket data:', JSON.stringify(ticket, null, 2));
+      return ticket;
     } catch (error) {
       console.error('Error getting ticket:', error);
       throw error;

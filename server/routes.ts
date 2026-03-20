@@ -1286,9 +1286,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Should Send Email:', !!(ticket.email && req.body.response));
       console.log('=====================================\n');
       
-      // ALWAYS send email if there's an email address and a response
-      // Use ticket.email (from database) as it's the most reliable source
-      const emailToUse = ticket.email || oldTicket.email || updateData.email;
+      // BULLETPROOF EMAIL LOGIC: Try multiple sources for email
+      let emailToUse = ticket.email;  // First try: updated ticket from database
+      if (!emailToUse) emailToUse = oldTicket.email;  // Second try: old ticket
+      if (!emailToUse) emailToUse = updateData.email;  // Third try: update data
+      
+      // If still no email, fetch the ticket again from database
+      if (!emailToUse && req.body.response) {
+        console.log('⚠️ Email not found in any source, fetching ticket again...');
+        const freshTicket = await storage.getTicket(req.params.id);
+        if (freshTicket && freshTicket.email) {
+          emailToUse = freshTicket.email;
+          console.log('✅ Found email in fresh fetch:', emailToUse);
+        }
+      }
       
       console.log('\n🚨 ========== EMAIL DECISION ==========');
       console.log('ticket.email:', ticket.email);
