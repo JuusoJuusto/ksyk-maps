@@ -134,7 +134,6 @@ export interface IStorage {
   getPopularRooms(limit?: number): Promise<any[]>;
   getVisitorStats(days?: number): Promise<any>;
 }
-}
 
 
 
