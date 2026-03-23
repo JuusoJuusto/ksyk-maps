@@ -115,7 +115,7 @@ export default function TicketManager() {
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: async () => {
-      const response = await fetch('/api/tickets');
+      const response = await fetch('/api/tickets', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch tickets');
       return response.json();
     },
@@ -127,6 +127,7 @@ export default function TicketManager() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to update ticket');
       return response.json();

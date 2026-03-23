@@ -165,9 +165,9 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col">
-      <Header />
+    <div className="min-h-screen bg-blue-50">
       <AnnouncementBanner />
+      <Header />
       <main className="flex-1 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full flex flex-col">
         {/* Welcome Header */}
         <div className="mb-4 sm:mb-8 bg-blue-600 rounded-xl shadow-lg p-4 sm:p-8 text-white">
