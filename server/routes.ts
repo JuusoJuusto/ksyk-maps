@@ -1364,24 +1364,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(ticket);
     } catch (error) {
-      console.error('Failed to update ticket:', error);
-      res.status(500).json({ message: "Failed to update ticket" });
-    }
-  });
----
-KSYK Maps Support Team
-https://ksykmaps.vercel.app
-          `.trim();
-          
-          await sendTicketEmail(ticket.email, `Ticket ${ticket.status.toUpperCase().replace('_', ' ')}: ${ticket.ticketId}`, emailBody);
-          console.log('✅ Status update email sent!');
-        } catch (emailError) {
-          console.error('❌ Failed to send ticket status update email:', emailError);
-        }
-      }
-      
-      res.json(ticket);
-    } catch (error) {
       await logError(error, 'PATCH /api/tickets/:id');
       res.status(500).json({ message: 'Failed to update ticket' });
     }
