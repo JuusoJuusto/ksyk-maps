@@ -1,4 +1,5 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -9,55 +10,121 @@ import {
   MapPin, 
   Activity,
   Zap,
-  Calendar
+  Calendar,
+  Globe,
+  Monitor,
+  Search,
+  Navigation
 } from 'lucide-react';
 
 export function AdvancedAnalytics() {
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['analytics-summary'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/summary', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics summary');
+      return response.json();
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: topSearches, isLoading: searchesLoading } = useQuery({
+    queryKey: ['analytics-searches'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/searches', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch top searches');
+      return response.json();
+    },
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  const { data: popularRooms, isLoading: roomsLoading } = useQuery({
+    queryKey: ['analytics-rooms'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/rooms', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch popular rooms');
+      return response.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const { data: visitorStats, isLoading: visitorsLoading } = useQuery({
+    queryKey: ['analytics-visitors'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/visitors', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch visitor stats');
+      return response.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const isLoading = summaryLoading || searchesLoading || roomsLoading || visitorsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-16 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </CardContent>
+          </Card>
+          <Card className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   const stats = [
     {
-      title: "Peak Usage Hours",
-      value: "10:00 - 14:00",
-      change: "+23%",
-      icon: Clock,
+      title: "Total Visitors",
+      value: summary?.totalVisitors?.toLocaleString() || '0',
+      change: visitorStats?.newVisitors ? `+${Math.round((visitorStats.newVisitors / summary?.totalVisitors) * 100)}%` : '+0%',
+      icon: Users,
       color: "text-blue-600"
     },
     {
-      title: "Most Popular Rooms",
-      value: "M12, K15, L20",
-      change: "+8%",
-      icon: MapPin,
+      title: "Page Views",
+      value: summary?.totalPageViews?.toLocaleString() || '0',
+      change: "+12%",
+      icon: Monitor,
       color: "text-green-600"
     },
     {
-      title: "Navigation Requests",
-      value: "1,247",
-      change: "+45%",
-      icon: Activity,
+      title: "Searches",
+      value: summary?.totalSearches?.toLocaleString() || '0',
+      change: "+8%",
+      icon: Search,
       color: "text-purple-600"
     },
     {
-      title: "Active Users Today",
-      value: "89",
-      change: "+12%",
-      icon: Users,
+      title: "Navigation Requests",
+      value: summary?.totalNavigationRequests?.toLocaleString() || '0',
+      change: "+15%",
+      icon: Navigation,
       color: "text-orange-600"
     }
-  ];
-
-  const roomPopularity = [
-    { room: "M12", usage: 95, type: "Music Room" },
-    { room: "K15", usage: 87, type: "Classroom" },
-    { room: "L20", usage: 79, type: "Library" },
-    { room: "A10", usage: 72, type: "Assembly" },
-    { room: "U05", usage: 68, type: "Utility" }
-  ];
-
-  const weeklyTrends = [
-    { day: "Mon", searches: 145, navigations: 89 },
-    { day: "Tue", searches: 167, navigations: 102 },
-    { day: "Wed", searches: 189, navigations: 134 },
-    { day: "Thu", searches: 201, navigations: 156 },
-    { day: "Fri", searches: 178, navigations: 123 }
   ];
 
   return (
@@ -84,101 +151,170 @@ export function AdvancedAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Room Popularity */}
+        {/* Popular Rooms */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-600" />
-              Room Popularity
+              Most Visited Rooms
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {roomPopularity.map((room, index) => (
+              {popularRooms?.slice(0, 5).map((room: any, index: number) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">{room.room}</span>
-                      <Badge variant="secondary" className="text-xs">{room.type}</Badge>
+                      <span className="font-semibold">{room.roomNumber}</span>
+                      <Badge variant="secondary" className="text-xs">{room.building}</Badge>
                     </div>
-                    <span className="text-sm text-gray-600">{room.usage}%</span>
+                    <span className="text-sm text-gray-600">{room.visits} visits</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${room.usage}%` }}
+                      style={{ width: `${Math.min((room.visits / (popularRooms[0]?.visits || 1)) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
-              ))}
+              )) || (
+                <div className="text-center text-gray-500 py-8">
+                  No room visit data available yet
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Weekly Trends */}
+        {/* Top Searches */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Weekly Activity
+              <Search className="w-5 h-5 text-blue-600" />
+              Top Searches
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {weeklyTrends.map((day, index) => (
+              {topSearches?.slice(0, 5).map((search: any, index: number) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{day.day}</span>
-                    <div className="flex gap-4 text-sm">
-                      <span className="text-blue-600">{day.searches} searches</span>
-                      <span className="text-green-600">{day.navigations} routes</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">"{search.query}"</span>
+                      <Badge variant="outline" className="text-xs">{search.type}</Badge>
                     </div>
+                    <span className="text-sm text-gray-600">{search.count} searches</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="w-full bg-blue-100 rounded-full h-1.5">
-                      <div 
-                        className="bg-blue-600 h-1.5 rounded-full"
-                        style={{ width: `${(day.searches / 250) * 100}%` }}
-                      />
-                    </div>
-                    <div className="w-full bg-green-100 rounded-full h-1.5">
-                      <div 
-                        className="bg-green-600 h-1.5 rounded-full"
-                        style={{ width: `${(day.navigations / 200) * 100}%` }}
-                      />
-                    </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min((search.count / (topSearches[0]?.count || 1)) * 100, 100)}%` }}
+                    />
                   </div>
                 </div>
-              ))}
+              )) || (
+                <div className="text-center text-gray-500 py-8">
+                  No search data available yet
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Real-time Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Browser & Country Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              Top Countries
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {summary?.topCountries?.slice(0, 5).map((country: any, index: number) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="font-medium">{country.country}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{ width: `${(country.count / (summary.topCountries[0]?.count || 1)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-12 text-right">{country.count}</span>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center text-gray-500 py-8">
+                  No country data available yet
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Browser Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-blue-600" />
+              Browser Usage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {summary?.topBrowsers?.slice(0, 5).map((browser: any, index: number) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="font-medium">{browser.browser}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${(browser.count / (summary.topBrowsers[0]?.count || 1)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-12 text-right">{browser.count}</span>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center text-gray-500 py-8">
+                  No browser data available yet
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Visitor Insights */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-600" />
-            Real-time Activity Feed
+            <Users className="w-5 h-5 text-blue-600" />
+            Visitor Insights
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-              <span className="text-sm">User navigated from M12 to K15</span>
-              <span className="text-xs text-gray-500 ml-auto">2 min ago</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{visitorStats?.uniqueVisitors || 0}</div>
+              <div className="text-sm text-gray-600">Unique Visitors</div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm">New room L25 added to system</span>
-              <span className="text-xs text-gray-500 ml-auto">5 min ago</span>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{visitorStats?.returningVisitors || 0}</div>
+              <div className="text-sm text-gray-600">Returning Visitors</div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
-              <span className="text-sm">Peak usage threshold reached</span>
-              <span className="text-xs text-gray-500 ml-auto">8 min ago</span>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{Math.round((visitorStats?.bounceRate || 0) * 100)}%</div>
+              <div className="text-sm text-gray-600">Bounce Rate</div>
+            </div>
+          </div>
+          <div className="mt-6">
+            <div className="text-sm text-gray-600 mb-2">Average Session Duration</div>
+            <div className="text-xl font-semibold">
+              {Math.floor((summary?.avgSessionDuration || 0) / 60)}m {Math.round((summary?.avgSessionDuration || 0) % 60)}s
             </div>
           </div>
         </CardContent>

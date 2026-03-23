@@ -1681,6 +1681,213 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // Analytics endpoints
+  app.post('/api/analytics/pageview', async (req, res) => {
+    try {
+      const { sessionId, userId, url, referrer, userAgent, ipAddress, country, city, browser, browserVersion, os, deviceType, screenResolution, language, timeZone, duration, isBounce } = req.body;
+      
+      await storage.createPageView({
+        sessionId,
+        userId,
+        url,
+        referrer,
+        userAgent,
+        ipAddress: ipAddress || req.ip,
+        country,
+        city,
+        browser,
+        browserVersion,
+        os,
+        deviceType,
+        screenResolution,
+        language,
+        timeZone,
+        duration,
+        isBounce
+      });
+
+      // Also log to app logs for debugging
+      await storage.createAppLog({
+        level: 'info',
+        message: `Page view: ${url}`,
+        userId,
+        userAgent,
+        url,
+        ipAddress: ipAddress || req.ip
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to track page view:', error);
+      res.status(500).json({ message: 'Failed to track page view' });
+    }
+  });
+
+  app.post('/api/analytics/search', async (req, res) => {
+    try {
+      const { sessionId, userId, query, resultsCount, clickedResult, searchType, filters, userAgent, ipAddress, country, city } = req.body;
+      
+      await storage.createSearchAnalytic({
+        sessionId,
+        userId,
+        query,
+        resultsCount,
+        clickedResult,
+        searchType,
+        filters,
+        userAgent,
+        ipAddress: ipAddress || req.ip,
+        country,
+        city
+      });
+
+      // Log search activity
+      await storage.createAppLog({
+        level: 'info',
+        message: `Search: "${query}" (${resultsCount} results)`,
+        userId,
+        userAgent,
+        url: req.get('referer'),
+        ipAddress: ipAddress || req.ip
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to track search:', error);
+      res.status(500).json({ message: 'Failed to track search' });
+    }
+  });
+
+  app.post('/api/analytics/navigation', async (req, res) => {
+    try {
+      const { sessionId, userId, fromRoom, toRoom, fromBuilding, toBuilding, navigationType, distance, duration, waypoints, userAgent, ipAddress, country, city } = req.body;
+      
+      await storage.createNavigationAnalytic({
+        sessionId,
+        userId,
+        fromRoom,
+        toRoom,
+        fromBuilding,
+        toBuilding,
+        navigationType,
+        distance,
+        duration,
+        waypoints,
+        userAgent,
+        ipAddress: ipAddress || req.ip,
+        country,
+        city
+      });
+
+      // Log navigation activity
+      await storage.createAppLog({
+        level: 'info',
+        message: `Navigation: ${fromRoom || fromBuilding} → ${toRoom || toBuilding}`,
+        userId,
+        userAgent,
+        url: req.get('referer'),
+        ipAddress: ipAddress || req.ip
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to track navigation:', error);
+      res.status(500).json({ message: 'Failed to track navigation' });
+    }
+  });
+
+  app.post('/api/analytics/session', async (req, res) => {
+    try {
+      const { sessionId, userId, ipAddress, userAgent, country, city, browser, os, deviceType, language, referrer, landingPage, isNewVisitor } = req.body;
+      
+      await storage.createUserSession({
+        sessionId,
+        userId,
+        ipAddress: ipAddress || req.ip,
+        userAgent,
+        country,
+        city,
+        browser,
+        os,
+        deviceType,
+        language,
+        referrer,
+        landingPage,
+        isNewVisitor
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      res.status(500).json({ message: 'Failed to create session' });
+    }
+  });
+
+  // Analytics data endpoints (admin only)
+  app.get('/api/analytics/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const days = req.query.days ? parseInt(req.query.days) : 30;
+      const summary = await storage.getAnalyticsSummary(days);
+      res.json(summary);
+    } catch (error) {
+      console.error('Failed to get analytics summary:', error);
+      res.status(500).json({ message: 'Failed to get analytics summary' });
+    }
+  });
+
+  app.get('/api/analytics/searches', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit) : 20;
+      const searches = await storage.getTopSearches(limit);
+      res.json(searches);
+    } catch (error) {
+      console.error('Failed to get top searches:', error);
+      res.status(500).json({ message: 'Failed to get top searches' });
+    }
+  });
+
+  app.get('/api/analytics/rooms', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit) : 20;
+      const rooms = await storage.getPopularRooms(limit);
+      res.json(rooms);
+    } catch (error) {
+      console.error('Failed to get popular rooms:', error);
+      res.status(500).json({ message: 'Failed to get popular rooms' });
+    }
+  });
+
+  app.get('/api/analytics/visitors', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const days = req.query.days ? parseInt(req.query.days) : 30;
+      const visitors = await storage.getVisitorStats(days);
+      res.json(visitors);
+    } catch (error) {
+      console.error('Failed to get visitor stats:', error);
+      res.status(500).json({ message: 'Failed to get visitor stats' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

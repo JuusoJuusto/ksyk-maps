@@ -122,6 +122,18 @@ export interface IStorage {
   }): Promise<void>;
   
   getAppLogs(limit?: number): Promise<any[]>;
+  
+  // Analytics operations
+  createPageView(view: any): Promise<void>;
+  createSearchAnalytic(search: any): Promise<void>;
+  createNavigationAnalytic(navigation: any): Promise<void>;
+  createUserSession(session: any): Promise<void>;
+  updateUserSession(sessionId: string, updates: any): Promise<void>;
+  getAnalyticsSummary(days?: number): Promise<any>;
+  getTopSearches(limit?: number): Promise<any[]>;
+  getPopularRooms(limit?: number): Promise<any[]>;
+  getVisitorStats(days?: number): Promise<any>;
+}
 }
 
 
@@ -506,6 +518,87 @@ class MemStorage implements IStorage {
   async getAppLogs(limit: number = 100): Promise<any[]> {
     // In-memory storage - return empty array
     return [];
+  }
+
+  // Analytics methods - mock implementations for in-memory storage
+  async createPageView(view: any): Promise<void> {
+    // Mock implementation - no-op
+  }
+
+  async createSearchAnalytic(search: any): Promise<void> {
+    // Mock implementation - no-op
+  }
+
+  async createNavigationAnalytic(navigation: any): Promise<void> {
+    // Mock implementation - no-op
+  }
+
+  async createUserSession(session: any): Promise<void> {
+    // Mock implementation - no-op
+  }
+
+  async updateUserSession(sessionId: string, updates: any): Promise<void> {
+    // Mock implementation - no-op
+  }
+
+  async getAnalyticsSummary(days: number = 30): Promise<any> {
+    // Mock analytics data
+    return {
+      totalVisitors: 1250,
+      totalPageViews: 3450,
+      totalSearches: 890,
+      totalNavigationRequests: 234,
+      topCountries: [
+        { country: 'Finland', count: 850 },
+        { country: 'Sweden', count: 120 },
+        { country: 'Norway', count: 95 }
+      ],
+      topBrowsers: [
+        { browser: 'Chrome', count: 780 },
+        { browser: 'Safari', count: 320 },
+        { browser: 'Firefox', count: 150 }
+      ],
+      peakHours: [10, 11, 12, 13, 14],
+      avgSessionDuration: 245 // seconds
+    };
+  }
+
+  async getTopSearches(limit: number = 10): Promise<any[]> {
+    // Mock top searches
+    return [
+      { query: 'M12', count: 45, type: 'room' },
+      { query: 'music room', count: 32, type: 'room' },
+      { query: 'K15', count: 28, type: 'room' },
+      { query: 'library', count: 25, type: 'room' },
+      { query: 'gym', count: 22, type: 'building' }
+    ];
+  }
+
+  async getPopularRooms(limit: number = 10): Promise<any[]> {
+    // Mock popular rooms
+    return [
+      { roomId: '1', roomNumber: 'M12', building: 'Music Building', visits: 95 },
+      { roomId: '2', roomNumber: 'K15', building: 'Central Hall', visits: 87 },
+      { roomId: '3', roomNumber: 'L20', building: 'Gymnasium', visits: 79 },
+      { roomId: '4', roomNumber: 'R12', building: 'R Building', visits: 65 },
+      { roomId: '5', roomNumber: 'A15', building: 'A Building', visits: 58 }
+    ];
+  }
+
+  async getVisitorStats(days: number = 30): Promise<any> {
+    // Mock visitor stats
+    return {
+      uniqueVisitors: 1250,
+      returningVisitors: 340,
+      newVisitors: 910,
+      bounceRate: 0.23,
+      avgPagesPerSession: 2.8,
+      topReferrers: [
+        { referrer: 'Direct', count: 650 },
+        { referrer: 'Google', count: 280 },
+        { referrer: 'School Website', count: 180 }
+      ]
+    };
   }
 }
 

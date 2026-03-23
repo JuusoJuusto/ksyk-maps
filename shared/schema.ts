@@ -248,6 +248,87 @@ export const appLogs = pgTable("app_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Analytics tables
+export const pageViews = pgTable("page_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  url: text("url").notNull(),
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  country: varchar("country"),
+  city: varchar("city"),
+  browser: varchar("browser"),
+  browserVersion: varchar("browser_version"),
+  os: varchar("os"),
+  deviceType: varchar("device_type"), // desktop, mobile, tablet
+  screenResolution: varchar("screen_resolution"),
+  language: varchar("language"),
+  timeZone: varchar("time_zone"),
+  duration: integer("duration"), // in seconds
+  isBounce: boolean("is_bounce").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const searchAnalytics = pgTable("search_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  query: text("query").notNull(),
+  resultsCount: integer("results_count").default(0),
+  clickedResult: varchar("clicked_result"), // room/building ID that was clicked
+  searchType: varchar("search_type").default("room"), // room, staff, building
+  filters: jsonb("filters"), // applied filters
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  country: varchar("country"),
+  city: varchar("city"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const navigationAnalytics = pgTable("navigation_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  fromRoom: varchar("from_room"), // room ID
+  toRoom: varchar("to_room"), // room ID
+  fromBuilding: varchar("from_building"), // building ID
+  toBuilding: varchar("to_building"), // building ID
+  navigationType: varchar("navigation_type"), // walking, driving, etc.
+  distance: numeric("distance"), // in meters
+  duration: integer("duration"), // estimated time in seconds
+  waypoints: jsonb("waypoints"), // route waypoints
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  country: varchar("country"),
+  city: varchar("city"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userSessions = pgTable("user_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  country: varchar("country"),
+  city: varchar("city"),
+  browser: varchar("browser"),
+  os: varchar("os"),
+  deviceType: varchar("device_type"),
+  language: varchar("language"),
+  referrer: text("referrer"),
+  landingPage: text("landing_page"),
+  exitPage: text("exit_page"),
+  pageViews: integer("page_views").default(1),
+  sessionDuration: integer("session_duration"), // in seconds
+  isNewVisitor: boolean("is_new_visitor").default(true),
+  isReturningVisitor: boolean("is_returning_visitor").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastActivity: timestamp("last_activity").defaultNow(),
+});
+
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),
@@ -373,6 +454,27 @@ export const insertAppLogSchema = createInsertSchema(appLogs).omit({
   createdAt: true,
 });
 
+export const insertPageViewSchema = createInsertSchema(pageViews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSearchAnalyticSchema = createInsertSchema(searchAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNavigationAnalyticSchema = createInsertSchema(navigationAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  createdAt: true,
+  lastActivity: true,
+});
+
 // App Settings table
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default('default'),
@@ -476,4 +578,14 @@ export type Ticket = typeof tickets.$inferSelect;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type AdminLoginLog = typeof adminLoginLogs.$inferSelect;
 export type InsertAdminLoginLog = z.infer<typeof insertAdminLoginLogSchema>;
+export type AppLog = typeof appLogs.$inferSelect;
+export type InsertAppLog = z.infer<typeof insertAppLogSchema>;
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = z.infer<typeof insertPageViewSchema>;
+export type SearchAnalytic = typeof searchAnalytics.$inferSelect;
+export type InsertSearchAnalytic = z.infer<typeof insertSearchAnalyticSchema>;
+export type NavigationAnalytic = typeof navigationAnalytics.$inferSelect;
+export type InsertNavigationAnalytic = z.infer<typeof insertNavigationAnalyticSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 

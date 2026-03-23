@@ -72,6 +72,43 @@ export default function AppLogsManager() {
     refetchInterval: 30000,
   });
 
+  // Fetch analytics data
+  const { data: analyticsSummary, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['analytics-summary'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/summary', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics summary');
+      return response.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const { data: topSearches, isLoading: searchesLoading } = useQuery({
+    queryKey: ['analytics-searches'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/searches', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch top searches');
+      return response.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const { data: popularRooms, isLoading: roomsLoading } = useQuery({
+    queryKey: ['analytics-rooms'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/rooms', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch popular rooms');
+      return response.json();
+    },
+    refetchInterval: 60000,
+  });
+
   const allLogs: LogEntry[] = [...loginLogs, ...appLogs].sort((a, b) => {
     const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
     const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
@@ -96,7 +133,7 @@ export default function AppLogsManager() {
   const appInfoCount = appLogs.filter(log => log.level === 'info' || log.level === 'success').length;
   const appWarningCount = appLogs.filter(log => log.level === 'warning' || log.level === 'error').length;
 
-  const isLoading = loginLogsLoading || appLogsLoading;
+  const isLoading = loginLogsLoading || appLogsLoading || analyticsLoading || searchesLoading || roomsLoading;
 
   if (isLoading) {
     return (
@@ -287,10 +324,12 @@ export default function AppLogsManager() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="all">All Logs ({allLogs.length})</TabsTrigger>
               <TabsTrigger value="logins">Logins ({loginLogs.length})</TabsTrigger>
               <TabsTrigger value="app">App Events ({appLogs.length})</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="insights">Insights</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="mt-4">
@@ -341,6 +380,199 @@ export default function AppLogsManager() {
                   )}
                 </div>
               </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="mt-4">
+              <div className="space-y-6">
+                {/* Analytics Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-8 w-8 text-blue-600" />
+                        <div>
+                          <p className="text-2xl font-bold">{analyticsSummary?.totalVisitors || 0}</p>
+                          <p className="text-sm text-gray-600">Total Visitors</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Monitor className="h-8 w-8 text-green-600" />
+                        <div>
+                          <p className="text-2xl font-bold">{analyticsSummary?.totalPageViews || 0}</p>
+                          <p className="text-sm text-gray-600">Page Views</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Search className="h-8 w-8 text-purple-600" />
+                        <div>
+                          <p className="text-2xl font-bold">{analyticsSummary?.totalSearches || 0}</p>
+                          <p className="text-sm text-gray-600">Searches</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Navigation className="h-8 w-8 text-orange-600" />
+                        <div>
+                          <p className="text-2xl font-bold">{analyticsSummary?.totalNavigationRequests || 0}</p>
+                          <p className="text-sm text-gray-600">Navigation</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Top Searches */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Searches</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {topSearches?.slice(0, 10).map((search: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <Search className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium">"{search.query}"</span>
+                            <Badge variant="outline" className="text-xs">{search.type}</Badge>
+                          </div>
+                          <span className="text-sm text-gray-600">{search.count} times</span>
+                        </div>
+                      )) || (
+                        <div className="text-center text-gray-500 py-4">
+                          No search data available yet
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Popular Rooms */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Most Visited Rooms</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {popularRooms?.slice(0, 10).map((room: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium">{room.roomNumber}</span>
+                            <span className="text-sm text-gray-600">({room.building})</span>
+                          </div>
+                          <span className="text-sm text-gray-600">{room.visits} visits</span>
+                        </div>
+                      )) || (
+                        <div className="text-center text-gray-500 py-4">
+                          No room visit data available yet
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="insights" className="mt-4">
+              <div className="space-y-6">
+                {/* Geographic Insights */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Geographic Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {analyticsSummary?.topCountries?.map((country: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="font-medium">{country.country}</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{ width: `${(country.count / (analyticsSummary.topCountries[0]?.count || 1)) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-600 w-12 text-right">{country.count}</span>
+                          </div>
+                        </div>
+                      )) || (
+                        <div className="text-center text-gray-500 py-4">
+                          No geographic data available yet
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Browser Usage */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Browser Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {analyticsSummary?.topBrowsers?.map((browser: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="font-medium">{browser.browser}</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-green-600 h-2 rounded-full"
+                                style={{ width: `${(browser.count / (analyticsSummary.topBrowsers[0]?.count || 1)) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-600 w-12 text-right">{browser.count}</span>
+                          </div>
+                        </div>
+                      )) || (
+                        <div className="text-center text-gray-500 py-4">
+                          No browser data available yet
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Usage Patterns */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Usage Patterns</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {analyticsSummary?.avgSessionDuration ? Math.floor(analyticsSummary.avgSessionDuration / 60) : 0}m {analyticsSummary?.avgSessionDuration ? Math.round(analyticsSummary.avgSessionDuration % 60) : 0}s
+                        </div>
+                        <div className="text-sm text-gray-600">Avg Session Duration</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">
+                          {analyticsSummary?.peakHours?.join(', ') || 'N/A'}
+                        </div>
+                        <div className="text-sm text-gray-600">Peak Hours</div>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {Math.round((1 - (analyticsSummary?.bounceRate || 0)) * 100)}%
+                        </div>
+                        <div className="text-sm text-gray-600">Engagement Rate</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
