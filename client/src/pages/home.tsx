@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAnalytics } from "@/lib/analytics";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import NavigationModal from "@/components/NavigationModal";
@@ -60,6 +61,7 @@ interface Room {
 
 export default function Home() {
   const { t, i18n } = useTranslation();
+  const analytics = useAnalytics();
   const [currentLang, setCurrentLang] = useState(() => {
     const saved = localStorage.getItem('ksyk_language');
     return saved || i18n.language;
@@ -96,6 +98,12 @@ export default function Home() {
     return !seen && window.innerWidth < 768;
   });
   
+  // Track page view on component mount
+  useEffect(() => {
+    analytics.pageView('/');
+    analytics.featureUse('home_page_load');
+  }, [analytics]);
+  
   useEffect(() => {
     if (showMobileHint) {
       const timer = setTimeout(() => {
@@ -111,6 +119,7 @@ export default function Home() {
   }, [sidebarOpen]);
   
   const handleLanguageChange = (lang: string) => {
+    analytics.featureUse('language_change', { from: currentLang, to: lang });
     localStorage.setItem('ksyk_language', lang);
     setCurrentLang(lang);
     i18n.changeLanguage(lang).then(() => {
@@ -180,10 +189,13 @@ export default function Home() {
         room.type.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setSearchResults(filtered.slice(0, 10));
+      
+      // Track search analytics
+      analytics.search(searchQuery, filtered.length);
     } else {
       setSearchResults([]);
     }
-  }, [searchQuery, rooms]);
+  }, [searchQuery, rooms, analytics]);
 
   // Get rooms for selected floor
   const floorRooms = rooms.filter((room: Room) => room.floor === selectedFloor);
@@ -344,6 +356,7 @@ export default function Home() {
                     key={room.id}
                     className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-blue-100 border-gray-200'}`}
                     onClick={() => {
+                      analytics.roomView(room.id, room.name || room.nameEn, room.buildingId);
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
                       setSearchQuery("");
@@ -798,6 +811,7 @@ export default function Home() {
                         <g 
                           key={building.id}
                           onClick={() => {
+                            analytics.buildingView(building.id, building.nameEn || building.name);
                             setSelectedBuilding(building);
                             setSelectedFloor(1);
                           }}
@@ -917,6 +931,7 @@ export default function Home() {
                       <g 
                         key={building.id}
                         onClick={() => {
+                          analytics.buildingView(building.id, building.nameEn || building.name);
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
@@ -1109,7 +1124,10 @@ export default function Home() {
                     const roomColor = roomColors[room.type] || '#9CA3AF';
                     
                     return (
-                      <g key={room.id} className="cursor-pointer" onClick={() => setSelectedRoom(room)}>
+                      <g key={room.id} className="cursor-pointer" onClick={() => {
+                        analytics.roomView(room.id, room.name || room.nameEn, room.buildingId);
+                        setSelectedRoom(room);
+                      }}>
                         {/* Room shadow - 2 layers */}
                         <rect
                           x={room.mapPositionX + 3}

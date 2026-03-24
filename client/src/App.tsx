@@ -11,6 +11,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
+import analytics from "@/lib/analytics";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
@@ -66,6 +67,9 @@ function App() {
     const handleError = (event: ErrorEvent) => {
       console.error('Global error:', event.error);
       
+      // Track error with analytics
+      analytics.track.error(event.error, event.filename, event.lineno);
+      
       // Log to admin panel
       fetch('/api/logs', {
         method: 'POST',
@@ -90,6 +94,9 @@ function App() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection:', event.reason);
       
+      // Track error with analytics
+      analytics.track.error(event.reason, 'Promise rejection');
+      
       // Log to admin panel
       fetch('/api/logs', {
         method: 'POST',
@@ -109,12 +116,32 @@ function App() {
       });
     };
 
+    // Track performance metrics
+    const trackPerformance = () => {
+      if ('performance' in window && 'getEntriesByType' in performance) {
+        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navigation) {
+          analytics.track.performance('page_load_time', navigation.loadEventEnd - navigation.fetchStart);
+          analytics.track.performance('dom_content_loaded', navigation.domContentLoadedEventEnd - navigation.fetchStart);
+          analytics.track.performance('first_paint', navigation.responseEnd - navigation.fetchStart);
+        }
+      }
+    };
+
+    // Track performance after page load
+    if (document.readyState === 'complete') {
+      trackPerformance();
+    } else {
+      window.addEventListener('load', trackPerformance);
+    }
+
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('load', trackPerformance);
     };
   }, []);
 
