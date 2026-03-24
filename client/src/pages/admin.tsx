@@ -165,11 +165,11 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="h-screen flex flex-col bg-blue-50">
+    <div className="min-h-screen bg-blue-50">
       {/* Top Announcement Banner - Fixed at top, same as main page */}
       <AnnouncementBanner />
       <Header />
-      <main className="flex-1 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full flex flex-col overflow-y-auto">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full">
         {/* Welcome Header */}
         <div className="mb-4 sm:mb-8 bg-blue-600 rounded-xl shadow-lg p-4 sm:p-8 text-white">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -192,7 +192,7 @@ export default function Admin() {
         </div>
         
         {/* Dashboard Content */}
-        <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
           <AdminDashboard />
         </div>
       </main>
