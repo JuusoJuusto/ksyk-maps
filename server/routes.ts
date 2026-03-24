@@ -1823,6 +1823,101 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // Analytics track endpoint - receives events from frontend
+  app.post('/api/analytics/track', async (req, res) => {
+    try {
+      const { events, sessionInfo } = req.body;
+      
+      if (!events || !Array.isArray(events)) {
+        return res.status(400).json({ message: 'Events array required' });
+      }
+
+      // Store each event
+      for (const event of events) {
+        try {
+          // Log to app logs for visibility
+          await storage.createAppLog({
+            level: 'info',
+            message: `Analytics: ${event.type}`,
+            details: JSON.stringify({
+              page: event.page,
+              device: event.device,
+              browser: event.browser,
+              ...event.data
+            }),
+            userId: event.userId || null,
+            userAgent: event.userAgent || null,
+            url: event.page || null,
+            ipAddress: req.ip || null
+          });
+
+          // Store specific analytics based on event type
+          if (event.type === 'page_view') {
+            await storage.createPageView({
+              sessionId: event.sessionId,
+              userId: event.userId,
+              url: event.page,
+              referrer: event.referrer,
+              userAgent: event.userAgent,
+              ipAddress: req.ip,
+              browser: event.browser,
+              os: event.os,
+              deviceType: event.device,
+              screenResolution: `${event.screen?.width}x${event.screen?.height}`
+            });
+          } else if (event.type === 'search') {
+            await storage.createSearchAnalytic({
+              sessionId: event.sessionId,
+              userId: event.userId,
+              query: event.query,
+              resultsCount: event.results,
+              searchType: 'general',
+              userAgent: event.userAgent,
+              ipAddress: req.ip
+            });
+          } else if (event.type === 'room_view') {
+            // Track room views in app logs
+            await storage.createAppLog({
+              level: 'info',
+              message: `Room viewed: ${event.roomName || event.roomId}`,
+              details: JSON.stringify({ roomId: event.roomId, buildingId: event.buildingId }),
+              userId: event.userId,
+              userAgent: event.userAgent,
+              ipAddress: req.ip
+            });
+          } else if (event.type === 'building_view') {
+            await storage.createAppLog({
+              level: 'info',
+              message: `Building viewed: ${event.buildingName || event.buildingId}`,
+              details: JSON.stringify({ buildingId: event.buildingId }),
+              userId: event.userId,
+              userAgent: event.userAgent,
+              ipAddress: req.ip
+            });
+          } else if (event.type === 'navigation') {
+            await storage.createNavigationAnalytic({
+              sessionId: event.sessionId,
+              userId: event.userId,
+              fromRoom: event.from,
+              toRoom: event.to,
+              navigationType: event.method,
+              userAgent: event.userAgent,
+              ipAddress: req.ip
+            });
+          }
+        } catch (eventError) {
+          console.error('Failed to store event:', event.type, eventError);
+          // Continue processing other events
+        }
+      }
+
+      res.json({ success: true, processed: events.length });
+    } catch (error) {
+      console.error('Failed to track analytics:', error);
+      res.status(500).json({ message: 'Failed to track analytics' });
+    }
+  });
+
   // Analytics data endpoints (admin only)
   app.get('/api/analytics/events', isAuthenticated, async (req: any, res) => {
     try {
@@ -1831,8 +1926,24 @@ https://ksykmaps.vercel.app
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Return empty array for now - this would be populated by real analytics data
-      res.json([]);
+      // Get recent app logs that are analytics-related
+      const logs = await storage.getAppLogs(100);
+      const analyticsEvents = logs
+        .filter(log => log.message?.startsWith('Analytics:') || log.message?.includes('Search:') || log.message?.includes('viewed:'))
+        .map(log => ({
+          id: log.id,
+          type: log.message?.includes('Search:') ? 'search' : 
+                log.message?.includes('Room viewed:') ? 'room_view' :
+                log.message?.includes('Building viewed:') ? 'building_view' :
+                log.message?.includes('Navigation:') ? 'navigation' : 'page_view',
+          message: log.message,
+          timestamp: log.timestamp,
+          details: log.details,
+          userId: log.userId,
+          userAgent: log.userAgent
+        }));
+
+      res.json(analyticsEvents);
     } catch (error) {
       console.error('Failed to get analytics events:', error);
       res.status(500).json({ message: 'Failed to get analytics events' });

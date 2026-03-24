@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3 } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface LoginLog {
   id: string;
@@ -46,53 +47,6 @@ type LogEntry = LoginLog | AppLog;
 
 export default function AppLogsManager() {
   const [activeTab, setActiveTab] = useState('all');
-  const [liveActivity, setLiveActivity] = useState<LiveActivity[]>([]);
-
-  // Simulate live activity (in real app, this would come from WebSocket or real-time API)
-  useEffect(() => {
-    const generateLiveActivity = () => {
-      const activities = [
-        'User searched for "classroom"',
-        'Visitor viewed Building A',
-        'Someone navigated to Room 101',
-        'User opened the lunch menu',
-        'Visitor used the map zoom feature',
-        'Someone searched for "library"',
-        'User viewed Room 205',
-        'Visitor opened navigation modal',
-        'Someone used the dark mode toggle',
-        'User searched for "toilet"'
-      ];
-
-      const locations = ['Helsinki', 'Espoo', 'Vantaa', 'Tampere', 'Turku', 'Oulu'];
-      const users = ['Anonymous', 'Student', 'Visitor', 'Staff Member'];
-
-      const newActivity: LiveActivity = {
-        id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: ['page_view', 'search', 'room_view', 'building_view', 'navigation', 'feature_use'][Math.floor(Math.random() * 6)] as any,
-        description: activities[Math.floor(Math.random() * activities.length)],
-        user: users[Math.floor(Math.random() * users.length)],
-        location: locations[Math.floor(Math.random() * locations.length)],
-        timestamp: new Date(),
-        details: {
-          browser: ['Chrome', 'Firefox', 'Safari', 'Edge'][Math.floor(Math.random() * 4)],
-          device: ['Desktop', 'Mobile', 'Tablet'][Math.floor(Math.random() * 3)]
-        }
-      };
-
-      setLiveActivity(prev => [newActivity, ...prev.slice(0, 49)]); // Keep last 50 activities
-    };
-
-    // Generate initial activities
-    for (let i = 0; i < 10; i++) {
-      setTimeout(() => generateLiveActivity(), i * 1000);
-    }
-
-    // Continue generating activities
-    const interval = setInterval(generateLiveActivity, 3000 + Math.random() * 7000); // Every 3-10 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   const { data: loginLogs = [], isLoading: loginLogsLoading } = useQuery({
     queryKey: ['admin-login-logs'],
@@ -121,12 +75,25 @@ export default function AppLogsManager() {
         level: log.level as 'info' | 'warning' | 'error' | 'success',
         message: log.message,
         details: log.source,
-        action: log.source.toUpperCase(),
+        action: log.source?.toUpperCase() || 'UNKNOWN',
         createdAt: log.timestamp,
         type: 'app' as const
       }));
     },
     refetchInterval: 30000,
+  });
+
+  // Fetch REAL analytics events
+  const { data: analyticsEvents = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['analytics-events'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/events', {
+        credentials: 'include'
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    refetchInterval: 10000, // Refresh every 10 seconds for near real-time
   });
 
   // Fetch analytics data
@@ -136,7 +103,7 @@ export default function AppLogsManager() {
       const response = await fetch('/api/analytics/summary', {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to fetch analytics summary');
+      if (!response.ok) return null;
       return response.json();
     },
     refetchInterval: 60000,
@@ -148,7 +115,7 @@ export default function AppLogsManager() {
       const response = await fetch('/api/analytics/searches', {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to fetch top searches');
+      if (!response.ok) return [];
       return response.json();
     },
     refetchInterval: 60000,
@@ -160,7 +127,7 @@ export default function AppLogsManager() {
       const response = await fetch('/api/analytics/rooms', {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to fetch popular rooms');
+      if (!response.ok) return [];
       return response.json();
     },
     refetchInterval: 60000,
@@ -185,12 +152,37 @@ export default function AppLogsManager() {
     });
   };
 
-  const loginSuccessCount = loginLogs.filter((log: LoginLog) => log.loginStatus === 'success').length;
-  const loginFailedCount = loginLogs.filter((log: LoginLog) => log.loginStatus === 'failed').length;
-  const appInfoCount = appLogs.filter(log => log.level === 'info' || log.level === 'success').length;
-  const appWarningCount = appLogs.filter(log => log.level === 'warning' || log.level === 'error').length;
+  const loginSuccessCount = loginLogs.filter((log: any) => log.loginStatus === 'success').length;
+  const loginFailedCount = loginLogs.filter((log: any) => log.loginStatus === 'failed').length;
+  const appInfoCount = appLogs.filter((log: any) => log.level === 'info' || log.level === 'success').length;
+  const appWarningCount = appLogs.filter((log: any) => log.level === 'warning' || log.level === 'error').length;
 
-  const isLoading = loginLogsLoading || appLogsLoading || analyticsLoading || searchesLoading || roomsLoading;
+  const isLoading = loginLogsLoading || appLogsLoading || analyticsLoading || searchesLoading || roomsLoading || eventsLoading;
+
+  // Prepare chart data from real analytics
+  const activityByHour = Array.from({ length: 24 }, (_, hour) => {
+    const hourEvents = analyticsEvents.filter((event: any) => {
+      const eventDate = new Date(event.timestamp);
+      return eventDate.getHours() === hour;
+    });
+    return {
+      hour: `${hour}:00`,
+      events: hourEvents.length
+    };
+  });
+
+  const eventsByType = analyticsEvents.reduce((acc: any, event: any) => {
+    const type = event.type || 'other';
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const eventTypeData = Object.entries(eventsByType).map(([name, value]) => ({
+    name: name.replace('_', ' ').toUpperCase(),
+    value
+  }));
+
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   if (isLoading) {
     return (
@@ -338,8 +330,8 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Live Activity</p>
-                <p className="text-3xl font-bold text-green-600">{liveActivity.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Live Events</p>
+                <p className="text-3xl font-bold text-green-600">{analyticsEvents.length}</p>
               </div>
               <Zap className="h-10 w-10 text-green-500" />
             </div>
@@ -350,10 +342,10 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Login Success</p>
-                <p className="text-3xl font-bold text-green-600">{loginSuccessCount}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Visitors</p>
+                <p className="text-3xl font-bold text-purple-600">{analyticsSummary?.totalVisitors || 0}</p>
               </div>
-              <CheckCircle className="h-10 w-10 text-green-500" />
+              <Users className="h-10 w-10 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -362,10 +354,10 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Login Failed</p>
-                <p className="text-3xl font-bold text-red-600">{loginFailedCount}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Searches</p>
+                <p className="text-3xl font-bold text-orange-600">{analyticsSummary?.totalSearches || 0}</p>
               </div>
-              <XCircle className="h-10 w-10 text-red-500" />
+              <Search className="h-10 w-10 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -374,10 +366,10 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">App Events</p>
-                <p className="text-3xl font-bold text-blue-600">{appLogs.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Page Views</p>
+                <p className="text-3xl font-bold text-blue-600">{analyticsSummary?.totalPageViews || 0}</p>
               </div>
-              <Info className="h-10 w-10 text-blue-500" />
+              <Eye className="h-10 w-10 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -395,7 +387,7 @@ export default function AppLogsManager() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="all">All Logs ({allLogs.length})</TabsTrigger>
-              <TabsTrigger value="live">Live Activity ({liveActivity.length})</TabsTrigger>
+              <TabsTrigger value="live">Live Events ({analyticsEvents.length})</TabsTrigger>
               <TabsTrigger value="logins">Logins ({loginLogs.length})</TabsTrigger>
               <TabsTrigger value="app">App Events ({appLogs.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -412,62 +404,52 @@ export default function AppLogsManager() {
                   </Badge>
                 </div>
                 <p className="text-sm text-green-700 mt-1">
-                  Showing real-time user activity on KSYK Maps
+                  Showing real user activity on KSYK Maps (updates every 10 seconds)
                 </p>
               </div>
               
               <ScrollArea className="h-[600px]">
                 <div className="space-y-3">
-                  {liveActivity.length === 0 ? (
+                  {analyticsEvents.length === 0 ? (
                     <div className="text-center py-12">
                       <Eye className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-lg font-semibold text-gray-700 mb-2">No Live Activity</h3>
                       <p className="text-gray-500">User activity will appear here in real-time</p>
                     </div>
                   ) : (
-                    liveActivity.map((activity) => (
+                    analyticsEvents.map((event: any) => (
                       <div
-                        key={activity.id}
+                        key={event.id}
                         className="border rounded-lg p-4 transition-all hover:shadow-md bg-white border-gray-200 hover:border-blue-300"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
-                              {activity.type === 'page_view' && <Eye className="h-5 w-5 text-blue-600" />}
-                              {activity.type === 'search' && <Search className="h-5 w-5 text-purple-600" />}
-                              {activity.type === 'room_view' && <MapPin className="h-5 w-5 text-green-600" />}
-                              {activity.type === 'building_view' && <Monitor className="h-5 w-5 text-orange-600" />}
-                              {activity.type === 'navigation' && <Navigation className="h-5 w-5 text-red-600" />}
-                              {activity.type === 'feature_use' && <Zap className="h-5 w-5 text-yellow-600" />}
+                              {event.type === 'page_view' && <Eye className="h-5 w-5 text-blue-600" />}
+                              {event.type === 'search' && <Search className="h-5 w-5 text-purple-600" />}
+                              {event.type === 'room_view' && <MapPin className="h-5 w-5 text-green-600" />}
+                              {event.type === 'building_view' && <Monitor className="h-5 w-5 text-orange-600" />}
+                              {event.type === 'navigation' && <Navigation className="h-5 w-5 text-red-600" />}
+                              {!['page_view', 'search', 'room_view', 'building_view', 'navigation'].includes(event.type) && <Zap className="h-5 w-5 text-yellow-600" />}
                             </div>
                             <div>
                               <div className="flex items-center space-x-2">
-                                <span className="font-medium text-gray-900">{activity.description}</span>
+                                <span className="font-medium text-gray-900">{event.message}</span>
                                 <Badge variant="outline" className="text-xs">
-                                  {activity.type.replace('_', ' ').toUpperCase()}
+                                  {event.type.replace('_', ' ').toUpperCase()}
                                 </Badge>
                               </div>
                               <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                                <div className="flex items-center space-x-1">
-                                  <User className="h-3 w-3" />
-                                  <span>{activity.user}</span>
-                                </div>
-                                {activity.location && (
+                                {event.userId && (
                                   <div className="flex items-center space-x-1">
-                                    <Globe className="h-3 w-3" />
-                                    <span>{activity.location}</span>
+                                    <User className="h-3 w-3" />
+                                    <span>{event.userId.substring(0, 8)}...</span>
                                   </div>
                                 )}
-                                {activity.details?.device && (
-                                  <div className="flex items-center space-x-1">
-                                    <Smartphone className="h-3 w-3" />
-                                    <span>{activity.details.device}</span>
-                                  </div>
-                                )}
-                                {activity.details?.browser && (
+                                {event.userAgent && (
                                   <div className="flex items-center space-x-1">
                                     <Monitor className="h-3 w-3" />
-                                    <span>{activity.details.browser}</span>
+                                    <span className="truncate max-w-[200px]">{event.userAgent.split(' ')[0]}</span>
                                   </div>
                                 )}
                               </div>
@@ -475,9 +457,14 @@ export default function AppLogsManager() {
                           </div>
                           <div className="flex items-center space-x-2 text-sm text-gray-500">
                             <Clock className="h-4 w-4" />
-                            <span>{activity.timestamp.toLocaleTimeString()}</span>
+                            <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
                           </div>
                         </div>
+                        {event.details && (
+                          <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                            {event.details}
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -585,28 +572,91 @@ export default function AppLogsManager() {
                   </Card>
                 </div>
 
+                {/* Activity by Hour Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Activity by Hour (Last 24 Hours)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={activityByHour}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="hour" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="events" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Event Types Distribution */}
+                {eventTypeData.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Event Types Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={eventTypeData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {eventTypeData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={eventTypeData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="value" fill="#3b82f6" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Top Searches */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Top Searches</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {topSearches?.slice(0, 10).map((search: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <div className="flex items-center space-x-2">
-                            <Search className="h-4 w-4 text-gray-500" />
-                            <span className="font-medium">"{search.query}"</span>
-                            <Badge variant="outline" className="text-xs">{search.type}</Badge>
+                    {topSearches && topSearches.length > 0 ? (
+                      <div className="space-y-3">
+                        {topSearches.slice(0, 10).map((search: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center">
+                            <div className="flex items-center space-x-2">
+                              <Search className="h-4 w-4 text-gray-500" />
+                              <span className="font-medium">"{search.query}"</span>
+                              <Badge variant="outline" className="text-xs">{search.type}</Badge>
+                            </div>
+                            <span className="text-sm text-gray-600">{search.count} times</span>
                           </div>
-                          <span className="text-sm text-gray-600">{search.count} times</span>
-                        </div>
-                      )) || (
-                        <div className="text-center text-gray-500 py-4">
-                          No search data available yet
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        No search data available yet
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -616,22 +666,24 @@ export default function AppLogsManager() {
                     <CardTitle>Most Visited Rooms</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {popularRooms?.slice(0, 10).map((room: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <div className="flex items-center space-x-2">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span className="font-medium">{room.roomNumber}</span>
-                            <span className="text-sm text-gray-600">({room.building})</span>
+                    {popularRooms && popularRooms.length > 0 ? (
+                      <div className="space-y-3">
+                        {popularRooms.slice(0, 10).map((room: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center">
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="h-4 w-4 text-gray-500" />
+                              <span className="font-medium">{room.roomNumber}</span>
+                              <span className="text-sm text-gray-600">({room.building})</span>
+                            </div>
+                            <span className="text-sm text-gray-600">{room.visits} visits</span>
                           </div>
-                          <span className="text-sm text-gray-600">{room.visits} visits</span>
-                        </div>
-                      )) || (
-                        <div className="text-center text-gray-500 py-4">
-                          No room visit data available yet
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        No room visit data available yet
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -645,26 +697,40 @@ export default function AppLogsManager() {
                     <CardTitle>Geographic Distribution</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {analyticsSummary?.topCountries?.map((country: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="font-medium">{country.country}</span>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${(country.count / (analyticsSummary.topCountries[0]?.count || 1)) * 100}%` }}
-                              />
+                    {analyticsSummary?.topCountries && analyticsSummary.topCountries.length > 0 ? (
+                      <>
+                        <div className="space-y-3 mb-6">
+                          {analyticsSummary.topCountries.map((country: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="font-medium">{country.country}</span>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-24 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full"
+                                    style={{ width: `${(country.count / (analyticsSummary.topCountries[0]?.count || 1)) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm text-gray-600 w-12 text-right">{country.count}</span>
+                              </div>
                             </div>
-                            <span className="text-sm text-gray-600 w-12 text-right">{country.count}</span>
-                          </div>
+                          ))}
                         </div>
-                      )) || (
-                        <div className="text-center text-gray-500 py-4">
-                          No geographic data available yet
-                        </div>
-                      )}
-                    </div>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={analyticsSummary.topCountries}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="country" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="count" fill="#3b82f6" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </>
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        No geographic data available yet
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -674,26 +740,49 @@ export default function AppLogsManager() {
                     <CardTitle>Browser Usage</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {analyticsSummary?.topBrowsers?.map((browser: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="font-medium">{browser.browser}</span>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-green-600 h-2 rounded-full"
-                                style={{ width: `${(browser.count / (analyticsSummary.topBrowsers[0]?.count || 1)) * 100}%` }}
-                              />
+                    {analyticsSummary?.topBrowsers && analyticsSummary.topBrowsers.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          {analyticsSummary.topBrowsers.map((browser: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="font-medium">{browser.browser}</span>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-24 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-green-600 h-2 rounded-full"
+                                    style={{ width: `${(browser.count / (analyticsSummary.topBrowsers[0]?.count || 1)) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm text-gray-600 w-12 text-right">{browser.count}</span>
+                              </div>
                             </div>
-                            <span className="text-sm text-gray-600 w-12 text-right">{browser.count}</span>
-                          </div>
+                          ))}
                         </div>
-                      )) || (
-                        <div className="text-center text-gray-500 py-4">
-                          No browser data available yet
-                        </div>
-                      )}
-                    </div>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <PieChart>
+                            <Pie
+                              data={analyticsSummary.topBrowsers}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ browser, count }) => `${browser}: ${count}`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="count"
+                            >
+                              {analyticsSummary.topBrowsers.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        No browser data available yet
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -723,6 +812,25 @@ export default function AppLogsManager() {
                         <div className="text-sm text-gray-600">Engagement Rate</div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Real-time Activity Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity Trend</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={activityByHour}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="hour" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="events" stroke="#8b5cf6" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </div>
