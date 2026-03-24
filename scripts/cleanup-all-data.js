@@ -3,7 +3,7 @@
 // Complete data cleanup script
 // This will DELETE ALL buildings, rooms, hallways, stairs, announcements, and staff
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function cleanupAllData() {
   console.log('\n🗑️ ========== COMPLETE DATA CLEANUP ==========');

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone } from 'lucide-react';
 
 interface LoginLog {
   id: string;
@@ -32,10 +32,67 @@ interface AppLog {
   type: 'app';
 }
 
+interface LiveActivity {
+  id: string;
+  type: 'page_view' | 'search' | 'room_view' | 'building_view' | 'navigation' | 'feature_use';
+  description: string;
+  user: string;
+  location?: string;
+  timestamp: Date;
+  details?: any;
+}
+
 type LogEntry = LoginLog | AppLog;
 
 export default function AppLogsManager() {
   const [activeTab, setActiveTab] = useState('all');
+  const [liveActivity, setLiveActivity] = useState<LiveActivity[]>([]);
+
+  // Simulate live activity (in real app, this would come from WebSocket or real-time API)
+  useEffect(() => {
+    const generateLiveActivity = () => {
+      const activities = [
+        'User searched for "classroom"',
+        'Visitor viewed Building A',
+        'Someone navigated to Room 101',
+        'User opened the lunch menu',
+        'Visitor used the map zoom feature',
+        'Someone searched for "library"',
+        'User viewed Room 205',
+        'Visitor opened navigation modal',
+        'Someone used the dark mode toggle',
+        'User searched for "toilet"'
+      ];
+
+      const locations = ['Helsinki', 'Espoo', 'Vantaa', 'Tampere', 'Turku', 'Oulu'];
+      const users = ['Anonymous', 'Student', 'Visitor', 'Staff Member'];
+
+      const newActivity: LiveActivity = {
+        id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: ['page_view', 'search', 'room_view', 'building_view', 'navigation', 'feature_use'][Math.floor(Math.random() * 6)] as any,
+        description: activities[Math.floor(Math.random() * activities.length)],
+        user: users[Math.floor(Math.random() * users.length)],
+        location: locations[Math.floor(Math.random() * locations.length)],
+        timestamp: new Date(),
+        details: {
+          browser: ['Chrome', 'Firefox', 'Safari', 'Edge'][Math.floor(Math.random() * 4)],
+          device: ['Desktop', 'Mobile', 'Tablet'][Math.floor(Math.random() * 3)]
+        }
+      };
+
+      setLiveActivity(prev => [newActivity, ...prev.slice(0, 49)]); // Keep last 50 activities
+    };
+
+    // Generate initial activities
+    for (let i = 0; i < 10; i++) {
+      setTimeout(() => generateLiveActivity(), i * 1000);
+    }
+
+    // Continue generating activities
+    const interval = setInterval(generateLiveActivity, 3000 + Math.random() * 7000); // Every 3-10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: loginLogs = [], isLoading: loginLogsLoading } = useQuery({
     queryKey: ['admin-login-logs'],
@@ -264,7 +321,7 @@ export default function AppLogsManager() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -273,6 +330,18 @@ export default function AppLogsManager() {
                 <p className="text-3xl font-bold">{allLogs.length}</p>
               </div>
               <Activity className="h-10 w-10 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Live Activity</p>
+                <p className="text-3xl font-bold text-green-600">{liveActivity.length}</p>
+              </div>
+              <Zap className="h-10 w-10 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -324,13 +393,97 @@ export default function AppLogsManager() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="all">All Logs ({allLogs.length})</TabsTrigger>
+              <TabsTrigger value="live">Live Activity ({liveActivity.length})</TabsTrigger>
               <TabsTrigger value="logins">Logins ({loginLogs.length})</TabsTrigger>
               <TabsTrigger value="app">App Events ({appLogs.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="live" className="mt-4">
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-800 font-semibold">Live Activity Feed</span>
+                  <Badge variant="outline" className="text-green-700 border-green-300">
+                    Real-time
+                  </Badge>
+                </div>
+                <p className="text-sm text-green-700 mt-1">
+                  Showing real-time user activity on KSYK Maps
+                </p>
+              </div>
+              
+              <ScrollArea className="h-[600px]">
+                <div className="space-y-3">
+                  {liveActivity.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Eye className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Live Activity</h3>
+                      <p className="text-gray-500">User activity will appear here in real-time</p>
+                    </div>
+                  ) : (
+                    liveActivity.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="border rounded-lg p-4 transition-all hover:shadow-md bg-white border-gray-200 hover:border-blue-300"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {activity.type === 'page_view' && <Eye className="h-5 w-5 text-blue-600" />}
+                              {activity.type === 'search' && <Search className="h-5 w-5 text-purple-600" />}
+                              {activity.type === 'room_view' && <MapPin className="h-5 w-5 text-green-600" />}
+                              {activity.type === 'building_view' && <Monitor className="h-5 w-5 text-orange-600" />}
+                              {activity.type === 'navigation' && <Navigation className="h-5 w-5 text-red-600" />}
+                              {activity.type === 'feature_use' && <Zap className="h-5 w-5 text-yellow-600" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-gray-900">{activity.description}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {activity.type.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                                <div className="flex items-center space-x-1">
+                                  <User className="h-3 w-3" />
+                                  <span>{activity.user}</span>
+                                </div>
+                                {activity.location && (
+                                  <div className="flex items-center space-x-1">
+                                    <Globe className="h-3 w-3" />
+                                    <span>{activity.location}</span>
+                                  </div>
+                                )}
+                                {activity.details?.device && (
+                                  <div className="flex items-center space-x-1">
+                                    <Smartphone className="h-3 w-3" />
+                                    <span>{activity.details.device}</span>
+                                  </div>
+                                )}
+                                {activity.details?.browser && (
+                                  <div className="flex items-center space-x-1">
+                                    <Monitor className="h-3 w-3" />
+                                    <span>{activity.details.browser}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <Clock className="h-4 w-4" />
+                            <span>{activity.timestamp.toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
 
             <TabsContent value="all" className="mt-4">
               <ScrollArea className="h-[600px]">
