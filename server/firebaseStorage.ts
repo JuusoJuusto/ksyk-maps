@@ -1001,24 +1001,300 @@ export class FirebaseStorage implements IStorage {
 
   // App Log operations
   async createAppLog(log: {
-    type: string;
+    level: string;
     message: string;
-    details?: string | null;
-    timestamp: Date;
+    errorReferenceId?: string | null;
+    errorStack?: string | null;
+    errorInfo?: any;
+    userAgent?: string | null;
+    url?: string | null;
+    userId?: string | null;
+    ipAddress?: string | null;
   }): Promise<void> {
     try {
       const docRef = db.collection('appLogs').doc();
       const logData = {
         ...log,
         id: docRef.id,
-        createdAt: log.timestamp || new Date(),
+        source: log.level || 'info',
+        timestamp: new Date(),
+        createdAt: new Date(),
       };
       
       await docRef.set(logData);
-      console.log(`📝 App Log [${log.type.toUpperCase()}] saved to Firebase:`, log.message);
+      console.log(`📝 App Log [${log.level?.toUpperCase() || 'INFO'}] saved to Firebase:`, log.message);
     } catch (error) {
       console.error('Error creating app log:', error);
       // Don't throw - logging should not break the application flow
+    }
+  }
+
+  async getAppLogs(limit: number = 100): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('appLogs')
+        .orderBy('timestamp', 'desc')
+        .limit(limit)
+        .get();
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date()
+      }));
+    } catch (error) {
+      console.error('Error getting app logs:', error);
+      return [];
+    }
+  }
+
+  // Analytics operations
+  async createPageView(view: any): Promise<void> {
+    try {
+      const docRef = db.collection('pageViews').doc();
+      await docRef.set({
+        ...view,
+        id: docRef.id,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating page view:', error);
+    }
+  }
+
+  async createSearchAnalytic(search: any): Promise<void> {
+    try {
+      const docRef = db.collection('searchAnalytics').doc();
+      await docRef.set({
+        ...search,
+        id: docRef.id,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating search analytic:', error);
+    }
+  }
+
+  async createNavigationAnalytic(navigation: any): Promise<void> {
+    try {
+      const docRef = db.collection('navigationAnalytics').doc();
+      await docRef.set({
+        ...navigation,
+        id: docRef.id,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating navigation analytic:', error);
+    }
+  }
+
+  async createUserSession(session: any): Promise<void> {
+    try {
+      const docRef = db.collection('userSessions').doc(session.sessionId || db.collection('userSessions').doc().id);
+      await docRef.set({
+        ...session,
+        createdAt: new Date(),
+        lastActivity: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating user session:', error);
+    }
+  }
+
+  async updateUserSession(sessionId: string, updates: any): Promise<void> {
+    try {
+      await db.collection('userSessions').doc(sessionId).update({
+        ...updates,
+        lastActivity: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating user session:', error);
+    }
+  }
+
+  async getAnalyticsSummary(days: number = 30): Promise<any> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      // Get page views
+      const pageViewsSnapshot = await db.collection('pageViews')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+      
+      // Get searches
+      const searchesSnapshot = await db.collection('searchAnalytics')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+      
+      // Get navigation requests
+      const navigationSnapshot = await db.collection('navigationAnalytics')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+      
+      // Get unique sessions
+      const sessionsSnapshot = await db.collection('userSessions')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+
+      // Calculate metrics
+      const pageViews = pageViewsSnapshot.docs;
+      const searches = searchesSnapshot.docs;
+      const navigations = navigationSnapshot.docs;
+      const sessions = sessionsSnapshot.docs;
+
+      // Browser stats
+      const browserCounts: { [key: string]: number } = {};
+      pageViews.forEach(doc => {
+        const browser = doc.data().browser || 'Unknown';
+        browserCounts[browser] = (browserCounts[browser] || 0) + 1;
+      });
+
+      // Country stats
+      const countryCounts: { [key: string]: number } = {};
+      pageViews.forEach(doc => {
+        const country = doc.data().country || 'Unknown';
+        countryCounts[country] = (countryCounts[country] || 0) + 1;
+      });
+
+      // Peak hours
+      const hourCounts: { [key: number]: number } = {};
+      pageViews.forEach(doc => {
+        const date = doc.data().createdAt?.toDate();
+        if (date) {
+          const hour = date.getHours();
+          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        }
+      });
+
+      const peakHours = Object.entries(hourCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([hour]) => `${hour}:00`);
+
+      return {
+        totalVisitors: sessions.length,
+        totalPageViews: pageViews.length,
+        totalSearches: searches.length,
+        totalNavigationRequests: navigations.length,
+        avgSessionDuration: 180, // Mock for now
+        bounceRate: 0.35,
+        topCountries: Object.entries(countryCounts)
+          .map(([country, count]) => ({ country, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5),
+        topBrowsers: Object.entries(browserCounts)
+          .map(([browser, count]) => ({ browser, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5),
+        peakHours
+      };
+    } catch (error) {
+      console.error('Error getting analytics summary:', error);
+      return {
+        totalVisitors: 0,
+        totalPageViews: 0,
+        totalSearches: 0,
+        totalNavigationRequests: 0,
+        avgSessionDuration: 0,
+        bounceRate: 0,
+        topCountries: [],
+        topBrowsers: [],
+        peakHours: []
+      };
+    }
+  }
+
+  async getTopSearches(limit: number = 10): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('searchAnalytics')
+        .orderBy('createdAt', 'desc')
+        .limit(100)
+        .get();
+
+      // Count search queries
+      const queryCounts: { [key: string]: { count: number; type: string } } = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const query = data.query?.toLowerCase() || '';
+        if (query) {
+          if (!queryCounts[query]) {
+            queryCounts[query] = { count: 0, type: data.searchType || 'general' };
+          }
+          queryCounts[query].count++;
+        }
+      });
+
+      return Object.entries(queryCounts)
+        .map(([query, data]) => ({ query, count: data.count, type: data.type }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting top searches:', error);
+      return [];
+    }
+  }
+
+  async getPopularRooms(limit: number = 10): Promise<any[]> {
+    try {
+      // Get room views from app logs
+      const snapshot = await db.collection('appLogs')
+        .where('message', '>=', 'Room viewed:')
+        .where('message', '<', 'Room viewed;')
+        .orderBy('message')
+        .orderBy('createdAt', 'desc')
+        .limit(200)
+        .get();
+
+      // Count room visits
+      const roomCounts: { [key: string]: { count: number; building: string } } = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const message = data.message || '';
+        const match = message.match(/Room viewed: (.+)/);
+        if (match) {
+          const roomName = match[1];
+          if (!roomCounts[roomName]) {
+            roomCounts[roomName] = { count: 0, building: 'Unknown' };
+          }
+          roomCounts[roomName].count++;
+        }
+      });
+
+      return Object.entries(roomCounts)
+        .map(([roomNumber, data]) => ({ 
+          roomNumber, 
+          visits: data.count, 
+          building: data.building 
+        }))
+        .sort((a, b) => b.visits - a.visits)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting popular rooms:', error);
+      return [];
+    }
+  }
+
+  async getVisitorStats(days: number = 30): Promise<any> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      const snapshot = await db.collection('userSessions')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+
+      return {
+        totalVisitors: snapshot.size,
+        newVisitors: snapshot.docs.filter(doc => doc.data().isNewVisitor).length,
+        returningVisitors: snapshot.docs.filter(doc => !doc.data().isNewVisitor).length
+      };
+    } catch (error) {
+      console.error('Error getting visitor stats:', error);
+      return {
+        totalVisitors: 0,
+        newVisitors: 0,
+        returningVisitors: 0
+      };
     }
   }
 }
