@@ -462,6 +462,116 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
 
+    // Complete data cleanup endpoint - DELETE EVERYTHING
+    if (apiPath === '/admin/cleanup-all' && req.method === 'POST') {
+      const { confirmDelete } = req.body;
+      
+      if (confirmDelete !== 'DELETE_EVERYTHING') {
+        return res.status(400).json({ message: 'Confirmation required: DELETE_EVERYTHING' });
+      }
+      
+      console.log('\n🗑️ ========== COMPLETE DATA CLEANUP ==========');
+      console.log('⚠️ DELETING ALL BUILDINGS, ROOMS, HALLWAYS, STAIRS...');
+      
+      try {
+        let deletedCount = {
+          buildings: 0,
+          rooms: 0,
+          hallways: 0,
+          floors: 0,
+          announcements: 0,
+          staff: 0
+        };
+        
+        // Delete all buildings
+        const buildings = await storage.getBuildings();
+        console.log(`🏢 Found ${buildings.length} buildings to delete`);
+        for (const building of buildings) {
+          await storage.deleteBuilding(building.id);
+          deletedCount.buildings++;
+        }
+        
+        // Delete all rooms
+        const rooms = await storage.getRooms();
+        console.log(`🚪 Found ${rooms.length} rooms to delete`);
+        for (const room of rooms) {
+          await storage.deleteRoom(room.id);
+          deletedCount.rooms++;
+        }
+        
+        // Delete all hallways
+        try {
+          const hallways = await storage.getHallways();
+          console.log(`🛤️ Found ${hallways.length} hallways to delete`);
+          for (const hallway of hallways) {
+            await storage.deleteHallway(hallway.id);
+            deletedCount.hallways++;
+          }
+        } catch (error) {
+          console.log('No hallways to delete or method not available');
+        }
+        
+        // Delete all floors
+        try {
+          const floors = await storage.getFloors();
+          console.log(`🏗️ Found ${floors.length} floors to delete`);
+          for (const floor of floors) {
+            if (storage.deleteFloor) {
+              await storage.deleteFloor(floor.id);
+              deletedCount.floors++;
+            }
+          }
+        } catch (error) {
+          console.log('No floors to delete or method not available');
+        }
+        
+        // Delete all announcements
+        const announcements = await storage.getAnnouncements(1000);
+        console.log(`📢 Found ${announcements.length} announcements to delete`);
+        for (const announcement of announcements) {
+          await storage.deleteAnnouncement(announcement.id);
+          deletedCount.announcements++;
+        }
+        
+        // Delete all staff
+        try {
+          const staff = await storage.getStaff();
+          console.log(`👥 Found ${staff.length} staff members to delete`);
+          for (const staffMember of staff) {
+            await storage.deleteStaff(staffMember.id);
+            deletedCount.staff++;
+          }
+        } catch (error) {
+          console.log('No staff to delete or method not available');
+        }
+        
+        console.log('\n✅ CLEANUP COMPLETE!');
+        console.log('📊 Deletion Summary:');
+        console.log(`   Buildings: ${deletedCount.buildings}`);
+        console.log(`   Rooms: ${deletedCount.rooms}`);
+        console.log(`   Hallways: ${deletedCount.hallways}`);
+        console.log(`   Floors: ${deletedCount.floors}`);
+        console.log(`   Announcements: ${deletedCount.announcements}`);
+        console.log(`   Staff: ${deletedCount.staff}`);
+        console.log('==========================================\n');
+        
+        return res.status(200).json({
+          success: true,
+          message: 'All data deleted successfully',
+          deleted: deletedCount,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error: any) {
+        console.error('❌ CLEANUP ERROR:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to delete all data',
+          error: error.message
+        });
+      }
+    }
+
     // Admin cleanup endpoint - DELETE ALL DATA
     if (apiPath === '/admin/cleanup' && req.method === 'POST') {
       const { confirmDelete } = req.body;

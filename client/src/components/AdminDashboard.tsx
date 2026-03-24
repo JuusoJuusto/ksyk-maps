@@ -2154,6 +2154,115 @@ export default function AdminDashboard() {
 
         <TabsContent value="settings" className="space-y-6">
           <AppSettingsManager />
+          
+          {/* Danger Zone - Complete Data Cleanup */}
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone - Complete Data Cleanup
+              </CardTitle>
+              <CardDescription className="text-red-700">
+                ⚠️ This will permanently delete ALL buildings, rooms, hallways, stairs, announcements, and staff data. This action cannot be undone!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert className="border-red-300 bg-red-100">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    <strong>WARNING:</strong> This will completely empty the map and remove all data:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>All buildings and their floor plans</li>
+                      <li>All rooms, hallways, and stairs</li>
+                      <li>All announcements and staff information</li>
+                      <li>All map data and configurations</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+                
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full bg-red-600 hover:bg-red-700"
+                  onClick={async () => {
+                    const confirmText = prompt(
+                      'This will DELETE ALL DATA from the map!\n\n' +
+                      'Type "DELETE_EVERYTHING" to confirm this destructive action:'
+                    );
+                    
+                    if (confirmText !== 'DELETE_EVERYTHING') {
+                      alert('Cleanup cancelled. Data is safe.');
+                      return;
+                    }
+                    
+                    const finalConfirm = confirm(
+                      'FINAL CONFIRMATION:\n\n' +
+                      'Are you absolutely sure you want to delete ALL buildings, rooms, hallways, stairs, announcements, and staff?\n\n' +
+                      'This action CANNOT be undone!'
+                    );
+                    
+                    if (!finalConfirm) {
+                      alert('Cleanup cancelled. Data is safe.');
+                      return;
+                    }
+                    
+                    try {
+                      console.log('🗑️ Starting complete data cleanup...');
+                      
+                      const response = await fetch('/api/admin/cleanup-all', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          confirmDelete: 'DELETE_EVERYTHING'
+                        })
+                      });
+                      
+                      const result = await response.json();
+                      
+                      if (response.ok) {
+                        alert(
+                          '✅ SUCCESS! All data has been deleted.\n\n' +
+                          `📊 Deletion Summary:\n` +
+                          `🏢 Buildings: ${result.deleted.buildings}\n` +
+                          `🚪 Rooms: ${result.deleted.rooms}\n` +
+                          `🛤️ Hallways: ${result.deleted.hallways}\n` +
+                          `🏗️ Floors: ${result.deleted.floors}\n` +
+                          `📢 Announcements: ${result.deleted.announcements}\n` +
+                          `👥 Staff: ${result.deleted.staff}\n\n` +
+                          '🎯 The map is now completely empty!'
+                        );
+                        
+                        // Refresh all data
+                        queryClient.invalidateQueries({ queryKey: ["buildings"] });
+                        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+                        queryClient.invalidateQueries({ queryKey: ["announcements"] });
+                        queryClient.invalidateQueries({ queryKey: ["staff"] });
+                        
+                        // Refresh the page to show empty state
+                        window.location.reload();
+                      } else {
+                        alert(`❌ Failed to delete data: ${result.message}`);
+                      }
+                    } catch (error: any) {
+                      console.error('Cleanup error:', error);
+                      alert(`❌ Error during cleanup: ${error.message}`);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-5 w-5 mr-2" />
+                  DELETE ALL MAP DATA
+                </Button>
+                
+                <p className="text-xs text-red-600 text-center">
+                  This button will completely empty the KSYK Maps database
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
