@@ -502,13 +502,43 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     if (apiPath === '/auth/admin-login' && req.method === 'POST') {
       const { email, password } = req.body;
       
+      // Get real IP address (Coolify/Docker/Proxy aware)
+      const realIP = req.headers['cf-connecting-ip'] || 
+                     req.headers['x-real-ip'] || 
+                     req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-forwarded-for'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress ||
+                     'Unknown';
+      
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+      
       console.log('\n🔐 ========== API LOGIN ATTEMPT ==========');
       console.log('Email:', email);
       console.log('Password length:', password?.length);
+      console.log('IP Address:', realIP);
+      console.log('User Agent:', userAgent);
       console.log('Timestamp:', new Date().toISOString());
       
       if (!email || !password) {
         console.log('❌ Missing email or password');
+        
+        // Log failed attempt
+        try {
+          await storage.createLoginLog({
+            email: email || 'unknown',
+            userName: null,
+            ipAddress: realIP,
+            userAgent: userAgent,
+            loginStatus: 'failed',
+            failureReason: 'Missing email or password',
+            sessionId: null,
+            userId: null
+          });
+        } catch (logError) {
+          console.error('Failed to log login attempt:', logError);
+        }
+        
         return res.status(400).json({ message: "Email and password required", success: false });
       }
       
@@ -525,6 +555,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         
         if (!ownerUser) {
           console.log('❌ Owner user not found in database');
+          
+          // Log failed attempt
+          try {
+            await storage.createLoginLog({
+              email: email,
+              userName: null,
+              ipAddress: realIP,
+              userAgent: userAgent,
+              loginStatus: 'failed',
+              failureReason: 'Owner user not found in database',
+              sessionId: null,
+              userId: null
+            });
+          } catch (logError) {
+            console.error('Failed to log login attempt:', logError);
+          }
+          
           console.log('=====================================\n');
           return res.status(401).json({
             success: false,
@@ -535,11 +582,45 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         // Check password against database
         if (!ownerUser.password || ownerUser.password !== password) {
           console.log('❌ Invalid owner password');
+          
+          // Log failed attempt
+          try {
+            await storage.createLoginLog({
+              email: email,
+              userName: ownerUser.firstName + ' ' + ownerUser.lastName,
+              ipAddress: realIP,
+              userAgent: userAgent,
+              loginStatus: 'failed',
+              failureReason: 'Invalid password',
+              sessionId: null,
+              userId: ownerUser.id
+            });
+          } catch (logError) {
+            console.error('Failed to log login attempt:', logError);
+          }
+          
           console.log('=====================================\n');
           return res.status(401).json({
             success: false,
             message: 'Invalid credentials'
           });
+        }
+        
+        // Log successful login
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        try {
+          await storage.createLoginLog({
+            email: email,
+            userName: ownerUser.firstName + ' ' + ownerUser.lastName,
+            ipAddress: realIP,
+            userAgent: userAgent,
+            loginStatus: 'success',
+            failureReason: null,
+            sessionId: sessionId,
+            userId: ownerUser.id
+          });
+        } catch (logError) {
+          console.error('Failed to log successful login:', logError);
         }
         
         console.log('✅ Owner logged in successfully');
@@ -572,6 +653,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       
       if (!user) {
         console.log('❌ User not found in database');
+        
+        // Log failed attempt
+        try {
+          await storage.createLoginLog({
+            email: email,
+            userName: null,
+            ipAddress: realIP,
+            userAgent: userAgent,
+            loginStatus: 'failed',
+            failureReason: 'User not found',
+            sessionId: null,
+            userId: null
+          });
+        } catch (logError) {
+          console.error('Failed to log login attempt:', logError);
+        }
+        
         console.log('=====================================\n');
         return res.status(401).json({
           success: false,
@@ -581,6 +679,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       
       if (!user.password) {
         console.log('❌ User has no password set');
+        
+        // Log failed attempt
+        try {
+          await storage.createLoginLog({
+            email: email,
+            userName: user.firstName + ' ' + user.lastName,
+            ipAddress: realIP,
+            userAgent: userAgent,
+            loginStatus: 'failed',
+            failureReason: 'Password not set',
+            sessionId: null,
+            userId: user.id
+          });
+        } catch (logError) {
+          console.error('Failed to log login attempt:', logError);
+        }
+        
         console.log('=====================================\n');
         return res.status(401).json({
           success: false,
@@ -592,11 +707,45 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         console.log('❌ Password mismatch!');
         console.log('   Expected:', user.password);
         console.log('   Got:', password);
+        
+        // Log failed attempt
+        try {
+          await storage.createLoginLog({
+            email: email,
+            userName: user.firstName + ' ' + user.lastName,
+            ipAddress: realIP,
+            userAgent: userAgent,
+            loginStatus: 'failed',
+            failureReason: 'Invalid password',
+            sessionId: null,
+            userId: user.id
+          });
+        } catch (logError) {
+          console.error('Failed to log login attempt:', logError);
+        }
+        
         console.log('=====================================\n');
         return res.status(401).json({
           success: false,
           message: 'Invalid credentials'
         });
+      }
+      
+      // Log successful login
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      try {
+        await storage.createLoginLog({
+          email: email,
+          userName: user.firstName + ' ' + user.lastName,
+          ipAddress: realIP,
+          userAgent: userAgent,
+          loginStatus: 'success',
+          failureReason: null,
+          sessionId: sessionId,
+          userId: user.id
+        });
+      } catch (logError) {
+        console.error('Failed to log successful login:', logError);
       }
       
       // Valid admin user from database
@@ -764,6 +913,60 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
     
+    // Enhanced admin login logs endpoint
+    if (apiPath === '/admin-login-logs' && req.method === 'GET') {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const timeRange = req.query.timeRange as string || '24h';
+      
+      // Get real IP for current request
+      const realIP = req.headers['cf-connecting-ip'] || 
+                     req.headers['x-real-ip'] || 
+                     req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.connection?.remoteAddress || 
+                     'Unknown';
+      
+      // Helper function to extract device info from user agent
+      const getDeviceFromUserAgent = (userAgent: string): string => {
+        if (!userAgent) return 'Unknown Device';
+        
+        if (userAgent.includes('Mobile') || userAgent.includes('Android')) return 'Mobile';
+        if (userAgent.includes('iPad') || userAgent.includes('Tablet')) return 'Tablet';
+        if (userAgent.includes('Windows')) return 'Windows PC';
+        if (userAgent.includes('Macintosh')) return 'Mac';
+        if (userAgent.includes('Linux')) return 'Linux PC';
+        
+        return 'Desktop';
+      };
+      
+      // Helper function to get location from IP (mock implementation)
+      const getLocationFromIP = (ip: string): string => {
+        if (!ip || ip === 'Unknown' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '127.0.0.1') {
+          return 'Local Network';
+        }
+        
+        // Mock location data - in production, use a real IP geolocation service
+        const mockLocations = ['Helsinki, Finland', 'Stockholm, Sweden', 'Oslo, Norway', 'Copenhagen, Denmark'];
+        return mockLocations[Math.floor(Math.random() * mockLocations.length)];
+      };
+      
+      try {
+        const logs = await storage.getLoginLogs(limit);
+        
+        // Enhance logs with better IP detection and device info
+        const enhancedLogs = logs.map((log: any) => ({
+          ...log,
+          ipAddress: log.ipAddress || realIP,
+          device: log.userAgent ? getDeviceFromUserAgent(log.userAgent) : 'Unknown Device',
+          location: log.ipAddress ? getLocationFromIP(log.ipAddress) : 'Unknown Location'
+        }));
+        
+        return res.status(200).json(enhancedLogs);
+      } catch (error) {
+        console.error('Failed to fetch login logs:', error);
+        return res.status(500).json({ message: 'Failed to fetch login logs' });
+      }
+    }
+
     // Email diagnostic endpoint
     if (apiPath === '/email-diagnostic' && req.method === 'GET') {
       return res.status(200).json({
@@ -778,6 +981,130 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       });
     }
     
+    // Enhanced logs endpoint
+    if (apiPath === '/logs/enhanced' && req.method === 'GET') {
+      const timeRange = req.query.timeRange as string || '24h';
+      
+      // Generate enhanced mock logs with more realistic data
+      const now = new Date();
+      const logs = [];
+      
+      // Generate logs based on time range
+      let hoursBack = 24;
+      if (timeRange === '1h') hoursBack = 1;
+      else if (timeRange === '7d') hoursBack = 24 * 7;
+      else if (timeRange === '30d') hoursBack = 24 * 30;
+      
+      const logTypes = [
+        { level: 'info', message: 'User accessed dashboard', source: 'web', weight: 40 },
+        { level: 'info', message: 'Room search performed', source: 'search', weight: 25 },
+        { level: 'success', message: 'Building data updated', source: 'admin', weight: 10 },
+        { level: 'info', message: 'Navigation request processed', source: 'navigation', weight: 15 },
+        { level: 'warn', message: 'Slow database query detected', source: 'database', weight: 5 },
+        { level: 'error', message: 'Failed to load building data', source: 'api', weight: 3 },
+        { level: 'debug', message: 'Cache miss for room data', source: 'cache', weight: 2 }
+      ];
+      
+      for (let i = 0; i < Math.min(200, hoursBack * 5); i++) {
+        const randomHours = Math.random() * hoursBack;
+        const timestamp = new Date(now.getTime() - randomHours * 60 * 60 * 1000);
+        
+        // Weighted random selection
+        const totalWeight = logTypes.reduce((sum, type) => sum + type.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selectedType = logTypes[0];
+        
+        for (const type of logTypes) {
+          random -= type.weight;
+          if (random <= 0) {
+            selectedType = type;
+            break;
+          }
+        }
+        
+        logs.push({
+          id: `log_${i}_${timestamp.getTime()}`,
+          timestamp: timestamp.toISOString(),
+          level: selectedType.level,
+          message: selectedType.message,
+          source: selectedType.source,
+          createdAt: timestamp.toISOString(),
+          duration: Math.floor(Math.random() * 500) + 10,
+          endpoint: selectedType.source === 'api' ? `/api/${['buildings', 'rooms', 'staff'][Math.floor(Math.random() * 3)]}` : undefined,
+          statusCode: selectedType.level === 'error' ? 500 : (selectedType.level === 'warn' ? 404 : 200),
+          ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
+          userAgent: 'Mozilla/5.0 (compatible; KSYK-Maps/1.0)',
+          metadata: selectedType.source === 'search' ? { query: ['classroom', 'library', 'cafeteria'][Math.floor(Math.random() * 3)] } : undefined
+        });
+      }
+      
+      return res.status(200).json(logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    }
+    
+    // Analytics endpoints
+    if (apiPath === '/analytics/visitors' && req.method === 'GET') {
+      const timeRange = req.query.timeRange as string || '24h';
+      const now = new Date();
+      const data = [];
+      
+      let hours = 24;
+      if (timeRange === '1h') hours = 1;
+      else if (timeRange === '7d') hours = 24 * 7;
+      else if (timeRange === '30d') hours = 24 * 30;
+      
+      for (let i = 0; i < Math.min(hours, 48); i++) {
+        const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const baseVisitors = Math.floor(Math.random() * 50) + 10;
+        
+        data.push({
+          timestamp: timestamp.toISOString(),
+          visitors: baseVisitors,
+          pageViews: baseVisitors * (Math.random() * 2 + 1),
+          uniqueVisitors: Math.floor(baseVisitors * 0.7),
+          bounceRate: Math.random() * 0.3 + 0.2
+        });
+      }
+      
+      return res.status(200).json(data.reverse());
+    }
+    
+    if (apiPath === '/analytics/realtime' && req.method === 'GET') {
+      return res.status(200).json({
+        activeUsers: Math.floor(Math.random() * 25) + 5,
+        newUsersToday: Math.floor(Math.random() * 100) + 20,
+        topCountries: [
+          { name: 'Finland', visitors: Math.floor(Math.random() * 50) + 20 },
+          { name: 'Sweden', visitors: Math.floor(Math.random() * 30) + 10 },
+          { name: 'Norway', visitors: Math.floor(Math.random() * 20) + 5 },
+          { name: 'Denmark', visitors: Math.floor(Math.random() * 15) + 3 }
+        ],
+        deviceTypes: [
+          { type: 'Desktop', count: Math.floor(Math.random() * 40) + 20 },
+          { type: 'Mobile', count: Math.floor(Math.random() * 60) + 30 },
+          { type: 'Tablet', count: Math.floor(Math.random() * 20) + 5 }
+        ],
+        topPages: [
+          { path: '/', views: Math.floor(Math.random() * 100) + 50 },
+          { path: '/directory', views: Math.floor(Math.random() * 80) + 30 },
+          { path: '/lunch', views: Math.floor(Math.random() * 60) + 20 },
+          { path: '/features', views: Math.floor(Math.random() * 40) + 10 }
+        ]
+      });
+    }
+    
+    if (apiPath === '/system/metrics' && req.method === 'GET') {
+      return res.status(200).json({
+        cpuUsage: Math.floor(Math.random() * 30) + 5,
+        memoryUsage: Math.floor(Math.random() * 40) + 30,
+        diskUsage: Math.floor(Math.random() * 20) + 15,
+        networkIn: Math.floor(Math.random() * 1000) + 500,
+        networkOut: Math.floor(Math.random() * 800) + 300,
+        responseTime: Math.floor(Math.random() * 100) + 20,
+        uptime: 99.9,
+        activeConnections: Math.floor(Math.random() * 50) + 20
+      });
+    }
+
     // Logs endpoint
     if (apiPath === '/logs' && req.method === 'GET') {
       // Return recent logs from memory or file

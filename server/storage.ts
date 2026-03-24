@@ -470,29 +470,35 @@ class MemStorage implements IStorage {
   }
 
   // Admin Login Log operations
-  async createAdminLoginLog(log: {
-    userId: string | null;
-    email: string;
-    userName: string | null;
-    ipAddress: string | null;
-    userAgent: string | null;
-    loginStatus: 'success' | 'failed';
-    failureReason?: string | null;
-    sessionId?: string | null;
-  }): Promise<void> {
-    // In-memory storage - just log to console for now
-    console.log('📝 Admin Login Log:', {
-      ...log,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  async getAdminLoginLogs(limit?: number): Promise<any[]> {
-    // In-memory storage - return empty array
-    return [];
-  }
-
+    private mockAdminLoginLogs: any[] = [];
+    
+    async createAdminLoginLog(log: {
+      userId: string | null;
+      email: string;
+      userName: string | null;
+      ipAddress: string | null;
+      userAgent: string | null;
+      loginStatus: 'success' | 'failed';
+      failureReason?: string | null;
+      sessionId?: string | null;
+    }): Promise<void> {
+      const newLog = {
+        id: `login-log-${Date.now()}`,
+        ...log,
+        createdAt: new Date()
+      };
+      this.mockAdminLoginLogs.unshift(newLog);
+      if (this.mockAdminLoginLogs.length > 200) {
+        this.mockAdminLoginLogs.pop();
+      }
+    }
+  
+    async getAdminLoginLogs(limit: number = 100): Promise<any[]> {
+      return this.mockAdminLoginLogs.slice(0, limit);
+    }
   // App Log operations
+  private mockAppLogs: any[] = [];
+  
   async createAppLog(log: {
     level: string;
     message: string;
@@ -504,19 +510,19 @@ class MemStorage implements IStorage {
     userId?: string | null;
     ipAddress?: string | null;
   }): Promise<void> {
-    // In-memory storage - just log to console
-    console.log(`📝 App Log [${log.level.toUpperCase()}]:`, log.message);
-    if (log.errorReferenceId) {
-      console.log('  Error Ref:', log.errorReferenceId);
-    }
-    if (log.errorStack) {
-      console.log('  Stack:', log.errorStack.substring(0, 200));
+    const newLog = {
+      id: `log-${Date.now()}`,
+      ...log,
+      timestamp: new Date().toISOString()
+    };
+    this.mockAppLogs.unshift(newLog); // Add to the beginning of the array
+    if (this.mockAppLogs.length > 200) { // Keep the last 200 logs
+      this.mockAppLogs.pop();
     }
   }
 
   async getAppLogs(limit: number = 100): Promise<any[]> {
-    // In-memory storage - return empty array
-    return [];
+    return this.mockAppLogs.slice(0, limit);
   }
 
   // Analytics methods - mock implementations for in-memory storage

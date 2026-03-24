@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin } from 'lucide-react';
 
 interface LoginLog {
@@ -30,6 +31,9 @@ interface AppLog {
   action?: string;
   createdAt: any;
   type: 'app';
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  errorStack?: string | null;
 }
 
 type LogEntry = LoginLog | AppLog;
@@ -63,10 +67,15 @@ export default function AppLogsManager() {
         id: log.id,
         level: log.level as 'info' | 'warning' | 'error' | 'success',
         message: log.message,
-        details: log.source,
-        action: log.source.toUpperCase(),
+        details: log.details,
+        action: log.action,
         createdAt: log.timestamp,
-        type: 'app' as const
+        type: 'app' as const,
+        userId: log.userId,
+        userName: log.userName,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+        errorStack: log.errorStack
       }));
     },
     refetchInterval: 30000,
@@ -236,7 +245,7 @@ export default function AppLogsManager() {
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-gray-900">{log.message}</span>
                 <Badge variant="outline">{log.level.toUpperCase()}</Badge>
-                {log.action && <Badge variant="secondary">{log.action}</Badge>}
+                {log.action && <Badge variant="secondary">{log.action.toUpperCase()}</Badge>}
               </div>
               {log.userName && (
                 <div className="flex items-center space-x-2 mt-1">
@@ -255,6 +264,28 @@ export default function AppLogsManager() {
         {log.details && (
           <div className="mt-2 text-sm text-gray-700 pl-9">
             {log.details}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-2 pl-9">
+          {log.ipAddress && (
+            <div className="flex items-center space-x-2 text-gray-600">
+              <Monitor className="h-4 w-4" />
+              <span>IP: {log.ipAddress}</span>
+            </div>
+          )}
+        </div>
+
+        {log.userAgent && (
+          <div className="mt-2 text-xs text-gray-500 pl-9 truncate">
+            {log.userAgent}
+          </div>
+        )}
+
+        {log.errorStack && (
+          <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-800">
+            <strong className="font-semibold">Error Stack:</strong>
+            <pre className="whitespace-pre-wrap text-xs">{log.errorStack}</pre>
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
-import AppLogsManager from "@/components/AppLogsManager";
+import EnhancedLogsManager from "@/components/EnhancedLogsManager";
 import TicketManager from "@/components/TicketManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -814,21 +814,36 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6 h-full flex flex-col p-6">
+    <div className="space-y-6 h-full flex flex-col p-6" style={{ backgroundColor: '#C0F2F3' }}>
+      {/* Header with KSYK Maps branding */}
+      <div className="text-center mb-6">
+        <h1 className="text-4xl font-bold mb-2 font-technor" style={{ 
+          color: '#1637A0', 
+          textShadow: '2px 2px 4px rgba(22, 55, 160, 0.3)'
+        }}>
+          KSYK Maps
+        </h1>
+        <p className="text-lg" style={{ color: '#1637A0' }}>Admin Dashboard</p>
+      </div>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat) => (
-          <Card key={stat.title} className="shadow-lg border-0 hover:shadow-xl transition-shadow">
+          <Card key={stat.title} className="shadow-lg hover:shadow-xl transition-shadow" style={{ 
+            borderColor: '#1637A0', 
+            borderWidth: '2px',
+            backgroundColor: 'rgba(192, 242, 243, 0.8)'
+          }}>
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#1637A0' }}>
                     {stat.title}
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
+                  <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#1637A0' }}>{stat.value}</p>
                 </div>
-                <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor} shadow-md`}>
-                  <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
+                <div className="p-2 sm:p-3 rounded-full shadow-md" style={{ backgroundColor: '#1637A0' }}>
+                  <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -838,49 +853,51 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-          <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
-          <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
-          <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
-          <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
-          <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1" style={{ backgroundColor: '#1637A0' }}>
+          <TabsTrigger value="overview" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Overview</TabsTrigger>
+          <TabsTrigger value="users" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Users</TabsTrigger>
+          <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Builder</TabsTrigger>
+          <TabsTrigger value="tickets" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Tickets</TabsTrigger>
+          <TabsTrigger value="logs" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Analytics</TabsTrigger>
+          <TabsTrigger value="staff" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Staff</TabsTrigger>
+          <TabsTrigger value="announcements" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Announcements</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm text-white data-[state=active]:bg-[#C0F2F3] data-[state=active]:text-[#1637A0]">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <Card>
+          <Card style={{ borderColor: '#1637A0', borderWidth: '2px', backgroundColor: 'rgba(192, 242, 243, 0.8)' }}>
             <CardHeader>
-              <CardTitle>System Overview</CardTitle>
-              <CardDescription>
+              <CardTitle style={{ color: '#1637A0' }}>System Overview</CardTitle>
+              <CardDescription style={{ color: '#1637A0' }}>
                 Quick overview of your KSYK campus management system
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
+                <Alert style={{ borderColor: '#1637A0', backgroundColor: 'rgba(192, 242, 243, 0.6)' }}>
+                  <AlertTriangle className="h-4 w-4" style={{ color: '#1637A0' }} />
+                  <AlertDescription style={{ color: '#1637A0' }}>
                     Welcome to the KSYK Admin Dashboard. Here you can manage buildings, rooms, staff, and announcements.
                   </AlertDescription>
                 </Alert>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Recent Activity</h3>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="p-4 border rounded-lg" style={{ borderColor: '#1637A0', backgroundColor: 'rgba(192, 242, 243, 0.6)' }}>
+                    <h3 className="font-semibold mb-2" style={{ color: '#1637A0' }}>Recent Activity</h3>
+                    <p className="text-sm" style={{ color: '#1637A0' }}>
                       System is running smoothly. All services are operational.
                     </p>
                   </div>
                   
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Quick Actions</h3>
+                  <div className="p-4 border rounded-lg" style={{ borderColor: '#1637A0', backgroundColor: 'rgba(192, 242, 243, 0.6)' }}>
+                    <h3 className="font-semibold mb-2" style={{ color: '#1637A0' }}>Quick Actions</h3>
                     <div className="space-y-2">
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => setActiveTab("announcements")}
+                        style={{ borderColor: '#1637A0', color: '#1637A0' }}
+                        className="hover:bg-[#1637A0] hover:text-white"
                       >
                         Create Announcement
                       </Button>
@@ -888,6 +905,8 @@ export default function AdminDashboard() {
                         size="sm" 
                         variant="outline"
                         onClick={() => setActiveTab("rooms")}
+                        style={{ borderColor: '#1637A0', color: '#1637A0' }}
+                        className="hover:bg-[#1637A0] hover:text-white"
                       >
                         Manage Rooms
                       </Button>
@@ -1723,7 +1742,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-6">
-          <AppLogsManager />
+          <EnhancedLogsManager />
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-6">
