@@ -10,24 +10,33 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use((req: any, res, next) => {
+app.use((req, res, next) => {
   const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (req.path.startsWith("/api")) {
-      const logPayload = {
-        level: res.statusCode >= 400 ? (res.statusCode >= 500 ? 'error' : 'warning') : 'info',
-        message: `${req.method} ${req.path} ${res.statusCode}`,
-        details: `Request completed in ${duration}ms`,
-        action: 'api_request',
-        userId: req.user?.id,
-        userName: req.user?.email,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-      };
-      storage.createAppLog(logPayload);
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
     }
   });
+
   next();
 });
 
@@ -35,26 +44,12 @@ app.use((req: any, res, next) => {
   await setupAuth(app);
   const server = await registerRoutes(app);
 
-  app.use((err: any, req: any, res: Response, next: NextFunction) => {
-    storage.createAppLog({
-      level: 'error',
-      message: `Unhandled error: ${err.message}`,
-      errorStack: err.stack,
-      action: 'unhandled_error',
-      userId: req.user?.id,
-      userName: req.user?.email,
-      ipAddress: req.ip,
-      url: req.originalUrl,
-    });
-    next(err);
-  });
-
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    // removed throw err; as it would crash the server
+    throw err;
   });
 
   // importantly only setup vite in development and after

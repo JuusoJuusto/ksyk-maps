@@ -1,18 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-
-/* Technor Font - Fallback to JetBrains Mono if not available */
-@font-face {
-  font-family: 'Technor';
-  src: url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-.font-technor {
-  font-family: 'Technor', 'JetBrains Mono', 'Courier New', monospace;
-}
 
 @tailwind base;
 @tailwind components;
