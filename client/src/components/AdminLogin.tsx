@@ -30,10 +30,17 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: Include cookies for session
         body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
+        const data = await response.json();
+        
+        // Store authentication in localStorage
+        localStorage.setItem('ksyk_admin_logged_in', 'true');
+        localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
+        
         toast({
           title: "Login Successful",
           description: "Welcome to KSYK Admin Portal",
