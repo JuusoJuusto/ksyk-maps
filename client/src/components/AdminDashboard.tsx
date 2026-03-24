@@ -4,7 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
-import RealAnalytics from "@/components/RealAnalytics";
+import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1723,7 +1723,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-6">
-          <RealAnalytics />
+          <AppLogsManager />
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-6">
