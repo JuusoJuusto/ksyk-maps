@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3 } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3, Trophy } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import EasterEggStats from '@/components/EasterEggStats';
 
 interface LoginLog {
   id: string;
@@ -385,13 +386,17 @@ export default function AppLogsManager() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="all">All Logs ({allLogs.length})</TabsTrigger>
               <TabsTrigger value="live">Live Events ({analyticsEvents.length})</TabsTrigger>
               <TabsTrigger value="logins">Logins ({loginLogs.length})</TabsTrigger>
               <TabsTrigger value="app">App Events ({appLogs.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
+              <TabsTrigger value="easter-eggs" className="flex items-center gap-1">
+                <Trophy className="h-3 w-3" />
+                Easter Eggs
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="live" className="mt-4">
@@ -834,6 +839,10 @@ export default function AppLogsManager() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="easter-eggs" className="mt-4">
+              <EasterEggStats />
             </TabsContent>
           </Tabs>
         </CardContent>
