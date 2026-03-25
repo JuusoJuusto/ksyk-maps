@@ -127,6 +127,24 @@ export default function AppSettingsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Check if current user is owner
+  const storedUser = localStorage.getItem('ksyk_admin_user');
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
+
+  // If not owner, show access denied
+  if (!isOwner) {
+    return (
+      <Card>
+        <CardContent className="p-12 text-center">
+          <Settings className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Owner Access Only</h3>
+          <p className="text-gray-500">App settings management is restricted to the owner account for security.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   useEffect(() => {
     fetchSettings();
   }, []);

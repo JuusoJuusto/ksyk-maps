@@ -854,7 +854,6 @@ export default function AdminDashboard() {
               2FA
             </TabsTrigger>
           )}
-          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

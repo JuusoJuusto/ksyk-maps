@@ -111,9 +111,6 @@ function App() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection:', event.reason);
       
-      // Track error with analytics
-      analytics.track.error(event.reason, 'Promise rejection');
-      
       // Log to admin panel
       fetch('/api/logs', {
         method: 'POST',
