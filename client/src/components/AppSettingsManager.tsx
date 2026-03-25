@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'react-hot-toast';
-import { Palette, Globe, Settings, Mail, Paintbrush, Zap } from 'lucide-react';
+import { Palette, Globe, Settings, Mail, Paintbrush, Zap, AlertTriangle } from 'lucide-react';
 
 interface AppSettings {
   id: string;
@@ -1827,6 +1827,143 @@ export default function AppSettingsManager() {
                     />
                     <p className="text-sm text-muted-foreground">Auto-logout users after inactivity</p>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg text-red-600">🗑️ Danger Zone - Delete All Data</h3>
+                <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-bold text-red-900 mb-2">⚠️ EXTREME CAUTION REQUIRED</h4>
+                      <p className="text-sm text-red-800 mb-2">
+                        These actions will <strong>permanently delete</strong> data from the system. This cannot be undone!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={async () => {
+                        if (!confirm("⚠️ DELETE ALL BUILDINGS?\n\nThis will permanently delete ALL buildings, floors, rooms, and hallways from the database.\n\nType 'DELETE' to confirm.")) return;
+                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
+                        if (confirmation !== "DELETE") {
+                          alert("Deletion cancelled - confirmation text did not match.");
+                          return;
+                        }
+                        try {
+                          const response = await fetch("/api/buildings/delete-all", {
+                            method: "DELETE",
+                            credentials: "include",
+                          });
+                          if (response.ok) {
+                            alert("✅ All buildings deleted successfully!");
+                            window.location.reload();
+                          } else {
+                            alert("❌ Failed to delete buildings");
+                          }
+                        } catch (error) {
+                          alert("❌ Error: " + error);
+                        }
+                      }}
+                    >
+                      🏢 Delete All Buildings
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={async () => {
+                        if (!confirm("⚠️ DELETE ALL ANNOUNCEMENTS?\n\nThis will permanently delete ALL announcements from the database.\n\nType 'DELETE' to confirm.")) return;
+                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
+                        if (confirmation !== "DELETE") {
+                          alert("Deletion cancelled - confirmation text did not match.");
+                          return;
+                        }
+                        try {
+                          const response = await fetch("/api/announcements/delete-all", {
+                            method: "DELETE",
+                            credentials: "include",
+                          });
+                          if (response.ok) {
+                            alert("✅ All announcements deleted successfully!");
+                            window.location.reload();
+                          } else {
+                            alert("❌ Failed to delete announcements");
+                          }
+                        } catch (error) {
+                          alert("❌ Error: " + error);
+                        }
+                      }}
+                    >
+                      📢 Delete All Announcements
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={async () => {
+                        if (!confirm("⚠️ DELETE ALL TICKETS?\n\nThis will permanently delete ALL support tickets from the database.\n\nType 'DELETE' to confirm.")) return;
+                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
+                        if (confirmation !== "DELETE") {
+                          alert("Deletion cancelled - confirmation text did not match.");
+                          return;
+                        }
+                        try {
+                          const response = await fetch("/api/tickets/delete-all", {
+                            method: "DELETE",
+                            credentials: "include",
+                          });
+                          if (response.ok) {
+                            alert("✅ All tickets deleted successfully!");
+                            window.location.reload();
+                          } else {
+                            alert("❌ Failed to delete tickets");
+                          }
+                        } catch (error) {
+                          alert("❌ Error: " + error);
+                        }
+                      }}
+                    >
+                      🎫 Delete All Tickets
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-700 hover:bg-red-800"
+                      onClick={async () => {
+                        if (!confirm("⚠️⚠️⚠️ DELETE ALL LOGS?\n\nThis will permanently delete ALL application logs from the database.\n\nType 'DELETE' to confirm.")) return;
+                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
+                        if (confirmation !== "DELETE") {
+                          alert("Deletion cancelled - confirmation text did not match.");
+                          return;
+                        }
+                        try {
+                          const response = await fetch("/api/logs/delete-all", {
+                            method: "DELETE",
+                            credentials: "include",
+                          });
+                          if (response.ok) {
+                            alert("✅ All logs deleted successfully!");
+                            window.location.reload();
+                          } else {
+                            alert("❌ Failed to delete logs");
+                          }
+                        } catch (error) {
+                          alert("❌ Error: " + error);
+                        }
+                      }}
+                    >
+                      📋 Delete All Logs
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-red-700 mt-4 font-semibold">
+                    ⚠️ These actions require double confirmation and are restricted to the owner account only.
+                  </p>
                 </div>
               </div>
             </CardContent>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Smartphone, Key, CheckCircle, XCircle, Copy, Check } from "lucide-react";
+import { Shield, Smartphone, Key, CheckCircle, XCircle, Copy, Check, Lock, AlertTriangle } from "lucide-react";
 import QRCode from "react-qr-code";
 
 export default function TwoFactorAuth() {
@@ -18,6 +18,19 @@ export default function TwoFactorAuth() {
   // Get current user
   const storedUser = localStorage.getItem('ksyk_admin_user');
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
+
+  // Fetch app settings to check if 2FA is enforced
+  const { data: appSettings } = useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      return response.json();
+    },
+  });
+
+  const is2FAEnforced = appSettings?.enable2FA === true;
 
   // Check 2FA status
   const { data: twoFactorStatus } = useQuery({
@@ -138,6 +151,16 @@ export default function TwoFactorAuth() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
+          {/* Enforcement Notice */}
+          {is2FAEnforced && (
+            <Alert className="mb-6 bg-yellow-50 border-yellow-300">
+              <Lock className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <strong>2FA is enforced by the owner.</strong> All admin users must have 2FA enabled. You cannot disable it.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Current Status */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
             <div className="flex items-center justify-between">
@@ -155,7 +178,7 @@ export default function TwoFactorAuth() {
                     <XCircle className="h-6 w-6 text-orange-600" />
                     <div>
                       <p className="font-semibold text-gray-900">2FA is Disabled</p>
-                      <p className="text-sm text-gray-600">Enable 2FA for better security</p>
+                      <p className="text-sm text-gray-600">{is2FAEnforced ? "You must enable 2FA" : "Enable 2FA for better security"}</p>
                     </div>
                   </>
                 )}
@@ -269,9 +292,10 @@ export default function TwoFactorAuth() {
           )}
 
           {/* Disable 2FA Section */}
-          {twoFactorStatus?.enabled && (
+          {twoFactorStatus?.enabled && !is2FAEnforced && (
             <div className="space-y-4">
               <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-800">
                   Disabling 2FA will make your account less secure. You'll only need your password to log in.
                 </AlertDescription>
