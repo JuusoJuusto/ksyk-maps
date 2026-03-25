@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket, Unlock } from "lucide-react";
+import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket, Unlock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function EasterEgg() {
   const [, setLocation] = useLocation();
@@ -205,6 +206,29 @@ export default function EasterEgg() {
             </motion.p>
           </div>
         </motion.div>
+
+        {/* Real-time Discovery Counter */}
+        {stats && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 mb-8 border-4 border-white/30"
+          >
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <Users className="w-8 h-8 text-white" />
+              <h3 className="text-2xl font-bold text-white">Global Discoveries</h3>
+            </div>
+            <motion.p
+              className="text-5xl font-black text-white"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              {stats.secretEasterEgg || 0}
+            </motion.p>
+            <p className="text-white/80 text-sm mt-2">people have found this secret!</p>
+          </motion.div>
+        )}
 
         {/* Fun Fact Section */}
         <motion.div

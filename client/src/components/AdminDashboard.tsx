@@ -848,10 +848,12 @@ export default function AdminDashboard() {
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
-          <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
-            <Shield className="h-3 w-3" />
-            2FA
-          </TabsTrigger>
+          {isOwner && (
+            <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              2FA
+            </TabsTrigger>
+          )}
           <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
@@ -2158,9 +2160,11 @@ export default function AdminDashboard() {
           <AnnouncementManager />
         </TabsContent>
 
-        <TabsContent value="2fa" className="space-y-6">
-          <TwoFactorAuth />
-        </TabsContent>
+        {isOwner && (
+          <TabsContent value="2fa" className="space-y-6">
+            <TwoFactorAuth />
+          </TabsContent>
+        )}
 
         <TabsContent value="settings" className="space-y-6">
           <AppSettingsManager />
