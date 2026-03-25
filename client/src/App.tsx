@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +12,7 @@ import MaintenanceMode from "@/components/MaintenanceMode";
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
 import analytics from "@/lib/analytics";
+import { useKonamiCode } from "@/hooks/useKonamiCode";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
@@ -21,6 +22,8 @@ import HSL from "@/pages/hsl";
 import Lunch from "@/pages/lunch";
 import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
+import KonamiEasterEgg from "@/pages/konami";
+import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
 import StudiOWL from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
@@ -28,6 +31,13 @@ import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
 function Router() {
+  const [, setLocation] = useLocation();
+  
+  // Konami code easter egg
+  useKonamiCode(() => {
+    setLocation("/konami-code-activated");
+  });
+  
   // Check maintenance mode
   const { data: settings } = useQuery({
     queryKey: ["app-settings"],
@@ -53,10 +63,13 @@ function Router() {
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
+      <Route path="/wilma/:section" component={Wilma} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={StudiOWL} />
       <Route path="/secret-easter-egg" component={EasterEgg} />
+      <Route path="/konami-code-activated" component={KonamiEasterEgg} />
+      <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
       <Route path="/debug-buildings" component={DebugBuildings} />
       <Route component={NotFound} />
     </Switch>

@@ -1160,47 +1160,60 @@ export default function UltimateKSYKBuilder() {
     setIsPanning(false);
   };
   
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault(); // CRITICAL: Prevent page zoom!
+  // Handle wheel events with native listener to prevent passive listener issues
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
     
-    if (e.ctrlKey) {
-      // Zoom with Ctrl+Scroll
-      const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return;
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault(); // This works with native listeners
       
-      // Get mouse position in SVG coordinates
-      const mouseX = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.width;
-      const mouseY = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.height;
-      
-      setViewBox(prev => {
-        const newWidth = prev.width * zoomFactor;
-        const newHeight = prev.height * zoomFactor;
+      if (e.ctrlKey) {
+        // Zoom with Ctrl+Scroll
+        const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+        const rect = svg.getBoundingClientRect();
         
-        // Clamp viewBox size
-        const clampedWidth = Math.max(500, Math.min(10000, newWidth));
-        const clampedHeight = Math.max(300, Math.min(6000, newHeight));
+        // Get mouse position in SVG coordinates
+        const mouseX = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.width;
+        const mouseY = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.height;
         
-        // Zoom towards mouse position
-        const newX = mouseX - (mouseX - prev.x) * (clampedWidth / prev.width);
-        const newY = mouseY - (mouseY - prev.y) * (clampedHeight / prev.height);
-        
-        return {
-          x: Math.max(0, Math.min(5000 - clampedWidth, newX)),
-          y: Math.max(0, Math.min(3000 - clampedHeight, newY)),
-          width: clampedWidth,
-          height: clampedHeight
-        };
-      });
-    } else {
-      // Pan with regular scroll
-      const scrollSpeed = 2;
-      setViewBox(prev => ({
-        ...prev,
-        x: Math.max(0, Math.min(5000 - prev.width, prev.x + e.deltaX * scrollSpeed)),
-        y: Math.max(0, Math.min(3000 - prev.height, prev.y + e.deltaY * scrollSpeed))
-      }));
-    }
+        setViewBox(prev => {
+          const newWidth = prev.width * zoomFactor;
+          const newHeight = prev.height * zoomFactor;
+          
+          // Clamp viewBox size
+          const clampedWidth = Math.max(500, Math.min(10000, newWidth));
+          const clampedHeight = Math.max(300, Math.min(6000, newHeight));
+          
+          // Zoom towards mouse position
+          const newX = mouseX - (mouseX - prev.x) * (clampedWidth / prev.width);
+          const newY = mouseY - (mouseY - prev.y) * (clampedHeight / prev.height);
+          
+          return {
+            x: Math.max(0, Math.min(5000 - clampedWidth, newX)),
+            y: Math.max(0, Math.min(3000 - clampedHeight, newY)),
+            width: clampedWidth,
+            height: clampedHeight
+          };
+        });
+      } else {
+        // Pan with regular scroll
+        const scrollSpeed = 2;
+        setViewBox(prev => ({
+          ...prev,
+          x: Math.max(0, Math.min(5000 - prev.width, prev.x + e.deltaX * scrollSpeed)),
+          y: Math.max(0, Math.min(3000 - prev.height, prev.y + e.deltaY * scrollSpeed))
+        }));
+      }
+    };
+    
+    svg.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => svg.removeEventListener('wheel', handleWheelNative);
+  }, [viewBox]);
+
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    // This is now handled by the native event listener above
+    // Keeping this empty function to avoid React warnings
   };
 
   const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -2382,11 +2395,11 @@ export default function UltimateKSYKBuilder() {
                           <polygon 
                             points={customShape.map((p: Point) => `${p.x},${p.y}`).join(" ")} 
                             fill={`url(#customGrad-${building.id})`}
-                            stroke={isSelected ? "#FBBF24" : "white"} 
-                            strokeWidth={isSelected ? "6" : "4"} 
-                            opacity="0.95"
-                            filter={isSelected ? `url(#customGlow-${building.id})` : "none"}
-                            className="transition-all"
+                          
+                          {/* Building name with shadow - MUCH BIGGER TEXT */}
+                          <text x={centerX} y={centerY - 20} textAnchor="middle" fill="black" fontSize="80" fontWeight="900" opacity="0.3">{building.name}</text>
+                          <text x={centerX} y={centerY - 25} textAnchor="middle" fill="white" fontSize="80" fontWeight="900" stroke="black" strokeWidth="4" style={{ textShadow: "4px 4px 12px rgba(0,0,0,0.9)" }}>{building.name}</text>
+                          <text x={centerX} y={centerY + 40} textAnchor="middle" fill="white" fontSize="32" fontWeight="700" stroke="black" strokeWidth="2" opacity="0.95" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.8)" }}>{building.nameEn}</text>
                           />
                           
                           {/* Shine effect on custom shape */}
@@ -2876,19 +2889,6 @@ export default function UltimateKSYKBuilder() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Group rooms by building */}
-                {buildings.map((building: any) => {
-                  const buildingRooms = rooms.filter((r: any) => r.buildingId === building.id);
-                  if (buildingRooms.length === 0) return null;
-                  
-                  return (
-                    <div key={building.id} className="border-2 rounded-xl p-4" style={{ borderColor: building.colorCode }}>
-                      <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: building.colorCode }}>
-                        <Building className="h-5 w-5" />
-                        {building.name} - {building.nameEn}
-                        <Badge variant="outline" className="ml-2">{buildingRooms.length} rooms</Badge>
-                      </h4>
-                      
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                         {buildingRooms.map((room: any) => {
                           const roomColor = getRoomColor(room.type);
@@ -2897,7 +2897,61 @@ export default function UltimateKSYKBuilder() {
                             <motion.div 
                               key={room.id} 
                               whileHover={{ scale: 1.05 }} 
-                              className="border rounded-lg p-2 hover:shadow-md transition-all text-sm"
+                              className="border rounded-lg p-2 hover:shadow-md transition-all text-sm relative group"
+                              style={{ borderColor: roomColor, borderWidth: '2px' }}
+                            >
+                              <div className="font-bold text-center" style={{ color: roomColor }}>{room.roomNumber}</div>
+                              <div className="flex items-center justify-between mt-1">
+                                <Badge variant="outline" className="text-xs" style={{ borderColor: roomColor, color: roomColor }}>
+                                  Floor {room.floor}
+                                </Badge>
+                                <span className="text-xs text-gray-500 capitalize">{room.type.replace('_', ' ')}</span>
+                              </div>
+                              
+                              {/* Edit/Remove buttons - show on hover */}
+                              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => {
+                                    // TODO: Implement edit functionality
+                                    alert(`Edit room ${room.roomNumber} - Coming soon!`);
+                                  }}
+                                  className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                  title="Edit room"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={async () => {
+                                    if (confirm(`Delete room ${room.roomNumber}?`)) {
+                                      try {
+                                        const response = await fetch(`/api/rooms/${room.id}`, {
+                                          method: 'DELETE',
+                                          credentials: 'include'
+                                        });
+                                        if (response.ok) {
+                                          queryClient.invalidateQueries({ queryKey: ['rooms'] });
+                                          alert('Room deleted!');
+                                        }
+                                      } catch (error) {
+                                        console.error('Error deleting room:', error);
+                                        alert('Failed to delete room');
+                                      }
+                                    }
+                                  }}
+                                  className="p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                  title="Delete room"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </motion.button>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>  className="border rounded-lg p-2 hover:shadow-md transition-all text-sm"
                               style={{ borderColor: roomColor, borderWidth: '2px' }}
                             >
                               <div className="font-bold text-center" style={{ color: roomColor }}>{room.roomNumber}</div>
@@ -3007,7 +3061,7 @@ export default function UltimateKSYKBuilder() {
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1 text-gray-500">
-                                  <span>({hallway.startX}, {hallway.startY}) → ({hallway.endX}, {hallway.endY})</span>
+                                  <span>({hallway.startX}, {hallway.startY}) → ({hallway.endX}, {hallway.endY})</span>n>
                                 </div>
                               </div>
                             </motion.div>

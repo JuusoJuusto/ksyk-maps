@@ -6,6 +6,7 @@ import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
+import TwoFactorAuth from "@/components/TwoFactorAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,8 @@ import {
   Settings,
   Sparkles,
   Brain,
-  Zap
+  Zap,
+  Shield
 } from "lucide-react";
 
 interface Building {
@@ -838,7 +840,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-9 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
@@ -846,6 +848,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
+          <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            2FA
+          </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
@@ -2150,6 +2156,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="announcements" className="space-y-6">
           <AnnouncementManager />
+        </TabsContent>
+
+        <TabsContent value="2fa" className="space-y-6">
+          <TwoFactorAuth />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
