@@ -304,14 +304,23 @@ export default function ImprovedKSYKBuilder() {
   const getRoomColor = (type: string): string => {
     const colors: Record<string, string> = {
       classroom: '#60A5FA',
+      classroom_science: '#10B981',
+      classroom_language: '#F59E0B',
+      classroom_art: '#EC4899',
+      classroom_music: '#8B5CF6',
+      classroom_computer: '#3B82F6',
       lab: '#34D399',
       office: '#FBBF24',
       library: '#A78BFA',
       gymnasium: '#F87171',
       cafeteria: '#FB923C',
+      lobby: '#6366F1',
       toilet: '#94A3B8',
       stairway: '#EF4444',
       hallway: '#D1D5DB',
+      door: '#78716C',
+      storage: '#A3A3A3',
+      auditorium: '#DC2626',
     };
     return colors[type] || '#9CA3AF';
   };
@@ -465,15 +474,24 @@ export default function ImprovedKSYKBuilder() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="classroom">Classroom</SelectItem>
-                    <SelectItem value="lab">Laboratory</SelectItem>
-                    <SelectItem value="office">Office</SelectItem>
-                    <SelectItem value="library">Library</SelectItem>
-                    <SelectItem value="gymnasium">Gymnasium</SelectItem>
-                    <SelectItem value="cafeteria">Cafeteria</SelectItem>
-                    <SelectItem value="toilet">Toilet</SelectItem>
-                    <SelectItem value="stairway">Stairway</SelectItem>
-                    <SelectItem value="hallway">Hallway</SelectItem>
+                    <SelectItem value="classroom">📚 Classroom</SelectItem>
+                    <SelectItem value="classroom_science">🔬 Science Classroom</SelectItem>
+                    <SelectItem value="classroom_language">🗣️ Language Classroom</SelectItem>
+                    <SelectItem value="classroom_art">🎨 Art Classroom</SelectItem>
+                    <SelectItem value="classroom_music">🎵 Music Classroom</SelectItem>
+                    <SelectItem value="classroom_computer">💻 Computer Lab</SelectItem>
+                    <SelectItem value="lab">🧪 Laboratory</SelectItem>
+                    <SelectItem value="office">🏢 Office</SelectItem>
+                    <SelectItem value="library">📖 Library</SelectItem>
+                    <SelectItem value="gymnasium">🏀 Gymnasium</SelectItem>
+                    <SelectItem value="cafeteria">🍽️ Cafeteria</SelectItem>
+                    <SelectItem value="lobby">🚪 Lobby/Entrance</SelectItem>
+                    <SelectItem value="toilet">🚻 Toilet</SelectItem>
+                    <SelectItem value="stairway">🪜 Stairway</SelectItem>
+                    <SelectItem value="hallway">🚶 Hallway/Corridor</SelectItem>
+                    <SelectItem value="door">🚪 Door</SelectItem>
+                    <SelectItem value="storage">📦 Storage Room</SelectItem>
+                    <SelectItem value="auditorium">🎭 Auditorium</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -208,7 +208,7 @@ export default function EasterEgg() {
         </motion.div>
 
         {/* Real-time Discovery Counter */}
-        {stats && (
+        {stats?.secretEasterEgg !== undefined && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -224,7 +224,7 @@ export default function EasterEgg() {
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              {stats.secretEasterEgg || 0}
+              {stats.secretEasterEgg}
             </motion.p>
             <p className="text-white/80 text-sm mt-2">people have found this secret!</p>
           </motion.div>
