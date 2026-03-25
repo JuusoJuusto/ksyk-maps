@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
-import UltimateKSYKBuilder from "@/components/UltimateKSYKBuilder";
+import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
@@ -1330,7 +1330,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="ksyk-builder" className="h-full flex-1 overflow-hidden">
-          <UltimateKSYKBuilder />
+          <ImprovedKSYKBuilder />
         </TabsContent>
 
         <TabsContent value="builder" className="space-y-6">
