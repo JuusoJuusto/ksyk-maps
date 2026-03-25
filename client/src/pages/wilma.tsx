@@ -21,11 +21,13 @@ import {
 export default function Wilma() {
   const [activeSection, setActiveSection] = useState('frontpage');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
+  const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
+  const [currentWeek, setCurrentWeek] = useState(12); // Week 12 of 2026
 
   // Translation object
   const tr = {
     fi: {
-      school: 'Kulosaaren yhteiskoulu',
+      school: 'Brando',
       studentName: 'Matti Meikäläinen',
       class: 'Luokka',
       notifications: 'Ilmoitukset',
@@ -94,10 +96,24 @@ export default function Wilma() {
       low: 'Matala',
       courseGrades: 'Kurssiarvosanat',
       termGrades: 'Lukukauden arvosanat',
-      yearGrades: 'Vuoden arvosanat'
+      yearGrades: 'Vuoden arvosanat',
+      back: 'Takaisin',
+      reply: 'Vastaa',
+      forward: 'Välitä',
+      delete: 'Poista',
+      messageContent: 'Viestin sisältö',
+      previousWeek: 'Edellinen viikko',
+      nextWeek: 'Seuraava viikko',
+      noLessons: 'Ei tunteja',
+      week: 'Viikko',
+      monday: 'Maanantai',
+      tuesday: 'Tiistai',
+      wednesday: 'Keskiviikko',
+      thursday: 'Torstai',
+      friday: 'Perjantai'
     },
     en: {
-      school: 'Kulosaari Joint School',
+      school: 'Brando',
       studentName: 'John Student',
       class: 'Class',
       notifications: 'Notifications',
@@ -166,7 +182,21 @@ export default function Wilma() {
       low: 'Low',
       courseGrades: 'Course Grades',
       termGrades: 'Term Grades',
-      yearGrades: 'Year Grades'
+      yearGrades: 'Year Grades',
+      back: 'Back',
+      reply: 'Reply',
+      forward: 'Forward',
+      delete: 'Delete',
+      messageContent: 'Message Content',
+      previousWeek: 'Previous Week',
+      nextWeek: 'Next Week',
+      noLessons: 'No lessons',
+      week: 'Week',
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday'
     }
   };
 
@@ -181,6 +211,37 @@ export default function Wilma() {
   };
 
   // Mock data with more comprehensive information
+  const weeklySchedule = {
+    monday: [
+      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
+      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
+      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
+      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
+    ],
+    tuesday: [
+      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', room: 'Luokka 303', teacher: 'Lindström' },
+      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
+      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Liikunta' : 'PE', room: 'Sali', teacher: 'Mäkinen' },
+      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
+    ],
+    wednesday: [
+      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
+      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
+      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
+    ],
+    thursday: [
+      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
+      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', room: 'Luokka 303', teacher: 'Lindström' },
+      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
+      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Liikunta' : 'PE', room: 'Sali', teacher: 'Mäkinen' },
+    ],
+    friday: [
+      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
+      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
+      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
+    ],
+  };
+
   const upcomingLessons = [
     { time: '08:00 - 08:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson', description: language === 'fi' ? 'Geometria: Kolmiot' : 'Geometry: Triangles' },
     { time: '09:00 - 09:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith', description: language === 'fi' ? 'Kielioppi: Present Perfect' : 'Grammar: Present Perfect' },
@@ -200,11 +261,51 @@ export default function Wilma() {
   ];
 
   const messages = [
-    { date: '24.03.2026', from: 'Andersson', subject: language === 'fi' ? 'Matematiikan kokeen tulokset' : 'Math Test Results', unread: true, preview: language === 'fi' ? 'Hyvää työtä kokeessa!' : 'Good work on the test!' },
-    { date: '23.03.2026', from: 'Smith', subject: language === 'fi' ? 'Esseen palaute' : 'Essay Feedback', unread: true, preview: language === 'fi' ? 'Erinomainen essee' : 'Excellent essay' },
-    { date: '22.03.2026', from: language === 'fi' ? 'Koulun toimisto' : 'School Office', subject: language === 'fi' ? 'Vanhempainilta' : 'Parent-Teacher Meeting', unread: false, preview: language === 'fi' ? 'Vanhempainilta 30.3.' : 'Parent meeting 30.3.' },
-    { date: '20.03.2026', from: 'Virtanen', subject: language === 'fi' ? 'Historian projekti' : 'History Project', unread: false, preview: language === 'fi' ? 'Projektin ohjeistus' : 'Project instructions' },
-    { date: '18.03.2026', from: 'Johansson', subject: language === 'fi' ? 'Laboratoriotyö' : 'Lab Work', unread: false, preview: language === 'fi' ? 'Seuraavan viikon laboratorio' : 'Next week lab' },
+    { 
+      id: 1,
+      date: '24.03.2026', 
+      from: 'Andersson', 
+      subject: language === 'fi' ? 'Matematiikan kokeen tulokset' : 'Math Test Results', 
+      unread: true, 
+      preview: language === 'fi' ? 'Hyvää työtä kokeessa!' : 'Good work on the test!',
+      content: language === 'fi' ? 'Hei Matti,\n\nHyvää työtä viime viikon kokeessa! Sait arvosanaksi 9, mikä on erinomainen tulos. Erityisesti geometrian tehtävät olivat hyvin ratkottuja.\n\nJatka samaan malliin!\n\nTerveisin,\nAndersson' : 'Hi John,\n\nGreat work on last week\'s test! You got a grade of 9, which is an excellent result. Especially the geometry problems were well solved.\n\nKeep up the good work!\n\nBest regards,\nAndersson'
+    },
+    { 
+      id: 2,
+      date: '23.03.2026', 
+      from: 'Smith', 
+      subject: language === 'fi' ? 'Esseen palaute' : 'Essay Feedback', 
+      unread: true, 
+      preview: language === 'fi' ? 'Erinomainen essee' : 'Excellent essay',
+      content: language === 'fi' ? 'Hei,\n\nEsseesi ilmastonmuutoksesta oli erinomainen! Argumentaatiosi oli selkeää ja käytit hyviä lähteitä. Arvosanaksi 10.\n\nPieniä parannusehdotuksia:\n- Lisää esimerkkejä\n- Tarkista pilkutus\n\nHyvää työtä!\n\nSmith' : 'Hi,\n\nYour essay on climate change was excellent! Your argumentation was clear and you used good sources. Grade: 10.\n\nSmall suggestions for improvement:\n- Add more examples\n- Check punctuation\n\nGreat work!\n\nSmith'
+    },
+    { 
+      id: 3,
+      date: '22.03.2026', 
+      from: language === 'fi' ? 'Koulun toimisto' : 'School Office', 
+      subject: language === 'fi' ? 'Vanhempainilta' : 'Parent-Teacher Meeting', 
+      unread: false, 
+      preview: language === 'fi' ? 'Vanhempainilta 30.3.' : 'Parent meeting 30.3.',
+      content: language === 'fi' ? 'Hyvä huoltaja,\n\nVanhempainilta järjestetään 30.3.2026 klo 18:00 koulun auditoriossa.\n\nOhjelma:\n- Tervetuloa ja esittely\n- Kevään tapahtumat\n- Kysymyksiä ja vastauksia\n\nToivomme runsasta osallistumista!\n\nKoulun toimisto' : 'Dear guardian,\n\nParent-teacher meeting will be held on 30.3.2026 at 18:00 in the school auditorium.\n\nProgram:\n- Welcome and introduction\n- Spring events\n- Q&A\n\nWe hope for good attendance!\n\nSchool Office'
+    },
+    { 
+      id: 4,
+      date: '20.03.2026', 
+      from: 'Virtanen', 
+      subject: language === 'fi' ? 'Historian projekti' : 'History Project', 
+      unread: false, 
+      preview: language === 'fi' ? 'Projektin ohjeistus' : 'Project instructions',
+      content: language === 'fi' ? 'Hei oppilaat,\n\nHistorian projektin aihe on "Suomen itsenäisyys". Projekti tulee palauttaa 2.4.2026 mennessä.\n\nVaatimukset:\n- 5-10 sivua\n- Vähintään 5 lähdettä\n- Kuvat ja kaaviot\n\nOnnea projektiin!\n\nVirtanen' : 'Hi students,\n\nThe history project topic is "Finnish Independence". The project must be submitted by 2.4.2026.\n\nRequirements:\n- 5-10 pages\n- At least 5 sources\n- Images and charts\n\nGood luck with the project!\n\nVirtanen'
+    },
+    { 
+      id: 5,
+      date: '18.03.2026', 
+      from: 'Johansson', 
+      subject: language === 'fi' ? 'Laboratoriotyö' : 'Lab Work', 
+      unread: false, 
+      preview: language === 'fi' ? 'Seuraavan viikon laboratorio' : 'Next week lab',
+      content: language === 'fi' ? 'Hei,\n\nEnsi viikon laboratoriossa tutkimme sähkövirtaa ja jännitettä. Muistakaa tuoda:\n- Työvaatteet\n- Muistiinpanovälineet\n- Laskin\n\nLaboratorio alkaa täsmällisesti klo 10:00.\n\nJohansson' : 'Hi,\n\nNext week\'s lab will study electric current and voltage. Remember to bring:\n- Work clothes\n- Note-taking materials\n- Calculator\n\nLab starts promptly at 10:00.\n\nJohansson'
+    },
   ];
 
   const assignments = [
@@ -436,8 +537,15 @@ export default function Wilma() {
                     </tr>
                   </thead>
                   <tbody>
-                    {messages.slice(0, 3).map((msg, index) => (
-                      <tr key={index} className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${msg.unread ? 'bg-blue-50/50' : ''}`}>
+                    {messages.slice(0, 3).map((msg) => (
+                      <tr 
+                        key={msg.id}
+                        onClick={() => {
+                          setActiveSection('messages');
+                          setSelectedMessage(msg.id);
+                        }}
+                        className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${msg.unread ? 'bg-blue-50/50' : ''}`}
+                      >
                         <td className="py-3 px-3 text-gray-700">{msg.date}</td>
                         <td className="py-3 px-3 font-medium text-gray-900">{msg.from}</td>
                         <td className="py-3 px-3">
@@ -456,32 +564,48 @@ export default function Wilma() {
         {/* All other sections - Schedule, Grades, Assignments, Messages, Attendance, Exams, Settings */}
         {activeSection === 'schedule' && (
           <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">{t.weeklySchedule}</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setCurrentWeek(currentWeek - 1)} className="px-3 py-1 bg-[#003d82] text-white rounded hover:bg-[#0052a3] text-sm">
+                  ← {t.previousWeek}
+                </button>
+                <span className="px-4 py-1 bg-white border border-gray-300 rounded font-semibold text-sm">
+                  {t.week} {currentWeek}
+                </span>
+                <button onClick={() => setCurrentWeek(currentWeek + 1)} className="px-3 py-1 bg-[#003d82] text-white rounded hover:bg-[#0052a3] text-sm">
+                  {t.nextWeek} →
+                </button>
+              </div>
             </div>
             <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.time}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.room}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.description}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {upcomingLessons.map((lesson, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium">{lesson.time}</td>
-                      <td className="py-3 px-3 font-semibold text-blue-600">{lesson.subject}</td>
-                      <td className="py-3 px-3">{lesson.room}</td>
-                      <td className="py-3 px-3">{lesson.teacher}</td>
-                      <td className="py-3 px-3 text-gray-600 text-xs">{lesson.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="grid grid-cols-5 gap-4">
+                {[
+                  { day: t.monday, lessons: weeklySchedule.monday },
+                  { day: t.tuesday, lessons: weeklySchedule.tuesday },
+                  { day: t.wednesday, lessons: weeklySchedule.wednesday },
+                  { day: t.thursday, lessons: weeklySchedule.thursday },
+                  { day: t.friday, lessons: weeklySchedule.friday },
+                ].map((dayData, dayIndex) => (
+                  <div key={dayIndex} className="border border-gray-300 rounded-lg overflow-hidden">
+                    <div className="bg-[#e8f0f8] px-3 py-2 border-b border-gray-300">
+                      <h3 className="font-semibold text-sm text-gray-800">{dayData.day}</h3>
+                    </div>
+                    <div className="p-2 space-y-2">
+                      {dayData.lessons.length > 0 ? dayData.lessons.map((lesson, lessonIndex) => (
+                        <div key={lessonIndex} className="bg-blue-50 border border-blue-200 rounded p-2 hover:bg-blue-100 transition-colors">
+                          <p className="text-xs text-gray-600 font-medium">{lesson.time}</p>
+                          <p className="text-sm font-semibold text-blue-700 mt-1">{lesson.subject}</p>
+                          <p className="text-xs text-gray-600 mt-1">{lesson.room}</p>
+                          <p className="text-xs text-gray-500">{lesson.teacher}</p>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-gray-400 text-center py-4">{t.noLessons}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -567,33 +691,93 @@ export default function Wilma() {
         )}
 
         {activeSection === 'messages' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.messages}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.from}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {messages.map((msg, index) => (
-                    <tr key={index} className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer ${msg.unread ? 'bg-blue-50/50' : ''}`}>
-                      <td className="py-3 px-3">{msg.date}</td>
-                      <td className="py-3 px-3 font-medium">{msg.from}</td>
-                      <td className="py-3 px-3">
-                        {msg.unread && <span className="text-red-500 mr-2 font-bold">●</span>}
-                        <span className={msg.unread ? 'font-semibold' : ''}>{msg.subject}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-4">
+            {selectedMessage === null ? (
+              <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+                  <h2 className="text-lg font-semibold text-gray-800">{t.messages}</h2>
+                </div>
+                <div className="p-6">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.from}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {messages.map((msg) => (
+                        <tr 
+                          key={msg.id}
+                          onClick={() => setSelectedMessage(msg.id)}
+                          className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${msg.unread ? 'bg-blue-50/50' : ''}`}
+                        >
+                          <td className="py-3 px-3">{msg.date}</td>
+                          <td className="py-3 px-3 font-medium">{msg.from}</td>
+                          <td className="py-3 px-3">
+                            {msg.unread && <span className="text-red-500 mr-2 font-bold">●</span>}
+                            <span className={msg.unread ? 'font-semibold' : ''}>{msg.subject}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-800">{t.messageContent}</h2>
+                  <button 
+                    onClick={() => setSelectedMessage(null)}
+                    className="px-4 py-2 bg-[#003d82] text-white rounded-lg hover:bg-[#0052a3] transition-colors text-sm flex items-center gap-2"
+                  >
+                    ← {t.back}
+                  </button>
+                </div>
+                <div className="p-6">
+                  {messages.find(m => m.id === selectedMessage) && (
+                    <div className="space-y-4">
+                      <div className="border-b border-gray-300 pb-4">
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
+                          {messages.find(m => m.id === selectedMessage)!.subject}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{messages.find(m => m.id === selectedMessage)!.from}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>{messages.find(m => m.id === selectedMessage)!.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                        <p className="text-gray-800 whitespace-pre-line leading-relaxed">
+                          {messages.find(m => m.id === selectedMessage)!.content}
+                        </p>
+                      </div>
+                      <div className="flex gap-3 pt-4">
+                        <button className="px-4 py-2 bg-[#003d82] text-white rounded-lg hover:bg-[#0052a3] transition-colors text-sm flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          {t.reply}
+                        </button>
+                        <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          {t.forward}
+                        </button>
+                        <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm flex items-center gap-2">
+                          <XCircle className="w-4 h-4" />
+                          {t.delete}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
