@@ -258,6 +258,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 2FA Routes
+  // Generate 2FA secret
+  app.post('/api/auth/2fa/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const userName = `${req.user.claims.first_name} ${req.user.claims.last_name}`;
+
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const setup = TwoFactorAuthService.generateSecret(userEmail, userName);
+
+      // Store the secret temporarily in session
+      req.session.tempTwoFactorSecret = setup.secret;
+
+      res.json({
+        secret: setup.secret,
+        otpauthUrl: setup.otpauthUrl,
+      });
+    } catch (error) {
+      console.error('Error generating 2FA secret:', error);
+      res.status(500).json({ message: 'Failed to generate 2FA secret' });
+    }
+  });
+
+  // Enable 2FA
+  app.post('/api/auth/2fa/enable', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { code } = req.body;
+      const secret = req.session.tempTwoFactorSecret;
+
+      if (!secret) {
+        return res.status(400).json({ message: 'No 2FA setup in progress' });
+      }
+
+      if (!code || code.length !== 6) {
+        return res.status(400).json({ message: 'Invalid verification code' });
+      }
+
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const result = await TwoFactorAuthService.enableTwoFactor(userId, secret, code);
+
+      if (result.success) {
+        // Clear temp secret
+        delete req.session.tempTwoFactorSecret;
+        
+        // Generate backup codes
+        const backupCodes = TwoFactorAuthService.generateBackupCodes();
+        
+        // Store backup codes in database
+        await storage.updateUser(userId, {
+          twoFactorBackupCodes: JSON.stringify(backupCodes),
+        });
+
+        res.json({
+          success: true,
+          message: result.message,
+          backupCodes,
+        });
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error('Error enabling 2FA:', error);
+      res.status(500).json({ message: 'Failed to enable 2FA' });
+    }
+  });
+
+  // Disable 2FA
+  app.post('/api/auth/2fa/disable', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { code } = req.body;
+
+      if (!code || code.length !== 6) {
+        return res.status(400).json({ message: 'Invalid verification code' });
+      }
+
+      // Get user's 2FA secret
+      const user = await storage.getUserById(userId);
+      if (!user || !user.twoFactorSecret) {
+        return res.status(400).json({ message: '2FA is not enabled' });
+      }
+
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const result = await TwoFactorAuthService.disableTwoFactor(
+        userId,
+        user.twoFactorSecret,
+        code
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error disabling 2FA:', error);
+      res.status(500).json({ message: 'Failed to disable 2FA' });
+    }
+  });
+
+  // Check 2FA status
+  app.get('/api/auth/2fa/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json({
+        enabled: user.twoFactorEnabled || false,
+        secret: req.session.tempTwoFactorSecret || null,
+      });
+    } catch (error) {
+      console.error('Error checking 2FA status:', error);
+      res.status(500).json({ message: 'Failed to check 2FA status' });
+    }
+  });
+
+  // Verify 2FA code during login
+  app.post('/api/auth/2fa/verify', async (req, res) => {
+    try {
+      const { userId, code } = req.body;
+
+      if (!userId || !code) {
+        return res.status(400).json({ message: 'User ID and code required' });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user || !user.twoFactorSecret) {
+        return res.status(400).json({ message: '2FA not enabled for this user' });
+      }
+
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const isValid = TwoFactorAuthService.verifyToken(user.twoFactorSecret, code);
+
+      if (isValid) {
+        res.json({ success: true });
+      } else {
+        // Try backup code
+        const isBackupValid = await TwoFactorAuthService.verifyBackupCode(userId, code);
+        if (isBackupValid) {
+          res.json({ success: true, usedBackupCode: true });
+        } else {
+          res.status(401).json({ success: false, message: 'Invalid code' });
+        }
+      }
+    } catch (error) {
+      console.error('Error verifying 2FA code:', error);
+      res.status(500).json({ message: 'Failed to verify code' });
+    }
+  });
+
+  // Easter Egg Stats
+  app.get('/api/easter-eggs/stats', isAuthenticated, async (req, res) => {
+    try {
+      const stats = await storage.getEasterEggStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching easter egg stats:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+
+  // Track Easter Egg Discovery
+  app.post('/api/easter-eggs/track', async (req, res) => {
+    try {
+      const { eggId, eggName } = req.body;
+      const userId = req.user?.claims?.sub || 'anonymous';
+      
+      await storage.trackEasterEggDiscovery({
+        eggId,
+        eggName,
+        userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error tracking easter egg:', error);
+      res.status(500).json({ message: 'Failed to track discovery' });
+    }
+  });
+
   // Change password endpoint
   app.post('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
     try {

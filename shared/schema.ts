@@ -38,6 +38,9 @@ export const users = pgTable("users", {
   password: varchar("password"),
   isTemporaryPassword: boolean("is_temporary_password").default(false),
   canLoginToKsykMaps: boolean("can_login_to_ksyk_maps").default(true),
+  twoFactorSecret: varchar("two_factor_secret"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorBackupCodes: text("two_factor_backup_codes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
