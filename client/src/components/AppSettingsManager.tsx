@@ -76,6 +76,7 @@ interface AppSettings {
   passwordMinLength?: number;
   requireStrongPassword?: boolean;
   enable2FA?: boolean;
+  twoFactorMethod?: 'authenticator' | 'email' | 'both';
   enableSSO?: boolean;
   enableAuditLog?: boolean;
   enableBackups?: boolean;
@@ -206,7 +207,7 @@ export default function AppSettingsManager() {
       </div>
 
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="appearance">
             <Paintbrush className="w-4 h-4 mr-2" />
             Appearance
@@ -238,6 +239,9 @@ export default function AppSettingsManager() {
           <TabsTrigger value="super-advanced">
             <Zap className="w-4 h-4 mr-2" />
             Super Advanced
+          </TabsTrigger>
+          <TabsTrigger value="owner-only">
+            🔒 Owner Only
           </TabsTrigger>
         </TabsList>
 
@@ -1727,6 +1731,103 @@ export default function AppSettingsManager() {
                 <p className="text-sm text-red-800">
                   ⚠️ <strong>Warning:</strong> Super Advanced features may impact performance and security. Test thoroughly before enabling in production.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="owner-only" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>🔒 Owner-Only Settings</CardTitle>
+              <CardDescription>Security and authentication settings restricted to the owner account</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  🔐 <strong>Owner Access Only:</strong> These settings control global security policies and can only be modified by JuusoJuusto112@gmail.com
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="font-semibold text-lg">Two-Factor Authentication (2FA) Policy</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label className="text-base font-semibold">Enforce 2FA for All Users</Label>
+                      <p className="text-sm text-muted-foreground">Require all admin users to enable two-factor authentication</p>
+                    </div>
+                    <Switch
+                      checked={settings.enable2FA ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, enable2FA: checked })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold">2FA Method</Label>
+                    <select
+                      value={settings.twoFactorMethod || 'authenticator'}
+                      onChange={(e) => setSettings({ ...settings, twoFactorMethod: e.target.value as any })}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="authenticator">Authenticator App (Google Authenticator, Authy)</option>
+                      <option value="email">Email Verification Code</option>
+                      <option value="both">Both Methods Available</option>
+                    </select>
+                    <p className="text-sm text-muted-foreground">
+                      Choose how users verify their identity during login
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-semibold mb-2">Current 2FA Status</h4>
+                    <div className="space-y-1 text-sm">
+                      <p>• <strong>Global Policy:</strong> {settings.enable2FA ? '✅ Enforced for all users' : '❌ Optional (users can enable individually)'}</p>
+                      <p>• <strong>Method:</strong> {settings.twoFactorMethod === 'authenticator' ? '📱 Authenticator App' : settings.twoFactorMethod === 'email' ? '📧 Email Code' : '🔄 Both Methods'}</p>
+                      <p className="text-xs text-gray-500 mt-2">Users can manage their 2FA settings in the Admin Dashboard → Two-Factor Auth tab</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="font-semibold text-lg">Advanced Security</h3>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Require Strong Passwords</Label>
+                      <p className="text-sm text-muted-foreground">Enforce special characters and complexity</p>
+                    </div>
+                    <Switch
+                      checked={settings.requireStrongPassword ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, requireStrongPassword: checked })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Maximum Login Attempts</Label>
+                    <Input
+                      type="number"
+                      min="3"
+                      max="10"
+                      value={settings.maxLoginAttempts ?? 5}
+                      onChange={(e) => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) || 5 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Lock account after this many failed attempts</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Session Timeout (minutes)</Label>
+                    <Input
+                      type="number"
+                      min="15"
+                      max="1440"
+                      value={settings.sessionTimeoutMinutes ?? 60}
+                      onChange={(e) => setSettings({ ...settings, sessionTimeoutMinutes: parseInt(e.target.value) || 60 })}
+                    />
+                    <p className="text-sm text-muted-foreground">Auto-logout users after inactivity</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
