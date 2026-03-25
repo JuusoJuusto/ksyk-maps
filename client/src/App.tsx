@@ -23,6 +23,7 @@ import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
 import DebugBuildings from "@/pages/debug-buildings";
 import StudiOWL from "@/pages/owlapps";
+import Wilma from "@/pages/wilma";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/builder" component={Builder} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
+      <Route path="/wilma" component={Wilma} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={StudiOWL} />
