@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calendar, 
   FileText, 
@@ -15,14 +16,35 @@ import {
   User,
   TrendingUp,
   Award,
-  Target
+  Target,
+  Users,
+  UserCheck,
+  Building,
+  GraduationCap,
+  ClipboardList
 } from 'lucide-react';
 
 export default function Wilma() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('frontpage');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
   const [currentWeek, setCurrentWeek] = useState(12); // Week 12 of 2026
+  const [examView, setExamView] = useState<'upcoming' | 'past'>('upcoming');
+
+  // Sync URL with active section
+  useEffect(() => {
+    const path = location.pathname.replace('/wilma/', '').replace('/wilma', '');
+    if (path && path !== activeSection) {
+      setActiveSection(path || 'frontpage');
+    }
+  }, [location]);
+
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    navigate(`/wilma/${section === 'frontpage' ? '' : section}`);
+  };
 
   // Translation object
   const tr = {
@@ -110,7 +132,27 @@ export default function Wilma() {
       tuesday: 'Tiistai',
       wednesday: 'Keskiviikko',
       thursday: 'Torstai',
-      friday: 'Perjantai'
+      friday: 'Perjantai',
+      students: 'Oppilaat',
+      teachers: 'Opettajat',
+      rooms: 'Huoneet',
+      courses: 'Kurssit',
+      reports: 'Raportit',
+      pastExams: 'Menneet kokeet',
+      examDate: 'Koepäivä',
+      examResult: 'Tulos',
+      noExams: 'Ei kokeita',
+      studentList: 'Oppilaslista',
+      teacherList: 'Opettajalista',
+      roomList: 'Huonelista',
+      courseList: 'Kurssilista',
+      email: 'Sähköposti',
+      phone: 'Puhelin',
+      capacity: 'Kapasiteetti',
+      building: 'Rakennus',
+      courseCode: 'Kurssikoodi',
+      credits: 'Opintopisteet',
+      name: 'Nimi'
     },
     en: {
       school: 'Brando',
@@ -196,7 +238,27 @@ export default function Wilma() {
       tuesday: 'Tuesday',
       wednesday: 'Wednesday',
       thursday: 'Thursday',
-      friday: 'Friday'
+      friday: 'Friday',
+      students: 'Students',
+      teachers: 'Teachers',
+      rooms: 'Rooms',
+      courses: 'Courses',
+      reports: 'Reports',
+      pastExams: 'Past Exams',
+      examDate: 'Exam Date',
+      examResult: 'Result',
+      noExams: 'No exams',
+      studentList: 'Student List',
+      teacherList: 'Teacher List',
+      roomList: 'Room List',
+      courseList: 'Course List',
+      email: 'Email',
+      phone: 'Phone',
+      capacity: 'Capacity',
+      building: 'Building',
+      courseCode: 'Course Code',
+      credits: 'Credits',
+      name: 'Name'
     }
   };
 
@@ -331,6 +393,42 @@ export default function Wilma() {
     { date: '08.04.2026', subject: language === 'fi' ? 'Historia' : 'History', topic: language === 'fi' ? 'Kylmä sota' : 'Cold War', type: t.test, description: language === 'fi' ? '1945-1991' : '1945-1991' },
   ];
 
+  const pastExams = [
+    { date: '20.03.2026', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', topic: language === 'fi' ? 'Luku 5 koe' : 'Chapter 5 Test', type: t.test, result: '9' },
+    { date: '18.03.2026', subject: language === 'fi' ? 'Englanti' : 'English', topic: language === 'fi' ? 'Essee' : 'Essay', type: t.test, result: '10' },
+    { date: '15.03.2026', subject: language === 'fi' ? 'Fysiikka' : 'Physics', topic: language === 'fi' ? 'Laboratorioraportti' : 'Lab Report', type: t.test, result: '8' },
+    { date: '12.03.2026', subject: language === 'fi' ? 'Historia' : 'History', topic: language === 'fi' ? 'Toisen maailmansodan koe' : 'WWII Test', type: t.test, result: '9' },
+    { date: '10.03.2026', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', topic: language === 'fi' ? 'Suullinen esitys' : 'Oral Presentation', type: t.test, result: '8' },
+  ];
+
+  const students = [
+    { name: 'Matti Meikäläinen', class: '9A', email: 'matti.meikalainen@brando.fi' },
+    { name: 'Liisa Virtanen', class: '9A', email: 'liisa.virtanen@brando.fi' },
+    { name: 'Pekka Korhonen', class: '9A', email: 'pekka.korhonen@brando.fi' },
+    { name: 'Anna Nieminen', class: '9A', email: 'anna.nieminen@brando.fi' },
+  ];
+
+  const teachers = [
+    { name: 'Andersson', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', email: 'andersson@brando.fi', phone: '+358 40 123 4567' },
+    { name: 'Smith', subject: language === 'fi' ? 'Englanti' : 'English', email: 'smith@brando.fi', phone: '+358 40 234 5678' },
+    { name: 'Johansson', subject: language === 'fi' ? 'Fysiikka' : 'Physics', email: 'johansson@brando.fi', phone: '+358 40 345 6789' },
+    { name: 'Virtanen', subject: language === 'fi' ? 'Historia' : 'History', email: 'virtanen@brando.fi', phone: '+358 40 456 7890' },
+  ];
+
+  const rooms = [
+    { name: 'Luokka 301', building: 'A', capacity: 30, type: language === 'fi' ? 'Luokkahuone' : 'Classroom' },
+    { name: 'Luokka 205', building: 'A', capacity: 25, type: language === 'fi' ? 'Luokkahuone' : 'Classroom' },
+    { name: 'Laboratorio 102', building: 'B', capacity: 20, type: language === 'fi' ? 'Laboratorio' : 'Laboratory' },
+    { name: 'Sali', building: 'C', capacity: 50, type: language === 'fi' ? 'Liikuntasali' : 'Gym' },
+  ];
+
+  const courses = [
+    { code: 'MAT9', name: language === 'fi' ? 'Matematiikka 9' : 'Mathematics 9', teacher: 'Andersson', credits: 5 },
+    { code: 'ENG9', name: language === 'fi' ? 'Englanti 9' : 'English 9', teacher: 'Smith', credits: 4 },
+    { code: 'PHY9', name: language === 'fi' ? 'Fysiikka 9' : 'Physics 9', teacher: 'Johansson', credits: 3 },
+    { code: 'HIS9', name: language === 'fi' ? 'Historia 9' : 'History 9', teacher: 'Virtanen', credits: 3 },
+  ];
+
   const attendanceStats = {
     totalAbsences: 3,
     totalLates: 2,
@@ -385,11 +483,16 @@ export default function Wilma() {
               { id: 'messages', icon: MessageSquare, label: t.messages, badge: 2 },
               { id: 'attendance', icon: CheckCircle, label: t.attendance },
               { id: 'exams', icon: BookOpen, label: t.exams },
+              { id: 'students', icon: Users, label: t.students },
+              { id: 'teachers', icon: UserCheck, label: t.teachers },
+              { id: 'rooms', icon: Building, label: t.rooms },
+              { id: 'courses', icon: GraduationCap, label: t.courses },
+              { id: 'reports', icon: ClipboardList, label: t.reports },
               { id: 'settings', icon: Settings, label: t.settings },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => handleSectionChange(item.id)}
                 className={`px-4 py-3 text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
                   activeSection === item.id
                     ? 'bg-white text-[#003d82] font-semibold shadow-sm'
@@ -848,37 +951,229 @@ export default function Wilma() {
         )}
 
         {activeSection === 'exams' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setExamView('upcoming')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      examView === 'upcoming'
+                        ? 'bg-[#003d82] text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {t.upcomingExams}
+                  </button>
+                  <button
+                    onClick={() => setExamView('past')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      examView === 'past'
+                        ? 'bg-[#003d82] text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {t.pastExams}
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                {examView === 'upcoming' ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.topic}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examType}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.description}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcomingExams.map((exam, index) => (
+                        <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
+                          <td className="py-3 px-3 font-medium">{exam.date}</td>
+                          <td className="py-3 px-3 font-semibold text-blue-600">{exam.subject}</td>
+                          <td className="py-3 px-3">{exam.topic}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${exam.type === t.exam ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {exam.type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-gray-600 text-xs">{exam.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.topic}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examType}</th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examResult}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pastExams.map((exam, index) => (
+                        <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
+                          <td className="py-3 px-3 font-medium">{exam.date}</td>
+                          <td className="py-3 px-3 font-semibold text-blue-600">{exam.subject}</td>
+                          <td className="py-3 px-3">{exam.topic}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${exam.type === t.exam ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {exam.type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`font-bold text-lg ${
+                              parseInt(exam.result) >= 9 ? 'text-green-600' : 
+                              parseInt(exam.result) >= 7 ? 'text-blue-600' : 
+                              'text-orange-600'
+                            }`}>
+                              {exam.result}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'students' && (
           <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
             <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.upcomingExams}</h2>
+              <h2 className="text-lg font-semibold text-gray-800">{t.studentList}</h2>
             </div>
             <div className="p-6">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.topic}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examType}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.description}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.studentName}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.class}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.email}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {upcomingExams.map((exam, index) => (
+                  {students.map((student, index) => (
                     <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium">{exam.date}</td>
-                      <td className="py-3 px-3 font-semibold text-blue-600">{exam.subject}</td>
-                      <td className="py-3 px-3">{exam.topic}</td>
-                      <td className="py-3 px-3">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${exam.type === t.exam ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {exam.type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-gray-600 text-xs">{exam.description}</td>
+                      <td className="py-3 px-3 font-medium text-blue-600">{student.name}</td>
+                      <td className="py-3 px-3">{student.class}</td>
+                      <td className="py-3 px-3 text-gray-600">{student.email}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'teachers' && (
+          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+              <h2 className="text-lg font-semibold text-gray-800">{t.teacherList}</h2>
+            </div>
+            <div className="p-6">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-gray-300">
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.email}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.phone}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teachers.map((teacher, index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
+                      <td className="py-3 px-3 font-medium text-blue-600">{teacher.name}</td>
+                      <td className="py-3 px-3">{teacher.subject}</td>
+                      <td className="py-3 px-3 text-gray-600">{teacher.email}</td>
+                      <td className="py-3 px-3 text-gray-600">{teacher.phone}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'rooms' && (
+          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+              <h2 className="text-lg font-semibold text-gray-800">{t.roomList}</h2>
+            </div>
+            <div className="p-6">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-gray-300">
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.room}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.building}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.type}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.capacity}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rooms.map((room, index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
+                      <td className="py-3 px-3 font-medium text-blue-600">{room.name}</td>
+                      <td className="py-3 px-3">{room.building}</td>
+                      <td className="py-3 px-3">{room.type}</td>
+                      <td className="py-3 px-3 text-gray-600">{room.capacity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'courses' && (
+          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+              <h2 className="text-lg font-semibold text-gray-800">{t.courseList}</h2>
+            </div>
+            <div className="p-6">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-gray-300">
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.courseCode}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.credits}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courses.map((course, index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
+                      <td className="py-3 px-3 font-medium text-blue-600">{course.code}</td>
+                      <td className="py-3 px-3">{course.name}</td>
+                      <td className="py-3 px-3 text-gray-600">{course.teacher}</td>
+                      <td className="py-3 px-3 text-gray-600">{course.credits}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'reports' && (
+          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
+              <h2 className="text-lg font-semibold text-gray-800">{t.reports}</h2>
+            </div>
+            <div className="p-6">
+              <div className="text-center py-12">
+                <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">{language === 'fi' ? 'Raportit tulossa pian' : 'Reports coming soon'}</p>
+              </div>
             </div>
           </div>
         )}
