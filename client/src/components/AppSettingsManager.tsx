@@ -1966,6 +1966,63 @@ export default function AppSettingsManager() {
                   </p>
                 </div>
               </div>
+
+              <div className="space-y-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg text-red-700">💣 NUCLEAR OPTION - Complete Data Wipe</h3>
+                <div className="p-6 bg-red-100 border-4 border-red-500 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle className="h-8 w-8 text-red-700 flex-shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-black text-red-900 text-lg mb-2">☢️ COMPLETE DATABASE WIPE</h4>
+                      <p className="text-sm text-red-900 font-semibold mb-2">
+                        This will delete EVERYTHING from the entire system:
+                      </p>
+                      <ul className="text-sm text-red-800 list-disc list-inside space-y-1">
+                        <li>All buildings and their floor plans</li>
+                        <li>All rooms, hallways, and stairs</li>
+                        <li>All announcements and staff information</li>
+                        <li>All tickets and support data</li>
+                        <li>All logs and analytics</li>
+                        <li>All map data and configurations</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    className="w-full bg-red-700 hover:bg-red-800 text-white font-black py-6 text-lg"
+                    onClick={async () => {
+                      if (!confirm("⚠️⚠️⚠️ COMPLETE DATABASE WIPE ⚠️⚠️⚠️\n\nThis will DELETE EVERYTHING from KSYK Maps.\n\nType 'WIPE DATABASE' to confirm.")) return;
+                      const confirmation = prompt("Type 'WIPE DATABASE' in capital letters to confirm complete deletion:");
+                      if (confirmation !== "WIPE DATABASE") {
+                        alert("Deletion cancelled - confirmation text did not match.");
+                        return;
+                      }
+                      try {
+                        const response = await fetch("/api/admin/cleanup-all", {
+                          method: "POST",
+                          credentials: "include",
+                        });
+                        if (response.ok) {
+                          alert("✅ Complete database wipe successful!\n\nThe page will now reload.");
+                          window.location.reload();
+                        } else {
+                          alert("❌ Failed to wipe database");
+                        }
+                      } catch (error) {
+                        alert("❌ Error: " + error);
+                      }
+                    }}
+                  >
+                    💣 WIPE ENTIRE DATABASE
+                  </Button>
+
+                  <p className="text-xs text-red-900 mt-4 font-black text-center">
+                    ☢️ THIS CANNOT BE UNDONE - REQUIRES TYPING CONFIRMATION ☢️
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
