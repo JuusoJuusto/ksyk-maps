@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Header from '@/components/Header';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 import { 
   Calendar, 
   FileText, 
@@ -10,9 +12,7 @@ import {
   XCircle,
   Clock,
   Settings,
-  BookOpen,
-  LogOut,
-  User
+  BookOpen
 } from 'lucide-react';
 
 export default function Wilma() {
