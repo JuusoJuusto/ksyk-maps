@@ -11,7 +11,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
-import analytics from "@/lib/analytics";
+import { trackPageView, trackEasterEgg, initAnalytics } from "@/lib/analytics";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -77,13 +77,15 @@ function Router() {
 }
 
 function App() {
+  // Initialize analytics
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
   // Global error handler
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       console.error('Global error:', event.error);
-      
-      // Track error with analytics
-      analytics.track.error(event.error, event.filename, event.lineno);
       
       // Log to admin panel
       fetch('/api/logs', {
