@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import Header from '@/components/Header';
-import AnnouncementBanner from '@/components/AnnouncementBanner';
 import { 
   Calendar, 
   FileText, 
@@ -12,7 +10,9 @@ import {
   XCircle,
   Clock,
   Settings,
-  BookOpen
+  BookOpen,
+  LogOut,
+  User
 } from 'lucide-react';
 
 export default function Wilma() {
@@ -31,7 +31,7 @@ export default function Wilma() {
       grades: 'Arvosanat',
       assignments: 'Tehtävät',
       messages: 'Viestit',
-      attendance: 'Poissaolot',
+      attendance: 'Tuntimerkinnät',
       exams: 'Kokeet',
       settings: 'Asetukset',
       todaysLessons: 'Tämän päivän tunnit',
@@ -50,7 +50,7 @@ export default function Wilma() {
       status: 'Tila',
       returned: 'Palautettu',
       notReturned: 'Ei palautettu',
-      attendanceRecords: 'Poissaolokirjaukset',
+      attendanceRecords: 'Tuntimerkinnät',
       type: 'Tyyppi',
       reason: 'Syy',
       absent: 'Poissa',
@@ -74,9 +74,18 @@ export default function Wilma() {
       newPassword: 'Uusi salasana',
       confirmPassword: 'Vahvista salasana',
       save: 'Tallenna',
-      attendanceStats: 'Poissaolotilastot',
-      totalAbsences: 'Poissaoloja yhteensä',
-      totalLates: 'Myöhästymisiä yhteensä',
+      attendanceStats: 'Tilastot',
+      totalAbsences: 'Poissaoloja',
+      totalLates: 'Myöhästymisiä',
+      present: 'Läsnä',
+      week: 'Viikko',
+      monday: 'Maanantai',
+      tuesday: 'Tiistai',
+      wednesday: 'Keskiviikko',
+      thursday: 'Torstai',
+      friday: 'Perjantai',
+      logout: 'Kirjaudu ulos',
+      profile: 'Profiili',
       days: 'päivää',
       times: 'kertaa'
     },
@@ -133,9 +142,18 @@ export default function Wilma() {
       newPassword: 'New Password',
       confirmPassword: 'Confirm Password',
       save: 'Save',
-      attendanceStats: 'Attendance Statistics',
-      totalAbsences: 'Total Absences',
-      totalLates: 'Total Lates',
+      attendanceStats: 'Statistics',
+      totalAbsences: 'Absences',
+      totalLates: 'Lates',
+      present: 'Present',
+      week: 'Week',
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      logout: 'Logout',
+      profile: 'Profile',
       days: 'days',
       times: 'times'
     }
