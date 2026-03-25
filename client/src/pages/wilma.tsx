@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { 
   Calendar, 
   FileText, 
@@ -25,8 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function Wilma() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [location, setLocation] = useLocation();
   const [activeSection, setActiveSection] = useState('frontpage');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
@@ -35,7 +34,7 @@ export default function Wilma() {
 
   // Sync URL with active section
   useEffect(() => {
-    const path = location.pathname.replace('/wilma/', '').replace('/wilma', '');
+    const path = location.replace('/wilma/', '').replace('/wilma', '');
     if (path && path !== activeSection) {
       setActiveSection(path || 'frontpage');
     }
@@ -43,7 +42,7 @@ export default function Wilma() {
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
-    navigate(`/wilma/${section === 'frontpage' ? '' : section}`);
+    setLocation(`/wilma/${section === 'frontpage' ? '' : section}`);
   };
 
   // Translation object
