@@ -81,25 +81,25 @@ export default function Wilma() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gray-100">
       <AnnouncementBanner />
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Header */}
-        <div className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Wilma Header - Classic Blue */}
+        <div className="mb-6 bg-[#0066cc] rounded-lg shadow-md p-6 text-white">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-4 border-white/30">
-                <User className="w-10 h-10" />
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                <User className="w-8 h-8 text-[#0066cc]" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold mb-1">Welcome back, {studentData.name}!</h1>
-                <p className="text-blue-100 text-lg">Class {studentData.class} • Student ID: {studentData.studentId}</p>
+                <h1 className="text-2xl font-semibold mb-1">{studentData.name}</h1>
+                <p className="text-blue-100">Class {studentData.class} • ID: {studentData.studentId}</p>
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+              <Button className="bg-white text-[#0066cc] hover:bg-blue-50">
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications
                 <Badge className="ml-2 bg-red-500 text-white">3</Badge>
@@ -109,62 +109,62 @@ export default function Wilma() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="border-l-4 border-l-[#0066cc] bg-white">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Average Grade</p>
-                  <p className="text-3xl font-bold text-blue-600">9.0</p>
+                  <p className="text-2xl font-bold text-[#0066cc]">9.0</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-[#0066cc]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="border-l-4 border-l-green-600 bg-white">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Attendance</p>
-                  <p className="text-3xl font-bold text-green-600">{attendance.percentage}%</p>
+                  <p className="text-2xl font-bold text-green-600">{attendance.percentage}%</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="border-l-4 border-l-orange-600 bg-white">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Pending Tasks</p>
-                  <p className="text-3xl font-bold text-orange-600">
+                  <p className="text-2xl font-bold text-orange-600">
                     {assignments.filter(a => a.status === 'pending').length}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-orange-600" />
+                <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-orange-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="border-l-4 border-l-purple-600 bg-white">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Unread Messages</p>
-                  <p className="text-3xl font-bold text-purple-600">
+                  <p className="text-2xl font-bold text-purple-600">
                     {messages.filter(m => m.unread).length}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-purple-600" />
+                <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -172,37 +172,37 @@ export default function Wilma() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-white shadow-md rounded-xl">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5 bg-white border border-gray-200">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-[#0066cc] data-[state=active]:text-white">
               <GraduationCap className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-3">
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-[#0066cc] data-[state=active]:text-white">
               <Calendar className="w-4 h-4 mr-2" />
               Schedule
             </TabsTrigger>
-            <TabsTrigger value="grades" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-3">
+            <TabsTrigger value="grades" className="data-[state=active]:bg-[#0066cc] data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4 mr-2" />
               Grades
             </TabsTrigger>
-            <TabsTrigger value="assignments" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-3">
+            <TabsTrigger value="assignments" className="data-[state=active]:bg-[#0066cc] data-[state=active]:text-white">
               <FileText className="w-4 h-4 mr-2" />
               Assignments
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-3">
+            <TabsTrigger value="messages" className="data-[state=active]:bg-[#0066cc] data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4 mr-2" />
               Messages
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Today's Schedule */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="bg-white border border-gray-200">
+                <CardHeader className="bg-[#0066cc] text-white">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <Clock className="w-5 h-5" />
                     Today's Schedule
                   </CardTitle>
@@ -210,19 +210,19 @@ export default function Wilma() {
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
                     {upcomingClasses.map((cls, index) => (
-                      <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div className={`w-1 h-16 ${cls.color} rounded-full`} />
+                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200 hover:bg-blue-50 transition-colors">
+                        <div className={`w-1 h-14 ${cls.color} rounded`} />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
                             <h4 className="font-semibold text-gray-900">{cls.subject}</h4>
-                            <Badge variant="outline">{cls.time}</Badge>
+                            <Badge variant="outline" className="text-xs">{cls.time}</Badge>
                           </div>
                           <p className="text-sm text-gray-600">{cls.room} • {cls.teacher}</p>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
                       </div>
                     ))}
                   </div>
@@ -230,38 +230,38 @@ export default function Wilma() {
               </Card>
 
               {/* Recent Messages */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="bg-white border border-gray-200">
+                <CardHeader className="bg-[#0066cc] text-white">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageSquare className="w-5 h-5" />
                     Recent Messages
                   </CardTitle>
-                  <CardDescription className="text-purple-100">
+                  <CardDescription className="text-blue-100">
                     {messages.filter(m => m.unread).length} unread messages
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
+                <CardContent className="p-4">
+                  <div className="space-y-2">
                     {messages.map((msg, index) => (
                       <div 
                         key={index} 
-                        className={`p-4 rounded-lg border-l-4 ${msg.unread ? 'bg-purple-50 border-l-purple-500' : 'bg-gray-50 border-l-gray-300'} hover:shadow-md transition-shadow cursor-pointer`}
+                        className={`p-3 rounded border ${msg.unread ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-shadow cursor-pointer`}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-1">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center">
-                              <User className="w-4 h-4 text-purple-700" />
+                            <div className="w-8 h-8 bg-[#0066cc] rounded-full flex items-center justify-center">
+                              <User className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                              <h4 className="font-semibold text-gray-900">{msg.from}</h4>
+                              <h4 className="font-semibold text-sm text-gray-900">{msg.from}</h4>
                               <p className="text-sm text-gray-600">{msg.subject}</p>
                             </div>
                           </div>
                           {msg.unread && (
-                            <Badge className="bg-purple-500">New</Badge>
+                            <Badge className="bg-[#0066cc] text-xs">New</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">{msg.date}</p>
+                        <p className="text-xs text-gray-500 ml-10">{msg.date}</p>
                       </div>
                     ))}
                   </div>
@@ -270,21 +270,21 @@ export default function Wilma() {
             </div>
 
             {/* Upcoming Assignments */}
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="bg-[#0066cc] text-white">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Target className="w-5 h-5" />
                   Upcoming Assignments
                 </CardTitle>
-                <CardDescription className="text-orange-100">
+                <CardDescription className="text-blue-100">
                   {assignments.filter(a => a.status === 'pending').length} pending assignments
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {assignments.filter(a => a.status === 'pending').map((assignment, index) => (
-                    <div key={index} className="p-4 bg-gradient-to-br from-orange-50 to-white rounded-lg border border-orange-200 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={index} className="p-4 bg-white rounded border border-gray-200 hover:border-[#0066cc] hover:shadow-sm transition-all">
+                      <div className="flex items-start justify-between mb-2">
                         <h4 className="font-semibold text-gray-900">{assignment.title}</h4>
                         <Badge 
                           className={
@@ -302,7 +302,7 @@ export default function Wilma() {
                           <Calendar className="w-4 h-4" />
                           Due: {assignment.dueDate}
                         </div>
-                        <Button size="sm" variant="outline" className="text-orange-600 border-orange-600 hover:bg-orange-50">
+                        <Button size="sm" className="bg-[#0066cc] hover:bg-[#0052a3] text-white">
                           View
                         </Button>
                       </div>
@@ -315,34 +315,34 @@ export default function Wilma() {
 
           {/* Schedule Tab */}
           <TabsContent value="schedule">
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                <CardTitle>Weekly Schedule</CardTitle>
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="bg-[#0066cc] text-white">
+                <CardTitle className="text-lg">Weekly Schedule</CardTitle>
                 <CardDescription className="text-blue-100">Your complete class schedule</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent className="p-4">
+                <div className="space-y-3">
                   {upcomingClasses.map((cls, index) => (
-                    <div key={index} className="flex items-center gap-4 p-6 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 hover:shadow-lg transition-all">
-                      <div className={`w-2 h-20 ${cls.color} rounded-full`} />
+                    <div key={index} className="flex items-center gap-3 p-4 bg-white rounded border border-gray-200 hover:border-[#0066cc] hover:shadow-sm transition-all">
+                      <div className={`w-1 h-16 ${cls.color} rounded`} />
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{cls.subject}</h3>
-                          <Badge variant="secondary" className="text-lg px-4 py-1">{cls.time}</Badge>
+                          <h3 className="text-lg font-bold text-gray-900">{cls.subject}</h3>
+                          <Badge className="bg-[#0066cc]">{cls.time}</Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-gray-600">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
                             <span>{cls.room}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <User className="w-4 h-4" />
                             <span>{cls.teacher}</span>
                           </div>
                         </div>
                       </div>
-                      <Button className="bg-blue-600 hover:bg-blue-700">
-                        View Details
+                      <Button className="bg-[#0066cc] hover:bg-[#0052a3]">
+                        Details
                       </Button>
                     </div>
                   ))}
@@ -353,39 +353,37 @@ export default function Wilma() {
 
           {/* Grades Tab */}
           <TabsContent value="grades">
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="bg-[#0066cc] text-white">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Award className="w-5 h-5" />
                   Academic Performance
                 </CardTitle>
-                <CardDescription className="text-green-100">Your grades and progress</CardDescription>
+                <CardDescription className="text-blue-100">Your grades and progress</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {grades.map((grade, index) => (
-                    <div key={index} className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:shadow-xl transition-all">
-                      <div className="flex items-center justify-between mb-4">
+                    <div key={index} className="p-4 bg-white rounded border-2 border-gray-200 hover:border-[#0066cc] hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between mb-3">
                         <h3 className="font-semibold text-gray-900">{grade.subject}</h3>
                         {grade.trend === 'up' && <TrendingUp className="w-5 h-5 text-green-500" />}
                         {grade.trend === 'down' && <TrendingUp className="w-5 h-5 text-red-500 rotate-180" />}
                         {grade.trend === 'stable' && <div className="w-5 h-0.5 bg-gray-400" />}
                       </div>
                       <div className="flex items-end gap-2 mb-2">
-                        <span className={`text-5xl font-bold ${grade.color}`}>{grade.grade}</span>
-                        <span className="text-gray-500 mb-2">/10</span>
+                        <span className="text-4xl font-bold text-[#0066cc]">{grade.grade}</span>
+                        <span className="text-gray-500 mb-1">/10</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm mb-3">
                         <span className="text-gray-600">Class avg:</span>
                         <span className="font-semibold text-gray-700">{grade.average}</span>
                       </div>
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${grade.color.replace('text', 'bg')}`}
-                            style={{ width: `${(grade.grade / 10) * 100}%` }}
-                          />
-                        </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full bg-[#0066cc]"
+                          style={{ width: `${(grade.grade / 10) * 100}%` }}
+                        />
                       </div>
                     </div>
                   ))}
@@ -396,31 +394,31 @@ export default function Wilma() {
 
           {/* Assignments Tab */}
           <TabsContent value="assignments">
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                <CardTitle>All Assignments</CardTitle>
-                <CardDescription className="text-orange-100">Track your homework and projects</CardDescription>
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="bg-[#0066cc] text-white">
+                <CardTitle className="text-lg">All Assignments</CardTitle>
+                <CardDescription className="text-blue-100">Track your homework and projects</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent className="p-4">
+                <div className="space-y-3">
                   {assignments.map((assignment, index) => (
                     <div 
                       key={index} 
-                      className={`p-6 rounded-xl border-2 ${
+                      className={`p-4 rounded border-2 ${
                         assignment.status === 'completed' 
                           ? 'bg-green-50 border-green-300' 
-                          : 'bg-white border-orange-300'
-                      } hover:shadow-lg transition-all`}
+                          : 'bg-white border-gray-200 hover:border-[#0066cc]'
+                      } hover:shadow-sm transition-all`}
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-gray-900">{assignment.title}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-base font-bold text-gray-900">{assignment.title}</h3>
                             {assignment.status === 'completed' && (
                               <CheckCircle className="w-5 h-5 text-green-600" />
                             )}
                           </div>
-                          <p className="text-gray-600 mb-2">{assignment.subject}</p>
+                          <p className="text-sm text-gray-600 mb-2">{assignment.subject}</p>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
@@ -433,7 +431,7 @@ export default function Wilma() {
                                 'bg-green-500'
                               }
                             >
-                              {assignment.priority} priority
+                              {assignment.priority}
                             </Badge>
                           </div>
                         </div>
@@ -441,10 +439,10 @@ export default function Wilma() {
                           className={
                             assignment.status === 'completed'
                               ? 'bg-green-600 hover:bg-green-700'
-                              : 'bg-orange-600 hover:bg-orange-700'
+                              : 'bg-[#0066cc] hover:bg-[#0052a3]'
                           }
                         >
-                          {assignment.status === 'completed' ? 'View Submission' : 'Submit Work'}
+                          {assignment.status === 'completed' ? 'View' : 'Submit'}
                         </Button>
                       </div>
                     </div>
@@ -456,37 +454,37 @@ export default function Wilma() {
 
           {/* Messages Tab */}
           <TabsContent value="messages">
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                <CardTitle>Messages</CardTitle>
-                <CardDescription className="text-purple-100">Communication with teachers and staff</CardDescription>
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="bg-[#0066cc] text-white">
+                <CardTitle className="text-lg">Messages</CardTitle>
+                <CardDescription className="text-blue-100">Communication with teachers and staff</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-3">
+              <CardContent className="p-4">
+                <div className="space-y-2">
                   {messages.map((msg, index) => (
                     <div 
                       key={index} 
-                      className={`p-6 rounded-xl border-2 ${
+                      className={`p-4 rounded border-2 ${
                         msg.unread 
-                          ? 'bg-purple-50 border-purple-300' 
+                          ? 'bg-blue-50 border-blue-300' 
                           : 'bg-white border-gray-200'
-                      } hover:shadow-lg transition-all cursor-pointer`}
+                      } hover:shadow-sm transition-all cursor-pointer`}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-purple-700" />
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-[#0066cc] rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-1">
                             <h3 className="font-bold text-gray-900">{msg.from}</h3>
                             {msg.unread && (
-                              <Badge className="bg-purple-500">Unread</Badge>
+                              <Badge className="bg-[#0066cc]">Unread</Badge>
                             )}
                           </div>
-                          <p className="text-gray-700 font-medium mb-2">{msg.subject}</p>
+                          <p className="text-gray-700 font-medium mb-1">{msg.subject}</p>
                           <p className="text-sm text-gray-500">{msg.date}</p>
                         </div>
-                        <ChevronRight className="w-6 h-6 text-gray-400" />
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
                       </div>
                     </div>
                   ))}
