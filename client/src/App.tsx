@@ -130,32 +130,12 @@ function App() {
       });
     };
 
-    // Track performance metrics
-    const trackPerformance = () => {
-      if ('performance' in window && 'getEntriesByType' in performance) {
-        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        if (navigation) {
-          analytics.track.performance('page_load_time', navigation.loadEventEnd - navigation.fetchStart);
-          analytics.track.performance('dom_content_loaded', navigation.domContentLoadedEventEnd - navigation.fetchStart);
-          analytics.track.performance('first_paint', navigation.responseEnd - navigation.fetchStart);
-        }
-      }
-    };
-
-    // Track performance after page load
-    if (document.readyState === 'complete') {
-      trackPerformance();
-    } else {
-      window.addEventListener('load', trackPerformance);
-    }
-
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      window.removeEventListener('load', trackPerformance);
     };
   }, []);
 
