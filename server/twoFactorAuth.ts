@@ -1,7 +1,5 @@
 import speakeasy from 'speakeasy';
-import { db } from '../db';
-import { users } from '@db/schema';
-import { eq } from 'drizzle-orm';
+import { storage } from './storage';
 
 export interface TwoFactorSetup {
   secret: string;
@@ -45,7 +43,7 @@ export class TwoFactorAuthService {
     userId: string,
     secret: string,
     verificationCode: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; backupCodes?: string[] }> {
     // Verify the code first
     const isValid = this.verifyToken(secret, verificationCode);
     
@@ -57,18 +55,29 @@ export class TwoFactorAuthService {
     }
 
     try {
-      // Update user in database
-      await db
-        .update(users)
-        .set({
-          twoFactorSecret: secret,
-          twoFactorEnabled: true,
-        })
-        .where(eq(users.id, userId));
+      // Generate backup codes
+      const backupCodes = this.generateBackupCodes();
+      
+      // Update user in Firebase
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      await storage.updateUser(userId, {
+        ...user,
+        twoFactorSecret: secret,
+        twoFactorEnabled: true,
+        twoFactorBackupCodes: JSON.stringify(backupCodes),
+      });
 
       return {
         success: true,
         message: '2FA enabled successfully!',
+        backupCodes,
       };
     } catch (error) {
       console.error('Error enabling 2FA:', error);
@@ -84,28 +93,34 @@ export class TwoFactorAuthService {
    */
   static async disableTwoFactor(
     userId: string,
-    secret: string,
     verificationCode: string
   ): Promise<{ success: boolean; message: string }> {
-    // Verify the code first
-    const isValid = this.verifyToken(secret, verificationCode);
-    
-    if (!isValid) {
-      return {
-        success: false,
-        message: 'Invalid verification code. Please try again.',
-      };
-    }
-
     try {
-      // Update user in database
-      await db
-        .update(users)
-        .set({
-          twoFactorSecret: null,
-          twoFactorEnabled: false,
-        })
-        .where(eq(users.id, userId));
+      const user = await storage.getUser(userId);
+      if (!user || !user.twoFactorSecret) {
+        return {
+          success: false,
+          message: 'User not found or 2FA not enabled',
+        };
+      }
+
+      // Verify the code first
+      const isValid = this.verifyToken(user.twoFactorSecret, verificationCode);
+      
+      if (!isValid) {
+        return {
+          success: false,
+          message: 'Invalid verification code. Please try again.',
+        };
+      }
+
+      // Update user in Firebase
+      await storage.updateUser(userId, {
+        ...user,
+        twoFactorSecret: undefined,
+        twoFactorEnabled: false,
+        twoFactorBackupCodes: undefined,
+      });
 
       return {
         success: true,
@@ -141,11 +156,7 @@ export class TwoFactorAuthService {
     code: string
   ): Promise<boolean> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      const user = await storage.getUser(userId);
 
       if (!user || !user.twoFactorBackupCodes) {
         return false;
@@ -161,12 +172,10 @@ export class TwoFactorAuthService {
       // Remove the used backup code
       backupCodes.splice(codeIndex, 1);
       
-      await db
-        .update(users)
-        .set({
-          twoFactorBackupCodes: JSON.stringify(backupCodes),
-        })
-        .where(eq(users.id, userId));
+      await storage.updateUser(userId, {
+        ...user,
+        twoFactorBackupCodes: JSON.stringify(backupCodes),
+      });
 
       return true;
     } catch (error) {

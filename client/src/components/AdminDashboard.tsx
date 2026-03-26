@@ -840,7 +840,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-9 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-10 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
@@ -852,6 +852,12 @@ export default function AdminDashboard() {
             <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
               <Shield className="h-3 w-3" />
               2FA
+            </TabsTrigger>
+          )}
+          {isOwner && (
+            <TabsTrigger value="settings" className="text-xs sm:text-sm flex items-center gap-1">
+              <Settings className="h-3 w-3" />
+              Settings
             </TabsTrigger>
           )}
         </TabsList>
@@ -2165,8 +2171,9 @@ export default function AdminDashboard() {
           </TabsContent>
         )}
 
-        <TabsContent value="settings" className="space-y-6">
-          <AppSettingsManager />
+        {isOwner && (
+          <TabsContent value="settings" className="space-y-6">
+            <AppSettingsManager />
           
           {/* Danger Zone - Complete Data Cleanup */}
           <Card className="border-red-200 bg-red-50">
@@ -2277,6 +2284,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );

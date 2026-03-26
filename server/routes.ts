@@ -336,18 +336,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid verification code' });
       }
 
-      // Get user's 2FA secret
-      const user = await storage.getUserById(userId);
-      if (!user || !user.twoFactorSecret) {
-        return res.status(400).json({ message: '2FA is not enabled' });
-      }
-
       const { TwoFactorAuthService } = await import('./twoFactorAuth');
-      const result = await TwoFactorAuthService.disableTwoFactor(
-        userId,
-        user.twoFactorSecret,
-        code
-      );
+      const result = await TwoFactorAuthService.disableTwoFactor(userId, code);
 
       res.json(result);
     } catch (error) {
@@ -360,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/2fa/status', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
