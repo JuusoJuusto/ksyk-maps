@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Gamepad2, Trophy, Zap, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
+import { trackEasterEgg } from "@/lib/analytics";
 
 export default function KonamiEasterEgg() {
   const [, setLocation] = useLocation();
@@ -14,8 +15,13 @@ export default function KonamiEasterEgg() {
     };
     window.addEventListener('resize', handleResize);
     
-    // Mark as found
+    // Mark as found and track
+    const wasFound = localStorage.getItem("ksyk_konami_found") === "true";
     localStorage.setItem("ksyk_konami_found", "true");
+    
+    if (!wasFound) {
+      trackEasterEgg('konami-code');
+    }
     
     return () => window.removeEventListener('resize', handleResize);
   }, []);

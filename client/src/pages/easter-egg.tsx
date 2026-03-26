@@ -3,11 +3,25 @@ import { useLocation } from "wouter";
 import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket, Unlock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { trackEasterEgg } from "@/lib/analytics";
 
 export default function EasterEgg() {
   const [, setLocation] = useLocation();
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; delay: number }>>([]);
   const [showUnlockPopup, setShowUnlockPopup] = useState(false);
+
+  // Fetch easter egg stats
+  const { data: stats } = useQuery({
+    queryKey: ['/api/easter-eggs/stats'],
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+  });
+
+  // Calculate how many easter eggs the user has found
+  const easterEggsFound = [
+    localStorage.getItem("ksyk_easter_egg_found") === "true",
+    localStorage.getItem("ksyk_konami_found") === "true",
+    localStorage.getItem("ksyk_dev_mode_found") === "true",
+  ].filter(Boolean).length;
 
   useEffect(() => {
     // Generate confetti
@@ -19,11 +33,17 @@ export default function EasterEgg() {
     setConfetti(newConfetti);
 
     // Mark easter egg as found
+    const wasFound = localStorage.getItem("ksyk_easter_egg_found") === "true";
     localStorage.setItem("ksyk_easter_egg_found", "true");
     
     // Enable British English language option
     const wasAlreadyUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
     localStorage.setItem("ksyk_british_unlocked", "true");
+    
+    // Track discovery if first time
+    if (!wasFound) {
+      trackEasterEgg('secret-easter-egg');
+    }
     
     // Show unlock popup if it wasn't already unlocked
     if (!wasAlreadyUnlocked) {
@@ -201,14 +221,14 @@ export default function EasterEgg() {
               }}
             >
               <Star className="w-8 h-8 text-yellow-400" />
-              1/1 Easter Eggs Found!
+              {easterEggsFound}/3 Easter Eggs Found!
               <Star className="w-8 h-8 text-yellow-400" />
             </motion.p>
           </div>
         </motion.div>
 
         {/* Real-time Discovery Counter */}
-        {stats?.secretEasterEgg !== undefined && (
+        {stats?.totalDiscoveries !== undefined && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -224,7 +244,7 @@ export default function EasterEgg() {
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              {stats.secretEasterEgg}
+              {stats.totalDiscoveries}
             </motion.p>
             <p className="text-white/80 text-sm mt-2">people have found this secret!</p>
           </motion.div>

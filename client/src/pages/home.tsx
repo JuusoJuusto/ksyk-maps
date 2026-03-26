@@ -102,7 +102,7 @@ export default function Home() {
   useEffect(() => {
     analytics.trackPageView('/');
     analytics.trackFeatureUse('home_page_load');
-  }, [analytics]);
+  }, []); // Empty dependency array - only run once on mount
   
   useEffect(() => {
     if (showMobileHint) {
@@ -195,7 +195,7 @@ export default function Home() {
     } else {
       setSearchResults([]);
     }
-  }, [searchQuery, rooms, analytics]);
+  }, [searchQuery, rooms]); // Removed analytics from dependencies
 
   // Get rooms for selected floor
   const floorRooms = rooms.filter((room: Room) => room.floor === selectedFloor);

@@ -2,12 +2,18 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Code, Terminal, Cpu, Zap } from "lucide-react";
 import { useEffect } from "react";
+import { trackEasterEgg } from "@/lib/analytics";
 
 export default function DevModeEasterEgg() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    const wasFound = localStorage.getItem("ksyk_dev_mode_found") === "true";
     localStorage.setItem("ksyk_dev_mode_found", "true");
+    
+    if (!wasFound) {
+      trackEasterEgg('dev-mode');
+    }
   }, []);
 
   return (
