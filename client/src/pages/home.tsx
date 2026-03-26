@@ -100,8 +100,8 @@ export default function Home() {
   
   // Track page view on component mount
   useEffect(() => {
-    analytics.pageView('/');
-    analytics.featureUse('home_page_load');
+    analytics.trackPageView('/');
+    analytics.trackFeatureUse('home_page_load');
   }, [analytics]);
   
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function Home() {
   }, [sidebarOpen]);
   
   const handleLanguageChange = (lang: string) => {
-    analytics.featureUse('language_change', { from: currentLang, to: lang });
+    analytics.trackFeatureUse('language_change');
     localStorage.setItem('ksyk_language', lang);
     setCurrentLang(lang);
     i18n.changeLanguage(lang).then(() => {
@@ -191,7 +191,7 @@ export default function Home() {
       setSearchResults(filtered.slice(0, 10));
       
       // Track search analytics
-      analytics.search(searchQuery, filtered.length);
+      analytics.trackSearch(searchQuery);
     } else {
       setSearchResults([]);
     }
@@ -356,7 +356,7 @@ export default function Home() {
                     key={room.id}
                     className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-blue-100 border-gray-200'}`}
                     onClick={() => {
-                      analytics.roomView(room.id, room.name || room.nameEn, room.buildingId);
+                      analytics.trackFeatureUse('room_view');
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
                       setSearchQuery("");
@@ -811,7 +811,7 @@ export default function Home() {
                         <g 
                           key={building.id}
                           onClick={() => {
-                            analytics.buildingView(building.id, building.nameEn || building.name);
+                            analytics.trackFeatureUse('building_view');
                             setSelectedBuilding(building);
                             setSelectedFloor(1);
                           }}
@@ -931,7 +931,7 @@ export default function Home() {
                       <g 
                         key={building.id}
                         onClick={() => {
-                          analytics.buildingView(building.id, building.nameEn || building.name);
+                          analytics.trackFeatureUse('building_view');
                           setSelectedBuilding(building);
                           setSelectedFloor(1);
                         }}
@@ -1125,7 +1125,7 @@ export default function Home() {
                     
                     return (
                       <g key={room.id} className="cursor-pointer" onClick={() => {
-                        analytics.roomView(room.id, room.name || room.nameEn, room.buildingId);
+                        analytics.trackFeatureUse('room_view');
                         setSelectedRoom(room);
                       }}>
                         {/* Room shadow - 2 layers */}
