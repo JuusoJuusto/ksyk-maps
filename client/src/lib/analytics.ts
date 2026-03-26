@@ -46,7 +46,13 @@ export const trackPageView = async (page: string) => {
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event),
+      body: JSON.stringify({
+        events: [event],
+        sessionInfo: {
+          sessionId: getSessionId(),
+          userId: getUserId(),
+        }
+      }),
     });
   } catch (error) {
     console.error('Analytics tracking failed:', error);
@@ -67,7 +73,13 @@ export const trackEasterEgg = async (eggType: string) => {
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event),
+      body: JSON.stringify({
+        events: [event],
+        sessionInfo: {
+          sessionId: getSessionId(),
+          userId: getUserId(),
+        }
+      }),
     });
 
     // Also track in easter eggs endpoint
@@ -75,8 +87,8 @@ export const trackEasterEgg = async (eggType: string) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        eggType,
-        userId: getUserId(),
+        eggId: eggType,
+        eggName: eggType,
       }),
     });
   } catch (error) {
@@ -98,7 +110,13 @@ export const trackFeatureUse = async (feature: string) => {
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event),
+      body: JSON.stringify({
+        events: [event],
+        sessionInfo: {
+          sessionId: getSessionId(),
+          userId: getUserId(),
+        }
+      }),
     });
   } catch (error) {
     console.error('Feature tracking failed:', error);
@@ -119,7 +137,13 @@ export const trackSearch = async (query: string) => {
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event),
+      body: JSON.stringify({
+        events: [event],
+        sessionInfo: {
+          sessionId: getSessionId(),
+          userId: getUserId(),
+        }
+      }),
     });
   } catch (error) {
     console.error('Search tracking failed:', error);
@@ -140,7 +164,13 @@ export const trackNavigation = async (from: string, to: string) => {
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event),
+      body: JSON.stringify({
+        events: [event],
+        sessionInfo: {
+          sessionId: getSessionId(),
+          userId: getUserId(),
+        }
+      }),
     });
   } catch (error) {
     console.error('Navigation tracking failed:', error);
