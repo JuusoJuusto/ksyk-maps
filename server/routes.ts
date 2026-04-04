@@ -400,6 +400,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send email verification code for 2FA
+  app.post('/api/auth/2fa/send-email-code', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const result = await TwoFactorAuthService.sendEmailCode(userEmail);
+      
+      if (result.success && result.code) {
+        // Store code in session with expiry
+        req.session.emailVerificationCode = result.code;
+        req.session.emailCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+        
+        res.json({ success: true, message: 'Verification code sent to your email' });
+      } else {
+        res.status(500).json({ success: false, message: 'Failed to send email' });
+      }
+    } catch (error) {
+      console.error('Error sending email code:', error);
+      res.status(500).json({ message: 'Failed to send verification code' });
+    }
+  });
+
+  // Verify email code for 2FA
+  app.post('/api/auth/2fa/verify-email-code', isAuthenticated, async (req: any, res) => {
+    try {
+      const { code } = req.body;
+      
+      if (!req.session.emailVerificationCode || !req.session.emailCodeExpiry) {
+        return res.status(400).json({ success: false, message: 'No verification code sent' });
+      }
+      
+      if (Date.now() > req.session.emailCodeExpiry) {
+        delete req.session.emailVerificationCode;
+        delete req.session.emailCodeExpiry;
+        return res.status(400).json({ success: false, message: 'Verification code expired' });
+      }
+      
+      if (code === req.session.emailVerificationCode) {
+        delete req.session.emailVerificationCode;
+        delete req.session.emailCodeExpiry;
+        res.json({ success: true });
+      } else {
+        res.status(401).json({ success: false, message: 'Invalid verification code' });
+      }
+    } catch (error) {
+      console.error('Error verifying email code:', error);
+      res.status(500).json({ message: 'Failed to verify code' });
+    }
+  });
+
   // Easter Egg Stats
   app.get('/api/easter-eggs/stats', isAuthenticated, async (req, res) => {
     try {

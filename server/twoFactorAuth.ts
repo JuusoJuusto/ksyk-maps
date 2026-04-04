@@ -1,5 +1,6 @@
 import speakeasy from 'speakeasy';
 import { storage } from './storage';
+import { sendPasswordSetupEmail } from './emailService';
 
 export interface TwoFactorSetup {
   secret: string;
@@ -13,8 +14,8 @@ export class TwoFactorAuthService {
    */
   static generateSecret(userEmail: string, userName: string): TwoFactorSetup {
     const secret = speakeasy.generateSecret({
-      name: `KSYK Maps (${userEmail})`,
-      issuer: 'KSYK Maps',
+      name: `KSYKMaps (${userEmail})`,
+      issuer: 'KSYKMaps',
       length: 32,
     });
 
@@ -22,6 +23,38 @@ export class TwoFactorAuthService {
       secret: secret.base32,
       otpauthUrl: secret.otpauth_url || '',
     };
+  }
+
+  /**
+   * Generate and send email verification code
+   */
+  static async sendEmailCode(userEmail: string): Promise<{ success: boolean; code?: string }> {
+    try {
+      // Generate 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Send email with code
+      await sendPasswordSetupEmail(
+        userEmail,
+        'Your KSYKMaps 2FA Code',
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #3B82F6;">KSYKMaps 2FA Verification</h2>
+          <p>Your verification code is:</p>
+          <div style="background: #F3F4F6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0;">
+            ${code}
+          </div>
+          <p style="color: #6B7280;">This code will expire in 10 minutes.</p>
+          <p style="color: #6B7280;">If you didn't request this code, please ignore this email.</p>
+        </div>
+        `
+      );
+      
+      return { success: true, code };
+    } catch (error) {
+      console.error('Error sending email code:', error);
+      return { success: false };
+    }
   }
 
   /**
