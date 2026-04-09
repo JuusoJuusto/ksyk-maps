@@ -14,9 +14,12 @@ export default function Header() {
   const { t, i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, neonUnlocked } = useTheme();
   const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [britishUnlocked, setBritishUnlocked] = useState(() => {
+    return localStorage.getItem('ksyk_british_unlocked') === 'true';
+  });
   
   useEffect(() => {
     const saved = localStorage.getItem('ksyk_language');
@@ -38,7 +41,7 @@ export default function Header() {
     });
   };
 
-  const handleThemeChange = async (newTheme: 'light' | 'dark') => {
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'neon' | 'system') => {
     setTheme(newTheme);
     try {
       await fetch('/api/settings', {
@@ -274,7 +277,7 @@ export default function Header() {
                   {/* Theme Selector */}
                   <div className="space-y-2 animate-slide-in-left">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('mobile.theme')}</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className={`grid ${neonUnlocked ? 'grid-cols-4' : 'grid-cols-3'} gap-2`}>
                       <button
                         onClick={() => {
                           handleThemeChange('light');
@@ -303,6 +306,22 @@ export default function Header() {
                         <Moon className="h-5 w-5" />
                         <span className="font-semibold">{t('theme.dark')}</span>
                       </button>
+                      {neonUnlocked && (
+                        <button
+                          onClick={() => {
+                            handleThemeChange('neon');
+                            setShowMobileMenu(false);
+                          }}
+                          className={`p-3 text-xs rounded-lg border transition-all animate-zoom-in flex flex-col items-center gap-1 ${
+                            theme === 'neon' 
+                              ? 'bg-green-100 border-green-500 text-green-700 shadow-lg ring-2 ring-green-500' 
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
+                          }`}
+                        >
+                          <span className="text-lg">🌈</span>
+                          <span className="font-semibold">Neon</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           handleThemeChange('system');
@@ -314,7 +333,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        <span className="text-lg">???</span>
+                        <span className="text-lg">💻</span>
                         <span className="font-semibold">System</span>
                       </button>
                     </div>
