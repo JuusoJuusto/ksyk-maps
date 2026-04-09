@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Mail, MessageSquare, Github, Globe, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 
-export default function SL Studio() {
+export default function SLStudio() {
   const { darkMode } = useDarkMode();
   const [, setLocation] = useLocation();
 
