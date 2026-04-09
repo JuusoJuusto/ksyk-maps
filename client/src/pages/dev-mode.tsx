@@ -1,18 +1,26 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Code, Terminal, Cpu, Zap } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { trackEasterEgg } from "@/lib/analytics";
 
 export default function DevModeEasterEgg() {
   const [, setLocation] = useLocation();
+  const [showNeonPopup, setShowNeonPopup] = useState(false);
 
   useEffect(() => {
     const wasFound = localStorage.getItem("ksyk_dev_mode_found") === "true";
     localStorage.setItem("ksyk_dev_mode_found", "true");
     
     // Unlock neon mode
+    const wasNeonUnlocked = localStorage.getItem("ksyk_neon_unlocked") === "true";
     localStorage.setItem("ksyk_neon_unlocked", "true");
+    
+    // Show neon unlock popup if first time
+    if (!wasNeonUnlocked) {
+      setShowNeonPopup(true);
+      setTimeout(() => setShowNeonPopup(false), 5000);
+    }
     
     if (!wasFound) {
       trackEasterEgg('dev-mode');
@@ -21,6 +29,32 @@ export default function DevModeEasterEgg() {
 
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono p-8">
+      {/* Neon Mode Unlocked Popup */}
+      {showNeonPopup && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5, y: -100 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.5, y: -100 }}
+          className="fixed top-4 left-4 right-4 md:top-8 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-[9999] bg-gradient-to-r from-green-500 via-cyan-500 to-purple-500 p-1 rounded-2xl shadow-2xl max-w-md mx-auto"
+        >
+          <div className="bg-black px-4 py-4 md:px-8 md:py-6 rounded-2xl">
+            <div className="flex items-center gap-3 md:gap-4">
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="text-4xl"
+              >
+                🌈
+              </motion.div>
+              <div>
+                <h3 className="text-lg md:text-xl font-bold text-green-400">Neon Mode Unlocked!</h3>
+                <p className="text-sm text-cyan-400">Check your theme settings</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0 }}

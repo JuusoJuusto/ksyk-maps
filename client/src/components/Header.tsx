@@ -170,7 +170,7 @@ export default function Header() {
                     className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100 font-semibold shadow-sm"
                     data-testid="button-lunch"
                   >
-                    ??? {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
+                    🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
                   </Button>
                 </Link>
                 
@@ -223,7 +223,7 @@ export default function Header() {
                     className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100"
                     data-testid="button-lunch"
                   >
-                    ???
+                    🍽️
                   </Button>
                 </Link>
                 
@@ -377,7 +377,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-300 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg"
                         >
-                          ??? {t('quickActions.lunch')}
+                          🍽️ {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
@@ -442,7 +442,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg animate-heartbeat"
                         >
-                          ??? {t('quickActions.lunch')}
+                          🍽️ {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
