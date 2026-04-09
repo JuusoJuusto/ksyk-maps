@@ -185,7 +185,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
-                    🚇 HSL
+                    HSL
                   </Button>
                 </Link>
                 
@@ -237,7 +237,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
                     data-testid="button-hsl"
                   >
-                    🚇 HSL
+                    HSL
                   </Button>
                 </Link>
                 
@@ -354,7 +354,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ???? English
+                        English
                       </button>
                       <button
                         onClick={() => {
@@ -367,7 +367,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ???? {t('language.suomi')}
+                        {t('language.suomi')}
                       </button>
                       {localStorage.getItem('ksyk_british_unlocked') === 'true' && (
                         <button
@@ -381,7 +381,7 @@ export default function Header() {
                               : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                           }`}
                         >
-                          ???? British English
+                          British English
                         </button>
                       )}
                     </div>
@@ -404,7 +404,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          🚇 {t('quickActions.transport')}
+                          {t('quickActions.transport')}
                         </button>
                       </Link>
                       <Link href="/admin-login">
@@ -435,7 +435,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ?? {t('theme.light')}
+                        {t('theme.light')}
                       </button>
                       <button
                         onClick={() => {
@@ -448,7 +448,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ?? {t('theme.dark')}
+                        {t('theme.dark')}
                       </button>
                     </div>
                   </div>
@@ -469,7 +469,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          🚇 {t('quickActions.transport')}
+                          {t('quickActions.transport')}
                         </button>
                       </Link>
                       <button
@@ -479,7 +479,7 @@ export default function Header() {
                         }}
                         className="w-full p-3 text-left rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all hover:shadow-lg"
                       >
-                        ?? {t('logout')}
+                        {t('logout')}
                       </button>
                     </div>
                   </div>

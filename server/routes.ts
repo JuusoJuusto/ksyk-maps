@@ -1089,6 +1089,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wilma User routes
+  app.get('/api/wilma/users', async (req, res) => {
+    try {
+      const wilmaUsers = await storage.getWilmaUsers();
+      res.json(wilmaUsers);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/users');
+      res.status(500).json({ message: "Failed to fetch Wilma users" });
+    }
+  });
+
+  app.post('/api/wilma/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+
+      const wilmaUser = await storage.getWilmaUserByUsername(username);
+      
+      if (!wilmaUser || wilmaUser.password !== password) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      if (!wilmaUser.isActive) {
+        return res.status(403).json({ message: "Account is disabled" });
+      }
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = wilmaUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/login', { username: req.body.username });
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post('/api/wilma/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const wilmaUser = await storage.createWilmaUser(req.body);
+      res.status(201).json(wilmaUser);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/users', { wilmaUserData: req.body });
+      res.status(500).json({ message: "Failed to create Wilma user" });
+    }
+  });
+
+  app.put('/api/wilma/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const wilmaUser = await storage.updateWilmaUser(req.params.id, req.body);
+      res.json(wilmaUser);
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/users/:id', { wilmaUserId: req.params.id });
+      res.status(500).json({ message: "Failed to update Wilma user" });
+    }
+  });
+
+  app.delete('/api/wilma/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      await storage.deleteWilmaUser(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/users/:id', { wilmaUserId: req.params.id });
+      res.status(500).json({ message: "Failed to delete Wilma user" });
+    }
+  });
+
   // Event routes
   app.get('/api/events', async (req, res) => {
     try {

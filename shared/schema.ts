@@ -251,6 +251,21 @@ export const appLogs = pgTable("app_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Wilma Users table
+export const wilmaUsers = pgTable("wilma_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull().unique(),
+  password: varchar("password").notNull(),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  email: varchar("email"),
+  role: varchar("role").notNull().default("student"), // teacher, student, parent, admin
+  studentClass: varchar("student_class"), // For students: 9A, 8B, etc.
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Analytics tables
 export const pageViews = pgTable("page_views", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -478,6 +493,12 @@ export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
   lastActivity: true,
 });
 
+export const insertWilmaUserSchema = createInsertSchema(wilmaUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // App Settings table
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default('default'),
@@ -591,4 +612,6 @@ export type NavigationAnalytic = typeof navigationAnalytics.$inferSelect;
 export type InsertNavigationAnalytic = z.infer<typeof insertNavigationAnalyticSchema>;
 export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type WilmaUser = typeof wilmaUsers.$inferSelect;
+export type InsertWilmaUser = z.infer<typeof insertWilmaUserSchema>;
 

@@ -7,6 +7,7 @@ import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
+import WilmaUserManager from "@/components/WilmaUserManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -840,7 +841,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-10 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-11 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
@@ -848,6 +849,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
+          <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
           {isOwner && (
             <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
               <Shield className="h-3 w-3" />
@@ -2163,6 +2165,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="announcements" className="space-y-6">
           <AnnouncementManager />
+        </TabsContent>
+
+        <TabsContent value="wilma" className="space-y-6">
+          <WilmaUserManager />
         </TabsContent>
 
         {isOwner && (

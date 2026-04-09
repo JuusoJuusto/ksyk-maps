@@ -627,6 +627,83 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  // Wilma User operations
+  async getWilmaUsers(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaUsers').where('isActive', '==', true).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching Wilma users:', error);
+      return [];
+    }
+  }
+
+  async getWilmaUser(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaUsers').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error fetching Wilma user:', error);
+      return undefined;
+    }
+  }
+
+  async getWilmaUserByUsername(username: string): Promise<any | undefined> {
+    try {
+      const snapshot = await db.collection('wilmaUsers').where('username', '==', username).limit(1).get();
+      if (snapshot.empty) return undefined;
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error fetching Wilma user by username:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaUser(wilmaUser: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaUsers').doc();
+      const wilmaUserData = {
+        ...wilmaUser,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      await docRef.set(wilmaUserData);
+      return wilmaUserData;
+    } catch (error) {
+      console.error('Error creating Wilma user:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaUser(id: string, wilmaUser: any): Promise<any> {
+    try {
+      const updateData = {
+        ...wilmaUser,
+        updatedAt: new Date(),
+      };
+      
+      await db.collection('wilmaUsers').doc(id).update(updateData);
+      const updated = await this.getWilmaUser(id);
+      return updated;
+    } catch (error) {
+      console.error('Error updating Wilma user:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaUser(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaUsers').doc(id).update({ isActive: false });
+    } catch (error) {
+      console.error('Error deleting Wilma user:', error);
+      throw error;
+    }
+  }
+
   // Event operations
   async getEvents(startDate?: Date, endDate?: Date): Promise<Event[]> {
     try {
