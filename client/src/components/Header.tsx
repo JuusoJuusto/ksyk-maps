@@ -185,7 +185,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 font-semibold shadow-sm"
                     data-testid="button-hsl"
                   >
-                    HSL
+                    🚇 HSL
                   </Button>
                 </Link>
                 
@@ -237,7 +237,7 @@ export default function Header() {
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100"
                     data-testid="button-hsl"
                   >
-                    HSL
+                    🚇 HSL
                   </Button>
                 </Link>
                 
@@ -404,7 +404,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          ?? {t('quickActions.transport')}
+                          🚇 {t('quickActions.transport')}
                         </button>
                       </Link>
                       <Link href="/admin-login">
@@ -412,7 +412,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
                         >
-                          ?? {t('quickActions.admin')}
+                          🔐 {t('quickActions.admin')}
                         </button>
                       </Link>
                     </div>
@@ -469,7 +469,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          ?? {t('quickActions.transport')}
+                          🚇 {t('quickActions.transport')}
                         </button>
                       </Link>
                       <button
