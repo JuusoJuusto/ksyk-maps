@@ -1,0 +1,42 @@
+{
+  "name": "ksyk-maps-desktop",
+  "version": "1.0.0",
+  "description": "KSYK Maps Desktop Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.slstudio.ksykmaps",
+    "productName": "KSYK Maps",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "../client/public/**/*"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "../client/public/icon-512.png"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "../client/public/icon-512.png"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "../client/public/icon-512.png"
+    }
+  },
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.9.1"
+  }
+}

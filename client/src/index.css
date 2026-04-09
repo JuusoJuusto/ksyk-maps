@@ -868,3 +868,91 @@ body {
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+
+/* Neon Theme Styles */
+.neon {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #00ff00;
+  --text-secondary: #00cc00;
+  --accent: #ff00ff;
+  --border: #00ff00;
+}
+
+.neon body {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
+  color: #00ff00;
+}
+
+.neon .bg-white {
+  background-color: #1a1a1a !important;
+}
+
+.neon .bg-gray-50,
+.neon .bg-gray-100 {
+  background-color: #0f0f0f !important;
+}
+
+.neon .text-gray-900,
+.neon .text-gray-800,
+.neon .text-gray-700 {
+  color: #00ff00 !important;
+}
+
+.neon .text-gray-600,
+.neon .text-gray-500 {
+  color: #00cc00 !important;
+}
+
+.neon .border-gray-200,
+.neon .border-gray-300 {
+  border-color: #00ff00 !important;
+}
+
+.neon button,
+.neon .btn {
+  background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+  color: #0a0a0a;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.neon button:hover,
+.neon .btn:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+  transform: translateY(-2px);
+}
+
+.neon .card,
+.neon [class*="Card"] {
+  background: #1a1a1a;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.neon h1, .neon h2, .neon h3, .neon h4, .neon h5, .neon h6 {
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+}
+
+.neon a {
+  color: #00ffff;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.neon input,
+.neon textarea,
+.neon select {
+  background: #0f0f0f;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+}
+
+.neon input:focus,
+.neon textarea:focus,
+.neon select:focus {
+  border-color: #ff00ff;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+}
