@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -91,12 +91,12 @@ export default function Header() {
                     e.stopPropagation();
                     window.location.href = '/secret-easter-egg';
                   }}
-                  title="Click for a surprise! 🎉"
+                  title="Click for a surprise! ??"
                   style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: '-0.02em' }}
                 >
                   KSYK Maps
                 </h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by StudiOWL</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by SL Studio</p>
               </div>
             </Link>
           </div>
@@ -170,7 +170,7 @@ export default function Header() {
                     className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100 font-semibold shadow-sm"
                     data-testid="button-lunch"
                   >
-                    🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
+                    ??? {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
                   </Button>
                 </Link>
                 
@@ -223,7 +223,7 @@ export default function Header() {
                     className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100"
                     data-testid="button-lunch"
                   >
-                    🍽️
+                    ???
                   </Button>
                 </Link>
                 
@@ -314,7 +314,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        <span className="text-lg">🖥️</span>
+                        <span className="text-lg">???</span>
                         <span className="font-semibold">System</span>
                       </button>
                     </div>
@@ -335,7 +335,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🇺🇸 English
+                        ???? English
                       </button>
                       <button
                         onClick={() => {
@@ -348,7 +348,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🇫🇮 {t('language.suomi')}
+                        ???? {t('language.suomi')}
                       </button>
                       {localStorage.getItem('ksyk_british_unlocked') === 'true' && (
                         <button
@@ -362,7 +362,7 @@ export default function Header() {
                               : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                           }`}
                         >
-                          🇬🇧 British English
+                          ???? British English
                         </button>
                       )}
                     </div>
@@ -377,7 +377,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-300 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg"
                         >
-                          🍽️ {t('quickActions.lunch')}
+                          ??? {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
@@ -385,7 +385,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          🚌 {t('quickActions.transport')}
+                          ?? {t('quickActions.transport')}
                         </button>
                       </Link>
                       <Link href="/admin-login">
@@ -393,7 +393,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
                         >
-                          ⚙️ {t('quickActions.admin')}
+                          ?? {t('quickActions.admin')}
                         </button>
                       </Link>
                     </div>
@@ -416,7 +416,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        ☀️ {t('theme.light')}
+                        ?? {t('theme.light')}
                       </button>
                       <button
                         onClick={() => {
@@ -429,7 +429,7 @@ export default function Header() {
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md'
                         }`}
                       >
-                        🌙 {t('theme.dark')}
+                        ?? {t('theme.dark')}
                       </button>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all hover:shadow-lg animate-heartbeat"
                         >
-                          🍽️ {t('quickActions.lunch')}
+                          ??? {t('quickActions.lunch')}
                         </button>
                       </Link>
                       <Link href="/hsl">
@@ -450,7 +450,7 @@ export default function Header() {
                           onClick={() => setShowMobileMenu(false)}
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
-                          🚌 {t('quickActions.transport')}
+                          ?? {t('quickActions.transport')}
                         </button>
                       </Link>
                       <button
@@ -460,7 +460,7 @@ export default function Header() {
                         }}
                         className="w-full p-3 text-left rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all hover:shadow-lg"
                       >
-                        🚪 {t('logout')}
+                        ?? {t('logout')}
                       </button>
                     </div>
                   </div>

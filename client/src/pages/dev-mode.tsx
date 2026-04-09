@@ -11,6 +11,9 @@ export default function DevModeEasterEgg() {
     const wasFound = localStorage.getItem("ksyk_dev_mode_found") === "true";
     localStorage.setItem("ksyk_dev_mode_found", "true");
     
+    // Unlock neon mode
+    localStorage.setItem("ksyk_neon_unlocked", "true");
+    
     if (!wasFound) {
       trackEasterEgg('dev-mode');
     }
@@ -94,7 +97,7 @@ export default function DevModeEasterEgg() {
               <p><span className="text-blue-400">Build Tool:</span> Vite</p>
               <p><span className="text-blue-400">Backend:</span> Express + Firebase</p>
               <p><span className="text-blue-400">Styling:</span> Tailwind CSS</p>
-              <p><span className="text-blue-400">Developer:</span> Juuso @ StudiOWL</p>
+              <p><span className="text-blue-400">Developer:</span> Juuso @ SL Studio</p>
             </div>
           </motion.div>
 

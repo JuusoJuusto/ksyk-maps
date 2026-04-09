@@ -72,7 +72,7 @@ jobs:
                      }
                    ],
                    \"footer\": {
-                     \"text\": \"KSYK Maps by StudiOWL\"
+                     \"text\": \"KSYK Maps by SL Studio\"
                    },
                    \"timestamp\": \"${{ github.event.head_commit.timestamp }}\"
                  }]

@@ -25,7 +25,7 @@ import EasterEgg from "@/pages/easter-egg";
 import KonamiEasterEgg from "@/pages/konami";
 import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
-import StudiOWL from "@/pages/owlapps";
+import SL Studio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
@@ -59,14 +59,13 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
-      <Route path="/builder" component={Builder} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma/:section" component={Wilma} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
-      <Route path="/owlapps" component={StudiOWL} />
+      <Route path="/owlapps" component={SL Studio} />
       <Route path="/secret-easter-egg" component={EasterEgg} />
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
