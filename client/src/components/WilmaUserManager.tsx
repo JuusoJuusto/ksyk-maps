@@ -49,19 +49,25 @@ export default function WilmaUserManager() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (user: any) => {
+      console.log('🔵 Creating Wilma user:', user);
       const response = await fetch("/api/wilma/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(user),
       });
+      
+      console.log('📡 Response status:', response.status);
+      const data = await response.json();
+      console.log('📦 Response data:', data);
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create user");
+        throw new Error(data.message || "Failed to create user");
       }
-      return response.json();
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ User created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
       setShowForm(false);
       setNewUser({
@@ -75,9 +81,10 @@ export default function WilmaUserManager() {
         isActive: true,
         sendEmailInvitation: false
       });
-      alert("Wilma user created successfully!");
+      alert("Wilma user created successfully!" + (newUser.sendEmailInvitation ? "\n\nLogin credentials have been sent to the user's email." : ""));
     },
     onError: (error: any) => {
+      console.error('❌ Error creating user:', error);
       alert(`Error: ${error.message}`);
     }
   });

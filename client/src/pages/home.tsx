@@ -786,25 +786,6 @@ export default function Home() {
                   <rect width="100%" height="100%" fill={darkMode ? '#1f2937' : 'white'} />
                   <rect width="100%" height="100%" fill="url(#gridMajor)" />
 
-                  {/* Empty State Message */}
-                  {buildings.length === 0 && !isLoading && (
-                    <g>
-                      <rect x="4500" y="2700" width="1000" height="600" fill={darkMode ? '#1f2937' : 'white'} stroke={darkMode ? '#4b5563' : '#d1d5db'} strokeWidth="4" rx="20" opacity="0.95" />
-                      <text x="5000" y="2850" textAnchor="middle" fill={darkMode ? '#9ca3af' : '#6b7280'} fontSize="48" fontWeight="bold">
-                        No Buildings Yet
-                      </text>
-                      <text x="5000" y="2950" textAnchor="middle" fill={darkMode ? '#6b7280' : '#9ca3af'} fontSize="32">
-                        Use KSYK Builder to create buildings
-                      </text>
-                      <text x="5000" y="3050" textAnchor="middle" fill={darkMode ? '#6b7280' : '#9ca3af'} fontSize="28">
-                        or contact admin to seed data
-                      </text>
-                      <text x="5000" y="3180" textAnchor="middle" fill={darkMode ? '#3b82f6' : '#2563eb'} fontSize="32" fontWeight="bold" className="cursor-pointer">
-                        → Go to Admin Panel → Builder
-                      </text>
-                    </g>
-                  )}
-
                   {/* Buildings from Firebase - ENHANCED 3D RENDERING */}
                   {buildings.map((building: Building, index: number) => {
                     const x = building.mapPositionX ?? 100 + (index * 160);

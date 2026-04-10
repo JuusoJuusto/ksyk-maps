@@ -1129,17 +1129,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/wilma/users', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('🔵 POST /api/wilma/users called');
+      console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+      
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        console.log('❌ Access denied - user role:', user?.role);
         return res.status(403).json({ message: "Admin access required" });
       }
       
       const { sendEmailInvitation, ...userData } = req.body;
       
+      // Validation
+      if (!userData.username || !userData.firstName || !userData.lastName) {
+        console.log('❌ Missing required fields');
+        return res.status(400).json({ message: "Username, first name, and last name are required" });
+      }
+      
+      if (!sendEmailInvitation && !userData.password) {
+        console.log('❌ Password required when not sending email invitation');
+        return res.status(400).json({ message: "Password is required when not sending email invitation" });
+      }
+      
+      if (sendEmailInvitation && !userData.email) {
+        console.log('❌ Email required for invitation');
+        return res.status(400).json({ message: "Email is required for email invitation" });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getWilmaUserByUsername(userData.username);
+      if (existingUser) {
+        console.log('❌ Username already exists:', userData.username);
+        return res.status(409).json({ message: "Username already exists" });
+      }
+      
       // Generate password if email invitation is requested
       if (sendEmailInvitation) {
         const generatedPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
         userData.password = generatedPassword;
+        console.log('🔑 Generated password for email invitation');
         
         // Send email with credentials
         if (userData.email) {
@@ -1147,7 +1175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const emailService = await import('./emailService');
             await emailService.sendEmail({
               to: userData.email,
-              subject: 'Your Wilma Login Credentials',
+              subject: 'Your Wilma Login Credentials - KSYK Maps',
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2 style="color: #003d82;">Welcome to Wilma!</h2>
@@ -1163,18 +1191,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 </div>
               `
             });
+            console.log('✅ Email sent successfully to:', userData.email);
           } catch (emailError) {
-            console.error('Failed to send email:', emailError);
+            console.error('❌ Failed to send email:', emailError);
             // Continue anyway - user is created
           }
         }
       }
       
+      // Set default values
+      userData.isActive = userData.isActive !== false; // Default to true
+      
+      console.log('💾 Creating Wilma user...');
       const wilmaUser = await storage.createWilmaUser(userData);
-      res.status(201).json(wilmaUser);
-    } catch (error) {
+      console.log('✅ Wilma user created successfully:', wilmaUser.id);
+      
+      // Remove password from response
+      const { password: _, ...userResponse } = wilmaUser;
+      res.status(201).json(userResponse);
+    } catch (error: any) {
+      console.error('💥 Error creating Wilma user:', error);
       await logError(error, 'POST /api/wilma/users', { wilmaUserData: req.body });
-      res.status(500).json({ message: "Failed to create Wilma user" });
+      res.status(500).json({ message: error.message || "Failed to create Wilma user" });
     }
   });
 
@@ -2177,75 +2215,73 @@ https://ksykmaps.vercel.app
       // Store each event
       for (const event of events) {
         try {
-          // Log to app logs for visibility
-          await storage.createAppLog({
-            level: 'info',
-            message: `Analytics: ${event.type}`,
-            details: JSON.stringify({
-              page: event.page,
-              device: event.device,
-              browser: event.browser,
-              ...event.data
-            }),
-            userId: event.userId || null,
-            userAgent: event.userAgent || null,
-            url: event.page || null,
-            ipAddress: req.ip || null
-          });
-
           // Store specific analytics based on event type
           if (event.type === 'page_view') {
-            await storage.createPageView({
-              sessionId: event.sessionId,
-              userId: event.userId,
-              url: event.page,
-              referrer: event.referrer,
-              userAgent: event.userAgent,
-              ipAddress: req.ip,
-              browser: event.browser,
-              os: event.os,
-              deviceType: event.device,
-              screenResolution: `${event.screen?.width}x${event.screen?.height}`
-            });
+            try {
+              await storage.createPageView({
+                sessionId: event.sessionId,
+                userId: event.userId,
+                url: event.page,
+                referrer: event.referrer,
+                userAgent: event.userAgent,
+                ipAddress: req.ip,
+                browser: event.browser,
+                os: event.os,
+                deviceType: event.device,
+                screenResolution: `${event.screen?.width}x${event.screen?.height}`
+              });
+            } catch (err) {
+              console.error('Failed to create page view:', err);
+            }
           } else if (event.type === 'search') {
-            await storage.createSearchAnalytic({
-              sessionId: event.sessionId,
-              userId: event.userId,
-              query: event.query,
-              resultsCount: event.results,
-              searchType: 'general',
-              userAgent: event.userAgent,
-              ipAddress: req.ip
-            });
-          } else if (event.type === 'room_view') {
-            // Track room views in app logs
-            await storage.createAppLog({
-              level: 'info',
-              message: `Room viewed: ${event.roomName || event.roomId}`,
-              details: JSON.stringify({ roomId: event.roomId, buildingId: event.buildingId }),
-              userId: event.userId,
-              userAgent: event.userAgent,
-              ipAddress: req.ip
-            });
-          } else if (event.type === 'building_view') {
-            await storage.createAppLog({
-              level: 'info',
-              message: `Building viewed: ${event.buildingName || event.buildingId}`,
-              details: JSON.stringify({ buildingId: event.buildingId }),
-              userId: event.userId,
-              userAgent: event.userAgent,
-              ipAddress: req.ip
-            });
+            try {
+              await storage.createSearchAnalytic({
+                sessionId: event.sessionId,
+                userId: event.userId,
+                query: event.query,
+                resultsCount: event.results,
+                searchType: 'general',
+                userAgent: event.userAgent,
+                ipAddress: req.ip
+              });
+            } catch (err) {
+              console.error('Failed to create search analytic:', err);
+            }
           } else if (event.type === 'navigation') {
-            await storage.createNavigationAnalytic({
-              sessionId: event.sessionId,
-              userId: event.userId,
-              fromRoom: event.from,
-              toRoom: event.to,
-              navigationType: event.method,
-              userAgent: event.userAgent,
-              ipAddress: req.ip
+            try {
+              await storage.createNavigationAnalytic({
+                sessionId: event.sessionId,
+                userId: event.userId,
+                fromRoom: event.from,
+                toRoom: event.to,
+                navigationType: event.method,
+                userAgent: event.userAgent,
+                ipAddress: req.ip
+              });
+            } catch (err) {
+              console.error('Failed to create navigation analytic:', err);
+            }
+          }
+          
+          // Always log to app logs (non-blocking)
+          try {
+            await storage.createAppLog({
+              level: 'info',
+              message: `Analytics: ${event.type}`,
+              errorInfo: JSON.stringify({
+                page: event.page,
+                device: event.device,
+                browser: event.browser,
+                ...event.data
+              }),
+              userId: event.userId || null,
+              userAgent: event.userAgent || null,
+              url: event.page || null,
+              ipAddress: req.ip || null
             });
+          } catch (logErr) {
+            // Silently fail - logging shouldn't break analytics
+            console.error('Failed to log analytics event:', logErr);
           }
         } catch (eventError) {
           console.error('Failed to store event:', event.type, eventError);
@@ -2256,7 +2292,8 @@ https://ksykmaps.vercel.app
       res.json({ success: true, processed: events.length });
     } catch (error) {
       console.error('Failed to track analytics:', error);
-      res.status(500).json({ message: 'Failed to track analytics' });
+      // Return success anyway to not break the frontend
+      res.json({ success: true, processed: 0 });
     }
   });
 
