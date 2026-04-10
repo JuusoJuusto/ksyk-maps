@@ -133,10 +133,11 @@ export default function WilmaUserManager() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete user");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
-      alert("Wilma user deleted successfully!");
+      alert("Wilma user permanently deleted from database!");
     },
     onError: (error: any) => {
       alert(`Error: ${error.message}`);

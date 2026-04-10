@@ -25,11 +25,46 @@ export default function Wilma() {
 
   // Mock data for demo
   const mockSchedule = [
-    { time: '08:00-09:30', mon: 'Matematiikka\nLuokka 301', tue: 'Englanti\nLuokka 205', wed: 'Fysiikka\nLuokka 401', thu: 'Historia\nLuokka 102', fri: 'Liikunta\nSali' },
-    { time: '09:45-11:15', mon: 'Äidinkieli\nLuokka 201', tue: 'Matematiikka\nLuokka 301', wed: 'Kemia\nLuokka 402', thu: 'Englanti\nLuokka 205', fri: 'Musiikki\nMusiikkiluokka' },
-    { time: '11:30-13:00', mon: 'Biologia\nLuokka 403', tue: 'Historia\nLuokka 102', wed: 'Matematiikka\nLuokka 301', thu: 'Äidinkieli\nLuokka 201', fri: 'Kuvataide\nTaideluokka' },
-    { time: '13:15-14:45', mon: 'Englanti\nLuokka 205', tue: 'Fysiikka\nLuokka 401', wed: 'Äidinkieli\nLuokka 201', thu: 'Matematiikka\nLuokka 301', fri: '-' },
-    { time: '15:00-16:30', mon: '-', tue: 'Valinnainen\nLuokka 105', wed: '-', thu: 'Valinnainen\nLuokka 105', fri: '-' },
+    { 
+      time: '08:00-09:30', 
+      mon: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
+      tue: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mäkinen' },
+      wed: { subject: 'Fysiikka', room: 'Luokka 401', teacher: 'Laine' },
+      thu: { subject: 'Historia', room: 'Luokka 102', teacher: 'Nieminen' },
+      fri: { subject: 'Liikunta', room: 'Sali', teacher: 'Koskinen' }
+    },
+    { 
+      time: '09:45-11:15', 
+      mon: { subject: 'Äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      tue: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
+      wed: { subject: 'Kemia', room: 'Luokka 402', teacher: 'Salo' },
+      thu: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mäkinen' },
+      fri: { subject: 'Musiikki', room: 'Musiikkiluokka', teacher: 'Laakso' }
+    },
+    { 
+      time: '11:30-13:00', 
+      mon: { subject: 'Biologia', room: 'Luokka 403', teacher: 'Rantanen' },
+      tue: { subject: 'Historia', room: 'Luokka 102', teacher: 'Nieminen' },
+      wed: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
+      thu: { subject: 'Äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      fri: { subject: 'Kuvataide', room: 'Taideluokka', teacher: 'Heikkinen' }
+    },
+    { 
+      time: '13:15-14:45', 
+      mon: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mäkinen' },
+      tue: { subject: 'Fysiikka', room: 'Luokka 401', teacher: 'Laine' },
+      wed: { subject: 'Äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      thu: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
+      fri: null
+    },
+    { 
+      time: '15:00-16:30', 
+      mon: null,
+      tue: { subject: 'Valinnainen', room: 'Luokka 105', teacher: 'Virtanen' },
+      wed: null,
+      thu: { subject: 'Valinnainen', room: 'Luokka 105', teacher: 'Virtanen' },
+      fri: null
+    },
   ];
 
   const mockGrades = [
@@ -182,7 +217,13 @@ export default function Wilma() {
       exams: 'Kokeet', students: 'Oppilaat', teachers: 'Opettajat', rooms: 'Huoneet',
       courses: 'Kurssit', reports: 'Raportit', logout: 'Kirjaudu ulos', gradeAverage: 'Keskiarvo',
       role: 'Rooli', teacher: 'Opettaja', student: 'Oppilas', parent: 'Huoltaja', admin: 'Ylläpitäjä',
-      studyMaterials: 'Oppimateriaalit', settings: 'Asetukset',
+      studyMaterials: 'Oppimateriaalit', settings: 'Asetukset', profile: 'Profiili',
+      changePassword: 'Vaihda salasana', currentPassword: 'Nykyinen salasana',
+      newPassword: 'Uusi salasana', confirmPassword: 'Vahvista salasana',
+      save: 'Tallenna', cancel: 'Peruuta', edit: 'Muokkaa', delete: 'Poista',
+      todaysSchedule: 'Tämän päivän tunnit', upcomingEvents: 'Tulevat tapahtumat',
+      recentGrades: 'Viimeisimmät arvosanat', quickActions: 'Pikatoiminnot',
+      viewAll: 'Näytä kaikki', noClasses: 'Ei tunteja',
     },
     en: {
       school: 'Brando', login: 'Login', username: 'Username', password: 'Password',
@@ -194,7 +235,13 @@ export default function Wilma() {
       exams: 'Exams', students: 'Students', teachers: 'Teachers', rooms: 'Rooms',
       courses: 'Courses', reports: 'Reports', logout: 'Logout', gradeAverage: 'Average',
       role: 'Role', teacher: 'Teacher', student: 'Student', parent: 'Parent', admin: 'Admin',
-      studyMaterials: 'Study Materials', settings: 'Settings',
+      studyMaterials: 'Study Materials', settings: 'Settings', profile: 'Profile',
+      changePassword: 'Change Password', currentPassword: 'Current Password',
+      newPassword: 'New Password', confirmPassword: 'Confirm Password',
+      save: 'Save', cancel: 'Cancel', edit: 'Edit', delete: 'Delete',
+      todaysSchedule: "Today's Schedule", upcomingEvents: 'Upcoming Events',
+      recentGrades: 'Recent Grades', quickActions: 'Quick Actions',
+      viewAll: 'View All', noClasses: 'No classes',
     }
   };
 
@@ -296,6 +343,7 @@ export default function Wilma() {
               { id: 'teachers', icon: Users, label: tr.teachers },
               { id: 'materials', icon: BookOpen, label: tr.studyMaterials },
               { id: 'courses', icon: GraduationCap, label: tr.courses },
+              { id: 'settings', icon: Settings, label: tr.settings },
             ].map((item) => (
               <button key={item.id} onClick={() => handleSectionChange(item.id)}
                 className={`px-4 py-3 text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
@@ -324,6 +372,7 @@ export default function Wilma() {
                 {activeSection === 'teachers' && tr.teachers}
                 {activeSection === 'materials' && tr.studyMaterials}
                 {activeSection === 'courses' && tr.courses}
+                {activeSection === 'settings' && tr.settings}
               </span>
               <span className="text-sm font-mono text-blue-600">#{currentUser.studentId}</span>
             </CardTitle>
@@ -454,11 +503,25 @@ export default function Wilma() {
                       {mockSchedule.map((row, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
                           <td className="border border-gray-300 p-3 font-semibold bg-gray-100">{row.time}</td>
-                          <td className="border border-gray-300 p-3 text-sm whitespace-pre-line">{row.mon}</td>
-                          <td className="border border-gray-300 p-3 text-sm whitespace-pre-line">{row.tue}</td>
-                          <td className="border border-gray-300 p-3 text-sm whitespace-pre-line">{row.wed}</td>
-                          <td className="border border-gray-300 p-3 text-sm whitespace-pre-line">{row.thu}</td>
-                          <td className="border border-gray-300 p-3 text-sm whitespace-pre-line">{row.fri}</td>
+                          {['mon', 'tue', 'wed', 'thu', 'fri'].map((day) => {
+                            const lesson = row[day as keyof typeof row];
+                            return (
+                              <td key={day} className="border border-gray-300 p-3 text-sm">
+                                {lesson && typeof lesson === 'object' ? (
+                                  <div className="space-y-1">
+                                    <p className="font-semibold text-gray-800">{lesson.subject}</p>
+                                    <p className="text-xs text-gray-600">{lesson.room}</p>
+                                    <p className="text-xs text-blue-600 flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {lesson.teacher}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
@@ -841,6 +904,147 @@ export default function Wilma() {
                     </Button>
                   </CardContent>
                 </Card>
+              </div>
+            )}
+
+            {activeSection === 'settings' && (
+              <div className="space-y-6">
+                <Card className="border-blue-200">
+                  <CardHeader className="bg-blue-50">
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      {tr.profile}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'fi' ? 'Etunimi' : 'First Name'}
+                        </label>
+                        <Input value={currentUser.firstName} disabled className="bg-gray-50" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'fi' ? 'Sukunimi' : 'Last Name'}
+                        </label>
+                        <Input value={currentUser.lastName} disabled className="bg-gray-50" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'fi' ? 'Oppilastunnus' : 'Student ID'}
+                        </label>
+                        <Input value={currentUser.studentId} disabled className="bg-gray-50 font-mono" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'fi' ? 'Luokka' : 'Class'}
+                        </label>
+                        <Input value={currentUser.studentClass || '-'} disabled className="bg-gray-50" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'fi' ? 'Sähköposti' : 'Email'}
+                        </label>
+                        <Input value={currentUser.email || '-'} disabled className="bg-gray-50" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-green-200">
+                  <CardHeader className="bg-green-50">
+                    <CardTitle className="flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-green-600" />
+                      {tr.changePassword}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {tr.currentPassword}
+                        </label>
+                        <Input type="password" placeholder="••••••••" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {tr.newPassword}
+                        </label>
+                        <Input type="password" placeholder="••••••••" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {tr.confirmPassword}
+                        </label>
+                        <Input type="password" placeholder="••••••••" />
+                      </div>
+                      <Button className="bg-green-600 hover:bg-green-700 text-white">
+                        {tr.save}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-purple-200">
+                  <CardHeader className="bg-purple-50">
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-purple-600" />
+                      {language === 'fi' ? 'Asetukset' : 'Preferences'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-semibold text-gray-800">{language === 'fi' ? 'Kieli' : 'Language'}</p>
+                          <p className="text-sm text-gray-600">{language === 'fi' ? 'Suomi' : 'English'}</p>
+                        </div>
+                        <Button variant="outline" onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}>
+                          {language === 'fi' ? 'EN' : 'FI'}
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-semibold text-gray-800">{language === 'fi' ? 'Ilmoitukset' : 'Notifications'}</p>
+                          <p className="text-sm text-gray-600">{language === 'fi' ? 'Sähköposti-ilmoitukset' : 'Email notifications'}</p>
+                        </div>
+                        <input type="checkbox" className="w-5 h-5" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-semibold text-gray-800">{language === 'fi' ? 'Yksityisyys' : 'Privacy'}</p>
+                          <p className="text-sm text-gray-600">{language === 'fi' ? 'Näytä profiili muille' : 'Show profile to others'}</p>
+                        </div>
+                        <input type="checkbox" className="w-5 h-5" defaultChecked />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {currentUser.role === 'admin' && (
+                  <Card className="border-red-200 bg-red-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-red-700">
+                        <AlertTriangle className="w-5 h-5" />
+                        {language === 'fi' ? 'Ylläpitäjän työkalut' : 'Admin Tools'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <p className="text-sm text-gray-700 mb-4">
+                        {language === 'fi' 
+                          ? 'Sinulla on ylläpitäjän oikeudet. Voit hallita käyttäjiä KSYK Maps -hallintapaneelista.'
+                          : 'You have administrator privileges. You can manage users from the KSYK Maps admin panel.'}
+                      </p>
+                      <Button 
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => window.location.href = '/admin-ksyk-management-portal'}
+                      >
+                        {language === 'fi' ? 'Avaa hallintapaneeli' : 'Open Admin Panel'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </CardContent>

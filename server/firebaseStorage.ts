@@ -708,7 +708,9 @@ export class FirebaseStorage implements IStorage {
 
   async deleteWilmaUser(id: string): Promise<void> {
     try {
-      await db.collection('wilmaUsers').doc(id).update({ isActive: false });
+      console.log('🗑️ Permanently deleting Wilma user:', id);
+      await db.collection('wilmaUsers').doc(id).delete();
+      console.log('✅ Wilma user permanently deleted from database');
     } catch (error) {
       console.error('Error deleting Wilma user:', error);
       throw error;
