@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Calendar, FileText, MessageSquare, Home, BarChart3, Bell, LogOut, User,
   Users, UserCheck, Building, GraduationCap, ClipboardList, Lock, AlertCircle,
-  BookOpen, Clock, Award, TrendingUp, CheckCircle, XCircle, AlertTriangle, Mail
+  BookOpen, Clock, Award, TrendingUp, CheckCircle, XCircle, AlertTriangle, Mail,
+  Phone, Download, FileDown, Settings
 } from 'lucide-react';
 
 export default function Wilma() {
@@ -57,6 +58,25 @@ export default function Wilma() {
     { date: '2026-04-06', status: 'absent', hours: 0, reason: 'Sairaus' },
     { date: '2026-04-05', status: 'present', hours: 5 },
     { date: '2026-04-04', status: 'present', hours: 6 },
+  ];
+
+  const mockExams = [
+    { subject: 'Matematiikka', date: '2026-04-15', time: '09:00-11:00', room: 'Luokka 301', topics: 'Trigonometria, Derivaatat' },
+    { subject: 'Englanti', date: '2026-04-18', time: '10:00-12:00', room: 'Luokka 205', topics: 'Grammar, Essay Writing' },
+    { subject: 'Historia', date: '2026-04-22', time: '08:00-10:00', room: 'Luokka 102', topics: 'Toinen maailmansota' },
+  ];
+
+  const mockTeachers = [
+    { name: 'Virtanen Matti', subject: 'Matematiikka', email: 'matti.virtanen@school.fi', phone: '040-1234567', room: 'Luokka 301' },
+    { name: 'Korhonen Anna', subject: 'Äidinkieli', email: 'anna.korhonen@school.fi', phone: '040-2345678', room: 'Luokka 201' },
+    { name: 'Mäkinen Pekka', subject: 'Englanti', email: 'pekka.makinen@school.fi', phone: '040-3456789', room: 'Luokka 205' },
+    { name: 'Nieminen Laura', subject: 'Historia', email: 'laura.nieminen@school.fi', phone: '040-4567890', room: 'Luokka 102' },
+  ];
+
+  const mockStudyMaterials = [
+    { title: 'Matematiikan kaavakokoelma', subject: 'Matematiikka', type: 'PDF', size: '2.5 MB', uploaded: '2026-04-01' },
+    { title: 'Englannin sanasto', subject: 'Englanti', type: 'PDF', size: '1.2 MB', uploaded: '2026-04-03' },
+    { title: 'Historian aikajana', subject: 'Historia', type: 'PDF', size: '3.1 MB', uploaded: '2026-04-05' },
   ];
 
   useEffect(() => {
@@ -162,6 +182,7 @@ export default function Wilma() {
       exams: 'Kokeet', students: 'Oppilaat', teachers: 'Opettajat', rooms: 'Huoneet',
       courses: 'Kurssit', reports: 'Raportit', logout: 'Kirjaudu ulos', gradeAverage: 'Keskiarvo',
       role: 'Rooli', teacher: 'Opettaja', student: 'Oppilas', parent: 'Huoltaja', admin: 'Ylläpitäjä',
+      studyMaterials: 'Oppimateriaalit', settings: 'Asetukset',
     },
     en: {
       school: 'Brando', login: 'Login', username: 'Username', password: 'Password',
@@ -173,6 +194,7 @@ export default function Wilma() {
       exams: 'Exams', students: 'Students', teachers: 'Teachers', rooms: 'Rooms',
       courses: 'Courses', reports: 'Reports', logout: 'Logout', gradeAverage: 'Average',
       role: 'Role', teacher: 'Teacher', student: 'Student', parent: 'Parent', admin: 'Admin',
+      studyMaterials: 'Study Materials', settings: 'Settings',
     }
   };
 
@@ -270,6 +292,9 @@ export default function Wilma() {
               { id: 'assignments', icon: FileText, label: tr.assignments },
               { id: 'messages', icon: MessageSquare, label: tr.messages },
               { id: 'attendance', icon: UserCheck, label: tr.attendance },
+              { id: 'exams', icon: ClipboardList, label: tr.exams },
+              { id: 'teachers', icon: Users, label: tr.teachers },
+              { id: 'materials', icon: BookOpen, label: tr.studyMaterials },
               { id: 'courses', icon: GraduationCap, label: tr.courses },
             ].map((item) => (
               <button key={item.id} onClick={() => handleSectionChange(item.id)}
@@ -295,6 +320,9 @@ export default function Wilma() {
                 {activeSection === 'assignments' && tr.assignments}
                 {activeSection === 'messages' && tr.messages}
                 {activeSection === 'attendance' && tr.attendance}
+                {activeSection === 'exams' && tr.exams}
+                {activeSection === 'teachers' && tr.teachers}
+                {activeSection === 'materials' && tr.studyMaterials}
                 {activeSection === 'courses' && tr.courses}
               </span>
               <span className="text-sm font-mono text-blue-600">#{currentUser.studentId}</span>
@@ -656,6 +684,163 @@ export default function Wilma() {
                     </Card>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {activeSection === 'exams' && (
+              <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                  <p className="text-sm text-red-800 flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    {language === 'fi' ? `${mockExams.length} tulevaa koetta` : `${mockExams.length} upcoming exams`}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {mockExams.map((exam, idx) => (
+                    <Card key={idx} className="border-red-300 hover:shadow-md transition-shadow">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <ClipboardList className="w-6 h-6 text-red-600" />
+                              <div>
+                                <p className="font-bold text-lg text-gray-800">{exam.subject}</p>
+                                <p className="text-sm text-gray-600">{exam.room}</p>
+                              </div>
+                            </div>
+                            <div className="ml-9 space-y-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="w-4 h-4 text-gray-500" />
+                                <span className="font-semibold">{exam.date}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-gray-500" />
+                                <span>{exam.time}</span>
+                              </div>
+                              <div className="flex items-start gap-2 text-sm">
+                                <BookOpen className="w-4 h-4 text-gray-500 mt-0.5" />
+                                <span className="text-gray-700">{language === 'fi' ? 'Aiheet: ' : 'Topics: '}{exam.topics}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge className="bg-red-600 text-white text-lg px-4 py-2">
+                            {language === 'fi' ? 'Koe' : 'Exam'}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'teachers' && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    {language === 'fi' ? `${mockTeachers.length} opettajaa` : `${mockTeachers.length} teachers`}
+                  </p>
+                </div>
+
+                <div className="grid gap-3">
+                  {mockTeachers.map((teacher, idx) => (
+                    <Card key={idx} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                              <User className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-lg text-gray-800">{teacher.name}</p>
+                              <p className="text-sm text-gray-600 mb-2">{teacher.subject}</p>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                  <Mail className="w-4 h-4 text-blue-600" />
+                                  <a href={`mailto:${teacher.email}`} className="hover:text-blue-600 hover:underline">
+                                    {teacher.email}
+                                  </a>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                  <Phone className="w-4 h-4 text-blue-600" />
+                                  <span>{teacher.phone}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                  <Building className="w-4 h-4 text-blue-600" />
+                                  <span>{teacher.room}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                            <Mail className="w-4 h-4 mr-2" />
+                            {language === 'fi' ? 'Lähetä viesti' : 'Send Message'}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'materials' && (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                  <p className="text-sm text-green-800 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    {language === 'fi' ? `${mockStudyMaterials.length} oppimateriaalia saatavilla` : `${mockStudyMaterials.length} study materials available`}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {mockStudyMaterials.map((material, idx) => (
+                    <Card key={idx} className="hover:shadow-md transition-shadow border-green-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                              <FileDown className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-800">{material.title}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <Badge className="bg-green-600 text-white text-xs">{material.subject}</Badge>
+                                <span className="text-xs text-gray-500">{material.type} • {material.size}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {language === 'fi' ? 'Ladattu: ' : 'Uploaded: '}{material.uploaded}
+                              </p>
+                            </div>
+                          </div>
+                          <Button className="bg-green-600 hover:bg-green-700 text-white">
+                            <Download className="w-4 h-4 mr-2" />
+                            {language === 'fi' ? 'Lataa' : 'Download'}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                  <CardContent className="p-6 text-center">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-blue-600" />
+                    <h3 className="font-semibold text-lg text-gray-800 mb-2">
+                      {language === 'fi' ? 'Tarvitsetko lisää materiaaleja?' : 'Need more materials?'}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      {language === 'fi' 
+                        ? 'Pyydä opettajaltasi lisää oppimateriaaleja tai lataa niitä kurssin sivulta.'
+                        : 'Request more study materials from your teacher or download them from the course page.'}
+                    </p>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                      {language === 'fi' ? 'Pyydä materiaalia' : 'Request Material'}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </CardContent>
