@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Calendar, 
   FileText, 
@@ -7,38 +10,142 @@ import {
   Home,
   BarChart3,
   Bell,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Settings,
-  BookOpen,
   LogOut,
   User,
-  TrendingUp,
-  Award,
-  Target,
   Users,
   UserCheck,
   Building,
   GraduationCap,
-  ClipboardList
+  ClipboardList,
+  Lock,
+  AlertCircle
 } from 'lucide-react';
 
 export default function Wilma() {
   const [location, setLocation] = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState('frontpage');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
-  const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
-  const [currentWeek, setCurrentWeek] = useState(12); // Week 12 of 2026
-  const [examView, setExamView] = useState<'upcoming' | 'past'>('upcoming');
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const storedUser = localStorage.getItem('wilma_user');
+    console.log('🔍 Checking stored user:', storedUser);
+    
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        console.log('✅ Found stored user:', user);
+        
+        // Verify user still exists in database
+        fetch('/api/wilma/users')
+          .then(res => {
+            if (!res.ok) {
+              console.log('❌ Failed to fetch users, clearing cache');
+              localStorage.removeItem('wilma_user');
+              return null;
+            }
+            return res.json();
+          })
+          .then(users => {
+            if (!users) return;
+            
+            const userExists = users.find((u: any) => u.id === user.id && u.isActive);
+            if (userExists) {
+              setCurrentUser(user);
+              setIsLoggedIn(true);
+              console.log('✅ User verified and logged in');
+            } else {
+              console.log('❌ User not found or inactive in database, clearing cache');
+              localStorage.removeItem('wilma_user');
+            }
+          })
+          .catch(err => {
+            console.error('❌ Error verifying user:', err);
+            localStorage.removeItem('wilma_user');
+          });
+      } catch (error) {
+        console.error('❌ Error parsing stored user:', error);
+        localStorage.removeItem('wilma_user');
+      }
+    } else {
+      console.log('ℹ️ No stored user found');
+    }
+  }, []);
+
+  // Handle login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoading(true);
+
+    if (!username || !password) {
+      setLoginError('Please enter username and password');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      console.log('🔐 Attempting Wilma login for username:', username);
+      
+      const response = await fetch('/api/wilma/login', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username: username.trim(), password })
+      });
+
+      console.log('📡 Response status:', response.status);
+      const data = await response.json();
+      console.log('📦 Response data:', data);
+
+      if (!response.ok) {
+        console.error('❌ Login failed:', data);
+        setLoginError(data.message || 'Invalid username or password');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ Login successful!', data);
+      
+      setCurrentUser(data);
+      setIsLoggedIn(true);
+      localStorage.setItem('wilma_user', JSON.stringify(data));
+      setUsername('');
+      setPassword('');
+      setIsLoading(false);
+    } catch (error) {
+      console.error('💥 Login error:', error);
+      setLoginError('Connection error. Please check if the server is running.');
+      setIsLoading(false);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    localStorage.removeItem('wilma_user');
+    setActiveSection('frontpage');
+  };
 
   // Sync URL with active section
   useEffect(() => {
-    const path = location.replace('/wilma/', '').replace('/wilma', '');
-    if (path && path !== activeSection) {
-      setActiveSection(path || 'frontpage');
+    if (isLoggedIn) {
+      const path = location.replace('/wilma/', '').replace('/wilma', '');
+      if (path && path !== activeSection) {
+        setActiveSection(path || 'frontpage');
+      }
     }
-  }, [location]);
+  }, [location, isLoggedIn]);
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
@@ -49,7 +156,16 @@ export default function Wilma() {
   const tr = {
     fi: {
       school: 'Brando',
-      studentName: 'Matti Meikäläinen',
+      login: 'Kirjaudu sisään',
+      username: 'Käyttäjätunnus',
+      password: 'Salasana',
+      loginButton: 'Kirjaudu',
+      loggingIn: 'Kirjaudutaan...',
+      loginError: 'Virheellinen käyttäjätunnus tai salasana',
+      welcome: 'Tervetuloa Wilmaan',
+      loginInstructions: 'Kirjaudu sisään käyttäjätunnuksellasi ja salasanallasi',
+      noAccount: 'Eikö sinulla ole tunnuksia? Ota yhteyttä ylläpitäjään.',
+      studentName: 'Oppilas',
       class: 'Luokka',
       notifications: 'Ilmoitukset',
       frontpage: 'Etusivu',
@@ -60,102 +176,33 @@ export default function Wilma() {
       attendance: 'Poissaolot',
       exams: 'Kokeet',
       settings: 'Asetukset',
-      todaysLessons: 'Tämän päivän tunnit',
-      recentGrades: 'Viimeisimmät arvosanat',
-      weeklySchedule: 'Viikko-ohjelma',
-      time: 'Aika',
-      subject: 'Aine',
-      room: 'Luokka',
-      teacher: 'Opettaja',
-      date: 'Päivämäärä',
-      assignment: 'Tehtävä',
-      grade: 'Arvosana',
-      from: 'Lähettäjä',
-      task: 'Tehtävä',
-      dueDate: 'Palautuspäivä',
-      status: 'Tila',
-      returned: 'Palautettu',
-      notReturned: 'Ei palautettu',
-      attendanceRecords: 'Poissaolokirjaukset',
-      type: 'Tyyppi',
-      reason: 'Syy',
-      absent: 'Poissa',
-      late: 'Myöhässä',
-      illness: 'Sairaus',
-      other: 'Muu',
-      upcomingExams: 'Tulevat kokeet',
-      examType: 'Kokeen tyyppi',
-      test: 'Koe',
-      exam: 'Tentti',
-      languageSettings: 'Kieliasetukset',
-      language: 'Kieli',
-      finnish: 'Suomi',
-      english: 'Englanti',
-      notificationSettings: 'Ilmoitusasetukset',
-      emailNotifications: 'Sähköposti-ilmoitukset',
-      enabled: 'Käytössä',
-      disabled: 'Pois käytöstä',
-      changePassword: 'Vaihda salasana',
-      currentPassword: 'Nykyinen salasana',
-      newPassword: 'Uusi salasana',
-      confirmPassword: 'Vahvista salasana',
-      save: 'Tallenna',
-      attendanceStats: 'Poissaolotilastot',
-      totalAbsences: 'Poissaoloja yhteensä',
-      totalLates: 'Myöhästymisiä yhteensä',
-      days: 'päivää',
-      times: 'kertaa',
-      logout: 'Kirjaudu ulos',
-      profile: 'Profiili',
-      gradeAverage: 'Keskiarvo',
-      performance: 'Suorituskyky',
-      topic: 'Aihe',
-      description: 'Kuvaus',
-      priority: 'Prioriteetti',
-      high: 'Korkea',
-      medium: 'Keskitaso',
-      low: 'Matala',
-      courseGrades: 'Kurssiarvosanat',
-      termGrades: 'Lukukauden arvosanat',
-      yearGrades: 'Vuoden arvosanat',
-      back: 'Takaisin',
-      reply: 'Vastaa',
-      forward: 'Välitä',
-      delete: 'Poista',
-      messageContent: 'Viestin sisältö',
-      previousWeek: 'Edellinen viikko',
-      nextWeek: 'Seuraava viikko',
-      noLessons: 'Ei tunteja',
-      week: 'Viikko',
-      monday: 'Maanantai',
-      tuesday: 'Tiistai',
-      wednesday: 'Keskiviikko',
-      thursday: 'Torstai',
-      friday: 'Perjantai',
       students: 'Oppilaat',
       teachers: 'Opettajat',
       rooms: 'Huoneet',
       courses: 'Kurssit',
       reports: 'Raportit',
-      pastExams: 'Menneet kokeet',
-      examDate: 'Koepäivä',
-      examResult: 'Tulos',
-      noExams: 'Ei kokeita',
-      studentList: 'Oppilaslista',
-      teacherList: 'Opettajalista',
-      roomList: 'Huonelista',
-      courseList: 'Kurssilista',
-      email: 'Sähköposti',
-      phone: 'Puhelin',
-      capacity: 'Kapasiteetti',
-      building: 'Rakennus',
-      courseCode: 'Kurssikoodi',
-      credits: 'Opintopisteet',
-      name: 'Nimi'
+      logout: 'Kirjaudu ulos',
+      gradeAverage: 'Keskiarvo',
+      role: 'Rooli',
+      teacher: 'Opettaja',
+      student: 'Oppilas',
+      parent: 'Huoltaja',
+      admin: 'Ylläpitäjä',
+      comingSoon: 'Tulossa pian',
+      thisFeature: 'Tämä ominaisuus on tulossa pian',
     },
     en: {
       school: 'Brando',
-      studentName: 'John Student',
+      login: 'Login',
+      username: 'Username',
+      password: 'Password',
+      loginButton: 'Login',
+      loggingIn: 'Logging in...',
+      loginError: 'Invalid username or password',
+      welcome: 'Welcome to Wilma',
+      loginInstructions: 'Login with your username and password',
+      noAccount: "Don't have credentials? Contact administrator.",
+      studentName: 'Student',
       class: 'Class',
       notifications: 'Notifications',
       frontpage: 'Frontpage',
@@ -166,286 +213,128 @@ export default function Wilma() {
       attendance: 'Attendance',
       exams: 'Exams',
       settings: 'Settings',
-      todaysLessons: "Today's Lessons",
-      recentGrades: 'Recent Grades',
-      weeklySchedule: 'Weekly Schedule',
-      time: 'Time',
-      subject: 'Subject',
-      room: 'Room',
-      teacher: 'Teacher',
-      date: 'Date',
-      assignment: 'Assignment',
-      grade: 'Grade',
-      from: 'From',
-      task: 'Task',
-      dueDate: 'Due Date',
-      status: 'Status',
-      returned: 'Returned',
-      notReturned: 'Not returned',
-      attendanceRecords: 'Attendance Records',
-      type: 'Type',
-      reason: 'Reason',
-      absent: 'Absent',
-      late: 'Late',
-      illness: 'Illness',
-      other: 'Other',
-      upcomingExams: 'Upcoming Exams',
-      examType: 'Exam Type',
-      test: 'Test',
-      exam: 'Exam',
-      languageSettings: 'Language Settings',
-      language: 'Language',
-      finnish: 'Finnish',
-      english: 'English',
-      notificationSettings: 'Notification Settings',
-      emailNotifications: 'Email Notifications',
-      enabled: 'Enabled',
-      disabled: 'Disabled',
-      changePassword: 'Change Password',
-      currentPassword: 'Current Password',
-      newPassword: 'New Password',
-      confirmPassword: 'Confirm Password',
-      save: 'Save',
-      attendanceStats: 'Attendance Statistics',
-      totalAbsences: 'Total Absences',
-      totalLates: 'Total Lates',
-      days: 'days',
-      times: 'times',
-      logout: 'Logout',
-      profile: 'Profile',
-      gradeAverage: 'Average',
-      performance: 'Performance',
-      topic: 'Topic',
-      description: 'Description',
-      priority: 'Priority',
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low',
-      courseGrades: 'Course Grades',
-      termGrades: 'Term Grades',
-      yearGrades: 'Year Grades',
-      back: 'Back',
-      reply: 'Reply',
-      forward: 'Forward',
-      delete: 'Delete',
-      messageContent: 'Message Content',
-      previousWeek: 'Previous Week',
-      nextWeek: 'Next Week',
-      noLessons: 'No lessons',
-      week: 'Week',
-      monday: 'Monday',
-      tuesday: 'Tuesday',
-      wednesday: 'Wednesday',
-      thursday: 'Thursday',
-      friday: 'Friday',
       students: 'Students',
       teachers: 'Teachers',
       rooms: 'Rooms',
       courses: 'Courses',
       reports: 'Reports',
-      pastExams: 'Past Exams',
-      examDate: 'Exam Date',
-      examResult: 'Result',
-      noExams: 'No exams',
-      studentList: 'Student List',
-      teacherList: 'Teacher List',
-      roomList: 'Room List',
-      courseList: 'Course List',
-      email: 'Email',
-      phone: 'Phone',
-      capacity: 'Capacity',
-      building: 'Building',
-      courseCode: 'Course Code',
-      credits: 'Credits',
-      name: 'Name'
+      logout: 'Logout',
+      gradeAverage: 'Average',
+      role: 'Role',
+      teacher: 'Teacher',
+      student: 'Student',
+      parent: 'Parent',
+      admin: 'Admin',
+      comingSoon: 'Coming Soon',
+      thisFeature: 'This feature is coming soon',
     }
   };
 
   const t = tr[language];
 
-  // Student data
-  const studentData = {
-    name: t.studentName,
-    class: '9A',
-    school: t.school,
-    gradeAverage: '8.7'
-  };
+  // Login Screen
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl">
+          <CardHeader className="bg-[#003d82] text-white rounded-t-lg">
+            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
+              <Lock className="w-6 h-6" />
+              {t.welcome}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8">
+            <p className="text-center text-gray-600 mb-6">{t.loginInstructions}</p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.username}
+                </label>
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={t.username}
+                  required
+                  disabled={isLoading}
+                  className="w-full"
+                  autoComplete="username"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.password}
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.password}
+                  required
+                  disabled={isLoading}
+                  className="w-full"
+                  autoComplete="current-password"
+                />
+              </div>
+              {loginError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+              <Button 
+                type="submit" 
+                className="w-full bg-[#003d82] hover:bg-[#0052a3]"
+                disabled={isLoading}
+              >
+                {isLoading ? t.loggingIn : t.loginButton}
+              </Button>
+            </form>
+            <div className="mt-6 space-y-3">
+              <div className="text-center">
+                <button
+                  onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {language === 'fi' ? 'English' : 'Suomi'}
+                </button>
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('wilma_user');
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    alert('Cache cleared! Please try logging in again.');
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear Cache & Force Logout
+                </button>
+              </div>
+              <div className="text-center text-sm text-gray-500">
+                {t.noAccount}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  // Mock data with more comprehensive information
-  const weeklySchedule = {
-    monday: [
-      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
-      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
-      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
-      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
-    ],
-    tuesday: [
-      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', room: 'Luokka 303', teacher: 'Lindström' },
-      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
-      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Liikunta' : 'PE', room: 'Sali', teacher: 'Mäkinen' },
-      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
-    ],
-    wednesday: [
-      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
-      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
-      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
-    ],
-    thursday: [
-      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
-      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', room: 'Luokka 303', teacher: 'Lindström' },
-      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Lab 102', teacher: 'Johansson' },
-      { time: '11:00 - 11:45', subject: language === 'fi' ? 'Liikunta' : 'PE', room: 'Sali', teacher: 'Mäkinen' },
-    ],
-    friday: [
-      { time: '08:00 - 08:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen' },
-      { time: '09:00 - 09:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson' },
-      { time: '10:00 - 10:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith' },
-    ],
-  };
-
-  const upcomingLessons = [
-    { time: '08:00 - 08:45', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', room: 'Luokka 301', teacher: 'Andersson', description: language === 'fi' ? 'Geometria: Kolmiot' : 'Geometry: Triangles' },
-    { time: '09:00 - 09:45', subject: language === 'fi' ? 'Englanti' : 'English', room: 'Luokka 205', teacher: 'Smith', description: language === 'fi' ? 'Kielioppi: Present Perfect' : 'Grammar: Present Perfect' },
-    { time: '10:00 - 10:45', subject: language === 'fi' ? 'Fysiikka' : 'Physics', room: 'Laboratorio 102', teacher: 'Johansson', description: language === 'fi' ? 'Sähköoppi' : 'Electricity' },
-    { time: '11:00 - 11:45', subject: language === 'fi' ? 'Historia' : 'History', room: 'Luokka 401', teacher: 'Virtanen', description: language === 'fi' ? 'Kylmä sota' : 'Cold War' },
-    { time: '12:00 - 12:45', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', room: 'Luokka 303', teacher: 'Lindström', description: language === 'fi' ? 'Keskustelu' : 'Conversation' },
-    { time: '13:00 - 13:45', subject: language === 'fi' ? 'Liikunta' : 'Physical Education', room: 'Sali', teacher: 'Mäkinen', description: language === 'fi' ? 'Koripallo' : 'Basketball' },
-  ];
-
-  const recentGrades = [
-    { date: '20.03.2026', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', assignment: language === 'fi' ? 'Luku 5 koe' : 'Chapter 5 Test', grade: '9', teacher: 'Andersson' },
-    { date: '18.03.2026', subject: language === 'fi' ? 'Englanti' : 'English', assignment: language === 'fi' ? 'Essee' : 'Essay', grade: '10', teacher: 'Smith' },
-    { date: '15.03.2026', subject: language === 'fi' ? 'Fysiikka' : 'Physics', assignment: language === 'fi' ? 'Laboratorioraportti' : 'Lab Report', grade: '8', teacher: 'Johansson' },
-    { date: '12.03.2026', subject: language === 'fi' ? 'Historia' : 'History', assignment: language === 'fi' ? 'Toisen maailmansodan koe' : 'WWII Test', grade: '9', teacher: 'Virtanen' },
-    { date: '10.03.2026', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', assignment: language === 'fi' ? 'Suullinen esitys' : 'Oral Presentation', grade: '8', teacher: 'Lindström' },
-    { date: '08.03.2026', subject: language === 'fi' ? 'Liikunta' : 'Physical Education', assignment: language === 'fi' ? 'Kuntotesti' : 'Fitness Test', grade: '9', teacher: 'Mäkinen' },
-  ];
-
-  const messages = [
-    { 
-      id: 1,
-      date: '24.03.2026', 
-      from: 'Andersson', 
-      subject: language === 'fi' ? 'Matematiikan kokeen tulokset' : 'Math Test Results', 
-      unread: true, 
-      preview: language === 'fi' ? 'Hyvää työtä kokeessa!' : 'Good work on the test!',
-      content: language === 'fi' ? 'Hei Matti,\n\nHyvää työtä viime viikon kokeessa! Sait arvosanaksi 9, mikä on erinomainen tulos. Erityisesti geometrian tehtävät olivat hyvin ratkottuja.\n\nJatka samaan malliin!\n\nTerveisin,\nAndersson' : 'Hi John,\n\nGreat work on last week\'s test! You got a grade of 9, which is an excellent result. Especially the geometry problems were well solved.\n\nKeep up the good work!\n\nBest regards,\nAndersson'
-    },
-    { 
-      id: 2,
-      date: '23.03.2026', 
-      from: 'Smith', 
-      subject: language === 'fi' ? 'Esseen palaute' : 'Essay Feedback', 
-      unread: true, 
-      preview: language === 'fi' ? 'Erinomainen essee' : 'Excellent essay',
-      content: language === 'fi' ? 'Hei,\n\nEsseesi ilmastonmuutoksesta oli erinomainen! Argumentaatiosi oli selkeää ja käytit hyviä lähteitä. Arvosanaksi 10.\n\nPieniä parannusehdotuksia:\n- Lisää esimerkkejä\n- Tarkista pilkutus\n\nHyvää työtä!\n\nSmith' : 'Hi,\n\nYour essay on climate change was excellent! Your argumentation was clear and you used good sources. Grade: 10.\n\nSmall suggestions for improvement:\n- Add more examples\n- Check punctuation\n\nGreat work!\n\nSmith'
-    },
-    { 
-      id: 3,
-      date: '22.03.2026', 
-      from: language === 'fi' ? 'Koulun toimisto' : 'School Office', 
-      subject: language === 'fi' ? 'Vanhempainilta' : 'Parent-Teacher Meeting', 
-      unread: false, 
-      preview: language === 'fi' ? 'Vanhempainilta 30.3.' : 'Parent meeting 30.3.',
-      content: language === 'fi' ? 'Hyvä huoltaja,\n\nVanhempainilta järjestetään 30.3.2026 klo 18:00 koulun auditoriossa.\n\nOhjelma:\n- Tervetuloa ja esittely\n- Kevään tapahtumat\n- Kysymyksiä ja vastauksia\n\nToivomme runsasta osallistumista!\n\nKoulun toimisto' : 'Dear guardian,\n\nParent-teacher meeting will be held on 30.3.2026 at 18:00 in the school auditorium.\n\nProgram:\n- Welcome and introduction\n- Spring events\n- Q&A\n\nWe hope for good attendance!\n\nSchool Office'
-    },
-    { 
-      id: 4,
-      date: '20.03.2026', 
-      from: 'Virtanen', 
-      subject: language === 'fi' ? 'Historian projekti' : 'History Project', 
-      unread: false, 
-      preview: language === 'fi' ? 'Projektin ohjeistus' : 'Project instructions',
-      content: language === 'fi' ? 'Hei oppilaat,\n\nHistorian projektin aihe on "Suomen itsenäisyys". Projekti tulee palauttaa 2.4.2026 mennessä.\n\nVaatimukset:\n- 5-10 sivua\n- Vähintään 5 lähdettä\n- Kuvat ja kaaviot\n\nOnnea projektiin!\n\nVirtanen' : 'Hi students,\n\nThe history project topic is "Finnish Independence". The project must be submitted by 2.4.2026.\n\nRequirements:\n- 5-10 pages\n- At least 5 sources\n- Images and charts\n\nGood luck with the project!\n\nVirtanen'
-    },
-    { 
-      id: 5,
-      date: '18.03.2026', 
-      from: 'Johansson', 
-      subject: language === 'fi' ? 'Laboratoriotyö' : 'Lab Work', 
-      unread: false, 
-      preview: language === 'fi' ? 'Seuraavan viikon laboratorio' : 'Next week lab',
-      content: language === 'fi' ? 'Hei,\n\nEnsi viikon laboratoriossa tutkimme sähkövirtaa ja jännitettä. Muistakaa tuoda:\n- Työvaatteet\n- Muistiinpanovälineet\n- Laskin\n\nLaboratorio alkaa täsmällisesti klo 10:00.\n\nJohansson' : 'Hi,\n\nNext week\'s lab will study electric current and voltage. Remember to bring:\n- Work clothes\n- Note-taking materials\n- Calculator\n\nLab starts promptly at 10:00.\n\nJohansson'
-    },
-  ];
-
-  const assignments = [
-    { subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', task: language === 'fi' ? 'Kotitehtävät luku 5' : 'Homework Chapter 5', due: '28.03.2026', status: t.notReturned, priority: t.high },
-    { subject: language === 'fi' ? 'Englanti' : 'English', task: language === 'fi' ? 'Essee: Ilmastonmuutos' : 'Essay: Climate Change', due: '30.03.2026', status: t.notReturned, priority: t.high },
-    { subject: language === 'fi' ? 'Fysiikka' : 'Physics', task: language === 'fi' ? 'Laboratorioraportti' : 'Lab Report', due: '26.03.2026', status: t.returned, priority: t.medium },
-    { subject: language === 'fi' ? 'Historia' : 'History', task: language === 'fi' ? 'Tutkielma: Suomen itsenäisyys' : 'Essay: Finnish Independence', due: '02.04.2026', status: t.notReturned, priority: t.medium },
-    { subject: language === 'fi' ? 'Ruotsi' : 'Swedish', task: language === 'fi' ? 'Sanakoe' : 'Vocabulary Test', due: '29.03.2026', status: t.notReturned, priority: t.low },
-  ];
-
-  const attendanceRecords = [
-    { date: '22.03.2026', type: t.absent, subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', reason: t.illness },
-    { date: '20.03.2026', type: t.late, subject: language === 'fi' ? 'Englanti' : 'English', reason: t.other },
-    { date: '18.03.2026', type: t.absent, subject: language === 'fi' ? 'Fysiikka' : 'Physics', reason: t.illness },
-    { date: '15.03.2026', type: t.late, subject: language === 'fi' ? 'Historia' : 'History', reason: t.other },
-    { date: '12.03.2026', type: t.absent, subject: language === 'fi' ? 'Ruotsi' : 'Swedish', reason: t.illness },
-  ];
-
-  const upcomingExams = [
-    { date: '28.03.2026', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', topic: language === 'fi' ? 'Geometria' : 'Geometry', type: t.test, description: language === 'fi' ? 'Kolmiot ja nelikulmiot' : 'Triangles and quadrilaterals' },
-    { date: '30.03.2026', subject: language === 'fi' ? 'Englanti' : 'English', topic: language === 'fi' ? 'Kielioppi' : 'Grammar', type: t.test, description: 'Present Perfect & Past Simple' },
-    { date: '05.04.2026', subject: language === 'fi' ? 'Fysiikka' : 'Physics', topic: language === 'fi' ? 'Sähköoppi' : 'Electricity', type: t.exam, description: language === 'fi' ? 'Sähkövirta ja jännite' : 'Current and voltage' },
-    { date: '08.04.2026', subject: language === 'fi' ? 'Historia' : 'History', topic: language === 'fi' ? 'Kylmä sota' : 'Cold War', type: t.test, description: language === 'fi' ? '1945-1991' : '1945-1991' },
-  ];
-
-  const pastExams = [
-    { date: '20.03.2026', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', topic: language === 'fi' ? 'Luku 5 koe' : 'Chapter 5 Test', type: t.test, result: '9' },
-    { date: '18.03.2026', subject: language === 'fi' ? 'Englanti' : 'English', topic: language === 'fi' ? 'Essee' : 'Essay', type: t.test, result: '10' },
-    { date: '15.03.2026', subject: language === 'fi' ? 'Fysiikka' : 'Physics', topic: language === 'fi' ? 'Laboratorioraportti' : 'Lab Report', type: t.test, result: '8' },
-    { date: '12.03.2026', subject: language === 'fi' ? 'Historia' : 'History', topic: language === 'fi' ? 'Toisen maailmansodan koe' : 'WWII Test', type: t.test, result: '9' },
-    { date: '10.03.2026', subject: language === 'fi' ? 'Ruotsi' : 'Swedish', topic: language === 'fi' ? 'Suullinen esitys' : 'Oral Presentation', type: t.test, result: '8' },
-  ];
-
-  const students = [
-    { name: 'Matti Meikäläinen', class: '9A', email: 'matti.meikalainen@brando.fi' },
-    { name: 'Liisa Virtanen', class: '9A', email: 'liisa.virtanen@brando.fi' },
-    { name: 'Pekka Korhonen', class: '9A', email: 'pekka.korhonen@brando.fi' },
-    { name: 'Anna Nieminen', class: '9A', email: 'anna.nieminen@brando.fi' },
-  ];
-
-  const teachers = [
-    { name: 'Andersson', subject: language === 'fi' ? 'Matematiikka' : 'Mathematics', email: 'andersson@brando.fi', phone: '+358 40 123 4567' },
-    { name: 'Smith', subject: language === 'fi' ? 'Englanti' : 'English', email: 'smith@brando.fi', phone: '+358 40 234 5678' },
-    { name: 'Johansson', subject: language === 'fi' ? 'Fysiikka' : 'Physics', email: 'johansson@brando.fi', phone: '+358 40 345 6789' },
-    { name: 'Virtanen', subject: language === 'fi' ? 'Historia' : 'History', email: 'virtanen@brando.fi', phone: '+358 40 456 7890' },
-  ];
-
-  const rooms = [
-    { name: 'Luokka 301', building: 'A', capacity: 30, type: language === 'fi' ? 'Luokkahuone' : 'Classroom' },
-    { name: 'Luokka 205', building: 'A', capacity: 25, type: language === 'fi' ? 'Luokkahuone' : 'Classroom' },
-    { name: 'Laboratorio 102', building: 'B', capacity: 20, type: language === 'fi' ? 'Laboratorio' : 'Laboratory' },
-    { name: 'Sali', building: 'C', capacity: 50, type: language === 'fi' ? 'Liikuntasali' : 'Gym' },
-  ];
-
-  const courses = [
-    { code: 'MAT9', name: language === 'fi' ? 'Matematiikka 9' : 'Mathematics 9', teacher: 'Andersson', credits: 5 },
-    { code: 'ENG9', name: language === 'fi' ? 'Englanti 9' : 'English 9', teacher: 'Smith', credits: 4 },
-    { code: 'PHY9', name: language === 'fi' ? 'Fysiikka 9' : 'Physics 9', teacher: 'Johansson', credits: 3 },
-    { code: 'HIS9', name: language === 'fi' ? 'Historia 9' : 'History 9', teacher: 'Virtanen', credits: 3 },
-  ];
-
-  const attendanceStats = {
-    totalAbsences: 3,
-    totalLates: 2,
-    attendancePercentage: 96
-  };
-
+  // Main Wilma Interface (after login)
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      {/* Wilma Header - NO KSYKMAPS HEADER */}
+      {/* Wilma Header */}
       <div className="bg-[#003d82] text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-2xl font-semibold">{studentData.school}</h1>
+                <h1 className="text-2xl font-semibold">{t.school}</h1>
                 <p className="text-sm text-blue-200 mt-1">
                   <User className="w-4 h-4 inline mr-1" />
-                  {studentData.name} • {studentData.class} • {t.gradeAverage}: {studentData.gradeAverage}
+                  {currentUser.firstName} {currentUser.lastName} • {currentUser.studentClass || currentUser.role}
                 </p>
               </div>
             </div>
@@ -453,15 +342,17 @@ export default function Wilma() {
               <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2">
                 <Bell className="w-4 h-4" />
                 <span className="hidden sm:inline">{t.notifications}</span>
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
               </button>
               <button 
                 onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors"
               >
-                {language === 'fi' ? '🇬🇧 EN' : '🇫🇮 FI'}
+                {language === 'fi' ? 'EN' : 'FI'}
               </button>
-              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2">
+              <button 
+                onClick={handleLogout}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2"
+              >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">{t.logout}</span>
               </button>
@@ -479,15 +370,12 @@ export default function Wilma() {
               { id: 'schedule', icon: Calendar, label: t.schedule },
               { id: 'grades', icon: BarChart3, label: t.grades },
               { id: 'assignments', icon: FileText, label: t.assignments },
-              { id: 'messages', icon: MessageSquare, label: t.messages, badge: 2 },
-              { id: 'attendance', icon: CheckCircle, label: t.attendance },
-              { id: 'exams', icon: BookOpen, label: t.exams },
+              { id: 'messages', icon: MessageSquare, label: t.messages },
               { id: 'students', icon: Users, label: t.students },
               { id: 'teachers', icon: UserCheck, label: t.teachers },
               { id: 'rooms', icon: Building, label: t.rooms },
               { id: 'courses', icon: GraduationCap, label: t.courses },
               { id: 'reports', icon: ClipboardList, label: t.reports },
-              { id: 'settings', icon: Settings, label: t.settings },
             ].map((item) => (
               <button
                 key={item.id}
@@ -500,9 +388,6 @@ export default function Wilma() {
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
-                {item.badge && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{item.badge}</span>
-                )}
               </button>
             ))}
           </div>
@@ -511,728 +396,34 @@ export default function Wilma() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Frontpage */}
-        {activeSection === 'frontpage' && (
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm">{t.gradeAverage}</p>
-                    <p className="text-3xl font-bold mt-1">{studentData.gradeAverage}</p>
-                  </div>
-                  <TrendingUp className="w-10 h-10 text-blue-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm">{t.attendance}</p>
-                    <p className="text-3xl font-bold mt-1">{attendanceStats.attendancePercentage}%</p>
-                  </div>
-                  <Award className="w-10 h-10 text-green-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm">{t.assignments}</p>
-                    <p className="text-3xl font-bold mt-1">{assignments.filter(a => a.status === t.notReturned).length}</p>
-                  </div>
-                  <Target className="w-10 h-10 text-purple-200" />
-                </div>
+        <Card>
+          <CardHeader className="bg-[#e8f0f8] border-b border-gray-300">
+            <CardTitle className="text-xl text-gray-800">
+              {activeSection === 'frontpage' && t.frontpage}
+              {activeSection === 'schedule' && t.schedule}
+              {activeSection === 'grades' && t.grades}
+              {activeSection === 'assignments' && t.assignments}
+              {activeSection === 'messages' && t.messages}
+              {activeSection === 'students' && t.students}
+              {activeSection === 'teachers' && t.teachers}
+              {activeSection === 'rooms' && t.rooms}
+              {activeSection === 'courses' && t.courses}
+              {activeSection === 'reports' && t.reports}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8">
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🚧</div>
+              <h3 className="text-2xl font-semibold text-gray-800 mb-2">{t.comingSoon}</h3>
+              <p className="text-gray-600">{t.thisFeature}</p>
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>{t.role}:</strong> {currentUser.role === 'teacher' ? t.teacher : currentUser.role === 'student' ? t.student : currentUser.role === 'parent' ? t.parent : t.admin}
+                </p>
               </div>
             </div>
-
-            {/* Today's Lessons */}
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  {t.todaysLessons}
-                </h2>
-              </div>
-              <div className="p-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.time}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.room}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.description}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {upcomingLessons.map((lesson, index) => (
-                      <tr key={index} className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td className="py-3 px-3 font-medium text-gray-900">{lesson.time}</td>
-                        <td className="py-3 px-3 font-semibold text-blue-600">{lesson.subject}</td>
-                        <td className="py-3 px-3 text-gray-700">{lesson.room}</td>
-                        <td className="py-3 px-3 text-gray-700">{lesson.teacher}</td>
-                        <td className="py-3 px-3 text-gray-600 text-xs">{lesson.description}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Recent Grades */}
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  {t.recentGrades}
-                </h2>
-              </div>
-              <div className="p-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.assignment}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.grade}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentGrades.map((grade, index) => (
-                      <tr key={index} className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td className="py-3 px-3 text-gray-700">{grade.date}</td>
-                        <td className="py-3 px-3 font-semibold text-blue-600">{grade.subject}</td>
-                        <td className="py-3 px-3 text-gray-700">{grade.assignment}</td>
-                        <td className="py-3 px-3 text-gray-600">{grade.teacher}</td>
-                        <td className="py-3 px-3">
-                          <span className={`font-bold text-lg ${
-                            parseInt(grade.grade) >= 9 ? 'text-green-600' : 
-                            parseInt(grade.grade) >= 7 ? 'text-blue-600' : 
-                            'text-orange-600'
-                          }`}>
-                            {grade.grade}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Messages Preview */}
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  {t.messages}
-                </h2>
-              </div>
-              <div className="p-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.from}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {messages.slice(0, 3).map((msg) => (
-                      <tr 
-                        key={msg.id}
-                        onClick={() => {
-                          setActiveSection('messages');
-                          setSelectedMessage(msg.id);
-                        }}
-                        className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${msg.unread ? 'bg-blue-50/50' : ''}`}
-                      >
-                        <td className="py-3 px-3 text-gray-700">{msg.date}</td>
-                        <td className="py-3 px-3 font-medium text-gray-900">{msg.from}</td>
-                        <td className="py-3 px-3">
-                          {msg.unread && <span className="text-red-500 mr-2 font-bold">●</span>}
-                          <span className={msg.unread ? 'font-semibold text-gray-900' : 'text-gray-700'}>{msg.subject}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* All other sections - Schedule, Grades, Assignments, Messages, Attendance, Exams, Settings */}
-        {activeSection === 'schedule' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800">{t.weeklySchedule}</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentWeek(currentWeek - 1)} className="px-3 py-1 bg-[#003d82] text-white rounded hover:bg-[#0052a3] text-sm">
-                  ← {t.previousWeek}
-                </button>
-                <span className="px-4 py-1 bg-white border border-gray-300 rounded font-semibold text-sm">
-                  {t.week} {currentWeek}
-                </span>
-                <button onClick={() => setCurrentWeek(currentWeek + 1)} className="px-3 py-1 bg-[#003d82] text-white rounded hover:bg-[#0052a3] text-sm">
-                  {t.nextWeek} →
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-5 gap-4">
-                {[
-                  { day: t.monday, lessons: weeklySchedule.monday },
-                  { day: t.tuesday, lessons: weeklySchedule.tuesday },
-                  { day: t.wednesday, lessons: weeklySchedule.wednesday },
-                  { day: t.thursday, lessons: weeklySchedule.thursday },
-                  { day: t.friday, lessons: weeklySchedule.friday },
-                ].map((dayData, dayIndex) => (
-                  <div key={dayIndex} className="border border-gray-300 rounded-lg overflow-hidden">
-                    <div className="bg-[#e8f0f8] px-3 py-2 border-b border-gray-300">
-                      <h3 className="font-semibold text-sm text-gray-800">{dayData.day}</h3>
-                    </div>
-                    <div className="p-2 space-y-2">
-                      {dayData.lessons.length > 0 ? dayData.lessons.map((lesson, lessonIndex) => (
-                        <div key={lessonIndex} className="bg-blue-50 border border-blue-200 rounded p-2 hover:bg-blue-100 transition-colors">
-                          <p className="text-xs text-gray-600 font-medium">{lesson.time}</p>
-                          <p className="text-sm font-semibold text-blue-700 mt-1">{lesson.subject}</p>
-                          <p className="text-xs text-gray-600 mt-1">{lesson.room}</p>
-                          <p className="text-xs text-gray-500">{lesson.teacher}</p>
-                        </div>
-                      )) : (
-                        <p className="text-xs text-gray-400 text-center py-4">{t.noLessons}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'grades' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.grades}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.assignment}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.grade}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentGrades.map((grade, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3">{grade.date}</td>
-                      <td className="py-3 px-3 font-semibold text-blue-600">{grade.subject}</td>
-                      <td className="py-3 px-3">{grade.assignment}</td>
-                      <td className="py-3 px-3 text-gray-600">{grade.teacher}</td>
-                      <td className="py-3 px-3">
-                        <span className={`font-bold text-lg ${parseInt(grade.grade) >= 9 ? 'text-green-600' : parseInt(grade.grade) >= 7 ? 'text-blue-600' : 'text-orange-600'}`}>
-                          {grade.grade}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'assignments' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.assignments}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.task}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.dueDate}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.priority}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.status}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.map((assignment, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-semibold text-blue-600">{assignment.subject}</td>
-                      <td className="py-3 px-3">{assignment.task}</td>
-                      <td className="py-3 px-3">{assignment.due}</td>
-                      <td className="py-3 px-3">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          assignment.priority === t.high ? 'bg-red-100 text-red-700' :
-                          assignment.priority === t.medium ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {assignment.priority}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className={assignment.status === t.returned ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                          {assignment.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'messages' && (
-          <div className="space-y-4">
-            {selectedMessage === null ? (
-              <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-                <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                  <h2 className="text-lg font-semibold text-gray-800">{t.messages}</h2>
-                </div>
-                <div className="p-6">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.from}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {messages.map((msg) => (
-                        <tr 
-                          key={msg.id}
-                          onClick={() => setSelectedMessage(msg.id)}
-                          className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${msg.unread ? 'bg-blue-50/50' : ''}`}
-                        >
-                          <td className="py-3 px-3">{msg.date}</td>
-                          <td className="py-3 px-3 font-medium">{msg.from}</td>
-                          <td className="py-3 px-3">
-                            {msg.unread && <span className="text-red-500 mr-2 font-bold">●</span>}
-                            <span className={msg.unread ? 'font-semibold' : ''}>{msg.subject}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-                <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">{t.messageContent}</h2>
-                  <button 
-                    onClick={() => setSelectedMessage(null)}
-                    className="px-4 py-2 bg-[#003d82] text-white rounded-lg hover:bg-[#0052a3] transition-colors text-sm flex items-center gap-2"
-                  >
-                    ← {t.back}
-                  </button>
-                </div>
-                <div className="p-6">
-                  {messages.find(m => m.id === selectedMessage) && (
-                    <div className="space-y-4">
-                      <div className="border-b border-gray-300 pb-4">
-                        <h3 className="text-xl font-bold text-gray-900 mb-3">
-                          {messages.find(m => m.id === selectedMessage)!.subject}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium">{messages.find(m => m.id === selectedMessage)!.from}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>{messages.find(m => m.id === selectedMessage)!.date}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                        <p className="text-gray-800 whitespace-pre-line leading-relaxed">
-                          {messages.find(m => m.id === selectedMessage)!.content}
-                        </p>
-                      </div>
-                      <div className="flex gap-3 pt-4">
-                        <button className="px-4 py-2 bg-[#003d82] text-white rounded-lg hover:bg-[#0052a3] transition-colors text-sm flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          {t.reply}
-                        </button>
-                        <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          {t.forward}
-                        </button>
-                        <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm flex items-center gap-2">
-                          <XCircle className="w-4 h-4" />
-                          {t.delete}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeSection === 'attendance' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">{t.attendance}</p>
-                    <p className="text-2xl font-bold text-green-600">{attendanceStats.attendancePercentage}%</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">{t.totalAbsences}</p>
-                    <p className="text-2xl font-bold text-red-600">{attendanceStats.totalAbsences} {t.days}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-8 h-8 text-orange-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">{t.totalLates}</p>
-                    <p className="text-2xl font-bold text-orange-600">{attendanceStats.totalLates} {t.times}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800">{t.attendanceRecords}</h2>
-              </div>
-              <div className="p-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.type}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                      <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.reason}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendanceRecords.map((record, index) => (
-                      <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                        <td className="py-3 px-3">{record.date}</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${record.type === t.absent ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {record.type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 font-medium">{record.subject}</td>
-                        <td className="py-3 px-3 text-gray-600">{record.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'exams' && (
-          <div className="space-y-4">
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setExamView('upcoming')}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                      examView === 'upcoming'
-                        ? 'bg-[#003d82] text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {t.upcomingExams}
-                  </button>
-                  <button
-                    onClick={() => setExamView('past')}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                      examView === 'past'
-                        ? 'bg-[#003d82] text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {t.pastExams}
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                {examView === 'upcoming' ? (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.topic}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examType}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.description}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingExams.map((exam, index) => (
-                        <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                          <td className="py-3 px-3 font-medium">{exam.date}</td>
-                          <td className="py-3 px-3 font-semibold text-blue-600">{exam.subject}</td>
-                          <td className="py-3 px-3">{exam.topic}</td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${exam.type === t.exam ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {exam.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-gray-600 text-xs">{exam.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.date}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.topic}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examType}</th>
-                        <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.examResult}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pastExams.map((exam, index) => (
-                        <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                          <td className="py-3 px-3 font-medium">{exam.date}</td>
-                          <td className="py-3 px-3 font-semibold text-blue-600">{exam.subject}</td>
-                          <td className="py-3 px-3">{exam.topic}</td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${exam.type === t.exam ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {exam.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className={`font-bold text-lg ${
-                              parseInt(exam.result) >= 9 ? 'text-green-600' : 
-                              parseInt(exam.result) >= 7 ? 'text-blue-600' : 
-                              'text-orange-600'
-                            }`}>
-                              {exam.result}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'students' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.studentList}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.studentName}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.class}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.email}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium text-blue-600">{student.name}</td>
-                      <td className="py-3 px-3">{student.class}</td>
-                      <td className="py-3 px-3 text-gray-600">{student.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'teachers' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.teacherList}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.email}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.phone}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teachers.map((teacher, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium text-blue-600">{teacher.name}</td>
-                      <td className="py-3 px-3">{teacher.subject}</td>
-                      <td className="py-3 px-3 text-gray-600">{teacher.email}</td>
-                      <td className="py-3 px-3 text-gray-600">{teacher.phone}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'rooms' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.roomList}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.room}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.building}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.type}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.capacity}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rooms.map((room, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium text-blue-600">{room.name}</td>
-                      <td className="py-3 px-3">{room.building}</td>
-                      <td className="py-3 px-3">{room.type}</td>
-                      <td className="py-3 px-3 text-gray-600">{room.capacity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'courses' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.courseList}</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.courseCode}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.subject}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.teacher}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">{t.credits}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courses.map((course, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
-                      <td className="py-3 px-3 font-medium text-blue-600">{course.code}</td>
-                      <td className="py-3 px-3">{course.name}</td>
-                      <td className="py-3 px-3 text-gray-600">{course.teacher}</td>
-                      <td className="py-3 px-3 text-gray-600">{course.credits}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'reports' && (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-              <h2 className="text-lg font-semibold text-gray-800">{t.reports}</h2>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-12">
-                <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">{language === 'fi' ? 'Raportit tulossa pian' : 'Reports coming soon'}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'settings' && (
-          <div className="space-y-6">
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800">{t.languageSettings}</h2>
-              </div>
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.language}</label>
-                <select value={language} onChange={(e) => setLanguage(e.target.value as 'fi' | 'en')} className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg">
-                  <option value="fi">🇫🇮 {t.finnish}</option>
-                  <option value="en">🇬🇧 {t.english}</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800">{t.notificationSettings}</h2>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">{t.emailNotifications}</label>
-                  <select className="px-4 py-2 border border-gray-300 rounded-lg">
-                    <option>{t.enabled}</option>
-                    <option>{t.disabled}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-[#e8f0f8] border-b border-gray-300 px-6 py-3">
-                <h2 className="text-lg font-semibold text-gray-800">{t.changePassword}</h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4 max-w-md">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.currentPassword}</label>
-                    <input type="password" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.newPassword}</label>
-                    <input type="password" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.confirmPassword}</label>
-                    <input type="password" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <button className="px-6 py-2 bg-[#003d82] text-white rounded-lg hover:bg-[#0052a3] transition-colors font-medium">
-                    {t.save}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
