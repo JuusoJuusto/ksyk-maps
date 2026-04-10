@@ -1131,6 +1131,176 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       return res.status(200).json(logs);
     }
     
+    // Wilma User routes
+    if (apiPath.startsWith('/wilma')) {
+      // GET /wilma/users - List all Wilma users
+      if (apiPath === '/wilma/users' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/users called');
+        try {
+          const wilmaUsers = await storage.getWilmaUsers();
+          console.log(`✅ Returning ${wilmaUsers.length} Wilma users`);
+          return res.status(200).json(wilmaUsers);
+        } catch (error: any) {
+          console.error('❌ Error fetching Wilma users:', error);
+          return res.status(500).json({ message: "Failed to fetch Wilma users" });
+        }
+      }
+      
+      // POST /wilma/login - Wilma user login
+      if (apiPath === '/wilma/login' && req.method === 'POST') {
+        console.log('🔐 POST /api/wilma/login called');
+        const { username, password } = req.body;
+        console.log('📝 Username:', username);
+        
+        if (!username || !password) {
+          console.log('❌ Missing credentials');
+          return res.status(400).json({ message: "Username and password required" });
+        }
+
+        try {
+          console.log('🔍 Looking up user by username...');
+          const wilmaUser = await storage.getWilmaUserByUsername(username);
+          
+          if (!wilmaUser) {
+            console.log('❌ User not found:', username);
+            return res.status(401).json({ message: "Invalid username or password" });
+          }
+          
+          console.log('✅ User found:', wilmaUser.id);
+          
+          if (wilmaUser.password !== password) {
+            console.log('❌ Password mismatch');
+            return res.status(401).json({ message: "Invalid username or password" });
+          }
+
+          if (!wilmaUser.isActive) {
+            console.log('❌ Account is disabled');
+            return res.status(403).json({ message: "Account is disabled" });
+          }
+
+          console.log('✅ Login successful for:', username);
+          // Return user without password
+          const { password: _, ...userWithoutPassword } = wilmaUser;
+          return res.status(200).json(userWithoutPassword);
+        } catch (error: any) {
+          console.error('❌ Login error:', error);
+          return res.status(500).json({ message: "Login failed" });
+        }
+      }
+      
+      // POST /wilma/users - Create Wilma user
+      if (apiPath === '/wilma/users' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/users called');
+        console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+        
+        try {
+          const { sendEmailInvitation, ...userData } = req.body;
+          
+          // Validation
+          if (!userData.username || !userData.firstName || !userData.lastName) {
+            console.log('❌ Missing required fields');
+            return res.status(400).json({ message: "Username, first name, and last name are required" });
+          }
+          
+          if (!sendEmailInvitation && !userData.password) {
+            console.log('❌ Password required when not sending email invitation');
+            return res.status(400).json({ message: "Password is required when not sending email invitation" });
+          }
+          
+          if (sendEmailInvitation && !userData.email) {
+            console.log('❌ Email required for invitation');
+            return res.status(400).json({ message: "Email is required for email invitation" });
+          }
+          
+          // Check if username already exists
+          const existingUser = await storage.getWilmaUserByUsername(userData.username);
+          if (existingUser) {
+            console.log('❌ Username already exists:', userData.username);
+            return res.status(409).json({ message: "Username already exists" });
+          }
+          
+          // Generate password if email invitation is requested
+          if (sendEmailInvitation) {
+            const generatedPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+            userData.password = generatedPassword;
+            console.log('🔑 Generated password for email invitation');
+            
+            // Send email with credentials
+            if (userData.email) {
+              try {
+                const { sendEmail } = await import('../server/emailService.js');
+                await sendEmail({
+                  to: userData.email,
+                  subject: 'Your Wilma Login Credentials - KSYK Maps',
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #003d82;">Welcome to Wilma!</h2>
+                      <p>Hello ${userData.firstName} ${userData.lastName},</p>
+                      <p>Your Wilma account has been created. Here are your login credentials:</p>
+                      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Username:</strong> ${userData.username}</p>
+                        <p style="margin: 5px 0;"><strong>Password:</strong> ${generatedPassword}</p>
+                        <p style="margin: 5px 0;"><strong>Role:</strong> ${userData.role}</p>
+                      </div>
+                      <p>You can login at: <a href="${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/wilma">${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/wilma</a></p>
+                      <p style="color: #666; font-size: 12px; margin-top: 30px;">Please change your password after first login.</p>
+                    </div>
+                  `
+                });
+                console.log('✅ Email sent successfully to:', userData.email);
+              } catch (emailError: any) {
+                console.error('❌ Failed to send email:', emailError);
+                // Continue anyway - user is created
+              }
+            }
+          }
+          
+          // Set default values
+          userData.isActive = userData.isActive !== false; // Default to true
+          
+          console.log('💾 Creating Wilma user...');
+          const wilmaUser = await storage.createWilmaUser(userData);
+          console.log('✅ Wilma user created successfully:', wilmaUser.id);
+          
+          // Remove password from response
+          const { password: _, ...userResponse } = wilmaUser;
+          return res.status(201).json(userResponse);
+        } catch (error: any) {
+          console.error('💥 Error creating Wilma user:', error);
+          return res.status(500).json({ message: error.message || "Failed to create Wilma user" });
+        }
+      }
+      
+      // PUT /wilma/users/:id - Update Wilma user
+      const updateMatch = apiPath.match(/^\/wilma\/users\/([^\/]+)$/);
+      if (updateMatch && req.method === 'PUT') {
+        const id = updateMatch[1];
+        console.log('🔵 PUT /api/wilma/users/' + id);
+        
+        try {
+          const wilmaUser = await storage.updateWilmaUser(id, req.body);
+          return res.status(200).json(wilmaUser);
+        } catch (error: any) {
+          console.error('❌ Error updating Wilma user:', error);
+          return res.status(500).json({ message: "Failed to update Wilma user" });
+        }
+      }
+      
+      // DELETE /wilma/users/:id - Delete Wilma user
+      if (updateMatch && req.method === 'DELETE') {
+        const id = updateMatch[1];
+        console.log('🔵 DELETE /api/wilma/users/' + id);
+        
+        try {
+          await storage.deleteWilmaUser(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting Wilma user:', error);
+          return res.status(500).json({ message: "Failed to delete Wilma user" });
+        }
+      }
+    }
+    
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",
@@ -1145,6 +1315,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         '/settings',
         '/auth/user',
         '/auth/admin-login',
+        '/wilma/users',
+        '/wilma/login',
         '/test-email (POST)'
       ]
     });
