@@ -254,6 +254,7 @@ export const appLogs = pgTable("app_logs", {
 // Wilma Users table
 export const wilmaUsers = pgTable("wilma_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().unique(), // Unique 6-digit student ID
   username: varchar("username").notNull().unique(),
   password: varchar("password").notNull(),
   firstName: varchar("first_name").notNull(),

@@ -62,7 +62,8 @@ function Router() {
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
-      <Route path="/wilma/:section" component={Wilma} />
+      <Route path="/wilma/:studentId" component={Wilma} />
+      <Route path="/wilma/:studentId/:section" component={Wilma} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={SLStudio} />

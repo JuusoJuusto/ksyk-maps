@@ -9,6 +9,7 @@ import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby } fr
 
 interface WilmaUser {
   id: string;
+  studentId: string; // 6-digit student ID
   username: string;
   password: string;
   firstName: string;
@@ -50,11 +51,20 @@ export default function WilmaUserManager() {
   const createUserMutation = useMutation({
     mutationFn: async (user: any) => {
       console.log('🔵 Creating Wilma user:', user);
+      
+      // Generate 6-digit student ID
+      const studentId = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      const userData = {
+        ...user,
+        studentId
+      };
+      
       const response = await fetch("/api/wilma/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(user),
+        body: JSON.stringify(userData),
       });
       
       console.log('📡 Response status:', response.status);
@@ -81,7 +91,7 @@ export default function WilmaUserManager() {
         isActive: true,
         sendEmailInvitation: false
       });
-      alert("Wilma user created successfully!" + (newUser.sendEmailInvitation ? "\n\nLogin credentials have been sent to the user's email." : ""));
+      alert(`Wilma user created successfully!\n\nStudent ID: ${data.studentId}` + (newUser.sendEmailInvitation ? "\n\nLogin credentials have been sent to the user's email." : ""));
     },
     onError: (error: any) => {
       console.error('❌ Error creating user:', error);
@@ -430,6 +440,7 @@ export default function WilmaUserManager() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Student ID</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold">Username</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold">Name</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
@@ -442,19 +453,22 @@ export default function WilmaUserManager() {
                 <tbody className="divide-y">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                         Loading Wilma users...
                       </td>
                     </tr>
                   ) : wilmaUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                         No Wilma users found. Click "Add Wilma User" to create one.
                       </td>
                     </tr>
                   ) : (
                     wilmaUsers.map((user: WilmaUser) => (
                       <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-sm font-semibold text-blue-600">{user.studentId}</div>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="font-medium">{user.username}</div>
                         </td>

@@ -1,7 +1,7 @@
 {
-  "name": "KSYK Maps",
+  "name": "KSYK Maps by SL Studio",
   "short_name": "KSYK Maps",
-  "description": "Interactive campus navigation for KSYK",
+  "description": "Interactive campus navigation for KSYK - Powered by SL Studio",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
