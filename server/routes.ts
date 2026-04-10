@@ -1092,9 +1092,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Wilma User routes
   app.get('/api/wilma/users', async (req, res) => {
     try {
+      console.log('🔵 GET /api/wilma/users called');
       const wilmaUsers = await storage.getWilmaUsers();
+      console.log(`✅ Returning ${wilmaUsers.length} Wilma users`);
       res.json(wilmaUsers);
     } catch (error) {
+      console.error('❌ Error in GET /api/wilma/users:', error);
       await logError(error, 'GET /api/wilma/users');
       res.status(500).json({ message: "Failed to fetch Wilma users" });
     }
@@ -1102,26 +1105,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/wilma/login', async (req, res) => {
     try {
+      console.log('🔐 POST /api/wilma/login called');
       const { username, password } = req.body;
+      console.log('📝 Username:', username);
       
       if (!username || !password) {
+        console.log('❌ Missing credentials');
         return res.status(400).json({ message: "Username and password required" });
       }
 
+      console.log('🔍 Looking up user by username...');
       const wilmaUser = await storage.getWilmaUserByUsername(username);
       
-      if (!wilmaUser || wilmaUser.password !== password) {
+      if (!wilmaUser) {
+        console.log('❌ User not found:', username);
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      console.log('✅ User found:', wilmaUser.id);
+      
+      if (wilmaUser.password !== password) {
+        console.log('❌ Password mismatch');
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
       if (!wilmaUser.isActive) {
+        console.log('❌ Account is disabled');
         return res.status(403).json({ message: "Account is disabled" });
       }
 
+      console.log('✅ Login successful for:', username);
       // Return user without password
       const { password: _, ...userWithoutPassword } = wilmaUser;
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error('❌ Login error:', error);
       await logError(error, 'POST /api/wilma/login', { username: req.body.username });
       res.status(500).json({ message: "Login failed" });
     }

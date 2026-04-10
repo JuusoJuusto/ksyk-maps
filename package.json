@@ -17,6 +17,7 @@
     "seed:demo": "tsx server/seedDemoSchool.ts",
     "seed:wilma": "tsx server/seedWilmaUsers.ts",
     "create:test-wilma": "tsx server/createTestWilmaUser.ts",
+    "test:wilma": "tsx server/createWilmaUserTest.ts",
     "reset:bigger": "tsx server/resetAndCreateBiggerSchool.ts",
     "create:admin": "tsx server/createFirebaseAdmin.ts",
     "create:owner": "tsx server/createOwnerNow.ts",

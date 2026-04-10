@@ -630,10 +630,15 @@ export class FirebaseStorage implements IStorage {
   // Wilma User operations
   async getWilmaUsers(): Promise<any[]> {
     try {
+      console.log('🔍 FirebaseStorage.getWilmaUsers called');
       const snapshot = await db.collection('wilmaUsers').where('isActive', '==', true).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`📦 Found ${snapshot.size} active Wilma users`);
+      
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('✅ Returning Wilma users:', users.length);
+      return users;
     } catch (error) {
-      console.error('Error fetching Wilma users:', error);
+      console.error('❌ Error fetching Wilma users:', error);
       return [];
     }
   }
@@ -663,18 +668,24 @@ export class FirebaseStorage implements IStorage {
 
   async createWilmaUser(wilmaUser: any): Promise<any> {
     try {
+      console.log('🔵 FirebaseStorage.createWilmaUser called with:', JSON.stringify(wilmaUser, null, 2));
+      
       const docRef = db.collection('wilmaUsers').doc();
       const wilmaUserData = {
         ...wilmaUser,
         id: docRef.id,
+        isActive: wilmaUser.isActive !== false, // Default to true
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       
+      console.log('💾 Saving to Firebase:', JSON.stringify(wilmaUserData, null, 2));
       await docRef.set(wilmaUserData);
+      console.log('✅ Wilma user saved successfully with ID:', docRef.id);
+      
       return wilmaUserData;
     } catch (error) {
-      console.error('Error creating Wilma user:', error);
+      console.error('❌ Error creating Wilma user:', error);
       throw error;
     }
   }
