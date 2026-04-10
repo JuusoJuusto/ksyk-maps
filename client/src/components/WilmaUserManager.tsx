@@ -32,7 +32,8 @@ export default function WilmaUserManager() {
     email: "",
     role: "student" as 'teacher' | 'student' | 'parent' | 'admin',
     studentClass: "",
-    isActive: true
+    isActive: true,
+    sendEmailInvitation: false
   });
 
   // Fetch Wilma users
@@ -71,7 +72,8 @@ export default function WilmaUserManager() {
         email: "",
         role: "student",
         studentClass: "",
-        isActive: true
+        isActive: true,
+        sendEmailInvitation: false
       });
       alert("Wilma user created successfully!");
     },
@@ -125,10 +127,21 @@ export default function WilmaUserManager() {
   });
 
   const handleCreateUser = () => {
-    if (!newUser.username || !newUser.password || !newUser.firstName || !newUser.lastName) {
-      alert("Please fill in all required fields");
+    if (!newUser.username || !newUser.firstName || !newUser.lastName) {
+      alert("Please fill in username, first name, and last name");
       return;
     }
+    
+    if (!newUser.sendEmailInvitation && !newUser.password) {
+      alert("Please enter a password or enable email invitation");
+      return;
+    }
+    
+    if (newUser.sendEmailInvitation && !newUser.email) {
+      alert("Email is required for email invitation");
+      return;
+    }
+    
     createUserMutation.mutate(newUser);
   };
 
@@ -294,7 +307,30 @@ export default function WilmaUserManager() {
                         : setNewUser({...newUser, password: e.target.value})
                       }
                       placeholder="••••••••"
+                      disabled={!editingUser && newUser.sendEmailInvitation}
                     />
+                    {!editingUser && (
+                      <div className="mt-2">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newUser.sendEmailInvitation}
+                            onChange={(e) => setNewUser({
+                              ...newUser, 
+                              sendEmailInvitation: e.target.checked,
+                              password: e.target.checked ? '' : newUser.password
+                            })}
+                            className="w-4 h-4"
+                          />
+                          <span>Send email invitation instead</span>
+                        </label>
+                        {newUser.sendEmailInvitation && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            📧 User will receive login credentials via email
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label>First Name *</Label>

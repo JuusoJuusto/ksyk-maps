@@ -1133,7 +1133,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const wilmaUser = await storage.createWilmaUser(req.body);
+      
+      const { sendEmailInvitation, ...userData } = req.body;
+      
+      // Generate password if email invitation is requested
+      if (sendEmailInvitation) {
+        const generatedPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+        userData.password = generatedPassword;
+        
+        // Send email with credentials
+        if (userData.email) {
+          try {
+            const emailService = await import('./emailService');
+            await emailService.sendEmail({
+              to: userData.email,
+              subject: 'Your Wilma Login Credentials',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #003d82;">Welcome to Wilma!</h2>
+                  <p>Hello ${userData.firstName} ${userData.lastName},</p>
+                  <p>Your Wilma account has been created. Here are your login credentials:</p>
+                  <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Username:</strong> ${userData.username}</p>
+                    <p style="margin: 5px 0;"><strong>Password:</strong> ${generatedPassword}</p>
+                    <p style="margin: 5px 0;"><strong>Role:</strong> ${userData.role}</p>
+                  </div>
+                  <p>You can login at: <a href="${process.env.APP_URL || 'http://localhost:5000'}/wilma">${process.env.APP_URL || 'http://localhost:5000'}/wilma</a></p>
+                  <p style="color: #666; font-size: 12px; margin-top: 30px;">Please change your password after first login.</p>
+                </div>
+              `
+            });
+          } catch (emailError) {
+            console.error('Failed to send email:', emailError);
+            // Continue anyway - user is created
+          }
+        }
+      }
+      
+      const wilmaUser = await storage.createWilmaUser(userData);
       res.status(201).json(wilmaUser);
     } catch (error) {
       await logError(error, 'POST /api/wilma/users', { wilmaUserData: req.body });
