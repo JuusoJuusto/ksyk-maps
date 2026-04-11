@@ -1,7 +1,6 @@
 {
   "appId": "com.slstudio.ksykmaps",
   "productName": "KSYK Maps",
-  "main": "main.js",
   "directories": {
     "output": "dist/main"
   },

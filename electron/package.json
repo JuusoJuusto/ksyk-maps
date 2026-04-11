@@ -8,10 +8,10 @@
     "start:admin": "electron admin-main.js",
     "start:wilma": "electron wilma-main.js",
     "build": "electron-builder",
-    "build:all": "npm run build:main && npm run build:admin && npm run build:wilma",
+    "build:all": "npm run build:main && npm run build:admin-app && npm run build:wilma-app",
     "build:main": "electron-builder --config electron-builder-main.json",
-    "build:admin": "electron-builder --config electron-builder-admin.json",
-    "build:wilma": "electron-builder --config electron-builder-wilma.json",
+    "build:admin-app": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='admin-main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\" && electron-builder --config electron-builder-admin.json && node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\"",
+    "build:wilma-app": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='wilma-main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\" && electron-builder --config electron-builder-wilma.json && node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\"",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
@@ -29,22 +29,28 @@
       "../client/public/**/*"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "../client/public/icon-512.png"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "../client/public/icon-512.png"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "../client/public/icon-512.png"
     }
   },
-  "dependencies": {
-    "electron": "^28.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "electron": "^28.0.0",
     "electron-builder": "^24.9.1"
-  }
+  },
+  "author": "SL Studio"
 }

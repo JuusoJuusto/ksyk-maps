@@ -1,7 +1,6 @@
 {
   "appId": "com.slstudio.wilma",
   "productName": "Wilma - Brando",
-  "main": "wilma-main.js",
   "directories": {
     "output": "dist/wilma"
   },

@@ -1,7 +1,6 @@
 {
   "appId": "com.slstudio.ksykmaps.admin",
   "productName": "KSYK Maps Admin",
-  "main": "admin-main.js",
   "directories": {
     "output": "dist/admin"
   },
