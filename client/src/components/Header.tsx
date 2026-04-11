@@ -188,17 +188,6 @@ export default function Header() {
                     HSL
                   </Button>
                 </Link>
-                
-                {/* Admin Panel Link */}
-                <Link href="/admin-login">
-                  <Button 
-                    variant={isActive('/admin-login') ? 'default' : 'outline'}
-                    className="font-semibold shadow-sm"
-                    data-testid="button-admin"
-                  >
-                    Admin
-                  </Button>
-                </Link>
               </>
             ) : (
               <>
@@ -405,14 +394,6 @@ export default function Header() {
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
                           {t('quickActions.transport')}
-                        </button>
-                      </Link>
-                      <Link href="/admin-login">
-                        <button
-                          onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-all hover:shadow-lg"
-                        >
-                          🔐 {t('quickActions.admin')}
                         </button>
                       </Link>
                     </div>
