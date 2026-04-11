@@ -1,0 +1,20 @@
+{
+  "appId": "com.slstudio.wilma",
+  "productName": "Wilma - Brando",
+  "main": "wilma-main.js",
+  "directories": {
+    "output": "dist/wilma"
+  },
+  "files": [
+    "wilma-main.js",
+    "../client/public/**/*"
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "../client/public/icon-512.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

@@ -394,33 +394,45 @@ export default function Wilma() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                  <Card 
+                    className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => handleSectionChange('grades')}
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between mb-2">
                         <Award className="w-8 h-8 text-green-600" />
                         <span className="text-3xl font-bold text-green-700">8.5</span>
                       </div>
                       <p className="text-sm font-semibold text-gray-700">{language === 'fi' ? 'Keskiarvo' : 'Average Grade'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{language === 'fi' ? 'Klikkaa nähdäksesi kaikki arvosanat' : 'Click to see all grades'}</p>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                  <Card 
+                    className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => handleSectionChange('assignments')}
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between mb-2">
                         <FileText className="w-8 h-8 text-blue-600" />
                         <span className="text-3xl font-bold text-blue-700">2</span>
                       </div>
                       <p className="text-sm font-semibold text-gray-700">{language === 'fi' ? 'Avoimet tehtävät' : 'Pending Tasks'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{language === 'fi' ? 'Klikkaa nähdäksesi tehtävät' : 'Click to see assignments'}</p>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  <Card 
+                    className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => handleSectionChange('messages')}
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between mb-2">
                         <Mail className="w-8 h-8 text-purple-600" />
                         <span className="text-3xl font-bold text-purple-700">1</span>
                       </div>
                       <p className="text-sm font-semibold text-gray-700">{language === 'fi' ? 'Lukemattomat viestit' : 'Unread Messages'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{language === 'fi' ? 'Klikkaa nähdäksesi viestit' : 'Click to see messages'}</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -435,20 +447,33 @@ export default function Wilma() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div 
+                          className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-all"
+                          onClick={() => handleSectionChange('schedule')}
+                        >
                           <div>
                             <p className="font-semibold text-gray-800">Matematiikka</p>
                             <p className="text-sm text-gray-600">Luokka 301 • Opettaja Virtanen</p>
                           </div>
                           <Badge className="bg-blue-600 text-white">08:00</Badge>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div 
+                          className="flex items-center justify-between p-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-all"
+                          onClick={() => handleSectionChange('schedule')}
+                        >
                           <div>
                             <p className="font-semibold text-gray-800">Äidinkieli</p>
                             <p className="text-sm text-gray-600">Luokka 201 • Opettaja Korhonen</p>
                           </div>
                           <Badge className="bg-green-600 text-white">09:45</Badge>
                         </div>
+                        <Button 
+                          variant="outline" 
+                          className="w-full mt-2"
+                          onClick={() => handleSectionChange('schedule')}
+                        >
+                          {language === 'fi' ? 'Näytä koko lukujärjestys' : 'View Full Schedule'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -463,7 +488,11 @@ export default function Wilma() {
                     <CardContent>
                       <div className="space-y-3">
                         {mockAssignments.filter(a => a.status === 'pending').map((assignment, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                          <div 
+                            key={idx} 
+                            className="flex items-center justify-between p-3 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-all"
+                            onClick={() => handleSectionChange('assignments')}
+                          >
                             <div>
                               <p className="font-semibold text-gray-800">{assignment.title}</p>
                               <p className="text-sm text-gray-600">{assignment.subject}</p>
@@ -471,6 +500,64 @@ export default function Wilma() {
                             <Badge className="bg-orange-600 text-white">{assignment.due}</Badge>
                           </div>
                         ))}
+                        <Button 
+                          variant="outline" 
+                          className="w-full mt-2"
+                          onClick={() => handleSectionChange('assignments')}
+                        >
+                          {language === 'fi' ? 'Näytä kaikki tehtävät' : 'View All Assignments'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card 
+                    className="cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => handleSectionChange('exams')}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <ClipboardList className="w-5 h-5 text-red-600" />
+                        {language === 'fi' ? 'Tulevat kokeet' : 'Upcoming Exams'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-red-50 rounded">
+                          <span className="text-sm font-semibold">Matematiikka</span>
+                          <span className="text-xs text-gray-600">2026-04-15</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-red-50 rounded">
+                          <span className="text-sm font-semibold">Englanti</span>
+                          <span className="text-xs text-gray-600">2026-04-18</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2">{language === 'fi' ? 'Klikkaa nähdäksesi kaikki kokeet' : 'Click to see all exams'}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => handleSectionChange('attendance')}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-green-600" />
+                        {language === 'fi' ? 'Läsnäolo' : 'Attendance'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">{language === 'fi' ? 'Läsnäoloprosentti' : 'Attendance Rate'}</span>
+                          <span className="text-2xl font-bold text-green-700">95%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: '95%' }}></div>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2">{language === 'fi' ? 'Klikkaa nähdäksesi yksityiskohdat' : 'Click to see details'}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -540,12 +627,21 @@ export default function Wilma() {
                       <p className="text-2xl font-bold text-green-700">8.5</p>
                     </div>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-8 h-8 text-green-600" />
+                    <Button variant="outline" className="text-sm">
+                      {language === 'fi' ? 'Lataa todistus' : 'Download Report'}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-3">
                   {mockGrades.map((item, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow">
+                    <Card 
+                      key={idx} 
+                      className="cursor-pointer hover:shadow-lg transition-all hover:bg-blue-50"
+                      onClick={() => alert(`${language === 'fi' ? 'Arvosana' : 'Grade'}: ${item.subject}\n\n${language === 'fi' ? 'Arvosana' : 'Grade'}: ${item.grade}/10\n${language === 'fi' ? 'Opettaja' : 'Teacher'}: ${item.teacher}\n${language === 'fi' ? 'Trendi' : 'Trend'}: ${item.trend === 'up' ? (language === 'fi' ? 'Nouseva' : 'Improving') : item.trend === 'down' ? (language === 'fi' ? 'Laskeva' : 'Declining') : (language === 'fi' ? 'Vakaa' : 'Stable')}\n\n${language === 'fi' ? 'Klikkaa nähdäksesi yksityiskohtainen arvosanahistoria ja palaute.' : 'Click to see detailed grade history and feedback.'}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -562,6 +658,16 @@ export default function Wilma() {
                             {item.trend === 'down' && <XCircle className="w-5 h-5 text-red-600" />}
                             {item.trend === 'stable' && <CheckCircle className="w-5 h-5 text-blue-600" />}
                             <span className="text-3xl font-bold text-blue-700">{item.grade}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? 'Näytetään yksityiskohtainen arvosanahistoria...' : 'Showing detailed grade history...');
+                              }}
+                            >
+                              →
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -573,16 +679,23 @@ export default function Wilma() {
 
             {activeSection === 'assignments' && (
               <div className="space-y-4">
-                <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-orange-800 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     {language === 'fi' ? `${mockAssignments.filter(a => a.status === 'pending').length} avointa tehtävää` : `${mockAssignments.filter(a => a.status === 'pending').length} pending assignments`}
                   </p>
+                  <Button className="bg-orange-600 hover:bg-orange-700 text-white text-sm">
+                    {language === 'fi' ? 'Suodata' : 'Filter'}
+                  </Button>
                 </div>
 
                 <div className="space-y-3">
                   {mockAssignments.map((assignment, idx) => (
-                    <Card key={idx} className={assignment.status === 'pending' ? 'border-orange-300' : 'border-green-300'}>
+                    <Card 
+                      key={idx} 
+                      className={`cursor-pointer transition-all hover:shadow-lg ${assignment.status === 'pending' ? 'border-orange-300 hover:bg-orange-50' : 'border-green-300 hover:bg-green-50'}`}
+                      onClick={() => alert(`${language === 'fi' ? 'Tehtävä' : 'Assignment'}: ${assignment.title}\n\n${language === 'fi' ? 'Aine' : 'Subject'}: ${assignment.subject}\n${language === 'fi' ? 'Määräaika' : 'Due date'}: ${assignment.due}\n${language === 'fi' ? 'Tila' : 'Status'}: ${assignment.status === 'pending' ? (language === 'fi' ? 'Avoin' : 'Pending') : (language === 'fi' ? 'Palautettu' : 'Submitted')}\n\n${language === 'fi' ? 'Klikkaa "Näytä tehtävä" nähdäksesi lisätietoja ja palauttaaksesi tehtävän.' : 'Click "View Assignment" to see details and submit your work.'}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -598,11 +711,24 @@ export default function Wilma() {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-2">
                             <Badge className={assignment.status === 'pending' ? 'bg-orange-600 text-white' : 'bg-green-600 text-white'}>
                               {assignment.status === 'pending' ? (language === 'fi' ? 'Avoin' : 'Pending') : (language === 'fi' ? 'Palautettu' : 'Submitted')}
                             </Badge>
-                            <p className="text-sm text-gray-600 mt-1">{assignment.due}</p>
+                            <p className="text-sm text-gray-600">{assignment.due}</p>
+                            {assignment.status === 'pending' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-xs border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert(language === 'fi' ? 'Avaa tehtävä ja palauta...' : 'Open assignment and submit...');
+                                }}
+                              >
+                                {language === 'fi' ? 'Näytä tehtävä' : 'View Assignment'}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -614,30 +740,46 @@ export default function Wilma() {
 
             {activeSection === 'messages' && (
               <div className="space-y-4">
-                <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-purple-800 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
                     {language === 'fi' ? `${mockMessages.filter(m => m.unread).length} lukematonta viestiä` : `${mockMessages.filter(m => m.unread).length} unread messages`}
                   </p>
+                  <Button className="bg-purple-600 hover:bg-purple-700 text-white text-sm">
+                    <Mail className="w-4 h-4 mr-2" />
+                    {language === 'fi' ? 'Uusi viesti' : 'New Message'}
+                  </Button>
                 </div>
 
                 <div className="space-y-3">
                   {mockMessages.map((message, idx) => (
-                    <Card key={idx} className={message.unread ? 'border-purple-300 bg-purple-50' : ''}>
+                    <Card 
+                      key={idx} 
+                      className={`cursor-pointer transition-all hover:shadow-lg ${message.unread ? 'border-purple-300 bg-purple-50 hover:bg-purple-100' : 'hover:bg-gray-50'}`}
+                      onClick={() => alert(`${language === 'fi' ? 'Viesti' : 'Message'}: ${message.subject}\n\n${language === 'fi' ? 'Lähettäjä' : 'From'}: ${message.from}\n${language === 'fi' ? 'Päivämäärä' : 'Date'}: ${message.date}\n\n${language === 'fi' ? 'Tämä on demo-viesti. Täysi viestijärjestelmä tulossa pian!' : 'This is a demo message. Full messaging system coming soon!'}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
-                              <Mail className={`w-5 h-5 ${message.unread ? 'text-purple-600' : 'text-gray-400'}`} />
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${message.unread ? 'bg-purple-200' : 'bg-gray-200'}`}>
+                                <Mail className={`w-5 h-5 ${message.unread ? 'text-purple-600' : 'text-gray-400'}`} />
+                              </div>
                               <div>
                                 <p className={`font-semibold ${message.unread ? 'text-gray-900' : 'text-gray-600'}`}>{message.subject}</p>
                                 <p className="text-sm text-gray-600">{language === 'fi' ? 'Lähettäjä: ' : 'From: '}{message.from}</p>
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            {message.unread && <Badge className="bg-purple-600 text-white mb-1">{language === 'fi' ? 'Uusi' : 'New'}</Badge>}
+                          <div className="text-right flex flex-col items-end gap-2">
+                            {message.unread && <Badge className="bg-purple-600 text-white">{language === 'fi' ? 'Uusi' : 'New'}</Badge>}
                             <p className="text-sm text-gray-600">{message.date}</p>
+                            <Button variant="outline" size="sm" className="text-xs" onClick={(e) => {
+                              e.stopPropagation();
+                              alert(language === 'fi' ? 'Vastaa viestiin...' : 'Reply to message...');
+                            }}>
+                              {language === 'fi' ? 'Vastaa' : 'Reply'}
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -650,7 +792,7 @@ export default function Wilma() {
             {activeSection === 'attendance' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <Card className="bg-green-50 border-green-200">
+                  <Card className="bg-green-50 border-green-200 cursor-pointer hover:shadow-lg transition-all" onClick={() => alert(language === 'fi' ? 'Läsnäoloprosentti: 95%\n\nOlet ollut läsnä 156 tuntia 164 tunnista.' : 'Attendance rate: 95%\n\nYou have been present for 156 hours out of 164 hours.')}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -662,7 +804,7 @@ export default function Wilma() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-red-50 border-red-200">
+                  <Card className="bg-red-50 border-red-200 cursor-pointer hover:shadow-lg transition-all" onClick={() => alert(language === 'fi' ? 'Poissaoloprosentti: 5%\n\nOlet ollut poissa 8 tuntia 164 tunnista.' : 'Absence rate: 5%\n\nYou have been absent for 8 hours out of 164 hours.')}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -674,7 +816,7 @@ export default function Wilma() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-blue-50 border-blue-200">
+                  <Card className="bg-blue-50 border-blue-200 cursor-pointer hover:shadow-lg transition-all" onClick={() => alert(language === 'fi' ? 'Kokonaistunnit: 156h\n\nOlet osallistunut 156 tuntiin tänä lukuvuonna.' : 'Total hours: 156h\n\nYou have attended 156 hours this school year.')}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -689,7 +831,11 @@ export default function Wilma() {
 
                 <div className="space-y-2">
                   {mockAttendance.map((record, idx) => (
-                    <Card key={idx} className={record.status === 'absent' ? 'border-red-300' : 'border-green-300'}>
+                    <Card 
+                      key={idx} 
+                      className={`cursor-pointer transition-all hover:shadow-lg ${record.status === 'absent' ? 'border-red-300 hover:bg-red-50' : 'border-green-300 hover:bg-green-50'}`}
+                      onClick={() => alert(`${language === 'fi' ? 'Poissaolo' : 'Attendance'}: ${record.date}\n\n${language === 'fi' ? 'Tila' : 'Status'}: ${record.status === 'present' ? (language === 'fi' ? 'Läsnä' : 'Present') : (language === 'fi' ? 'Poissa' : 'Absent')}\n${language === 'fi' ? 'Tunnit' : 'Hours'}: ${record.hours}h${record.reason ? `\n${language === 'fi' ? 'Syy' : 'Reason'}: ${record.reason}` : ''}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -719,16 +865,23 @@ export default function Wilma() {
 
             {activeSection === 'courses' && (
               <div className="space-y-4">
-                <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg">
+                <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-indigo-800 flex items-center gap-2">
                     <GraduationCap className="w-4 h-4" />
                     {language === 'fi' ? '6 aktiivista kurssia' : '6 active courses'}
                   </p>
+                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm">
+                    {language === 'fi' ? 'Kurssihaku' : 'Course Search'}
+                  </Button>
                 </div>
 
                 <div className="grid gap-3">
                   {mockGrades.map((course, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow">
+                    <Card 
+                      key={idx} 
+                      className="cursor-pointer hover:shadow-lg transition-all hover:bg-indigo-50"
+                      onClick={() => alert(`${language === 'fi' ? 'Kurssi' : 'Course'}: ${course.subject}\n\n${language === 'fi' ? 'Opettaja' : 'Teacher'}: ${course.teacher}\n${language === 'fi' ? 'Arvosana' : 'Grade'}: ${course.grade}/10\n${language === 'fi' ? 'Tila' : 'Status'}: ${language === 'fi' ? 'Aktiivinen' : 'Active'}\n\n${language === 'fi' ? 'Klikkaa "Näytä kurssi" nähdäksesi kurssin materiaalit, tehtävät ja lisätiedot.' : 'Click "View Course" to see course materials, assignments, and details.'}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -738,9 +891,20 @@ export default function Wilma() {
                               <p className="text-sm text-gray-600">{language === 'fi' ? 'Opettaja: ' : 'Teacher: '}{course.teacher}</p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-2">
                             <Badge className="bg-indigo-600 text-white">{language === 'fi' ? 'Aktiivinen' : 'Active'}</Badge>
-                            <p className="text-sm text-gray-600 mt-1">{language === 'fi' ? 'Arvosana: ' : 'Grade: '}{course.grade}</p>
+                            <p className="text-sm text-gray-600">{language === 'fi' ? 'Arvosana: ' : 'Grade: '}{course.grade}</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? 'Avaa kurssin sivu...' : 'Open course page...');
+                              }}
+                            >
+                              {language === 'fi' ? 'Näytä kurssi' : 'View Course'}
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -752,16 +916,24 @@ export default function Wilma() {
 
             {activeSection === 'exams' && (
               <div className="space-y-4">
-                <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-red-800 flex items-center gap-2">
                     <ClipboardList className="w-4 h-4" />
                     {language === 'fi' ? `${mockExams.length} tulevaa koetta` : `${mockExams.length} upcoming exams`}
                   </p>
+                  <Button className="bg-red-600 hover:bg-red-700 text-white text-sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {language === 'fi' ? 'Kokeiden kalenteri' : 'Exam Calendar'}
+                  </Button>
                 </div>
 
                 <div className="space-y-3">
                   {mockExams.map((exam, idx) => (
-                    <Card key={idx} className="border-red-300 hover:shadow-md transition-shadow">
+                    <Card 
+                      key={idx} 
+                      className="border-red-300 cursor-pointer hover:shadow-lg transition-all hover:bg-red-50"
+                      onClick={() => alert(`${language === 'fi' ? 'Koe' : 'Exam'}: ${exam.subject}\n\n${language === 'fi' ? 'Päivämäärä' : 'Date'}: ${exam.date}\n${language === 'fi' ? 'Aika' : 'Time'}: ${exam.time}\n${language === 'fi' ? 'Huone' : 'Room'}: ${exam.room}\n${language === 'fi' ? 'Aiheet' : 'Topics'}: ${exam.topics}\n\n${language === 'fi' ? 'Klikkaa "Oppimateriaalit" nähdäksesi kokeeseen liittyvät materiaalit ja valmistautuaksesi.' : 'Click "Study Materials" to see exam-related materials and prepare.'}`)}
+                    >
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -786,6 +958,31 @@ export default function Wilma() {
                                 <span className="text-gray-700">{language === 'fi' ? 'Aiheet: ' : 'Topics: '}{exam.topics}</span>
                               </div>
                             </div>
+                            <div className="ml-9 mt-3 flex gap-2">
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert(language === 'fi' ? 'Avaa oppimateriaalit...' : 'Open study materials...');
+                                }}
+                              >
+                                <BookOpen className="w-3 h-3 mr-1" />
+                                {language === 'fi' ? 'Oppimateriaalit' : 'Study Materials'}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert(language === 'fi' ? 'Lisää kalenteriin...' : 'Add to calendar...');
+                                }}
+                              >
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {language === 'fi' ? 'Lisää kalenteriin' : 'Add to Calendar'}
+                              </Button>
+                            </div>
                           </div>
                           <Badge className="bg-red-600 text-white text-lg px-4 py-2">
                             {language === 'fi' ? 'Koe' : 'Exam'}
@@ -800,16 +997,24 @@ export default function Wilma() {
 
             {activeSection === 'teachers' && (
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-blue-800 flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     {language === 'fi' ? `${mockTeachers.length} opettajaa` : `${mockTeachers.length} teachers`}
                   </p>
+                  <Input 
+                    placeholder={language === 'fi' ? 'Hae opettajaa...' : 'Search teacher...'} 
+                    className="max-w-xs"
+                  />
                 </div>
 
                 <div className="grid gap-3">
                   {mockTeachers.map((teacher, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow">
+                    <Card 
+                      key={idx} 
+                      className="cursor-pointer hover:shadow-lg transition-all hover:bg-blue-50"
+                      onClick={() => alert(`${language === 'fi' ? 'Opettaja' : 'Teacher'}: ${teacher.name}\n\n${language === 'fi' ? 'Aine' : 'Subject'}: ${teacher.subject}\n${language === 'fi' ? 'Sähköposti' : 'Email'}: ${teacher.email}\n${language === 'fi' ? 'Puhelin' : 'Phone'}: ${teacher.phone}\n${language === 'fi' ? 'Huone' : 'Room'}: ${teacher.room}\n\n${language === 'fi' ? 'Klikkaa "Lähetä viesti" lähettääksesi viestin opettajalle.' : 'Click "Send Message" to send a message to the teacher.'}`)}
+                    >
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-4">
@@ -822,7 +1027,11 @@ export default function Wilma() {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">
                                   <Mail className="w-4 h-4 text-blue-600" />
-                                  <a href={`mailto:${teacher.email}`} className="hover:text-blue-600 hover:underline">
+                                  <a 
+                                    href={`mailto:${teacher.email}`} 
+                                    className="hover:text-blue-600 hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     {teacher.email}
                                   </a>
                                 </div>
@@ -837,10 +1046,27 @@ export default function Wilma() {
                               </div>
                             </div>
                           </div>
-                          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                            <Mail className="w-4 h-4 mr-2" />
-                            {language === 'fi' ? 'Lähetä viesti' : 'Send Message'}
-                          </Button>
+                          <div className="flex flex-col gap-2">
+                            <Button 
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? `Lähetä viesti opettajalle ${teacher.name}...` : `Send message to ${teacher.name}...`);
+                              }}
+                            >
+                              <Mail className="w-4 h-4 mr-2" />
+                              {language === 'fi' ? 'Lähetä viesti' : 'Send Message'}
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? 'Näytetään opettajan profiili...' : 'Showing teacher profile...');
+                              }}
+                            >
+                              {language === 'fi' ? 'Näytä profiili' : 'View Profile'}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -851,16 +1077,24 @@ export default function Wilma() {
 
             {activeSection === 'materials' && (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                <div className="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center justify-between">
                   <p className="text-sm text-green-800 flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
                     {language === 'fi' ? `${mockStudyMaterials.length} oppimateriaalia saatavilla` : `${mockStudyMaterials.length} study materials available`}
                   </p>
+                  <Input 
+                    placeholder={language === 'fi' ? 'Hae materiaalia...' : 'Search materials...'} 
+                    className="max-w-xs"
+                  />
                 </div>
 
                 <div className="space-y-3">
                   {mockStudyMaterials.map((material, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow border-green-200">
+                    <Card 
+                      key={idx} 
+                      className="cursor-pointer hover:shadow-lg transition-all border-green-200 hover:bg-green-50"
+                      onClick={() => alert(`${language === 'fi' ? 'Oppimateriaali' : 'Study Material'}: ${material.title}\n\n${language === 'fi' ? 'Aine' : 'Subject'}: ${material.subject}\n${language === 'fi' ? 'Tyyppi' : 'Type'}: ${material.type}\n${language === 'fi' ? 'Koko' : 'Size'}: ${material.size}\n${language === 'fi' ? 'Ladattu' : 'Uploaded'}: ${material.uploaded}\n\n${language === 'fi' ? 'Klikkaa "Lataa" ladataksesi materiaalin.' : 'Click "Download" to download the material.'}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -878,10 +1112,28 @@ export default function Wilma() {
                               </p>
                             </div>
                           </div>
-                          <Button className="bg-green-600 hover:bg-green-700 text-white">
-                            <Download className="w-4 h-4 mr-2" />
-                            {language === 'fi' ? 'Lataa' : 'Download'}
-                          </Button>
+                          <div className="flex flex-col gap-2">
+                            <Button 
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? `Ladataan ${material.title}...` : `Downloading ${material.title}...`);
+                              }}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              {language === 'fi' ? 'Lataa' : 'Download'}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(language === 'fi' ? 'Esikatsele materiaalia...' : 'Preview material...');
+                              }}
+                            >
+                              {language === 'fi' ? 'Esikatsele' : 'Preview'}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -899,7 +1151,10 @@ export default function Wilma() {
                         ? 'Pyydä opettajaltasi lisää oppimateriaaleja tai lataa niitä kurssin sivulta.'
                         : 'Request more study materials from your teacher or download them from the course page.'}
                     </p>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => alert(language === 'fi' ? 'Pyydä materiaalia opettajalta...' : 'Request material from teacher...')}
+                    >
                       {language === 'fi' ? 'Pyydä materiaalia' : 'Request Material'}
                     </Button>
                   </CardContent>

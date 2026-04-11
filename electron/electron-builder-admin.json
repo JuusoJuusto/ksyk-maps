@@ -1,0 +1,20 @@
+{
+  "appId": "com.slstudio.ksykmaps.admin",
+  "productName": "KSYK Maps Admin",
+  "main": "admin-main.js",
+  "directories": {
+    "output": "dist/admin"
+  },
+  "files": [
+    "admin-main.js",
+    "../client/public/**/*"
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "../client/public/icon-512.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

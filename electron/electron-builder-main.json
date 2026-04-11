@@ -1,0 +1,20 @@
+{
+  "appId": "com.slstudio.ksykmaps",
+  "productName": "KSYK Maps",
+  "main": "main.js",
+  "directories": {
+    "output": "dist/main"
+  },
+  "files": [
+    "main.js",
+    "../client/public/**/*"
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "../client/public/icon-512.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}
