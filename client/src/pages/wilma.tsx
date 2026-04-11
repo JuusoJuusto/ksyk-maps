@@ -83,8 +83,8 @@ export default function Wilma() {
   ];
 
   const mockMessages = [
-    { from: 'Opettaja Virtanen', subject: 'Kokeen tulokset', date: '2026-04-08', unread: true },
-    { from: 'Rehtori Korhonen', subject: 'Kevätjuhla', date: '2026-04-05', unread: false },
+    { id: '1', from: 'Opettaja Virtanen', subject: 'Kokeen tulokset', date: '2026-04-08', unread: true },
+    { id: '2', from: 'Rehtori Korhonen', subject: 'Kevätjuhla', date: '2026-04-05', unread: false },
   ];
 
   const mockAttendance = [
@@ -745,18 +745,21 @@ export default function Wilma() {
                     <MessageSquare className="w-4 h-4" />
                     {language === 'fi' ? `${mockMessages.filter(m => m.unread).length} lukematonta viestiä` : `${mockMessages.filter(m => m.unread).length} unread messages`}
                   </p>
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white text-sm">
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                    onClick={() => setLocation(`/wilma/${currentUser.studentId}/compose`)}
+                  >
                     <Mail className="w-4 h-4 mr-2" />
                     {language === 'fi' ? 'Uusi viesti' : 'New Message'}
                   </Button>
                 </div>
 
                 <div className="space-y-3">
-                  {mockMessages.map((message, idx) => (
+                  {mockMessages.map((message) => (
                     <Card 
-                      key={idx} 
+                      key={message.id} 
                       className={`cursor-pointer transition-all hover:shadow-lg ${message.unread ? 'border-purple-300 bg-purple-50 hover:bg-purple-100' : 'hover:bg-gray-50'}`}
-                      onClick={() => alert(`${language === 'fi' ? 'Viesti' : 'Message'}: ${message.subject}\n\n${language === 'fi' ? 'Lähettäjä' : 'From'}: ${message.from}\n${language === 'fi' ? 'Päivämäärä' : 'Date'}: ${message.date}\n\n${language === 'fi' ? 'Tämä on demo-viesti. Täysi viestijärjestelmä tulossa pian!' : 'This is a demo message. Full messaging system coming soon!'}`)}
+                      onClick={() => setLocation(`/wilma/${currentUser.studentId}/message/${message.id}`)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -774,10 +777,15 @@ export default function Wilma() {
                           <div className="text-right flex flex-col items-end gap-2">
                             {message.unread && <Badge className="bg-purple-600 text-white">{language === 'fi' ? 'Uusi' : 'New'}</Badge>}
                             <p className="text-sm text-gray-600">{message.date}</p>
-                            <Button variant="outline" size="sm" className="text-xs" onClick={(e) => {
-                              e.stopPropagation();
-                              alert(language === 'fi' ? 'Vastaa viestiin...' : 'Reply to message...');
-                            }}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-xs" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/wilma/${currentUser.studentId}/compose?replyTo=${message.id}`);
+                              }}
+                            >
                               {language === 'fi' ? 'Vastaa' : 'Reply'}
                             </Button>
                           </div>
