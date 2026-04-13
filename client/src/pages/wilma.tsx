@@ -22,6 +22,9 @@ export default function Wilma() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState('frontpage');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Mock data for demo
   const mockSchedule = [
@@ -149,46 +152,22 @@ export default function Wilma() {
     }
   }, [match, params]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setIsLoading(true);
-
-    if (!username || !password) {
-      setLoginError('Please enter username and password');
-      setIsLoading(false);
+  const handleForgotPassword = async () => {
+    if (!resetEmail) {
+      alert(language === 'fi' ? 'Syötä sähköpostiosoite' : 'Enter email address');
       return;
     }
-
-    try {
-      const response = await fetch('/api/wilma/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username: username.trim(), password })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setLoginError(data.message || 'Invalid username or password');
-        setIsLoading(false);
-        return;
-      }
-
-      setCurrentUser(data);
-      setIsLoggedIn(true);
-      localStorage.setItem('wilma_user', JSON.stringify(data));
-      setUsername('');
-      setPassword('');
-      setIsLoading(false);
-      
-      if (data.studentId) {
-        setLocation(`/wilma/${data.studentId}`);
-      }
-    } catch {
-      setLoginError('Connection error. Please check if the server is running.');
-      setIsLoading(false);
-    }
+    
+    // Simulate password reset
+    setResetSuccess(true);
+    setTimeout(() => {
+      setShowForgotPassword(false);
+      setResetSuccess(false);
+      setResetEmail('');
+      alert(language === 'fi' 
+        ? `Salasanan palautuslinkki lähetetty osoitteeseen ${resetEmail}`
+        : `Password reset link sent to ${resetEmail}`);
+    }, 2000);
   };
 
   const handleLogout = () => {
@@ -245,52 +224,248 @@ export default function Wilma() {
     }
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoading(true);
+
+    if (!username || !password) {
+      setLoginError(language === 'fi' ? 'Syötä käyttäjätunnus ja salasana' : 'Please enter username and password');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/wilma/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: username.trim(), password })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setLoginError(data.message || (language === 'fi' ? 'Virheellinen käyttäjätunnus tai salasana' : 'Invalid username or password'));
+        setIsLoading(false);
+        return;
+      }
+
+      setCurrentUser(data);
+      setIsLoggedIn(true);
+      localStorage.setItem('wilma_user', JSON.stringify(data));
+      setUsername('');
+      setPassword('');
+      setIsLoading(false);
+      
+      // Role-based routing
+      if (data.role === 'admin') {
+        setLocation('/wilma-admin');
+      } else if (data.role === 'teacher') {
+        setLocation(`/wilma/teacher/${data.id}`);
+      } else if (data.role === 'parent') {
+        setLocation(`/wilma/parent/${data.id}`);
+      } else if (data.studentId) {
+        setLocation(`/wilma/${data.studentId}`);
+      }
+    } catch {
+      setLoginError(language === 'fi' ? 'Yhteysvirhe. Tarkista palvelimen tila.' : 'Connection error. Please check if the server is running.');
+      setIsLoading(false);
+    }
+  };
+
   const tr = t[language];
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl">
-          <CardHeader className="bg-[#003d82] text-white rounded-t-lg">
-            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
-              <Lock className="w-6 h-6" />
-              {tr.welcome}
-            </CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-[#003d82] via-[#0052a3] to-[#0066cc] flex items-center justify-center p-4">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+            backgroundSize: '40px 40px'
+          }}></div>
+        </div>
+
+        <Card className="w-full max-w-md shadow-2xl relative z-10 border-2 border-blue-200">
+          <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white rounded-t-lg pb-8">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                <Lock className="w-10 h-10 text-[#003d82]" />
+              </div>
+              <CardTitle className="text-3xl font-bold mb-2">{tr.welcome}</CardTitle>
+              <p className="text-blue-100 text-sm">{tr.school} - {language === 'fi' ? 'Oppilashallintojärjestelmä' : 'Student Management System'}</p>
+            </div>
           </CardHeader>
           <CardContent className="p-8">
-            <p className="text-center text-gray-600 mb-6">{tr.loginInstructions}</p>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{tr.username}</label>
-                <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
-                  placeholder={tr.username} required disabled={isLoading} className="w-full" autoComplete="username" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{tr.password}</label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder={tr.password} required disabled={isLoading} className="w-full" autoComplete="current-password" />
-              </div>
-              {loginError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <span>{loginError}</span>
+            {!showForgotPassword ? (
+              <>
+                <p className="text-center text-gray-600 mb-6 font-medium">{tr.loginInstructions}</p>
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {tr.username}
+                    </label>
+                    <Input 
+                      type="text" 
+                      value={username} 
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder={language === 'fi' ? 'esim. matti.virtanen' : 'e.g. john.doe'} 
+                      required 
+                      disabled={isLoading} 
+                      className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500" 
+                      autoComplete="username" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      {tr.password}
+                    </label>
+                    <Input 
+                      type="password" 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••" 
+                      required 
+                      disabled={isLoading} 
+                      className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500" 
+                      autoComplete="current-password" 
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                      <span className="text-gray-600">{language === 'fi' ? 'Muista minut' : 'Remember me'}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                    >
+                      {language === 'fi' ? 'Unohditko salasanan?' : 'Forgot password?'}
+                    </button>
+                  </div>
+
+                  {loginError && (
+                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2 animate-shake">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <span className="font-medium">{loginError}</span>
+                    </div>
+                  )}
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#0066cc] text-white text-lg font-bold shadow-lg transition-all" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        {tr.loggingIn}
+                      </span>
+                    ) : (
+                      tr.loginButton
+                    )}
+                  </Button>
+                </form>
+                
+                <div className="mt-6 space-y-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white text-gray-500">{language === 'fi' ? 'Tai' : 'Or'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <button 
+                      onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-2 mx-auto"
+                    >
+                      <span className="text-lg">{language === 'fi' ? '🇬🇧' : '🇫🇮'}</span>
+                      {language === 'fi' ? 'English' : 'Suomi'}
+                    </button>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800 text-center">
+                      <strong>{language === 'fi' ? 'Huom!' : 'Note!'}</strong> {tr.noAccount}
+                    </p>
+                  </div>
                 </div>
-              )}
-              <Button type="submit" className="w-full bg-[#003d82] hover:bg-[#0052a3]" disabled={isLoading}>
-                {isLoading ? tr.loggingIn : tr.loginButton}
-              </Button>
-            </form>
-            <div className="mt-6 space-y-3">
-              <div className="text-center">
-                <button onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
-                  className="text-sm text-blue-600 hover:text-blue-800">
-                  {language === 'fi' ? 'English' : 'Suomi'}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2 mb-4"
+                >
+                  ← {language === 'fi' ? 'Takaisin kirjautumiseen' : 'Back to login'}
                 </button>
+                
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <Mail className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {language === 'fi' ? 'Palauta salasana' : 'Reset Password'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'fi' 
+                      ? 'Syötä sähköpostiosoitteesi, niin lähetämme sinulle linkin salasanan palauttamiseen.'
+                      : 'Enter your email address and we\'ll send you a link to reset your password.'}
+                  </p>
+                </div>
+
+                {!resetSuccess ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {language === 'fi' ? 'Sähköpostiosoite' : 'Email Address'}
+                      </label>
+                      <Input
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder={language === 'fi' ? 'esim. matti.virtanen@koulu.fi' : 'e.g. john.doe@school.com'}
+                        className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleForgotPassword}
+                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    >
+                      {language === 'fi' ? 'Lähetä palautuslinkki' : 'Send Reset Link'}
+                    </Button>
+                  </>
+                ) : (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <CheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                    <p className="text-green-800 font-semibold">
+                      {language === 'fi' ? 'Palautuslinkki lähetetty!' : 'Reset link sent!'}
+                    </p>
+                    <p className="text-sm text-green-700 mt-2">
+                      {language === 'fi' 
+                        ? 'Tarkista sähköpostisi ja seuraa ohjeita.'
+                        : 'Check your email and follow the instructions.'}
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="text-center text-sm text-gray-500">{tr.noAccount}</div>
-            </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
+          <p className="opacity-80">© 2026 Wilma by SL Studio • {language === 'fi' ? 'Kaikki oikeudet pidätetään' : 'All rights reserved'}</p>
+        </div>
       </div>
     );
   }
