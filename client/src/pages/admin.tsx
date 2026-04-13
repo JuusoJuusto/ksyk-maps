@@ -47,7 +47,7 @@ export default function Admin() {
   const handleLogout = () => {
     localStorage.removeItem('ksyk_admin_logged_in');
     localStorage.removeItem('ksyk_admin_user');
-    setLocation('/');
+    setLocation('/'); // Go to home page
   };
 
   if (isLoading) {

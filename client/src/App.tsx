@@ -30,6 +30,7 @@ import Wilma from "@/pages/wilma";
 import WilmaMessage from "@/pages/wilma-message";
 import WilmaCompose from "@/pages/wilma-compose";
 import WilmaAdmin from "@/pages/wilma-admin";
+import WilmaTeacher from "@/pages/wilma-teacher";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -66,6 +67,8 @@ function Router() {
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma-admin" component={WilmaAdmin} />
+      <Route path="/wilma/teacher/:teacherId" component={WilmaTeacher} />
+      <Route path="/wilma/teacher/:teacherId/:section" component={WilmaTeacher} />
       <Route path="/wilma/:studentId" component={Wilma} />
       <Route path="/wilma/:studentId/message/:messageId" component={WilmaMessage} />
       <Route path="/wilma/:studentId/compose" component={WilmaCompose} />

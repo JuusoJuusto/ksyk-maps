@@ -1,240 +1,197 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import WilmaUserManager from "@/components/WilmaUserManager";
 import { 
-  Users, GraduationCap, MessageSquare, Settings, BarChart3, 
-  LogOut, Home, Bell, FileText, Calendar, Shield
-} from 'lucide-react';
-import WilmaUserManager from '@/components/WilmaUserManager';
+  LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
+  Building, MessageSquare, ClipboardList, Bell, BarChart3,
+  Settings, FileText
+} from "lucide-react";
 
 export default function WilmaAdmin() {
   const [, setLocation] = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentAdmin, setCurrentAdmin] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState('users');
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const storedAdmin = localStorage.getItem('wilma_admin');
-    if (storedAdmin) {
+    const storedUser = localStorage.getItem('wilma_user');
+    if (storedUser) {
       try {
-        const admin = JSON.parse(storedAdmin);
-        setCurrentAdmin(admin);
-        setIsLoggedIn(true);
+        const user = JSON.parse(storedUser);
+        if (user.role !== 'admin') {
+          setLocation('/wilma');
+          return;
+        }
+        setCurrentUser(user);
       } catch {
-        localStorage.removeItem('wilma_admin');
+        setLocation('/wilma');
       }
+    } else {
+      setLocation('/wilma');
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setIsLoading(true);
-
-    // Simple admin check - in production, this should be a proper API call
-    if (username === 'admin' && password === 'admin123') {
-      const admin = { username: 'admin', role: 'admin' };
-      setCurrentAdmin(admin);
-      setIsLoggedIn(true);
-      localStorage.setItem('wilma_admin', JSON.stringify(admin));
-    } else {
-      setLoginError('Invalid credentials');
-    }
-    setIsLoading(false);
-  };
-
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentAdmin(null);
-    localStorage.removeItem('wilma_admin');
+    localStorage.removeItem('wilma_user');
     setLocation('/');
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl">
-          <CardHeader className="bg-[#003d82] text-white rounded-t-lg">
-            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
-              <Shield className="w-6 h-6" />
-              Wilma Admin Login
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <p className="text-center text-gray-600 mb-6">Backend Administration Panel</p>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                  required
-                />
-              </div>
-              {loginError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {loginError}
-                </div>
-              )}
-              <Button type="submit" className="w-full bg-[#003d82] hover:bg-[#0052a3]" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!currentUser) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <div className="bg-[#003d82] text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Shield className="w-8 h-8" />
-              <div>
-                <h1 className="text-2xl font-semibold">Wilma Backend Admin</h1>
-                <p className="text-sm text-blue-200">Management Portal</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">Wilma Admin Panel</h1>
+              <p className="text-blue-100 mt-1">
+                Logged in as: {currentUser.firstName} {currentUser.lastName}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
-              <button
+            <div className="flex gap-3">
+              <Button
                 onClick={() => setLocation('/')}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2"
+                className="bg-white/20 hover:bg-white/30 text-white"
               >
-                <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Home</span>
-              </button>
-              <button
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+              <Button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-500/80 hover:bg-red-600 rounded-lg text-sm transition-colors flex items-center gap-2"
+                className="bg-red-500/80 hover:bg-red-600 text-white"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="bg-[#0052a3] border-b-2 border-[#003d82] shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto">
-            {[
-              { id: 'users', icon: Users, label: 'User Management' },
-              { id: 'messages', icon: MessageSquare, label: 'Messages' },
-              { id: 'analytics', icon: BarChart3, label: 'Analytics' },
-              { id: 'settings', icon: Settings, label: 'Settings' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`px-4 py-3 text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                  activeSection === item.id
-                    ? 'bg-white text-[#003d82] font-semibold shadow-sm'
-                    : 'text-white hover:bg-[#003d82]'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-2 bg-white p-2 rounded-lg shadow">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Schedule</span>
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Courses</span>
+            </TabsTrigger>
+            <TabsTrigger value="teachers" className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              <span className="hidden sm:inline">Teachers</span>
+            </TabsTrigger>
+            <TabsTrigger value="rooms" className="flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              <span className="hidden sm:inline">Rooms</span>
+            </TabsTrigger>
+            <TabsTrigger value="announcements" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Announcements</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeSection === 'users' && (
-          <div>
+          <TabsContent value="users">
             <WilmaUserManager />
-          </div>
-        )}
+          </TabsContent>
 
-        {activeSection === 'messages' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Message Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">View and manage all Wilma messages</p>
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">📧 Message management features coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="schedule">
+            <Card>
+              <CardHeader>
+                <CardTitle>Schedule Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Bulk schedule creation and management coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {activeSection === 'analytics' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Wilma Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Total Logins</p>
-                  <p className="text-3xl font-bold text-blue-600">1,234</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Active Users</p>
-                  <p className="text-3xl font-bold text-green-600">456</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Messages Sent</p>
-                  <p className="text-3xl font-bold text-purple-600">789</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="courses">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Course catalog management coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {activeSection === 'settings' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Wilma Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold">Email Notifications</p>
-                    <p className="text-sm text-gray-600">Send email notifications to users</p>
-                  </div>
-                  <input type="checkbox" className="w-5 h-5" defaultChecked />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold">Maintenance Mode</p>
-                    <p className="text-sm text-gray-600">Enable maintenance mode for Wilma</p>
-                  </div>
-                  <input type="checkbox" className="w-5 h-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="teachers">
+            <Card>
+              <CardHeader>
+                <CardTitle>Teacher Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Teacher directory management coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="rooms">
+            <Card>
+              <CardHeader>
+                <CardTitle>Room Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Room directory management coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <Card>
+              <CardHeader>
+                <CardTitle>Announcements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Announcement management coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics & Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Analytics dashboard coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">System configuration coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
