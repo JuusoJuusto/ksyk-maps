@@ -258,10 +258,8 @@ export default function Wilma() {
       setIsLoading(false);
       
       // Role-based routing
-      if (data.role === 'admin') {
+      if (data.role === 'admin' || data.role === 'teacher') {
         setLocation('/wilma-admin');
-      } else if (data.role === 'teacher') {
-        setLocation(`/wilma/teacher/${data.id}`);
       } else if (data.role === 'parent') {
         setLocation(`/wilma/parent/${data.id}`);
       } else if (data.studentId) {
