@@ -19,6 +19,40 @@ interface WilmaUser {
   studentClass?: string;
   isActive: boolean;
   createdAt: string;
+  // Extended student details
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  phone?: string;
+  // Parent/Guardian 1
+  parent1FirstName?: string;
+  parent1LastName?: string;
+  parent1Email?: string;
+  parent1Phone?: string;
+  parent1Address?: string;
+  parent1Relation?: string;
+  // Parent/Guardian 2
+  parent2FirstName?: string;
+  parent2LastName?: string;
+  parent2Email?: string;
+  parent2Phone?: string;
+  parent2Address?: string;
+  parent2Relation?: string;
+  // Emergency contact
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  // Medical info
+  allergies?: string;
+  medications?: string;
+  specialNeeds?: string;
+  // Academic
+  startYear?: string;
+  previousSchool?: string;
+  notes?: string;
 }
 
 export default function WilmaUserManager() {
@@ -272,7 +306,8 @@ export default function WilmaUserManager() {
                   email: "",
                   role: "student",
                   studentClass: "",
-                  isActive: true
+                  isActive: true,
+                  sendEmailInvitation: false
                 });
               }}
               className="bg-blue-600 hover:bg-blue-700"

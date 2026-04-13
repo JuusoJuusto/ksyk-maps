@@ -29,6 +29,7 @@ import SLStudio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
 import WilmaMessage from "@/pages/wilma-message";
 import WilmaCompose from "@/pages/wilma-compose";
+import WilmaAdmin from "@/pages/wilma-admin";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
+      <Route path="/wilma-admin" component={WilmaAdmin} />
       <Route path="/wilma/:studentId" component={Wilma} />
       <Route path="/wilma/:studentId/message/:messageId" component={WilmaMessage} />
       <Route path="/wilma/:studentId/compose" component={WilmaCompose} />
