@@ -331,7 +331,7 @@ export default function WilmaAdmin() {
                       View on Map
                     </Button>
                     <Button variant="outline">
-                      <Eye className="w-4 h-4" mr-2" />
+                      <Eye className="w-4 h-4 mr-2" />
                       Availability
                     </Button>
                   </div>
