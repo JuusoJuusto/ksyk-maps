@@ -5,6 +5,15 @@
 @tailwind utilities;
 
 @layer utilities {
+  /* Scrollbar Hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Premium Touch Components */
   .touch-card {
     @apply transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 active:scale-[0.98] hover:-translate-y-1;

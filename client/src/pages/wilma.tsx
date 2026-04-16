@@ -471,30 +471,30 @@ export default function Wilma() {
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       <div className="bg-[#003d82] text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold">{tr.school}</h1>
-                <p className="text-sm text-blue-200 mt-1">
-                  <User className="w-4 h-4 inline mr-1" />
-                  {currentUser.firstName} {currentUser.lastName} • ID: {currentUser.studentId} • {currentUser.studentClass || currentUser.role}
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-semibold truncate">{tr.school}</h1>
+                <p className="text-xs sm:text-sm text-blue-200 mt-1 flex items-center gap-1 sm:gap-2 truncate">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{currentUser.firstName} {currentUser.lastName} • ID: {currentUser.studentId} • {currentUser.studentClass || currentUser.role}</span>
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2">
-                <Bell className="w-4 h-4" />
+            <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+              <button className="px-2 sm:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2">
+                <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">{tr.notifications}</span>
-                <Badge className="bg-red-500 text-white ml-1">3</Badge>
+                <Badge className="bg-red-500 text-white ml-0 sm:ml-1 text-xs px-1">3</Badge>
               </button>
               <button onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors">
+                className="px-2 sm:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs sm:text-sm font-semibold transition-colors">
                 {language === 'fi' ? 'EN' : 'FI'}
               </button>
               <button onClick={handleLogout}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
+                className="px-2 sm:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2">
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">{tr.logout}</span>
               </button>
             </div>
@@ -503,8 +503,8 @@ export default function Wilma() {
       </div>
 
       <div className="bg-[#0052a3] border-b-2 border-[#003d82] shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
             {[
               { id: 'frontpage', icon: Home, label: tr.frontpage },
               { id: 'schedule', icon: Calendar, label: tr.schedule },
@@ -519,18 +519,18 @@ export default function Wilma() {
               { id: 'settings', icon: Settings, label: tr.settings },
             ].map((item) => (
               <button key={item.id} onClick={() => handleSectionChange(item.id)}
-                className={`px-4 py-3 text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
+                className={`px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-1 sm:gap-2 ${
                   activeSection === item.id ? 'bg-white text-[#003d82] font-semibold shadow-sm' : 'text-white hover:bg-[#003d82]'
                 }`}>
-                <item.icon className="w-4 h-4" />
-                {item.label}
+                <item.icon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{item.label}</span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
         <Card>
           <CardHeader className="bg-[#e8f0f8] border-b border-gray-300">
             <CardTitle className="text-xl text-gray-800 flex items-center justify-between">
@@ -740,14 +740,52 @@ export default function Wilma() {
 
             {activeSection === 'schedule' && (
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <p className="text-sm text-blue-800 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
+                <div className="bg-blue-50 border border-blue-200 p-3 sm:p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm text-blue-800 flex items-center gap-2">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                     {language === 'fi' ? 'Viikko 15 • Kevätlukukausi 2026' : 'Week 15 • Spring Semester 2026'}
                   </p>
                 </div>
                 
-                <div className="overflow-x-auto">
+                {/* Mobile View - Card Layout */}
+                <div className="block sm:hidden space-y-3">
+                  {mockSchedule.map((row, idx) => (
+                    <Card key={idx} className="border-2 border-blue-200">
+                      <CardHeader className="bg-blue-50 p-3">
+                        <CardTitle className="text-sm font-bold text-blue-900">{row.time}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 space-y-2">
+                        {['mon', 'tue', 'wed', 'thu', 'fri'].map((day, dayIdx) => {
+                          const lesson = row[day as keyof typeof row];
+                          const dayNames = {
+                            fi: ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'],
+                            en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                          };
+                          return (
+                            <div key={day} className="border-b last:border-b-0 pb-2 last:pb-0">
+                              <p className="text-xs font-semibold text-gray-600 mb-1">{dayNames[language][dayIdx]}</p>
+                              {lesson && typeof lesson === 'object' ? (
+                                <div className="bg-blue-50 p-2 rounded">
+                                  <p className="font-semibold text-sm text-gray-800">{lesson.subject}</p>
+                                  <p className="text-xs text-gray-600">{lesson.room}</p>
+                                  <p className="text-xs text-blue-600 flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {lesson.teacher}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">-</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View - Table Layout */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-[#003d82] text-white">
