@@ -31,7 +31,7 @@ export const wilmaUserCreateSchema = z.object({
     .email('Invalid email address')
     .optional(),
   role: z.enum(['student', 'teacher', 'substitute', 'parent', 'admin', 'principal', 'vice_principal', 
-    'counselor', 'social_worker', 'psychologist', 'nurse', 'special_ed_teacher', 'assistant', 
+    'counselor', 'curator', 'social_worker', 'psychologist', 'nurse', 'special_ed_teacher', 'assistant', 
     'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'student_teacher', 
     'sivari', 'custom', 'owner']),
   roles: z.array(z.string()).optional(),

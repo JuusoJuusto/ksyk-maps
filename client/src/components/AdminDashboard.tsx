@@ -7,6 +7,7 @@ import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
+import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -840,9 +841,10 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-11 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-12 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+          <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
           <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
@@ -1334,6 +1336,20 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="wilma" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Wilma User Management (Temporary)</CardTitle>
+              <CardDescription>
+                Manage Wilma system users. This tab is temporarily added for quick access.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EnhancedWilmaUserManager />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="ksyk-builder" className="h-full flex-1 overflow-hidden">
