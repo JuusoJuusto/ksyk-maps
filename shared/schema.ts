@@ -260,9 +260,18 @@ export const wilmaUsers = pgTable("wilma_users", {
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   email: varchar("email"),
-  role: varchar("role").notNull().default("student"), // teacher, student, parent, admin
+  phone: varchar("phone"),
+  role: varchar("role").notNull().default("student"), // teacher, student, parent, admin, staff, social_worker, counselor, nurse, principal
   studentClass: varchar("student_class"), // For students: 9A, 8B, etc.
+  department: varchar("department"), // For staff: administration, counseling, health, etc.
+  position: varchar("position"), // Job title for staff
+  specialization: varchar("specialization"), // For social workers, counselors, etc.
+  officeRoom: varchar("office_room"), // Office location
+  officeHours: jsonb("office_hours"), // Available hours
+  bio: text("bio"), // Profile description
+  profileImageUrl: varchar("profile_image_url"),
   isActive: boolean("is_active").default(true),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

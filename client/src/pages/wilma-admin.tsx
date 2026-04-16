@@ -3,17 +3,18 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import WilmaUserManager from "@/components/WilmaUserManager";
+import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
   Star, User, Award, TrendingUp, UserCheck, Mail, MapPin,
-  Eye, Clock, MessageSquare, Filter, Search, CheckCircle, AlertCircle
+  Eye, Clock, MessageSquare, Filter, Search, CheckCircle, AlertCircle, Menu
 } from "lucide-react";
 
 export default function WilmaAdmin() {
   const [, setLocation] = useLocation();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('wilma_user');
@@ -46,163 +47,163 @@ export default function WilmaAdmin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
+      {/* Header - Mobile Responsive */}
       <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <GraduationCap className="w-8 h-8" />
-                Wilma {isAdmin ? 'Admin' : 'Teacher'} Panel
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+                <GraduationCap className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
+                <span className="truncate">Wilma {isAdmin ? 'Admin' : 'Teacher'}</span>
               </h1>
-              <p className="text-blue-100 mt-1 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                {currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Administrator' : 'Teacher'}
+              <p className="text-blue-100 mt-1 flex items-center gap-2 text-xs md:text-base">
+                <User className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="truncate">{currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Administrator' : 'Teacher'}</span>
               </p>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white">
-                <Home className="w-4 h-4 mr-2" />
-                Home
+            <div className="flex gap-2 md:gap-3 ml-2">
+              <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
+                <Home className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Home</span>
               </Button>
-              <Button onClick={handleLogout} className="bg-red-500/80 hover:bg-red-600 text-white">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+              <Button onClick={handleLogout} className="bg-red-500/80 hover:bg-red-600 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
+                <LogOut className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Dashboard */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Stats Dashboard - Mobile Responsive */}
+      <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">Total Students</p>
-                  <p className="text-3xl font-bold mt-1">0</p>
+                  <p className="text-blue-100 text-xs md:text-sm font-medium">Total Students</p>
+                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
                 </div>
-                <Users className="w-12 h-12 text-blue-200" />
+                <Users className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">Total Teachers</p>
-                  <p className="text-3xl font-bold mt-1">0</p>
+                  <p className="text-green-100 text-xs md:text-sm font-medium">Total Teachers</p>
+                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
                 </div>
-                <GraduationCap className="w-12 h-12 text-green-200" />
+                <GraduationCap className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">Active Classes</p>
-                  <p className="text-3xl font-bold mt-1">0</p>
+                  <p className="text-purple-100 text-xs md:text-sm font-medium">Active Classes</p>
+                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
                 </div>
-                <BookOpen className="w-12 h-12 text-purple-200" />
+                <BookOpen className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium">Total Courses</p>
-                  <p className="text-3xl font-bold mt-1">0</p>
+                  <p className="text-orange-100 text-xs md:text-sm font-medium">Total Courses</p>
+                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
                 </div>
-                <Award className="w-12 h-12 text-orange-200" />
+                <Award className="w-8 h-8 md:w-12 md:h-12 text-orange-200" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card className="mb-6 border-2 border-blue-200 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-blue-600" />
+        {/* Quick Actions - Mobile Responsive */}
+        <Card className="mb-4 md:mb-6 border-2 border-blue-200 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Star className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
               Quick Actions
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <Button className="h-auto py-4 flex-col gap-2 bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-6 h-6" />
-                <span className="text-xs">Add User</span>
+          <CardContent className="p-3 md:p-6">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-blue-600 hover:bg-blue-700 text-xs md:text-sm">
+                <Plus className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Add User</span>
               </Button>
-              <Button className="h-auto py-4 flex-col gap-2 bg-green-600 hover:bg-green-700">
-                <Calendar className="w-6 h-6" />
-                <span className="text-xs">Create Schedule</span>
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-green-600 hover:bg-green-700 text-xs md:text-sm">
+                <Calendar className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Schedule</span>
               </Button>
-              <Button className="h-auto py-4 flex-col gap-2 bg-purple-600 hover:bg-purple-700">
-                <BookOpen className="w-6 h-6" />
-                <span className="text-xs">New Course</span>
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-purple-600 hover:bg-purple-700 text-xs md:text-sm">
+                <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Course</span>
               </Button>
-              <Button className="h-auto py-4 flex-col gap-2 bg-orange-600 hover:bg-orange-700">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs">Send Announcement</span>
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-orange-600 hover:bg-orange-700 text-xs md:text-sm">
+                <Bell className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Announce</span>
               </Button>
-              <Button className="h-auto py-4 flex-col gap-2 bg-pink-600 hover:bg-pink-700">
-                <Upload className="w-6 h-6" />
-                <span className="text-xs">Upload Materials</span>
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-pink-600 hover:bg-pink-700 text-xs md:text-sm">
+                <Upload className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Upload</span>
               </Button>
-              <Button className="h-auto py-4 flex-col gap-2 bg-indigo-600 hover:bg-indigo-700">
-                <Download className="w-6 h-6" />
-                <span className="text-xs">Export Data</span>
+              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-indigo-600 hover:bg-indigo-700 text-xs md:text-sm">
+                <Download className="w-4 h-4 md:w-6 md:h-6" />
+                <span className="text-[10px] md:text-xs">Export</span>
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Main Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-2 bg-white p-2 rounded-lg shadow-lg border-2 border-blue-100">
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
+        {/* Main Tabs - Mobile Responsive */}
+        <Tabs defaultValue="users" className="space-y-4 md:space-y-6">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-lg shadow-lg border-2 border-blue-100 w-full">
+            <TabsTrigger value="users" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Users className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
+            <TabsTrigger value="schedule" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Calendar className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Schedule</span>
             </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
+            <TabsTrigger value="courses" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Courses</span>
             </TabsTrigger>
-            <TabsTrigger value="teachers" className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4" />
+            <TabsTrigger value="teachers" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <GraduationCap className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Teachers</span>
             </TabsTrigger>
-            <TabsTrigger value="rooms" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
+            <TabsTrigger value="rooms" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Building className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Rooms</span>
             </TabsTrigger>
-            <TabsTrigger value="announcements" className="flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Announcements</span>
+            <TabsTrigger value="announcements" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Bell className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Announce</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
+            <TabsTrigger value="analytics" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
+            <TabsTrigger value="settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Settings className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
-            <WilmaUserManager />
+            <EnhancedWilmaUserManager />
           </TabsContent>
 
           <TabsContent value="schedule">
