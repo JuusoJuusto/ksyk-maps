@@ -261,7 +261,8 @@ export const wilmaUsers = pgTable("wilma_users", {
   lastName: varchar("last_name").notNull(),
   email: varchar("email"),
   phone: varchar("phone"),
-  role: varchar("role").notNull().default("student"), // teacher, student, parent, admin, staff, social_worker, counselor, nurse, principal
+  role: varchar("role").notNull().default("student"), // 20+ roles supported
+  customRoleName: varchar("custom_role_name"), // For custom roles
   studentClass: varchar("student_class"), // For students: 9A, 8B, etc.
   department: varchar("department"), // For staff: administration, counseling, health, etc.
   position: varchar("position"), // Job title for staff
@@ -270,6 +271,9 @@ export const wilmaUsers = pgTable("wilma_users", {
   officeHours: jsonb("office_hours"), // Available hours
   bio: text("bio"), // Profile description
   profileImageUrl: varchar("profile_image_url"),
+  calendarSyncEnabled: boolean("calendar_sync_enabled").default(false),
+  calendarSyncToken: varchar("calendar_sync_token"), // For Google/Apple Calendar sync
+  calendarProvider: varchar("calendar_provider"), // 'google', 'apple', 'outlook'
   isActive: boolean("is_active").default(true),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),

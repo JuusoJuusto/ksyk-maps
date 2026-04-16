@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { WILMA_ROLES } from "@shared/wilmaConfig";
 
 interface WilmaUser {
   id: string;
@@ -17,7 +18,8 @@ interface WilmaUser {
   lastName: string;
   email?: string;
   phone?: string;
-  role: 'teacher' | 'student' | 'parent' | 'admin' | 'staff' | 'social_worker' | 'counselor' | 'nurse' | 'principal';
+  role: string;
+  customRoleName?: string;
   studentClass?: string;
   department?: string;
   position?: string;
@@ -26,23 +28,36 @@ interface WilmaUser {
   officeHours?: any;
   bio?: string;
   profileImageUrl?: string;
+  calendarSyncEnabled?: boolean;
+  calendarProvider?: string;
   isActive: boolean;
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-const ROLES = [
-  { value: 'student', label: 'Student', icon: Users, color: 'bg-green-100 text-green-800 border-green-200' },
-  { value: 'teacher', label: 'Teacher', icon: GraduationCap, color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { value: 'parent', label: 'Parent', icon: Baby, color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { value: 'admin', label: 'Admin', icon: UserCheck, color: 'bg-orange-100 text-orange-800 border-orange-200' },
-  { value: 'staff', label: 'Staff', icon: Briefcase, color: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
-  { value: 'social_worker', label: 'Social Worker', icon: Heart, color: 'bg-pink-100 text-pink-800 border-pink-200' },
-  { value: 'counselor', label: 'Counselor', icon: UserCog, color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-  { value: 'nurse', label: 'Nurse', icon: Stethoscope, color: 'bg-red-100 text-red-800 border-red-200' },
-  { value: 'principal', label: 'Principal', icon: Shield, color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-];
+const ROLE_ICONS: Record<string, any> = {
+  student: Users,
+  teacher: GraduationCap,
+  parent: Baby,
+  admin: UserCheck,
+  principal: Shield,
+  vice_principal: BookOpen,
+  counselor: UserCog,
+  social_worker: Heart,
+  psychologist: Brain,
+  nurse: Stethoscope,
+  special_ed_teacher: GraduationCap,
+  assistant: Briefcase,
+  librarian: BookOpen,
+  it_support: Laptop,
+  secretary: FileText,
+  janitor: Wrench,
+  cafeteria_staff: Utensils,
+  substitute_teacher: ClipboardList,
+  student_teacher: Backpack,
+  custom: SettingsIcon,
+};
 
 export default function EnhancedWilmaUserManager() {
   const queryClient = useQueryClient();
@@ -145,15 +160,43 @@ export default function EnhancedWilmaUserManager() {
     }
   });
 
-  // Delete user mutation
+  // Delete user mutation - FIX JSON ERROR
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/wilma/users/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to delete user");
-      return response.json();
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = "Failed to delete user";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          // If response is not JSON, use default message
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Handle empty response (204 No Content)
+      if (response.status === 204) {
+        return { success: true };
+      }
+      
+      // Try to parse JSON response
+      const text = await response.text();
+      if (!text) {
+        return { success: true };
+      }
+      
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { success: true };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
@@ -233,7 +276,20 @@ export default function EnhancedWilmaUserManager() {
   };
 
   const getRoleConfig = (role: string) => {
-    return ROLES.find(r => r.value === role) || ROLES[0];
+    const config = WILMA_ROLES.find(r => r.value === role);
+    if (config) {
+      return {
+        ...config,
+        icon: ROLE_ICONS[role] || Users
+      };
+    }
+    return {
+      value: role,
+      label: role,
+      labelEn: role,
+      icon: ROLE_ICONS.custom,
+      color: 'bg-violet-100 text-violet-800'
+    };
   };
 
   const stats = {
@@ -448,11 +504,27 @@ export default function EnhancedWilmaUserManager() {
                         : setNewUser({...newUser, role: e.target.value as any})
                       }
                     >
-                      {ROLES.map(role => (
-                        <option key={role.value} value={role.value}>{role.label}</option>
+                      {WILMA_ROLES.map(role => (
+                        <option key={role.value} value={role.value}>
+                          {role.icon} {role.label} ({role.labelEn})
+                        </option>
                       ))}
                     </select>
                   </div>
+                  {(editingUser?.role === 'custom' || newUser.role === 'custom') && (
+                    <div>
+                      <Label className="text-xs md:text-sm">Custom Role Name *</Label>
+                      <Input
+                        value={editingUser ? editingUser.customRoleName || "" : (newUser as any).customRoleName || ""}
+                        onChange={(e) => editingUser 
+                          ? setEditingUser({...editingUser, customRoleName: e.target.value})
+                          : setNewUser({...newUser, customRoleName: e.target.value} as any)
+                        }
+                        placeholder="e.g., IT Coordinator, Sports Coach"
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
                   {(editingUser?.role === 'student' || newUser.role === 'student') && (
                     <div>
                       <Label className="text-xs md:text-sm">Student Class</Label>
