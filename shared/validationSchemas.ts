@@ -3,11 +3,10 @@ import { z } from 'zod';
 // Wilma Login Schema
 export const wilmaLoginSchema = z.object({
   username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be less than 50 characters')
-    .regex(/^[a-z0-9._-]+$/, 'Username can only contain lowercase letters, numbers, dots, underscores, and hyphens'),
+    .min(1, 'Username is required')
+    .max(50, 'Username must be less than 50 characters'),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(1, 'Password is required')
     .max(100, 'Password must be less than 100 characters')
 });
 
