@@ -7,7 +7,6 @@ import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
-import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -841,7 +840,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-12 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-11 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
@@ -849,7 +848,6 @@ export default function AdminDashboard() {
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
           <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
-          <TabsTrigger value="wilma" className="text-xs sm:text-sm bg-blue-50 border-blue-200">Wilma (Temp)</TabsTrigger>
           {isOwner && (
             <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
               <Shield className="h-3 w-3" />
@@ -2165,23 +2163,6 @@ export default function AdminDashboard() {
 
         <TabsContent value="announcements" className="space-y-6">
           <AnnouncementManager />
-        </TabsContent>
-
-        <TabsContent value="wilma" className="space-y-6">
-          <Card className="border-2 border-blue-200 shadow-lg bg-blue-50">
-            <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100">
-              <CardTitle className="flex items-center gap-2 text-blue-900">
-                <Users className="w-5 h-5" />
-                Wilma User Management (Temporary)
-              </CardTitle>
-              <CardDescription className="text-blue-700">
-                ⚠️ This tab is temporarily added back and will be removed in the next update. Use the dedicated Wilma admin panel at /wilma-admin for full functionality.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <EnhancedWilmaUserManager />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {isOwner && (

@@ -1158,8 +1158,9 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
 
         try {
-          console.log('🔍 Looking up user by username...');
-          const wilmaUser = await storage.getWilmaUserByUsername(username);
+          console.log('🔍 Looking up user by username (case-insensitive)...');
+          // Make username case-insensitive
+          const wilmaUser = await storage.getWilmaUserByUsername(username.toLowerCase().trim());
           
           if (!wilmaUser) {
             console.log('❌ User not found:', username);
@@ -1196,6 +1197,11 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         try {
           const { sendEmailInvitation, ...userData } = req.body;
           
+          // Normalize username to lowercase
+          if (userData.username) {
+            userData.username = userData.username.toLowerCase().trim();
+          }
+          
           // Validation
           if (!userData.username || !userData.firstName || !userData.lastName) {
             console.log('❌ Missing required fields');
@@ -1212,7 +1218,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             return res.status(400).json({ message: "Email is required for email invitation" });
           }
           
-          // Check if username already exists
+          // Check if username already exists (case-insensitive)
           const existingUser = await storage.getWilmaUserByUsername(userData.username);
           if (existingUser) {
             console.log('❌ Username already exists:', userData.username);

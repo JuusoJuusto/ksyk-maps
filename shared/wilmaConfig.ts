@@ -31,6 +31,7 @@ export const GRADE_MARKS = [
 export const WILMA_ROLES = [
   { value: 'student', label: 'Oppilas', labelEn: 'Student', icon: '👨‍🎓', color: 'bg-green-100 text-green-800' },
   { value: 'teacher', label: 'Opettaja', labelEn: 'Teacher', icon: '👨‍🏫', color: 'bg-blue-100 text-blue-800' },
+  { value: 'substitute', label: 'Sijaisopettaja', labelEn: 'Substitute Teacher', icon: '📝', color: 'bg-sky-100 text-sky-800' },
   { value: 'parent', label: 'Huoltaja', labelEn: 'Parent', icon: '👨‍👩‍👧', color: 'bg-purple-100 text-purple-800' },
   { value: 'admin', label: 'Ylläpitäjä', labelEn: 'Admin', icon: '👨‍💼', color: 'bg-orange-100 text-orange-800' },
   { value: 'principal', label: 'Rehtori', labelEn: 'Principal', icon: '🎓', color: 'bg-yellow-100 text-yellow-800' },
@@ -46,7 +47,6 @@ export const WILMA_ROLES = [
   { value: 'secretary', label: 'Sihteeri', labelEn: 'Secretary', icon: '📋', color: 'bg-gray-100 text-gray-800' },
   { value: 'janitor', label: 'Vahtimestari', labelEn: 'Janitor', icon: '🔧', color: 'bg-stone-100 text-stone-800' },
   { value: 'cafeteria_staff', label: 'Ruokapalveluhenkilökunta', labelEn: 'Cafeteria Staff', icon: '🍽️', color: 'bg-lime-100 text-lime-800' },
-  { value: 'substitute_teacher', label: 'Sijaisopettaja', labelEn: 'Substitute Teacher', icon: '📝', color: 'bg-sky-100 text-sky-800' },
   { value: 'student_teacher', label: 'Harjoittelija', labelEn: 'Student Teacher', icon: '🎒', color: 'bg-emerald-100 text-emerald-800' },
   { value: 'sivari', label: 'Siviilipalvelija', labelEn: 'Civilian Service', icon: '🛡️', color: 'bg-blue-100 text-blue-800' },
   { value: 'custom', label: 'Mukautettu rooli', labelEn: 'Custom Role', icon: '⚙️', color: 'bg-violet-100 text-violet-800' },
