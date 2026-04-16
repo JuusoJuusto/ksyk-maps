@@ -48,6 +48,7 @@ export const WILMA_ROLES = [
   { value: 'cafeteria_staff', label: 'Ruokapalveluhenkilökunta', labelEn: 'Cafeteria Staff', icon: '🍽️', color: 'bg-lime-100 text-lime-800' },
   { value: 'substitute_teacher', label: 'Sijaisopettaja', labelEn: 'Substitute Teacher', icon: '📝', color: 'bg-sky-100 text-sky-800' },
   { value: 'student_teacher', label: 'Harjoittelija', labelEn: 'Student Teacher', icon: '🎒', color: 'bg-emerald-100 text-emerald-800' },
+  { value: 'sivari', label: 'Siviilipalvelija', labelEn: 'Civilian Service', icon: '🛡️', color: 'bg-blue-100 text-blue-800' },
   { value: 'custom', label: 'Mukautettu rooli', labelEn: 'Custom Role', icon: '⚙️', color: 'bg-violet-100 text-violet-800' },
 ];
 

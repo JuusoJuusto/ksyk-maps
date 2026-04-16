@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
-import WilmaAdminLogin from "@/components/WilmaAdminLogin";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -20,20 +19,31 @@ export default function WilmaAdmin() {
 
   useEffect(() => {
     const checkAuth = () => {
-      const storedUser = localStorage.getItem('wilma_admin_user');
-      const isLoggedIn = localStorage.getItem('wilma_admin_logged_in');
+      // Check for Wilma user session (from unified login)
+      const storedUser = localStorage.getItem('wilma_user');
       
-      if (storedUser && isLoggedIn === 'true') {
+      if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          if (user.role === 'admin' || user.role === 'teacher' || user.role === 'principal' || user.role === 'vice_principal') {
+          // Check if user has admin/teacher/principal role (or multiple roles including these)
+          const roles = user.roles || [user.role];
+          const hasAccess = roles.some((r: string) => 
+            ['admin', 'teacher', 'principal', 'vice_principal'].includes(r)
+          );
+          
+          if (hasAccess) {
             setCurrentUser(user);
+          } else {
+            // Redirect to regular Wilma if no admin access
+            setLocation('/wilma');
           }
         } catch (err) {
           console.error('Auth check failed:', err);
-          localStorage.removeItem('wilma_admin_user');
-          localStorage.removeItem('wilma_admin_logged_in');
+          setLocation('/wilma');
         }
+      } else {
+        // No session, redirect to Wilma login
+        setLocation('/wilma');
       }
       setIsLoading(false);
     };
@@ -42,8 +52,7 @@ export default function WilmaAdmin() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('wilma_admin_user');
-    localStorage.removeItem('wilma_admin_logged_in');
+    localStorage.removeItem('wilma_user');
     setLocation('/');
   };
 
@@ -59,10 +68,11 @@ export default function WilmaAdmin() {
   }
 
   if (!currentUser) {
-    return <WilmaAdminLogin onLoginSuccess={() => window.location.reload()} />;
+    return null; // Will redirect in useEffect
   }
 
-  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'principal';
+  const roles = currentUser.roles || [currentUser.role];
+  const isAdmin = roles.includes('admin') || roles.includes('principal');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">

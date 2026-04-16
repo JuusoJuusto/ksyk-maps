@@ -261,7 +261,8 @@ export const wilmaUsers = pgTable("wilma_users", {
   lastName: varchar("last_name").notNull(),
   email: varchar("email"),
   phone: varchar("phone"),
-  role: varchar("role").notNull().default("student"), // 20+ roles supported
+  role: varchar("role").notNull().default("student"), // Primary role
+  roles: text("roles").array(), // Multiple roles support: ['teacher', 'admin', 'counselor']
   customRoleName: varchar("custom_role_name"), // For custom roles
   studentClass: varchar("student_class"), // For students: 9A, 8B, etc.
   department: varchar("department"), // For staff: administration, counseling, health, etc.
