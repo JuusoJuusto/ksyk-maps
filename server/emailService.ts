@@ -18,6 +18,51 @@ const createTransporter = () => {
   });
 };
 
+// Generic send email function
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}) {
+  console.log('\n📧 ========== SENDING EMAIL ==========');
+  console.log('To:', options.to);
+  console.log('Subject:', options.subject);
+  console.log('Email User:', process.env.EMAIL_USER);
+  console.log('Email configured:', !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD));
+  console.log('=====================================\n');
+
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.log('⚠️ Email not configured');
+    return { success: false, mode: 'console', error: 'Email not configured' };
+  }
+
+  const emailContent = {
+    from: `"KSYK Maps Support" <${process.env.EMAIL_USER}>`,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text || options.subject
+  };
+
+  try {
+    console.log('📤 Attempting to send email...');
+    const info = await transporter.sendMail(emailContent);
+
+    console.log('✅ Email sent successfully!');
+    console.log('   Message ID:', info.messageId);
+    console.log('   Response:', info.response);
+    return { success: true, mode: 'email', messageId: info.messageId };
+  } catch (error: any) {
+    console.error('❌ Email send error:', error);
+    console.error('   Error code:', error.code);
+    console.error('   Error message:', error.message);
+    return { success: false, error, mode: 'console' };
+  }
+}
+
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
   console.log('\n📧 ========== SENDING ADMIN INVITATION EMAIL ==========');
   console.log('To:', email);

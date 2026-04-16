@@ -1,6 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // TODO: Implement rate limiting using Vercel KV or external service
+  // Traditional express-rate-limit doesn't work in serverless environment
+  // Consider using: Vercel Edge Config, Upstash Redis, or database-based tracking
+  
   try {
     // Simple router based on URL path
     const path = req.url || '/';
@@ -1152,6 +1163,17 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         const { username, password } = req.body;
         console.log('📝 Username:', username);
         
+        // Validate input with Zod
+        const { wilmaLoginSchema } = await import('../shared/validationSchemas.js');
+        const validation = wilmaLoginSchema.safeParse(req.body);
+        if (!validation.success) {
+          console.log('❌ Validation failed:', validation.error.errors);
+          return res.status(400).json({ 
+            message: "Invalid input", 
+            errors: validation.error.errors 
+          });
+        }
+        
         if (!username || !password) {
           console.log('❌ Missing credentials');
           return res.status(400).json({ message: "Username and password required" });
@@ -1169,7 +1191,10 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           
           console.log('✅ User found:', wilmaUser.id);
           
-          if (wilmaUser.password !== password) {
+          // Verify password with bcrypt
+          const { verifyPassword } = await import('../server/passwordUtils.js');
+          const isValid = await verifyPassword(password, wilmaUser.password);
+          if (!isValid) {
             console.log('❌ Password mismatch');
             return res.status(401).json({ message: "Invalid username or password" });
           }
@@ -1180,9 +1205,12 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           }
 
           console.log('✅ Login successful for:', username);
-          // Return user without password
+          // Return user without password but include isTemporaryPassword flag
           const { password: _, ...userWithoutPassword } = wilmaUser;
-          return res.status(200).json(userWithoutPassword);
+          return res.status(200).json({
+            ...userWithoutPassword,
+            requiresPasswordChange: wilmaUser.isTemporaryPassword || false
+          });
         } catch (error: any) {
           console.error('❌ Login error:', error);
           return res.status(500).json({ message: "Login failed" });
@@ -1200,6 +1228,33 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           // Normalize username to lowercase
           if (userData.username) {
             userData.username = userData.username.toLowerCase().trim();
+          }
+          
+          // Validate input with Zod
+          const { wilmaUserCreateSchema } = await import('../shared/validationSchemas.js');
+          const validation = wilmaUserCreateSchema.safeParse(userData);
+          if (!validation.success) {
+            console.log('❌ Validation failed:', validation.error.errors);
+            return res.status(400).json({ 
+              message: "Invalid input", 
+              errors: validation.error.errors 
+            });
+          }
+          
+          // Protect owner role - only juusojuusto112@gmail.com can have owner role
+          if (userData.role === 'owner' && userData.email !== 'juusojuusto112@gmail.com') {
+            console.log('❌ Unauthorized attempt to assign owner role');
+            return res.status(403).json({ 
+              message: 'Owner role is reserved for the system owner' 
+            });
+          }
+          
+          // Prevent multiple roles including owner
+          if (userData.roles && userData.roles.includes('owner') && userData.email !== 'juusojuusto112@gmail.com') {
+            console.log('❌ Unauthorized attempt to assign owner role via roles array');
+            return res.status(403).json({ 
+              message: 'Owner role is reserved for the system owner' 
+            });
           }
           
           // Validation
@@ -1225,33 +1280,39 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             return res.status(409).json({ message: "Username already exists" });
           }
           
+          // Import password utilities
+          const { hashPassword } = await import('../server/passwordUtils.js');
+          
           // Generate password if email invitation is requested
+          let plainPassword = '';
           if (sendEmailInvitation) {
-            const generatedPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-            userData.password = generatedPassword;
+            plainPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
             console.log('🔑 Generated password for email invitation');
             
-            // Send email with credentials
+            // Hash the password before storing
+            userData.password = await hashPassword(plainPassword);
+            userData.isTemporaryPassword = true; // Force password change on first login
+            console.log('🔒 Password hashed successfully');
+            
+            // Send email with credentials using new template
             if (userData.email) {
               try {
                 const { sendEmail } = await import('../server/emailService.js');
+                const { getWilmaInvitationEmail } = await import('../server/emailTemplates.js');
+                
+                const emailHtml = getWilmaInvitationEmail({
+                  firstName: userData.firstName,
+                  lastName: userData.lastName,
+                  username: userData.username,
+                  password: plainPassword, // Use plain password for email
+                  role: userData.role,
+                  appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
+                });
+                
                 await sendEmail({
                   to: userData.email,
                   subject: 'Your Wilma Login Credentials - KSYK Maps',
-                  html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                      <h2 style="color: #003d82;">Welcome to Wilma!</h2>
-                      <p>Hello ${userData.firstName} ${userData.lastName},</p>
-                      <p>Your Wilma account has been created. Here are your login credentials:</p>
-                      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <p style="margin: 5px 0;"><strong>Username:</strong> ${userData.username}</p>
-                        <p style="margin: 5px 0;"><strong>Password:</strong> ${generatedPassword}</p>
-                        <p style="margin: 5px 0;"><strong>Role:</strong> ${userData.role}</p>
-                      </div>
-                      <p>You can login at: <a href="${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/wilma">${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/wilma</a></p>
-                      <p style="color: #666; font-size: 12px; margin-top: 30px;">Please change your password after first login.</p>
-                    </div>
-                  `
+                  html: emailHtml
                 });
                 console.log('✅ Email sent successfully to:', userData.email);
               } catch (emailError: any) {
@@ -1259,6 +1320,11 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                 // Continue anyway - user is created
               }
             }
+          } else if (userData.password) {
+            // Hash manually provided password
+            userData.password = await hashPassword(userData.password);
+            userData.isTemporaryPassword = false; // User set their own password
+            console.log('🔒 Manual password hashed successfully');
           }
           
           // Set default values
@@ -1284,8 +1350,42 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         console.log('🔵 PUT /api/wilma/users/' + id);
         
         try {
-          const wilmaUser = await storage.updateWilmaUser(id, req.body);
-          return res.status(200).json(wilmaUser);
+          // Get existing user to check role
+          const existingUser = await storage.getWilmaUser(id);
+          if (!existingUser) {
+            return res.status(404).json({ message: "User not found" });
+          }
+          
+          const updates = req.body;
+          
+          // Protect owner role - prevent changing to/from owner role
+          if (updates.role === 'owner' && existingUser.email !== 'juusojuusto112@gmail.com') {
+            console.log('❌ Unauthorized attempt to assign owner role');
+            return res.status(403).json({ 
+              message: 'Cannot assign owner role' 
+            });
+          }
+          
+          if (existingUser.role === 'owner' && updates.role && updates.role !== 'owner') {
+            console.log('❌ Unauthorized attempt to remove owner role');
+            return res.status(403).json({ 
+              message: 'Cannot remove owner role' 
+            });
+          }
+          
+          // If password is being updated, hash it and clear temporary flag
+          if (updates.password) {
+            const { hashPassword } = await import('../server/passwordUtils.js');
+            updates.password = await hashPassword(updates.password);
+            updates.isTemporaryPassword = false; // Clear temporary password flag
+            console.log('🔒 Password hashed for update and temporary flag cleared');
+          }
+          
+          const wilmaUser = await storage.updateWilmaUser(id, updates);
+          
+          // Remove password from response
+          const { password: _, ...userResponse } = wilmaUser;
+          return res.status(200).json(userResponse);
         } catch (error: any) {
           console.error('❌ Error updating Wilma user:', error);
           return res.status(500).json({ message: "Failed to update Wilma user" });

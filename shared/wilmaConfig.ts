@@ -29,6 +29,7 @@ export const GRADE_MARKS = [
 ];
 
 export const WILMA_ROLES = [
+  { value: 'owner', label: 'Omistaja', labelEn: 'Owner', icon: '👑', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'student', label: 'Oppilas', labelEn: 'Student', icon: '👨‍🎓', color: 'bg-green-100 text-green-800' },
   { value: 'teacher', label: 'Opettaja', labelEn: 'Teacher', icon: '👨‍🏫', color: 'bg-blue-100 text-blue-800' },
   { value: 'substitute', label: 'Sijaisopettaja', labelEn: 'Substitute Teacher', icon: '📝', color: 'bg-sky-100 text-sky-800' },
