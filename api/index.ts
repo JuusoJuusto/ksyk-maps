@@ -1190,10 +1190,34 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           }
           
           console.log('✅ User found:', wilmaUser.id);
+          console.log('🔍 Password in DB starts with:', wilmaUser.password?.substring(0, 10));
           
-          // Verify password with bcrypt
-          const { verifyPassword } = await import('../server/passwordUtils.js');
-          const isValid = await verifyPassword(password, wilmaUser.password);
+          // Check if password is already hashed (starts with $2b$ or $2a$)
+          const isPasswordHashed = wilmaUser.password?.startsWith('$2b$') || wilmaUser.password?.startsWith('$2a$');
+          console.log('🔒 Password is hashed:', isPasswordHashed);
+          
+          let isValid = false;
+          
+          if (isPasswordHashed) {
+            // Verify hashed password with bcrypt
+            const { verifyPassword } = await import('../server/passwordUtils.js');
+            isValid = await verifyPassword(password, wilmaUser.password);
+            console.log('🔐 Bcrypt verification result:', isValid);
+          } else {
+            // Legacy: Plain text password comparison (for migration period)
+            isValid = wilmaUser.password === password;
+            console.log('⚠️ Plain text comparison result:', isValid);
+            
+            // If login successful with plain text, hash the password for next time
+            if (isValid) {
+              console.log('🔄 Migrating plain text password to hashed...');
+              const { hashPassword } = await import('../server/passwordUtils.js');
+              const hashedPassword = await hashPassword(password);
+              await storage.updateWilmaUser(wilmaUser.id, { password: hashedPassword });
+              console.log('✅ Password migrated to hashed format');
+            }
+          }
+          
           if (!isValid) {
             console.log('❌ Password mismatch');
             return res.status(401).json({ message: "Invalid username or password" });
