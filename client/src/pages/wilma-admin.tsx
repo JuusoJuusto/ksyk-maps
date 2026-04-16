@@ -484,7 +484,7 @@ export default function WilmaAdmin() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 }
