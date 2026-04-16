@@ -406,3 +406,95 @@ export function getPasswordResetEmail(data: {
     </html>
   `;
 }
+
+export function getWilmaPasswordResetEmail(data: {
+  name: string;
+  tempPassword: string;
+  appUrl?: string;
+}): string {
+  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset - Wilma</title>
+    </head>
+    <body style="${baseStyles} margin: 0; padding: 20px; background: #1a1a2e;">
+      <div style="${containerStyles}">
+        <!-- Header -->
+        <div style="${headerStyles}">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff;">
+            🔐 Password Reset
+          </h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.9);">
+            Your password has been reset
+          </p>
+        </div>
+
+        <!-- Content -->
+        <div style="${contentStyles}">
+          <p style="font-size: 18px; margin: 0 0 25px 0; color: #ffffff;">
+            Hello <strong>${data.name}</strong>,
+          </p>
+          
+          <p style="font-size: 16px; margin: 0 0 25px 0; color: rgba(255, 255, 255, 0.95);">
+            Your Wilma password has been reset by an administrator. Below is your new temporary password.
+          </p>
+
+          <!-- Password Card -->
+          <div style="${cardStyles}">
+            <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #ffffff; border-bottom: 2px solid rgba(255, 255, 255, 0.2); padding-bottom: 10px;">
+              🔑 Your New Temporary Password
+            </h2>
+            <div style="text-align: center; background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 8px; margin: 15px 0;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 1px;">
+                Temporary Password
+              </p>
+              <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: 2px;">
+                ${data.tempPassword}
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${appUrl}/wilma" style="${buttonStyles}">
+              🚀 Login to Wilma
+            </a>
+          </div>
+
+          <!-- Security Notice -->
+          <div style="background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107; padding: 15px; border-radius: 6px; margin: 25px 0;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #ffffff;">
+              <strong>🔒 Important:</strong>
+            </p>
+            <p style="margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.9);">
+              You will be required to change this password when you log in. Please choose a strong, unique password that you haven't used before.
+            </p>
+          </div>
+
+          <p style="font-size: 14px; margin: 25px 0 0 0; color: rgba(255, 255, 255, 0.8);">
+            If you didn't request this password reset, please contact your administrator immediately.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="${footerStyles}">
+          <p style="margin: 0 0 10px 0;">
+            <strong>KSYK Maps - Wilma System</strong>
+          </p>
+          <p style="margin: 0 0 10px 0;">
+            © 2026 SL Studio. All rights reserved.
+          </p>
+          <p style="margin: 0; font-size: 12px;">
+            This is an automated security email. Please do not reply.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}

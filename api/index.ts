@@ -1205,6 +1205,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           
           console.log('✅ User found:', wilmaUser.id);
           console.log('🔍 Password in DB starts with:', wilmaUser.password?.substring(0, 10));
+          console.log('🔍 Password length:', wilmaUser.password?.length);
+          console.log('🔍 Input password length:', password?.length);
           
           // Check if password is already hashed (starts with $2b$ or $2a$)
           const isPasswordHashed = wilmaUser.password?.startsWith('$2b$') || wilmaUser.password?.startsWith('$2a$');
@@ -1214,9 +1216,16 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           
           if (isPasswordHashed) {
             // Verify hashed password with bcrypt
-            const { verifyPassword } = await import('../server/passwordUtils.js');
-            isValid = await verifyPassword(password, wilmaUser.password);
-            console.log('🔐 Bcrypt verification result:', isValid);
+            try {
+              const { verifyPassword } = await import('../server/passwordUtils.js');
+              isValid = await verifyPassword(password, wilmaUser.password);
+              console.log('🔐 Bcrypt verification result:', isValid);
+            } catch (bcryptError) {
+              console.error('❌ Bcrypt error:', bcryptError);
+              // Fall back to plain text comparison
+              isValid = wilmaUser.password === password;
+              console.log('⚠️ Fallback plain text comparison:', isValid);
+            }
           } else {
             // Legacy: Plain text password comparison (for migration period)
             isValid = wilmaUser.password === password;
@@ -1224,16 +1233,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             
             // If login successful with plain text, hash the password for next time
             if (isValid) {
-              console.log('🔄 Migrating plain text password to hashed...');
-              const { hashPassword } = await import('../server/passwordUtils.js');
-              const hashedPassword = await hashPassword(password);
-              await storage.updateWilmaUser(wilmaUser.id, { password: hashedPassword });
-              console.log('✅ Password migrated to hashed format');
+              try {
+                console.log('🔄 Migrating plain text password to hashed...');
+                const { hashPassword } = await import('../server/passwordUtils.js');
+                const hashedPassword = await hashPassword(password);
+                await storage.updateWilmaUser(wilmaUser.id, { password: hashedPassword });
+                console.log('✅ Password migrated to hashed format');
+              } catch (hashError) {
+                console.error('⚠️ Failed to migrate password (non-critical):', hashError);
+                // Continue anyway - login still works
+              }
             }
           }
           
           if (!isValid) {
-            console.log('❌ Password mismatch');
+            console.log('❌ Password mismatch - tried both hashed and plain text');
+            console.log('❌ Stored password:', wilmaUser.password?.substring(0, 20) + '...');
+            console.log('❌ Input password:', password?.substring(0, 20) + '...');
             return res.status(401).json({ message: "Invalid username or password" });
           }
 
@@ -1441,6 +1457,43 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         } catch (error: any) {
           console.error('❌ Error deleting Wilma user:', error);
           return res.status(500).json({ message: "Failed to delete Wilma user" });
+        }
+      }
+      
+      // POST /wilma/send-password-reset - Send password reset email
+      if (apiPath === '/wilma/send-password-reset' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/send-password-reset called');
+        const { email, name, tempPassword } = req.body;
+        
+        if (!email || !name || !tempPassword) {
+          return res.status(400).json({ message: "Email, name, and tempPassword are required" });
+        }
+        
+        try {
+          const { sendEmail } = await import('../server/emailService.js');
+          const { getWilmaPasswordResetEmail } = await import('../server/emailTemplates.js');
+          
+          const emailHtml = getWilmaPasswordResetEmail({
+            name,
+            tempPassword,
+            appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
+          });
+          
+          const result = await sendEmail({
+            to: email,
+            subject: 'Password Reset - Wilma KSYK Maps',
+            html: emailHtml
+          });
+          
+          if (!result.success) {
+            throw new Error('Failed to send email');
+          }
+          
+          console.log('✅ Password reset email sent to:', email);
+          return res.status(200).json({ success: true, message: 'Password reset email sent' });
+        } catch (error: any) {
+          console.error('❌ Error sending password reset email:', error);
+          return res.status(500).json({ message: "Failed to send password reset email" });
         }
       }
     }

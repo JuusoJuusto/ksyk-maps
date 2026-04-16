@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WILMA_ROLES } from "@shared/wilmaConfig";
 
@@ -273,6 +273,62 @@ export default function EnhancedWilmaUserManager() {
   const handleDeleteUser = (id: string, username: string, name: string) => {
     if (!confirm(`Delete user ${name} (${username})?\n\nThis action cannot be undone.`)) return;
     deleteUserMutation.mutate(id);
+  };
+
+  const handleResetPassword = async (id: string, email: string | undefined, name: string) => {
+    if (!email) {
+      toast({
+        title: "❌ No Email",
+        description: "This user doesn't have an email address. Cannot send password reset.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!confirm(`Reset password for ${name}?\n\nA new temporary password will be generated and sent to ${email}.`)) return;
+
+    try {
+      // Generate new temporary password
+      const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+      
+      // Update user with new password
+      const response = await fetch(`/api/wilma/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          password: tempPassword,
+          isTemporaryPassword: true 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reset password");
+      }
+
+      // Send email with new password
+      const emailResponse = await fetch('/api/wilma/send-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, tempPassword })
+      });
+
+      if (!emailResponse.ok) {
+        throw new Error("Password reset but email failed to send");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
+      toast({
+        title: "✅ Password Reset",
+        description: `New temporary password sent to ${email}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const getRoleConfig = (role: string) => {
@@ -689,6 +745,15 @@ export default function EnhancedWilmaUserManager() {
                                   className="h-8 w-8 p-0"
                                 >
                                   <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResetPassword(user.id, user.email, `${user.firstName} ${user.lastName}`)}
+                                  title="Reset password"
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                >
+                                  <Lock className="h-3 w-3 md:h-4 md:w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
