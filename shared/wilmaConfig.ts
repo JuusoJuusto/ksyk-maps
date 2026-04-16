@@ -85,7 +85,7 @@ export const NOTIFICATION_TYPES = [
   { value: 'grade', label: 'Arvosana', labelEn: 'Grade', icon: '📊', color: 'bg-blue-100' },
   { value: 'assignment', label: 'Tehtävä', labelEn: 'Assignment', icon: '📝', color: 'bg-green-100' },
   { value: 'message', label: 'Viesti', labelEn: 'Message', icon: '💬', color: 'bg-purple-100' },
-  { value: 'attendance', label: 'Poissaolo', labelEn: 'Attendance', icon: '📅', color: 'bg-orange-100' },
+  { value: 'attendance', label: 'Tuntimerkintä', labelEn: 'Attendance', icon: '📅', color: 'bg-orange-100' },
   { value: 'exam', label: 'Koe', labelEn: 'Exam', icon: '📋', color: 'bg-red-100' },
   { value: 'announcement', label: 'Tiedote', labelEn: 'Announcement', icon: '📢', color: 'bg-yellow-100' },
   { value: 'schedule', label: 'Lukujärjestys', labelEn: 'Schedule', icon: '📆', color: 'bg-cyan-100' },

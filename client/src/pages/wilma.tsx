@@ -192,7 +192,7 @@ export default function Wilma() {
       loginInstructions: 'Kirjaudu sisään käyttäjätunnuksellasi ja salasanallasi',
       noAccount: 'Eikö sinulla ole tunnuksia? Ota yhteyttä ylläpitäjään.',
       notifications: 'Ilmoitukset', frontpage: 'Etusivu', schedule: 'Lukujärjestys',
-      grades: 'Arvosanat', assignments: 'Tehtävät', messages: 'Viestit', attendance: 'Poissaolot',
+      grades: 'Arvosanat', assignments: 'Tehtävät', messages: 'Viestit', attendance: 'Tuntimerkinnät',
       exams: 'Kokeet', students: 'Oppilaat', teachers: 'Opettajat', rooms: 'Huoneet',
       courses: 'Kurssit', reports: 'Raportit', logout: 'Kirjaudu ulos', gradeAverage: 'Keskiarvo',
       role: 'Rooli', teacher: 'Opettaja', student: 'Oppilas', parent: 'Huoltaja', admin: 'Ylläpitäjä',
