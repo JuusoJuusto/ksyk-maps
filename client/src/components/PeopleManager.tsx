@@ -91,49 +91,51 @@ export default function PeopleManager() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-2 md:p-0">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="bg-white border-2 border-gray-200">
-            <TabsTrigger value="students" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4">
+          <TabsList className="bg-white border-2 border-gray-200 w-full md:w-auto">
+            <TabsTrigger value="students" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white flex-1 md:flex-none">
               <User className="w-4 h-4 mr-2" />
-              Opiskelijat
+              <span className="text-sm md:text-base">Opiskelijat</span>
             </TabsTrigger>
-            <TabsTrigger value="parents" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <TabsTrigger value="parents" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white flex-1 md:flex-none">
               <Users className="w-4 h-4 mr-2" />
-              Huoltajat
+              <span className="text-sm md:text-base">Huoltajat</span>
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex gap-2">
-            <div className="relative">
+          <div className="flex flex-col md:flex-row gap-2">
+            <div className="relative flex-1 md:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder={`Hae ${activeSubTab === "students" ? "opiskelijoita" : "huoltajia"}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
+                className="pl-10 w-full md:w-64"
               />
             </div>
             {activeSubTab === "students" && (
               <Button 
                 onClick={() => setShowBulkEmailDialog(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full md:w-auto"
+                size="sm"
               >
                 <Mail className="w-4 h-4 mr-2" />
-                Lähetä sähköpostit
+                <span className="text-sm">Lähetä sähköpostit</span>
               </Button>
             )}
             <Button 
-              className={activeSubTab === "students" ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"}
+              className={`${activeSubTab === "students" ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} w-full md:w-auto`}
               onClick={() => {
                 const currentPath = window.location.pathname;
-                const adminId = currentPath.split('/')[2]; // Extract admin ID from URL
+                const adminId = currentPath.split('/')[2];
                 setLocation(`/wilma-admin/${adminId}/add-student`);
               }}
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Lisää {activeSubTab === "students" ? "opiskelija" : "huoltaja"}
+              <span className="text-sm">Lisää {activeSubTab === "students" ? "opiskelija" : "huoltaja"}</span>
             </Button>
           </div>
         </div>
@@ -145,67 +147,67 @@ export default function PeopleManager() {
               <p className="text-gray-600">Ladataan opiskelijoita...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {filteredStudents.map((student: any) => (
                 <Card key={student.id} className="hover:shadow-lg transition-shadow border-2 border-blue-100">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 md:p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-blue-600" />
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                         </div>
-                        <div>
-                          <p className="font-semibold text-lg">{student.firstName} {student.lastName}</p>
-                          <p className="text-sm text-gray-600">{student.studentId}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-base md:text-lg truncate">{student.firstName} {student.lastName}</p>
+                          <p className="text-xs md:text-sm text-gray-600">{student.studentId}</p>
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
                       <p className="flex items-center gap-2 text-gray-700">
-                        <span className="font-medium">Class:</span> {student.studentClass}
+                        <span className="font-medium">Luokka:</span> {student.studentClass}
                       </p>
-                      <p className="flex items-center gap-2 text-gray-700">
-                        <Mail className="w-3 h-3" />
-                        {student.email}
+                      <p className="flex items-center gap-2 text-gray-700 truncate">
+                        <Mail className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{student.email}</span>
                       </p>
                       {student.phone && (
                         <p className="flex items-center gap-2 text-gray-700">
-                          <Phone className="w-3 h-3" />
+                          <Phone className="w-3 h-3 flex-shrink-0" />
                           {student.phone}
                         </p>
                       )}
                       {student.address && (
-                        <p className="flex items-center gap-2 text-gray-700">
-                          <MapPin className="w-3 h-3" />
-                          {student.address}, {student.city}
+                        <p className="flex items-center gap-2 text-gray-700 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{student.address}, {student.city}</span>
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2 mt-4 pt-4 border-t">
+                    <div className="flex gap-2 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="flex-1"
+                        className="flex-1 text-xs md:text-sm"
                         onClick={() => {
                           const currentPath = window.location.pathname;
                           const adminId = currentPath.split('/')[2];
                           setLocation(`/wilma-admin/${adminId}/student/${student.id}`);
                         }}
                       >
-                        <Edit className="w-4 h-4 mr-1" />
+                        <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                         Muokkaa
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="text-red-600 hover:bg-red-50"
+                        className="text-red-600 hover:bg-red-50 px-2 md:px-3"
                         onClick={() => {
                           if (confirm(`Poista ${student.firstName} ${student.lastName}?`)) {
                             deleteStudentMutation.mutate(student.id);
                           }
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     </div>
                   </CardContent>
@@ -224,61 +226,61 @@ export default function PeopleManager() {
           {parentsLoading ? (
             <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Loading parents...</p>
+              <p className="text-gray-600">Ladataan huoltajia...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {filteredParents.map((parent: any) => (
                 <Card key={parent.id} className="hover:shadow-lg transition-shadow border-2 border-purple-100">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 md:p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Users className="w-6 h-6 text-purple-600" />
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                         </div>
-                        <div>
-                          <p className="font-semibold text-lg">{parent.firstName} {parent.lastName}</p>
-                          <p className="text-sm text-gray-600">{parent.relationship || "Parent"}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-base md:text-lg truncate">{parent.firstName} {parent.lastName}</p>
+                          <p className="text-xs md:text-sm text-gray-600">{parent.relationship || "Huoltaja"}</p>
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2 text-sm">
-                      <p className="flex items-center gap-2 text-gray-700">
-                        <Mail className="w-3 h-3" />
-                        {parent.email}
+                    <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
+                      <p className="flex items-center gap-2 text-gray-700 truncate">
+                        <Mail className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{parent.email}</span>
                       </p>
                       {parent.phone && (
                         <p className="flex items-center gap-2 text-gray-700">
-                          <Phone className="w-3 h-3" />
+                          <Phone className="w-3 h-3 flex-shrink-0" />
                           {parent.phone}
                         </p>
                       )}
                       <p className="flex items-center gap-2 text-gray-700">
-                        <LinkIcon className="w-3 h-3" />
-                        {parent.studentIds?.length || 0} student(s) linked
+                        <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                        {parent.studentIds?.length || 0} opiskelijaa linkitetty
                       </p>
                     </div>
-                    <div className="flex gap-2 mt-4 pt-4 border-t">
+                    <div className="flex gap-2 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="flex-1"
+                        className="flex-1 text-xs md:text-sm"
                         onClick={() => setLocation(`/wilma-admin/parent/${parent.id}`)}
                       >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                        <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                        Muokkaa
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="text-red-600 hover:bg-red-50"
+                        className="text-red-600 hover:bg-red-50 px-2 md:px-3"
                         onClick={() => {
-                          if (confirm(`Delete ${parent.firstName} ${parent.lastName}?`)) {
+                          if (confirm(`Poista ${parent.firstName} ${parent.lastName}?`)) {
                             deleteParentMutation.mutate(parent.id);
                           }
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     </div>
                   </CardContent>
@@ -286,7 +288,7 @@ export default function PeopleManager() {
               ))}
               {filteredParents.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
-                  No parents found
+                  Ei huoltajia
                 </div>
               )}
             </div>
@@ -296,26 +298,27 @@ export default function PeopleManager() {
 
       {/* Bulk Email Dialog */}
       {showBulkEmailDialog && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-3 md:p-4">
           <Card className="w-full max-w-md">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <Mail className="w-5 h-5 text-green-600" />
                 Lähetä tervetulosähköpostit
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <p className="mb-4">
+            <CardContent className="p-4 md:p-6">
+              <p className="mb-3 md:mb-4 text-sm md:text-base">
                 Haluatko lähettää tervetulosähköpostit kaikille opiskelijoille ja heidän huoltajilleen?
               </p>
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
                 Sähköpostit lähetetään vain opiskelijoille, joilla on väliaikainen salasana.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col md:flex-row gap-2 md:gap-3">
                 <Button
                   onClick={() => bulkEmailMutation.mutate()}
                   disabled={bulkEmailMutation.isPending}
                   className="flex-1 bg-green-600 hover:bg-green-700"
+                  size="sm"
                 >
                   {bulkEmailMutation.isPending ? 'Lähetetään...' : 'Lähetä'}
                 </Button>
@@ -323,6 +326,7 @@ export default function PeopleManager() {
                   onClick={() => setShowBulkEmailDialog(false)}
                   variant="outline"
                   disabled={bulkEmailMutation.isPending}
+                  size="sm"
                 >
                   Peruuta
                 </Button>

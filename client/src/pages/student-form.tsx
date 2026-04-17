@@ -120,13 +120,34 @@ export default function StudentForm() {
       const url = isEdit ? `/api/wilma/users/${studentId}` : "/api/wilma/users";
       const method = isEdit ? "PUT" : "POST";
       
+      // Clean data - remove parent 2 fields if not enabled
+      const cleanData = { ...data };
+      if (!data.hasParent2) {
+        delete cleanData.parent2FirstName;
+        delete cleanData.parent2LastName;
+        delete cleanData.parent2Email;
+        delete cleanData.parent2Phone;
+        delete cleanData.parent2Relationship;
+      }
+      
+      // Remove secondary address fields if not enabled
+      if (!data.hasSecondAddress) {
+        delete cleanData.address2;
+        delete cleanData.city2;
+        delete cleanData.postalCode2;
+      }
+      
+      // Remove hasParent2 and hasSecondAddress flags (not needed in DB)
+      delete cleanData.hasParent2;
+      delete cleanData.hasSecondAddress;
+      
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
+          ...cleanData,
           role: "student",
-          username: data.email.split('@')[0],
+          username: cleanData.email ? cleanData.email.split('@')[0] : `${cleanData.firstName}.${cleanData.lastName}`.toLowerCase(),
           password: isEdit ? undefined : `Student${Math.random().toString(36).slice(-8)}!`,
           isActive: true,
           isTemporaryPassword: !isEdit
@@ -152,19 +173,20 @@ export default function StudentForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 md:p-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
           <Button
             variant="outline"
             onClick={() => setLocation(`/wilma-admin/${adminId}/students`)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full md:w-auto"
+            size="sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Takaisin hallintaan
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {isEdit ? "Muokkaa opiskelijaa" : "Lisää uusi opiskelija"}
           </h1>
         </div>
@@ -202,14 +224,31 @@ export default function StudentForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Sähköposti (Email) *</Label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
+                  <Label>Sähköposti (Email)</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="etunimi.sukunimi@ksyk.fi"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const autoEmail = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@ksyk.fi`;
+                        setFormData({ ...formData, email: autoEmail });
+                      }}
+                      disabled={!formData.firstName || !formData.lastName}
+                      className="whitespace-nowrap"
+                    >
+                      Luo automaattisesti
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Jätetään tyhjäksi jos haluat luoda automaattisesti
+                  </p>
                 </div>
                 <div>
                   <Label>Luokka (Class) *</Label>
@@ -225,7 +264,7 @@ export default function StudentForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Date of Birth</Label>
+                  <Label>Syntymäaika (Date of Birth)</Label>
                   <Input
                     type="date"
                     value={formData.dateOfBirth}
@@ -234,11 +273,12 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Phone</Label>
+                  <Label>Puhelin (Phone)</Label>
                   <Input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+358 XX XXX XXXX"
                     className="mt-1"
                   />
                 </div>
@@ -251,22 +291,22 @@ export default function StudentForm() {
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
               <CardTitle className="flex items-center gap-2">
                 <Home className="w-5 h-5 text-green-600" />
-                Primary Address
+                Ensisijainen osoite (Primary Address)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div>
-                <Label>Street Address</Label>
+                <Label>Katuosoite (Street Address)</Label>
                 <Input
                   value={formData.address1}
                   onChange={(e) => setFormData({ ...formData, address1: e.target.value })}
-                  placeholder="Street name and number"
+                  placeholder="Kadun nimi ja numero"
                   className="mt-1"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>City</Label>
+                  <Label>Kaupunki (City)</Label>
                   <Input
                     value={formData.city1}
                     onChange={(e) => setFormData({ ...formData, city1: e.target.value })}
@@ -274,7 +314,7 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Postal Code</Label>
+                  <Label>Postinumero (Postal Code)</Label>
                   <Input
                     value={formData.postalCode1}
                     onChange={(e) => setFormData({ ...formData, postalCode1: e.target.value })}
@@ -291,7 +331,7 @@ export default function StudentForm() {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Home className="w-5 h-5 text-orange-600" />
-                  Secondary Address (Optional)
+                  Toissijainen osoite (Secondary Address) - Valinnainen
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -300,7 +340,7 @@ export default function StudentForm() {
                     onChange={(e) => setFormData({ ...formData, hasSecondAddress: e.target.checked })}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm font-normal">Has second address</span>
+                  <span className="text-sm font-normal">Toinen osoite</span>
                 </label>
               </CardTitle>
             </CardHeader>
@@ -309,21 +349,21 @@ export default function StudentForm() {
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
                   <p className="text-sm text-orange-800">
                     <AlertCircle className="w-4 h-4 inline mr-2" />
-                    Use this for students with divorced parents or split custody arrangements
+                    Käytä tätä opiskelijoille, joilla on eronnut vanhemmat tai jaettu huoltajuus
                   </p>
                 </div>
                 <div>
-                  <Label>Street Address</Label>
+                  <Label>Katuosoite (Street Address)</Label>
                   <Input
                     value={formData.address2}
                     onChange={(e) => setFormData({ ...formData, address2: e.target.value })}
-                    placeholder="Street name and number"
+                    placeholder="Kadun nimi ja numero"
                     className="mt-1"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>City</Label>
+                    <Label>Kaupunki (City)</Label>
                     <Input
                       value={formData.city2}
                       onChange={(e) => setFormData({ ...formData, city2: e.target.value })}
@@ -331,7 +371,7 @@ export default function StudentForm() {
                     />
                   </div>
                   <div>
-                    <Label>Postal Code</Label>
+                    <Label>Postinumero (Postal Code)</Label>
                     <Input
                       value={formData.postalCode2}
                       onChange={(e) => setFormData({ ...formData, postalCode2: e.target.value })}
@@ -348,22 +388,22 @@ export default function StudentForm() {
             <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50">
               <CardTitle className="flex items-center gap-2">
                 <Phone className="w-5 h-5 text-red-600" />
-                Emergency Contact
+                Hätäyhteystieto (Emergency Contact)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Contact Name</Label>
+                  <Label>Yhteyshenkilön nimi (Contact Name)</Label>
                   <Input
                     value={formData.emergencyContact}
                     onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                    placeholder="Full name"
+                    placeholder="Koko nimi"
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label>Contact Phone</Label>
+                  <Label>Puhelinnumero (Contact Phone)</Label>
                   <Input
                     type="tel"
                     value={formData.emergencyPhone}
@@ -373,11 +413,11 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Relationship</Label>
+                  <Label>Suhde (Relationship)</Label>
                   <Input
                     value={formData.emergencyRelationship}
                     onChange={(e) => setFormData({ ...formData, emergencyRelationship: e.target.value })}
-                    placeholder="e.g., Mother, Father, Guardian"
+                    placeholder="esim. Äiti, Isä, Huoltaja"
                     className="mt-1"
                   />
                 </div>
@@ -390,34 +430,34 @@ export default function StudentForm() {
             <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
               <CardTitle className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-purple-600" />
-                Medical Information
+                Terveystiedot (Medical Information)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div>
-                <Label>Allergies</Label>
+                <Label>Allergiat (Allergies)</Label>
                 <Input
                   value={formData.allergies}
                   onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                  placeholder="Food allergies, environmental allergies, etc."
+                  placeholder="Ruoka-allergiat, ympäristöallergiat jne."
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label>Medications</Label>
+                <Label>Lääkitys (Medications)</Label>
                 <Input
                   value={formData.medications}
                   onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                  placeholder="Regular medications"
+                  placeholder="Säännöllinen lääkitys"
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label>Other Medical Information</Label>
+                <Label>Muut terveystiedot (Other Medical Information)</Label>
                 <textarea
                   value={formData.medicalInfo}
                   onChange={(e) => setFormData({ ...formData, medicalInfo: e.target.value })}
-                  placeholder="Chronic conditions, special needs, etc."
+                  placeholder="Krooniset sairaudet, erityistarpeet jne."
                   className="w-full border rounded-md px-3 py-2 mt-1 min-h-[100px]"
                 />
               </div>
@@ -576,24 +616,24 @@ export default function StudentForm() {
             <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-gray-600" />
-                Additional Notes
+                Lisätiedot (Additional Notes)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Any additional information about the student..."
+                placeholder="Muita tietoja opiskelijasta..."
                 className="w-full border rounded-md px-3 py-2 min-h-[120px]"
               />
             </CardContent>
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border-2 border-blue-200">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4 sticky bottom-2 md:bottom-4 bg-white p-3 md:p-4 rounded-lg shadow-lg border-2 border-blue-200">
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 text-lg"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 text-base md:text-lg"
               disabled={saveMutation.isPending}
             >
               <Save className="w-5 h-5 mr-2" />
@@ -603,7 +643,7 @@ export default function StudentForm() {
               type="button"
               variant="outline"
               onClick={() => setLocation(`/wilma-admin/${adminId}/students`)}
-              className="h-12"
+              className="h-12 md:w-auto"
             >
               Peruuta
             </Button>

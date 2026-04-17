@@ -105,21 +105,21 @@ export default function WilmaAdmin() {
             <div className="flex-1 min-w-0">
               <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
                 <GraduationCap className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
-                <span className="truncate">Wilma {isAdmin ? 'Admin' : 'Teacher'}</span>
+                <span className="truncate">Wilma {isAdmin ? 'Hallinta' : 'Opettaja'}</span>
               </h1>
               <p className="text-blue-100 mt-1 flex items-center gap-2 text-xs md:text-base">
                 <User className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="truncate">{currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Administrator' : 'Teacher'}</span>
+                <span className="truncate">{currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Ylläpitäjä' : 'Opettaja'}</span>
               </p>
             </div>
             <div className="flex gap-2 md:gap-3 ml-2">
               <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
                 <Home className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Home</span>
+                <span className="hidden md:inline">Etusivu</span>
               </Button>
               <Button onClick={handleLogout} className="bg-red-500/80 hover:bg-red-600 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
                 <LogOut className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Logout</span>
+                <span className="hidden md:inline">Kirjaudu ulos</span>
               </Button>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <Users className="w-4 h-4" />
-              <span className="font-medium">Staff</span>
+              <span className="font-medium">Henkilökunta</span>
             </Button>
             
             <Button
@@ -174,7 +174,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <Calendar className="w-4 h-4" />
-              <span className="font-medium">Schedule</span>
+              <span className="font-medium">Lukujärjestys</span>
             </Button>
             
             <Button
@@ -189,7 +189,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span className="font-medium">Courses</span>
+              <span className="font-medium">Kurssit</span>
             </Button>
             
             <Button
@@ -204,7 +204,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <GraduationCap className="w-4 h-4" />
-              <span className="font-medium">Teachers</span>
+              <span className="font-medium">Opettajat</span>
             </Button>
             
             <Button
@@ -219,7 +219,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <Building className="w-4 h-4" />
-              <span className="font-medium">Rooms</span>
+              <span className="font-medium">Tilat</span>
             </Button>
             
             <Button
@@ -234,7 +234,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <Bell className="w-4 h-4" />
-              <span className="font-medium">Announcements</span>
+              <span className="font-medium">Ilmoitukset</span>
             </Button>
             
             <Button
@@ -249,7 +249,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              <span className="font-medium">Analytics</span>
+              <span className="font-medium">Analytiikka</span>
             </Button>
             
             <Button
@@ -264,7 +264,7 @@ export default function WilmaAdmin() {
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span className="font-medium">Settings</span>
+              <span className="font-medium">Asetukset</span>
             </Button>
           </div>
         </div>

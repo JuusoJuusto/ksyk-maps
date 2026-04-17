@@ -83,13 +83,17 @@ export default function EnhancedWilmaUserManager() {
     sendEmailInvitation: false
   });
 
-  // Fetch Wilma users
+  // Fetch Wilma users (excluding students and parents for staff tab)
   const { data: wilmaUsers = [], isLoading } = useQuery({
     queryKey: ["wilma-users"],
     queryFn: async () => {
       const response = await fetch("/api/wilma/users");
       if (!response.ok) throw new Error("Failed to fetch Wilma users");
-      return response.json();
+      const allUsers = await response.json();
+      // Filter out students and parents - they have their own tab
+      return allUsers.filter((user: WilmaUser) => 
+        user.role !== 'student' && user.role !== 'parent'
+      );
     },
   });
 
@@ -359,10 +363,10 @@ export default function EnhancedWilmaUserManager() {
 
   const stats = {
     total: wilmaUsers.length,
-    students: wilmaUsers.filter((u: WilmaUser) => u.role === 'student').length,
+    students: 0, // Students are in their own tab
     teachers: wilmaUsers.filter((u: WilmaUser) => u.role === 'teacher').length,
-    parents: wilmaUsers.filter((u: WilmaUser) => u.role === 'parent').length,
-    staff: wilmaUsers.filter((u: WilmaUser) => ['staff', 'social_worker', 'counselor', 'nurse', 'principal'].includes(u.role)).length,
+    parents: 0, // Parents are in their own tab
+    staff: wilmaUsers.filter((u: WilmaUser) => ['admin', 'principal', 'vice_principal', 'counselor', 'social_worker', 'nurse', 'psychologist', 'special_ed_teacher', 'assistant', 'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'substitute_teacher', 'student_teacher', 'custom'].includes(u.role)).length,
   };
 
   return (
