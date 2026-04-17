@@ -67,6 +67,8 @@ function Router() {
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma-admin" component={WilmaAdmin} />
+      <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
+      <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />
       <Route path="/wilma/teacher/:teacherId" component={WilmaTeacher} />
       <Route path="/wilma/teacher/:teacherId/:section" component={WilmaTeacher} />
       <Route path="/wilma/:studentId" component={Wilma} />

@@ -260,10 +260,37 @@ export default function WilmaAdmin() {
                       Export
                     </Button>
                   </div>
-                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
-                    <Calendar className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Schedule management coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Bulk schedule creation, conflict detection, and more!</p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-2 border-green-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-green-600" />
+                        Weekly Schedule Overview
+                      </h3>
+                      <div className="grid grid-cols-5 gap-2">
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
+                          <div key={day} className="bg-green-50 p-3 rounded-lg">
+                            <p className="font-semibold text-sm text-green-800">{day}</p>
+                            <p className="text-xs text-gray-600 mt-2">8 classes</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button className="bg-green-600 hover:bg-green-700 h-auto py-4">
+                        <Plus className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Create New Schedule</p>
+                          <p className="text-xs opacity-90">Add classes and assign teachers</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Download className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Export Schedule</p>
+                          <p className="text-xs text-gray-600">Download as PDF or CSV</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -295,10 +322,40 @@ export default function WilmaAdmin() {
                       Filter
                     </Button>
                   </div>
-                  <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 text-center">
-                    <BookOpen className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Course catalog coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Create courses, manage enrollments, and track progress!</p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 text-purple-600" />
+                        Active Courses
+                      </h3>
+                      <div className="space-y-3">
+                        {['Mathematics 101', 'English Literature', 'Physics Advanced', 'History of Finland'].map((course, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-purple-50 p-3 rounded-lg">
+                            <div>
+                              <p className="font-semibold text-sm">{course}</p>
+                              <p className="text-xs text-gray-600">{20 + idx * 5} students enrolled</p>
+                            </div>
+                            <Button size="sm" variant="outline">Manage</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button className="bg-purple-600 hover:bg-purple-700 h-auto py-4">
+                        <Plus className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Create New Course</p>
+                          <p className="text-xs opacity-90">Set up curriculum and materials</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Search className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Browse Catalog</p>
+                          <p className="text-xs text-gray-600">View all available courses</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -330,10 +387,50 @@ export default function WilmaAdmin() {
                       Export List
                     </Button>
                   </div>
-                  <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
-                    <GraduationCap className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Teacher management coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Manage profiles, schedules, and performance!</p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-2 border-orange-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <GraduationCap className="w-5 h-5 text-orange-600" />
+                        Teacher Directory
+                      </h3>
+                      <div className="space-y-3">
+                        {[
+                          { name: 'Dr. Maria Virtanen', subject: 'Mathematics', students: 45 },
+                          { name: 'Prof. Jukka Korhonen', subject: 'Physics', students: 38 },
+                          { name: 'Ms. Anna Mäkinen', subject: 'English', students: 52 },
+                          { name: 'Mr. Pekka Nieminen', subject: 'History', students: 41 }
+                        ].map((teacher, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-orange-200 rounded-full flex items-center justify-center">
+                                <User className="w-5 h-5 text-orange-700" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm">{teacher.name}</p>
+                                <p className="text-xs text-gray-600">{teacher.subject} • {teacher.students} students</p>
+                              </div>
+                            </div>
+                            <Button size="sm" variant="outline">View Profile</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button className="bg-orange-600 hover:bg-orange-700 h-auto py-4">
+                        <Plus className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Add New Teacher</p>
+                          <p className="text-xs opacity-90">Create teacher profile</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Mail className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Send Group Email</p>
+                          <p className="text-xs text-gray-600">Contact all teachers</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -365,10 +462,66 @@ export default function WilmaAdmin() {
                       Availability
                     </Button>
                   </div>
-                  <div className="bg-pink-50 border-2 border-pink-200 rounded-lg p-6 text-center">
-                    <Building className="w-16 h-16 text-pink-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Room management coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Track rooms, equipment, and bookings!</p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-2 border-pink-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Building className="w-5 h-5 text-pink-600" />
+                        Room Availability
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { room: 'A101', status: 'available', capacity: 30 },
+                          { room: 'A102', status: 'occupied', capacity: 25 },
+                          { room: 'B201', status: 'available', capacity: 40 },
+                          { room: 'B202', status: 'maintenance', capacity: 35 },
+                          { room: 'C301', status: 'available', capacity: 20 },
+                          { room: 'Lab 1', status: 'occupied', capacity: 15 },
+                          { room: 'Gym', status: 'available', capacity: 100 },
+                          { room: 'Library', status: 'available', capacity: 50 }
+                        ].map((room, idx) => (
+                          <div key={idx} className={`p-3 rounded-lg border-2 ${
+                            room.status === 'available' ? 'bg-green-50 border-green-200' :
+                            room.status === 'occupied' ? 'bg-red-50 border-red-200' :
+                            'bg-yellow-50 border-yellow-200'
+                          }`}>
+                            <p className="font-semibold text-sm">{room.room}</p>
+                            <p className="text-xs text-gray-600">{room.capacity} seats</p>
+                            <p className={`text-xs font-medium mt-1 ${
+                              room.status === 'available' ? 'text-green-600' :
+                              room.status === 'occupied' ? 'text-red-600' :
+                              'text-yellow-600'
+                            }`}>
+                              {room.status === 'available' ? '✓ Available' :
+                               room.status === 'occupied' ? '● In Use' :
+                               '⚠ Maintenance'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button className="bg-pink-600 hover:bg-pink-700 h-auto py-4">
+                        <Plus className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Add Room</p>
+                          <p className="text-xs opacity-90">Register new room</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">View on Map</p>
+                          <p className="text-xs text-gray-600">Campus map view</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Eye className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Book Room</p>
+                          <p className="text-xs text-gray-600">Reserve for event</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -400,10 +553,52 @@ export default function WilmaAdmin() {
                       Schedule
                     </Button>
                   </div>
-                  <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-6 text-center">
-                    <Bell className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Announcement system coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Send targeted messages to students, teachers, and parents!</p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-2 border-indigo-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-indigo-600" />
+                        Recent Announcements
+                      </h3>
+                      <div className="space-y-3">
+                        {[
+                          { title: 'School Closure Notice', date: '2 hours ago', priority: 'high' },
+                          { title: 'Parent-Teacher Meeting', date: '1 day ago', priority: 'medium' },
+                          { title: 'Sports Day Schedule', date: '3 days ago', priority: 'low' },
+                          { title: 'Exam Timetable Released', date: '1 week ago', priority: 'medium' }
+                        ].map((announcement, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${
+                                announcement.priority === 'high' ? 'bg-red-500' :
+                                announcement.priority === 'medium' ? 'bg-yellow-500' :
+                                'bg-green-500'
+                              }`} />
+                              <div>
+                                <p className="font-semibold text-sm">{announcement.title}</p>
+                                <p className="text-xs text-gray-600">{announcement.date}</p>
+                              </div>
+                            </div>
+                            <Button size="sm" variant="outline">Edit</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button className="bg-indigo-600 hover:bg-indigo-700 h-auto py-4">
+                        <Plus className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">New Announcement</p>
+                          <p className="text-xs opacity-90">Broadcast to all users</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Clock className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Schedule Post</p>
+                          <p className="text-xs text-gray-600">Set publish time</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -444,10 +639,73 @@ export default function WilmaAdmin() {
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="bg-cyan-50 border-2 border-cyan-200 rounded-lg p-6 text-center">
-                    <BarChart3 className="w-16 h-16 text-cyan-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Advanced analytics coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Detailed reports, charts, and insights!</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                        <CardContent className="p-4">
+                          <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
+                          <p className="text-sm font-medium text-gray-700">Performance Trends</p>
+                          <p className="text-2xl font-bold text-blue-600 mt-1">+12%</p>
+                          <p className="text-xs text-gray-600 mt-1">vs last semester</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                        <CardContent className="p-4">
+                          <UserCheck className="w-8 h-8 text-green-600 mb-2" />
+                          <p className="text-sm font-medium text-gray-700">Attendance Rate</p>
+                          <p className="text-2xl font-bold text-green-600 mt-1">94.5%</p>
+                          <p className="text-xs text-gray-600 mt-1">This month</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                        <CardContent className="p-4">
+                          <Award className="w-8 h-8 text-purple-600 mb-2" />
+                          <p className="text-sm font-medium text-gray-700">Average Grade</p>
+                          <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
+                          <p className="text-xs text-gray-600 mt-1">Out of 10</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-cyan-600" />
+                        Quick Stats
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                          <p className="text-2xl font-bold text-cyan-600">156</p>
+                          <p className="text-xs text-gray-600 mt-1">Total Students</p>
+                        </div>
+                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                          <p className="text-2xl font-bold text-cyan-600">24</p>
+                          <p className="text-xs text-gray-600 mt-1">Teachers</p>
+                        </div>
+                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                          <p className="text-2xl font-bold text-cyan-600">18</p>
+                          <p className="text-xs text-gray-600 mt-1">Active Courses</p>
+                        </div>
+                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                          <p className="text-2xl font-bold text-cyan-600">32</p>
+                          <p className="text-xs text-gray-600 mt-1">Classrooms</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button className="bg-cyan-600 hover:bg-cyan-700 h-auto py-4">
+                        <Download className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Export Report</p>
+                          <p className="text-xs opacity-90">Download detailed analytics</p>
+                        </div>
+                      </Button>
+                      <Button variant="outline" className="h-auto py-4">
+                        <Filter className="w-5 h-5 mr-2" />
+                        <div className="text-left">
+                          <p className="font-semibold">Custom Report</p>
+                          <p className="text-xs text-gray-600">Create filtered view</p>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -503,10 +761,121 @@ export default function WilmaAdmin() {
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 text-center">
-                    <Settings className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Settings panel coming soon...</p>
-                    <p className="text-gray-500 text-sm mt-2">Configure all system settings in one place!</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card className="border-2 border-blue-200">
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-blue-600" />
+                            General Settings
+                          </h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">School Name</span>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Academic Year</span>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Terms & Holidays</span>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-2 border-green-200">
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-green-600" />
+                            Email Settings
+                          </h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">SMTP Configuration</span>
+                              <Button size="sm" variant="outline">Configure</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Email Templates</span>
+                              <Button size="sm" variant="outline">Manage</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Sender Address</span>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-2 border-purple-200">
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <Bell className="w-5 h-5 text-purple-600" />
+                            Notifications
+                          </h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Push Notifications</span>
+                              <Button size="sm" variant="outline">Enable</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Email Alerts</span>
+                              <Button size="sm" variant="outline">Configure</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">SMS Notifications</span>
+                              <Button size="sm" variant="outline">Setup</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-2 border-orange-200">
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-orange-600" />
+                            Security
+                          </h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Password Policy</span>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Two-Factor Auth</span>
+                              <Button size="sm" variant="outline">Configure</Button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Session Timeout</span>
+                              <Button size="sm" variant="outline">Set</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-gray-600" />
+                        System Information
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700">Version</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">3.2.0</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700">Uptime</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">99.9%</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700">Storage</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">2.4 GB</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700">Users</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">180</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

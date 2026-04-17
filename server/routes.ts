@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
+import { rateLimiters } from "./rateLimiter";
+import { registerDemoRoutes } from "./demoRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging helper
@@ -102,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin login endpoint  
-  app.post('/api/auth/admin-login', async (req, res) => {
+  app.post('/api/auth/admin-login', rateLimiters.auth, async (req, res) => {
     try {
       const { email, password } = req.body;
       
@@ -484,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Change password endpoint
-  app.post('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/change-password', rateLimiters.passwordReset, isAuthenticated, async (req: any, res) => {
     try {
       const { newPassword } = req.body;
       const userId = req.user.claims.sub;
@@ -1103,7 +1105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/wilma/login', async (req, res) => {
+  app.post('/api/wilma/login', rateLimiters.auth, async (req, res) => {
     try {
       console.log('🔐 POST /api/wilma/login called');
       const { username, password } = req.body;
@@ -2561,6 +2563,9 @@ https://ksykmaps.vercel.app
       });
     }
   });
+
+  // Register demo routes
+  registerDemoRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

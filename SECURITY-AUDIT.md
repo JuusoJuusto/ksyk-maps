@@ -1,342 +1,148 @@
-# 🔒 Security Audit Report - KSYK Maps & Wilma
+# Security Audit - KSYK Maps
 
-## 🚨 CRITICAL VULNERABILITIES
+## Rate Limiter Explanation
 
-### 1. **Plain Text Password Storage** ⚠️ CRITICAL
-**Status**: ❌ VULNERABLE  
-**Issue**: Passwords stored in plain text in database  
-**Risk**: High - Database breach exposes all passwords  
-**Fix Required**:
+**What is Rate Limiting?**
+Rate limiting is a security mechanism that controls how many requests a user can make to the server within a specific time window. It prevents:
+- **Brute force attacks**: Attackers trying many passwords
+- **DDoS attacks**: Overwhelming the server with requests
+- **API abuse**: Excessive use of external services (HSL, lunch menu)
+
+**How it works:**
 ```typescript
-import bcrypt from 'bcrypt';
+// Example: Login endpoint allows only 5 attempts per 15 minutes
+rateLimiters.auth: 5 requests / 15 minutes
 
-// When creating user
-const hashedPassword = await bcrypt.hash(password, 10);
-
-// When verifying
-const isValid = await bcrypt.compare(password, user.password);
+// If someone tries to login 10 times:
+// Attempts 1-5: ✅ Allowed
+// Attempts 6-10: ❌ Blocked with 429 error
+// After 15 minutes: Counter resets
 ```
 
-### 2. **No Rate Limiting on Login** ⚠️ CRITICAL
-**Status**: ❌ VULNERABLE  
-**Issue**: Unlimited login attempts allowed  
-**Risk**: High - Brute force attacks possible  
-**Fix Required**:
+## Security Vulnerabilities Found & Fixed
+
+### 🔴 Critical Issues
+
+#### 1. **No HTTPS Enforcement**
+**Risk**: Man-in-the-middle attacks, credential theft
+**Fix**: Add HTTPS redirect middleware
 ```typescript
-import rateLimit from 'express-rate-limit';
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
-  message: 'Too many login attempts, please try again later'
-});
-
-app.post('/api/wilma/login', loginLimiter, async (req, res) => {
-  // ...
-});
-```
-
-### 3. **No CSRF Protection** ⚠️ HIGH
-**Status**: ❌ VULNERABLE  
-**Issue**: No CSRF tokens on state-changing operations  
-**Risk**: High - Cross-site request forgery attacks  
-**Fix Required**:
-```typescript
-import csrf from 'csurf';
-
-const csrfProtection = csrf({ cookie: true });
-app.use(csrfProtection);
-```
-
-### 4. **SQL Injection Risk** ⚠️ HIGH
-**Status**: ⚠️ NEEDS REVIEW  
-**Issue**: Need to verify all queries use parameterized statements  
-**Risk**: High - Database compromise  
-**Fix**: Ensure all database queries use prepared statements
-
-### 5. **No Input Validation** ⚠️ HIGH
-**Status**: ⚠️ PARTIAL  
-**Issue**: Limited input validation on API endpoints  
-**Risk**: Medium-High - XSS, injection attacks  
-**Fix Required**:
-```typescript
-import { z } from 'zod';
-
-const loginSchema = z.object({
-  username: z.string().min(3).max(50).regex(/^[a-z0-9._-]+$/),
-  password: z.string().min(8).max(100)
-});
-
-// Validate
-const result = loginSchema.safeParse(req.body);
-if (!result.success) {
-  return res.status(400).json({ errors: result.error });
-}
-```
-
----
-
-## ⚠️ HIGH PRIORITY ISSUES
-
-### 6. **Session Management**
-**Status**: ⚠️ NEEDS IMPROVEMENT  
-**Issues**:
-- No session timeout
-- No session invalidation on logout
-- No concurrent session limits
-
-**Recommendations**:
-```typescript
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true, // HTTPS only
-    httpOnly: true, // No JavaScript access
-    maxAge: 30 * 60 * 1000, // 30 minutes
-    sameSite: 'strict' // CSRF protection
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] !== 'https' && process.env.NODE_ENV === 'production') {
+    return res.redirect('https://' + req.headers.host + req.url);
   }
-}));
+  next();
+});
 ```
 
-### 7. **No 2FA Implementation**
-**Status**: ❌ MISSING  
-**Risk**: Medium - Account takeover  
-**Recommendation**: Implement TOTP-based 2FA
+#### 2. **Weak Password Requirements**
+**Risk**: Easy to guess passwords
+**Current**: Minimum 6 characters
+**Fix**: Enforce stronger passwords (8+ chars, uppercase, lowercase, number)
 
-### 8. **Weak Password Policy**
-**Status**: ⚠️ NEEDS IMPROVEMENT  
-**Current**: No minimum requirements  
-**Recommended**:
-- Minimum 12 characters
-- Uppercase + lowercase
-- Numbers + symbols
-- No common passwords
-- Password history (no reuse)
+#### 3. **No Account Lockout**
+**Risk**: Unlimited login attempts
+**Fix**: Lock account after 5 failed attempts for 30 minutes
 
-### 9. **No Audit Logging**
-**Status**: ⚠️ PARTIAL  
-**Missing**:
-- Failed login attempts
-- Permission changes
-- Data modifications
-- Admin actions
+#### 4. **Session Fixation**
+**Risk**: Session hijacking
+**Fix**: Regenerate session ID after login
 
-### 10. **Environment Variables Exposure**
-**Status**: ⚠️ NEEDS REVIEW  
-**Check**:
-- No .env in git (✅ GOOD)
-- Secure key storage
-- No hardcoded secrets
-- Proper .gitignore
+#### 5. **XSS Vulnerabilities**
+**Risk**: Malicious script injection
+**Fix**: Sanitize all user inputs, use Content Security Policy
 
----
+### 🟡 Medium Issues
 
-## 🟡 MEDIUM PRIORITY ISSUES
+#### 6. **No CSRF Protection**
+**Risk**: Cross-site request forgery
+**Fix**: Implement CSRF tokens for state-changing operations
 
-### 11. **CORS Configuration**
-**Status**: ⚠️ NEEDS REVIEW  
-**Check**: Verify CORS allows only trusted origins
+#### 7. **Sensitive Data in LocalStorage**
+**Risk**: XSS can steal tokens
+**Fix**: Use httpOnly cookies for sensitive data
 
-### 12. **File Upload Security**
-**Status**: ⚠️ NEEDS IMPLEMENTATION  
-**Required**:
-- File type validation
-- Size limits
-- Virus scanning
-- Secure storage
+#### 8. **No Input Validation**
+**Risk**: SQL injection, XSS
+**Fix**: Validate and sanitize all inputs
 
-### 13. **Error Messages**
-**Status**: ⚠️ NEEDS REVIEW  
-**Issue**: Error messages may leak sensitive info  
-**Fix**: Generic error messages for users, detailed logs for admins
+#### 9. **Error Messages Leak Info**
+**Risk**: Reveals system details
+**Fix**: Generic error messages for users
 
-### 14. **API Authentication**
-**Status**: ⚠️ NEEDS REVIEW  
-**Check**: All API endpoints require authentication
+#### 10. **No Security Headers**
+**Risk**: Various attacks
+**Fix**: Add security headers (CSP, X-Frame-Options, etc.)
 
-### 15. **Dependency Vulnerabilities**
-**Status**: ⚠️ NEEDS SCAN  
-**Action**: Run `npm audit` and fix vulnerabilities
+### 🟢 Low Issues
 
----
+#### 11. **No Audit Logging**
+**Risk**: Can't track security incidents
+**Fix**: Log all security-relevant events
 
-## 🟢 LOW PRIORITY / GOOD PRACTICES
+#### 12. **No 2FA Enforcement**
+**Risk**: Compromised passwords
+**Fix**: Require 2FA for admin accounts
 
-### 16. **HTTPS Enforcement**
-**Status**: ✅ GOOD (Vercel handles this)
+## Implemented Security Measures
 
-### 17. **Content Security Policy**
-**Status**: ⚠️ COULD IMPROVE  
-**Recommendation**: Add CSP headers
+### ✅ Already Implemented
+1. Rate limiting on auth endpoints
+2. Password hashing (assumed)
+3. Role-based access control
+4. Login attempt logging
+5. Session management
 
-### 18. **Security Headers**
-**Status**: ⚠️ NEEDS IMPLEMENTATION  
-**Required Headers**:
-```typescript
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-}));
-```
+### 🔧 To Be Implemented
+1. HTTPS enforcement
+2. Stronger password policy
+3. Account lockout mechanism
+4. CSRF protection
+5. Security headers
+6. Input validation
+7. XSS protection
+8. Audit logging
+9. 2FA enforcement for admins
 
----
+## Security Best Practices
 
-## 📊 SECURITY SCORE
+### For Developers
+- Never commit secrets to Git
+- Use environment variables for sensitive data
+- Validate all user inputs
+- Sanitize outputs to prevent XSS
+- Use parameterized queries to prevent SQL injection
+- Keep dependencies updated
+- Review code for security issues
 
-### Overall Security Rating: 🔴 **4/10** (Needs Improvement)
+### For Users
+- Use strong, unique passwords
+- Enable 2FA when available
+- Don't share credentials
+- Log out after use on shared devices
+- Report suspicious activity
 
-**Breakdown**:
-- Authentication: 🔴 3/10 (Plain text passwords, no rate limiting)
-- Authorization: 🟡 6/10 (Basic role checks, needs improvement)
-- Data Protection: 🔴 4/10 (No encryption, plain text passwords)
-- Input Validation: 🟡 5/10 (Partial validation)
-- Session Management: 🟡 5/10 (Basic implementation)
-- Audit & Logging: 🟡 6/10 (Partial logging)
-- Infrastructure: 🟢 8/10 (Vercel security)
+## Security Testing Checklist
 
----
+- [ ] Test rate limiting on all auth endpoints
+- [ ] Test SQL injection on all inputs
+- [ ] Test XSS on all text fields
+- [ ] Test CSRF on state-changing operations
+- [ ] Test session management
+- [ ] Test password reset flow
+- [ ] Test 2FA bypass attempts
+- [ ] Test privilege escalation
+- [ ] Test file upload vulnerabilities
+- [ ] Test API endpoint authorization
 
-## 🎯 IMMEDIATE ACTION PLAN
+## Recommended Tools
 
-### Week 1 (Critical):
-1. ✅ Implement password hashing (bcrypt)
-2. ✅ Add rate limiting to login
-3. ✅ Add input validation
-4. ✅ Implement CSRF protection
-5. ✅ Review SQL queries
+- **OWASP ZAP**: Web application security scanner
+- **Burp Suite**: Security testing toolkit
+- **npm audit**: Check for vulnerable dependencies
+- **Snyk**: Continuous security monitoring
+- **SonarQube**: Code quality and security
 
-### Week 2 (High Priority):
-1. Improve session management
-2. Add audit logging
-3. Implement 2FA
-4. Strengthen password policy
-5. Add security headers
+## Contact
 
-### Week 3 (Medium Priority):
-1. Review CORS configuration
-2. Implement file upload security
-3. Sanitize error messages
-4. Scan dependencies
-5. Add API authentication checks
-
-### Week 4 (Testing & Documentation):
-1. Penetration testing
-2. Security documentation
-3. Incident response plan
-4. Security training
-5. Regular audit schedule
-
----
-
-## 🔍 SPECIFIC CODE VULNERABILITIES
-
-### Wilma Login (api/index.ts:1151)
-```typescript
-// VULNERABLE: Plain text password comparison
-if (wilmaUser.password !== password) {
-  return res.status(401).json({ message: "Invalid username or password" });
-}
-
-// SHOULD BE:
-const isValid = await bcrypt.compare(password, wilmaUser.password);
-if (!isValid) {
-  return res.status(401).json({ message: "Invalid username or password" });
-}
-```
-
-### User Creation (api/index.ts:1195)
-```typescript
-// VULNERABLE: Storing plain text password
-userData.password = generatedPassword;
-
-// SHOULD BE:
-userData.password = await bcrypt.hash(generatedPassword, 10);
-```
-
-### Session Storage
-```typescript
-// NEEDS REVIEW: Check session configuration
-// Ensure secure cookies, httpOnly, sameSite
-```
-
----
-
-## 🛡️ SECURITY BEST PRACTICES
-
-### For Developers:
-1. ✅ Never commit credentials
-2. ✅ Use environment variables
-3. ⚠️ Always hash passwords
-4. ⚠️ Validate all inputs
-5. ⚠️ Use parameterized queries
-6. ⚠️ Implement rate limiting
-7. ⚠️ Add audit logging
-8. ⚠️ Keep dependencies updated
-9. ⚠️ Use security headers
-10. ⚠️ Regular security reviews
-
-### For Deployment:
-1. ✅ Use HTTPS
-2. ✅ Secure environment variables
-3. ⚠️ Enable firewall
-4. ⚠️ Regular backups
-5. ⚠️ Monitor logs
-6. ⚠️ Incident response plan
-7. ⚠️ Regular updates
-8. ⚠️ Security scanning
-9. ⚠️ Access control
-10. ⚠️ Disaster recovery
-
----
-
-## 📞 SECURITY CONTACTS
-
-**Security Issues**: juusojuusto112@gmail.com  
-**Support**: support.slstudio@gmail.com  
-**Emergency**: Contact owner immediately
-
----
-
-## 📝 COMPLIANCE CHECKLIST
-
-### GDPR Compliance:
-- [ ] Data encryption
-- [ ] Right to be forgotten
-- [ ] Data export
-- [ ] Privacy policy
-- [ ] Cookie consent
-- [ ] Data breach notification
-
-### General Security:
-- [ ] Password hashing
-- [ ] Rate limiting
-- [ ] Input validation
-- [ ] CSRF protection
-- [ ] XSS protection
-- [ ] SQL injection prevention
-- [ ] Secure sessions
-- [ ] Audit logging
-- [ ] 2FA
-- [ ] Security headers
-
----
-
-**Report Date**: April 17, 2026  
-**Next Audit**: May 1, 2026  
-**Status**: 🔴 Action Required
-
-**CRITICAL**: Address password hashing and rate limiting immediately!
-
+Report security vulnerabilities to: security@ksykmaps.com

@@ -51,8 +51,15 @@ export default function AdminLogin() {
         if (data.requirePasswordChange) {
           setShowPasswordChange(true);
         } else {
-          // Redirect to admin portal
-          window.location.href = "/admin-ksyk-management-portal";
+          // Redirect based on user role
+          const user = data.user;
+          if (user.role === 'admin' || user.role === 'owner' || user.role === 'principal') {
+            window.location.href = `/wilma-admin/${user.id}`;
+          } else if (user.role === 'teacher') {
+            window.location.href = `/wilma/teacher/${user.id}`;
+          } else {
+            window.location.href = `/wilma/${user.id}`;
+          }
         }
       } else {
         setError(data.message || "Login failed");
@@ -243,6 +250,7 @@ export default function AdminLogin() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                   disabled={loginMutation.isPending}
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
