@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
-import StudentsManager from "@/components/StudentsManager";
-import ParentsManager from "@/components/ParentsManager";
+import PeopleManager from "@/components/PeopleManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -19,7 +18,7 @@ export default function WilmaAdmin() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(params?.section || 'users');
+  const [activeTab, setActiveTab] = useState(params?.section || 'staff');
 
   useEffect(() => {
     if (params?.section) {
@@ -118,154 +117,160 @@ export default function WilmaAdmin() {
         </div>
       </div>
 
-      {/* Stats Dashboard - Mobile Responsive */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs md:text-sm font-medium">Total Students</p>
-                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
-                </div>
-                <Users className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-xs md:text-sm font-medium">Total Teachers</p>
-                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
-                </div>
-                <GraduationCap className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-xs md:text-sm font-medium">Active Classes</p>
-                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
-                </div>
-                <BookOpen className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-xs md:text-sm font-medium">Total Courses</p>
-                  <p className="text-2xl md:text-3xl font-bold mt-1">0</p>
-                </div>
-                <Award className="w-8 h-8 md:w-12 md:h-12 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Top Navigation Bar */}
+        {/* Top Navigation Bar */}
+        <div className="bg-white rounded-lg shadow-lg border-2 border-blue-100 mb-6 overflow-x-auto">
+          <div className="flex gap-1 p-2 min-w-max">
+            <Button
+              onClick={() => {
+                setActiveTab('staff');
+                setLocation(`/wilma-admin/${currentUser.id}/staff`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'staff' 
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span className="font-medium">Staff</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('people');
+                setLocation(`/wilma-admin/${currentUser.id}/people`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'people' 
+                  ? 'bg-purple-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span className="font-medium">People</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('schedule');
+                setLocation(`/wilma-admin/${currentUser.id}/schedule`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'schedule' 
+                  ? 'bg-green-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span className="font-medium">Schedule</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('courses');
+                setLocation(`/wilma-admin/${currentUser.id}/courses`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'courses' 
+                  ? 'bg-purple-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="font-medium">Courses</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('teachers');
+                setLocation(`/wilma-admin/${currentUser.id}/teachers`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'teachers' 
+                  ? 'bg-orange-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span className="font-medium">Teachers</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('rooms');
+                setLocation(`/wilma-admin/${currentUser.id}/rooms`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'rooms' 
+                  ? 'bg-pink-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              <span className="font-medium">Rooms</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('announcements');
+                setLocation(`/wilma-admin/${currentUser.id}/announcements`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'announcements' 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Bell className="w-4 h-4" />
+              <span className="font-medium">Announcements</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('analytics');
+                setLocation(`/wilma-admin/${currentUser.id}/analytics`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'analytics' 
+                  ? 'bg-cyan-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="font-medium">Analytics</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('settings');
+                setLocation(`/wilma-admin/${currentUser.id}/settings`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'settings' 
+                  ? 'bg-gray-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span className="font-medium">Settings</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Quick Actions - Mobile Responsive */}
-        <Card className="mb-4 md:mb-6 border-2 border-blue-200 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 md:p-6">
-            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-              <Star className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 md:p-6">
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-blue-600 hover:bg-blue-700 text-xs md:text-sm">
-                <Plus className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Add User</span>
-              </Button>
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-green-600 hover:bg-green-700 text-xs md:text-sm">
-                <Calendar className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Schedule</span>
-              </Button>
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-purple-600 hover:bg-purple-700 text-xs md:text-sm">
-                <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Course</span>
-              </Button>
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-orange-600 hover:bg-orange-700 text-xs md:text-sm">
-                <Bell className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Announce</span>
-              </Button>
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-pink-600 hover:bg-pink-700 text-xs md:text-sm">
-                <Upload className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Upload</span>
-              </Button>
-              <Button className="h-auto py-3 md:py-4 flex-col gap-1 md:gap-2 bg-indigo-600 hover:bg-indigo-700 text-xs md:text-sm">
-                <Download className="w-4 h-4 md:w-6 md:h-6" />
-                <span className="text-[10px] md:text-xs">Export</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Tabs - Mobile Responsive */}
+        {/* Tab Content */}
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
           setLocation(`/wilma-admin/${currentUser.id}/${value}`);
         }} className="space-y-4 md:space-y-6">
-          <TabsList className="grid grid-cols-5 lg:grid-cols-10 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-lg shadow-lg border-2 border-blue-100 w-full">
-            <TabsTrigger value="users" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Users className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Staff</span>
-            </TabsTrigger>
-            <TabsTrigger value="students" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <User className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Students</span>
-            </TabsTrigger>
-            <TabsTrigger value="parents" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Users className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Parents</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Schedule</span>
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Courses</span>
-            </TabsTrigger>
-            <TabsTrigger value="teachers" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <GraduationCap className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Teachers</span>
-            </TabsTrigger>
-            <TabsTrigger value="rooms" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Building className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Rooms</span>
-            </TabsTrigger>
-            <TabsTrigger value="announcements" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Bell className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Announce</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
-              <Settings className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="users">
+          <TabsContent value="staff">
             <EnhancedWilmaUserManager />
           </TabsContent>
 
-          <TabsContent value="students">
-            <StudentsManager />
-          </TabsContent>
-
-          <TabsContent value="parents">
-            <ParentsManager />
+          <TabsContent value="people">
+            <PeopleManager />
           </TabsContent>
 
           <TabsContent value="schedule">
