@@ -632,17 +632,33 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('🔍 FirebaseStorage.getWilmaUsers called', role ? `with role filter: ${role}` : '');
       
-      let query = db.collection('wilmaUsers').where('isActive', '==', true);
-      
-      // Add role filter if provided
-      if (role) {
-        query = query.where('role', '==', role);
+      if (role === 'student') {
+        // Get from wilmaUsers/students subcollection
+        const snapshot = await db.collection('wilmaUsers').doc('students').collection('list').where('isActive', '==', true).get();
+        console.log(`📦 Found ${snapshot.size} active students`);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       }
       
-      const snapshot = await query.get();
-      console.log(`📦 Found ${snapshot.size} active Wilma users${role ? ` with role ${role}` : ''}`);
+      if (role === 'parent') {
+        // Get from wilmaUsers/parents subcollection
+        const snapshot = await db.collection('wilmaUsers').doc('parents').collection('list').where('isActive', '==', true).get();
+        console.log(`📦 Found ${snapshot.size} active parents`);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
       
-      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Get all - fetch from both subcollections
+      const [studentsSnapshot, parentsSnapshot, othersSnapshot] = await Promise.all([
+        db.collection('wilmaUsers').doc('students').collection('list').where('isActive', '==', true).get(),
+        db.collection('wilmaUsers').doc('parents').collection('list').where('isActive', '==', true).get(),
+        db.collection('wilmaUsers').where('isActive', '==', true).get()
+      ]);
+      
+      const users = [
+        ...studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...parentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...othersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      ];
+      
       console.log('✅ Returning Wilma users:', users.length);
       return users;
     } catch (error) {
@@ -653,9 +669,19 @@ export class FirebaseStorage implements IStorage {
 
   async getWilmaUser(id: string): Promise<any | undefined> {
     try {
-      const doc = await db.collection('wilmaUsers').doc(id).get();
-      if (!doc.exists) return undefined;
-      return { id: doc.id, ...doc.data() };
+      // Try students subcollection first
+      let doc = await db.collection('wilmaUsers').doc('students').collection('list').doc(id).get();
+      if (doc.exists) return { id: doc.id, ...doc.data() };
+      
+      // Try parents subcollection
+      doc = await db.collection('wilmaUsers').doc('parents').collection('list').doc(id).get();
+      if (doc.exists) return { id: doc.id, ...doc.data() };
+      
+      // Try main collection
+      doc = await db.collection('wilmaUsers').doc(id).get();
+      if (doc.exists) return { id: doc.id, ...doc.data() };
+      
+      return undefined;
     } catch (error) {
       console.error('Error fetching Wilma user:', error);
       return undefined;
@@ -664,10 +690,28 @@ export class FirebaseStorage implements IStorage {
 
   async getWilmaUserByUsername(username: string): Promise<any | undefined> {
     try {
-      const snapshot = await db.collection('wilmaUsers').where('username', '==', username).limit(1).get();
-      if (snapshot.empty) return undefined;
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
+      // Try students
+      let snapshot = await db.collection('wilmaUsers').doc('students').collection('list').where('username', '==', username).limit(1).get();
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+      }
+      
+      // Try parents
+      snapshot = await db.collection('wilmaUsers').doc('parents').collection('list').where('username', '==', username).limit(1).get();
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+      }
+      
+      // Try main collection
+      snapshot = await db.collection('wilmaUsers').where('username', '==', username).limit(1).get();
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+      }
+      
+      return undefined;
     } catch (error) {
       console.error('Error fetching Wilma user by username:', error);
       return undefined;
@@ -678,7 +722,17 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('🔵 FirebaseStorage.createWilmaUser called with:', JSON.stringify(wilmaUser, null, 2));
       
-      const docRef = db.collection('wilmaUsers').doc();
+      // Determine collection based on role
+      let collectionRef;
+      if (wilmaUser.role === 'student') {
+        collectionRef = db.collection('wilmaUsers').doc('students').collection('list');
+      } else if (wilmaUser.role === 'parent') {
+        collectionRef = db.collection('wilmaUsers').doc('parents').collection('list');
+      } else {
+        collectionRef = db.collection('wilmaUsers');
+      }
+      
+      const docRef = collectionRef.doc();
       const wilmaUserData = {
         ...wilmaUser,
         id: docRef.id,
@@ -705,7 +759,21 @@ export class FirebaseStorage implements IStorage {
         updatedAt: new Date(),
       };
       
-      await db.collection('wilmaUsers').doc(id).update(updateData);
+      // Get the user first to determine which collection it's in
+      const existingUser = await this.getWilmaUser(id);
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+      
+      // Update in the correct collection
+      if (existingUser.role === 'student') {
+        await db.collection('wilmaUsers').doc('students').collection('list').doc(id).update(updateData);
+      } else if (existingUser.role === 'parent') {
+        await db.collection('wilmaUsers').doc('parents').collection('list').doc(id).update(updateData);
+      } else {
+        await db.collection('wilmaUsers').doc(id).update(updateData);
+      }
+      
       const updated = await this.getWilmaUser(id);
       return updated;
     } catch (error) {
@@ -717,7 +785,23 @@ export class FirebaseStorage implements IStorage {
   async deleteWilmaUser(id: string): Promise<void> {
     try {
       console.log('🗑️ Permanently deleting Wilma user:', id);
-      await db.collection('wilmaUsers').doc(id).delete();
+      
+      // Get the user first to determine which collection it's in
+      const existingUser = await this.getWilmaUser(id);
+      if (!existingUser) {
+        console.log('⚠️ User not found, nothing to delete');
+        return;
+      }
+      
+      // Delete from the correct collection
+      if (existingUser.role === 'student') {
+        await db.collection('wilmaUsers').doc('students').collection('list').doc(id).delete();
+      } else if (existingUser.role === 'parent') {
+        await db.collection('wilmaUsers').doc('parents').collection('list').doc(id).delete();
+      } else {
+        await db.collection('wilmaUsers').doc(id).delete();
+      }
+      
       console.log('✅ Wilma user permanently deleted from database');
     } catch (error) {
       console.error('Error deleting Wilma user:', error);

@@ -1224,11 +1224,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set default values
       userData.isActive = userData.isActive !== false; // Default to true
       
-      // Auto-generate student ID for students
+      // Auto-generate student ID for students (numbers only)
       if (userData.role === 'student' && !userData.studentId) {
-        const year = new Date().getFullYear().toString().slice(-2);
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        userData.studentId = `STU${year}${random}`;
+        const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        userData.studentId = random;
         console.log('🎓 Auto-generated student ID:', userData.studentId);
       }
       
@@ -1236,7 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userData.role === 'student' && !userData.email) {
         const cleanFirst = userData.firstName.toLowerCase().replace(/[^a-z]/g, '');
         const cleanLast = userData.lastName.toLowerCase().replace(/[^a-z]/g, '');
-        userData.email = `${cleanFirst}.${cleanLast}@student.ksyk.fi`;
+        userData.email = `${cleanFirst}.${cleanLast}@ksyk.fi`;
         console.log('📧 Auto-generated email:', userData.email);
       }
       
@@ -1244,27 +1243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wilmaUser = await storage.createWilmaUser(userData);
       console.log('✅ Wilma user created successfully:', wilmaUser.id);
       
-      // Send welcome email for students
-      if (userData.role === 'student' && userData.email && userData.password) {
-        const parentEmails = [];
-        if (userData.parent1Email) parentEmails.push(userData.parent1Email);
-        if (userData.parent2Email) parentEmails.push(userData.parent2Email);
-        
-        try {
-          const emailService = await import('./emailService');
-          await emailService.sendWilmaStudentWelcomeEmail(
-            userData.email,
-            `${userData.firstName} ${userData.lastName}`,
-            userData.password,
-            userData.studentId,
-            parentEmails.length > 0 ? parentEmails : undefined
-          );
-          console.log('✅ Welcome email sent');
-        } catch (emailError) {
-          console.error('❌ Failed to send welcome email:', emailError);
-          // Continue anyway - user is created
-        }
-      }
+      // DO NOT send email automatically - admin will trigger it manually
       
       // Remove password from response
       const { password: _, ...userResponse } = wilmaUser;
@@ -1301,6 +1280,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'DELETE /api/wilma/users/:id', { wilmaUserId: req.params.id });
       res.status(500).json({ message: "Failed to delete Wilma user" });
+    }
+  });
+
+  // Bulk send welcome emails
+  app.post('/api/wilma/send-bulk-emails', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('📧 Bulk email send requested');
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const students = await storage.getWilmaUsers('student');
+      let sent = 0;
+      let failed = 0;
+      
+      for (const student of students) {
+        if (student.email && student.password && student.isTemporaryPassword) {
+          const parentEmails = [];
+          if (student.parent1Email) parentEmails.push(student.parent1Email);
+          if (student.parent2Email) parentEmails.push(student.parent2Email);
+          
+          try {
+            const emailService = await import('./emailService');
+            await emailService.sendWilmaStudentWelcomeEmail(
+              student.email,
+              `${student.firstName} ${student.lastName}`,
+              student.password,
+              student.studentId,
+              parentEmails.length > 0 ? parentEmails : undefined
+            );
+            sent++;
+            console.log(`✅ Email sent to ${student.email}`);
+          } catch (emailError) {
+            console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+            failed++;
+          }
+        }
+      }
+      
+      console.log(`📊 Bulk email complete: ${sent} sent, ${failed} failed`);
+      res.json({ success: true, sent, failed });
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/send-bulk-emails');
+      res.status(500).json({ message: "Failed to send bulk emails" });
     }
   });
 

@@ -13,6 +13,27 @@ export default function PeopleManager() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSubTab, setActiveSubTab] = useState("students");
+  const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
+
+  // Bulk email mutation
+  const bulkEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/wilma/send-bulk-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to send emails');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      alert(`✅ Lähetetty ${data.sent} sähköpostia! Epäonnistui: ${data.failed}`);
+      setShowBulkEmailDialog(false);
+    },
+    onError: () => {
+      alert('❌ Sähköpostien lähetys epäonnistui');
+    }
+  });
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -76,11 +97,11 @@ export default function PeopleManager() {
           <TabsList className="bg-white border-2 border-gray-200">
             <TabsTrigger value="students" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <User className="w-4 h-4 mr-2" />
-              Students
+              Opiskelijat
             </TabsTrigger>
             <TabsTrigger value="parents" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
-              Parents
+              Huoltajat
             </TabsTrigger>
           </TabsList>
 
@@ -88,12 +109,21 @@ export default function PeopleManager() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                placeholder={`Search ${activeSubTab}...`}
+                placeholder={`Hae ${activeSubTab === "students" ? "opiskelijoita" : "huoltajia"}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-64"
               />
             </div>
+            {activeSubTab === "students" && (
+              <Button 
+                onClick={() => setShowBulkEmailDialog(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Lähetä sähköpostit
+              </Button>
+            )}
             <Button 
               className={activeSubTab === "students" ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"}
               onClick={() => {
@@ -103,7 +133,7 @@ export default function PeopleManager() {
               }}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add {activeSubTab === "students" ? "Student" : "Parent"}
+              Lisää {activeSubTab === "students" ? "opiskelija" : "huoltaja"}
             </Button>
           </div>
         </div>
@@ -112,7 +142,7 @@ export default function PeopleManager() {
           {studentsLoading ? (
             <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Loading students...</p>
+              <p className="text-gray-600">Ladataan opiskelijoita...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,14 +193,14 @@ export default function PeopleManager() {
                         }}
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                        Muokkaa
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         className="text-red-600 hover:bg-red-50"
                         onClick={() => {
-                          if (confirm(`Delete ${student.firstName} ${student.lastName}?`)) {
+                          if (confirm(`Poista ${student.firstName} ${student.lastName}?`)) {
                             deleteStudentMutation.mutate(student.id);
                           }
                         }}
@@ -183,7 +213,7 @@ export default function PeopleManager() {
               ))}
               {filteredStudents.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
-                  No students found
+                  Ei opiskelijoita
                 </div>
               )}
             </div>
@@ -263,6 +293,44 @@ export default function PeopleManager() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Bulk Email Dialog */}
+      {showBulkEmailDialog && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-green-600" />
+                Lähetä tervetulosähköpostit
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <p className="mb-4">
+                Haluatko lähettää tervetulosähköpostit kaikille opiskelijoille ja heidän huoltajilleen?
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                Sähköpostit lähetetään vain opiskelijoille, joilla on väliaikainen salasana.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => bulkEmailMutation.mutate()}
+                  disabled={bulkEmailMutation.isPending}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  {bulkEmailMutation.isPending ? 'Lähetetään...' : 'Lähetä'}
+                </Button>
+                <Button
+                  onClick={() => setShowBulkEmailDialog(false)}
+                  variant="outline"
+                  disabled={bulkEmailMutation.isPending}
+                >
+                  Peruuta
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
