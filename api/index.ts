@@ -1347,6 +1347,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             
             // Hash the password before storing
             userData.password = await hashPassword(plainPassword);
+            userData.plainPassword = plainPassword; // Store plain password for admin viewing
             userData.isTemporaryPassword = true; // Force password change on first login
             console.log('🔒 Password hashed successfully');
             
@@ -1399,6 +1400,10 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
               }
             }
           } else if (userData.password) {
+            // Store plain password before hashing (for admin viewing)
+            plainPassword = userData.password;
+            userData.plainPassword = plainPassword;
+            
             // Hash manually provided password
             userData.password = await hashPassword(userData.password);
             userData.isTemporaryPassword = false; // User set their own password

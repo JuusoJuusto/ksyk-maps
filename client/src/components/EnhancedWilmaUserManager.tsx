@@ -292,13 +292,14 @@ export default function EnhancedWilmaUserManager() {
       // Generate new temporary password
       const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
       
-      // Update user with new password
+      // Update user with new password (both hashed and plain)
       const response = await fetch(`/api/wilma/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ 
           password: tempPassword,
+          plainPassword: tempPassword, // Store plain password for admin viewing
           isTemporaryPassword: true 
         }),
       });
@@ -727,7 +728,9 @@ export default function EnhancedWilmaUserManager() {
                             <td className="px-2 md:px-4 py-2 md:py-3">
                               <div className="flex items-center gap-1">
                                 <span className="font-mono text-xs md:text-sm text-gray-600">
-                                  {visiblePasswords[user.id] ? user.password : '••••••••'}
+                                  {visiblePasswords[user.id] 
+                                    ? (user.plainPassword || user.password || '••••••••')
+                                    : '••••••••'}
                                 </span>
                                 <Button
                                   variant="ghost"
