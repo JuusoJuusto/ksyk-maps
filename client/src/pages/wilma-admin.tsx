@@ -140,17 +140,17 @@ export default function WilmaAdmin() {
             
             <Button
               onClick={() => {
-                setActiveTab('people');
-                setLocation(`/wilma-admin/${currentUser.id}/people`);
+                setActiveTab('students');
+                setLocation(`/wilma-admin/${currentUser.id}/students`);
               }}
               className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'people' 
+                activeTab === 'students' 
                   ? 'bg-purple-600 text-white shadow-md' 
                   : 'bg-transparent text-gray-700 hover:bg-gray-100'
               }`}
             >
               <User className="w-4 h-4" />
-              <span className="font-medium">People</span>
+              <span className="font-medium">Opiskelijat</span>
             </Button>
             
             <Button
@@ -269,7 +269,7 @@ export default function WilmaAdmin() {
             <EnhancedWilmaUserManager />
           </TabsContent>
 
-          <TabsContent value="people">
+          <TabsContent value="students">
             <PeopleManager />
           </TabsContent>
 

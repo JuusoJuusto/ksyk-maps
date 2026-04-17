@@ -67,8 +67,8 @@ function Router() {
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma" component={Wilma} />
-      <Route path="/wilma-admin/student/:studentId" component={StudentForm} />
-      <Route path="/wilma-admin/add-student" component={StudentForm} />
+      <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
+      <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
       <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />
       <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
       <Route path="/wilma-admin" component={WilmaAdmin} />

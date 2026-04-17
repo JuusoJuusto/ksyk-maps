@@ -96,7 +96,11 @@ export default function PeopleManager() {
             </div>
             <Button 
               className={activeSubTab === "students" ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"}
-              onClick={() => setLocation(`/wilma-admin/add-${activeSubTab === "students" ? "student" : "parent"}`)}
+              onClick={() => {
+                const currentPath = window.location.pathname;
+                const adminId = currentPath.split('/')[2]; // Extract admin ID from URL
+                setLocation(`/wilma-admin/${adminId}/add-student`);
+              }}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add {activeSubTab === "students" ? "Student" : "Parent"}
@@ -152,7 +156,11 @@ export default function PeopleManager() {
                         size="sm" 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => setLocation(`/wilma-admin/student/${student.id}`)}
+                        onClick={() => {
+                          const currentPath = window.location.pathname;
+                          const adminId = currentPath.split('/')[2];
+                          setLocation(`/wilma-admin/${adminId}/student/${student.id}`);
+                        }}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit

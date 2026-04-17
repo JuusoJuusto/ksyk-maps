@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, User, MapPin, Phone, Heart, AlertCircle, Home } from "lucide-react";
+import { ArrowLeft, Save, User, MapPin, Phone, Heart, AlertCircle, Home, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function StudentForm() {
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute('/wilma-admin/student/:studentId');
+  const [match, params] = useRoute('/wilma-admin/:adminId/student/:studentId');
+  const [matchAdd, paramsAdd] = useRoute('/wilma-admin/:adminId/add-student');
   const queryClient = useQueryClient();
-  const isEdit = params?.studentId && params.studentId !== 'new';
+  
+  const adminId = params?.adminId || paramsAdd?.adminId;
+  const studentId = params?.studentId;
+  const isEdit = studentId && studentId !== 'new';
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -43,15 +47,42 @@ export default function StudentForm() {
     allergies: "",
     medications: "",
     
+    // Parent 1 Information
+    parent1FirstName: "",
+    parent1LastName: "",
+    parent1Email: "",
+    parent1Phone: "",
+    parent1Relationship: "Mother",
+    
+    // Parent 2 Information (optional)
+    hasParent2: false,
+    parent2FirstName: "",
+    parent2LastName: "",
+    parent2Email: "",
+    parent2Phone: "",
+    parent2Relationship: "Father",
+    
     // Additional Info
     notes: ""
   });
 
+  // Auto-generate student ID when creating new student
+  useEffect(() => {
+    if (!isEdit && !formData.studentId) {
+      const generateStudentId = () => {
+        const year = new Date().getFullYear().toString().slice(-2);
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        return `STU${year}${random}`;
+      };
+      setFormData(prev => ({ ...prev, studentId: generateStudentId() }));
+    }
+  }, [isEdit]);
+
   // Fetch student data if editing
   const { data: student } = useQuery({
-    queryKey: ["student", params?.studentId],
+    queryKey: ["student", studentId],
     queryFn: async () => {
-      const response = await fetch(`/api/wilma/users/${params?.studentId}`);
+      const response = await fetch(`/api/wilma/users/${studentId}`);
       if (!response.ok) throw new Error("Failed to fetch student");
       return response.json();
     },
@@ -81,6 +112,17 @@ export default function StudentForm() {
         medicalInfo: student.medicalInfo || "",
         allergies: student.allergies || "",
         medications: student.medications || "",
+        parent1FirstName: student.parent1FirstName || "",
+        parent1LastName: student.parent1LastName || "",
+        parent1Email: student.parent1Email || "",
+        parent1Phone: student.parent1Phone || "",
+        parent1Relationship: student.parent1Relationship || "Mother",
+        hasParent2: !!student.parent2Email,
+        parent2FirstName: student.parent2FirstName || "",
+        parent2LastName: student.parent2LastName || "",
+        parent2Email: student.parent2Email || "",
+        parent2Phone: student.parent2Phone || "",
+        parent2Relationship: student.parent2Relationship || "Father",
         notes: student.notes || ""
       });
     }
@@ -89,7 +131,7 @@ export default function StudentForm() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const url = isEdit ? `/api/wilma/users/${params?.studentId}` : "/api/wilma/users";
+      const url = isEdit ? `/api/wilma/users/${studentId}` : "/api/wilma/users";
       const method = isEdit ? "PUT" : "POST";
       
       const response = await fetch(url, {
@@ -100,7 +142,8 @@ export default function StudentForm() {
           role: "student",
           username: data.email.split('@')[0],
           password: isEdit ? undefined : `Student${Math.random().toString(36).slice(-8)}!`,
-          isActive: true
+          isActive: true,
+          isTemporaryPassword: !isEdit
         })
       });
       
@@ -109,11 +152,11 @@ export default function StudentForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
-      alert(`✅ Student ${isEdit ? "updated" : "created"} successfully!`);
-      setLocation("/wilma-admin");
+      alert(`✅ Opiskelija ${isEdit ? "päivitetty" : "luotu"} onnistuneesti!`);
+      setLocation(`/wilma-admin/${adminId}/students`);
     },
     onError: (error: any) => {
-      alert(`❌ Failed to save student: ${error.message}`);
+      alert(`❌ Opiskelijan tallennus epäonnistui: ${error.message}`);
     }
   });
 
@@ -129,14 +172,14 @@ export default function StudentForm() {
         <div className="mb-6 flex items-center gap-4">
           <Button
             variant="outline"
-            onClick={() => setLocation("/wilma-admin")}
+            onClick={() => setLocation(`/wilma-admin/${adminId}/students`)}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Admin
+            Takaisin hallintaan
           </Button>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? "Edit Student" : "Add New Student"}
+            {isEdit ? "Muokkaa opiskelijaa" : "Lisää uusi opiskelija"}
           </h1>
         </div>
 
@@ -404,6 +447,153 @@ export default function StudentForm() {
             </CardContent>
           </Card>
 
+          {/* Parent 1 Information */}
+          <Card className="border-2 border-indigo-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-600" />
+                Huoltaja 1 (Parent 1)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Etunimi (First Name)</Label>
+                  <Input
+                    value={formData.parent1FirstName}
+                    onChange={(e) => setFormData({ ...formData, parent1FirstName: e.target.value })}
+                    placeholder="Esim. Maria"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Sukunimi (Last Name)</Label>
+                  <Input
+                    value={formData.parent1LastName}
+                    onChange={(e) => setFormData({ ...formData, parent1LastName: e.target.value })}
+                    placeholder="Esim. Virtanen"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Sähköposti (Email)</Label>
+                  <Input
+                    type="email"
+                    value={formData.parent1Email}
+                    onChange={(e) => setFormData({ ...formData, parent1Email: e.target.value })}
+                    placeholder="maria.virtanen@email.fi"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Puhelin (Phone)</Label>
+                  <Input
+                    type="tel"
+                    value={formData.parent1Phone}
+                    onChange={(e) => setFormData({ ...formData, parent1Phone: e.target.value })}
+                    placeholder="+358 XX XXX XXXX"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Suhde (Relationship)</Label>
+                  <select
+                    value={formData.parent1Relationship}
+                    onChange={(e) => setFormData({ ...formData, parent1Relationship: e.target.value })}
+                    className="w-full border rounded-md px-3 py-2 mt-1 h-10"
+                  >
+                    <option value="Mother">Äiti / Mother</option>
+                    <option value="Father">Isä / Father</option>
+                    <option value="Guardian">Huoltaja / Guardian</option>
+                    <option value="Other">Muu / Other</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Parent 2 Information (Optional) */}
+          <Card className="border-2 border-purple-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-600" />
+                  Huoltaja 2 (Parent 2) - Valinnainen (Optional)
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasParent2}
+                    onChange={(e) => setFormData({ ...formData, hasParent2: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-normal">Lisää toinen huoltaja</span>
+                </label>
+              </CardTitle>
+            </CardHeader>
+            {formData.hasParent2 && (
+              <CardContent className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Etunimi (First Name)</Label>
+                    <Input
+                      value={formData.parent2FirstName}
+                      onChange={(e) => setFormData({ ...formData, parent2FirstName: e.target.value })}
+                      placeholder="Esim. Pekka"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Sukunimi (Last Name)</Label>
+                    <Input
+                      value={formData.parent2LastName}
+                      onChange={(e) => setFormData({ ...formData, parent2LastName: e.target.value })}
+                      placeholder="Esim. Virtanen"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Sähköposti (Email)</Label>
+                    <Input
+                      type="email"
+                      value={formData.parent2Email}
+                      onChange={(e) => setFormData({ ...formData, parent2Email: e.target.value })}
+                      placeholder="pekka.virtanen@email.fi"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Puhelin (Phone)</Label>
+                    <Input
+                      type="tel"
+                      value={formData.parent2Phone}
+                      onChange={(e) => setFormData({ ...formData, parent2Phone: e.target.value })}
+                      placeholder="+358 XX XXX XXXX"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Suhde (Relationship)</Label>
+                    <select
+                      value={formData.parent2Relationship}
+                      onChange={(e) => setFormData({ ...formData, parent2Relationship: e.target.value })}
+                      className="w-full border rounded-md px-3 py-2 mt-1 h-10"
+                    >
+                      <option value="Father">Isä / Father</option>
+                      <option value="Mother">Äiti / Mother</option>
+                      <option value="Guardian">Huoltaja / Guardian</option>
+                      <option value="Other">Muu / Other</option>
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
           {/* Additional Notes */}
           <Card className="border-2 border-gray-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
@@ -430,15 +620,15 @@ export default function StudentForm() {
               disabled={saveMutation.isPending}
             >
               <Save className="w-5 h-5 mr-2" />
-              {saveMutation.isPending ? "Saving..." : isEdit ? "Update Student" : "Create Student"}
+              {saveMutation.isPending ? "Tallennetaan..." : isEdit ? "Päivitä opiskelija" : "Luo opiskelija"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setLocation("/wilma-admin")}
+              onClick={() => setLocation(`/wilma-admin/${adminId}/students`)}
               className="h-12"
             >
-              Cancel
+              Peruuta
             </Button>
           </div>
         </form>
