@@ -21,7 +21,6 @@ export default function StudentForm() {
     firstName: "",
     lastName: "",
     email: "",
-    studentId: "",
     studentClass: "",
     dateOfBirth: "",
     phone: "",
@@ -66,18 +65,6 @@ export default function StudentForm() {
     notes: ""
   });
 
-  // Auto-generate student ID when creating new student
-  useEffect(() => {
-    if (!isEdit && !formData.studentId) {
-      const generateStudentId = () => {
-        const year = new Date().getFullYear().toString().slice(-2);
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        return `STU${year}${random}`;
-      };
-      setFormData(prev => ({ ...prev, studentId: generateStudentId() }));
-    }
-  }, [isEdit]);
-
   // Fetch student data if editing
   const { data: student } = useQuery({
     queryKey: ["student", studentId],
@@ -95,7 +82,6 @@ export default function StudentForm() {
         firstName: student.firstName || "",
         lastName: student.lastName || "",
         email: student.email || "",
-        studentId: student.studentId || "",
         studentClass: student.studentClass || "",
         dateOfBirth: student.dateOfBirth || "",
         phone: student.phone || "",
@@ -189,13 +175,13 @@ export default function StudentForm() {
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5 text-blue-600" />
-                Basic Information
+                Perustiedot (Basic Information)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>First Name *</Label>
+                  <Label>Etunimi (First Name) *</Label>
                   <Input
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -204,7 +190,7 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Last Name *</Label>
+                  <Label>Sukunimi (Last Name) *</Label>
                   <Input
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -214,9 +200,9 @@ export default function StudentForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Email *</Label>
+                  <Label>Sähköposti (Email) *</Label>
                   <Input
                     type="email"
                     value={formData.email}
@@ -226,20 +212,11 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Student ID *</Label>
-                  <Input
-                    value={formData.studentId}
-                    onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Class *</Label>
+                  <Label>Luokka (Class) *</Label>
                   <Input
                     value={formData.studentClass}
                     onChange={(e) => setFormData({ ...formData, studentClass: e.target.value })}
-                    placeholder="e.g., 9A"
+                    placeholder="esim. 9A"
                     required
                     className="mt-1"
                   />

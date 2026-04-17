@@ -1094,7 +1094,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/wilma/users', async (req, res) => {
     try {
       console.log('🔵 GET /api/wilma/users called');
-      const wilmaUsers = await storage.getWilmaUsers();
+      const role = req.query.role as string | undefined;
+      console.log('📝 Role filter:', role || 'none');
+      
+      const wilmaUsers = await storage.getWilmaUsers(role);
       console.log(`✅ Returning ${wilmaUsers.length} Wilma users`);
       res.json(wilmaUsers);
     } catch (error) {
@@ -1220,6 +1223,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set default values
       userData.isActive = userData.isActive !== false; // Default to true
+      
+      // Auto-generate student ID for students
+      if (userData.role === 'student' && !userData.studentId) {
+        const year = new Date().getFullYear().toString().slice(-2);
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        userData.studentId = `STU${year}${random}`;
+        console.log('🎓 Auto-generated student ID:', userData.studentId);
+      }
       
       console.log('💾 Creating Wilma user...');
       const wilmaUser = await storage.createWilmaUser(userData);

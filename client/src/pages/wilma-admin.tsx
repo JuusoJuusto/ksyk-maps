@@ -64,9 +64,18 @@ export default function WilmaAdmin() {
     checkAuth();
   }, [params?.adminId]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('wilma_user');
-    setLocation('/');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('wilma_user');
+      setLocation('/wilma');
+    }
   };
 
   if (isLoading) {

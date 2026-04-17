@@ -628,11 +628,19 @@ export class FirebaseStorage implements IStorage {
   }
 
   // Wilma User operations
-  async getWilmaUsers(): Promise<any[]> {
+  async getWilmaUsers(role?: string): Promise<any[]> {
     try {
-      console.log('🔍 FirebaseStorage.getWilmaUsers called');
-      const snapshot = await db.collection('wilmaUsers').where('isActive', '==', true).get();
-      console.log(`📦 Found ${snapshot.size} active Wilma users`);
+      console.log('🔍 FirebaseStorage.getWilmaUsers called', role ? `with role filter: ${role}` : '');
+      
+      let query = db.collection('wilmaUsers').where('isActive', '==', true);
+      
+      // Add role filter if provided
+      if (role) {
+        query = query.where('role', '==', role);
+      }
+      
+      const snapshot = await query.get();
+      console.log(`📦 Found ${snapshot.size} active Wilma users${role ? ` with role ${role}` : ''}`);
       
       const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       console.log('✅ Returning Wilma users:', users.length);
