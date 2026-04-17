@@ -8,7 +8,7 @@ import {
   Calendar, FileText, MessageSquare, Home, BarChart3, Bell, LogOut, User,
   Users, UserCheck, Building, GraduationCap, ClipboardList, Lock, AlertCircle,
   BookOpen, Clock, Award, TrendingUp, CheckCircle, XCircle, AlertTriangle, Mail,
-  Phone, Download, FileDown, Settings
+  Phone, Download, FileDown, Settings, Eye, EyeOff
 } from 'lucide-react';
 
 export default function Wilma() {
@@ -17,6 +17,7 @@ export default function Wilma() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -25,6 +26,10 @@ export default function Wilma() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showPasswordChangeDialog, setShowPasswordChangeDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordChangeError, setPasswordChangeError] = useState('');
 
   // Mock data for demo
   const mockSchedule = [
@@ -251,6 +256,14 @@ export default function Wilma() {
       }
 
       setCurrentUser(data);
+      
+      // Check if password change is required
+      if (data.requiresPasswordChange) {
+        setShowPasswordChangeDialog(true);
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoggedIn(true);
       localStorage.setItem('wilma_user', JSON.stringify(data));
       setUsername('');
@@ -268,6 +281,57 @@ export default function Wilma() {
     } catch {
       setLoginError(language === 'fi' ? 'Yhteysvirhe. Tarkista palvelimen tila.' : 'Connection error. Please check if the server is running.');
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError('');
+
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordChangeError(language === 'fi' ? 'Salasanan on oltava vähintään 6 merkkiä' : 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeError(language === 'fi' ? 'Salasanat eivät täsmää' : 'Passwords do not match');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/wilma/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          password: newPassword,
+          isTemporaryPassword: false 
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to change password');
+      }
+
+      // Update current user and proceed with login
+      const updatedUser = { ...currentUser, requiresPasswordChange: false };
+      setCurrentUser(updatedUser);
+      setIsLoggedIn(true);
+      localStorage.setItem('wilma_user', JSON.stringify(updatedUser));
+      setShowPasswordChangeDialog(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      
+      // Role-based routing
+      if (updatedUser.role === 'admin' || updatedUser.role === 'teacher') {
+        setLocation('/wilma-admin');
+      } else if (updatedUser.role === 'parent') {
+        setLocation(`/wilma/parent/${updatedUser.id}`);
+      } else if (updatedUser.studentId) {
+        setLocation(`/wilma/${updatedUser.studentId}`);
+      }
+    } catch (error) {
+      setPasswordChangeError(language === 'fi' ? 'Salasanan vaihto epäonnistui' : 'Failed to change password');
     }
   };
 
@@ -320,16 +384,25 @@ export default function Wilma() {
                       <Lock className="w-4 h-4" />
                       {tr.password}
                     </label>
-                    <Input 
-                      type="password" 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••" 
-                      required 
-                      disabled={isLoading} 
-                      className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500" 
-                      autoComplete="current-password" 
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showPassword ? "text" : "password"}
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••" 
+                        required 
+                        disabled={isLoading} 
+                        className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500 pr-12" 
+                        autoComplete="current-password" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
