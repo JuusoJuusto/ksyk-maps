@@ -5,7 +5,6 @@ import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
-import { registerDemoRoutes } from "./demoRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging helper
@@ -2563,9 +2562,6 @@ https://ksykmaps.vercel.app
       });
     }
   });
-
-  // Register demo routes
-  registerDemoRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

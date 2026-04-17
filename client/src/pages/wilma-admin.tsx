@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
+import StudentsManager from "@/components/StudentsManager";
+import ParentsManager from "@/components/ParentsManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -13,9 +15,17 @@ import {
 
 export default function WilmaAdmin() {
   const [, setLocation] = useLocation();
+  const [match, params] = useRoute('/wilma-admin/:adminId?/:section?');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(params?.section || 'users');
+
+  useEffect(() => {
+    if (params?.section) {
+      setActiveTab(params.section);
+    }
+  }, [params?.section]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -33,6 +43,10 @@ export default function WilmaAdmin() {
           
           if (hasAccess) {
             setCurrentUser(user);
+            // If no adminId in URL, redirect to include it
+            if (!params?.adminId) {
+              setLocation(`/wilma-admin/${user.id}`);
+            }
           } else {
             // Redirect to regular Wilma if no admin access
             setLocation('/wilma');
@@ -49,7 +63,7 @@ export default function WilmaAdmin() {
     };
 
     checkAuth();
-  }, []);
+  }, [params?.adminId]);
 
   const handleLogout = () => {
     localStorage.removeItem('wilma_user');
@@ -195,11 +209,22 @@ export default function WilmaAdmin() {
         </Card>
 
         {/* Main Tabs - Mobile Responsive */}
-        <Tabs defaultValue="users" className="space-y-4 md:space-y-6">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-lg shadow-lg border-2 border-blue-100 w-full">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          setLocation(`/wilma-admin/${currentUser.id}/${value}`);
+        }} className="space-y-4 md:space-y-6">
+          <TabsList className="grid grid-cols-5 lg:grid-cols-10 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-lg shadow-lg border-2 border-blue-100 w-full">
             <TabsTrigger value="users" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
               <Users className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Users</span>
+              <span className="hidden sm:inline">Staff</span>
+            </TabsTrigger>
+            <TabsTrigger value="students" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <User className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Students</span>
+            </TabsTrigger>
+            <TabsTrigger value="parents" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
+              <Users className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Parents</span>
             </TabsTrigger>
             <TabsTrigger value="schedule" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-1 md:px-3">
               <Calendar className="w-3 h-3 md:w-4 md:h-4" />
@@ -233,6 +258,14 @@ export default function WilmaAdmin() {
 
           <TabsContent value="users">
             <EnhancedWilmaUserManager />
+          </TabsContent>
+
+          <TabsContent value="students">
+            <StudentsManager />
+          </TabsContent>
+
+          <TabsContent value="parents">
+            <ParentsManager />
           </TabsContent>
 
           <TabsContent value="schedule">
