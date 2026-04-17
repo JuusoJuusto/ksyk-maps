@@ -16,7 +16,6 @@ export const wilmaUserCreateSchema = z.object({
     .min(1, 'Username is required')
     .max(50, 'Username must be less than 50 characters'),
   password: z.string()
-    .min(1, 'Password is required')
     .max(100, 'Password must be less than 100 characters')
     .optional(),
   firstName: z.string()
@@ -27,7 +26,8 @@ export const wilmaUserCreateSchema = z.object({
     .max(100, 'Last name must be less than 100 characters'),
   email: z.string()
     .email('Invalid email address')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   role: z.enum(['student', 'teacher', 'substitute', 'parent', 'admin', 'principal', 'vice_principal', 
     'counselor', 'curator', 'social_worker', 'psychologist', 'nurse', 'special_ed_teacher', 'assistant', 
     'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'student_teacher', 
@@ -41,6 +41,10 @@ export const wilmaUserCreateSchema = z.object({
   sendEmailInvitation: z.boolean().optional(),
   isTemporaryPassword: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  phone: z.string().optional(),
+  specialization: z.string().optional(),
+  officeRoom: z.string().optional(),
+  bio: z.string().optional(),
 });
 
 // Admin Login Schema

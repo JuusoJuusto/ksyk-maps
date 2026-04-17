@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WILMA_ROLES } from "@shared/wilmaConfig";
 
@@ -64,6 +64,7 @@ export default function EnhancedWilmaUserManager() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<WilmaUser | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
@@ -329,6 +330,13 @@ export default function EnhancedWilmaUserManager() {
         variant: "destructive",
       });
     }
+  };
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
   };
 
   const getRoleConfig = (role: string) => {
@@ -682,6 +690,7 @@ export default function EnhancedWilmaUserManager() {
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">ID</th>
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Name</th>
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Username</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Password</th>
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Email</th>
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Role</th>
                       <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Class/Dept</th>
@@ -692,13 +701,13 @@ export default function EnhancedWilmaUserManager() {
                   <tbody className="divide-y">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-sm">
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">
                           Loading users...
                         </td>
                       </tr>
                     ) : wilmaUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-sm">
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">
                           No users found. Click "Add User" to create one.
                         </td>
                       </tr>
@@ -715,6 +724,26 @@ export default function EnhancedWilmaUserManager() {
                               <div className="font-medium text-xs md:text-sm">{user.firstName} {user.lastName}</div>
                             </td>
                             <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-600">{user.username}</td>
+                            <td className="px-2 md:px-4 py-2 md:py-3">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-xs md:text-sm text-gray-600">
+                                  {visiblePasswords[user.id] ? user.password : '••••••••'}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => togglePasswordVisibility(user.id)}
+                                  className="h-6 w-6 p-0"
+                                  title={visiblePasswords[user.id] ? "Hide password" : "Show password"}
+                                >
+                                  {visiblePasswords[user.id] ? (
+                                    <EyeOff className="h-3 w-3" />
+                                  ) : (
+                                    <Eye className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
+                            </td>
                             <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-600">{user.email || '-'}</td>
                             <td className="px-2 md:px-4 py-2 md:py-3">
                               <Badge className={roleConfig.color + " text-xs"}>

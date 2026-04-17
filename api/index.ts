@@ -1288,10 +1288,12 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           const { wilmaUserCreateSchema } = await import('../shared/validationSchemas.js');
           const validation = wilmaUserCreateSchema.safeParse(userData);
           if (!validation.success) {
-            console.log('❌ Validation failed:', validation.error.errors);
+            console.log('❌ Validation failed:', JSON.stringify(validation.error.errors, null, 2));
+            console.log('❌ User data received:', JSON.stringify(userData, null, 2));
             return res.status(400).json({ 
               message: "Invalid input", 
-              errors: validation.error.errors 
+              errors: validation.error.errors,
+              receivedData: userData
             });
           }
           
@@ -1341,7 +1343,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           let plainPassword = '';
           if (sendEmailInvitation) {
             plainPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-            console.log('🔑 Generated password for email invitation');
+            console.log('🔑 Generated password for email invitation:', plainPassword);
             
             // Hash the password before storing
             userData.password = await hashPassword(plainPassword);
@@ -1351,6 +1353,16 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             // Send email with credentials using new template
             if (userData.email) {
               try {
+                console.log('\n📧 ========== SENDING WILMA INVITATION EMAIL ==========');
+                console.log('To:', userData.email);
+                console.log('Name:', userData.firstName, userData.lastName);
+                console.log('Username:', userData.username);
+                console.log('Plain Password:', plainPassword);
+                console.log('Email User:', process.env.EMAIL_USER);
+                console.log('Email Host:', process.env.EMAIL_HOST);
+                console.log('Email Port:', process.env.EMAIL_PORT);
+                console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
+                
                 const { sendEmail } = await import('../server/emailService.js');
                 const { getWilmaInvitationEmail } = await import('../server/emailTemplates.js');
                 
@@ -1363,14 +1375,26 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                   appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
                 });
                 
-                await sendEmail({
+                console.log('📤 Calling sendEmail function...');
+                const emailResult = await sendEmail({
                   to: userData.email,
                   subject: 'Your Wilma Login Credentials - KSYK Maps',
                   html: emailHtml
                 });
-                console.log('✅ Email sent successfully to:', userData.email);
+                
+                console.log('📧 Email Result:', JSON.stringify(emailResult, null, 2));
+                
+                if (emailResult.success) {
+                  console.log('✅ Email sent successfully to:', userData.email);
+                } else {
+                  console.error('❌ Email failed to send:', emailResult.error);
+                  console.error('❌ Error details:', emailResult);
+                }
+                console.log('=====================================================\n');
               } catch (emailError: any) {
                 console.error('❌ Failed to send email:', emailError);
+                console.error('❌ Error message:', emailError.message);
+                console.error('❌ Error stack:', emailError.stack);
                 // Continue anyway - user is created
               }
             }

@@ -33,7 +33,7 @@
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=support.slstudio@gmail.com
-EMAIL_PASSWORD=ieqv myxx huko akdd (App Password)
+EMAIL_PASSWORD=[CONFIGURED - App Password]
 ```
 
 **Email Templates Created**:
