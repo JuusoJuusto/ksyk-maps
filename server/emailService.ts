@@ -501,3 +501,116 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     return { success: false, error, mode: 'console' };
   }
 }
+
+
+// Send Wilma student welcome email
+export async function sendWilmaStudentWelcomeEmail(
+  studentEmail: string,
+  studentName: string,
+  tempPassword: string,
+  studentId: string,
+  parentEmails?: string[]
+) {
+  console.log('\n📧 ========== SENDING WILMA STUDENT WELCOME EMAIL ==========');
+  console.log('Student:', studentName);
+  console.log('Email:', studentEmail);
+  console.log('Student ID:', studentId);
+  console.log('Parent emails:', parentEmails);
+  console.log('==========================================================\n');
+
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log('⚠️ Email not configured');
+    return { success: false, mode: 'console', error: 'Email not configured' };
+  }
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 30px; text-align: center; color: #fff; }
+    .content { padding: 40px 30px; }
+    .password-box { background: #eff6ff; border: 2px solid #3b82f6; border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0; }
+    .password { font-size: 28px; font-weight: 700; color: #1e40af; font-family: monospace; letter-spacing: 2px; background: #fff; padding: 15px 25px; border-radius: 8px; display: inline-block; }
+    .button { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎓 Tervetuloa Wilmaan!</h1>
+      <p>Welcome to Wilma!</p>
+    </div>
+    <div class="content">
+      <h2>Hei ${studentName}! 👋</h2>
+      <p><strong>Wilma-tilisi on luotu.</strong> Tässä ovat kirjautumistietosi:</p>
+      <p><strong>Your Wilma account has been created.</strong> Here are your login credentials:</p>
+      
+      <div class="password-box">
+        <div style="color: #6b7280; font-size: 14px; font-weight: 600; margin-bottom: 15px;">OPISKELIJANUMERO / STUDENT ID</div>
+        <div class="password">${studentId}</div>
+      </div>
+      
+      <div class="password-box">
+        <div style="color: #6b7280; font-size: 14px; font-weight: 600; margin-bottom: 15px;">VÄLIAIKAINEN SALASANA / TEMPORARY PASSWORD</div>
+        <div class="password">${tempPassword}</div>
+      </div>
+      
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          <strong>⚠️ Tärkeää / Important:</strong> Vaihda salasanasi ensimmäisen kirjautumisen jälkeen. / Please change your password after first login.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app/wilma" class="button" style="color: #fff;">
+          Kirjaudu Wilmaan / Login to Wilma →
+        </a>
+      </div>
+    </div>
+    <div class="footer">
+      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p>Tämä on automaattinen viesti. Älä vastaa tähän sähköpostiin.</p>
+      <p>This is an automated message. Please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  try {
+    // Send to student
+    await transporter.sendMail({
+      from: `"KSYK Maps Wilma" <${process.env.EMAIL_USER}>`,
+      to: studentEmail,
+      subject: '🎓 Tervetuloa Wilmaan - Welcome to Wilma',
+      html: htmlContent
+    });
+    console.log('✅ Email sent to student:', studentEmail);
+
+    // Send to parents if provided
+    if (parentEmails && parentEmails.length > 0) {
+      for (const parentEmail of parentEmails) {
+        if (parentEmail) {
+          await transporter.sendMail({
+            from: `"KSYK Maps Wilma" <${process.env.EMAIL_USER}>`,
+            to: parentEmail,
+            subject: `🎓 ${studentName} - Wilma-tili luotu / Wilma Account Created`,
+            html: htmlContent
+          });
+          console.log('✅ Email sent to parent:', parentEmail);
+        }
+      }
+    }
+
+    return { success: true, mode: 'email' };
+  } catch (error: any) {
+    console.error('❌ Email error:', error);
+    return { success: false, error, mode: 'console' };
+  }
+}

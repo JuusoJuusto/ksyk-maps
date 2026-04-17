@@ -1232,9 +1232,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('🎓 Auto-generated student ID:', userData.studentId);
       }
       
+      // Auto-generate email for students if not provided
+      if (userData.role === 'student' && !userData.email) {
+        const cleanFirst = userData.firstName.toLowerCase().replace(/[^a-z]/g, '');
+        const cleanLast = userData.lastName.toLowerCase().replace(/[^a-z]/g, '');
+        userData.email = `${cleanFirst}.${cleanLast}@student.ksyk.fi`;
+        console.log('📧 Auto-generated email:', userData.email);
+      }
+      
       console.log('💾 Creating Wilma user...');
       const wilmaUser = await storage.createWilmaUser(userData);
       console.log('✅ Wilma user created successfully:', wilmaUser.id);
+      
+      // Send welcome email for students
+      if (userData.role === 'student' && userData.email && userData.password) {
+        const parentEmails = [];
+        if (userData.parent1Email) parentEmails.push(userData.parent1Email);
+        if (userData.parent2Email) parentEmails.push(userData.parent2Email);
+        
+        try {
+          const emailService = await import('./emailService');
+          await emailService.sendWilmaStudentWelcomeEmail(
+            userData.email,
+            `${userData.firstName} ${userData.lastName}`,
+            userData.password,
+            userData.studentId,
+            parentEmails.length > 0 ? parentEmails : undefined
+          );
+          console.log('✅ Welcome email sent');
+        } catch (emailError) {
+          console.error('❌ Failed to send welcome email:', emailError);
+          // Continue anyway - user is created
+        }
+      }
       
       // Remove password from response
       const { password: _, ...userResponse } = wilmaUser;
