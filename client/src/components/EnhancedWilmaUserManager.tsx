@@ -119,8 +119,8 @@ export default function EnhancedWilmaUserManager() {
       setShowForm(false);
       resetForm();
       toast({
-        title: "✅ User Created",
-        description: `${data.firstName} ${data.lastName} (ID: ${data.studentId}) has been created successfully!${newUser.sendEmailInvitation ? ' Login credentials sent via email.' : ''}`,
+        title: "✅ Käyttäjä luotu",
+        description: `${data.firstName} ${data.lastName} (ID: ${data.studentId}) on luotu onnistuneesti!${newUser.sendEmailInvitation ? ' Kirjautumistiedot lähetetty sähköpostitse.' : ''}`,
       });
     },
     onError: (error: any) => {
@@ -152,8 +152,8 @@ export default function EnhancedWilmaUserManager() {
       setShowForm(false);
       setEditingUser(null);
       toast({
-        title: "✅ User Updated",
-        description: `${data.firstName} ${data.lastName} has been updated successfully!`,
+        title: "✅ Käyttäjä päivitetty",
+        description: `${data.firstName} ${data.lastName} on päivitetty onnistuneesti!`,
       });
     },
     onError: (error: any) => {
@@ -206,8 +206,8 @@ export default function EnhancedWilmaUserManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
       toast({
-        title: "🗑️ User Deleted",
-        description: "User has been permanently deleted from the database.",
+        title: "🗑️ Käyttäjä poistettu",
+        description: "Käyttäjä on poistettu pysyvästi tietokannasta.",
       });
     },
     onError: (error: any) => {
@@ -242,8 +242,8 @@ export default function EnhancedWilmaUserManager() {
   const handleCreateUser = () => {
     if (!newUser.username || !newUser.firstName || !newUser.lastName) {
       toast({
-        title: "⚠️ Missing Fields",
-        description: "Please fill in username, first name, and last name",
+        title: "⚠️ Puuttuvat kentät",
+        description: "Täytä käyttäjänimi, etunimi ja sukunimi",
         variant: "destructive",
       });
       return;
@@ -251,8 +251,8 @@ export default function EnhancedWilmaUserManager() {
     
     if (!newUser.sendEmailInvitation && !newUser.password) {
       toast({
-        title: "⚠️ Password Required",
-        description: "Please enter a password or enable email invitation",
+        title: "⚠️ Salasana vaaditaan",
+        description: "Syötä salasana tai ota käyttöön sähköpostikutsu",
         variant: "destructive",
       });
       return;
@@ -260,8 +260,8 @@ export default function EnhancedWilmaUserManager() {
     
     if (newUser.sendEmailInvitation && !newUser.email) {
       toast({
-        title: "⚠️ Email Required",
-        description: "Email is required for email invitation",
+        title: "⚠️ Sähköposti vaaditaan",
+        description: "Sähköposti vaaditaan sähköpostikutsua varten",
         variant: "destructive",
       });
       return;
@@ -276,21 +276,21 @@ export default function EnhancedWilmaUserManager() {
   };
 
   const handleDeleteUser = (id: string, username: string, name: string) => {
-    if (!confirm(`Delete user ${name} (${username})?\n\nThis action cannot be undone.`)) return;
+    if (!confirm(`Poista käyttäjä ${name} (${username})?\n\nTätä toimintoa ei voi perua.`)) return;
     deleteUserMutation.mutate(id);
   };
 
   const handleResetPassword = async (id: string, email: string | undefined, name: string) => {
     if (!email) {
       toast({
-        title: "❌ No Email",
-        description: "This user doesn't have an email address. Cannot send password reset.",
+        title: "❌ Ei sähköpostia",
+        description: "Käyttäjällä ei ole sähköpostiosoitetta. Salasanan nollaus ei onnistu.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!confirm(`Reset password for ${name}?\n\nA new temporary password will be generated and sent to ${email}.`)) return;
+    if (!confirm(`Nollaa salasana käyttäjälle ${name}?\n\nUusi väliaikainen salasana luodaan ja lähetetään osoitteeseen ${email}.`)) return;
 
     try {
       // Generate new temporary password
@@ -325,8 +325,8 @@ export default function EnhancedWilmaUserManager() {
 
       queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
       toast({
-        title: "✅ Password Reset",
-        description: `New temporary password sent to ${email}`,
+        title: "✅ Salasana nollattu",
+        description: `Uusi väliaikainen salasana lähetetty osoitteeseen ${email}`,
       });
     } catch (error: any) {
       toast({
@@ -377,7 +377,7 @@ export default function EnhancedWilmaUserManager() {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Total</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Yhteensä</p>
                 <p className="text-xl md:text-2xl font-bold">{stats.total}</p>
               </div>
               <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
@@ -388,7 +388,7 @@ export default function EnhancedWilmaUserManager() {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Students</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Opiskelijat</p>
                 <p className="text-xl md:text-2xl font-bold">{stats.students}</p>
               </div>
               <Users className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
@@ -399,7 +399,7 @@ export default function EnhancedWilmaUserManager() {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Teachers</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Opettajat</p>
                 <p className="text-xl md:text-2xl font-bold">{stats.teachers}</p>
               </div>
               <GraduationCap className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
@@ -410,7 +410,7 @@ export default function EnhancedWilmaUserManager() {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Staff</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Henkilökunta</p>
                 <p className="text-xl md:text-2xl font-bold">{stats.staff}</p>
               </div>
               <Briefcase className="h-6 w-6 md:h-8 md:w-8 text-cyan-600" />
@@ -424,9 +424,9 @@ export default function EnhancedWilmaUserManager() {
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
             <div>
-              <CardTitle className="text-lg md:text-xl">Wilma User Management</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Wilma käyttäjähallinta</CardTitle>
               <CardDescription className="text-xs md:text-sm mt-1">
-                Manage all Wilma users with different roles and permissions
+                Hallitse kaikkia Wilma-käyttäjiä eri rooleilla ja oikeuksilla
               </CardDescription>
             </div>
             <Button 
@@ -439,7 +439,7 @@ export default function EnhancedWilmaUserManager() {
               size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add User
+              Lisää käyttäjä
             </Button>
           </div>
         </CardHeader>
@@ -450,7 +450,7 @@ export default function EnhancedWilmaUserManager() {
               <div className="border-2 border-blue-200 rounded-lg p-3 md:p-6 bg-blue-50">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-base md:text-lg font-semibold text-blue-900">
-                    {editingUser ? "Edit User" : "Add New User"}
+                    {editingUser ? "Muokkaa käyttäjää" : "Lisää uusi käyttäjä"}
                   </h3>
                   <Button
                     variant="ghost"
@@ -466,19 +466,19 @@ export default function EnhancedWilmaUserManager() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <Label className="text-xs md:text-sm">Username *</Label>
+                    <Label className="text-xs md:text-sm">Käyttäjänimi *</Label>
                     <Input
                       value={editingUser ? editingUser.username : newUser.username}
                       onChange={(e) => editingUser 
                         ? setEditingUser({...editingUser, username: e.target.value})
                         : setNewUser({...newUser, username: e.target.value})
                       }
-                      placeholder="john.doe"
+                      placeholder="matti.meikalainen"
                       className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">Password *</Label>
+                    <Label className="text-xs md:text-sm">Salasana *</Label>
                     <Input
                       type="password"
                       value={editingUser ? editingUser.password : newUser.password}
@@ -503,42 +503,42 @@ export default function EnhancedWilmaUserManager() {
                             })}
                             className="w-4 h-4"
                           />
-                          <span>Send email invitation</span>
+                          <span>Lähetä sähköpostikutsu</span>
                         </label>
                         {newUser.sendEmailInvitation && (
                           <p className="text-xs text-blue-600 mt-1">
-                            📧 User will receive login credentials via email
+                            📧 Käyttäjä saa kirjautumistiedot sähköpostitse
                           </p>
                         )}
                       </div>
                     )}
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">First Name *</Label>
+                    <Label className="text-xs md:text-sm">Etunimi *</Label>
                     <Input
                       value={editingUser ? editingUser.firstName : newUser.firstName}
                       onChange={(e) => editingUser 
                         ? setEditingUser({...editingUser, firstName: e.target.value})
                         : setNewUser({...newUser, firstName: e.target.value})
                       }
-                      placeholder="John"
+                      placeholder="Matti"
                       className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">Last Name *</Label>
+                    <Label className="text-xs md:text-sm">Sukunimi *</Label>
                     <Input
                       value={editingUser ? editingUser.lastName : newUser.lastName}
                       onChange={(e) => editingUser 
                         ? setEditingUser({...editingUser, lastName: e.target.value})
                         : setNewUser({...newUser, lastName: e.target.value})
                       }
-                      placeholder="Doe"
+                      placeholder="Meikäläinen"
                       className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">Email</Label>
+                    <Label className="text-xs md:text-sm">Sähköposti</Label>
                     <Input
                       type="email"
                       value={editingUser ? editingUser.email || "" : newUser.email}
@@ -546,12 +546,12 @@ export default function EnhancedWilmaUserManager() {
                         ? setEditingUser({...editingUser, email: e.target.value})
                         : setNewUser({...newUser, email: e.target.value})
                       }
-                      placeholder="john.doe@example.com"
+                      placeholder="matti.meikalainen@ksyk.fi"
                       className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">Phone</Label>
+                    <Label className="text-xs md:text-sm">Puhelin</Label>
                     <Input
                       type="tel"
                       value={editingUser ? editingUser.phone || "" : newUser.phone}
@@ -564,7 +564,7 @@ export default function EnhancedWilmaUserManager() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs md:text-sm">Role *</Label>
+                    <Label className="text-xs md:text-sm">Rooli *</Label>
                     <select
                       className="w-full border rounded-md px-3 py-2 text-sm"
                       value={editingUser ? editingUser.role : newUser.role}
@@ -582,28 +582,28 @@ export default function EnhancedWilmaUserManager() {
                   </div>
                   {(editingUser?.role === 'custom' || newUser.role === 'custom') && (
                     <div>
-                      <Label className="text-xs md:text-sm">Custom Role Name *</Label>
+                      <Label className="text-xs md:text-sm">Mukautettu roolin nimi *</Label>
                       <Input
                         value={editingUser ? editingUser.customRoleName || "" : (newUser as any).customRoleName || ""}
                         onChange={(e) => editingUser 
                           ? setEditingUser({...editingUser, customRoleName: e.target.value})
                           : setNewUser({...newUser, customRoleName: e.target.value} as any)
                         }
-                        placeholder="e.g., IT Coordinator, Sports Coach"
+                        placeholder="esim. IT-koordinaattori, Urheiluvalmentaja"
                         className="text-sm"
                       />
                     </div>
                   )}
                   {(editingUser?.role === 'student' || newUser.role === 'student') && (
                     <div>
-                      <Label className="text-xs md:text-sm">Student Class</Label>
+                      <Label className="text-xs md:text-sm">Luokka</Label>
                       <Input
                         value={editingUser ? editingUser.studentClass || "" : newUser.studentClass}
                         onChange={(e) => editingUser 
                           ? setEditingUser({...editingUser, studentClass: e.target.value})
                           : setNewUser({...newUser, studentClass: e.target.value})
                         }
-                        placeholder="9A, 8B, etc."
+                        placeholder="9A, 8B, jne."
                         className="text-sm"
                       />
                     </div>
@@ -611,45 +611,45 @@ export default function EnhancedWilmaUserManager() {
                   {!['student', 'parent'].includes(editingUser?.role || newUser.role) && (
                     <>
                       <div>
-                        <Label className="text-xs md:text-sm">Department</Label>
+                        <Label className="text-xs md:text-sm">Osasto</Label>
                         <Input
                           value={editingUser ? editingUser.department || "" : newUser.department}
                           onChange={(e) => editingUser 
                             ? setEditingUser({...editingUser, department: e.target.value})
                             : setNewUser({...newUser, department: e.target.value})
                           }
-                          placeholder="Mathematics, Administration, etc."
+                          placeholder="Matematiikka, Hallinto, jne."
                           className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs md:text-sm">Position</Label>
+                        <Label className="text-xs md:text-sm">Asema</Label>
                         <Input
                           value={editingUser ? editingUser.position || "" : newUser.position}
                           onChange={(e) => editingUser 
                             ? setEditingUser({...editingUser, position: e.target.value})
                             : setNewUser({...newUser, position: e.target.value})
                           }
-                          placeholder="Head Teacher, School Nurse, etc."
+                          placeholder="Pääopettaja, Kouluterveydenhoitaja, jne."
                           className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs md:text-sm">Office Room</Label>
+                        <Label className="text-xs md:text-sm">Toimistohuone</Label>
                         <Input
                           value={editingUser ? editingUser.officeRoom || "" : newUser.officeRoom}
                           onChange={(e) => editingUser 
                             ? setEditingUser({...editingUser, officeRoom: e.target.value})
                             : setNewUser({...newUser, officeRoom: e.target.value})
                           }
-                          placeholder="Room 205"
+                          placeholder="Huone 205"
                           className="text-sm"
                         />
                       </div>
                     </>
                   )}
                   <div className="md:col-span-2">
-                    <Label className="text-xs md:text-sm">Bio / Description</Label>
+                    <Label className="text-xs md:text-sm">Kuvaus / Esittely</Label>
                     <textarea
                       className="w-full border rounded-md px-3 py-2 text-sm min-h-[80px]"
                       value={editingUser ? editingUser.bio || "" : newUser.bio}
@@ -657,7 +657,7 @@ export default function EnhancedWilmaUserManager() {
                         ? setEditingUser({...editingUser, bio: e.target.value})
                         : setNewUser({...newUser, bio: e.target.value})
                       }
-                      placeholder="Brief description or bio..."
+                      placeholder="Lyhyt kuvaus tai esittely..."
                     />
                   </div>
                 </div>
@@ -672,7 +672,7 @@ export default function EnhancedWilmaUserManager() {
                     className="w-full md:w-auto"
                     size="sm"
                   >
-                    Cancel
+                    Peruuta
                   </Button>
                   <Button
                     className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
@@ -680,7 +680,7 @@ export default function EnhancedWilmaUserManager() {
                     size="sm"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {editingUser ? "Update User" : "Create User"}
+                    {editingUser ? "Päivitä käyttäjä" : "Luo käyttäjä"}
                   </Button>
                 </div>
               </div>
@@ -692,28 +692,28 @@ export default function EnhancedWilmaUserManager() {
                 <table className="w-full min-w-[800px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">ID</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Name</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Username</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Password</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Email</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Role</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Class/Dept</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Status</th>
-                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Actions</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Tunnus</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Nimi</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Käyttäjänimi</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Salasana</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Sähköposti</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Rooli</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Luokka/Osasto</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Tila</th>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold">Toiminnot</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {isLoading ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">
-                          Loading users...
+                          Ladataan käyttäjiä...
                         </td>
                       </tr>
                     ) : wilmaUsers.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">
-                          No users found. Click "Add User" to create one.
+                          Ei käyttäjiä. Klikkaa "Lisää käyttäjä" luodaksesi uuden.
                         </td>
                       </tr>
                     ) : (

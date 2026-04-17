@@ -45,6 +45,10 @@ export default function WilmaAdmin() {
             // If no adminId in URL, redirect to include it
             if (!params?.adminId) {
               setLocation(`/wilma-admin/${user.id}`);
+            } else if (params.adminId !== user.id) {
+              // SECURITY: If URL ID doesn't match logged-in user, redirect to correct URL
+              alert('⚠️ Virheellinen käyttäjätunnus URL:ssa. Ohjataan oikeaan osoitteeseen.');
+              setLocation(`/wilma-admin/${user.id}/${params.section || 'staff'}`);
             }
           } else {
             // Redirect to regular Wilma if no admin access
@@ -62,7 +66,7 @@ export default function WilmaAdmin() {
     };
 
     checkAuth();
-  }, [params?.adminId]);
+  }, [params?.adminId, params?.section]);
 
   const handleLogout = async () => {
     try {
@@ -113,6 +117,10 @@ export default function WilmaAdmin() {
               </p>
             </div>
             <div className="flex gap-2 md:gap-3 ml-2">
+              <Button onClick={() => setLocation('/wilma-home')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
+                <Home className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Koti</span>
+              </Button>
               <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
                 <Home className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Etusivu</span>

@@ -27,6 +27,7 @@ import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
 import SLStudio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
+import WilmaHome from "@/pages/wilma-home";
 import WilmaMessage from "@/pages/wilma-message";
 import WilmaCompose from "@/pages/wilma-compose";
 import WilmaAdmin from "@/pages/wilma-admin";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
+      <Route path="/wilma-home" component={WilmaHome} />
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
       <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
