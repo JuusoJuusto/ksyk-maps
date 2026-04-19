@@ -133,9 +133,200 @@ export default function WilmaAdmin() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
-        {/* Top Navigation Bar */}
-        {/* Top Navigation Bar */}
-        <div className="bg-white rounded-lg shadow-lg border-2 border-blue-100 mb-6 overflow-x-auto">
+        {/* Mobile Menu Button */}
+        <div className="md:hidden mb-4">
+          <Button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="w-full bg-white text-gray-700 border-2 border-blue-200 hover:bg-blue-50 flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Menu className="w-5 h-5" />
+              <span className="font-medium">
+                {activeTab === 'home' && 'Koti'}
+                {activeTab === 'staff' && 'Henkilökunta'}
+                {activeTab === 'students' && 'Opiskelijat'}
+                {activeTab === 'schedule' && 'Lukujärjestys'}
+                {activeTab === 'courses' && 'Kurssit'}
+                {activeTab === 'teachers' && 'Opettajat'}
+                {activeTab === 'rooms' && 'Tilat'}
+                {activeTab === 'announcements' && 'Ilmoitukset'}
+                {activeTab === 'analytics' && 'Analytiikka'}
+                {activeTab === 'settings' && 'Asetukset'}
+              </span>
+            </span>
+            <span className={`transform transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+          </Button>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mb-4 bg-white rounded-lg shadow-lg border-2 border-blue-100 overflow-hidden">
+            <div className="flex flex-col">
+              <Button
+                onClick={() => {
+                  setActiveTab('home');
+                  setLocation(`/wilma-admin/${currentUser.id}/home`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'home' 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Home className="w-4 h-4 mr-3" />
+                <span>Koti</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('staff');
+                  setLocation(`/wilma-admin/${currentUser.id}/staff`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'staff' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Users className="w-4 h-4 mr-3" />
+                <span>Henkilökunta</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('students');
+                  setLocation(`/wilma-admin/${currentUser.id}/students`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'students' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <User className="w-4 h-4 mr-3" />
+                <span>Opiskelijat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('schedule');
+                  setLocation(`/wilma-admin/${currentUser.id}/schedule`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'schedule' 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Calendar className="w-4 h-4 mr-3" />
+                <span>Lukujärjestys</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('courses');
+                  setLocation(`/wilma-admin/${currentUser.id}/courses`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'courses' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 mr-3" />
+                <span>Kurssit</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('teachers');
+                  setLocation(`/wilma-admin/${currentUser.id}/teachers`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'teachers' 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4 mr-3" />
+                <span>Opettajat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('rooms');
+                  setLocation(`/wilma-admin/${currentUser.id}/rooms`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'rooms' 
+                    ? 'bg-pink-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Building className="w-4 h-4 mr-3" />
+                <span>Tilat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('announcements');
+                  setLocation(`/wilma-admin/${currentUser.id}/announcements`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'announcements' 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Bell className="w-4 h-4 mr-3" />
+                <span>Ilmoitukset</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('analytics');
+                  setLocation(`/wilma-admin/${currentUser.id}/analytics`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'analytics' 
+                    ? 'bg-cyan-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 mr-3" />
+                <span>Analytiikka</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('settings');
+                  setLocation(`/wilma-admin/${currentUser.id}/settings`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none ${
+                  activeTab === 'settings' 
+                    ? 'bg-gray-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Settings className="w-4 h-4 mr-3" />
+                <span>Asetukset</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Top Navigation Bar - Desktop Only */}
+        <div className="hidden md:block bg-white rounded-lg shadow-lg border-2 border-blue-100 mb-6 overflow-x-auto">
           <div className="flex gap-1 p-2 min-w-max">
             <Button
               onClick={() => {
