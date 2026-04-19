@@ -1,0 +1,248 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  Calendar, BookOpen, Mail, Clock, 
+  Award, CheckCircle, 
+  MessageSquare, FileText, BarChart3
+} from "lucide-react";
+
+export default function WilmaHomeTab() {
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-xs md:text-sm">Tänään</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">5</p>
+                <p className="text-blue-100 text-xs md:text-sm mt-1">Oppituntia</p>
+              </div>
+              <Calendar className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-xs md:text-sm">Läsnäolo</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">95%</p>
+                <p className="text-green-100 text-xs md:text-sm mt-1">Tällä viikolla</p>
+              </div>
+              <CheckCircle className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-xs md:text-sm">Viestit</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">3</p>
+                <p className="text-purple-100 text-xs md:text-sm mt-1">Lukematonta</p>
+              </div>
+              <Mail className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-xs md:text-sm">Keskiarvo</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">8.5</p>
+                <p className="text-orange-100 text-xs md:text-sm mt-1">Tällä jaksolla</p>
+              </div>
+              <Award className="w-8 h-8 md:w-12 md:h-12 text-orange-200" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          {/* Today's Schedule */}
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                Tänään lukujärjestys
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 md:p-6">
+              <div className="space-y-2 md:space-y-3">
+                {[
+                  { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
+                  { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
+                  { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
+                  { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
+                  { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
+                ].map((lesson, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+                      <div className="text-xs md:text-sm font-medium text-gray-600 w-20 md:w-32 flex-shrink-0">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
+                        {lesson.time}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{lesson.subject}</p>
+                        <p className="text-xs md:text-sm text-gray-600 truncate">{lesson.room} • {lesson.teacher}</p>
+                      </div>
+                    </div>
+                    {lesson.subject !== 'Lounastauko' && (
+                      <Button size="sm" variant="outline" className="ml-2 flex-shrink-0 text-xs md:text-sm">Näytä</Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Grades */}
+          <Card className="border-2 border-green-200">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Award className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                Viimeisimmät arvosanat
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 md:p-6">
+              <div className="space-y-2 md:space-y-3">
+                {[
+                  { subject: 'Matematiikka', grade: '9', date: '15.04.2026', type: 'Koe' },
+                  { subject: 'Englanti', grade: '8', date: '14.04.2026', type: 'Essee' },
+                  { subject: 'Fysiikka', grade: '10', date: '12.04.2026', type: 'Laboratoriotyö' },
+                  { subject: 'Historia', grade: '7', date: '10.04.2026', type: 'Tentti' },
+                ].map((grade, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{grade.subject}</p>
+                      <p className="text-xs md:text-sm text-gray-600">{grade.type} • {grade.date}</p>
+                    </div>
+                    <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{grade.grade}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-4 md:space-y-6">
+          {/* Quick Actions */}
+          <Card className="border-2 border-purple-200">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                Pika-toiminnot
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 md:p-4">
+              <div className="space-y-2">
+                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                  <Mail className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                  Viestit
+                </Button>
+                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                  <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                  Lukujärjestys
+                </Button>
+                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                  <BookOpen className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                  Kurssit
+                </Button>
+                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                  <Award className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                  Arvosanat
+                </Button>
+                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                  <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                  Poissaolot
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Announcements */}
+          <Card className="border-2 border-orange-200">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
+                Ilmoitukset
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 md:p-4">
+              <div className="space-y-2 md:space-y-3">
+                {[
+                  { title: 'Koulun sulkeminen', date: '2 tuntia sitten', priority: 'high' },
+                  { title: 'Vanhempainilta', date: '1 päivä sitten', priority: 'medium' },
+                  { title: 'Urheilupäivä', date: '3 päivää sitten', priority: 'low' },
+                ].map((announcement, idx) => (
+                  <div key={idx} className="flex items-start gap-2 md:gap-3 p-2 md:p-3 bg-gray-50 rounded-lg">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 md:mt-2 flex-shrink-0 ${
+                      announcement.priority === 'high' ? 'bg-red-500' :
+                      announcement.priority === 'medium' ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-xs md:text-sm text-gray-900 truncate">{announcement.title}</p>
+                      <p className="text-xs text-gray-600 mt-1">{announcement.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Performance Chart */}
+          <Card className="border-2 border-cyan-200">
+            <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
+                Suorituskyky
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 md:p-4">
+              <div className="space-y-3 md:space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs md:text-sm mb-1">
+                    <span>Läsnäolo</span>
+                    <span className="font-semibold">95%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full" style={{ width: '95%' }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs md:text-sm mb-1">
+                    <span>Tehtävät</span>
+                    <span className="font-semibold">88%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '88%' }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs md:text-sm mb-1">
+                    <span>Keskiarvo</span>
+                    <span className="font-semibold">8.5/10</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }} />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

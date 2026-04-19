@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
+import WilmaHomeTab from "@/components/WilmaHomeTab";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -18,7 +19,7 @@ export default function WilmaAdmin() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(params?.section || 'staff');
+  const [activeTab, setActiveTab] = useState(params?.section || 'home');
 
   useEffect(() => {
     if (params?.section) {
@@ -28,30 +29,31 @@ export default function WilmaAdmin() {
 
   useEffect(() => {
     const checkAuth = () => {
-      // Check for Wilma user session (from unified login)
       const storedUser = localStorage.getItem('wilma_user');
       
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          // Check if user has admin/teacher/principal role (or multiple roles including these)
           const roles = user.roles || [user.role];
           const hasAccess = roles.some((r: string) => 
             ['admin', 'teacher', 'principal', 'vice_principal'].includes(r)
           );
           
           if (hasAccess) {
+            // SECURITY: Validate admin ID matches logged-in user
+            if (params?.adminId && params.adminId !== user.id) {
+              // Don't show alert, just silently redirect to correct URL
+              setLocation(`/wilma-admin/${user.id}/${params.section || 'home'}`);
+              return;
+            }
+            
             setCurrentUser(user);
+            
             // If no adminId in URL, redirect to include it
             if (!params?.adminId) {
-              setLocation(`/wilma-admin/${user.id}`);
-            } else if (params.adminId !== user.id) {
-              // SECURITY: If URL ID doesn't match logged-in user, redirect to correct URL
-              alert('⚠️ Virheellinen käyttäjätunnus URL:ssa. Ohjataan oikeaan osoitteeseen.');
-              setLocation(`/wilma-admin/${user.id}/${params.section || 'staff'}`);
+              setLocation(`/wilma-admin/${user.id}/home`);
             }
           } else {
-            // Redirect to regular Wilma if no admin access
             setLocation('/wilma');
           }
         } catch (err) {
@@ -59,7 +61,6 @@ export default function WilmaAdmin() {
           setLocation('/wilma');
         }
       } else {
-        // No session, redirect to Wilma login
         setLocation('/wilma');
       }
       setIsLoading(false);
@@ -117,10 +118,6 @@ export default function WilmaAdmin() {
               </p>
             </div>
             <div className="flex gap-2 md:gap-3 ml-2">
-              <Button onClick={() => setLocation('/wilma-home')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
-                <Home className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Koti</span>
-              </Button>
               <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
                 <Home className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Etusivu</span>
@@ -140,6 +137,21 @@ export default function WilmaAdmin() {
         {/* Top Navigation Bar */}
         <div className="bg-white rounded-lg shadow-lg border-2 border-blue-100 mb-6 overflow-x-auto">
           <div className="flex gap-1 p-2 min-w-max">
+            <Button
+              onClick={() => {
+                setActiveTab('home');
+                setLocation(`/wilma-admin/${currentUser.id}/home`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'home' 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span className="font-medium">Koti</span>
+            </Button>
+            
             <Button
               onClick={() => {
                 setActiveTab('staff');
@@ -282,6 +294,10 @@ export default function WilmaAdmin() {
           setActiveTab(value);
           setLocation(`/wilma-admin/${currentUser.id}/${value}`);
         }} className="space-y-4 md:space-y-6">
+          <TabsContent value="home">
+            <WilmaHomeTab />
+          </TabsContent>
+
           <TabsContent value="staff">
             <EnhancedWilmaUserManager />
           </TabsContent>
