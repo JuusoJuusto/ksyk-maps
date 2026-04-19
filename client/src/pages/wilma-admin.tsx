@@ -502,37 +502,37 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-green-600" />
-                  Schedule Management
+                  Lukujärjestyksen hallinta
                 </CardTitle>
-                <CardDescription>Create and manage class schedules</CardDescription>
+                <CardDescription>Luo ja hallinnoi luokkien lukujärjestyksiä</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <Button className="bg-green-600 hover:bg-green-700">
                       <Plus className="w-4 h-4 mr-2" />
-                      Create Schedule
+                      Luo lukujärjestys
                     </Button>
                     <Button variant="outline">
                       <Upload className="w-4 h-4 mr-2" />
-                      Import CSV
+                      Tuo CSV
                     </Button>
                     <Button variant="outline">
                       <Download className="w-4 h-4 mr-2" />
-                      Export
+                      Vie
                     </Button>
                   </div>
                   <div className="space-y-4">
                     <div className="bg-white border-2 border-green-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-green-600" />
-                        Weekly Schedule Overview
+                        Viikon lukujärjestys
                       </h3>
                       <div className="grid grid-cols-5 gap-2">
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
+                        {['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'].map((day) => (
                           <div key={day} className="bg-green-50 p-3 rounded-lg">
                             <p className="font-semibold text-sm text-green-800">{day}</p>
-                            <p className="text-xs text-gray-600 mt-2">8 classes</p>
+                            <p className="text-xs text-gray-600 mt-2">8 tuntia</p>
                           </div>
                         ))}
                       </div>
@@ -541,15 +541,15 @@ export default function WilmaAdmin() {
                       <Button className="bg-green-600 hover:bg-green-700 h-auto py-4">
                         <Plus className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Create New Schedule</p>
-                          <p className="text-xs opacity-90">Add classes and assign teachers</p>
+                          <p className="font-semibold">Luo uusi lukujärjestys</p>
+                          <p className="text-xs opacity-90">Lisää tunnit ja määritä opettajat</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Download className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Export Schedule</p>
-                          <p className="text-xs text-gray-600">Download as PDF or CSV</p>
+                          <p className="font-semibold">Vie lukujärjestys</p>
+                          <p className="text-xs text-gray-600">Lataa PDF tai CSV</p>
                         </div>
                       </Button>
                     </div>
@@ -564,40 +564,40 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-purple-600" />
-                  Course Management
+                  Kurssien hallinta
                 </CardTitle>
-                <CardDescription>Manage courses and enrollments</CardDescription>
+                <CardDescription>Hallinnoi kursseja ja ilmoittautumisia</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Course
+                      Lisää kurssi
                     </Button>
                     <Button variant="outline">
                       <Search className="w-4 h-4 mr-2" />
-                      Search Courses
+                      Hae kursseja
                     </Button>
                     <Button variant="outline">
                       <Filter className="w-4 h-4 mr-2" />
-                      Filter
+                      Suodata
                     </Button>
                   </div>
                   <div className="space-y-4">
                     <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-purple-600" />
-                        Active Courses
+                        Aktiiviset kurssit
                       </h3>
                       <div className="space-y-3">
-                        {['Mathematics 101', 'English Literature', 'Physics Advanced', 'History of Finland'].map((course, idx) => (
+                        {['Matematiikka 1', 'Englannin kirjallisuus', 'Fysiikka syventävä', 'Suomen historia'].map((course, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-purple-50 p-3 rounded-lg">
                             <div>
                               <p className="font-semibold text-sm">{course}</p>
-                              <p className="text-xs text-gray-600">{20 + idx * 5} students enrolled</p>
+                              <p className="text-xs text-gray-600">{20 + idx * 5} opiskelijaa ilmoittautunut</p>
                             </div>
-                            <Button size="sm" variant="outline">Manage</Button>
+                            <Button size="sm" variant="outline">Hallinnoi</Button>
                           </div>
                         ))}
                       </div>
@@ -606,15 +606,15 @@ export default function WilmaAdmin() {
                       <Button className="bg-purple-600 hover:bg-purple-700 h-auto py-4">
                         <Plus className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Create New Course</p>
-                          <p className="text-xs opacity-90">Set up curriculum and materials</p>
+                          <p className="font-semibold">Luo uusi kurssi</p>
+                          <p className="text-xs opacity-90">Aseta opetussuunnitelma ja materiaalit</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Search className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Browse Catalog</p>
-                          <p className="text-xs text-gray-600">View all available courses</p>
+                          <p className="font-semibold">Selaa luetteloa</p>
+                          <p className="text-xs text-gray-600">Näytä kaikki saatavilla olevat kurssit</p>
                         </div>
                       </Button>
                     </div>
