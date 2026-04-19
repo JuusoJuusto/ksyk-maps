@@ -3,10 +3,21 @@ import { Button } from "@/components/ui/button";
 import { 
   Calendar, BookOpen, Mail, Clock, 
   Award, CheckCircle, 
-  MessageSquare, FileText, BarChart3
+  MessageSquare, FileText, BarChart3, Users
 } from "lucide-react";
 
-export default function WilmaHomeTab() {
+interface WilmaHomeTabProps {
+  userRole?: string;
+  userRoles?: string[];
+}
+
+export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabProps) {
+  // Determine if user is admin/principal (no grades)
+  const roles = userRoles.length > 0 ? userRoles : [userRole];
+  const isAdmin = roles.some((r: string) => ['admin', 'principal', 'vice_principal'].includes(r));
+  const isStudent = roles.includes('student');
+  const isTeacher = roles.includes('teacher');
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Quick Stats */}
@@ -15,11 +26,21 @@ export default function WilmaHomeTab() {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-xs md:text-sm">Tänään</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">5</p>
-                <p className="text-blue-100 text-xs md:text-sm mt-1">Oppituntia</p>
+                <p className="text-blue-100 text-xs md:text-sm">
+                  {isAdmin ? 'Käyttäjiä' : 'Tänään'}
+                </p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">
+                  {isAdmin ? '247' : '5'}
+                </p>
+                <p className="text-blue-100 text-xs md:text-sm mt-1">
+                  {isAdmin ? 'Yhteensä' : 'Oppituntia'}
+                </p>
               </div>
-              <Calendar className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+              {isAdmin ? (
+                <Users className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+              ) : (
+                <Calendar className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -28,9 +49,15 @@ export default function WilmaHomeTab() {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-xs md:text-sm">Läsnäolo</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">95%</p>
-                <p className="text-green-100 text-xs md:text-sm mt-1">Tällä viikolla</p>
+                <p className="text-green-100 text-xs md:text-sm">
+                  {isAdmin ? 'Opiskelijat' : 'Läsnäolo'}
+                </p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">
+                  {isAdmin ? '189' : '95%'}
+                </p>
+                <p className="text-green-100 text-xs md:text-sm mt-1">
+                  {isAdmin ? 'Aktiivisia' : 'Tällä viikolla'}
+                </p>
               </div>
               <CheckCircle className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
             </div>
@@ -42,8 +69,12 @@ export default function WilmaHomeTab() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-xs md:text-sm">Viestit</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">3</p>
-                <p className="text-purple-100 text-xs md:text-sm mt-1">Lukematonta</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">
+                  {isAdmin ? '12' : '3'}
+                </p>
+                <p className="text-purple-100 text-xs md:text-sm mt-1">
+                  {isAdmin ? 'Uutta' : 'Lukematonta'}
+                </p>
               </div>
               <Mail className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
             </div>
@@ -54,9 +85,15 @@ export default function WilmaHomeTab() {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-xs md:text-sm">Keskiarvo</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">8.5</p>
-                <p className="text-orange-100 text-xs md:text-sm mt-1">Tällä jaksolla</p>
+                <p className="text-orange-100 text-xs md:text-sm">
+                  {isAdmin ? 'Opettajat' : isStudent ? 'Keskiarvo' : 'Kurssit'}
+                </p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">
+                  {isAdmin ? '58' : isStudent ? '8.5' : '12'}
+                </p>
+                <p className="text-orange-100 text-xs md:text-sm mt-1">
+                  {isAdmin ? 'Aktiivisia' : isStudent ? 'Tällä jaksolla' : 'Aktiivisia'}
+                </p>
               </div>
               <Award className="w-8 h-8 md:w-12 md:h-12 text-orange-200" />
             </div>
@@ -105,33 +142,107 @@ export default function WilmaHomeTab() {
             </CardContent>
           </Card>
 
-          {/* Recent Grades */}
-          <Card className="border-2 border-green-200">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <Award className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                Viimeisimmät arvosanat
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 md:p-6">
-              <div className="space-y-2 md:space-y-3">
-                {[
-                  { subject: 'Matematiikka', grade: '9', date: '15.04.2026', type: 'Koe' },
-                  { subject: 'Englanti', grade: '8', date: '14.04.2026', type: 'Essee' },
-                  { subject: 'Fysiikka', grade: '10', date: '12.04.2026', type: 'Laboratoriotyö' },
-                  { subject: 'Historia', grade: '7', date: '10.04.2026', type: 'Tentti' },
-                ].map((grade, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{grade.subject}</p>
-                      <p className="text-xs md:text-sm text-gray-600">{grade.type} • {grade.date}</p>
+          {/* Recent Grades - Only for Students */}
+          {isStudent && (
+            <Card className="border-2 border-green-200">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Award className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                  Viimeisimmät arvosanat
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 md:p-6">
+                <div className="space-y-2 md:space-y-3">
+                  {[
+                    { subject: 'Matematiikka', grade: '9', date: '15.04.2026', type: 'Koe' },
+                    { subject: 'Englanti', grade: '8', date: '14.04.2026', type: 'Essee' },
+                    { subject: 'Fysiikka', grade: '10', date: '12.04.2026', type: 'Laboratoriotyö' },
+                    { subject: 'Historia', grade: '7', date: '10.04.2026', type: 'Tentti' },
+                  ].map((grade, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{grade.subject}</p>
+                        <p className="text-xs md:text-sm text-gray-600">{grade.type} • {grade.date}</p>
+                      </div>
+                      <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{grade.grade}</div>
                     </div>
-                    <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{grade.grade}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Admin/Teacher Overview */}
+          {(isAdmin || isTeacher) && (
+            <Card className="border-2 border-green-200">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                  {isAdmin ? 'Järjestelmän tilastot' : 'Omat kurssit'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 md:p-6">
+                <div className="space-y-2 md:space-y-3">
+                  {isAdmin ? (
+                    <>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Opiskelijat</p>
+                          <p className="text-xs md:text-sm text-gray-600">Aktiiviset käyttäjät</p>
+                        </div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">189</div>
+                      </div>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Opettajat</p>
+                          <p className="text-xs md:text-sm text-gray-600">Henkilökunta</p>
+                        </div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">58</div>
+                      </div>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Kurssit</p>
+                          <p className="text-xs md:text-sm text-gray-600">Aktiiviset kurssit</p>
+                        </div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">42</div>
+                      </div>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Läsnäolo</p>
+                          <p className="text-xs md:text-sm text-gray-600">Keskimääräinen</p>
+                        </div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">92%</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Matematiikka 1</p>
+                          <p className="text-xs md:text-sm text-gray-600">45 opiskelijaa</p>
+                        </div>
+                        <Button size="sm" variant="outline">Näytä</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Fysiikka 2</p>
+                          <p className="text-xs md:text-sm text-gray-600">38 opiskelijaa</p>
+                        </div>
+                        <Button size="sm" variant="outline">Näytä</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Kemia 1</p>
+                          <p className="text-xs md:text-sm text-gray-600">32 opiskelijaa</p>
+                        </div>
+                        <Button size="sm" variant="outline">Näytä</Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right Column */}
@@ -201,46 +312,91 @@ export default function WilmaHomeTab() {
             </CardContent>
           </Card>
 
-          {/* Performance Chart */}
-          <Card className="border-2 border-cyan-200">
-            <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
-                Suorituskyky
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4">
-              <div className="space-y-3 md:space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs md:text-sm mb-1">
-                    <span>Läsnäolo</span>
-                    <span className="font-semibold">95%</span>
+          {/* Performance Chart - Only for Students */}
+          {isStudent && (
+            <Card className="border-2 border-cyan-200">
+              <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
+                  Suorituskyky
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4">
+                <div className="space-y-3 md:space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>Läsnäolo</span>
+                      <span className="font-semibold">95%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '95%' }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: '95%' }} />
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>Tehtävät</span>
+                      <span className="font-semibold">88%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: '88%' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>Keskiarvo</span>
+                      <span className="font-semibold">8.5/10</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }} />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs md:text-sm mb-1">
-                    <span>Tehtävät</span>
-                    <span className="font-semibold">88%</span>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Admin/Teacher Stats */}
+          {(isAdmin || isTeacher) && (
+            <Card className="border-2 border-cyan-200">
+              <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
+                  {isAdmin ? 'Järjestelmän tila' : 'Kurssien tilastot'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4">
+                <div className="space-y-3 md:space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>{isAdmin ? 'Aktiiviset käyttäjät' : 'Opiskelijoiden läsnäolo'}</span>
+                      <span className="font-semibold">{isAdmin ? '247/250' : '92%'}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: isAdmin ? '98%' : '92%' }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '88%' }} />
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>{isAdmin ? 'Järjestelmän käyttö' : 'Tehtävien palautus'}</span>
+                      <span className="font-semibold">{isAdmin ? '85%' : '78%'}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: isAdmin ? '85%' : '78%' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span>{isAdmin ? 'Tyytyväisyys' : 'Keskiarvo'}</span>
+                      <span className="font-semibold">{isAdmin ? '4.2/5' : '7.8/10'}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: isAdmin ? '84%' : '78%' }} />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs md:text-sm mb-1">
-                    <span>Keskiarvo</span>
-                    <span className="font-semibold">8.5/10</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

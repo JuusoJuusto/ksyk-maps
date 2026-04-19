@@ -1161,8 +1161,10 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       // GET /wilma/users - List all Wilma users
       if (apiPath === '/wilma/users' && req.method === 'GET') {
         console.log('🔵 GET /api/wilma/users called');
+        const role = req.query.role as string | undefined;
+        console.log('📝 Role filter:', role || 'none');
         try {
-          const wilmaUsers = await storage.getWilmaUsers();
+          const wilmaUsers = await storage.getWilmaUsers(role);
           console.log(`✅ Returning ${wilmaUsers.length} Wilma users`);
           return res.status(200).json(wilmaUsers);
         } catch (error: any) {

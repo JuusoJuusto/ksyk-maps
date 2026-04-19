@@ -295,7 +295,7 @@ export default function WilmaAdmin() {
           setLocation(`/wilma-admin/${currentUser.id}/${value}`);
         }} className="space-y-4 md:space-y-6">
           <TabsContent value="home">
-            <WilmaHomeTab />
+            <WilmaHomeTab userRole={currentUser.role} userRoles={currentUser.roles || [currentUser.role]} />
           </TabsContent>
 
           <TabsContent value="staff">
