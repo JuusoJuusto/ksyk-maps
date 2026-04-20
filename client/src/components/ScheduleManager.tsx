@@ -36,7 +36,7 @@ export default function ScheduleManager() {
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['schedules', selectedClass],
     queryFn: async () => {
-      const url = selectedClass 
+      const url = selectedClass && selectedClass !== 'all'
         ? `/api/wilma/schedules?class=${selectedClass}`
         : '/api/wilma/schedules';
       const response = await fetch(url);
@@ -131,7 +131,7 @@ export default function ScheduleManager() {
               <SelectValue placeholder="Valitse luokka" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Kaikki luokat</SelectItem>
+              <SelectItem value="all">Kaikki luokat</SelectItem>
               <SelectItem value="7A">7A</SelectItem>
               <SelectItem value="7B">7B</SelectItem>
               <SelectItem value="8A">8A</SelectItem>
@@ -255,7 +255,7 @@ export default function ScheduleManager() {
         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-green-600" />
-            Viikon lukujärjestys {selectedClass && `- ${selectedClass}`}
+            Viikon lukujärjestys {selectedClass && selectedClass !== 'all' && `- ${selectedClass}`}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
