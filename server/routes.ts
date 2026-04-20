@@ -1448,12 +1448,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Wilma Message routes
   app.get('/api/wilma/messages', async (req, res) => {
     try {
-      // Get all messages (admin view)
-      const snapshot = await db.collection('wilmaMessages')
-        .orderBy('sentAt', 'desc')
-        .limit(100)
-        .get();
-      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Get all messages (admin view) - use storage layer
+      const messages = await storage.getAllWilmaMessages();
       res.json(messages);
     } catch (error) {
       await logError(error, 'GET /api/wilma/messages');
@@ -1504,26 +1500,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'PUT /api/wilma/messages/:id/read', { messageId: req.params.id });
       res.status(500).json({ message: "Failed to mark message as read" });
-    }
-  });
-
-  // Wilma User by ID route (CRITICAL FIX for 404 errors)
-  app.get('/api/wilma/users/:id', async (req, res) => {
-    try {
-      console.log('🔍 GET /api/wilma/users/:id called with ID:', req.params.id);
-      const wilmaUser = await storage.getWilmaUser(req.params.id);
-      
-      if (!wilmaUser) {
-        console.log('❌ Wilma user not found:', req.params.id);
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      console.log('✅ Wilma user found:', wilmaUser.id);
-      res.json(wilmaUser);
-    } catch (error) {
-      console.error('❌ Error in GET /api/wilma/users/:id:', error);
-      await logError(error, 'GET /api/wilma/users/:id', { userId: req.params.id });
-      res.status(500).json({ message: "Failed to fetch Wilma user" });
     }
   });
 
