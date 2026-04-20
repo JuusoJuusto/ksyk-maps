@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
+import WilmaMessagesManager from "@/components/WilmaMessagesManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -145,6 +146,7 @@ export default function WilmaAdmin() {
                 {activeTab === 'home' && 'Koti'}
                 {activeTab === 'staff' && 'Henkilökunta'}
                 {activeTab === 'students' && 'Opiskelijat'}
+                {activeTab === 'messages' && 'Viestit'}
                 {activeTab === 'schedule' && 'Lukujärjestys'}
                 {activeTab === 'courses' && 'Kurssit'}
                 {activeTab === 'teachers' && 'Opettajat'}
@@ -208,6 +210,22 @@ export default function WilmaAdmin() {
               >
                 <User className="w-4 h-4 mr-3" />
                 <span>Opiskelijat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('messages');
+                  setLocation(`/wilma-admin/${currentUser.id}/messages`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'messages' 
+                    ? 'bg-teal-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4 mr-3" />
+                <span>Viestit</span>
               </Button>
               
               <Button
@@ -375,6 +393,21 @@ export default function WilmaAdmin() {
             
             <Button
               onClick={() => {
+                setActiveTab('messages');
+                setLocation(`/wilma-admin/${currentUser.id}/messages`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'messages' 
+                  ? 'bg-teal-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="font-medium">Viestit</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
                 setActiveTab('schedule');
                 setLocation(`/wilma-admin/${currentUser.id}/schedule`);
               }}
@@ -495,6 +528,10 @@ export default function WilmaAdmin() {
 
           <TabsContent value="students">
             <PeopleManager />
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <WilmaMessagesManager />
           </TabsContent>
 
           <TabsContent value="schedule">

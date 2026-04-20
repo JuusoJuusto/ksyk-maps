@@ -5,6 +5,9 @@ import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "@shared/schema";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
+import { getFirestore } from 'firebase-admin/firestore';
+
+const db = getFirestore();
 
 // Session timeout middleware (30 minutes)
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
@@ -1423,23 +1426,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Wilma Message routes
-  app.get('/api/wilma/messages/:userId', async (req, res) => {
+  app.get('/api/wilma/messages', async (req, res) => {
     try {
-      const messages = await storage.getWilmaMessages(req.params.userId);
+      // Get all messages (admin view)
+      const snapshot = await db.collection('wilmaMessages')
+        .orderBy('sentAt', 'desc')
+        .limit(100)
+        .get();
+      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       res.json(messages);
     } catch (error) {
-      await logError(error, 'GET /api/wilma/messages/:userId', { userId: req.params.userId });
+      await logError(error, 'GET /api/wilma/messages');
       res.status(500).json({ message: "Failed to fetch messages" });
     }
   });
 
   app.post('/api/wilma/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const message = await storage.createWilmaMessage(req.body);
-      res.status(201).json(message);
+      const { recipient, subject, message } = req.body;
+      
+      if (!recipient || !subject || !message) {
+        return res.status(400).json({ message: "Recipient, subject, and message are required" });
+      }
+      
+      const messageData = {
+        recipient,
+        subject,
+        message,
+        sender: req.user?.claims?.email || 'admin',
+        sentAt: new Date().toISOString(),
+        read: false,
+        sent: false
+      };
+      
+      const newMessage = await storage.createWilmaMessage(messageData);
+      res.status(201).json(newMessage);
     } catch (error) {
       await logError(error, 'POST /api/wilma/messages');
-      res.status(500).json({ message: "Failed to create message" });
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.delete('/api/wilma/messages/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteWilmaMessage(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/messages/:id', { messageId: req.params.id });
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
+  app.put('/api/wilma/messages/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.markWilmaMessageAsRead(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/messages/:id/read', { messageId: req.params.id });
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // Wilma User by ID route (CRITICAL FIX for 404 errors)
+  app.get('/api/wilma/users/:id', async (req, res) => {
+    try {
+      console.log('🔍 GET /api/wilma/users/:id called with ID:', req.params.id);
+      const wilmaUser = await storage.getWilmaUser(req.params.id);
+      
+      if (!wilmaUser) {
+        console.log('❌ Wilma user not found:', req.params.id);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log('✅ Wilma user found:', wilmaUser.id);
+      res.json(wilmaUser);
+    } catch (error) {
+      console.error('❌ Error in GET /api/wilma/users/:id:', error);
+      await logError(error, 'GET /api/wilma/users/:id', { userId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch Wilma user" });
     }
   });
 

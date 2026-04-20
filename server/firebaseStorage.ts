@@ -931,6 +931,29 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async deleteWilmaMessage(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaMessages').doc(id).delete();
+      console.log('✅ Message deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma message:', error);
+      throw error;
+    }
+  }
+
+  async markWilmaMessageAsRead(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaMessages').doc(id).update({
+        read: true,
+        updatedAt: new Date()
+      });
+      console.log('✅ Message marked as read:', id);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      throw error;
+    }
+  }
+
   // Wilma Attendance operations
   async getWilmaAttendance(studentId: string): Promise<any[]> {
     try {

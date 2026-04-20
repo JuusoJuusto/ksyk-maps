@@ -51,8 +51,8 @@ export default function AdminLogin() {
         if (data.requirePasswordChange) {
           setShowPasswordChange(true);
         } else {
-          // Redirect to KSYK Maps admin panel (NOT Wilma!)
-          window.location.href = "/admin";
+          // Redirect to KSYK Maps admin panel
+          window.location.href = "/admin-ksyk-management-portal";
         }
       } else {
         setError(data.message || "Login failed");
@@ -109,7 +109,7 @@ export default function AdminLogin() {
       }
       
       alert("Password changed successfully!");
-      window.location.href = "/admin";
+      window.location.href = "/admin-ksyk-management-portal";
     } catch (error: any) {
       setError(error.message || "Failed to change password");
     }

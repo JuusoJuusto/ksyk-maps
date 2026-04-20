@@ -19,14 +19,27 @@ export default function StudentDetail() {
   const studentId = params?.studentId;
 
   // Fetch student data
-  const { data: student, isLoading } = useQuery({
+  const { data: student, isLoading, error } = useQuery({
     queryKey: ["student-detail", studentId],
     queryFn: async () => {
+      console.log('📡 Fetching student detail for ID:', studentId);
+      if (!studentId) {
+        throw new Error("No student ID provided");
+      }
       const response = await fetch(`/api/wilma/users/${studentId}`);
-      if (!response.ok) throw new Error("Failed to fetch student");
-      return response.json();
+      if (!response.ok) {
+        console.error('❌ Failed to fetch student:', response.status, response.statusText);
+        if (response.status === 404) {
+          throw new Error("Student not found");
+        }
+        throw new Error("Failed to fetch student");
+      }
+      const data = await response.json();
+      console.log('✅ Student detail loaded:', data);
+      return data;
     },
-    enabled: !!studentId
+    enabled: !!studentId,
+    retry: false
   });
 
   if (isLoading) {
@@ -40,14 +53,18 @@ export default function StudentDetail() {
     );
   }
 
-  if (!student) {
+  if (!student || error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Opiskelijaa ei löytynyt</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Opiskelijaa ei löytynyt</h2>
+          <p className="text-gray-600 mb-4">
+            {error?.message || "Opiskelija ei ole enää saatavilla tai se on poistettu."}
+          </p>
           <Button onClick={() => setLocation(`/wilma-admin/${adminId}/students`)} className="mt-4">
-            Takaisin
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Takaisin opiskelijalistaan
           </Button>
         </div>
       </div>
