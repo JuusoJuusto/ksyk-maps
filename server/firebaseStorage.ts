@@ -810,6 +810,22 @@ export class FirebaseStorage implements IStorage {
   }
 
   // Wilma Schedule operations
+  async getWilmaSchedulesAll(classFilter?: string): Promise<any[]> {
+    try {
+      let query = db.collection('wilmaSchedules');
+      
+      if (classFilter) {
+        query = query.where('class', '==', classFilter) as any;
+      }
+      
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting all Wilma schedules:', error);
+      return [];
+    }
+  }
+
   async getWilmaSchedules(studentId: string): Promise<any[]> {
     try {
       const snapshot = await db.collection('wilmaSchedules')
@@ -836,6 +852,53 @@ export class FirebaseStorage implements IStorage {
       return scheduleData;
     } catch (error) {
       console.error('Error creating Wilma schedule:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaSchedule(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaSchedules').doc(id).delete();
+      console.log('✅ Schedule deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma schedule:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Settings operations
+  async getWilmaSettings(): Promise<any> {
+    try {
+      const doc = await db.collection('wilmaSettings').doc('default').get();
+      if (!doc.exists) {
+        // Return default settings
+        return {
+          schoolName: 'Kulosaaren yhteiskoulu',
+          academicYear: '2025-2026',
+          semesterStart: '2025-08-15',
+          semesterEnd: '2025-12-20',
+          notificationsEnabled: true,
+          emailNotifications: true,
+          sessionTimeout: 30
+        };
+      }
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting Wilma settings:', error);
+      return {};
+    }
+  }
+
+  async updateWilmaSettings(settings: any): Promise<any> {
+    try {
+      const updateData = {
+        ...settings,
+        updatedAt: new Date()
+      };
+      await db.collection('wilmaSettings').doc('default').set(updateData, { merge: true });
+      return await this.getWilmaSettings();
+    } catch (error) {
+      console.error('Error updating Wilma settings:', error);
       throw error;
     }
   }

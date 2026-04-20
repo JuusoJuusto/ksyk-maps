@@ -1503,6 +1503,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wilma Schedule routes (full CRUD)
+  app.get('/api/wilma/schedules', async (req, res) => {
+    try {
+      const classFilter = req.query.class as string | undefined;
+      const schedules = await storage.getWilmaSchedulesAll(classFilter);
+      res.json(schedules);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/schedules');
+      res.status(500).json({ message: "Failed to fetch schedules" });
+    }
+  });
+
+  app.post('/api/wilma/schedules', isAuthenticated, async (req: any, res) => {
+    try {
+      const schedule = await storage.createWilmaSchedule(req.body);
+      res.status(201).json(schedule);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/schedules');
+      res.status(500).json({ message: "Failed to create schedule" });
+    }
+  });
+
+  app.delete('/api/wilma/schedules/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteWilmaSchedule(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/schedules/:id');
+      res.status(500).json({ message: "Failed to delete schedule" });
+    }
+  });
+
+  // Wilma Settings routes
+  app.get('/api/wilma/settings', async (req, res) => {
+    try {
+      const settings = await storage.getWilmaSettings();
+      res.json(settings);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/settings');
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.put('/api/wilma/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const settings = await storage.updateWilmaSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/settings');
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
   // Wilma Attendance routes
   app.get('/api/wilma/attendance/:studentId', async (req, res) => {
     try {
