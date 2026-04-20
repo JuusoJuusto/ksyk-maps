@@ -6,6 +6,34 @@ import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoo
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
 
+// Session timeout middleware (30 minutes)
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+function sessionTimeoutMiddleware(req: any, res: any, next: any) {
+  if (req.session && req.session.lastActivity) {
+    const now = Date.now();
+    const timeSinceLastActivity = now - req.session.lastActivity;
+    
+    if (timeSinceLastActivity > SESSION_TIMEOUT) {
+      // Session expired
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      return res.status(401).json({ 
+        message: 'Session expired due to inactivity',
+        sessionExpired: true 
+      });
+    }
+  }
+  
+  // Update last activity time
+  if (req.session) {
+    req.session.lastActivity = Date.now();
+  }
+  
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging helper
   const logError = async (error: any, source: string, details?: any) => {
@@ -86,6 +114,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+
+  // Apply session timeout to all routes
+  app.use(sessionTimeoutMiddleware);
 
   // Auth routes
   app.get('/api/auth/user', async (req: any, res) => {
@@ -1325,6 +1356,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'POST /api/wilma/send-bulk-emails');
       res.status(500).json({ message: "Failed to send bulk emails" });
+    }
+  });
+
+  // Wilma Schedule routes
+  app.get('/api/wilma/schedules/:studentId', async (req, res) => {
+    try {
+      const schedules = await storage.getWilmaSchedules(req.params.studentId);
+      res.json(schedules);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/schedules/:studentId', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch schedules" });
+    }
+  });
+
+  app.post('/api/wilma/schedules', isAuthenticated, async (req: any, res) => {
+    try {
+      const schedule = await storage.createWilmaSchedule(req.body);
+      res.status(201).json(schedule);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/schedules');
+      res.status(500).json({ message: "Failed to create schedule" });
+    }
+  });
+
+  // Wilma Grade routes
+  app.get('/api/wilma/grades/:studentId', async (req, res) => {
+    try {
+      const grades = await storage.getWilmaGrades(req.params.studentId);
+      res.json(grades);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/grades/:studentId', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch grades" });
+    }
+  });
+
+  app.post('/api/wilma/grades', isAuthenticated, async (req: any, res) => {
+    try {
+      const grade = await storage.createWilmaGrade(req.body);
+      res.status(201).json(grade);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/grades');
+      res.status(500).json({ message: "Failed to create grade" });
+    }
+  });
+
+  // Wilma Assignment routes
+  app.get('/api/wilma/assignments/:studentId', async (req, res) => {
+    try {
+      const assignments = await storage.getWilmaAssignments(req.params.studentId);
+      res.json(assignments);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/assignments/:studentId', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch assignments" });
+    }
+  });
+
+  app.post('/api/wilma/assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const assignment = await storage.createWilmaAssignment(req.body);
+      res.status(201).json(assignment);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/assignments');
+      res.status(500).json({ message: "Failed to create assignment" });
+    }
+  });
+
+  // Wilma Message routes
+  app.get('/api/wilma/messages/:userId', async (req, res) => {
+    try {
+      const messages = await storage.getWilmaMessages(req.params.userId);
+      res.json(messages);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/messages/:userId', { userId: req.params.userId });
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post('/api/wilma/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const message = await storage.createWilmaMessage(req.body);
+      res.status(201).json(message);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/messages');
+      res.status(500).json({ message: "Failed to create message" });
+    }
+  });
+
+  // Wilma Attendance routes
+  app.get('/api/wilma/attendance/:studentId', async (req, res) => {
+    try {
+      const attendance = await storage.getWilmaAttendance(req.params.studentId);
+      res.json(attendance);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/attendance/:studentId', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch attendance" });
+    }
+  });
+
+  app.post('/api/wilma/attendance', isAuthenticated, async (req: any, res) => {
+    try {
+      const attendance = await storage.createWilmaAttendance(req.body);
+      res.status(201).json(attendance);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/attendance');
+      res.status(500).json({ message: "Failed to create attendance" });
+    }
+  });
+
+  // Wilma Exam routes
+  app.get('/api/wilma/exams/:studentId', async (req, res) => {
+    try {
+      const exams = await storage.getWilmaExams(req.params.studentId);
+      res.json(exams);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/exams/:studentId', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch exams" });
+    }
+  });
+
+  app.post('/api/wilma/exams', isAuthenticated, async (req: any, res) => {
+    try {
+      const exam = await storage.createWilmaExam(req.body);
+      res.status(201).json(exam);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/exams');
+      res.status(500).json({ message: "Failed to create exam" });
+    }
+  });
+
+  // Wilma Dashboard Stats
+  app.get('/api/wilma/stats', async (req, res) => {
+    try {
+      const students = await storage.getWilmaUsers('student');
+      const teachers = await storage.getWilmaUsers('teacher');
+      const parents = await storage.getWilmaUsers('parent');
+      
+      // Count active users (logged in within last 24 hours)
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const activeStudents = students.filter((s: any) => s.lastLogin && new Date(s.lastLogin) > yesterday).length;
+      const activeTeachers = teachers.filter((t: any) => t.lastLogin && new Date(t.lastLogin) > yesterday).length;
+      
+      res.json({
+        totalUsers: students.length + teachers.length + parents.length,
+        students: students.length,
+        teachers: teachers.length,
+        parents: parents.length,
+        activeStudents,
+        activeTeachers,
+        activeUsers: activeStudents + activeTeachers,
+      });
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/stats');
+      res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
 

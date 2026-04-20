@@ -20,27 +20,16 @@ interface WilmaUser {
   isActive: boolean;
   createdAt: string;
   // Extended student details
-  dateOfBirth?: string;
+  dateOfBirth?: string; // REQUIRED for students
   gender?: string;
   nationality?: string;
   address?: string;
   postalCode?: string;
   city?: string;
   phone?: string;
-  // Parent/Guardian 1
-  parent1FirstName?: string;
-  parent1LastName?: string;
-  parent1Email?: string;
-  parent1Phone?: string;
-  parent1Address?: string;
-  parent1Relation?: string;
-  // Parent/Guardian 2
-  parent2FirstName?: string;
-  parent2LastName?: string;
-  parent2Email?: string;
-  parent2Phone?: string;
-  parent2Address?: string;
-  parent2Relation?: string;
+  // Parent/Guardian relationships
+  parent1Id?: string;
+  parent2Id?: string;
   // Emergency contact
   emergencyContactName?: string;
   emergencyContactPhone?: string;

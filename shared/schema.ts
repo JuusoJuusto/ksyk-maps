@@ -277,8 +277,118 @@ export const wilmaUsers = pgTable("wilma_users", {
   calendarSyncEnabled: boolean("calendar_sync_enabled").default(false),
   calendarSyncToken: varchar("calendar_sync_token"), // For Google/Apple Calendar sync
   calendarProvider: varchar("calendar_provider"), // 'google', 'apple', 'outlook'
+  // Student details - REQUIRED for students
+  dateOfBirth: varchar("date_of_birth"), // REQUIRED for students
+  gender: varchar("gender"),
+  nationality: varchar("nationality"),
+  address: varchar("address"),
+  postalCode: varchar("postal_code"),
+  city: varchar("city"),
+  // Parent/Guardian relationships - REQUIRED for students
+  parent1Id: varchar("parent1_id"), // Reference to parent user ID
+  parent2Id: varchar("parent2_id"), // Reference to parent user ID
+  // Emergency contact
+  emergencyContactName: varchar("emergency_contact_name"),
+  emergencyContactPhone: varchar("emergency_contact_phone"),
+  emergencyContactRelation: varchar("emergency_contact_relation"),
+  // Medical info
+  allergies: text("allergies"),
+  medications: text("medications"),
+  specialNeeds: text("special_needs"),
+  // Academic
+  startYear: varchar("start_year"),
+  previousSchool: varchar("previous_school"),
+  notes: text("notes"),
   isActive: boolean("is_active").default(true),
   lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Schedules table
+export const wilmaSchedules = pgTable("wilma_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(), // 6-digit student ID
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Monday, 5=Friday
+  timeSlot: varchar("time_slot").notNull(), // e.g., "08:00-09:30"
+  subject: varchar("subject").notNull(),
+  room: varchar("room").notNull(),
+  teacherId: varchar("teacher_id"), // Reference to teacher's studentId
+  teacherName: varchar("teacher_name").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Grades table
+export const wilmaGrades = pgTable("wilma_grades", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(),
+  subject: varchar("subject").notNull(),
+  grade: varchar("grade").notNull(), // 4-10 or letter grades
+  teacherId: varchar("teacher_id"),
+  teacherName: varchar("teacher_name").notNull(),
+  term: varchar("term"), // e.g., "Fall 2026", "Spring 2026"
+  comments: text("comments"),
+  trend: varchar("trend").default("stable"), // up, down, stable
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Assignments table
+export const wilmaAssignments = pgTable("wilma_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(),
+  title: varchar("title").notNull(),
+  subject: varchar("subject").notNull(),
+  description: text("description"),
+  dueDate: varchar("due_date").notNull(),
+  status: varchar("status").default("pending"), // pending, submitted, graded
+  grade: varchar("grade"),
+  teacherId: varchar("teacher_id"),
+  teacherName: varchar("teacher_name").notNull(),
+  submittedAt: timestamp("submitted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Messages table
+export const wilmaMessages = pgTable("wilma_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromUserId: varchar("from_user_id").notNull(),
+  fromUserName: varchar("from_user_name").notNull(),
+  toUserId: varchar("to_user_id").notNull(),
+  toUserName: varchar("to_user_name").notNull(),
+  subject: varchar("subject").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Attendance table
+export const wilmaAttendance = pgTable("wilma_attendance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(),
+  date: varchar("date").notNull(),
+  status: varchar("status").notNull(), // present, absent, late, excused
+  hours: integer("hours").default(0),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Exams table
+export const wilmaExams = pgTable("wilma_exams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(),
+  subject: varchar("subject").notNull(),
+  date: varchar("date").notNull(),
+  time: varchar("time").notNull(),
+  room: varchar("room").notNull(),
+  topics: text("topics"),
+  teacherId: varchar("teacher_id"),
+  teacherName: varchar("teacher_name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -516,6 +626,42 @@ export const insertWilmaUserSchema = createInsertSchema(wilmaUsers).omit({
   updatedAt: true,
 });
 
+export const insertWilmaScheduleSchema = createInsertSchema(wilmaSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaGradeSchema = createInsertSchema(wilmaGrades).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaAssignmentSchema = createInsertSchema(wilmaAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaMessageSchema = createInsertSchema(wilmaMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaAttendanceSchema = createInsertSchema(wilmaAttendance).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaExamSchema = createInsertSchema(wilmaExams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // App Settings table
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default('default'),
@@ -631,4 +777,16 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 export type WilmaUser = typeof wilmaUsers.$inferSelect;
 export type InsertWilmaUser = z.infer<typeof insertWilmaUserSchema>;
+export type WilmaSchedule = typeof wilmaSchedules.$inferSelect;
+export type InsertWilmaSchedule = z.infer<typeof insertWilmaScheduleSchema>;
+export type WilmaGrade = typeof wilmaGrades.$inferSelect;
+export type InsertWilmaGrade = z.infer<typeof insertWilmaGradeSchema>;
+export type WilmaAssignment = typeof wilmaAssignments.$inferSelect;
+export type InsertWilmaAssignment = z.infer<typeof insertWilmaAssignmentSchema>;
+export type WilmaMessage = typeof wilmaMessages.$inferSelect;
+export type InsertWilmaMessage = z.infer<typeof insertWilmaMessageSchema>;
+export type WilmaAttendance = typeof wilmaAttendance.$inferSelect;
+export type InsertWilmaAttendance = z.infer<typeof insertWilmaAttendanceSchema>;
+export type WilmaExam = typeof wilmaExams.$inferSelect;
+export type InsertWilmaExam = z.infer<typeof insertWilmaExamSchema>;
 

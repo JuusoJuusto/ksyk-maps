@@ -809,6 +809,190 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  // Wilma Schedule operations
+  async getWilmaSchedules(studentId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaSchedules')
+        .where('studentId', '==', studentId)
+        .where('isActive', '==', true)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma schedules:', error);
+      return [];
+    }
+  }
+
+  async createWilmaSchedule(schedule: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaSchedules').doc();
+      const scheduleData = {
+        ...schedule,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(scheduleData);
+      return scheduleData;
+    } catch (error) {
+      console.error('Error creating Wilma schedule:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Grade operations
+  async getWilmaGrades(studentId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaGrades')
+        .where('studentId', '==', studentId)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma grades:', error);
+      return [];
+    }
+  }
+
+  async createWilmaGrade(grade: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaGrades').doc();
+      const gradeData = {
+        ...grade,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(gradeData);
+      return gradeData;
+    } catch (error) {
+      console.error('Error creating Wilma grade:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Assignment operations
+  async getWilmaAssignments(studentId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaAssignments')
+        .where('studentId', '==', studentId)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma assignments:', error);
+      return [];
+    }
+  }
+
+  async createWilmaAssignment(assignment: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaAssignments').doc();
+      const assignmentData = {
+        ...assignment,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(assignmentData);
+      return assignmentData;
+    } catch (error) {
+      console.error('Error creating Wilma assignment:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Message operations
+  async getWilmaMessages(userId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaMessages')
+        .where('toUserId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma messages:', error);
+      return [];
+    }
+  }
+
+  async createWilmaMessage(message: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaMessages').doc();
+      const messageData = {
+        ...message,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(messageData);
+      return messageData;
+    } catch (error) {
+      console.error('Error creating Wilma message:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Attendance operations
+  async getWilmaAttendance(studentId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaAttendance')
+        .where('studentId', '==', studentId)
+        .orderBy('date', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma attendance:', error);
+      return [];
+    }
+  }
+
+  async createWilmaAttendance(attendance: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaAttendance').doc();
+      const attendanceData = {
+        ...attendance,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(attendanceData);
+      return attendanceData;
+    } catch (error) {
+      console.error('Error creating Wilma attendance:', error);
+      throw error;
+    }
+  }
+
+  // Wilma Exam operations
+  async getWilmaExams(studentId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaExams')
+        .where('studentId', '==', studentId)
+        .orderBy('date', 'asc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma exams:', error);
+      return [];
+    }
+  }
+
+  async createWilmaExam(exam: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaExams').doc();
+      const examData = {
+        ...exam,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(examData);
+      return examData;
+    } catch (error) {
+      console.error('Error creating Wilma exam:', error);
+      throw error;
+    }
+  }
+
   // Event operations
   async getEvents(startDate?: Date, endDate?: Date): Promise<Event[]> {
     try {
