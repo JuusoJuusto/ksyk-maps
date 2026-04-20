@@ -178,7 +178,7 @@ export default function WilmaSettingsManager() {
               className="mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Sähköpostiosoite josta viestit lähetetään
+              Sähköpostiosoite josta viestit lähetetään. Tämä on vain näyttönimi - varsinainen lähetys tapahtuu palvelimen SMTP-asetusten kautta.
             </p>
           </div>
         </CardContent>

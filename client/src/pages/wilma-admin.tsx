@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
-import WilmaMessagesManagerV2 from "@/components/WilmaMessagesManagerV2";
+import WilmaMessagesManagerV3 from "@/components/WilmaMessagesManagerV3";
 import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
@@ -152,8 +152,9 @@ export default function WilmaAdmin() {
                 {activeTab === 'students' && 'Opiskelijat'}
                 {activeTab === 'messages' && 'Viestit'}
                 {activeTab === 'schedule' && 'Lukujärjestys'}
-                {activeTab === 'courses' && 'Kurssit'}
                 {activeTab === 'teachers' && 'Opettajat'}
+                {activeTab === 'classes' && 'Luokat'}
+                {activeTab === 'courses' && 'Kurssit'}
                 {activeTab === 'rooms' && 'Tilat'}
                 {activeTab === 'announcements' && 'Ilmoitukset'}
                 {activeTab === 'analytics' && 'Analytiikka'}
@@ -278,6 +279,22 @@ export default function WilmaAdmin() {
               >
                 <GraduationCap className="w-4 h-4 mr-3" />
                 <span>Opettajat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('classes');
+                  setLocation(`/wilma-admin/${currentUser.id}/classes`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'classes' 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Users className="w-4 h-4 mr-3" />
+                <span>Luokat</span>
               </Button>
               
               <Button
@@ -427,6 +444,36 @@ export default function WilmaAdmin() {
             
             <Button
               onClick={() => {
+                setActiveTab('teachers');
+                setLocation(`/wilma-admin/${currentUser.id}/teachers`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'teachers' 
+                  ? 'bg-orange-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span className="font-medium">Opettajat</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setActiveTab('classes');
+                setLocation(`/wilma-admin/${currentUser.id}/classes`);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
+                activeTab === 'classes' 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span className="font-medium">Luokat</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
                 setActiveTab('courses');
                 setLocation(`/wilma-admin/${currentUser.id}/courses`);
               }}
@@ -535,7 +582,7 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="messages">
-            <WilmaMessagesManagerV2 />
+            <WilmaMessagesManagerV3 />
           </TabsContent>
 
           <TabsContent value="schedule">
