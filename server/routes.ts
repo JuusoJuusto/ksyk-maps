@@ -1141,6 +1141,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wilma User by ID route (MUST BE BEFORE :id routes to avoid conflicts)
+  app.get('/api/wilma/users/:id', async (req, res) => {
+    try {
+      console.log('🔍 GET /api/wilma/users/:id called with ID:', req.params.id);
+      const wilmaUser = await storage.getWilmaUser(req.params.id);
+      
+      if (!wilmaUser) {
+        console.log('❌ Wilma user not found:', req.params.id);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log('✅ Wilma user found:', wilmaUser.id);
+      res.json(wilmaUser);
+    } catch (error) {
+      console.error('❌ Error in GET /api/wilma/users/:id:', error);
+      await logError(error, 'GET /api/wilma/users/:id', { userId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch Wilma user" });
+    }
+  });
+
   app.post('/api/wilma/login', rateLimiters.auth, async (req, res) => {
     try {
       console.log('🔐 POST /api/wilma/login called');

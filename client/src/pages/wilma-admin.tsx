@@ -832,9 +832,9 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50">
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="w-5 h-5 text-indigo-600" />
-                  Announcements
+                  Ilmoitukset
                 </CardTitle>
-                <CardDescription>Create and manage school announcements</CardDescription>
+                <CardDescription>Luo ja hallinnoi koulun ilmoituksia</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -856,14 +856,14 @@ export default function WilmaAdmin() {
                     <div className="bg-white border-2 border-indigo-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <Bell className="w-5 h-5 text-indigo-600" />
-                        Recent Announcements
+                        Viimeisimmät ilmoitukset
                       </h3>
                       <div className="space-y-3">
                         {[
-                          { title: 'School Closure Notice', date: '2 hours ago', priority: 'high' },
-                          { title: 'Parent-Teacher Meeting', date: '1 day ago', priority: 'medium' },
-                          { title: 'Sports Day Schedule', date: '3 days ago', priority: 'low' },
-                          { title: 'Exam Timetable Released', date: '1 week ago', priority: 'medium' }
+                          { title: 'Koulun sulkemisilmoitus', date: '2 tuntia sitten', priority: 'high' },
+                          { title: 'Vanhempainilta', date: '1 päivä sitten', priority: 'medium' },
+                          { title: 'Urheilupäivän aikataulu', date: '3 päivää sitten', priority: 'low' },
+                          { title: 'Kokeaikataulut julkaistu', date: '1 viikko sitten', priority: 'medium' }
                         ].map((announcement, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -877,7 +877,7 @@ export default function WilmaAdmin() {
                                 <p className="text-xs text-gray-600">{announcement.date}</p>
                               </div>
                             </div>
-                            <Button size="sm" variant="outline">Edit</Button>
+                            <Button size="sm" variant="outline">Muokkaa</Button>
                           </div>
                         ))}
                       </div>
@@ -909,9 +909,9 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-cyan-600" />
-                  Analytics & Reports
+                  Analytiikka ja raportit
                 </CardTitle>
-                <CardDescription>View insights and generate reports</CardDescription>
+                <CardDescription>Tarkastele tilastoja ja luo raportteja</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -919,21 +919,21 @@ export default function WilmaAdmin() {
                     <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                       <CardContent className="p-4">
                         <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
-                        <p className="text-sm font-medium text-gray-700">Performance Trends</p>
+                        <p className="text-sm font-medium text-gray-700">Suoritustrendit</p>
                         <p className="text-2xl font-bold text-blue-600 mt-1">+12%</p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                       <CardContent className="p-4">
                         <UserCheck className="w-8 h-8 text-green-600 mb-2" />
-                        <p className="text-sm font-medium text-gray-700">Attendance Rate</p>
+                        <p className="text-sm font-medium text-gray-700">Läsnäoloprosentti</p>
                         <p className="text-2xl font-bold text-green-600 mt-1">94.5%</p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
                       <CardContent className="p-4">
                         <Award className="w-8 h-8 text-purple-600 mb-2" />
-                        <p className="text-sm font-medium text-gray-700">Average Grade</p>
+                        <p className="text-sm font-medium text-gray-700">Keskiarvo</p>
                         <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
                       </CardContent>
                     </Card>
@@ -943,49 +943,49 @@ export default function WilmaAdmin() {
                       <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                         <CardContent className="p-4">
                           <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Performance Trends</p>
+                          <p className="text-sm font-medium text-gray-700">Suoritustrendit</p>
                           <p className="text-2xl font-bold text-blue-600 mt-1">+12%</p>
-                          <p className="text-xs text-gray-600 mt-1">vs last semester</p>
+                          <p className="text-xs text-gray-600 mt-1">vs edellinen lukukausi</p>
                         </CardContent>
                       </Card>
                       <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                         <CardContent className="p-4">
                           <UserCheck className="w-8 h-8 text-green-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Attendance Rate</p>
+                          <p className="text-sm font-medium text-gray-700">Läsnäoloprosentti</p>
                           <p className="text-2xl font-bold text-green-600 mt-1">94.5%</p>
-                          <p className="text-xs text-gray-600 mt-1">This month</p>
+                          <p className="text-xs text-gray-600 mt-1">Tässä kuussa</p>
                         </CardContent>
                       </Card>
                       <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
                         <CardContent className="p-4">
                           <Award className="w-8 h-8 text-purple-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Average Grade</p>
+                          <p className="text-sm font-medium text-gray-700">Keskiarvo</p>
                           <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
-                          <p className="text-xs text-gray-600 mt-1">Out of 10</p>
+                          <p className="text-xs text-gray-600 mt-1">Asteikolla 4-10</p>
                         </CardContent>
                       </Card>
                     </div>
                     <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <BarChart3 className="w-5 h-5 text-cyan-600" />
-                        Quick Stats
+                        Pikatilastot
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-3 bg-cyan-50 rounded-lg">
                           <p className="text-2xl font-bold text-cyan-600">156</p>
-                          <p className="text-xs text-gray-600 mt-1">Total Students</p>
+                          <p className="text-xs text-gray-600 mt-1">Opiskelijaa yhteensä</p>
                         </div>
                         <div className="text-center p-3 bg-cyan-50 rounded-lg">
                           <p className="text-2xl font-bold text-cyan-600">24</p>
-                          <p className="text-xs text-gray-600 mt-1">Teachers</p>
+                          <p className="text-xs text-gray-600 mt-1">Opettajaa</p>
                         </div>
                         <div className="text-center p-3 bg-cyan-50 rounded-lg">
                           <p className="text-2xl font-bold text-cyan-600">18</p>
-                          <p className="text-xs text-gray-600 mt-1">Active Courses</p>
+                          <p className="text-xs text-gray-600 mt-1">Aktiivista kurssia</p>
                         </div>
                         <div className="text-center p-3 bg-cyan-50 rounded-lg">
                           <p className="text-2xl font-bold text-cyan-600">32</p>
-                          <p className="text-xs text-gray-600 mt-1">Classrooms</p>
+                          <p className="text-xs text-gray-600 mt-1">Luokkahuonetta</p>
                         </div>
                       </div>
                     </div>
@@ -1045,18 +1045,18 @@ export default function WilmaAdmin() {
                       <CardContent className="p-4">
                         <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                           <Bell className="w-5 h-5 text-purple-600" />
-                          Notifications
+                          Ilmoitukset
                         </h3>
-                        <p className="text-sm text-gray-600">Push notifications, alerts</p>
+                        <p className="text-sm text-gray-600">Push-ilmoitukset, hälytykset</p>
                       </CardContent>
                     </Card>
                     <Card className="border-2 border-orange-200">
                       <CardContent className="p-4">
                         <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5 text-orange-600" />
-                          Security
+                          Turvallisuus
                         </h3>
-                        <p className="text-sm text-gray-600">Password policies, 2FA</p>
+                        <p className="text-sm text-gray-600">Salasanakäytännöt, 2FA</p>
                       </CardContent>
                     </Card>
                   </div>
