@@ -1158,8 +1158,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     
     // Wilma User routes
     if (apiPath.startsWith('/wilma')) {
-      // GET /wilma/users - List all Wilma users
-      if (apiPath === '/wilma/users' && req.method === 'GET') {
+      // GET /wilma/users - List all Wilma users (with or without query params)
+      if ((apiPath === '/wilma/users' || apiPath.startsWith('/wilma/users?')) && req.method === 'GET') {
         console.log('🔵 GET /api/wilma/users called');
         const role = req.query.role as string | undefined;
         console.log('📝 Role filter:', role || 'none');
