@@ -33,6 +33,7 @@ import WilmaCompose from "@/pages/wilma-compose";
 import WilmaAdmin from "@/pages/wilma-admin";
 import WilmaTeacher from "@/pages/wilma-teacher";
 import StudentForm from "@/pages/student-form";
+import StudentDetail from "@/pages/student-detail";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/lunch" component={Lunch} />
       <Route path="/wilma-home" component={WilmaHome} />
       <Route path="/wilma" component={Wilma} />
+      <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
       <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
       <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />

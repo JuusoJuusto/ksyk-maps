@@ -26,7 +26,18 @@ export default function StudentForm() {
   
   const adminId = params?.adminId || paramsAdd?.adminId;
   const studentId = params?.studentId;
-  const isEdit = studentId && studentId !== 'new';
+  const isEdit = !!studentId && studentId !== 'new';
+
+  console.log('🔍 StudentForm Debug:', { 
+    match, 
+    params, 
+    matchAdd, 
+    paramsAdd, 
+    adminId, 
+    studentId, 
+    isEdit,
+    fullPath: window.location.pathname 
+  });
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -77,18 +88,29 @@ export default function StudentForm() {
   });
 
   // Fetch student data if editing
-  const { data: student } = useQuery({
+  const { data: student, isLoading: studentLoading, error: studentError } = useQuery({
     queryKey: ["student", studentId],
     queryFn: async () => {
+      console.log('📡 Fetching student:', studentId);
+      if (!studentId || studentId === 'new') {
+        console.log('⚠️ Skipping fetch - no valid studentId');
+        return null;
+      }
       const response = await fetch(`/api/wilma/users/${studentId}`);
-      if (!response.ok) throw new Error("Failed to fetch student");
-      return response.json();
+      if (!response.ok) {
+        console.error('❌ Failed to fetch student:', response.status);
+        throw new Error("Failed to fetch student");
+      }
+      const data = await response.json();
+      console.log('✅ Student data loaded:', data);
+      return data;
     },
-    enabled: isEdit
+    enabled: isEdit && !!studentId && studentId !== 'new'
   });
 
   useEffect(() => {
-    if (student) {
+    if (student && isEdit) {
+      console.log('📝 Loading student data for edit:', student);
       setFormData({
         firstName: student.firstName || "",
         lastName: student.lastName || "",
@@ -96,17 +118,17 @@ export default function StudentForm() {
         studentClass: student.studentClass || "",
         dateOfBirth: student.dateOfBirth || "",
         phone: student.phone || "",
-        address1: student.address1 || student.address || "",
-        city1: student.city1 || student.city || "",
-        postalCode1: student.postalCode1 || student.postalCode || "",
-        hasSecondAddress: !!student.address2,
-        address2: student.address2 || "",
-        city2: student.city2 || "",
-        postalCode2: student.postalCode2 || "",
-        emergencyContact: student.emergencyContact || "",
-        emergencyPhone: student.emergencyPhone || "",
-        emergencyRelationship: student.emergencyRelationship || "",
-        medicalInfo: student.medicalInfo || "",
+        address1: student.address || "",
+        city1: student.city || "",
+        postalCode1: student.postalCode || "",
+        hasSecondAddress: false,
+        address2: "",
+        city2: "",
+        postalCode2: "",
+        emergencyContact: student.emergencyContactName || "",
+        emergencyPhone: student.emergencyContactPhone || "",
+        emergencyRelationship: student.emergencyContactRelation || "",
+        medicalInfo: student.specialNeeds || "",
         allergies: student.allergies || "",
         medications: student.medications || "",
         parent1FirstName: student.parent1FirstName || "",
@@ -123,46 +145,155 @@ export default function StudentForm() {
         notes: student.notes || ""
       });
     }
-  }, [student]);
+  }, [student, isEdit]);
 
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Step 1: Create parent users if they don't exist
+      let parent1Id = null;
+      let parent2Id = null;
+      
+      // Create Parent 1 if email provided
+      if (data.parent1Email) {
+        try {
+          // Check if parent already exists
+          const checkResponse = await fetch(`/api/wilma/users?role=parent`);
+          if (checkResponse.ok) {
+            const existingParents = await checkResponse.json();
+            const existingParent = existingParents.find((p: any) => p.email === data.parent1Email);
+            
+            if (existingParent) {
+              parent1Id = existingParent.id;
+              console.log('✅ Parent 1 already exists:', parent1Id);
+            } else {
+              // Create new parent
+              const parent1Response = await fetch("/api/wilma/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  username: data.parent1Email.split('@')[0],
+                  password: generateRandomPassword(),
+                  firstName: data.parent1FirstName,
+                  lastName: data.parent1LastName,
+                  email: data.parent1Email,
+                  phone: data.parent1Phone,
+                  role: "parent",
+                  isActive: true,
+                  isTemporaryPassword: true
+                })
+              });
+              
+              if (parent1Response.ok) {
+                const parent1 = await parent1Response.json();
+                parent1Id = parent1.id;
+                console.log('✅ Parent 1 created:', parent1Id);
+              } else {
+                const error = await parent1Response.text();
+                console.error('❌ Failed to create parent 1:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error creating parent 1:', error);
+        }
+      }
+      
+      // Create Parent 2 if enabled and email provided
+      if (data.hasParent2 && data.parent2Email) {
+        try {
+          // Check if parent already exists
+          const checkResponse = await fetch(`/api/wilma/users?role=parent`);
+          if (checkResponse.ok) {
+            const existingParents = await checkResponse.json();
+            const existingParent = existingParents.find((p: any) => p.email === data.parent2Email);
+            
+            if (existingParent) {
+              parent2Id = existingParent.id;
+              console.log('✅ Parent 2 already exists:', parent2Id);
+            } else {
+              // Create new parent
+              const parent2Response = await fetch("/api/wilma/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  username: data.parent2Email.split('@')[0],
+                  password: generateRandomPassword(),
+                  firstName: data.parent2FirstName,
+                  lastName: data.parent2LastName,
+                  email: data.parent2Email,
+                  phone: data.parent2Phone,
+                  role: "parent",
+                  isActive: true,
+                  isTemporaryPassword: true
+                })
+              });
+              
+              if (parent2Response.ok) {
+                const parent2 = await parent2Response.json();
+                parent2Id = parent2.id;
+                console.log('✅ Parent 2 created:', parent2Id);
+              } else {
+                const error = await parent2Response.text();
+                console.error('❌ Failed to create parent 2:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error creating parent 2:', error);
+        }
+      }
+      
+      // Step 2: Create/Update student with parent IDs
       const url = isEdit ? `/api/wilma/users/${studentId}` : "/api/wilma/users";
       const method = isEdit ? "PUT" : "POST";
       
-      // Clean data - remove parent 2 fields if not enabled
-      const cleanData = { ...data };
-      if (!data.hasParent2) {
-        delete cleanData.parent2FirstName;
-        delete cleanData.parent2LastName;
-        delete cleanData.parent2Email;
-        delete cleanData.parent2Phone;
-        delete cleanData.parent2Relationship;
-      }
+      const studentData: any = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        studentClass: data.studentClass,
+        dateOfBirth: data.dateOfBirth,
+        phone: data.phone,
+        address: data.address1,
+        city: data.city1,
+        postalCode: data.postalCode1,
+        emergencyContactName: data.emergencyContact,
+        emergencyContactPhone: data.emergencyPhone,
+        emergencyContactRelation: data.emergencyRelationship,
+        allergies: data.allergies,
+        medications: data.medications,
+        specialNeeds: data.medicalInfo,
+        notes: data.notes,
+        role: "student",
+        username: data.email ? data.email.split('@')[0] : `${data.firstName}.${data.lastName}`.toLowerCase(),
+        isActive: true,
+        isTemporaryPassword: !isEdit,
+        // CRITICAL: Link parent IDs
+        parent1Id: parent1Id || null,
+        parent2Id: parent2Id || null,
+        // Store parent info for display
+        parent1FirstName: data.parent1FirstName || null,
+        parent1LastName: data.parent1LastName || null,
+        parent1Email: data.parent1Email || null,
+        parent1Phone: data.parent1Phone || null,
+        parent1Relationship: data.parent1Relationship || null,
+        parent2FirstName: data.hasParent2 ? data.parent2FirstName : null,
+        parent2LastName: data.hasParent2 ? data.parent2LastName : null,
+        parent2Email: data.hasParent2 ? data.parent2Email : null,
+        parent2Phone: data.hasParent2 ? data.parent2Phone : null,
+        parent2Relationship: data.hasParent2 ? data.parent2Relationship : null,
+      };
       
-      // Remove secondary address fields if not enabled
-      if (!data.hasSecondAddress) {
-        delete cleanData.address2;
-        delete cleanData.city2;
-        delete cleanData.postalCode2;
+      // Only set password for new students
+      if (!isEdit) {
+        studentData.password = generateRandomPassword();
       }
-      
-      // Remove hasParent2 and hasSecondAddress flags (not needed in DB)
-      delete cleanData.hasParent2;
-      delete cleanData.hasSecondAddress;
       
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...cleanData,
-          role: "student",
-          username: cleanData.email ? cleanData.email.split('@')[0] : `${cleanData.firstName}.${cleanData.lastName}`.toLowerCase(),
-          password: isEdit ? undefined : generateRandomPassword(),
-          isActive: true,
-          isTemporaryPassword: !isEdit
-        })
+        body: JSON.stringify(studentData)
       });
       
       if (!response.ok) throw new Error("Failed to save student");
@@ -170,7 +301,9 @@ export default function StudentForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
-      alert(`✅ Opiskelija ${isEdit ? "päivitetty" : "luotu"} onnistuneesti!`);
+      queryClient.invalidateQueries({ queryKey: ["parents"] });
+      queryClient.invalidateQueries({ queryKey: ["wilma-users"] });
+      alert(`✅ Opiskelija ${isEdit ? "päivitetty" : "luotu"} onnistuneesti! Huoltajat luotu automaattisesti.`);
       setLocation(`/wilma-admin/${adminId}/students`);
     },
     onError: (error: any) => {
@@ -182,6 +315,17 @@ export default function StudentForm() {
     e.preventDefault();
     saveMutation.mutate(formData);
   };
+
+  if (studentLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Ladataan opiskelijan tietoja...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 md:p-4">
@@ -214,7 +358,7 @@ export default function StudentForm() {
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Etunimi (First Name) *</Label>
+                  <Label>Etunimi (First Name) <span className="text-red-500">*</span></Label>
                   <Input
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -223,7 +367,7 @@ export default function StudentForm() {
                   />
                 </div>
                 <div>
-                  <Label>Sukunimi (Last Name) *</Label>
+                  <Label>Sukunimi (Last Name) <span className="text-red-500">*</span></Label>
                   <Input
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -262,7 +406,7 @@ export default function StudentForm() {
                   </p>
                 </div>
                 <div>
-                  <Label>Luokka (Class) *</Label>
+                  <Label>Luokka (Class) <span className="text-red-500">*</span></Label>
                   <Input
                     value={formData.studentClass}
                     onChange={(e) => setFormData({ ...formData, studentClass: e.target.value })}
@@ -275,11 +419,12 @@ export default function StudentForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Syntymäaika (Date of Birth)</Label>
+                  <Label>Syntymäaika (Date of Birth) <span className="text-red-500">*</span></Label>
                   <Input
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    required
                     className="mt-1"
                   />
                 </div>

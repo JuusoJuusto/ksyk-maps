@@ -287,6 +287,18 @@ export const wilmaUsers = pgTable("wilma_users", {
   // Parent/Guardian relationships - REQUIRED for students
   parent1Id: varchar("parent1_id"), // Reference to parent user ID
   parent2Id: varchar("parent2_id"), // Reference to parent user ID
+  // Parent 1 info (stored for display purposes)
+  parent1FirstName: varchar("parent1_first_name"),
+  parent1LastName: varchar("parent1_last_name"),
+  parent1Email: varchar("parent1_email"),
+  parent1Phone: varchar("parent1_phone"),
+  parent1Relationship: varchar("parent1_relationship"),
+  // Parent 2 info (stored for display purposes)
+  parent2FirstName: varchar("parent2_first_name"),
+  parent2LastName: varchar("parent2_last_name"),
+  parent2Email: varchar("parent2_email"),
+  parent2Phone: varchar("parent2_phone"),
+  parent2Relationship: varchar("parent2_relationship"),
   // Emergency contact
   emergencyContactName: varchar("emergency_contact_name"),
   emergencyContactPhone: varchar("emergency_contact_phone"),

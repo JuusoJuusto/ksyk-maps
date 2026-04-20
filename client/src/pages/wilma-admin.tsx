@@ -629,38 +629,38 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="w-5 h-5 text-orange-600" />
-                  Teacher Directory
+                  Opettajahakemisto
                 </CardTitle>
-                <CardDescription>Manage teacher profiles and assignments</CardDescription>
+                <CardDescription>Hallinnoi opettajien profiileja ja tehtäviä</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <Button className="bg-orange-600 hover:bg-orange-700">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Teacher
+                      Lisää opettaja
                     </Button>
                     <Button variant="outline">
                       <Mail className="w-4 h-4 mr-2" />
-                      Send Email
+                      Lähetä sähköposti
                     </Button>
                     <Button variant="outline">
                       <Download className="w-4 h-4 mr-2" />
-                      Export List
+                      Vie lista
                     </Button>
                   </div>
                   <div className="space-y-4">
                     <div className="bg-white border-2 border-orange-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <GraduationCap className="w-5 h-5 text-orange-600" />
-                        Teacher Directory
+                        Opettajahakemisto
                       </h3>
                       <div className="space-y-3">
                         {[
-                          { name: 'Dr. Maria Virtanen', subject: 'Mathematics', students: 45 },
-                          { name: 'Prof. Jukka Korhonen', subject: 'Physics', students: 38 },
-                          { name: 'Ms. Anna Mäkinen', subject: 'English', students: 52 },
-                          { name: 'Mr. Pekka Nieminen', subject: 'History', students: 41 }
+                          { name: 'Maria Virtanen', subject: 'Matematiikka', students: 45 },
+                          { name: 'Jukka Korhonen', subject: 'Fysiikka', students: 38 },
+                          { name: 'Anna Mäkinen', subject: 'Englanti', students: 52 },
+                          { name: 'Pekka Nieminen', subject: 'Historia', students: 41 }
                         ].map((teacher, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -669,10 +669,10 @@ export default function WilmaAdmin() {
                               </div>
                               <div>
                                 <p className="font-semibold text-sm">{teacher.name}</p>
-                                <p className="text-xs text-gray-600">{teacher.subject} • {teacher.students} students</p>
+                                <p className="text-xs text-gray-600">{teacher.subject} • {teacher.students} opiskelijaa</p>
                               </div>
                             </div>
-                            <Button size="sm" variant="outline">View Profile</Button>
+                            <Button size="sm" variant="outline">Näytä profiili</Button>
                           </div>
                         ))}
                       </div>
@@ -681,15 +681,15 @@ export default function WilmaAdmin() {
                       <Button className="bg-orange-600 hover:bg-orange-700 h-auto py-4">
                         <Plus className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Add New Teacher</p>
-                          <p className="text-xs opacity-90">Create teacher profile</p>
+                          <p className="font-semibold">Lisää uusi opettaja</p>
+                          <p className="text-xs opacity-90">Luo opettajan profiili</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Mail className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Send Group Email</p>
-                          <p className="text-xs text-gray-600">Contact all teachers</p>
+                          <p className="font-semibold">Lähetä ryhmäsähköposti</p>
+                          <p className="text-xs text-gray-600">Ota yhteyttä kaikkiin opettajiin</p>
                         </div>
                       </Button>
                     </div>
@@ -704,31 +704,31 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
                 <CardTitle className="flex items-center gap-2">
                   <Building className="w-5 h-5 text-pink-600" />
-                  Room Directory
+                  Tilahakemisto
                 </CardTitle>
-                <CardDescription>Manage rooms and facilities</CardDescription>
+                <CardDescription>Hallinnoi tiloja ja laitteita</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <Button className="bg-pink-600 hover:bg-pink-700">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Room
+                      Lisää tila
                     </Button>
                     <Button variant="outline">
                       <MapPin className="w-4 h-4 mr-2" />
-                      View on Map
+                      Näytä kartalla
                     </Button>
                     <Button variant="outline">
                       <Eye className="w-4 h-4 mr-2" />
-                      Availability
+                      Saatavuus
                     </Button>
                   </div>
                   <div className="space-y-4">
                     <div className="bg-white border-2 border-pink-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <Building className="w-5 h-5 text-pink-600" />
-                        Room Availability
+                        Tilojen saatavuus
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
@@ -738,8 +738,8 @@ export default function WilmaAdmin() {
                           { room: 'B202', status: 'maintenance', capacity: 35 },
                           { room: 'C301', status: 'available', capacity: 20 },
                           { room: 'Lab 1', status: 'occupied', capacity: 15 },
-                          { room: 'Gym', status: 'available', capacity: 100 },
-                          { room: 'Library', status: 'available', capacity: 50 }
+                          { room: 'Sali', status: 'available', capacity: 100 },
+                          { room: 'Kirjasto', status: 'available', capacity: 50 }
                         ].map((room, idx) => (
                           <div key={idx} className={`p-3 rounded-lg border-2 ${
                             room.status === 'available' ? 'bg-green-50 border-green-200' :
@@ -747,15 +747,15 @@ export default function WilmaAdmin() {
                             'bg-yellow-50 border-yellow-200'
                           }`}>
                             <p className="font-semibold text-sm">{room.room}</p>
-                            <p className="text-xs text-gray-600">{room.capacity} seats</p>
+                            <p className="text-xs text-gray-600">{room.capacity} paikkaa</p>
                             <p className={`text-xs font-medium mt-1 ${
                               room.status === 'available' ? 'text-green-600' :
                               room.status === 'occupied' ? 'text-red-600' :
                               'text-yellow-600'
                             }`}>
-                              {room.status === 'available' ? '✓ Available' :
-                               room.status === 'occupied' ? '● In Use' :
-                               '⚠ Maintenance'}
+                              {room.status === 'available' ? '✓ Vapaa' :
+                               room.status === 'occupied' ? '● Käytössä' :
+                               '⚠ Huolto'}
                             </p>
                           </div>
                         ))}
@@ -765,22 +765,22 @@ export default function WilmaAdmin() {
                       <Button className="bg-pink-600 hover:bg-pink-700 h-auto py-4">
                         <Plus className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Add Room</p>
-                          <p className="text-xs opacity-90">Register new room</p>
+                          <p className="font-semibold">Lisää tila</p>
+                          <p className="text-xs opacity-90">Rekisteröi uusi tila</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <MapPin className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">View on Map</p>
-                          <p className="text-xs text-gray-600">Campus map view</p>
+                          <p className="font-semibold">Näytä kartalla</p>
+                          <p className="text-xs text-gray-600">Kampuskarttanäkymä</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Eye className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Book Room</p>
-                          <p className="text-xs text-gray-600">Reserve for event</p>
+                          <p className="font-semibold">Varaa tila</p>
+                          <p className="text-xs text-gray-600">Varaa tapahtumaan</p>
                         </div>
                       </Button>
                     </div>
@@ -804,15 +804,15 @@ export default function WilmaAdmin() {
                   <div className="flex gap-3">
                     <Button className="bg-indigo-600 hover:bg-indigo-700">
                       <Plus className="w-4 h-4 mr-2" />
-                      New Announcement
+                      Uusi ilmoitus
                     </Button>
                     <Button variant="outline">
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      Broadcast
+                      Lähetä kaikille
                     </Button>
                     <Button variant="outline">
                       <Clock className="w-4 h-4 mr-2" />
-                      Schedule
+                      Ajasta
                     </Button>
                   </div>
                   <div className="space-y-4">
@@ -849,15 +849,15 @@ export default function WilmaAdmin() {
                       <Button className="bg-indigo-600 hover:bg-indigo-700 h-auto py-4">
                         <Plus className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">New Announcement</p>
-                          <p className="text-xs opacity-90">Broadcast to all users</p>
+                          <p className="font-semibold">Uusi ilmoitus</p>
+                          <p className="text-xs opacity-90">Lähetä kaikille käyttäjille</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Clock className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Schedule Post</p>
-                          <p className="text-xs text-gray-600">Set publish time</p>
+                          <p className="font-semibold">Ajasta julkaisu</p>
+                          <p className="text-xs text-gray-600">Aseta julkaisuaika</p>
                         </div>
                       </Button>
                     </div>
@@ -956,15 +956,15 @@ export default function WilmaAdmin() {
                       <Button className="bg-cyan-600 hover:bg-cyan-700 h-auto py-4">
                         <Download className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Export Report</p>
-                          <p className="text-xs opacity-90">Download detailed analytics</p>
+                          <p className="font-semibold">Vie raportti</p>
+                          <p className="text-xs opacity-90">Lataa yksityiskohtainen analyysi</p>
                         </div>
                       </Button>
                       <Button variant="outline" className="h-auto py-4">
                         <Filter className="w-5 h-5 mr-2" />
                         <div className="text-left">
-                          <p className="font-semibold">Custom Report</p>
-                          <p className="text-xs text-gray-600">Create filtered view</p>
+                          <p className="font-semibold">Mukautettu raportti</p>
+                          <p className="text-xs text-gray-600">Luo suodatettu näkymä</p>
                         </div>
                       </Button>
                     </div>
@@ -979,9 +979,9 @@ export default function WilmaAdmin() {
               <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="w-5 h-5 text-gray-600" />
-                  System Settings
+                  Järjestelmän asetukset
                 </CardTitle>
-                <CardDescription>Configure Wilma system settings</CardDescription>
+                <CardDescription>Määritä Wilman järjestelmäasetukset</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -990,18 +990,18 @@ export default function WilmaAdmin() {
                       <CardContent className="p-4">
                         <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-blue-600" />
-                          General Settings
+                          Yleiset asetukset
                         </h3>
-                        <p className="text-sm text-gray-600">School name, academic year, terms</p>
+                        <p className="text-sm text-gray-600">Koulun nimi, lukuvuosi, lukukaudet</p>
                       </CardContent>
                     </Card>
                     <Card className="border-2 border-green-200">
                       <CardContent className="p-4">
                         <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                           <Mail className="w-5 h-5 text-green-600" />
-                          Email Settings
+                          Sähköpostiasetukset
                         </h3>
-                        <p className="text-sm text-gray-600">SMTP configuration, templates</p>
+                        <p className="text-sm text-gray-600">SMTP-asetukset, mallit</p>
                       </CardContent>
                     </Card>
                     <Card className="border-2 border-purple-200">
@@ -1029,20 +1029,20 @@ export default function WilmaAdmin() {
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <CheckCircle className="w-5 h-5 text-blue-600" />
-                            General Settings
+                            Yleiset asetukset
                           </h3>
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">School Name</span>
-                              <Button size="sm" variant="outline">Edit</Button>
+                              <span className="text-sm text-gray-600">Koulun nimi</span>
+                              <Button size="sm" variant="outline">Muokkaa</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Academic Year</span>
-                              <Button size="sm" variant="outline">Edit</Button>
+                              <span className="text-sm text-gray-600">Lukuvuosi</span>
+                              <Button size="sm" variant="outline">Muokkaa</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Terms & Holidays</span>
-                              <Button size="sm" variant="outline">Edit</Button>
+                              <span className="text-sm text-gray-600">Lukukaudet ja lomat</span>
+                              <Button size="sm" variant="outline">Muokkaa</Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1051,20 +1051,20 @@ export default function WilmaAdmin() {
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <Mail className="w-5 h-5 text-green-600" />
-                            Email Settings
+                            Sähköpostiasetukset
                           </h3>
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">SMTP Configuration</span>
-                              <Button size="sm" variant="outline">Configure</Button>
+                              <span className="text-sm text-gray-600">SMTP-asetukset</span>
+                              <Button size="sm" variant="outline">Määritä</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Email Templates</span>
-                              <Button size="sm" variant="outline">Manage</Button>
+                              <span className="text-sm text-gray-600">Sähköpostimallit</span>
+                              <Button size="sm" variant="outline">Hallinnoi</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Sender Address</span>
-                              <Button size="sm" variant="outline">Edit</Button>
+                              <span className="text-sm text-gray-600">Lähettäjän osoite</span>
+                              <Button size="sm" variant="outline">Muokkaa</Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1073,20 +1073,20 @@ export default function WilmaAdmin() {
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <Bell className="w-5 h-5 text-purple-600" />
-                            Notifications
+                            Ilmoitukset
                           </h3>
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Push Notifications</span>
-                              <Button size="sm" variant="outline">Enable</Button>
+                              <span className="text-sm text-gray-600">Push-ilmoitukset</span>
+                              <Button size="sm" variant="outline">Ota käyttöön</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Email Alerts</span>
-                              <Button size="sm" variant="outline">Configure</Button>
+                              <span className="text-sm text-gray-600">Sähköpostihälytykset</span>
+                              <Button size="sm" variant="outline">Määritä</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">SMS Notifications</span>
-                              <Button size="sm" variant="outline">Setup</Button>
+                              <span className="text-sm text-gray-600">Tekstiviesti-ilmoitukset</span>
+                              <Button size="sm" variant="outline">Aseta</Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1095,20 +1095,20 @@ export default function WilmaAdmin() {
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 text-orange-600" />
-                            Security
+                            Turvallisuus
                           </h3>
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Password Policy</span>
-                              <Button size="sm" variant="outline">Edit</Button>
+                              <span className="text-sm text-gray-600">Salasanakäytäntö</span>
+                              <Button size="sm" variant="outline">Muokkaa</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Two-Factor Auth</span>
-                              <Button size="sm" variant="outline">Configure</Button>
+                              <span className="text-sm text-gray-600">Kaksivaiheinen tunnistautuminen</span>
+                              <Button size="sm" variant="outline">Määritä</Button>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Session Timeout</span>
-                              <Button size="sm" variant="outline">Set</Button>
+                              <span className="text-sm text-gray-600">Istunnon aikakatkaisu</span>
+                              <Button size="sm" variant="outline">Aseta</Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1117,23 +1117,23 @@ export default function WilmaAdmin() {
                     <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                         <Settings className="w-5 h-5 text-gray-600" />
-                        System Information
+                        Järjestelmän tiedot
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-semibold text-gray-700">Version</p>
+                          <p className="text-sm font-semibold text-gray-700">Versio</p>
                           <p className="text-lg font-bold text-gray-900 mt-1">3.2.0</p>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-semibold text-gray-700">Uptime</p>
+                          <p className="text-sm font-semibold text-gray-700">Käyttöaika</p>
                           <p className="text-lg font-bold text-gray-900 mt-1">99.9%</p>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-semibold text-gray-700">Storage</p>
+                          <p className="text-sm font-semibold text-gray-700">Tallennustila</p>
                           <p className="text-lg font-bold text-gray-900 mt-1">2.4 GB</p>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-semibold text-gray-700">Users</p>
+                          <p className="text-sm font-semibold text-gray-700">Käyttäjät</p>
                           <p className="text-lg font-bold text-gray-900 mt-1">180</p>
                         </div>
                       </div>

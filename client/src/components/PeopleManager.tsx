@@ -23,15 +23,20 @@ export default function PeopleManager() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to send emails');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send emails');
+      }
       return response.json();
     },
     onSuccess: (data) => {
-      alert(`✅ Lähetetty ${data.sent} sähköpostia! Epäonnistui: ${data.failed}`);
+      console.log('✅ Bulk email result:', data);
+      alert(`✅ Lähetetty ${data.sent} sähköpostia onnistuneesti!${data.failed > 0 ? ` Epäonnistui: ${data.failed}` : ''}`);
       setShowBulkEmailDialog(false);
     },
-    onError: () => {
-      alert('❌ Sähköpostien lähetys epäonnistui');
+    onError: (error: any) => {
+      console.error('❌ Bulk email error:', error);
+      alert(`❌ Sähköpostien lähetys epäonnistui: ${error.message}`);
     }
   });
 
@@ -182,6 +187,21 @@ export default function PeopleManager() {
                           <span className="truncate">{student.address}, {student.city}</span>
                         </p>
                       )}
+                      {(student.parent1FirstName || student.parent2FirstName) && (
+                        <div className="pt-2 border-t border-gray-200">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Huoltajat:</p>
+                          {student.parent1FirstName && (
+                            <p className="text-xs text-gray-600">
+                              • {student.parent1FirstName} {student.parent1LastName}
+                            </p>
+                          )}
+                          {student.parent2FirstName && (
+                            <p className="text-xs text-gray-600">
+                              • {student.parent2FirstName} {student.parent2LastName}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
                       <Button 
@@ -191,11 +211,11 @@ export default function PeopleManager() {
                         onClick={() => {
                           const currentPath = window.location.pathname;
                           const adminId = currentPath.split('/')[2];
-                          setLocation(`/wilma-admin/${adminId}/student/${student.id}`);
+                          setLocation(`/wilma-admin/${adminId}/student-view/${student.id}`);
                         }}
                       >
                         <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1" />
-                        Muokkaa
+                        Katso
                       </Button>
                       <Button 
                         size="sm" 
