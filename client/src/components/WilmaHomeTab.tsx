@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Calendar, BookOpen, Mail, Clock, 
   Award, CheckCircle, 
@@ -18,6 +19,41 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
   const isStudent = roles.includes('student');
   const isTeacher = roles.includes('teacher');
 
+  // Fetch real data from API
+  const { data: studentsData } = useQuery({
+    queryKey: ['wilma-students-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/users?role=student');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: isAdmin || isTeacher
+  });
+
+  const { data: teachersData } = useQuery({
+    queryKey: ['wilma-teachers-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/users?role=teacher');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: isAdmin
+  });
+
+  const { data: allUsersData } = useQuery({
+    queryKey: ['wilma-all-users-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/users');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: isAdmin
+  });
+
+  const studentsCount = studentsData?.length || 0;
+  const teachersCount = teachersData?.length || 0;
+  const totalUsersCount = allUsersData?.length || 0;
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Quick Stats */}
@@ -30,7 +66,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                   {isAdmin ? 'Käyttäjiä' : 'Tänään'}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
-                  {isAdmin ? '247' : '5'}
+                  {isAdmin ? totalUsersCount : '5'}
                 </p>
                 <p className="text-blue-100 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Yhteensä' : 'Oppituntia'}
@@ -53,7 +89,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                   {isAdmin ? 'Opiskelijat' : 'Läsnäolo'}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
-                  {isAdmin ? '189' : '95%'}
+                  {isAdmin ? studentsCount : '95%'}
                 </p>
                 <p className="text-green-100 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Aktiivisia' : 'Tällä viikolla'}
@@ -89,7 +125,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                   {isAdmin ? 'Opettajat' : isStudent ? 'Keskiarvo' : 'Kurssit'}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
-                  {isAdmin ? '58' : isStudent ? '8.5' : '12'}
+                  {isAdmin ? teachersCount : isStudent ? '8.5' : '12'}
                 </p>
                 <p className="text-orange-100 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Aktiivisia' : isStudent ? 'Tällä jaksolla' : 'Aktiivisia'}
@@ -190,21 +226,21 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                           <p className="font-semibold text-sm md:text-base text-gray-900">Opiskelijat</p>
                           <p className="text-xs md:text-sm text-gray-600">Aktiiviset käyttäjät</p>
                         </div>
-                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">189</div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{studentsCount}</div>
                       </div>
                       <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-sm md:text-base text-gray-900">Opettajat</p>
                           <p className="text-xs md:text-sm text-gray-600">Henkilökunta</p>
                         </div>
-                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">58</div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{teachersCount}</div>
                       </div>
                       <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm md:text-base text-gray-900">Kurssit</p>
-                          <p className="text-xs md:text-sm text-gray-600">Aktiiviset kurssit</p>
+                          <p className="font-semibold text-sm md:text-base text-gray-900">Käyttäjät</p>
+                          <p className="text-xs md:text-sm text-gray-600">Yhteensä</p>
                         </div>
-                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">42</div>
+                        <div className="text-xl md:text-2xl font-bold text-green-600 ml-2">{totalUsersCount}</div>
                       </div>
                       <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                         <div className="min-w-0 flex-1">
@@ -269,14 +305,30 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                   <BookOpen className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                   Kurssit
                 </Button>
-                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
-                  <Award className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                  Arvosanat
-                </Button>
-                <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
-                  <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                  Poissaolot
-                </Button>
+                {isStudent && (
+                  <>
+                    <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                      <Award className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      Arvosanat
+                    </Button>
+                    <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                      <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      Poissaolot
+                    </Button>
+                  </>
+                )}
+                {(isAdmin || isTeacher) && (
+                  <>
+                    <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                      <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      Raportit
+                    </Button>
+                    <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
+                      <Award className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      {isAdmin ? 'Hallinta' : 'Arviointi'}
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -369,10 +421,10 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                   <div>
                     <div className="flex justify-between text-xs md:text-sm mb-1">
                       <span>{isAdmin ? 'Aktiiviset käyttäjät' : 'Opiskelijoiden läsnäolo'}</span>
-                      <span className="font-semibold">{isAdmin ? '247/250' : '92%'}</span>
+                      <span className="font-semibold">{isAdmin ? `${totalUsersCount}/${totalUsersCount + 3}` : '92%'}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: isAdmin ? '98%' : '92%' }} />
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: isAdmin ? `${(totalUsersCount / (totalUsersCount + 3)) * 100}%` : '92%' }} />
                     </div>
                   </div>
                   <div>
