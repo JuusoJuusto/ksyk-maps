@@ -17,6 +17,7 @@
     "seed:demo": "tsx server/seedDemoSchool.ts",
     "seed:wilma": "tsx server/seedWilmaUsers.ts",
     "seed:wilma-data": "tsx server/seedWilmaData.ts",
+    "clean:wilma": "tsx server/cleanWilmaData.ts",
     "create:test-wilma": "tsx server/createTestWilmaUser.ts",
     "test:wilma": "tsx server/createWilmaUserTest.ts",
     "reset:bigger": "tsx server/resetAndCreateBiggerSchool.ts",
