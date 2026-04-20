@@ -14,10 +14,7 @@ export default function WilmaSettingsManager() {
     academicYear: '2025-2026',
     semesterStart: '2025-08-15',
     semesterEnd: '2025-12-20',
-    smtpHost: 'smtp.gmail.com',
-    smtpPort: '587',
-    smtpUser: '',
-    smtpPassword: '',
+    emailFromName: 'Wilma - Kulosaaren yhteiskoulu',
     emailFrom: 'noreply@ksyk.fi',
     notificationsEnabled: true,
     emailNotifications: true,
@@ -159,52 +156,30 @@ export default function WilmaSettingsManager() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>SMTP-palvelin</Label>
-              <Input
-                value={settings.smtpHost}
-                onChange={(e) => handleChange('smtpHost', e.target.value)}
-                placeholder="smtp.gmail.com"
-              />
-            </div>
+          <div>
+            <Label>Lähettäjän nimi</Label>
+            <Input
+              value={settings.emailFromName || 'Wilma - Kulosaaren yhteiskoulu'}
+              onChange={(e) => handleChange('emailFromName', e.target.value)}
+              placeholder="Wilma - Kulosaaren yhteiskoulu"
+              className="mt-1"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Tämä nimi näkyy sähköpostien lähettäjänä
+            </p>
+          </div>
 
-            <div>
-              <Label>SMTP-portti</Label>
-              <Input
-                value={settings.smtpPort}
-                onChange={(e) => handleChange('smtpPort', e.target.value)}
-                placeholder="587"
-              />
-            </div>
-
-            <div>
-              <Label>SMTP-käyttäjä</Label>
-              <Input
-                value={settings.smtpUser}
-                onChange={(e) => handleChange('smtpUser', e.target.value)}
-                placeholder="user@example.com"
-              />
-            </div>
-
-            <div>
-              <Label>SMTP-salasana</Label>
-              <Input
-                type="password"
-                value={settings.smtpPassword}
-                onChange={(e) => handleChange('smtpPassword', e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label>Lähettäjän osoite</Label>
-              <Input
-                value={settings.emailFrom}
-                onChange={(e) => handleChange('emailFrom', e.target.value)}
-                placeholder="noreply@ksyk.fi"
-              />
-            </div>
+          <div>
+            <Label>Lähettäjän osoite</Label>
+            <Input
+              value={settings.emailFrom}
+              onChange={(e) => handleChange('emailFrom', e.target.value)}
+              placeholder="noreply@ksyk.fi"
+              className="mt-1"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Sähköpostiosoite josta viestit lähetetään
+            </p>
           </div>
         </CardContent>
       </Card>
