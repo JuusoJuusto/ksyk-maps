@@ -60,13 +60,24 @@ export default function PeopleManager() {
     }
   });
 
+  // Calculate linked students count for each parent
+  const parentsWithStudentCount = parents.map((parent: any) => {
+    const linkedStudents = students.filter((student: any) => 
+      student.parent1Id === parent.id || student.parent2Id === parent.id
+    );
+    return {
+      ...parent,
+      linkedStudentCount: linkedStudents.length
+    };
+  });
+
   const filteredStudents = students.filter((student: any) =>
     `${student.firstName} ${student.lastName} ${student.email} ${student.studentId} ${student.studentClass}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
 
-  const filteredParents = parents.filter((parent: any) =>
+  const filteredParents = parentsWithStudentCount.filter((parent: any) =>
     `${parent.firstName} ${parent.lastName} ${parent.email}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -277,7 +288,7 @@ export default function PeopleManager() {
                       )}
                       <p className="flex items-center gap-2 text-gray-700">
                         <LinkIcon className="w-3 h-3 flex-shrink-0" />
-                        {parent.studentIds?.length || 0} opiskelijaa linkitetty
+                        {parent.linkedStudentCount || 0} opiskelijaa linkitetty
                       </p>
                     </div>
                     <div className="flex gap-2 mt-3 md:mt-4 pt-3 md:pt-4 border-t">

@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowLeft, Save, User, MapPin, Phone, Heart, AlertCircle, Home, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -85,6 +92,16 @@ export default function StudentForm() {
     
     // Additional Info
     notes: ""
+  });
+
+  // Fetch available classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ["wilma-classes"],
+    queryFn: async () => {
+      const response = await fetch("/api/wilma/classes");
+      if (!response.ok) return [];
+      return response.json();
+    }
   });
 
   // Fetch student data if editing
@@ -407,13 +424,32 @@ export default function StudentForm() {
                 </div>
                 <div>
                   <Label>Luokka (Class) <span className="text-red-500">*</span></Label>
-                  <Input
-                    value={formData.studentClass}
-                    onChange={(e) => setFormData({ ...formData, studentClass: e.target.value })}
-                    placeholder="esim. 9A"
-                    required
-                    className="mt-1"
-                  />
+                  <Select 
+                    value={formData.studentClass} 
+                    onValueChange={(value) => setFormData({ ...formData, studentClass: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Valitse luokka" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.length > 0 ? (
+                        classes.map((cls: any) => (
+                          <SelectItem key={cls.id} value={cls.name}>
+                            {cls.name} - {cls.grade}. luokka
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="7A">7A - 7. luokka</SelectItem>
+                          <SelectItem value="7B">7B - 7. luokka</SelectItem>
+                          <SelectItem value="8A">8A - 8. luokka</SelectItem>
+                          <SelectItem value="8B">8B - 8. luokka</SelectItem>
+                          <SelectItem value="9A">9A - 9. luokka</SelectItem>
+                          <SelectItem value="9B">9B - 9. luokka</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

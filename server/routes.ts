@@ -1598,6 +1598,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wilma Classes routes
+  app.get('/api/wilma/classes', async (req, res) => {
+    try {
+      const classes = await storage.getWilmaClasses();
+      res.json(classes);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/classes');
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  app.get('/api/wilma/classes/:id', async (req, res) => {
+    try {
+      const classData = await storage.getWilmaClass(req.params.id);
+      if (!classData) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      res.json(classData);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/classes/:id', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch class" });
+    }
+  });
+
+  app.post('/api/wilma/classes', isAuthenticated, async (req: any, res) => {
+    try {
+      const classData = await storage.createWilmaClass(req.body);
+      res.status(201).json(classData);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/classes');
+      res.status(500).json({ message: "Failed to create class" });
+    }
+  });
+
+  app.put('/api/wilma/classes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const classData = await storage.updateWilmaClass(req.params.id, req.body);
+      res.json(classData);
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/classes/:id', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to update class" });
+    }
+  });
+
+  app.delete('/api/wilma/classes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteWilmaClass(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/classes/:id', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to delete class" });
+    }
+  });
+
   // Wilma Dashboard Stats
   app.get('/api/wilma/stats', async (req, res) => {
     try {

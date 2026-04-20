@@ -1775,6 +1775,69 @@ export class FirebaseStorage implements IStorage {
       };
     }
   }
+
+  // Wilma Classes operations
+  async getWilmaClasses(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaClasses').get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma classes:', error);
+      return [];
+    }
+  }
+
+  async getWilmaClass(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaClasses').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting Wilma class:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaClass(classData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaClasses').doc();
+      const data = {
+        ...classData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating Wilma class:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaClass(id: string, classData: any): Promise<any> {
+    try {
+      const updateData = {
+        ...classData,
+        updatedAt: new Date(),
+      };
+      await db.collection('wilmaClasses').doc(id).update(updateData);
+      return await this.getWilmaClass(id);
+    } catch (error) {
+      console.error('Error updating Wilma class:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaClass(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaClasses').doc(id).delete();
+      console.log('✅ Class deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma class:', error);
+      throw error;
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

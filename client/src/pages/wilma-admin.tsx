@@ -6,9 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
-import WilmaMessagesManager from "@/components/WilmaMessagesManager";
+import WilmaMessagesManagerV2 from "@/components/WilmaMessagesManagerV2";
 import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
+import TeacherDirectory from "@/components/TeacherDirectory";
+import ClassesManager from "@/components/ClassesManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -533,11 +535,19 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="messages">
-            <WilmaMessagesManager />
+            <WilmaMessagesManagerV2 />
           </TabsContent>
 
           <TabsContent value="schedule">
             <ScheduleManager />
+          </TabsContent>
+
+          <TabsContent value="teachers">
+            <TeacherDirectory />
+          </TabsContent>
+
+          <TabsContent value="classes">
+            <ClassesManager />
           </TabsContent>
 
           <TabsContent value="courses">
