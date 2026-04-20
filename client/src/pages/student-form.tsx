@@ -7,6 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, User, MapPin, Phone, Heart, AlertCircle, Home, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// Generate a secure random password
+function generateRandomPassword(): string {
+  const length = 12;
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+}
+
 export default function StudentForm() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/wilma-admin/:adminId/student/:studentId');
@@ -148,7 +159,7 @@ export default function StudentForm() {
           ...cleanData,
           role: "student",
           username: cleanData.email ? cleanData.email.split('@')[0] : `${cleanData.firstName}.${cleanData.lastName}`.toLowerCase(),
-          password: isEdit ? undefined : `Student${Math.random().toString(36).slice(-8)}!`,
+          password: isEdit ? undefined : generateRandomPassword(),
           isActive: true,
           isTemporaryPassword: !isEdit
         })
