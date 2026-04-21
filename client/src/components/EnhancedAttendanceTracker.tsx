@@ -19,7 +19,7 @@ interface AttendanceMark {
   date: string;
   timeSlot: string;
   subject: string;
-  markType: 'present' | 'absent' | 'late' | 'forgot_books' | 'forgot_homework' | 'sleeping' | 'phone_use' | 'talking' | 'bad_behavior';
+  markType: 'present' | 'absent' | 'late' | 'forgot_books' | 'forgot_homework' | 'sleeping' | 'phone_use' | 'talking' | 'bad_behavior' | 'good_behavior' | 'active_participation' | 'excellent_performance';
   severity: 'normal' | 'warning' | 'serious';
   notes: string;
   teacherId: string;
@@ -38,6 +38,9 @@ const MARK_TYPES_FI = [
   { value: 'phone_use', label: 'Puhelimen käyttö', icon: Smartphone, color: 'bg-pink-100 text-pink-700 border-pink-300' },
   { value: 'talking', label: 'Puhuminen', icon: MessageCircle, color: 'bg-blue-100 text-blue-700 border-blue-300' },
   { value: 'bad_behavior', label: 'Huono käytös', icon: AlertTriangle, color: 'bg-red-100 text-red-700 border-red-300' },
+  { value: 'good_behavior', label: 'Hyvä käytös', icon: CheckCircle, color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  { value: 'active_participation', label: 'Aktiivinen osallistuminen', icon: MessageCircle, color: 'bg-sky-100 text-sky-700 border-sky-300' },
+  { value: 'excellent_performance', label: 'Erinomainen suoritus', icon: AlertTriangle, color: 'bg-amber-100 text-amber-700 border-amber-300' },
 ];
 
 const PERIODS = ['Kaikki', 'Jakso 1', 'Jakso 2', 'Jakso 3', 'Jakso 4', 'Jakso 5'];

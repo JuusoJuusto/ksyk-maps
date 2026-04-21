@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
-import WilmaMessagesManagerV3 from "@/components/WilmaMessagesManagerV3";
+import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
@@ -600,7 +600,7 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="messages">
-            <WilmaMessagesManagerV3 />
+            <EnhancedMessageSystem />
           </TabsContent>
 
           <TabsContent value="schedule">

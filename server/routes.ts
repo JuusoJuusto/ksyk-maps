@@ -1278,9 +1278,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set default values
       userData.isActive = userData.isActive !== false; // Default to true
       
-      // Auto-generate student ID for students (numbers only)
+      // Auto-generate student ID for students (8-10 digit numbers)
       if (userData.role === 'student' && !userData.studentId) {
-        const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        // Generate 8-digit student ID (10000000 - 99999999)
+        const random = Math.floor(10000000 + Math.random() * 90000000).toString();
         userData.studentId = random;
         console.log('🎓 Auto-generated student ID:', userData.studentId);
       }
@@ -1500,6 +1501,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'PUT /api/wilma/messages/:id/read', { messageId: req.params.id });
       res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  app.put('/api/wilma/messages/:id/star', isAuthenticated, async (req: any, res) => {
+    try {
+      const { starred } = req.body;
+      const messageId = req.params.id;
+      
+      // Get message from Firebase
+      const messageRef = db.collection('wilmaMessages').doc(messageId);
+      await messageRef.update({
+        isStarred: starred,
+        updatedAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true, starred });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/messages/:id/star', { messageId: req.params.id });
+      res.status(500).json({ message: "Failed to star message" });
+    }
+  });
+
+  app.put('/api/wilma/messages/:id/archive', isAuthenticated, async (req: any, res) => {
+    try {
+      const { archived } = req.body;
+      const messageId = req.params.id;
+      
+      // Get message from Firebase
+      const messageRef = db.collection('wilmaMessages').doc(messageId);
+      await messageRef.update({
+        isArchived: archived,
+        updatedAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true, archived });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/messages/:id/archive', { messageId: req.params.id });
+      res.status(500).json({ message: "Failed to archive message" });
     }
   });
 
