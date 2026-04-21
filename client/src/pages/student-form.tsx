@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Save, User, MapPin, Phone, Heart, AlertCircle, Home, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import EnhancedClassSelector from "@/components/EnhancedClassSelector";
 
 // Generate a secure random password
 function generateRandomPassword(): string {
@@ -423,33 +424,16 @@ export default function StudentForm() {
                   </p>
                 </div>
                 <div>
-                  <Label>Luokka (Class) <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={formData.studentClass} 
-                    onValueChange={(value) => setFormData({ ...formData, studentClass: value })}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Valitse luokka" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.length > 0 ? (
-                        classes.map((cls: any) => (
-                          <SelectItem key={cls.id} value={cls.name}>
-                            {cls.name} - {cls.grade}. luokka
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <>
-                          <SelectItem value="7A">7A - 7. luokka</SelectItem>
-                          <SelectItem value="7B">7B - 7. luokka</SelectItem>
-                          <SelectItem value="8A">8A - 8. luokka</SelectItem>
-                          <SelectItem value="8B">8B - 8. luokka</SelectItem>
-                          <SelectItem value="9A">9A - 9. luokka</SelectItem>
-                          <SelectItem value="9B">9B - 9. luokka</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <EnhancedClassSelector
+                    classes={classes}
+                    value={formData.studentClass}
+                    onChange={(value) => setFormData({ ...formData, studentClass: value })}
+                    label="Luokka (Class)"
+                    placeholder="Valitse luokka..."
+                    required={true}
+                    showDetails={true}
+                    viewMode="dropdown"
+                  />
                 </div>
               </div>
 
