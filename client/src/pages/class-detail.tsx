@@ -135,7 +135,7 @@ export default function ClassDetail() {
                   </span>
                   <span className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
-                    Luokkahuone: {classData.homeroom}
+                    Kotiluokka: {classData.homeroom}
                   </span>
                 </div>
               </div>
@@ -208,9 +208,9 @@ export default function ClassDetail() {
               <Calendar className="w-4 h-4 mr-2" />
               Lukujärjestys
             </TabsTrigger>
-            <TabsTrigger value="attendance" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <TabsTrigger value="attendanceMarks" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
               <CheckCircle className="w-4 h-4 mr-2" />
-              Läsnäolo
+              Tuntimerkinnät
             </TabsTrigger>
           </TabsList>
 
@@ -338,13 +338,13 @@ export default function ClassDetail() {
             </Card>
           </TabsContent>
 
-          {/* Attendance Tab */}
-          <TabsContent value="attendance">
+          {/* Attendance Marks Tab */}
+          <TabsContent value="attendanceMarks">
             <Card className="border-2 border-purple-200">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-purple-600" />
-                  Läsnäolotilastot
+                  Tuntimerkinnät
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">

@@ -648,9 +648,8 @@ export default function Wilma() {
               { id: 'grades', icon: BarChart3, label: tr.grades },
               { id: 'assignments', icon: FileText, label: tr.assignments },
               { id: 'messages', icon: MessageSquare, label: tr.messages },
-              { id: 'attendance', icon: UserCheck, label: tr.attendance },
+              { id: 'attendanceMarks', icon: UserCheck, label: language === 'fi' ? 'Tuntimerkinnät' : 'Attendance Marks' },
               { id: 'exams', icon: ClipboardList, label: tr.exams },
-              { id: 'teachers', icon: Users, label: tr.teachers },
               { id: 'materials', icon: BookOpen, label: tr.studyMaterials },
               { id: 'courses', icon: GraduationCap, label: tr.courses },
               { id: 'settings', icon: Settings, label: tr.settings },
@@ -677,9 +676,8 @@ export default function Wilma() {
                 {activeSection === 'grades' && tr.grades}
                 {activeSection === 'assignments' && tr.assignments}
                 {activeSection === 'messages' && tr.messages}
-                {activeSection === 'attendance' && tr.attendance}
+                {activeSection === 'attendanceMarks' && (language === 'fi' ? 'Tuntimerkinnät' : 'Attendance Marks')}
                 {activeSection === 'exams' && tr.exams}
-                {activeSection === 'teachers' && tr.teachers}
                 {activeSection === 'materials' && tr.studyMaterials}
                 {activeSection === 'courses' && tr.courses}
                 {activeSection === 'settings' && tr.settings}
@@ -1351,83 +1349,196 @@ export default function Wilma() {
               </div>
             )}
 
-            {activeSection === 'teachers' && (
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between">
-                  <p className="text-sm text-blue-800 flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {language === 'fi' ? `${mockTeachers.length} opettajaa` : `${mockTeachers.length} teachers`}
+            {activeSection === 'attendanceMarks' && (
+              <div className="space-y-6">
+                {/* Attendance Marks Component - Wilma Style */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <UserCheck className="w-7 h-7 text-blue-600" />
+                    {language === 'fi' ? 'Tuntimerkinnät' : 'Attendance Marks'}
+                  </h2>
+                  <p className="text-gray-600">
+                    {language === 'fi' 
+                      ? 'Tarkastele ja hallinnoi tuntimerkintöjä. Voit suodattaa merkintöjä jakson, lukuvuoden ja päivämäärän mukaan.'
+                      : 'View and manage attendance marks. You can filter marks by period, school year, and date.'}
                   </p>
-                  <Input 
-                    placeholder={language === 'fi' ? 'Hae opettajaa...' : 'Search teacher...'} 
-                    className="max-w-xs"
-                  />
                 </div>
 
-                <div className="grid gap-3">
-                  {mockTeachers.map((teacher, idx) => (
-                    <Card 
-                      key={idx} 
-                      className="cursor-pointer hover:shadow-lg transition-all hover:bg-blue-50"
-                      onClick={() => alert(`${language === 'fi' ? 'Opettaja' : 'Teacher'}: ${teacher.name}\n\n${language === 'fi' ? 'Aine' : 'Subject'}: ${teacher.subject}\n${language === 'fi' ? 'Sähköposti' : 'Email'}: ${teacher.email}\n${language === 'fi' ? 'Puhelin' : 'Phone'}: ${teacher.phone}\n${language === 'fi' ? 'Huone' : 'Room'}: ${teacher.room}\n\n${language === 'fi' ? 'Klikkaa "Lähetä viesti" lähettääksesi viestin opettajalle.' : 'Click "Send Message" to send a message to the teacher.'}`)}
-                    >
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                              <User className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-lg text-gray-800">{teacher.name}</p>
-                              <p className="text-sm text-gray-600 mb-2">{teacher.subject}</p>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm text-gray-700">
-                                  <Mail className="w-4 h-4 text-blue-600" />
-                                  <a 
-                                    href={`mailto:${teacher.email}`} 
-                                    className="hover:text-blue-600 hover:underline"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {teacher.email}
-                                  </a>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-700">
-                                  <Phone className="w-4 h-4 text-blue-600" />
-                                  <span>{teacher.phone}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-700">
-                                  <Building className="w-4 h-4 text-blue-600" />
-                                  <span>{teacher.room}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Button 
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(language === 'fi' ? `Lähetä viesti opettajalle ${teacher.name}...` : `Send message to ${teacher.name}...`);
-                              }}
-                            >
-                              <Mail className="w-4 h-4 mr-2" />
-                              {language === 'fi' ? 'Lähetä viesti' : 'Send Message'}
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(language === 'fi' ? 'Näytetään opettajan profiili...' : 'Showing teacher profile...');
-                              }}
-                            >
-                              {language === 'fi' ? 'Näytä profiili' : 'View Profile'}
-                            </Button>
-                          </div>
+                {/* Filters */}
+                <Card className="border-2 border-blue-200">
+                  <CardHeader className="bg-blue-50">
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-blue-600" />
+                      {language === 'fi' ? 'Suodattimet' : 'Filters'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Period Filter */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">{language === 'fi' ? 'Jakso' : 'Period'}</Label>
+                        <select className="w-full p-2 border-2 border-gray-300 rounded-md focus:border-blue-500">
+                          <option value="all">{language === 'fi' ? 'Kaikki' : 'All'}</option>
+                          <option value="jakso1">{language === 'fi' ? 'Jakso 1 (Syksy)' : 'Period 1 (Fall)'}</option>
+                          <option value="jakso2">{language === 'fi' ? 'Jakso 2 (Talvi)' : 'Period 2 (Winter)'}</option>
+                          <option value="jakso3">{language === 'fi' ? 'Jakso 3 (Kevät)' : 'Period 3 (Spring)'}</option>
+                          <option value="jakso4">{language === 'fi' ? 'Jakso 4 (Kesä)' : 'Period 4 (Summer)'}</option>
+                        </select>
+                      </div>
+
+                      {/* School Year Filter */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">{language === 'fi' ? 'Lukuvuosi' : 'School Year'}</Label>
+                        <select className="w-full p-2 border-2 border-gray-300 rounded-md focus:border-blue-500">
+                          <option value="2025-2026">2025-2026</option>
+                          <option value="2024-2025">2024-2025</option>
+                          <option value="2023-2024">2023-2024</option>
+                        </select>
+                      </div>
+
+                      {/* Date Filter */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">{language === 'fi' ? 'Päivämäärä' : 'Date'}</Label>
+                        <Input 
+                          type="date" 
+                          className="w-full border-2 border-gray-300 focus:border-blue-500"
+                          defaultValue={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-100 text-sm">{language === 'fi' ? 'Läsnä' : 'Present'}</p>
+                          <p className="text-3xl font-bold mt-1">45</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CheckCircle className="w-10 h-10 text-green-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-red-100 text-sm">{language === 'fi' ? 'Poissa' : 'Absent'}</p>
+                          <p className="text-3xl font-bold mt-1">2</p>
+                        </div>
+                        <XCircle className="w-10 h-10 text-red-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-yellow-100 text-sm">{language === 'fi' ? 'Myöhässä' : 'Late'}</p>
+                          <p className="text-3xl font-bold mt-1">3</p>
+                        </div>
+                        <Clock className="w-10 h-10 text-yellow-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-purple-100 text-sm">{language === 'fi' ? 'Huomautukset' : 'Remarks'}</p>
+                          <p className="text-3xl font-bold mt-1">1</p>
+                        </div>
+                        <AlertTriangle className="w-10 h-10 text-purple-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+
+                {/* Attendance Marks List */}
+                <Card className="border-2 border-blue-200">
+                  <CardHeader className="bg-blue-50">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-blue-600" />
+                        {language === 'fi' ? 'Viimeisimmät merkinnät' : 'Recent Marks'}
+                      </span>
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        {language === 'fi' ? 'Lisää merkintä' : 'Add Mark'}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      {/* Sample attendance marks */}
+                      {[
+                        { date: '2026-04-21', subject: 'Matematiikka', type: 'present', color: 'green', icon: CheckCircle },
+                        { date: '2026-04-21', subject: 'Englanti', type: 'present', color: 'green', icon: CheckCircle },
+                        { date: '2026-04-20', subject: 'Historia', type: 'late', color: 'yellow', icon: Clock },
+                        { date: '2026-04-19', subject: 'Fysiikka', type: 'absent', color: 'red', icon: XCircle },
+                        { date: '2026-04-18', subject: 'Kemia', type: 'present', color: 'green', icon: CheckCircle },
+                      ].map((mark, idx) => {
+                        const Icon = mark.icon;
+                        return (
+                          <Card key={idx} className={`border-2 border-${mark.color}-200 bg-${mark.color}-50 hover:shadow-md transition-all cursor-pointer`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className={`p-2 rounded-lg bg-${mark.color}-100`}>
+                                    <Icon className={`w-6 h-6 text-${mark.color}-600`} />
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-gray-800">{mark.subject}</p>
+                                    <p className="text-sm text-gray-600">{mark.date} • {mark.type === 'present' ? (language === 'fi' ? 'Läsnä' : 'Present') : mark.type === 'late' ? (language === 'fi' ? 'Myöhässä' : 'Late') : (language === 'fi' ? 'Poissa' : 'Absent')}</p>
+                                  </div>
+                                </div>
+                                <Badge className={`bg-${mark.color}-600 text-white`}>
+                                  {mark.type === 'present' ? '✓' : mark.type === 'late' ? '⏰' : '✗'}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 text-center">
+                      <Button variant="outline" className="w-full md:w-auto">
+                        {language === 'fi' ? 'Näytä kaikki merkinnät' : 'Show All Marks'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Configuration Section */}
+                <Card className="border-2 border-purple-200">
+                  <CardHeader className="bg-purple-50">
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-purple-600" />
+                      {language === 'fi' ? 'Tuntimerkintöjen asetukset' : 'Attendance Settings'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <p className="text-gray-600 mb-4">
+                      {language === 'fi' 
+                        ? 'Hallinnoi tuntimerkintöjen asetuksia, kuten merkintätyyppejä ja ilmoituksia.'
+                        : 'Manage attendance settings such as mark types and notifications.'}
+                    </p>
+                    <div className="flex gap-3">
+                      <Button className="bg-purple-600 hover:bg-purple-700">
+                        {language === 'fi' ? 'Muokkaa asetuksia' : 'Edit Settings'}
+                      </Button>
+                      <Button variant="outline">
+                        {language === 'fi' ? 'Vie tiedot' : 'Export Data'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
