@@ -1527,6 +1527,190 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           return res.status(500).json({ message: "Failed to send password reset email" });
         }
       }
+
+      // GET /wilma/settings - Get Wilma settings
+      if (apiPath === '/wilma/settings' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/settings called');
+        try {
+          const settings = await storage.getWilmaSettings();
+          return res.status(200).json(settings);
+        } catch (error: any) {
+          console.error('❌ Error getting Wilma settings:', error);
+          return res.status(500).json({ message: "Failed to fetch settings" });
+        }
+      }
+
+      // PUT /wilma/settings - Update Wilma settings
+      if (apiPath === '/wilma/settings' && req.method === 'PUT') {
+        console.log('🔵 PUT /api/wilma/settings called');
+        try {
+          const settings = await storage.updateWilmaSettings(req.body);
+          return res.status(200).json(settings);
+        } catch (error: any) {
+          console.error('❌ Error updating Wilma settings:', error);
+          return res.status(500).json({ message: "Failed to update settings" });
+        }
+      }
+
+      // GET /wilma/classes - Get all classes
+      if (apiPath === '/wilma/classes' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/classes called');
+        try {
+          const classes = await storage.getWilmaClasses();
+          return res.status(200).json(classes);
+        } catch (error: any) {
+          console.error('❌ Error getting Wilma classes:', error);
+          return res.status(500).json({ message: "Failed to fetch classes" });
+        }
+      }
+
+      // GET /wilma/classes/:id - Get single class
+      const classMatch = apiPath.match(/^\/wilma\/classes\/([^\/]+)$/);
+      if (classMatch && req.method === 'GET') {
+        const id = classMatch[1];
+        console.log('🔵 GET /api/wilma/classes/' + id);
+        try {
+          const classData = await storage.getWilmaClass(id);
+          if (!classData) {
+            return res.status(404).json({ message: "Class not found" });
+          }
+          return res.status(200).json(classData);
+        } catch (error: any) {
+          console.error('❌ Error getting Wilma class:', error);
+          return res.status(500).json({ message: "Failed to fetch class" });
+        }
+      }
+
+      // POST /wilma/classes - Create class
+      if (apiPath === '/wilma/classes' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/classes called');
+        try {
+          const classData = await storage.createWilmaClass(req.body);
+          return res.status(201).json(classData);
+        } catch (error: any) {
+          console.error('❌ Error creating Wilma class:', error);
+          return res.status(500).json({ message: "Failed to create class" });
+        }
+      }
+
+      // PUT /wilma/classes/:id - Update class
+      if (classMatch && req.method === 'PUT') {
+        const id = classMatch[1];
+        console.log('🔵 PUT /api/wilma/classes/' + id);
+        try {
+          const classData = await storage.updateWilmaClass(id, req.body);
+          return res.status(200).json(classData);
+        } catch (error: any) {
+          console.error('❌ Error updating Wilma class:', error);
+          return res.status(500).json({ message: "Failed to update class" });
+        }
+      }
+
+      // DELETE /wilma/classes/:id - Delete class
+      if (classMatch && req.method === 'DELETE') {
+        const id = classMatch[1];
+        console.log('🔵 DELETE /api/wilma/classes/' + id);
+        try {
+          await storage.deleteWilmaClass(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting Wilma class:', error);
+          return res.status(500).json({ message: "Failed to delete class" });
+        }
+      }
+
+      // GET /wilma/schedules - Get all schedules
+      if (apiPath === '/wilma/schedules' || apiPath.startsWith('/wilma/schedules?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/schedules called');
+          try {
+            const classFilter = req.query.class as string | undefined;
+            const schedules = await storage.getWilmaSchedulesAll(classFilter);
+            return res.status(200).json(schedules);
+          } catch (error: any) {
+            console.error('❌ Error getting schedules:', error);
+            return res.status(500).json({ message: "Failed to fetch schedules" });
+          }
+        }
+      }
+
+      // POST /wilma/schedules - Create schedule
+      if (apiPath === '/wilma/schedules' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/schedules called');
+        try {
+          const schedule = await storage.createWilmaSchedule(req.body);
+          return res.status(201).json(schedule);
+        } catch (error: any) {
+          console.error('❌ Error creating schedule:', error);
+          return res.status(500).json({ message: "Failed to create schedule" });
+        }
+      }
+
+      // DELETE /wilma/schedules/:id - Delete schedule
+      const scheduleMatch = apiPath.match(/^\/wilma\/schedules\/([^\/]+)$/);
+      if (scheduleMatch && req.method === 'DELETE') {
+        const id = scheduleMatch[1];
+        console.log('🔵 DELETE /api/wilma/schedules/' + id);
+        try {
+          await storage.deleteWilmaSchedule(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting schedule:', error);
+          return res.status(500).json({ message: "Failed to delete schedule" });
+        }
+      }
+
+      // GET /wilma/messages - Get all messages
+      if (apiPath === '/wilma/messages' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/messages called');
+        try {
+          const messages = await storage.getWilmaMessagesAll();
+          return res.status(200).json(messages);
+        } catch (error: any) {
+          console.error('❌ Error getting messages:', error);
+          return res.status(500).json({ message: "Failed to fetch messages" });
+        }
+      }
+
+      // POST /wilma/messages - Create message
+      if (apiPath === '/wilma/messages' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/messages called');
+        try {
+          const message = await storage.createWilmaMessage(req.body);
+          return res.status(201).json(message);
+        } catch (error: any) {
+          console.error('❌ Error creating message:', error);
+          return res.status(500).json({ message: "Failed to create message" });
+        }
+      }
+
+      // DELETE /wilma/messages/:id - Delete message
+      const messageMatch = apiPath.match(/^\/wilma\/messages\/([^\/]+)$/);
+      if (messageMatch && req.method === 'DELETE') {
+        const id = messageMatch[1];
+        console.log('🔵 DELETE /api/wilma/messages/' + id);
+        try {
+          await storage.deleteWilmaMessage(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting message:', error);
+          return res.status(500).json({ message: "Failed to delete message" });
+        }
+      }
+
+      // PUT /wilma/messages/:id/read - Mark message as read
+      const messageReadMatch = apiPath.match(/^\/wilma\/messages\/([^\/]+)\/read$/);
+      if (messageReadMatch && req.method === 'PUT') {
+        const id = messageReadMatch[1];
+        console.log('🔵 PUT /api/wilma/messages/' + id + '/read');
+        try {
+          await storage.markWilmaMessageAsRead(id);
+          return res.status(200).json({ success: true });
+        } catch (error: any) {
+          console.error('❌ Error marking message as read:', error);
+          return res.status(500).json({ message: "Failed to mark message as read" });
+        }
+      }
     }
     
     // 404 for unknown routes

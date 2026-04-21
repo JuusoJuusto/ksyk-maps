@@ -1003,6 +1003,32 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async getWilmaMessagesAll(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaMessages')
+        .orderBy('sentAt', 'desc')
+        .limit(100)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting all Wilma messages:', error);
+      // Try without orderBy if index doesn't exist
+      try {
+        const snapshot = await db.collection('wilmaMessages').limit(100).get();
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort in memory
+        return messages.sort((a: any, b: any) => {
+          const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+          const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+          return dateB - dateA;
+        });
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        return [];
+      }
+    }
+  }
+
   async createWilmaMessage(message: any): Promise<any> {
     try {
       const docRef = db.collection('wilmaMessages').doc();
