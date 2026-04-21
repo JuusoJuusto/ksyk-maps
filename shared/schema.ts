@@ -802,3 +802,6 @@ export type InsertWilmaAttendance = z.infer<typeof insertWilmaAttendanceSchema>;
 export type WilmaExam = typeof wilmaExams.$inferSelect;
 export type InsertWilmaExam = z.infer<typeof insertWilmaExamSchema>;
 
+
+// Export schema additions
+export * from './schema-additions';
