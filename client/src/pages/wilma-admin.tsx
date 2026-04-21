@@ -11,7 +11,7 @@ import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
 import ClassesManager from "@/components/ClassesManager";
-import AttendanceTracker from "@/components/AttendanceTracker";
+import EnhancedAttendanceTracker from "@/components/EnhancedAttendanceTracker";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -681,7 +681,7 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="attendance">
-            <AttendanceTracker />
+            <EnhancedAttendanceTracker />
           </TabsContent>
 
           <TabsContent value="rooms">

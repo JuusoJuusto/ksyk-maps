@@ -1598,6 +1598,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wilma Attendance Marks routes (Enhanced)
+  app.get('/api/wilma/attendance-marks', async (req, res) => {
+    try {
+      const { studentId, period, schoolYear, date, startDate, endDate, markType } = req.query;
+      
+      // Get all marks from Firebase
+      const marksRef = db.collection('wilmaAttendanceMarks');
+      let query: any = marksRef;
+      
+      if (studentId) query = query.where('studentId', '==', studentId);
+      if (markType) query = query.where('markType', '==', markType);
+      if (date) query = query.where('date', '==', date);
+      
+      const snapshot = await query.orderBy('date', 'desc').limit(500).get();
+      const marks = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter by date range if provided
+      let filteredMarks = marks;
+      if (startDate && endDate) {
+        filteredMarks = marks.filter((m: any) => m.date >= startDate && m.date <= endDate);
+      }
+      
+      res.json(filteredMarks);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/attendance-marks');
+      res.status(500).json({ message: "Failed to fetch attendance marks" });
+    }
+  });
+
+  app.post('/api/wilma/attendance-marks', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const markData = {
+        ...req.body,
+        teacherId: currentUser.id,
+        teacherName: `${currentUser.firstName} ${currentUser.lastName}`,
+        notifiedParent: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Get student name
+      const student = await storage.getWilmaUserByStudentId(markData.studentId);
+      if (student) {
+        markData.studentName = `${student.firstName} ${student.lastName}`;
+      }
+
+      const docRef = await db.collection('wilmaAttendanceMarks').add(markData);
+      const mark = { id: docRef.id, ...markData };
+      
+      res.status(201).json(mark);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/attendance-marks');
+      res.status(500).json({ message: "Failed to create attendance mark" });
+    }
+  });
+
+  app.put('/api/wilma/attendance-marks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = {
+        ...req.body,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.collection('wilmaAttendanceMarks').doc(id).update(updateData);
+      const doc = await db.collection('wilmaAttendanceMarks').doc(id).get();
+      const mark = { id: doc.id, ...doc.data() };
+      
+      res.json(mark);
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/attendance-marks/:id', { markId: req.params.id });
+      res.status(500).json({ message: "Failed to update attendance mark" });
+    }
+  });
+
+  app.delete('/api/wilma/attendance-marks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await db.collection('wilmaAttendanceMarks').doc(req.params.id).delete();
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/attendance-marks/:id', { markId: req.params.id });
+      res.status(500).json({ message: "Failed to delete attendance mark" });
+    }
+  });
+
+  app.get('/api/wilma/attendance-marks/stats/:studentId', async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const snapshot = await db.collection('wilmaAttendanceMarks')
+        .where('studentId', '==', studentId)
+        .get();
+      
+      const marks = snapshot.docs.map((doc: any) => doc.data());
+      
+      const stats = {
+        total: marks.length,
+        present: marks.filter((m: any) => m.markType === 'present').length,
+        absent: marks.filter((m: any) => m.markType === 'absent').length,
+        late: marks.filter((m: any) => m.markType === 'late').length,
+        behavioral: marks.filter((m: any) => 
+          ['sleeping', 'phone_use', 'talking', 'bad_behavior'].includes(m.markType)
+        ).length,
+      };
+      
+      stats.attendanceRate = stats.total > 0 
+        ? ((stats.present / stats.total) * 100).toFixed(1) 
+        : '0';
+      
+      res.json(stats);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/attendance-marks/stats/:studentId');
+      res.status(500).json({ message: "Failed to fetch attendance stats" });
+    }
+  });
+
   // Wilma Classes routes
   app.get('/api/wilma/classes', async (req, res) => {
     try {
