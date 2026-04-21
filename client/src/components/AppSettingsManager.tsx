@@ -225,7 +225,7 @@ export default function AppSettingsManager() {
       </div>
 
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="appearance">
             <Paintbrush className="w-4 h-4 mr-2" />
             Appearance
@@ -249,6 +249,10 @@ export default function AppSettingsManager() {
           <TabsTrigger value="contact">
             <Mail className="w-4 h-4 mr-2" />
             Contact
+          </TabsTrigger>
+          <TabsTrigger value="schedule">
+            <Settings className="w-4 h-4 mr-2" />
+            Schedule
           </TabsTrigger>
           <TabsTrigger value="advanced">
             <Settings className="w-4 h-4 mr-2" />
@@ -877,6 +881,44 @@ export default function AppSettingsManager() {
                   onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
                   placeholder="+358 123 456 789"
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="schedule" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>📅 Schedule Configuration</CardTitle>
+              <CardDescription>Configure class times, breaks, and lunch periods for the school</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+                <p className="text-sm text-blue-800">
+                  ⏰ <strong>Schedule Management:</strong> Configure the school's daily schedule including class periods, breaks, and lunch times. This will be used throughout the Wilma system.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  The schedule configuration feature allows you to:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-gray-600 ml-4">
+                  <li>Define class periods with start and end times</li>
+                  <li>Set break and lunch periods</li>
+                  <li>Create multiple schedule configurations (e.g., normal day, early release)</li>
+                  <li>Set effective dates for different schedules</li>
+                  <li>Mark schedules as active or default</li>
+                </ul>
+                
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 font-semibold mb-2">
+                    ✅ Schedule configuration is managed in the Wilma Admin panel
+                  </p>
+                  <p className="text-sm text-green-700">
+                    Navigate to Wilma Admin → Schedule Configuration to create and manage school schedules.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
