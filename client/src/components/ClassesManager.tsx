@@ -43,6 +43,16 @@ export default function ClassesManager() {
     }
   });
 
+  // Fetch teachers for dropdown
+  const { data: teachers = [] } = useQuery({
+    queryKey: ["teachers"],
+    queryFn: async () => {
+      const response = await fetch("/api/wilma/users?role=teacher");
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
   // Calculate student count per class
   const classesWithCount = classes.map((cls: any) => {
     const count = students.filter((s: any) => s.class === cls.name || s.studentClass === cls.name).length;
@@ -168,7 +178,7 @@ export default function ClassesManager() {
                 />
               </div>
               <div>
-                <Label>Luokkahuone</Label>
+                <Label>Kotiluokka</Label>
                 <Input
                   value={formData.homeroom}
                   onChange={(e) => setFormData({ ...formData, homeroom: e.target.value })}
@@ -178,12 +188,18 @@ export default function ClassesManager() {
               </div>
               <div>
                 <Label>Luokanvalvoja</Label>
-                <Input
+                <select
                   value={formData.teacher}
                   onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
-                  placeholder="Opettajan nimi"
-                  className="mt-1"
-                />
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Valitse opettaja...</option>
+                  {teachers.map((teacher: any) => (
+                    <option key={teacher.id} value={`${teacher.firstName} ${teacher.lastName}`}>
+                      {teacher.firstName} {teacher.lastName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

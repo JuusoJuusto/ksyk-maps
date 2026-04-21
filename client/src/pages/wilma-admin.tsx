@@ -11,6 +11,7 @@ import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
 import ClassesManager from "@/components/ClassesManager";
+import AttendanceTracker from "@/components/AttendanceTracker";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -155,6 +156,7 @@ export default function WilmaAdmin() {
                 {activeTab === 'teachers' && 'Opettajat'}
                 {activeTab === 'classes' && 'Luokat'}
                 {activeTab === 'courses' && 'Kurssit'}
+                {activeTab === 'attendance' && 'Tuntimerkinnät'}
                 {activeTab === 'rooms' && 'Tilat'}
                 {activeTab === 'announcements' && 'Ilmoitukset'}
                 {activeTab === 'analytics' && 'Analytiikka'}
@@ -295,6 +297,22 @@ export default function WilmaAdmin() {
               >
                 <Users className="w-4 h-4 mr-3" />
                 <span>Luokat</span>
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setActiveTab('attendance');
+                  setLocation(`/wilma-admin/${currentUser.id}/attendance`);
+                  setMobileMenuOpen(false);
+                }}
+                className={`justify-start px-4 py-3 rounded-none border-b ${
+                  activeTab === 'attendance' 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <UserCheck className="w-4 h-4 mr-3" />
+                <span>Tuntimerkinnät</span>
               </Button>
               
               <Button
@@ -489,17 +507,17 @@ export default function WilmaAdmin() {
             
             <Button
               onClick={() => {
-                setActiveTab('teachers');
-                setLocation(`/wilma-admin/${currentUser.id}/teachers`);
+                setActiveTab('attendance');
+                setLocation(`/wilma-admin/${currentUser.id}/attendance`);
               }}
               className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'teachers' 
-                  ? 'bg-orange-600 text-white shadow-md' 
+                activeTab === 'attendance' 
+                  ? 'bg-red-600 text-white shadow-md' 
                   : 'bg-transparent text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <GraduationCap className="w-4 h-4" />
-              <span className="font-medium">Opettajat</span>
+              <UserCheck className="w-4 h-4" />
+              <span className="font-medium">Tuntimerkinnät</span>
             </Button>
             
             <Button
@@ -662,79 +680,8 @@ export default function WilmaAdmin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="teachers">
-            <Card className="border-2 border-orange-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-orange-600" />
-                  Opettajahakemisto
-                </CardTitle>
-                <CardDescription>Hallinnoi opettajien profiileja ja tehtäviä</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <Button className="bg-orange-600 hover:bg-orange-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Lisää opettaja
-                    </Button>
-                    <Button variant="outline">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Lähetä sähköposti
-                    </Button>
-                    <Button variant="outline">
-                      <Download className="w-4 h-4 mr-2" />
-                      Vie lista
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="bg-white border-2 border-orange-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <GraduationCap className="w-5 h-5 text-orange-600" />
-                        Opettajahakemisto
-                      </h3>
-                      <div className="space-y-3">
-                        {[
-                          { name: 'Maria Virtanen', subject: 'Matematiikka', students: 45 },
-                          { name: 'Jukka Korhonen', subject: 'Fysiikka', students: 38 },
-                          { name: 'Anna Mäkinen', subject: 'Englanti', students: 52 },
-                          { name: 'Pekka Nieminen', subject: 'Historia', students: 41 }
-                        ].map((teacher, idx) => (
-                          <div key={idx} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-orange-200 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-orange-700" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm">{teacher.name}</p>
-                                <p className="text-xs text-gray-600">{teacher.subject} • {teacher.students} opiskelijaa</p>
-                              </div>
-                            </div>
-                            <Button size="sm" variant="outline">Näytä profiili</Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Button className="bg-orange-600 hover:bg-orange-700 h-auto py-4">
-                        <Plus className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Lisää uusi opettaja</p>
-                          <p className="text-xs opacity-90">Luo opettajan profiili</p>
-                        </div>
-                      </Button>
-                      <Button variant="outline" className="h-auto py-4">
-                        <Mail className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Lähetä ryhmäsähköposti</p>
-                          <p className="text-xs text-gray-600">Ota yhteyttä kaikkiin opettajiin</p>
-                        </div>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="attendance">
+            <AttendanceTracker />
           </TabsContent>
 
           <TabsContent value="rooms">
