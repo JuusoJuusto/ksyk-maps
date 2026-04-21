@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
+import SessionTimeoutHandler from "@/components/SessionTimeoutHandler";
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
 import { trackPageView, trackEasterEgg, initAnalytics } from "@/lib/analytics";
@@ -167,6 +168,7 @@ function App() {
             <TooltipProvider>
               <HelpProvider>
                 <HelpBubble>
+                  <SessionTimeoutHandler />
                   <Toaster />
                   <Router />
                   <Analytics />

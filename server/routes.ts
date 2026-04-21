@@ -1717,10 +1717,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma Classes routes
+  // Wilma Classes routes (Complete CRUD)
   app.get('/api/wilma/classes', async (req, res) => {
     try {
-      const classes = await storage.getWilmaClasses();
+      const snapshot = await db.collection('wilmaClasses').orderBy('grade').orderBy('name').get();
+      const classes = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       res.json(classes);
     } catch (error) {
       await logError(error, 'GET /api/wilma/classes');
@@ -1730,11 +1731,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/wilma/classes/:id', async (req, res) => {
     try {
-      const classData = await storage.getWilmaClass(req.params.id);
-      if (!classData) {
+      const doc = await db.collection('wilmaClasses').doc(req.params.id).get();
+      if (!doc.exists) {
         return res.status(404).json({ message: "Class not found" });
       }
-      res.json(classData);
+      res.json({ id: doc.id, ...doc.data() });
     } catch (error) {
       await logError(error, 'GET /api/wilma/classes/:id', { classId: req.params.id });
       res.status(500).json({ message: "Failed to fetch class" });
@@ -1743,11 +1744,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/wilma/classes', isAuthenticated, async (req: any, res) => {
     try {
-      const classData = await storage.createWilmaClass(req.body);
-      res.status(201).json(classData);
+      const classData = {
+        ...req.body,
+        studentCount: 0,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const docRef = await db.collection('wilmaClasses').add(classData);
+      const newClass = { id: docRef.id, ...classData };
+      
+      res.status(201).json(newClass);
     } catch (error) {
       await logError(error, 'POST /api/wilma/classes');
       res.status(500).json({ message: "Failed to create class" });
+    }
+  });
+
+  app.put('/api/wilma/classes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const updateData = {
+        ...req.body,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      await db.collection('wilmaClasses').doc(req.params.id).update(updateData);
+      const doc = await db.collection('wilmaClasses').doc(req.params.id).get();
+      
+      res.json({ id: doc.id, ...doc.data() });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/classes/:id', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to update class" });
+    }
+  });
+
+  app.delete('/api/wilma/classes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await db.collection('wilmaClasses').doc(req.params.id).delete();
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/classes/:id', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to delete class" });
+    }
+  });
+
+  app.get('/api/wilma/classes/:id/students', async (req, res) => {
+    try {
+      const classDoc = await db.collection('wilmaClasses').doc(req.params.id).get();
+      if (!classDoc.exists) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      
+      const classData = classDoc.data();
+      const snapshot = await db.collection('wilmaUsers')
+        .where('studentClass', '==', classData.name)
+        .where('role', '==', 'student')
+        .get();
+      
+      const students = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      res.json(students);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/classes/:id/students', { classId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch class students" });
+    }
+  });
     }
   });
 
