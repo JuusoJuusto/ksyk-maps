@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import EnhancedUserSelector from '@/components/EnhancedUserSelector';
 import {
   MessageSquare, Send, Reply, Forward, Trash2, Archive, Star,
   Clock, Users, Eye, EyeOff, Paperclip, Calendar, Search,
@@ -294,20 +295,17 @@ export default function EnhancedMessageSystem() {
         <Card className="border-2 border-teal-200">
           <CardContent className="p-6 space-y-4">
             <div>
-              <Label>Vastaanottaja *</Label>
-              <select
+              <EnhancedUserSelector
+                users={users}
                 value={composeData.toUserId}
-                onChange={(e) => setComposeData({ ...composeData, toUserId: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border rounded-md"
+                onChange={(value) => setComposeData({ ...composeData, toUserId: value })}
+                label="Vastaanottaja"
+                placeholder="Valitse vastaanottaja..."
+                required={true}
                 disabled={!!replyingTo}
-              >
-                <option value="">Valitse vastaanottaja...</option>
-                {users.map((user: any) => (
-                  <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName} ({user.role})
-                  </option>
-                ))}
-              </select>
+                filterRole="all"
+                showDetails={true}
+              />
             </div>
 
             <div>

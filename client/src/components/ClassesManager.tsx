@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Edit, Trash2, Users, GraduationCap, Calendar, BookOpen, User } from "lucide-react";
 import { useLocation } from "wouter";
+import EnhancedUserSelector from "@/components/EnhancedUserSelector";
 
 export default function ClassesManager() {
   const [, setLocation] = useLocation();
@@ -187,19 +188,20 @@ export default function ClassesManager() {
                 />
               </div>
               <div>
-                <Label>Luokanvalvoja</Label>
-                <select
+                <EnhancedUserSelector
+                  users={teachers}
                   value={formData.teacher}
-                  onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Valitse opettaja...</option>
-                  {teachers.map((teacher: any) => (
-                    <option key={teacher.id} value={`${teacher.firstName} ${teacher.lastName}`}>
-                      {teacher.firstName} {teacher.lastName}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => {
+                    const teacher = teachers.find((t: any) => t.id === value);
+                    if (teacher) {
+                      setFormData({ ...formData, teacher: `${teacher.firstName} ${teacher.lastName}` });
+                    }
+                  }}
+                  label="Luokanvalvoja"
+                  placeholder="Valitse opettaja..."
+                  filterRole="teacher"
+                  showDetails={true}
+                />
               </div>
             </div>
 

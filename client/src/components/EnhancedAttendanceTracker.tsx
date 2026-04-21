@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import EnhancedUserSelector from '@/components/EnhancedUserSelector';
 import { 
   CheckCircle, XCircle, Clock, BookOpen, Smartphone, 
   MessageCircle, AlertTriangle, Moon, Calendar, User, Filter,
@@ -243,19 +244,16 @@ export default function EnhancedAttendanceTracker() {
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Opiskelija *</Label>
-                <select
+                <EnhancedUserSelector
+                  users={students}
                   value={formData.studentId}
-                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="">Valitse opiskelija...</option>
-                  {students.map((student: any) => (
-                    <option key={student.id} value={student.studentId}>
-                      {student.firstName} {student.lastName} ({student.studentId}) - {student.studentClass}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, studentId: value })}
+                  label="Opiskelija"
+                  placeholder="Valitse opiskelija..."
+                  required={true}
+                  filterRole="student"
+                  showDetails={true}
+                />
               </div>
               <div>
                 <Label>Päivämäärä *</Label>
