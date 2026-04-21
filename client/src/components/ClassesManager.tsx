@@ -344,16 +344,16 @@ export default function ClassesManager() {
                 <div className="flex gap-2 mt-4 pt-4 border-t">
                   <Button 
                     size="sm" 
-                    variant="outline" 
-                    className="flex-1"
+                    variant="default"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                     onClick={() => {
                       const currentPath = window.location.pathname;
                       const adminId = currentPath.split('/')[2];
-                      setLocation(`/wilma-admin/${adminId}/students?class=${cls.name}`);
+                      setLocation(`/wilma-admin/${adminId}/class/${cls.id}`);
                     }}
                   >
                     <Users className="w-4 h-4 mr-1" />
-                    Näytä
+                    Katso
                   </Button>
                   <Button 
                     size="sm" 
