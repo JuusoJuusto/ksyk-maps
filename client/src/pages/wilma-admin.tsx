@@ -210,8 +210,9 @@ export default function WilmaAdmin() {
         )}
 
         {/* Top Navigation Bar - Desktop Only - Wilma Style */}
-        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-[#dddddd] mb-4 overflow-hidden">
-          <div className="flex gap-0 min-w-max border-b border-[#dddddd]">{[
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-[#dddddd] mb-4">
+          <div className="overflow-x-auto">
+            <div className="flex gap-0 min-w-max border-b border-[#dddddd]">{[
             { key: 'home', label: 'Koti', icon: Home },
             { key: 'staff', label: 'Henkilökunta', icon: Users },
             { key: 'students', label: 'Opiskelijat', icon: User },
@@ -268,9 +269,11 @@ export default function WilmaAdmin() {
 
           <TabsContent value="schedule">
             <Tabs defaultValue="schedules" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="schedules">Lukujärjestykset</TabsTrigger>
-                <TabsTrigger value="settings">
+              <TabsList className="grid w-full grid-cols-2 bg-white border border-[#dddddd] rounded-lg p-1">
+                <TabsTrigger value="schedules" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
+                  Lukujärjestykset
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
                   <Clock className="w-4 h-4 mr-2" />
                   Asetukset
                 </TabsTrigger>
@@ -296,12 +299,12 @@ export default function WilmaAdmin() {
 
           <TabsContent value="courses">
             <Tabs defaultValue="courses" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="courses">
+              <TabsList className="grid w-full grid-cols-2 bg-white border border-[#dddddd] rounded-lg p-1">
+                <TabsTrigger value="courses" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
                   <BookOpen className="w-4 h-4 mr-2" />
                   Kurssit
                 </TabsTrigger>
-                <TabsTrigger value="enrollments">
+                <TabsTrigger value="enrollments" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
                   <UserCheck className="w-4 h-4 mr-2" />
                   Ilmoittautumiset
                 </TabsTrigger>

@@ -9,56 +9,11 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
 
-// Session timeout configuration
-const SESSION_TIMEOUT_ENABLED = false; // DISABLED BY DEFAULT - set to true to enable
-const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-
+// Session timeout - COMPLETELY DISABLED
+// No session timeout checks at all
 function sessionTimeoutMiddleware(req: any, res: any, next: any) {
-  // Skip if session timeout is disabled
-  if (!SESSION_TIMEOUT_ENABLED) {
-    return next();
-  }
-
-  // Skip session timeout for public routes
-  const publicRoutes = ['/api/auth/login', '/api/wilma/login', '/api/auth/logout'];
-  if (publicRoutes.some(route => req.path.startsWith(route))) {
-    return next();
-  }
-
-  if (req.session) {
-    // Initialize lastActivity if not set
-    if (!req.session.lastActivity) {
-      req.session.lastActivity = Date.now();
-      return next();
-    }
-
-    const now = Date.now();
-    const timeSinceLastActivity = now - req.session.lastActivity;
-    
-    if (timeSinceLastActivity > SESSION_TIMEOUT) {
-      // Session expired - capture current path for returnpath
-      const currentPath = req.path || '/';
-      const returnPath = currentPath.replace('/api/', ''); // Remove /api/ prefix if present
-      
-      console.log('⏰ Session expired for user, last activity:', new Date(req.session.lastActivity));
-      console.log('📍 Return path:', returnPath);
-      
-      req.session.destroy((err: any) => {
-        if (err) console.error('Session destroy error:', err);
-      });
-      
-      return res.status(401).json({ 
-        message: 'Session expired due to inactivity',
-        sessionExpired: true,
-        returnPath: returnPath
-      });
-    }
-    
-    // Update last activity time
-    req.session.lastActivity = Date.now();
-  }
-  
-  next();
+  // Always skip - session timeout completely disabled
+  return next();
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

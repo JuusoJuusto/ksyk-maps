@@ -58,80 +58,80 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
     <div className="space-y-4 md:space-y-6">
       {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+        <Card className="bg-[#003d82] text-white border-0 rounded-lg shadow-md">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-xs md:text-sm">
+                <p className="text-white/80 text-xs md:text-sm">
                   {isAdmin ? 'Käyttäjiä' : 'Tänään'}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
                   {isAdmin ? totalUsersCount : '5'}
                 </p>
-                <p className="text-blue-100 text-xs md:text-sm mt-1">
+                <p className="text-white/80 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Yhteensä' : 'Oppituntia'}
                 </p>
               </div>
               {isAdmin ? (
-                <Users className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+                <Users className="w-8 h-8 md:w-12 md:h-12 text-white/60" />
               ) : (
-                <Calendar className="w-8 h-8 md:w-12 md:h-12 text-blue-200" />
+                <Calendar className="w-8 h-8 md:w-12 md:h-12 text-white/60" />
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+        <Card className="bg-[#7cb342] text-white border-0 rounded-lg shadow-md">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-xs md:text-sm">
+                <p className="text-white/80 text-xs md:text-sm">
                   {isAdmin ? 'Opiskelijat' : 'Läsnäolo'}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
                   {isAdmin ? studentsCount : '95%'}
                 </p>
-                <p className="text-green-100 text-xs md:text-sm mt-1">
+                <p className="text-white/80 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Aktiivisia' : 'Tällä viikolla'}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
+              <CheckCircle className="w-8 h-8 md:w-12 md:h-12 text-white/60" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+        <Card className="bg-white border border-[#dddddd] rounded-lg shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-xs md:text-sm">Viestit</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">
+                <p className="text-gray-600 text-xs md:text-sm">Viestit</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1 text-[#003d82]">
                   {isAdmin ? '12' : '3'}
                 </p>
-                <p className="text-purple-100 text-xs md:text-sm mt-1">
+                <p className="text-gray-600 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Uutta' : 'Lukematonta'}
                 </p>
               </div>
-              <Mail className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
+              <Mail className="w-8 h-8 md:w-12 md:h-12 text-[#003d82]/20" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+        <Card className="bg-white border border-[#dddddd] rounded-lg shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-xs md:text-sm">
+                <p className="text-gray-600 text-xs md:text-sm">
                   {isAdmin ? 'Opettajat' : isStudent ? 'Keskiarvo' : 'Kurssit'}
                 </p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">
+                <p className="text-2xl md:text-3xl font-bold mt-1 text-[#003d82]">
                   {isAdmin ? teachersCount : isStudent ? '8.5' : '12'}
                 </p>
-                <p className="text-orange-100 text-xs md:text-sm mt-1">
+                <p className="text-gray-600 text-xs md:text-sm mt-1">
                   {isAdmin ? 'Aktiivisia' : isStudent ? 'Tällä jaksolla' : 'Aktiivisia'}
                 </p>
               </div>
-              <Award className="w-8 h-8 md:w-12 md:h-12 text-orange-200" />
+              <Award className="w-8 h-8 md:w-12 md:h-12 text-[#003d82]/20" />
             </div>
           </CardContent>
         </Card>
@@ -142,10 +142,10 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-4 md:space-y-6">
           {/* Today's Schedule */}
-          <Card className="border-2 border-blue-200">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+          <Card className="border border-[#dddddd] rounded-lg shadow-sm">
+            <CardHeader className="bg-white border-b border-[#dddddd] p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-900">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-[#003d82]" />
                 Tänään lukujärjestys
               </CardTitle>
             </CardHeader>
