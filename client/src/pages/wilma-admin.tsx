@@ -51,25 +51,36 @@ export default function WilmaAdmin() {
           if (hasAccess) {
             // SECURITY: Validate admin ID matches logged-in user
             if (params?.adminId && params.adminId !== user.id) {
-              // Don't show alert, just silently redirect to correct URL
-              setLocation(`/wilma-admin/${user.id}/${params.section || 'home'}`);
+              // Redirect to correct URL with return path
+              const returnPath = params.section || 'home';
+              setLocation(`/wilma-admin/${user.id}/${returnPath}`);
               return;
             }
             
             setCurrentUser(user);
             
-            // If no adminId in URL, redirect to include it
+            // If no adminId in URL, redirect to include it with return path
             if (!params?.adminId) {
-              setLocation(`/wilma-admin/${user.id}/home`);
+              const returnPath = params?.section || 'home';
+              setLocation(`/wilma-admin/${user.id}/${returnPath}`);
             }
           } else {
+            // Store return path before redirecting
+            const returnPath = params?.section || 'home';
+            localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
             setLocation('/wilma');
           }
         } catch (err) {
           console.error('Auth check failed:', err);
+          // Store return path on error
+          const returnPath = params?.section || 'home';
+          localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
           setLocation('/wilma');
         }
       } else {
+        // Store return path when not logged in
+        const returnPath = params?.section || 'home';
+        localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
         setLocation('/wilma');
       }
       setIsLoading(false);
@@ -111,27 +122,27 @@ export default function WilmaAdmin() {
   const isAdmin = roles.includes('admin') || roles.includes('principal');
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      {/* Header - Wilma Classic Style */}
-      <div className="bg-[#003d82] text-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
+      {/* Modern Header with Gradient */}
+      <div className="wilma-header">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-5">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg md:text-2xl font-semibold flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+              <h1 className="text-lg md:text-2xl font-bold flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 md:w-7 md:h-7 flex-shrink-0" />
                 <span className="truncate">Wilma {isAdmin ? 'Hallinta' : 'Opettaja'}</span>
               </h1>
-              <p className="text-white/90 mt-0.5 flex items-center gap-2 text-xs md:text-sm">
+              <p className="text-white/90 mt-1 flex items-center gap-2 text-xs md:text-sm font-medium">
                 <User className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                 <span className="truncate">{currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Ylläpitäjä' : 'Opettaja'}</span>
               </p>
             </div>
             <div className="flex gap-2 ml-2">
-              <Button onClick={() => setLocation('/')} className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm" size="sm">
+              <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm h-9 md:h-10 px-3 md:px-4 text-xs md:text-sm rounded-lg shadow-lg" size="sm">
                 <Home className="w-4 h-4 md:mr-1.5" />
                 <span className="hidden md:inline">Etusivu</span>
               </Button>
-              <Button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm" size="sm">
+              <Button onClick={handleLogout} className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm h-9 md:h-10 px-3 md:px-4 text-xs md:text-sm rounded-lg shadow-lg" size="sm">
                 <LogOut className="w-4 h-4 md:mr-1.5" />
                 <span className="hidden md:inline">Kirjaudu ulos</span>
               </Button>
@@ -143,14 +154,14 @@ export default function WilmaAdmin() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {/* Mobile Menu Button */}
-        <div className="md:hidden mb-3">
+        <div className="md:hidden mb-4">
           <Button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-full bg-white text-gray-700 border border-[#dddddd] hover:bg-gray-50 flex items-center justify-between rounded-lg"
+            className="w-full bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 flex items-center justify-between rounded-xl shadow-sm"
           >
             <span className="flex items-center gap-2">
               <Menu className="w-4 h-4" />
-              <span className="font-medium text-sm">
+              <span className="font-semibold text-sm">
                 {activeTab === 'home' && 'Koti'}
                 {activeTab === 'staff' && 'Henkilökunta'}
                 {activeTab === 'students' && 'Opiskelijat'}
