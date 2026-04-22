@@ -23,16 +23,20 @@ export default function StudentDetail() {
     queryKey: ["student-detail", studentId],
     queryFn: async () => {
       console.log('📡 Fetching student detail for ID:', studentId);
+      console.log('📡 Full URL:', `/api/wilma/users/${studentId}`);
       if (!studentId) {
         throw new Error("No student ID provided");
       }
       const response = await fetch(`/api/wilma/users/${studentId}`);
+      console.log('📡 Response status:', response.status);
       if (!response.ok) {
+        const errorText = await response.text();
         console.error('❌ Failed to fetch student:', response.status, response.statusText);
+        console.error('❌ Error response:', errorText);
         if (response.status === 404) {
-          throw new Error("Student not found");
+          throw new Error(`Student not found (ID: ${studentId})`);
         }
-        throw new Error("Failed to fetch student");
+        throw new Error(`Failed to fetch student: ${response.statusText}`);
       }
       const data = await response.json();
       console.log('✅ Student detail loaded:', data);
@@ -56,12 +60,20 @@ export default function StudentDetail() {
   if (!student || error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Opiskelijaa ei löytynyt</h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 mb-2">
             {error?.message || "Opiskelija ei ole enää saatavilla tai se on poistettu."}
           </p>
+          <div className="bg-gray-100 p-3 rounded-lg mb-4 text-left">
+            <p className="text-xs text-gray-600 font-mono">
+              <strong>Debug Info:</strong><br/>
+              Student ID: {studentId}<br/>
+              Admin ID: {adminId}<br/>
+              Error: {error?.message || 'Unknown error'}
+            </p>
+          </div>
           <Button onClick={() => setLocation(`/wilma-admin/${adminId}/students`)} className="mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Takaisin opiskelijalistaan

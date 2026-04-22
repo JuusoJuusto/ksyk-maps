@@ -636,14 +636,22 @@ export class FirebaseStorage implements IStorage {
         // Get from wilmaUsers/students subcollection
         const snapshot = await db.collection('wilmaUsers').doc('students').collection('list').where('isActive', '==', true).get();
         console.log(`📦 Found ${snapshot.size} active students`);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const students = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id }; // Ensure doc.id takes precedence
+        });
+        console.log('📦 Sample student:', students[0]);
+        return students;
       }
       
       if (role === 'parent') {
         // Get from wilmaUsers/parents subcollection
         const snapshot = await db.collection('wilmaUsers').doc('parents').collection('list').where('isActive', '==', true).get();
         console.log(`📦 Found ${snapshot.size} active parents`);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id };
+        });
       }
       
       // Get all - fetch from both subcollections
@@ -654,9 +662,18 @@ export class FirebaseStorage implements IStorage {
       ]);
       
       const users = [
-        ...studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ...parentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ...othersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ...studentsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id };
+        }),
+        ...parentsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id };
+        }),
+        ...othersSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id };
+        })
       ];
       
       console.log('✅ Returning Wilma users:', users.length);
@@ -669,21 +686,36 @@ export class FirebaseStorage implements IStorage {
 
   async getWilmaUser(id: string): Promise<any | undefined> {
     try {
+      console.log('🔍 FirebaseStorage.getWilmaUser called with ID:', id);
+      
       // Try students subcollection first
       let doc = await db.collection('wilmaUsers').doc('students').collection('list').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
+      if (doc.exists) {
+        console.log('✅ Found student in students subcollection');
+        const data = doc.data();
+        return { ...data, id: doc.id };
+      }
       
       // Try parents subcollection
       doc = await db.collection('wilmaUsers').doc('parents').collection('list').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
+      if (doc.exists) {
+        console.log('✅ Found user in parents subcollection');
+        const data = doc.data();
+        return { ...data, id: doc.id };
+      }
       
       // Try main collection
       doc = await db.collection('wilmaUsers').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
+      if (doc.exists) {
+        console.log('✅ Found user in main collection');
+        const data = doc.data();
+        return { ...data, id: doc.id };
+      }
       
+      console.log('❌ User not found in any collection');
       return undefined;
     } catch (error) {
-      console.error('Error fetching Wilma user:', error);
+      console.error('❌ Error fetching Wilma user:', error);
       return undefined;
     }
   }

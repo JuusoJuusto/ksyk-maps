@@ -220,9 +220,14 @@ export default function PeopleManager() {
                         variant="outline" 
                         className="flex-1 text-xs md:text-sm"
                         onClick={() => {
+                          console.log('🔍 Navigating to student:', student);
+                          console.log('🔍 Student ID:', student.id);
+                          console.log('🔍 Student studentId:', student.studentId);
                           const currentPath = window.location.pathname;
                           const adminId = currentPath.split('/')[2];
-                          setLocation(`/wilma-admin/${adminId}/student-view/${student.id}`);
+                          const targetUrl = `/wilma-admin/${adminId}/student-view/${student.id}`;
+                          console.log('🔍 Target URL:', targetUrl);
+                          setLocation(targetUrl);
                         }}
                       >
                         <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1" />
