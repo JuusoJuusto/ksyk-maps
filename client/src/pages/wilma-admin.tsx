@@ -13,6 +13,8 @@ import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
 import ClassesManager from "@/components/ClassesManager";
 import WilmaStyleAttendance from "@/components/WilmaStyleAttendance";
+import CourseManager from "@/components/CourseManager";
+import StudentEnrollmentManager from "@/components/StudentEnrollmentManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, Plus, Upload, Download,
@@ -633,68 +635,26 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="courses">
-            <Card className="border-2 border-purple-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-purple-600" />
-                  Kurssien hallinta
-                </CardTitle>
-                <CardDescription>Hallinnoi kursseja ja ilmoittautumisia</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <Button className="bg-purple-600 hover:bg-purple-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Lisää kurssi
-                    </Button>
-                    <Button variant="outline">
-                      <Search className="w-4 h-4 mr-2" />
-                      Hae kursseja
-                    </Button>
-                    <Button variant="outline">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Suodata
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-purple-600" />
-                        Aktiiviset kurssit
-                      </h3>
-                      <div className="space-y-3">
-                        {['Matematiikka 1', 'Englannin kirjallisuus', 'Fysiikka syventävä', 'Suomen historia'].map((course, idx) => (
-                          <div key={idx} className="flex items-center justify-between bg-purple-50 p-3 rounded-lg">
-                            <div>
-                              <p className="font-semibold text-sm">{course}</p>
-                              <p className="text-xs text-gray-600">{20 + idx * 5} opiskelijaa ilmoittautunut</p>
-                            </div>
-                            <Button size="sm" variant="outline">Hallinnoi</Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Button className="bg-purple-600 hover:bg-purple-700 h-auto py-4">
-                        <Plus className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Luo uusi kurssi</p>
-                          <p className="text-xs opacity-90">Aseta opetussuunnitelma ja materiaalit</p>
-                        </div>
-                      </Button>
-                      <Button variant="outline" className="h-auto py-4">
-                        <Search className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Selaa luetteloa</p>
-                          <p className="text-xs text-gray-600">Näytä kaikki saatavilla olevat kurssit</p>
-                        </div>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="courses" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="courses">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Kurssit
+                </TabsTrigger>
+                <TabsTrigger value="enrollments">
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Ilmoittautumiset
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="courses">
+                <CourseManager />
+              </TabsContent>
+              
+              <TabsContent value="enrollments">
+                <StudentEnrollmentManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="attendance">
