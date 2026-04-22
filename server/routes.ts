@@ -1595,6 +1595,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schedule Settings routes
+  app.get('/api/schedule-settings', async (req, res) => {
+    try {
+      const doc = await db.collection('scheduleSettings').doc('default').get();
+      if (!doc.exists) {
+        // Return default settings
+        return res.json({
+          periods: [],
+          terms: [],
+          breaks: [],
+          specialSchedules: []
+        });
+      }
+      res.json(doc.data());
+    } catch (error) {
+      await logError(error, 'GET /api/schedule-settings');
+      res.status(500).json({ message: "Failed to fetch schedule settings" });
+    }
+  });
+
+  app.post('/api/schedule-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { periods, terms, breaks, specialSchedules } = req.body;
+      const settings = {
+        periods: periods || [],
+        terms: terms || [],
+        breaks: breaks || [],
+        specialSchedules: specialSchedules || [],
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.id
+      };
+
+      await db.collection('scheduleSettings').doc('default').set(settings);
+      res.json(settings);
+    } catch (error) {
+      await logError(error, 'POST /api/schedule-settings');
+      res.status(500).json({ message: "Failed to save schedule settings" });
+    }
+  });
+
   // Wilma Attendance routes
   app.get('/api/wilma/attendance/:studentId', async (req, res) => {
     try {

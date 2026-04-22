@@ -8,6 +8,7 @@ import PeopleManager from "@/components/PeopleManager";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import ScheduleManager from "@/components/ScheduleManager";
+import ScheduleSettingsManager from "@/components/ScheduleSettingsManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
 import ClassesManager from "@/components/ClassesManager";
@@ -604,7 +605,23 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="schedule">
-            <ScheduleManager />
+            <Tabs defaultValue="schedules" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="schedules">Lukujärjestykset</TabsTrigger>
+                <TabsTrigger value="settings">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Asetukset
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="schedules">
+                <ScheduleManager />
+              </TabsContent>
+              
+              <TabsContent value="settings">
+                <ScheduleSettingsManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="teachers">
