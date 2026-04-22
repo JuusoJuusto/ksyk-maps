@@ -111,28 +111,28 @@ export default function WilmaAdmin() {
   const isAdmin = roles.includes('admin') || roles.includes('principal');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header - Mobile Responsive */}
-      <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
+    <div className="min-h-screen bg-[#f5f5f5]">
+      {/* Header - Wilma Classic Style */}
+      <div className="bg-[#003d82] text-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-                <GraduationCap className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
+              <h1 className="text-lg md:text-2xl font-semibold flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
                 <span className="truncate">Wilma {isAdmin ? 'Hallinta' : 'Opettaja'}</span>
               </h1>
-              <p className="text-blue-100 mt-1 flex items-center gap-2 text-xs md:text-base">
+              <p className="text-white/90 mt-0.5 flex items-center gap-2 text-xs md:text-sm">
                 <User className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                 <span className="truncate">{currentUser.firstName} {currentUser.lastName} • {isAdmin ? 'Ylläpitäjä' : 'Opettaja'}</span>
               </p>
             </div>
-            <div className="flex gap-2 md:gap-3 ml-2">
-              <Button onClick={() => setLocation('/')} className="bg-white/20 hover:bg-white/30 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
-                <Home className="w-4 h-4 md:mr-2" />
+            <div className="flex gap-2 ml-2">
+              <Button onClick={() => setLocation('/')} className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm" size="sm">
+                <Home className="w-4 h-4 md:mr-1.5" />
                 <span className="hidden md:inline">Etusivu</span>
               </Button>
-              <Button onClick={handleLogout} className="bg-red-500/80 hover:bg-red-600 text-white h-8 md:h-10 px-2 md:px-4" size="sm">
-                <LogOut className="w-4 h-4 md:mr-2" />
+              <Button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm" size="sm">
+                <LogOut className="w-4 h-4 md:mr-1.5" />
                 <span className="hidden md:inline">Kirjaudu ulos</span>
               </Button>
             </div>
@@ -143,14 +143,14 @@ export default function WilmaAdmin() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {/* Mobile Menu Button */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-3">
           <Button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-full bg-white text-gray-700 border-2 border-blue-200 hover:bg-blue-50 flex items-center justify-between"
+            className="w-full bg-white text-gray-700 border border-[#dddddd] hover:bg-gray-50 flex items-center justify-between rounded-sm"
           >
             <span className="flex items-center gap-2">
-              <Menu className="w-5 h-5" />
-              <span className="font-medium">
+              <Menu className="w-4 h-4" />
+              <span className="font-medium text-sm">
                 {activeTab === 'home' && 'Koti'}
                 {activeTab === 'staff' && 'Henkilökunta'}
                 {activeTab === 'students' && 'Opiskelijat'}
@@ -172,416 +172,76 @@ export default function WilmaAdmin() {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mb-4 bg-white rounded-lg shadow-lg border-2 border-blue-100 overflow-hidden">
-            <div className="flex flex-col">
+          <div className="md:hidden mb-3 bg-white rounded-sm shadow-sm border border-[#dddddd] overflow-hidden">
+            <div className="flex flex-col">{[
+              { key: 'home', label: 'Koti', icon: Home },
+              { key: 'staff', label: 'Henkilökunta', icon: Users },
+              { key: 'students', label: 'Opiskelijat', icon: User },
+              { key: 'messages', label: 'Viestit', icon: MessageSquare },
+              { key: 'schedule', label: 'Lukujärjestys', icon: Calendar },
+              { key: 'courses', label: 'Kurssit', icon: BookOpen },
+              { key: 'teachers', label: 'Opettajat', icon: GraduationCap },
+              { key: 'classes', label: 'Luokat', icon: Users },
+              { key: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+              { key: 'rooms', label: 'Tilat', icon: Building },
+              { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
+              { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
+              { key: 'settings', label: 'Asetukset', icon: Settings }
+            ].map(({ key, label, icon: Icon }) => (
               <Button
+                key={key}
                 onClick={() => {
-                  setActiveTab('home');
-                  setLocation(`/wilma-admin/${currentUser.id}/home`);
+                  setActiveTab(key);
+                  setLocation(`/wilma-admin/${currentUser.id}/${key}`);
                   setMobileMenuOpen(false);
                 }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'home' 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
+                className={`justify-start px-4 py-2.5 rounded-none border-b border-[#dddddd] text-sm ${
+                  activeTab === key 
+                    ? 'bg-[#f5f5f5] text-gray-900 font-medium' 
+                    : 'bg-transparent text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <Home className="w-4 h-4 mr-3" />
-                <span>Koti</span>
+                <Icon className="w-4 h-4 mr-2.5" />
+                <span>{label}</span>
               </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('staff');
-                  setLocation(`/wilma-admin/${currentUser.id}/staff`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'staff' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="w-4 h-4 mr-3" />
-                <span>Henkilökunta</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('students');
-                  setLocation(`/wilma-admin/${currentUser.id}/students`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'students' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <User className="w-4 h-4 mr-3" />
-                <span>Opiskelijat</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('messages');
-                  setLocation(`/wilma-admin/${currentUser.id}/messages`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'messages' 
-                    ? 'bg-teal-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 mr-3" />
-                <span>Viestit</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('schedule');
-                  setLocation(`/wilma-admin/${currentUser.id}/schedule`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'schedule' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Calendar className="w-4 h-4 mr-3" />
-                <span>Lukujärjestys</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('courses');
-                  setLocation(`/wilma-admin/${currentUser.id}/courses`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'courses' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <BookOpen className="w-4 h-4 mr-3" />
-                <span>Kurssit</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('teachers');
-                  setLocation(`/wilma-admin/${currentUser.id}/teachers`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'teachers' 
-                    ? 'bg-orange-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 mr-3" />
-                <span>Opettajat</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('classes');
-                  setLocation(`/wilma-admin/${currentUser.id}/classes`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'classes' 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="w-4 h-4 mr-3" />
-                <span>Luokat</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('attendance');
-                  setLocation(`/wilma-admin/${currentUser.id}/attendance`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'attendance' 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <UserCheck className="w-4 h-4 mr-3" />
-                <span>Tuntimerkinnät</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('rooms');
-                  setLocation(`/wilma-admin/${currentUser.id}/rooms`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'rooms' 
-                    ? 'bg-pink-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Building className="w-4 h-4 mr-3" />
-                <span>Tilat</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('announcements');
-                  setLocation(`/wilma-admin/${currentUser.id}/announcements`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'announcements' 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Bell className="w-4 h-4 mr-3" />
-                <span>Ilmoitukset</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('analytics');
-                  setLocation(`/wilma-admin/${currentUser.id}/analytics`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none border-b ${
-                  activeTab === 'analytics' 
-                    ? 'bg-cyan-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4 mr-3" />
-                <span>Analytiikka</span>
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setActiveTab('settings');
-                  setLocation(`/wilma-admin/${currentUser.id}/settings`);
-                  setMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-none ${
-                  activeTab === 'settings' 
-                    ? 'bg-gray-600 text-white' 
-                    : 'bg-transparent text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Settings className="w-4 h-4 mr-3" />
-                <span>Asetukset</span>
-              </Button>
+            ))}
             </div>
           </div>
         )}
 
-        {/* Top Navigation Bar - Desktop Only */}
-        <div className="hidden md:block bg-white rounded-lg shadow-lg border-2 border-blue-100 mb-6 overflow-x-auto">
-          <div className="flex gap-1 p-2 min-w-max">
+        {/* Top Navigation Bar - Desktop Only - Wilma Style */}
+        <div className="hidden md:block bg-white rounded-sm shadow-sm border border-[#dddddd] mb-4 overflow-x-auto">
+          <div className="flex gap-0 min-w-max border-b border-[#dddddd]">{[
+            { key: 'home', label: 'Koti', icon: Home },
+            { key: 'staff', label: 'Henkilökunta', icon: Users },
+            { key: 'students', label: 'Opiskelijat', icon: User },
+            { key: 'messages', label: 'Viestit', icon: MessageSquare },
+            { key: 'schedule', label: 'Lukujärjestys', icon: Calendar },
+            { key: 'teachers', label: 'Opettajat', icon: GraduationCap },
+            { key: 'classes', label: 'Luokat', icon: Users },
+            { key: 'courses', label: 'Kurssit', icon: BookOpen },
+            { key: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+            { key: 'rooms', label: 'Tilat', icon: Building },
+            { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
+            { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
+            { key: 'settings', label: 'Asetukset', icon: Settings }
+          ].map(({ key, label, icon: Icon }) => (
             <Button
+              key={key}
               onClick={() => {
-                setActiveTab('home');
-                setLocation(`/wilma-admin/${currentUser.id}/home`);
+                setActiveTab(key);
+                setLocation(`/wilma-admin/${currentUser.id}/${key}`);
               }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'home' 
-                  ? 'bg-indigo-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
+              className={`flex items-center gap-2 px-4 py-3 rounded-none border-b-2 transition-colors ${
+                activeTab === key 
+                  ? 'border-[#7cb342] text-gray-900 font-semibold bg-white' 
+                  : 'border-transparent text-gray-700 hover:bg-gray-50 bg-white'
               }`}
             >
-              <Home className="w-4 h-4" />
-              <span className="font-medium">Koti</span>
+              <Icon className="w-4 h-4" />
+              <span className="text-sm whitespace-nowrap">{label}</span>
             </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('staff');
-                setLocation(`/wilma-admin/${currentUser.id}/staff`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'staff' 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span className="font-medium">Henkilökunta</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('students');
-                setLocation(`/wilma-admin/${currentUser.id}/students`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'students' 
-                  ? 'bg-purple-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              <span className="font-medium">Opiskelijat</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('messages');
-                setLocation(`/wilma-admin/${currentUser.id}/messages`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'messages' 
-                  ? 'bg-teal-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span className="font-medium">Viestit</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('schedule');
-                setLocation(`/wilma-admin/${currentUser.id}/schedule`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'schedule' 
-                  ? 'bg-green-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span className="font-medium">Lukujärjestys</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('teachers');
-                setLocation(`/wilma-admin/${currentUser.id}/teachers`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'teachers' 
-                  ? 'bg-orange-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span className="font-medium">Opettajat</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('classes');
-                setLocation(`/wilma-admin/${currentUser.id}/classes`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'classes' 
-                  ? 'bg-indigo-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span className="font-medium">Luokat</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('courses');
-                setLocation(`/wilma-admin/${currentUser.id}/courses`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'courses' 
-                  ? 'bg-purple-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span className="font-medium">Kurssit</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('attendance');
-                setLocation(`/wilma-admin/${currentUser.id}/attendance`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'attendance' 
-                  ? 'bg-red-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              <span className="font-medium">Tuntimerkinnät</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('rooms');
-                setLocation(`/wilma-admin/${currentUser.id}/rooms`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'rooms' 
-                  ? 'bg-pink-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Building className="w-4 h-4" />
-              <span className="font-medium">Tilat</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('announcements');
-                setLocation(`/wilma-admin/${currentUser.id}/announcements`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'announcements' 
-                  ? 'bg-indigo-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Bell className="w-4 h-4" />
-              <span className="font-medium">Ilmoitukset</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('analytics');
-                setLocation(`/wilma-admin/${currentUser.id}/analytics`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'analytics' 
-                  ? 'bg-cyan-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="font-medium">Analytiikka</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                setActiveTab('settings');
-                setLocation(`/wilma-admin/${currentUser.id}/settings`);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all ${
-                activeTab === 'settings' 
-                  ? 'bg-gray-600 text-white shadow-md' 
-                  : 'bg-transparent text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span className="font-medium">Asetukset</span>
-            </Button>
+          ))}
           </div>
         </div>
 

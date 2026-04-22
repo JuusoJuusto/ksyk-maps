@@ -5,6 +5,51 @@
 @tailwind utilities;
 
 @layer utilities {
+  /* Wilma Classic Styles */
+  .wilma-header {
+    @apply bg-[#003d82] text-white;
+  }
+  
+  .wilma-tab {
+    @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white border-b-2 border-transparent hover:border-gray-300 transition-colors;
+  }
+  
+  .wilma-tab-active {
+    @apply border-b-2 border-[#7cb342] text-gray-900 font-semibold;
+  }
+  
+  .wilma-card {
+    @apply bg-white border border-[#dddddd] rounded-sm shadow-sm;
+  }
+  
+  .wilma-table {
+    @apply w-full border-collapse;
+  }
+  
+  .wilma-table-header {
+    @apply bg-[#f5f5f5] border-b border-[#dddddd] text-left text-sm font-semibold text-gray-700 px-4 py-2;
+  }
+  
+  .wilma-table-row {
+    @apply border-b border-[#dddddd] hover:bg-[#f9f9f9] transition-colors;
+  }
+  
+  .wilma-table-cell {
+    @apply px-4 py-3 text-sm text-gray-700;
+  }
+  
+  .wilma-button {
+    @apply px-4 py-2 text-sm font-medium text-white bg-[#003d82] hover:bg-[#002d5f] border border-[#003d82] rounded-sm transition-colors;
+  }
+  
+  .wilma-button-secondary {
+    @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-[#dddddd] rounded-sm transition-colors;
+  }
+  
+  .wilma-input {
+    @apply px-3 py-2 text-sm border border-[#dddddd] rounded-sm focus:outline-none focus:border-[#003d82] focus:ring-1 focus:ring-[#003d82];
+  }
+
   /* Scrollbar Hide */
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -219,50 +264,67 @@
 }
 
 :root {
-  --background: hsl(210, 20%, 98%);
-  --foreground: hsl(210, 40%, 12%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(210, 40%, 12%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(210, 40%, 12%);
-  --primary: hsl(207, 75%, 38%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(36, 100%, 50%);
-  --secondary-foreground: hsl(0, 0%, 100%);
-  --muted: hsl(210, 20%, 92%);
-  --muted-foreground: hsl(215, 16%, 47%);
-  --accent: hsl(120, 60%, 35%);
-  --accent-foreground: hsl(0, 0%, 100%);
-  --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(214, 32%, 91%);
-  --input: hsl(214, 32%, 91%);
-  --ring: hsl(207, 75%, 38%);
-  --chart-1: hsl(207, 75%, 38%);
-  --chart-2: hsl(120, 60%, 35%);
-  --chart-3: hsl(36, 100%, 50%);
-  --chart-4: hsl(0, 84%, 60%);
-  --chart-5: hsl(210, 20%, 92%);
-  --sidebar: hsl(0, 0%, 100%);
-  --sidebar-foreground: hsl(210, 40%, 12%);
-  --sidebar-primary: hsl(207, 75%, 38%);
-  --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(210, 20%, 92%);
-  --sidebar-accent-foreground: hsl(207, 75%, 38%);
-  --sidebar-border: hsl(214, 32%, 91%);
-  --sidebar-ring: hsl(207, 75%, 38%);
+  /* Wilma Classic Colors */
+  --wilma-navy: #003d82;
+  --wilma-navy-dark: #002d5f;
+  --wilma-white: #ffffff;
+  --wilma-light-gray: #f5f5f5;
+  --wilma-gray: #e0e0e0;
+  --wilma-border: #dddddd;
+  --wilma-green: #7cb342;
+  --wilma-green-dark: #689f38;
+  --wilma-text: #333333;
+  --wilma-text-light: #666666;
+  --wilma-link: #0066cc;
+  --wilma-hover: #f0f0f0;
+  --wilma-red: #d32f2f;
+  --wilma-yellow: #fbc02d;
+  
+  /* Map to standard variables */
+  --background: #f5f5f5;
+  --foreground: #333333;
+  --card: #ffffff;
+  --card-foreground: #333333;
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  --primary: #003d82;
+  --primary-foreground: #ffffff;
+  --secondary: #7cb342;
+  --secondary-foreground: #ffffff;
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
+  --accent: #7cb342;
+  --accent-foreground: #ffffff;
+  --destructive: #d32f2f;
+  --destructive-foreground: #ffffff;
+  --border: #dddddd;
+  --input: #ffffff;
+  --ring: #003d82;
+  --chart-1: #003d82;
+  --chart-2: #7cb342;
+  --chart-3: #fbc02d;
+  --chart-4: #d32f2f;
+  --chart-5: #f5f5f5;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #333333;
+  --sidebar-primary: #003d82;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #003d82;
+  --sidebar-border: #dddddd;
+  --sidebar-ring: #003d82;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 0.75rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00), 0px 1px 2px -1px hsl(207, 75%, 38% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00), 0px 1px 2px -1px hsl(207, 75%, 38% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00), 0px 2px 4px -1px hsl(207, 75%, 38% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00), 0px 4px 6px -1px hsl(207, 75%, 38% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00), 0px 8px 10px -1px hsl(207, 75%, 38% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(207, 75%, 38% / 0.00);
+  --radius: 0.25rem;
+  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+  --shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0px 2px 4px 0px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0px 4px 6px 0px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0px 8px 10px 0px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0px 12px 16px 0px rgba(0, 0, 0, 0.1);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
@@ -410,9 +472,9 @@
   }
 }
 
-/* Premium Background */
+/* Wilma Classic Background */
 body {
-  background: #667eea;
+  background: #f5f5f5;
   min-height: 100vh;
 }
 
@@ -732,22 +794,9 @@ body {
   color: hsl(215, 16%, 70%) !important;
 }
 
-/* Enhanced Light Theme */
+/* Wilma Light Theme */
 .light {
-  background: #f8fafc;
-  animation: light-ambient 25s ease-in-out infinite;
-}
-
-@keyframes light-ambient {
-  0%, 100% {
-    background: #f8fafc;
-  }
-  33% {
-    background: #f1f5f9;
-  }
-  66% {
-    background: #f9fafb;
-  }
+  background: #f5f5f5;
 }
 
 /* Enhanced Dark Theme */
