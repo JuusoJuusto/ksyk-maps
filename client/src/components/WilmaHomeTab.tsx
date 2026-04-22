@@ -181,7 +181,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
           {/* Recent Grades - Only for Students */}
           {isStudent && (
             <Card className="border-2 border-green-200">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+              <CardHeader className="bg-green-50 p-4 md:p-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                   <Award className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                   Viimeisimmät arvosanat
@@ -211,7 +211,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
           {/* Admin/Teacher Overview */}
           {(isAdmin || isTeacher) && (
             <Card className="border-2 border-green-200">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6">
+              <CardHeader className="bg-green-50 p-4 md:p-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                   <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                   {isAdmin ? 'Järjestelmän tilastot' : 'Omat kurssit'}
@@ -285,7 +285,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
         <div className="space-y-4 md:space-y-6">
           {/* Quick Actions */}
           <Card className="border-2 border-purple-200">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 md:p-6">
+            <CardHeader className="bg-purple-50 p-4 md:p-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                 Pika-toiminnot
@@ -335,7 +335,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
 
           {/* Announcements */}
           <Card className="border-2 border-orange-200">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 md:p-6">
+            <CardHeader className="bg-orange-50 p-4 md:p-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
                 Ilmoitukset
@@ -367,7 +367,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
           {/* Performance Chart - Only for Students */}
           {isStudent && (
             <Card className="border-2 border-cyan-200">
-              <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
+              <CardHeader className="bg-cyan-50 p-4 md:p-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                   <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
                   Suorituskyky
@@ -410,7 +410,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
           {/* Admin/Teacher Stats */}
           {(isAdmin || isTeacher) && (
             <Card className="border-2 border-cyan-200">
-              <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 md:p-6">
+              <CardHeader className="bg-cyan-50 p-4 md:p-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                   <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
                   {isAdmin ? 'Järjestelmän tila' : 'Kurssien tilastot'}
