@@ -181,16 +181,32 @@ export default function Wilma() {
       return;
     }
     
-    // Simulate password reset
-    setResetSuccess(true);
-    setTimeout(() => {
-      setShowForgotPassword(false);
-      setResetSuccess(false);
-      setResetEmail('');
-      alert(language === 'fi' 
-        ? `Salasanan palautuslinkki lähetetty osoitteeseen ${resetEmail}`
-        : `Password reset link sent to ${resetEmail}`);
-    }, 2000);
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResetSuccess(true);
+        setTimeout(() => {
+          setShowForgotPassword(false);
+          setResetSuccess(false);
+          setResetEmail('');
+          setIsLoading(false);
+        }, 3000);
+      } else {
+        alert(data.message || (language === 'fi' ? 'Salasanan palautus epäonnistui' : 'Password reset failed'));
+        setIsLoading(false);
+      }
+    } catch (error) {
+      alert(language === 'fi' ? 'Yhteysvirhe' : 'Connection error');
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
