@@ -1633,11 +1633,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { periods, terms, breaks, specialSchedules } = req.body;
+      const { periods, terms, breaks, holidays, specialSchedules } = req.body;
       const settings = {
         periods: periods || [],
         terms: terms || [],
         breaks: breaks || [],
+        holidays: holidays || [],
         specialSchedules: specialSchedules || [],
         updatedAt: new Date().toISOString(),
         updatedBy: user.id
@@ -1648,6 +1649,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'POST /api/schedule-settings');
       res.status(500).json({ message: "Failed to save schedule settings" });
+    }
+  });
+
+  // Appearance Settings routes
+  app.get('/api/appearance-settings', async (req, res) => {
+    try {
+      const doc = await db.collection('appearanceSettings').doc('default').get();
+      if (!doc.exists) {
+        // Return default settings
+        return res.json({
+          timeFormat: '24h',
+          language: 'fi',
+          dateFormat: 'DD.MM.YYYY'
+        });
+      }
+      res.json(doc.data());
+    } catch (error) {
+      await logError(error, 'GET /api/appearance-settings');
+      res.status(500).json({ message: "Failed to fetch appearance settings" });
+    }
+  });
+
+  app.post('/api/appearance-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { timeFormat, language, dateFormat } = req.body;
+      const settings = {
+        timeFormat: timeFormat || '24h',
+        language: language || 'fi',
+        dateFormat: dateFormat || 'DD.MM.YYYY',
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.id
+      };
+
+      await db.collection('appearanceSettings').doc('default').set(settings);
+      res.json(settings);
+    } catch (error) {
+      await logError(error, 'POST /api/appearance-settings');
+      res.status(500).json({ message: "Failed to save appearance settings" });
     }
   });
 
