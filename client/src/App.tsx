@@ -31,7 +31,7 @@ import Wilma from "@/pages/wilma";
 import WilmaHome from "@/pages/wilma-home";
 import WilmaMessage from "@/pages/wilma-message";
 import WilmaCompose from "@/pages/wilma-compose";
-import WilmaAdmin from "@/pages/wilma-admin";
+import WilmaAdmin from "@/pages/wilma-admin-new";
 import WilmaTeacher from "@/pages/wilma-teacher";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
