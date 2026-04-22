@@ -122,10 +122,10 @@ export default function WilmaAdmin() {
   const isAdmin = roles.includes('admin') || roles.includes('principal');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
-      {/* Modern Header with Gradient */}
-      <div className="wilma-header">
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-5">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
+      {/* Modern Header with Gradient - Full Width */}
+      <div className="wilma-header w-full">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-4 md:py-5">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-lg md:text-2xl font-bold flex items-center gap-2">
@@ -151,8 +151,8 @@ export default function WilmaAdmin() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
+      {/* Main Content - Full Width */}
+      <div className="w-full px-4 md:px-6 lg:px-8 py-4 md:py-6">
         {/* Mobile Menu Button */}
         <div className="md:hidden mb-4">
           <Button
@@ -171,6 +171,7 @@ export default function WilmaAdmin() {
                 {activeTab === 'classes' && 'Luokat'}
                 {activeTab === 'courses' && 'Kurssit'}
                 {activeTab === 'attendance' && 'Tuntimerkinnät'}
+                {activeTab === 'journal' && 'Tuntipäiväkirja'}
                 {activeTab === 'rooms' && 'Tilat'}
                 {activeTab === 'announcements' && 'Ilmoitukset'}
                 {activeTab === 'analytics' && 'Analytiikka'}
@@ -194,6 +195,7 @@ export default function WilmaAdmin() {
               { key: 'teachers', label: 'Opettajat', icon: GraduationCap },
               { key: 'classes', label: 'Luokat', icon: Users },
               { key: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+              { key: 'journal', label: 'Tuntipäiväkirja', icon: FileText },
               { key: 'rooms', label: 'Tilat', icon: Building },
               { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
               { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
@@ -233,6 +235,7 @@ export default function WilmaAdmin() {
             { key: 'classes', label: 'Luokat', icon: Users },
             { key: 'courses', label: 'Kurssit', icon: BookOpen },
             { key: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+            { key: 'journal', label: 'Tuntipäiväkirja', icon: FileText },
             { key: 'rooms', label: 'Tilat', icon: Building },
             { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
             { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
