@@ -57,7 +57,7 @@ export default function WilmaStyleAttendance() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('08:00-09:30');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [viewMode, setViewMode] = useState<'roster' | 'marks' | 'notifications'>('roster');
+  const [viewMode, setViewMode] = useState<'roster' | 'marks' | 'notifications' | 'calendar'>('roster');
   const [attendanceData, setAttendanceData] = useState<{ [key: string]: string }>({});
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
 
@@ -256,6 +256,14 @@ export default function WilmaStyleAttendance() {
               size="sm"
             >
               Merkinnät
+            </Button>
+            <Button
+              variant={viewMode === 'calendar' ? 'default' : 'outline'}
+              onClick={() => setViewMode('calendar')}
+              size="sm"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Kalenteri
             </Button>
             <Button
               variant={viewMode === 'notifications' ? 'default' : 'outline'}
@@ -466,6 +474,205 @@ export default function WilmaStyleAttendance() {
             </Button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Calendar View
+  if (viewMode === 'calendar') {
+    // Generate calendar for current month
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    // Adjust for Monday start (0 = Monday, 6 = Sunday)
+    const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+    
+    const monthNames = ['Tammikuu', 'Helmikuu', 'Maaliskuu', 'Huhtikuu', 'Toukokuu', 'Kesäkuu',
+                        'Heinäkuu', 'Elokuu', 'Syyskuu', 'Lokakuu', 'Marraskuu', 'Joulukuu'];
+    const dayNames = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
+    
+    // Fetch marks for the entire month
+    const { data: monthMarks = [] } = useQuery({
+      queryKey: ['attendance-marks-month', currentYear, currentMonth, selectedClass],
+      queryFn: async () => {
+        if (!selectedClass) return [];
+        const startDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+        const endDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+        const response = await fetch(`/api/wilma/attendance-marks?startDate=${startDate}&endDate=${endDate}`);
+        if (!response.ok) return [];
+        const marks = await response.json();
+        return marks.filter((m: AttendanceMark) => 
+          students.some((s: Student) => s.studentId === m.studentId)
+        );
+      },
+      enabled: !!selectedClass && students.length > 0
+    });
+    
+    // Group marks by date
+    const marksByDate: { [key: string]: AttendanceMark[] } = {};
+    monthMarks.forEach((mark: AttendanceMark) => {
+      if (!marksByDate[mark.date]) {
+        marksByDate[mark.date] = [];
+      }
+      marksByDate[mark.date].push(mark);
+    });
+    
+    // Calculate stats for each day
+    const getDayStats = (date: string) => {
+      const marks = marksByDate[date] || [];
+      return {
+        present: marks.filter(m => m.markType === 'present').length,
+        absent: marks.filter(m => m.markType === 'absent').length,
+        late: marks.filter(m => m.markType === 'late').length,
+        sick: marks.filter(m => m.markType === 'sick').length,
+        total: marks.length
+      };
+    };
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-blue-600" />
+            Läsnäolokalenteri - {monthNames[currentMonth]} {currentYear}
+          </h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setViewMode('roster')}
+              size="sm"
+            >
+              Takaisin nimilistaan
+            </Button>
+          </div>
+        </div>
+
+        {/* Class selector */}
+        <Card className="border-2 border-blue-200">
+          <CardContent className="p-4">
+            <div className="max-w-md">
+              <Label>Valitse luokka</Label>
+              <EnhancedClassSelector
+                classes={classes}
+                value={selectedClass}
+                onChange={setSelectedClass}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Calendar Grid */}
+        <Card className="border-2 border-blue-200">
+          <CardContent className="p-6">
+            {!selectedClass ? (
+              <div className="text-center py-12 text-gray-500">
+                <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p>Valitse luokka nähdäksesi kalenterin</p>
+              </div>
+            ) : (
+              <div>
+                {/* Day names header */}
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {dayNames.map(day => (
+                    <div key={day} className="text-center font-bold text-sm text-gray-600 py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Calendar days */}
+                <div className="grid grid-cols-7 gap-2">
+                  {/* Empty cells for days before month starts */}
+                  {Array.from({ length: adjustedStartDay }).map((_, i) => (
+                    <div key={`empty-${i}`} className="aspect-square" />
+                  ))}
+                  
+                  {/* Days of the month */}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const stats = getDayStats(dateStr);
+                    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                    const isWeekend = (adjustedStartDay + i) % 7 >= 5;
+                    
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          setSelectedDate(dateStr);
+                          setViewMode('roster');
+                        }}
+                        className={`aspect-square border-2 rounded-lg p-2 hover:shadow-lg transition-all ${
+                          isToday ? 'border-blue-600 bg-blue-50' : 
+                          isWeekend ? 'border-gray-200 bg-gray-50' :
+                          'border-gray-300 bg-white'
+                        } ${stats.total > 0 ? 'hover:border-blue-400' : 'hover:border-gray-400'}`}
+                      >
+                        <div className="text-sm font-bold mb-1">{day}</div>
+                        {stats.total > 0 && (
+                          <div className="space-y-0.5 text-xs">
+                            {stats.present > 0 && (
+                              <div className="flex items-center justify-center gap-1 text-green-600">
+                                <CheckCircle className="w-3 h-3" />
+                                <span>{stats.present}</span>
+                              </div>
+                            )}
+                            {stats.absent > 0 && (
+                              <div className="flex items-center justify-center gap-1 text-red-600">
+                                <XCircle className="w-3 h-3" />
+                                <span>{stats.absent}</span>
+                              </div>
+                            )}
+                            {stats.late > 0 && (
+                              <div className="flex items-center justify-center gap-1 text-orange-600">
+                                <Clock className="w-3 h-3" />
+                                <span>{stats.late}</span>
+                              </div>
+                            )}
+                            {stats.sick > 0 && (
+                              <div className="flex items-center justify-center gap-1 text-blue-600">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>{stats.sick}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Legend */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <p className="text-sm font-semibold mb-3">Merkinnät:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm">Läsnä</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm">Poissa</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm">Myöhässä</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm">Sairas</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
