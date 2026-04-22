@@ -19,7 +19,7 @@
   }
   
   .wilma-card {
-    @apply bg-white border border-[#dddddd] rounded-sm shadow-sm;
+    @apply bg-white border border-[#dddddd] rounded-lg shadow-sm;
   }
   
   .wilma-table {
@@ -39,15 +39,15 @@
   }
   
   .wilma-button {
-    @apply px-4 py-2 text-sm font-medium text-white bg-[#003d82] hover:bg-[#002d5f] border border-[#003d82] rounded-sm transition-colors;
+    @apply px-4 py-2 text-sm font-medium text-white bg-[#003d82] hover:bg-[#002d5f] border border-[#003d82] rounded-lg transition-colors;
   }
   
   .wilma-button-secondary {
-    @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-[#dddddd] rounded-sm transition-colors;
+    @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-[#dddddd] rounded-lg transition-colors;
   }
   
   .wilma-input {
-    @apply px-3 py-2 text-sm border border-[#dddddd] rounded-sm focus:outline-none focus:border-[#003d82] focus:ring-1 focus:ring-[#003d82];
+    @apply px-3 py-2 text-sm border border-[#dddddd] rounded-lg focus:outline-none focus:border-[#003d82] focus:ring-1 focus:ring-[#003d82];
   }
 
   /* Scrollbar Hide */
@@ -316,7 +316,7 @@
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 0.25rem;
+  --radius: 0.5rem;
   --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.1);

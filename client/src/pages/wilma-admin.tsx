@@ -146,7 +146,7 @@ export default function WilmaAdmin() {
         <div className="md:hidden mb-3">
           <Button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-full bg-white text-gray-700 border border-[#dddddd] hover:bg-gray-50 flex items-center justify-between rounded-sm"
+            className="w-full bg-white text-gray-700 border border-[#dddddd] hover:bg-gray-50 flex items-center justify-between rounded-lg"
           >
             <span className="flex items-center gap-2">
               <Menu className="w-4 h-4" />
@@ -172,7 +172,7 @@ export default function WilmaAdmin() {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mb-3 bg-white rounded-sm shadow-sm border border-[#dddddd] overflow-hidden">
+          <div className="md:hidden mb-3 bg-white rounded-lg shadow-sm border border-[#dddddd] overflow-hidden">
             <div className="flex flex-col">{[
               { key: 'home', label: 'Koti', icon: Home },
               { key: 'staff', label: 'Henkilökunta', icon: Users },
@@ -210,7 +210,7 @@ export default function WilmaAdmin() {
         )}
 
         {/* Top Navigation Bar - Desktop Only - Wilma Style */}
-        <div className="hidden md:block bg-white rounded-sm shadow-sm border border-[#dddddd] mb-4 overflow-x-auto">
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-[#dddddd] mb-4 overflow-hidden">
           <div className="flex gap-0 min-w-max border-b border-[#dddddd]">{[
             { key: 'home', label: 'Koti', icon: Home },
             { key: 'staff', label: 'Henkilökunta', icon: Users },

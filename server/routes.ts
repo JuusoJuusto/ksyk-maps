@@ -9,10 +9,16 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
 
-// Session timeout middleware (2 hours instead of 30 minutes)
+// Session timeout configuration
+const SESSION_TIMEOUT_ENABLED = false; // DISABLED BY DEFAULT - set to true to enable
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
 function sessionTimeoutMiddleware(req: any, res: any, next: any) {
+  // Skip if session timeout is disabled
+  if (!SESSION_TIMEOUT_ENABLED) {
+    return next();
+  }
+
   // Skip session timeout for public routes
   const publicRoutes = ['/api/auth/login', '/api/wilma/login', '/api/auth/logout'];
   if (publicRoutes.some(route => req.path.startsWith(route))) {

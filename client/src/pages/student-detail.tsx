@@ -23,34 +23,65 @@ export default function StudentDetail() {
     queryKey: ["student-detail", studentId],
     queryFn: async () => {
       console.log('📡 Fetching student detail for ID:', studentId);
-      console.log('📡 Full URL:', `/api/wilma/users/${studentId}`);
       if (!studentId) {
         throw new Error("No student ID provided");
       }
       const response = await fetch(`/api/wilma/users/${studentId}`);
-      console.log('📡 Response status:', response.status);
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Failed to fetch student:', response.status, response.statusText);
-        console.error('❌ Error response:', errorText);
         if (response.status === 404) {
           throw new Error(`Student not found (ID: ${studentId})`);
         }
         throw new Error(`Failed to fetch student: ${response.statusText}`);
       }
-      const data = await response.json();
-      console.log('✅ Student detail loaded:', data);
-      return data;
+      return await response.json();
     },
     enabled: !!studentId,
     retry: false
   });
 
+  // Fetch student's attendance marks
+  const { data: attendanceMarks = [] } = useQuery({
+    queryKey: ["student-attendance", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/attendance-marks?studentId=${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch student's course enrollments
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ["student-enrollments", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/students/${studentId}/enrollments`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch student's schedule
+  const { data: schedule = [] } = useQuery({
+    queryKey: ["student-schedule", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/students/${studentId}/schedule`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Calculate attendance percentage
+  const attendancePercentage = attendanceMarks.length > 0
+    ? Math.round((attendanceMarks.filter((m: any) => m.markType === 'present').length / attendanceMarks.length) * 100)
+    : 0;
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Ladataan opiskelijan tietoja...</p>
         </div>
       </div>
@@ -59,22 +90,14 @@ export default function StudentDetail() {
 
   if (!student || error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Opiskelijaa ei löytynyt</h2>
           <p className="text-gray-600 mb-2">
             {error?.message || "Opiskelija ei ole enää saatavilla tai se on poistettu."}
           </p>
-          <div className="bg-gray-100 p-3 rounded-lg mb-4 text-left">
-            <p className="text-xs text-gray-600 font-mono">
-              <strong>Debug Info:</strong><br/>
-              Student ID: {studentId}<br/>
-              Admin ID: {adminId}<br/>
-              Error: {error?.message || 'Unknown error'}
-            </p>
-          </div>
-          <Button onClick={() => setLocation(`/wilma-admin/${adminId}/students`)} className="mt-4">
+          <Button onClick={() => setLocation(`/wilma-admin/${adminId}/students`)} className="mt-4 bg-[#003d82] hover:bg-[#002d5f]">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Takaisin opiskelijalistaan
           </Button>
@@ -84,7 +107,7 @@ export default function StudentDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 md:p-4">
+    <div className="min-h-screen bg-[#f5f5f5] p-2 md:p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
@@ -92,7 +115,7 @@ export default function StudentDetail() {
             <Button
               variant="outline"
               onClick={() => setLocation(`/wilma-admin/${adminId}/students`)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 rounded-lg"
               size="sm"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -109,7 +132,7 @@ export default function StudentDetail() {
           </div>
           <Button
             onClick={() => setLocation(`/wilma-admin/${adminId}/student/${studentId}`)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-[#003d82] hover:bg-[#002d5f] rounded-lg"
           >
             <Edit className="w-4 h-4 mr-2" />
             Muokkaa tietoja
@@ -118,26 +141,31 @@ export default function StudentDetail() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-white border-2 border-blue-200 w-full md:w-auto grid grid-cols-4 md:flex">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          <TabsList className="bg-white border border-[#dddddd] w-full md:w-auto grid grid-cols-5 md:flex rounded-lg">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
               <User className="w-4 h-4 mr-2" />
               <span className="hidden md:inline">Yleiskatsaus</span>
               <span className="md:hidden">Info</span>
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+            <TabsTrigger value="attendance" className="data-[state=active]:bg-[#7cb342] data-[state=active]:text-white rounded-lg">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">Tuntimerkinnät</span>
+              <span className="md:hidden">Läsnä</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
               <Calendar className="w-4 h-4 mr-2" />
               <span className="hidden md:inline">Lukujärjestys</span>
               <span className="md:hidden">Aikataulu</span>
             </TabsTrigger>
-            <TabsTrigger value="grades" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <TabsTrigger value="courses" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
+              <BookOpen className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">Kurssit</span>
+              <span className="md:hidden">Kurssit</span>
+            </TabsTrigger>
+            <TabsTrigger value="grades" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
               <Award className="w-4 h-4 mr-2" />
               <span className="hidden md:inline">Arvosanat</span>
               <span className="md:hidden">Arvosanat</span>
-            </TabsTrigger>
-            <TabsTrigger value="assignments" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
-              <BookOpen className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Tehtävät</span>
-              <span className="md:hidden">Tehtävät</span>
             </TabsTrigger>
           </TabsList>
 
@@ -199,41 +227,41 @@ export default function StudentDetail() {
 
               {/* Quick Stats */}
               <div className="space-y-4">
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+                <Card className="bg-[#7cb342] text-white border-0 rounded-lg shadow-md">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-100 text-sm">Keskiarvo</p>
-                        <p className="text-3xl font-bold mt-1">8.5</p>
-                        <p className="text-green-100 text-sm mt-1">Tällä jaksolla</p>
+                        <p className="text-white/90 text-sm">Läsnäolo</p>
+                        <p className="text-3xl font-bold mt-1">{attendancePercentage}%</p>
+                        <p className="text-white/90 text-sm mt-1">{attendanceMarks.length} merkintää</p>
                       </div>
-                      <Award className="w-12 h-12 text-green-200" />
+                      <CheckCircle className="w-12 h-12 text-white/80" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+                <Card className="bg-[#003d82] text-white border-0 rounded-lg shadow-md">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-blue-100 text-sm">Läsnäolo</p>
-                        <p className="text-3xl font-bold mt-1">95%</p>
-                        <p className="text-blue-100 text-sm mt-1">Tällä viikolla</p>
+                        <p className="text-white/90 text-sm">Kurssit</p>
+                        <p className="text-3xl font-bold mt-1">{enrollments.length}</p>
+                        <p className="text-white/90 text-sm mt-1">Ilmoittautunut</p>
                       </div>
-                      <CheckCircle className="w-12 h-12 text-blue-200" />
+                      <BookOpen className="w-12 h-12 text-white/80" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+                <Card className="bg-white border border-[#dddddd] rounded-lg shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-purple-100 text-sm">Tehtävät</p>
-                        <p className="text-3xl font-bold mt-1">12/15</p>
-                        <p className="text-purple-100 text-sm mt-1">Palautettu</p>
+                        <p className="text-gray-600 text-sm">Keskiarvo</p>
+                        <p className="text-3xl font-bold mt-1 text-[#003d82]">8.5</p>
+                        <p className="text-gray-600 text-sm mt-1">Tällä jaksolla</p>
                       </div>
-                      <FileText className="w-12 h-12 text-purple-200" />
+                      <Award className="w-12 h-12 text-[#003d82]/20" />
                     </div>
                   </CardContent>
                 </Card>
