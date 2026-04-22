@@ -31,6 +31,9 @@ export default function Wilma() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
+  const [returnPath, setReturnPath] = useState('');
 
   // Mock data for demo
   const mockSchedule = [
@@ -124,6 +127,20 @@ export default function Wilma() {
   ];
 
   useEffect(() => {
+    // Check for session expiration in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const invalidSession = urlParams.get('invalidsession');
+    const returnPathParam = urlParams.get('returnpath');
+    
+    if (invalidSession) {
+      setSessionExpiredMessage(language === 'fi' 
+        ? 'Istuntosi on vanhentunut. Kirjaudu uudelleen sisään.' 
+        : 'Your session has expired. Please log in again.');
+      if (returnPathParam) {
+        setReturnPath(returnPathParam);
+      }
+    }
+    
     const storedUser = localStorage.getItem('wilma_user');
     if (storedUser) {
       try {
@@ -177,10 +194,15 @@ export default function Wilma() {
   };
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
     localStorage.removeItem('wilma_user');
     setActiveSection('frontpage');
+    setShowLogoutConfirm(false);
     setLocation('/wilma');
   };
 
@@ -270,6 +292,13 @@ export default function Wilma() {
       setUsername('');
       setPassword('');
       setIsLoading(false);
+      
+      // Check if there's a return path to redirect to
+      if (returnPath) {
+        setLocation(returnPath);
+        setReturnPath('');
+        return;
+      }
       
       // Role-based routing
       if (data.role === 'admin' || data.role === 'teacher') {
@@ -424,6 +453,13 @@ export default function Wilma() {
                     <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2 animate-shake">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <span className="font-medium">{loginError}</span>
+                    </div>
+                  )}
+                  
+                  {sessionExpiredMessage && (
+                    <div className="bg-orange-50 border-2 border-orange-200 text-orange-700 px-4 py-3 rounded-lg flex items-start gap-2">
+                      <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <span className="font-medium">{sessionExpiredMessage}</span>
                     </div>
                   )}
                   
@@ -592,6 +628,54 @@ export default function Wilma() {
                     {language === 'fi' ? 'Vaihda salasana' : 'Change Password'}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Logout Confirmation Dialog */}
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md shadow-2xl border-2 border-red-500">
+              <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white">
+                <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
+                  <LogOut className="w-6 h-6" />
+                  {language === 'fi' ? 'Kirjaudu ulos' : 'Logout'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <AlertCircle className="w-10 h-10 text-red-600" />
+                    </div>
+                    <p className="text-lg font-semibold text-gray-800 mb-2">
+                      {language === 'fi' ? 'Haluatko varmasti kirjautua ulos?' : 'Are you sure you want to logout?'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {language === 'fi' 
+                        ? 'Sinun täytyy kirjautua uudelleen sisään päästäksesi takaisin.'
+                        : 'You will need to log in again to access your account.'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => setShowLogoutConfirm(false)}
+                      variant="outline"
+                      className="flex-1 h-12 text-base font-semibold"
+                    >
+                      {language === 'fi' ? 'Peruuta' : 'Cancel'}
+                    </Button>
+                    <Button
+                      onClick={confirmLogout}
+                      className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white text-base font-semibold"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {language === 'fi' ? 'Kirjaudu ulos' : 'Logout'}
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

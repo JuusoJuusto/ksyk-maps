@@ -30,14 +30,21 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
     const timeSinceLastActivity = now - req.session.lastActivity;
     
     if (timeSinceLastActivity > SESSION_TIMEOUT) {
-      // Session expired
+      // Session expired - capture current path for returnpath
+      const currentPath = req.path || '/';
+      const returnPath = currentPath.replace('/api/', ''); // Remove /api/ prefix if present
+      
       console.log('⏰ Session expired for user, last activity:', new Date(req.session.lastActivity));
+      console.log('📍 Return path:', returnPath);
+      
       req.session.destroy((err: any) => {
         if (err) console.error('Session destroy error:', err);
       });
+      
       return res.status(401).json({ 
         message: 'Session expired due to inactivity',
-        sessionExpired: true 
+        sessionExpired: true,
+        returnPath: returnPath
       });
     }
     

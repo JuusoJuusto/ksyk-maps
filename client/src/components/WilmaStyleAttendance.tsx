@@ -28,7 +28,14 @@ interface AttendanceMark {
   date: string;
   timeSlot: string;
   subject: string;
-  markType: 'present' | 'absent' | 'late' | 'sick' | 'unauthorized_absence' | 'excused';
+  markType: 'present' | 'absent' | 'late' | 'sick' | 'unauthorized_absence' | 'excused' | 
+            'unexplained_absence' | 'late_under_15' | 'late_over_15' | 'teaching_elsewhere' | 
+            'school_activity' | 'pre_approved_leave' | 'health_related' | 'school_clarified' | 
+            'other_clarified' | 'unauthorized_clarified' | 'removed' | 'absent_area' | 
+            'homework_missing' | 'good' | 'notice' | 'good_friend' | 'worked_well_together' | 
+            'great_effort' | 'considerate' | 'helped_others' | 'good_discussion' | 
+            'active_participation' | 'took_responsibility' | 'pay_attention' | 'missing_materials' | 
+            'inappropriate_behavior' | 'tet';
   status: 'pending' | 'confirmed' | 'clarified';
   notes: string;
   teacherId: string;
@@ -224,10 +231,37 @@ export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAtt
     switch (markType) {
       case 'present': return 'bg-green-100 text-green-700 border-green-300';
       case 'absent': return 'bg-red-100 text-red-700 border-red-300';
-      case 'late': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-      case 'sick': return 'bg-blue-100 text-blue-700 border-blue-300';
-      case 'unauthorized_absence': return 'bg-orange-100 text-orange-700 border-orange-300';
-      case 'excused': return 'bg-purple-100 text-purple-700 border-purple-300';
+      case 'late': 
+      case 'late_under_15':
+      case 'late_over_15': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'sick':
+      case 'health_related': return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'unauthorized_absence':
+      case 'unexplained_absence': return 'bg-orange-100 text-orange-700 border-orange-300';
+      case 'excused':
+      case 'school_clarified':
+      case 'other_clarified':
+      case 'unauthorized_clarified': return 'bg-purple-100 text-purple-700 border-purple-300';
+      case 'teaching_elsewhere':
+      case 'school_activity':
+      case 'pre_approved_leave': return 'bg-indigo-100 text-indigo-700 border-indigo-300';
+      case 'removed':
+      case 'absent_area': return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'homework_missing':
+      case 'missing_materials':
+      case 'inappropriate_behavior':
+      case 'pay_attention': return 'bg-red-50 text-red-600 border-red-200';
+      case 'good':
+      case 'notice':
+      case 'good_friend':
+      case 'worked_well_together':
+      case 'great_effort':
+      case 'considerate':
+      case 'helped_others':
+      case 'good_discussion':
+      case 'active_participation':
+      case 'took_responsibility': return 'bg-emerald-100 text-emerald-700 border-emerald-300';
+      case 'tet': return 'bg-cyan-100 text-cyan-700 border-cyan-300';
       default: return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
@@ -240,6 +274,33 @@ export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAtt
       case 'sick': return 'Sairas';
       case 'unauthorized_absence': return 'Luvaton poissaolo';
       case 'excused': return 'Selvitetty';
+      case 'unexplained_absence': return 'Selvittämätön poissaolo';
+      case 'late_under_15': return 'Myöhässä alle 15 min';
+      case 'late_over_15': return 'Myöhässä yli 15 min';
+      case 'teaching_elsewhere': return 'Opetus muualla';
+      case 'school_activity': return 'Koulun muussa toiminnassa';
+      case 'pre_approved_leave': return 'Ennalta anottu vapaa';
+      case 'health_related': return 'Terveydellisiin syihin liittyvä poissaolo';
+      case 'school_clarified': return 'Koulu selvittänyt';
+      case 'other_clarified': return 'Muu selvitetty poissaolo';
+      case 'unauthorized_clarified': return 'Luvaton poissaolo (selvitetty)';
+      case 'removed': return 'Poistettu';
+      case 'absent_area': return 'PoislAlue';
+      case 'homework_missing': return 'Kotitehtävät tekemättä';
+      case 'good': return 'Hyvä';
+      case 'notice': return 'Tiedoksi';
+      case 'good_friend': return 'Olit hyvä kaveri välitunnilla';
+      case 'worked_well_together': return 'Työskentelit hienosti yhdessä';
+      case 'great_effort': return 'Tsemppasit tänään';
+      case 'considerate': return 'Otit toiset huomioon';
+      case 'helped_others': return 'Autoit toisia oppilaita';
+      case 'good_discussion': return 'Osasit keskustella asioista';
+      case 'active_participation': return 'Osallistuit aktiivisesti';
+      case 'took_responsibility': return 'Otit vastuuta opiskelustasi';
+      case 'pay_attention': return 'Kiinnitä jatkossa huomiota';
+      case 'missing_materials': return 'Opiskeluvälineitä puuttuu';
+      case 'inappropriate_behavior': return 'Asiaton tai häiritsevä käytös';
+      case 'tet': return 'TET';
       default: return markType;
     }
   };
@@ -390,66 +451,74 @@ export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAtt
                             </div>
                           </div>
 
-                          {/* Quick Mark Buttons - Wilma Style */}
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant={currentMark === 'present' ? 'default' : 'outline'}
-                              onClick={() => handleAttendanceChange(student.studentId, 'present')}
-                              className={currentMark === 'present' ? 'bg-green-600 hover:bg-green-700' : ''}
+                          {/* Dropdown Mark Selector - Wilma Style */}
+                          <div className="flex gap-2 items-center">
+                            <select
+                              value={currentMark}
+                              onChange={(e) => handleAttendanceChange(student.studentId, e.target.value)}
+                              className={`px-4 py-2 rounded-md border-2 font-semibold text-sm min-w-[200px] ${getMarkColor(currentMark)}`}
                             >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Läsnä
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={currentMark === 'absent' ? 'default' : 'outline'}
-                              onClick={() => handleAttendanceChange(student.studentId, 'absent')}
-                              className={currentMark === 'absent' ? 'bg-red-600 hover:bg-red-700' : ''}
-                            >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Poissa
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={currentMark === 'late' ? 'default' : 'outline'}
-                              onClick={() => handleAttendanceChange(student.studentId, 'late')}
-                              className={currentMark === 'late' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-                            >
-                              <Clock className="w-4 h-4 mr-1" />
-                              Myöhässä
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={currentMark === 'sick' ? 'default' : 'outline'}
-                              onClick={() => handleAttendanceChange(student.studentId, 'sick')}
-                              className={currentMark === 'sick' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                            >
-                              Sairas
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={currentMark === 'unauthorized_absence' ? 'default' : 'outline'}
-                              onClick={() => handleAttendanceChange(student.studentId, 'unauthorized_absence')}
-                              className={currentMark === 'unauthorized_absence' ? 'bg-orange-600 hover:bg-orange-700' : ''}
-                            >
-                              <AlertTriangle className="w-4 h-4 mr-1" />
-                              Luvaton
-                            </Button>
+                              <optgroup label="Läsnäolo">
+                                <option value="present">✓ Läsnä</option>
+                                <option value="absent">✗ Poissa</option>
+                                <option value="late">⏰ Myöhässä</option>
+                                <option value="late_under_15">⏰ Myöhässä alle 15 min</option>
+                                <option value="late_over_15">⏰ Myöhässä yli 15 min</option>
+                              </optgroup>
+                              <optgroup label="Poissaolot">
+                                <option value="unexplained_absence">❓ Selvittämätön poissaolo</option>
+                                <option value="sick">🤒 Sairas</option>
+                                <option value="health_related">🏥 Terveydellisiin syihin liittyvä</option>
+                                <option value="pre_approved_leave">📝 Ennalta anottu vapaa</option>
+                                <option value="teaching_elsewhere">🏫 Opetus muualla</option>
+                                <option value="school_activity">🎯 Koulun muussa toiminnassa</option>
+                                <option value="tet">💼 TET</option>
+                              </optgroup>
+                              <optgroup label="Selvitetyt">
+                                <option value="excused">✓ Selvitetty</option>
+                                <option value="school_clarified">🏫 Koulu selvittänyt</option>
+                                <option value="other_clarified">📋 Muu selvitetty poissaolo</option>
+                                <option value="unauthorized_clarified">⚠️ Luvaton (selvitetty)</option>
+                              </optgroup>
+                              <optgroup label="Luvattomat">
+                                <option value="unauthorized_absence">🚫 Luvaton poissaolo</option>
+                                <option value="removed">❌ Poistettu</option>
+                                <option value="absent_area">📍 PoislAlue</option>
+                              </optgroup>
+                              <optgroup label="Tehtävät & Käytös">
+                                <option value="homework_missing">📚 Kotitehtävät tekemättä</option>
+                                <option value="missing_materials">📝 Opiskeluvälineitä puuttuu</option>
+                                <option value="inappropriate_behavior">⚠️ Asiaton tai häiritsevä käytös</option>
+                                <option value="pay_attention">👀 Kiinnitä jatkossa huomiota</option>
+                              </optgroup>
+                              <optgroup label="Positiiviset merkinnät">
+                                <option value="good">⭐ Hyvä</option>
+                                <option value="notice">ℹ️ Tiedoksi</option>
+                                <option value="good_friend">🤝 Olit hyvä kaveri välitunnilla</option>
+                                <option value="worked_well_together">👥 Työskentelit hienosti yhdessä</option>
+                                <option value="great_effort">💪 Tsemppasit tänään</option>
+                                <option value="considerate">❤️ Otit toiset huomioon</option>
+                                <option value="helped_others">🙋 Autoit toisia oppilaita</option>
+                                <option value="good_discussion">💬 Osasit keskustella asioista</option>
+                                <option value="active_participation">🎯 Osallistuit aktiivisesti</option>
+                                <option value="took_responsibility">📈 Otit vastuuta opiskelustasi</option>
+                              </optgroup>
+                            </select>
                           </div>
                         </div>
 
-                        {/* Notes field */}
+                        {/* Comments/Notes field - Always visible for non-present marks */}
                         {currentMark !== 'present' && (
                           <div className="mt-3 ml-12">
-                            <Input
-                              placeholder="Lisätiedot..."
+                            <Label className="text-sm font-semibold mb-1 block">Lisätiedot / Kommentit:</Label>
+                            <textarea
+                              placeholder="Kirjoita lisätietoja tai kommentteja tähän..."
                               value={notes[student.studentId] || ''}
                               onChange={(e) => setNotes(prev => ({
                                 ...prev,
                                 [student.studentId]: e.target.value
                               }))}
-                              className="text-sm"
+                              className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm min-h-[80px] focus:border-blue-500 focus:outline-none"
                             />
                           </div>
                         )}
