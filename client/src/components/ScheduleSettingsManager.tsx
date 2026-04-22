@@ -31,6 +31,15 @@ interface Break {
   order: number;
 }
 
+interface Holiday {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  type: 'vacation' | 'holiday' | 'other';
+  order: number;
+}
+
 interface SpecialSchedule {
   id: string;
   name: string;
@@ -82,6 +91,14 @@ export default function ScheduleSettingsManager() {
   // Special schedules state
   const [specialSchedules, setSpecialSchedules] = useState<SpecialSchedule[]>([]);
 
+  // Holidays state
+  const [holidays, setHolidays] = useState<Holiday[]>([
+    { id: "1", name: "Syysloma", startDate: "2026-10-19", endDate: "2026-10-23", type: "vacation", order: 1 },
+    { id: "2", name: "Joululoma", startDate: "2026-12-21", endDate: "2027-01-06", type: "vacation", order: 2 },
+    { id: "3", name: "Talviloma", startDate: "2027-02-22", endDate: "2027-02-26", type: "vacation", order: 3 },
+    { id: "4", name: "Pääsiäisloma", startDate: "2027-04-01", endDate: "2027-04-05", type: "vacation", order: 4 },
+  ]);
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -108,6 +125,7 @@ export default function ScheduleSettingsManager() {
       periods,
       terms,
       breaks,
+      holidays,
       specialSchedules
     });
   };
@@ -172,6 +190,27 @@ export default function ScheduleSettingsManager() {
     setBreaks(breaks.filter(b => b.id !== id));
   };
 
+  // Holiday handlers
+  const addHoliday = () => {
+    const newOrder = holidays.length + 1;
+    setHolidays([...holidays, {
+      id: Date.now().toString(),
+      name: `Loma ${newOrder}`,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      type: "vacation",
+      order: newOrder
+    }]);
+  };
+
+  const updateHoliday = (id: string, field: keyof Holiday, value: string | number) => {
+    setHolidays(holidays.map(h => h.id === id ? { ...h, [field]: value } : h));
+  };
+
+  const deleteHoliday = (id: string) => {
+    setHolidays(holidays.filter(h => h.id !== id));
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -195,7 +234,7 @@ export default function ScheduleSettingsManager() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="periods">
             <Clock className="w-4 h-4 mr-2" />
             Tunnit
@@ -207,6 +246,10 @@ export default function ScheduleSettingsManager() {
           <TabsTrigger value="breaks">
             <Coffee className="w-4 h-4 mr-2" />
             Tauot
+          </TabsTrigger>
+          <TabsTrigger value="holidays">
+            <Calendar className="w-4 h-4 mr-2" />
+            Lomat
           </TabsTrigger>
           <TabsTrigger value="special">
             <Bell className="w-4 h-4 mr-2" />
@@ -376,7 +419,73 @@ export default function ScheduleSettingsManager() {
           </Card>
         </TabsContent>
 
-        {/* Special Schedules Tab */}
+        {/* Holidays Tab */}
+        <TabsContent value="holidays" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Lomat ja vapaapäivät</span>
+                <Button onClick={addHoliday} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Lisää loma
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {holidays.sort((a, b) => a.order - b.order).map((holiday) => (
+                <div key={holiday.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-1 grid grid-cols-4 gap-4">
+                    <div>
+                      <Label>Loman nimi</Label>
+                      <Input
+                        value={holiday.name}
+                        onChange={(e) => updateHoliday(holiday.id, "name", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Alkupäivä</Label>
+                      <Input
+                        type="date"
+                        value={holiday.startDate}
+                        onChange={(e) => updateHoliday(holiday.id, "startDate", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Loppupäivä</Label>
+                      <Input
+                        type="date"
+                        value={holiday.endDate}
+                        onChange={(e) => updateHoliday(holiday.id, "endDate", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Tyyppi</Label>
+                      <select
+                        value={holiday.type}
+                        onChange={(e) => updateHoliday(holiday.id, "type", e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 h-10"
+                      >
+                        <option value="vacation">Loma</option>
+                        <option value="holiday">Juhlapyhä</option>
+                        <option value="other">Muu</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50"
+                    onClick={() => deleteHoliday(holiday.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Special Schedules Tab */
         <TabsContent value="special" className="space-y-4">
           <Card>
             <CardHeader>

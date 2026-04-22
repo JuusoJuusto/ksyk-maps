@@ -13,12 +13,25 @@ const db = getFirestore();
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 function sessionTimeoutMiddleware(req: any, res: any, next: any) {
-  if (req.session && req.session.lastActivity) {
+  // Skip session timeout for public routes
+  const publicRoutes = ['/api/auth/login', '/api/wilma/login', '/api/auth/logout'];
+  if (publicRoutes.some(route => req.path.startsWith(route))) {
+    return next();
+  }
+
+  if (req.session) {
+    // Initialize lastActivity if not set
+    if (!req.session.lastActivity) {
+      req.session.lastActivity = Date.now();
+      return next();
+    }
+
     const now = Date.now();
     const timeSinceLastActivity = now - req.session.lastActivity;
     
     if (timeSinceLastActivity > SESSION_TIMEOUT) {
       // Session expired
+      console.log('⏰ Session expired for user, last activity:', new Date(req.session.lastActivity));
       req.session.destroy((err: any) => {
         if (err) console.error('Session destroy error:', err);
       });
@@ -27,10 +40,8 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
         sessionExpired: true 
       });
     }
-  }
-  
-  // Update last activity time
-  if (req.session) {
+    
+    // Update last activity time
     req.session.lastActivity = Date.now();
   }
   

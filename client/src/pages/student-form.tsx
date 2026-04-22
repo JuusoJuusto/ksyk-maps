@@ -36,17 +36,6 @@ export default function StudentForm() {
   const studentId = params?.studentId;
   const isEdit = !!studentId && studentId !== 'new';
 
-  console.log('🔍 StudentForm Debug:', { 
-    match, 
-    params, 
-    matchAdd, 
-    paramsAdd, 
-    adminId, 
-    studentId, 
-    isEdit,
-    fullPath: window.location.pathname 
-  });
-
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
