@@ -9,8 +9,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
 
-// Session timeout middleware (30 minutes)
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+// Session timeout middleware (2 hours instead of 30 minutes)
+const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
 function sessionTimeoutMiddleware(req: any, res: any, next: any) {
   // Skip session timeout for public routes

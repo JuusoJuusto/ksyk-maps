@@ -786,6 +786,132 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         return res.status(500).json({ message: "Failed to change password" });
       }
     }
+
+    // Password reset request endpoint
+    if (apiPath === '/auth/forgot-password' && req.method === 'POST') {
+      const { email } = req.body;
+      
+      console.log('\n📧 ========== PASSWORD RESET REQUEST ==========');
+      console.log('Email:', email);
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      try {
+        const user = await storage.getUserByEmail(email.toLowerCase().trim());
+        
+        // Always return success to prevent email enumeration
+        if (!user) {
+          console.log('Password reset requested for non-existent email:', email);
+          return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
+        }
+        
+        // Generate reset token (valid for 1 hour)
+        const resetToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const resetExpiry = Date.now() + 3600000; // 1 hour
+        
+        // Store reset token
+        await storage.upsertUser({
+          id: user.id,
+          passwordResetToken: resetToken,
+          passwordResetExpiry: new Date(resetExpiry)
+        });
+        
+        // Send reset email
+        const resetUrl = `${process.env.APP_URL || 'https://ksyk-maps.vercel.app'}/wilma/reset-password?token=${resetToken}`;
+        
+        try {
+          const emailService = await import('../server/emailService.js');
+          await emailService.sendEmail({
+            to: email,
+            subject: 'Password Reset Request - KSYK Maps Wilma',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #003d82 0%, #0052a3 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                  <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Salasanan palautus</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                  <p style="font-size: 16px; color: #333;">Hei ${user.firstName},</p>
+                  <p style="font-size: 16px; color: #333;">Olet pyytänyt salasanan palautusta Wilma-tilillesi.</p>
+                  <p style="font-size: 16px; color: #333;">Klikkaa alla olevaa painiketta palauttaaksesi salasanasi:</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${resetUrl}" style="background: linear-gradient(135deg, #003d82 0%, #0052a3 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; display: inline-block;">
+                      Palauta salasana
+                    </a>
+                  </div>
+                  <p style="font-size: 14px; color: #666;">Tai kopioi ja liitä tämä linkki selaimeesi:</p>
+                  <p style="font-size: 12px; color: #999; word-break: break-all; background: white; padding: 10px; border-radius: 5px;">${resetUrl}</p>
+                  <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <p style="font-size: 14px; color: #666;">⏰ Tämä linkki on voimassa 1 tunnin ajan.</p>
+                    <p style="font-size: 14px; color: #666;">⚠️ Jos et pyytänyt salasanan palautusta, voit jättää tämän viestin huomiotta.</p>
+                  </div>
+                </div>
+              </div>
+            `
+          });
+          console.log('✅ Password reset email sent to:', email);
+        } catch (emailError) {
+          console.error('❌ Failed to send password reset email:', emailError);
+          return res.status(500).json({ message: "Failed to send reset email" });
+        }
+        
+        console.log('==============================================\n');
+        return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
+      } catch (error: any) {
+        console.error('❌ Password reset error:', error);
+        return res.status(500).json({ message: "Failed to process password reset request" });
+      }
+    }
+
+    // Password reset verification and update endpoint
+    if (apiPath === '/auth/reset-password' && req.method === 'POST') {
+      const { token, newPassword } = req.body;
+      
+      console.log('\n🔐 ========== PASSWORD RESET ==========');
+      console.log('Token provided:', !!token);
+      console.log('New password length:', newPassword?.length);
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      try {
+        const users = await storage.getUsers();
+        const user = users.find((u: any) => u.passwordResetToken === token);
+        
+        if (!user) {
+          console.log('❌ Invalid token');
+          return res.status(400).json({ message: "Invalid or expired reset token" });
+        }
+        
+        // Check if token is expired
+        if (user.passwordResetExpiry && new Date(user.passwordResetExpiry) < new Date()) {
+          console.log('❌ Token expired');
+          return res.status(400).json({ message: "Reset token has expired" });
+        }
+        
+        // Update password and clear reset token
+        await storage.upsertUser({
+          id: user.id,
+          password: newPassword,
+          passwordResetToken: null,
+          passwordResetExpiry: null,
+          isTemporaryPassword: false
+        });
+        
+        console.log('✅ Password reset successful for user:', user.email);
+        console.log('======================================\n');
+        return res.status(200).json({ success: true, message: "Password has been reset successfully" });
+      } catch (error: any) {
+        console.error('❌ Password reset error:', error);
+        return res.status(500).json({ message: "Failed to reset password" });
+      }
+    }
     
     // Auth user endpoint
     if (apiPath === '/auth/user' && req.method === 'GET') {
