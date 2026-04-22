@@ -53,17 +53,6 @@ export default function ScheduleSettingsManager() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("periods");
 
-  // Fetch schedule settings
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["schedule-settings"],
-    queryFn: async () => {
-      const response = await fetch("/api/schedule-settings");
-      if (!response.ok) throw new Error("Failed to fetch schedule settings");
-      return response.json();
-    }
-  });
-
-  // Periods state
   const [periods, setPeriods] = useState<Period[]>([
     { id: "1", name: "1. tunti", startTime: "08:00", endTime: "08:45", order: 1 },
     { id: "2", name: "2. tunti", startTime: "08:50", endTime: "09:35", order: 2 },
@@ -75,32 +64,27 @@ export default function ScheduleSettingsManager() {
     { id: "8", name: "8. tunti", startTime: "14:30", endTime: "15:15", order: 8 },
   ]);
 
-  // Terms state
   const [terms, setTerms] = useState<Term[]>([
     { id: "1", name: "Syyslukukausi 1. jakso", startDate: "2026-08-10", endDate: "2026-10-09", order: 1 },
     { id: "2", name: "Syyslukukausi 2. jakso", startDate: "2026-10-12", endDate: "2026-12-18", order: 2 },
-    { id: "3", name: "Kevätlukukausi 3. jakso", startDate: "2027-01-07", endDate: "2027-02-26", order: 3 },
-    { id: "4", name: "Kevätlukukausi 4. jakso", startDate: "2027-03-01", endDate: "2027-05-28", order: 4 },
+    { id: "3", name: "Kevatlukukausi 3. jakso", startDate: "2027-01-07", endDate: "2027-02-26", order: 3 },
+    { id: "4", name: "Kevatlukukausi 4. jakso", startDate: "2027-03-01", endDate: "2027-05-28", order: 4 },
   ]);
 
-  // Breaks state
   const [breaks, setBreaks] = useState<Break[]>([
-    { id: "1", name: "Välitunti 1", startTime: "09:35", endTime: "09:55", order: 1 },
+    { id: "1", name: "Valitunti 1", startTime: "09:35", endTime: "09:55", order: 1 },
     { id: "2", name: "Lounastauko", startTime: "11:30", endTime: "12:00", order: 2 },
   ]);
 
-  // Special schedules state
-  const [specialSchedules, setSpecialSchedules] = useState<SpecialSchedule[]>([]);
-
-  // Holidays state
   const [holidays, setHolidays] = useState<Holiday[]>([
     { id: "1", name: "Syysloma", startDate: "2026-10-19", endDate: "2026-10-23", type: "vacation", order: 1 },
     { id: "2", name: "Joululoma", startDate: "2026-12-21", endDate: "2027-01-06", type: "vacation", order: 2 },
     { id: "3", name: "Talviloma", startDate: "2027-02-22", endDate: "2027-02-26", type: "vacation", order: 3 },
-    { id: "4", name: "Pääsiäisloma", startDate: "2027-04-01", endDate: "2027-04-05", type: "vacation", order: 4 },
+    { id: "4", name: "Paasiäisloma", startDate: "2027-04-01", endDate: "2027-04-05", type: "vacation", order: 4 },
   ]);
 
-  // Save mutation
+  const [specialSchedules] = useState<SpecialSchedule[]>([]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await fetch("/api/schedule-settings", {
@@ -114,24 +98,17 @@ export default function ScheduleSettingsManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
-      alert("✅ Lukujärjestysasetukset tallennettu!");
+      alert("Lukujarjestysasetukset tallennettu!");
     },
     onError: (error: any) => {
-      alert(`❌ Virhe tallennuksessa: ${error.message}`);
+      alert(`Virhe tallennuksessa: ${error.message}`);
     }
   });
 
   const handleSave = () => {
-    saveMutation.mutate({
-      periods,
-      terms,
-      breaks,
-      holidays,
-      specialSchedules
-    });
+    saveMutation.mutate({ periods, terms, breaks, holidays, specialSchedules });
   };
 
-  // Period handlers
   const addPeriod = () => {
     const newOrder = periods.length + 1;
     setPeriods([...periods, {
@@ -151,7 +128,6 @@ export default function ScheduleSettingsManager() {
     setPeriods(periods.filter(p => p.id !== id));
   };
 
-  // Term handlers
   const addTerm = () => {
     const newOrder = terms.length + 1;
     setTerms([...terms, {
@@ -171,12 +147,11 @@ export default function ScheduleSettingsManager() {
     setTerms(terms.filter(t => t.id !== id));
   };
 
-  // Break handlers
   const addBreak = () => {
     const newOrder = breaks.length + 1;
     setBreaks([...breaks, {
       id: Date.now().toString(),
-      name: `Välitunti ${newOrder}`,
+      name: `Valitunti ${newOrder}`,
       startTime: "10:00",
       endTime: "10:15",
       order: newOrder
@@ -191,7 +166,6 @@ export default function ScheduleSettingsManager() {
     setBreaks(breaks.filter(b => b.id !== id));
   };
 
-  // Holiday handlers
   const addHoliday = () => {
     const newOrder = holidays.length + 1;
     setHolidays([...holidays, {
@@ -212,21 +186,12 @@ export default function ScheduleSettingsManager() {
     setHolidays(holidays.filter(h => h.id !== id));
   };
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-gray-600">Ladataan asetuksia...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Lukujärjestysasetukset</h2>
-          <p className="text-gray-600 mt-1">Määritä tuntien ajat, jaksot ja tauot</p>
+          <h2 className="text-2xl font-bold text-gray-900">Lukujarjestysasetukset</h2>
+          <p className="text-gray-600 mt-1">Maarita tuntien ajat, jaksot ja tauot</p>
         </div>
         <Button onClick={handleSave} disabled={saveMutation.isPending}>
           <Save className="w-4 h-4 mr-2" />
@@ -258,7 +223,6 @@ export default function ScheduleSettingsManager() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Periods Tab */}
         <TabsContent value="periods" className="space-y-4">
           <Card>
             <CardHeader>
@@ -266,7 +230,7 @@ export default function ScheduleSettingsManager() {
                 <span>Oppitunnit</span>
                 <Button onClick={addPeriod} size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Lisää tunti
+                  Lisaa tunti
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -276,34 +240,18 @@ export default function ScheduleSettingsManager() {
                   <div className="flex-1 grid grid-cols-3 gap-4">
                     <div>
                       <Label>Nimi</Label>
-                      <Input
-                        value={period.name}
-                        onChange={(e) => updatePeriod(period.id, "name", e.target.value)}
-                      />
+                      <Input value={period.name} onChange={(e) => updatePeriod(period.id, "name", e.target.value)} />
                     </div>
                     <div>
                       <Label>Alkaa</Label>
-                      <Input
-                        type="time"
-                        value={period.startTime}
-                        onChange={(e) => updatePeriod(period.id, "startTime", e.target.value)}
-                      />
+                      <Input type="time" value={period.startTime} onChange={(e) => updatePeriod(period.id, "startTime", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Päättyy</Label>
-                      <Input
-                        type="time"
-                        value={period.endTime}
-                        onChange={(e) => updatePeriod(period.id, "endTime", e.target.value)}
-                      />
+                      <Label>Paattyy</Label>
+                      <Input type="time" value={period.endTime} onChange={(e) => updatePeriod(period.id, "endTime", e.target.value)} />
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50"
-                    onClick={() => deletePeriod(period.id)}
-                  >
+                  <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => deletePeriod(period.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -312,7 +260,6 @@ export default function ScheduleSettingsManager() {
           </Card>
         </TabsContent>
 
-        {/* Terms Tab */}
         <TabsContent value="terms" className="space-y-4">
           <Card>
             <CardHeader>
@@ -320,7 +267,7 @@ export default function ScheduleSettingsManager() {
                 <span>Lukuvuoden jaksot</span>
                 <Button onClick={addTerm} size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Lisää jakso
+                  Lisaa jakso
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -330,34 +277,18 @@ export default function ScheduleSettingsManager() {
                   <div className="flex-1 grid grid-cols-3 gap-4">
                     <div>
                       <Label>Jakson nimi</Label>
-                      <Input
-                        value={term.name}
-                        onChange={(e) => updateTerm(term.id, "name", e.target.value)}
-                      />
+                      <Input value={term.name} onChange={(e) => updateTerm(term.id, "name", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Alkupäivä</Label>
-                      <Input
-                        type="date"
-                        value={term.startDate}
-                        onChange={(e) => updateTerm(term.id, "startDate", e.target.value)}
-                      />
+                      <Label>Alkupaiva</Label>
+                      <Input type="date" value={term.startDate} onChange={(e) => updateTerm(term.id, "startDate", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Loppupäivä</Label>
-                      <Input
-                        type="date"
-                        value={term.endDate}
-                        onChange={(e) => updateTerm(term.id, "endDate", e.target.value)}
-                      />
+                      <Label>Loppupaiva</Label>
+                      <Input type="date" value={term.endDate} onChange={(e) => updateTerm(term.id, "endDate", e.target.value)} />
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50"
-                    onClick={() => deleteTerm(term.id)}
-                  >
+                  <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => deleteTerm(term.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -366,15 +297,14 @@ export default function ScheduleSettingsManager() {
           </Card>
         </TabsContent>
 
-        {/* Breaks Tab */}
         <TabsContent value="breaks" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Välitunnit</span>
+                <span>Valitunnit</span>
                 <Button onClick={addBreak} size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Lisää tauko
+                  Lisaa tauko
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -384,34 +314,18 @@ export default function ScheduleSettingsManager() {
                   <div className="flex-1 grid grid-cols-3 gap-4">
                     <div>
                       <Label>Nimi</Label>
-                      <Input
-                        value={breakItem.name}
-                        onChange={(e) => updateBreak(breakItem.id, "name", e.target.value)}
-                      />
+                      <Input value={breakItem.name} onChange={(e) => updateBreak(breakItem.id, "name", e.target.value)} />
                     </div>
                     <div>
                       <Label>Alkaa</Label>
-                      <Input
-                        type="time"
-                        value={breakItem.startTime}
-                        onChange={(e) => updateBreak(breakItem.id, "startTime", e.target.value)}
-                      />
+                      <Input type="time" value={breakItem.startTime} onChange={(e) => updateBreak(breakItem.id, "startTime", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Päättyy</Label>
-                      <Input
-                        type="time"
-                        value={breakItem.endTime}
-                        onChange={(e) => updateBreak(breakItem.id, "endTime", e.target.value)}
-                      />
+                      <Label>Paattyy</Label>
+                      <Input type="time" value={breakItem.endTime} onChange={(e) => updateBreak(breakItem.id, "endTime", e.target.value)} />
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50"
-                    onClick={() => deleteBreak(breakItem.id)}
-                  >
+                  <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => deleteBreak(breakItem.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -420,15 +334,14 @@ export default function ScheduleSettingsManager() {
           </Card>
         </TabsContent>
 
-        {/* Holidays Tab */}
         <TabsContent value="holidays" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Lomat ja vapaapäivät</span>
+                <span>Lomat ja vapaapaivat</span>
                 <Button onClick={addHoliday} size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Lisää loma
+                  Lisaa loma
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -438,46 +351,26 @@ export default function ScheduleSettingsManager() {
                   <div className="flex-1 grid grid-cols-4 gap-4">
                     <div>
                       <Label>Loman nimi</Label>
-                      <Input
-                        value={holiday.name}
-                        onChange={(e) => updateHoliday(holiday.id, "name", e.target.value)}
-                      />
+                      <Input value={holiday.name} onChange={(e) => updateHoliday(holiday.id, "name", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Alkupäivä</Label>
-                      <Input
-                        type="date"
-                        value={holiday.startDate}
-                        onChange={(e) => updateHoliday(holiday.id, "startDate", e.target.value)}
-                      />
+                      <Label>Alkupaiva</Label>
+                      <Input type="date" value={holiday.startDate} onChange={(e) => updateHoliday(holiday.id, "startDate", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Loppupäivä</Label>
-                      <Input
-                        type="date"
-                        value={holiday.endDate}
-                        onChange={(e) => updateHoliday(holiday.id, "endDate", e.target.value)}
-                      />
+                      <Label>Loppupaiva</Label>
+                      <Input type="date" value={holiday.endDate} onChange={(e) => updateHoliday(holiday.id, "endDate", e.target.value)} />
                     </div>
                     <div>
                       <Label>Tyyppi</Label>
-                      <select
-                        value={holiday.type}
-                        onChange={(e) => updateHoliday(holiday.id, "type", e.target.value)}
-                        className="w-full border rounded-md px-3 py-2 h-10"
-                      >
+                      <select value={holiday.type} onChange={(e) => updateHoliday(holiday.id, "type", e.target.value)} className="w-full border rounded-md px-3 py-2 h-10">
                         <option value="vacation">Loma</option>
-                        <option value="holiday">Juhlapyhä</option>
+                        <option value="holiday">Juhlapyha</option>
                         <option value="other">Muu</option>
                       </select>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50"
-                    onClick={() => deleteHoliday(holiday.id)}
-                  >
+                  <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => deleteHoliday(holiday.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -486,7 +379,6 @@ export default function ScheduleSettingsManager() {
           </Card>
         </TabsContent>
 
-        {/* Special Schedules Tab */
         <TabsContent value="special" className="space-y-4">
           <Card>
             <CardHeader>
@@ -494,7 +386,7 @@ export default function ScheduleSettingsManager() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 text-center py-8">
-                Erikoisaikataulut tulossa pian! Tässä voit määrittää poikkeavat lukujärjestykset esim. juhlille tai tapahtumille.
+                Erikoisaikataulut tulossa pian
               </p>
             </CardContent>
           </Card>
