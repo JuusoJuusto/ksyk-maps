@@ -48,6 +48,7 @@ interface SpecialSchedule {
   periods: Period[];
 }
 
+// Schedule Settings Manager Component
 export default function ScheduleSettingsManager() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("periods");
