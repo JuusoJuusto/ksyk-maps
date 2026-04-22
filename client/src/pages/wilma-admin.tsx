@@ -607,12 +607,3 @@ export default function WilmaAdmin() {
     </div>
   );
 }
-
-          <TabsContent value="settings">
-            <WilmaSettingsManager />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
