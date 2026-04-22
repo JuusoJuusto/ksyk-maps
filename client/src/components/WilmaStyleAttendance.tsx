@@ -51,9 +51,13 @@ interface AbsenceNotification {
   createdAt: string;
 }
 
-export default function WilmaStyleAttendance() {
+interface WilmaStyleAttendanceProps {
+  preSelectedClass?: string;
+}
+
+export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAttendanceProps = {}) {
   const queryClient = useQueryClient();
-  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedClass, setSelectedClass] = useState(preSelectedClass || '');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('08:00-09:30');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -62,6 +66,13 @@ export default function WilmaStyleAttendance() {
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
 
   const currentUser = JSON.parse(localStorage.getItem('wilma_user') || '{}');
+
+  // Update selected class when preSelectedClass changes
+  useEffect(() => {
+    if (preSelectedClass) {
+      setSelectedClass(preSelectedClass);
+    }
+  }, [preSelectedClass]);
 
   // Fetch classes
   const { data: classes = [] } = useQuery({
