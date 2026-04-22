@@ -2221,6 +2221,258 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== COURSES/GROUPS (Kurssit/Ryhmät) ====================
+  // Get all courses
+  app.get('/api/wilma/courses', async (req, res) => {
+    try {
+      const snapshot = await db.collection('wilmaCourses').orderBy('subject').orderBy('name').get();
+      const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(courses);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/courses');
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // Get course by ID
+  app.get('/api/wilma/courses/:id', async (req, res) => {
+    try {
+      const doc = await db.collection('wilmaCourses').doc(req.params.id).get();
+      if (!doc.exists) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      res.json({ id: doc.id, ...doc.data() });
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/courses/:id', { courseId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  // Create course
+  app.post('/api/wilma/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const courseData = {
+        name: req.body.name,
+        code: req.body.code,
+        subject: req.body.subject,
+        description: req.body.description || '',
+        teacherId: req.body.teacherId,
+        teacherName: req.body.teacherName,
+        room: req.body.room || '',
+        grade: req.body.grade || '',
+        maxStudents: req.body.maxStudents || 30,
+        schedule: req.body.schedule || [], // Array of {day, startTime, endTime, room}
+        startDate: req.body.startDate,
+        endDate: req.body.endDate,
+        isActive: req.body.isActive !== false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const docRef = await db.collection('wilmaCourses').add(courseData);
+      const newCourse = { id: docRef.id, ...courseData };
+      res.status(201).json(newCourse);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/courses');
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+
+  // Update course
+  app.put('/api/wilma/courses/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const updateData = {
+        ...req.body,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await db.collection('wilmaCourses').doc(req.params.id).update(updateData);
+      const doc = await db.collection('wilmaCourses').doc(req.params.id).get();
+      res.json({ id: doc.id, ...doc.data() });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/courses/:id', { courseId: req.params.id });
+      res.status(500).json({ message: "Failed to update course" });
+    }
+  });
+
+  // Delete course
+  app.delete('/api/wilma/courses/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      // Also delete all enrollments for this course
+      const enrollmentsSnapshot = await db.collection('wilmaEnrollments')
+        .where('courseId', '==', req.params.id)
+        .get();
+      
+      const batch = db.batch();
+      enrollmentsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      
+      await db.collection('wilmaCourses').doc(req.params.id).delete();
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/courses/:id', { courseId: req.params.id });
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
+  // Get students enrolled in a course
+  app.get('/api/wilma/courses/:id/students', async (req, res) => {
+    try {
+      const enrollmentsSnapshot = await db.collection('wilmaEnrollments')
+        .where('courseId', '==', req.params.id)
+        .get();
+      
+      const studentIds = enrollmentsSnapshot.docs.map(doc => doc.data().studentId);
+      
+      if (studentIds.length === 0) {
+        return res.json([]);
+      }
+      
+      const studentsSnapshot = await db.collection('wilmaUsers')
+        .where('role', '==', 'student')
+        .get();
+      
+      const students = studentsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((s: any) => studentIds.includes(s.id));
+      
+      res.json(students);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/courses/:id/students', { courseId: req.params.id });
+      res.status(500).json({ message: "Failed to fetch course students" });
+    }
+  });
+
+  // ==================== ENROLLMENTS (Ilmoittautumiset) ====================
+  // Get all enrollments for a student
+  app.get('/api/wilma/students/:studentId/enrollments', async (req, res) => {
+    try {
+      const enrollmentsSnapshot = await db.collection('wilmaEnrollments')
+        .where('studentId', '==', req.params.studentId)
+        .get();
+      
+      const enrollments = await Promise.all(
+        enrollmentsSnapshot.docs.map(async (doc) => {
+          const enrollmentData = doc.data();
+          const courseDoc = await db.collection('wilmaCourses').doc(enrollmentData.courseId).get();
+          return {
+            id: doc.id,
+            ...enrollmentData,
+            course: courseDoc.exists ? { id: courseDoc.id, ...courseDoc.data() } : null
+          };
+        })
+      );
+      
+      res.json(enrollments);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/students/:studentId/enrollments', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch student enrollments" });
+    }
+  });
+
+  // Enroll student in course
+  app.post('/api/wilma/enrollments', isAuthenticated, async (req: any, res) => {
+    try {
+      const { studentId, courseId, studentName, courseName } = req.body;
+      
+      // Check if already enrolled
+      const existingSnapshot = await db.collection('wilmaEnrollments')
+        .where('studentId', '==', studentId)
+        .where('courseId', '==', courseId)
+        .get();
+      
+      if (!existingSnapshot.empty) {
+        return res.status(409).json({ message: "Student already enrolled in this course" });
+      }
+      
+      const enrollmentData = {
+        studentId,
+        courseId,
+        studentName,
+        courseName,
+        enrolledAt: new Date().toISOString(),
+        status: 'active'
+      };
+      
+      const docRef = await db.collection('wilmaEnrollments').add(enrollmentData);
+      const newEnrollment = { id: docRef.id, ...enrollmentData };
+      res.status(201).json(newEnrollment);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/enrollments');
+      res.status(500).json({ message: "Failed to enroll student" });
+    }
+  });
+
+  // Remove enrollment
+  app.delete('/api/wilma/enrollments/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await db.collection('wilmaEnrollments').doc(req.params.id).delete();
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/enrollments/:id', { enrollmentId: req.params.id });
+      res.status(500).json({ message: "Failed to remove enrollment" });
+    }
+  });
+
+  // Get student's individual schedule based on enrollments
+  app.get('/api/wilma/students/:studentId/schedule', async (req, res) => {
+    try {
+      // Get all enrollments for the student
+      const enrollmentsSnapshot = await db.collection('wilmaEnrollments')
+        .where('studentId', '==', req.params.studentId)
+        .where('status', '==', 'active')
+        .get();
+      
+      // Get all courses the student is enrolled in
+      const courseIds = enrollmentsSnapshot.docs.map(doc => doc.data().courseId);
+      
+      if (courseIds.length === 0) {
+        return res.json([]);
+      }
+      
+      const coursesSnapshot = await db.collection('wilmaCourses')
+        .where('isActive', '==', true)
+        .get();
+      
+      const enrolledCourses = coursesSnapshot.docs
+        .filter(doc => courseIds.includes(doc.id))
+        .map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Build schedule from courses
+      const schedule: any[] = [];
+      enrolledCourses.forEach((course: any) => {
+        if (course.schedule && Array.isArray(course.schedule)) {
+          course.schedule.forEach((slot: any) => {
+            schedule.push({
+              courseId: course.id,
+              courseName: course.name,
+              courseCode: course.code,
+              subject: course.subject,
+              teacherName: course.teacherName,
+              day: slot.day,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: slot.room || course.room
+            });
+          });
+        }
+      });
+      
+      // Sort by day and time
+      const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      schedule.sort((a, b) => {
+        const dayDiff = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+        if (dayDiff !== 0) return dayDiff;
+        return a.startTime.localeCompare(b.startTime);
+      });
+      
+      res.json(schedule);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/students/:studentId/schedule', { studentId: req.params.studentId });
+      res.status(500).json({ message: "Failed to fetch student schedule" });
+    }
+  });
+
   // Wilma Dashboard Stats
   app.get('/api/wilma/stats', async (req, res) => {
     try {
