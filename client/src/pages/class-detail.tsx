@@ -350,7 +350,7 @@ export default function ClassDetail() {
               <CardContent className="p-6">
                 <div className="text-center py-12">
                   <TrendingUp className="w-16 h-16 mx-auto mb-4 text-purple-300" />
-                  <h3 className="text-xl font-semibold mb-2">Läsnäoloseuranta tulossa pian!</h3>
+                  <h3 className="text-xl font-semibold mb-2">Läsnäolon merkintä</h3>
                   <p className="text-gray-600 mb-4">
                     Tässä näet luokan läsnäolotilastot, poissaolot ja myöhästymiset.
                   </p>

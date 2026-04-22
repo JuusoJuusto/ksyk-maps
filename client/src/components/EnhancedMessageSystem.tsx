@@ -52,6 +52,7 @@ export default function EnhancedMessageSystem() {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+  const [recipientRoleFilter, setRecipientRoleFilter] = useState<'all' | 'student' | 'teacher' | 'parent'>('all');
   
   const [composeData, setComposeData] = useState({
     toUserId: '',
@@ -294,18 +295,34 @@ export default function EnhancedMessageSystem() {
 
         <Card className="border-2 border-teal-200">
           <CardContent className="p-6 space-y-4">
-            <div>
-              <EnhancedUserSelector
-                users={users}
-                value={composeData.toUserId}
-                onChange={(value) => setComposeData({ ...composeData, toUserId: value })}
-                label="Vastaanottaja"
-                placeholder="Valitse vastaanottaja..."
-                required={true}
-                disabled={!!replyingTo}
-                filterRole="all"
-                showDetails={true}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-3">
+                <EnhancedUserSelector
+                  users={users}
+                  value={composeData.toUserId}
+                  onChange={(value) => setComposeData({ ...composeData, toUserId: value })}
+                  label="Vastaanottaja"
+                  placeholder="Valitse vastaanottaja..."
+                  required={true}
+                  disabled={!!replyingTo}
+                  filterRole={recipientRoleFilter}
+                  showDetails={true}
+                />
+              </div>
+              <div>
+                <Label>Suodata roolin mukaan</Label>
+                <select
+                  value={recipientRoleFilter}
+                  onChange={(e) => setRecipientRoleFilter(e.target.value as any)}
+                  className="mt-1 w-full px-3 py-2 border rounded-md"
+                  disabled={!!replyingTo}
+                >
+                  <option value="all">Kaikki</option>
+                  <option value="student">Opiskelijat</option>
+                  <option value="teacher">Opettajat</option>
+                  <option value="parent">Huoltajat</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -358,7 +375,7 @@ export default function EnhancedMessageSystem() {
                     onChange={(e) => setComposeData({ ...composeData, recipientsVisible: e.target.checked })}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Vastaanottajat näkyvät</span>
+                  <span className="text-sm">Vastaanottajat näkevät toisensa</span>
                 </label>
               </div>
             </div>
