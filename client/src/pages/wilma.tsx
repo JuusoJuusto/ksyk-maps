@@ -458,7 +458,7 @@ export default function Wilma() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setShowForgotPassword(true)}
+                      onClick={() => setLocation('/wilma/forgot-password')}
                       className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                     >
                       {language === 'fi' ? 'Unohditko salasanan?' : 'Forgot password?'}

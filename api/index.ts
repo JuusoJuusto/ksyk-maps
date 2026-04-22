@@ -1298,6 +1298,30 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           return res.status(500).json({ message: "Failed to fetch Wilma users" });
         }
       }
+
+      // GET /wilma/users/:id - Get single Wilma user by ID
+      const getUserMatch = apiPath.match(/^\/wilma\/users\/([^\/\?]+)$/);
+      if (getUserMatch && req.method === 'GET') {
+        const id = getUserMatch[1];
+        console.log('🔵 GET /api/wilma/users/' + id);
+        
+        try {
+          const wilmaUser = await storage.getWilmaUser(id);
+          
+          if (!wilmaUser) {
+            console.log('❌ User not found:', id);
+            return res.status(404).json({ message: "User not found" });
+          }
+          
+          console.log('✅ User found:', wilmaUser.id);
+          // Remove password from response
+          const { password: _, ...userResponse } = wilmaUser;
+          return res.status(200).json(userResponse);
+        } catch (error: any) {
+          console.error('❌ Error fetching Wilma user:', error);
+          return res.status(500).json({ message: "Failed to fetch user" });
+        }
+      }
       
       // POST /wilma/login - Wilma user login
       if (apiPath === '/wilma/login' && req.method === 'POST') {
