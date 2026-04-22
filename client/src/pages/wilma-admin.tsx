@@ -493,7 +493,7 @@ export default function WilmaAdmin() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Card className="border-2 border-cyan-200 shadow-lg">
+            <Card className="border-2 border-cyan-200 shadow-lg rounded-lg">
               <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-cyan-600" />
@@ -509,6 +509,7 @@ export default function WilmaAdmin() {
                         <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
                         <p className="text-sm font-medium text-gray-700">Suoritustrendit</p>
                         <p className="text-2xl font-bold text-blue-600 mt-1">+12%</p>
+                        <p className="text-xs text-gray-600 mt-1">vs edellinen lukukausi</p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
@@ -516,6 +517,7 @@ export default function WilmaAdmin() {
                         <UserCheck className="w-8 h-8 text-green-600 mb-2" />
                         <p className="text-sm font-medium text-gray-700">Läsnäoloprosentti</p>
                         <p className="text-2xl font-bold text-green-600 mt-1">94.5%</p>
+                        <p className="text-xs text-gray-600 mt-1">Tässä kuussa</p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
@@ -523,76 +525,49 @@ export default function WilmaAdmin() {
                         <Award className="w-8 h-8 text-purple-600 mb-2" />
                         <p className="text-sm font-medium text-gray-700">Keskiarvo</p>
                         <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
+                        <p className="text-xs text-gray-600 mt-1">Asteikolla 4-10</p>
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                        <CardContent className="p-4">
-                          <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Suoritustrendit</p>
-                          <p className="text-2xl font-bold text-blue-600 mt-1">+12%</p>
-                          <p className="text-xs text-gray-600 mt-1">vs edellinen lukukausi</p>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                        <CardContent className="p-4">
-                          <UserCheck className="w-8 h-8 text-green-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Läsnäoloprosentti</p>
-                          <p className="text-2xl font-bold text-green-600 mt-1">94.5%</p>
-                          <p className="text-xs text-gray-600 mt-1">Tässä kuussa</p>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                        <CardContent className="p-4">
-                          <Award className="w-8 h-8 text-purple-600 mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Keskiarvo</p>
-                          <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
-                          <p className="text-xs text-gray-600 mt-1">Asteikolla 4-10</p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-cyan-600" />
-                        Pikatilastot
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                          <p className="text-2xl font-bold text-cyan-600">156</p>
-                          <p className="text-xs text-gray-600 mt-1">Opiskelijaa yhteensä</p>
-                        </div>
-                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                          <p className="text-2xl font-bold text-cyan-600">24</p>
-                          <p className="text-xs text-gray-600 mt-1">Opettajaa</p>
-                        </div>
-                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                          <p className="text-2xl font-bold text-cyan-600">18</p>
-                          <p className="text-xs text-gray-600 mt-1">Aktiivista kurssia</p>
-                        </div>
-                        <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                          <p className="text-2xl font-bold text-cyan-600">32</p>
-                          <p className="text-xs text-gray-600 mt-1">Luokkahuonetta</p>
-                        </div>
+                  <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-cyan-600" />
+                      Pikatilastot
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                        <p className="text-2xl font-bold text-cyan-600">156</p>
+                        <p className="text-xs text-gray-600 mt-1">Opiskelijaa yhteensä</p>
+                      </div>
+                      <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                        <p className="text-2xl font-bold text-cyan-600">24</p>
+                        <p className="text-xs text-gray-600 mt-1">Opettajaa</p>
+                      </div>
+                      <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                        <p className="text-2xl font-bold text-cyan-600">18</p>
+                        <p className="text-xs text-gray-600 mt-1">Aktiivista kurssia</p>
+                      </div>
+                      <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                        <p className="text-2xl font-bold text-cyan-600">32</p>
+                        <p className="text-xs text-gray-600 mt-1">Luokkahuonetta</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Button className="bg-cyan-600 hover:bg-cyan-700 h-auto py-4">
-                        <Download className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Vie raportti</p>
-                          <p className="text-xs opacity-90">Lataa yksityiskohtainen analyysi</p>
-                        </div>
-                      </Button>
-                      <Button variant="outline" className="h-auto py-4">
-                        <Filter className="w-5 h-5 mr-2" />
-                        <div className="text-left">
-                          <p className="font-semibold">Mukautettu raportti</p>
-                          <p className="text-xs text-gray-600">Luo suodatettu näkymä</p>
-                        </div>
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button className="bg-cyan-600 hover:bg-cyan-700 h-auto py-4">
+                      <Download className="w-5 h-5 mr-2" />
+                      <div className="text-left">
+                        <p className="font-semibold">Vie raportti</p>
+                        <p className="text-xs opacity-90">Lataa yksityiskohtainen analyysi</p>
+                      </div>
+                    </Button>
+                    <Button variant="outline" className="h-auto py-4">
+                      <Filter className="w-5 h-5 mr-2" />
+                      <div className="text-left">
+                        <p className="font-semibold">Mukautettu raportti</p>
+                        <p className="text-xs text-gray-600">Luo suodatettu näkymä</p>
+                      </div>
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -603,7 +578,9 @@ export default function WilmaAdmin() {
             <WilmaSettingsManager />
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );
 }
+
