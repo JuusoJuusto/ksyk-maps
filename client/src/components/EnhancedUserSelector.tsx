@@ -33,17 +33,20 @@ export default function EnhancedUserSelector({
 
   // Filter users by role if specified
   const filteredByRole = useMemo(() => {
+    if (!users || users.length === 0) return [];
     if (filterRole === 'all') return users;
-    return users.filter(user => user.role === filterRole);
+    return users.filter(user => user?.role === filterRole);
   }, [users, filterRole]);
 
   // Filter by search term
   const filteredUsers = useMemo(() => {
+    if (!filteredByRole || filteredByRole.length === 0) return [];
     if (!searchTerm) return filteredByRole;
     
     const search = searchTerm.toLowerCase();
     return filteredByRole.filter(user => {
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+      if (!user) return false;
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
       const studentId = user.studentId?.toString().toLowerCase() || '';
       const email = user.email?.toLowerCase() || '';
       const studentClass = user.studentClass?.toLowerCase() || '';
@@ -56,10 +59,10 @@ export default function EnhancedUserSelector({
   }, [filteredByRole, searchTerm]);
 
   // Get selected user
-  const selectedUser = users.find(u => 
-    u.id === value || 
+  const selectedUser = users?.find(u => 
+    u && (u.id === value || 
     u.studentId === value || 
-    u.email === value
+    u.email === value)
   );
 
   // Get icon based on role

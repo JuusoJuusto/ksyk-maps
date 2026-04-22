@@ -1756,6 +1756,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk attendance marks
+  app.post('/api/wilma/attendance-marks/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const { marks } = req.body;
+      
+      if (!marks || !Array.isArray(marks)) {
+        return res.status(400).json({ message: "Marks array is required" });
+      }
+
+      const createdMarks = [];
+      for (const markData of marks) {
+        const mark = {
+          ...markData,
+          id: db.collection('wilmaAttendanceMarks').doc().id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await db.collection('wilmaAttendanceMarks').doc(mark.id).set(mark);
+        createdMarks.push(mark);
+      }
+
+      res.status(201).json({ success: true, count: createdMarks.length, marks: createdMarks });
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/attendance-marks/bulk');
+      res.status(500).json({ message: "Failed to create bulk attendance marks" });
+    }
+  });
+
+  // Absence notifications routes
+  app.get('/api/wilma/absence-notifications', async (req, res) => {
+    try {
+      const { date, status, studentId } = req.query;
+      
+      let query = db.collection('wilmaAbsenceNotifications');
+      
+      if (date) {
+        query = query.where('date', '==', date) as any;
+      }
+      if (status) {
+        query = query.where('status', '==', status) as any;
+      }
+      if (studentId) {
+        query = query.where('studentId', '==', studentId) as any;
+      }
+
+      const snapshot = await query.get();
+      const notifications = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      res.json(notifications);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/absence-notifications');
+      res.status(500).json({ message: "Failed to fetch absence notifications" });
+    }
+  });
+
+  app.post('/api/wilma/absence-notifications', async (req, res) => {
+    try {
+      const notificationData = req.body;
+      
+      const notification = {
+        ...notificationData,
+        id: db.collection('wilmaAbsenceNotifications').doc().id,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      await db.collection('wilmaAbsenceNotifications').doc(notification.id).set(notification);
+      res.status(201).json(notification);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/absence-notifications');
+      res.status(500).json({ message: "Failed to create absence notification" });
+    }
+  });
+
+  app.put('/api/wilma/absence-notifications/:id/confirm', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { status, markType } = req.body;
+
+      // Update notification status
+      await db.collection('wilmaAbsenceNotifications').doc(id).update({
+        status,
+        confirmedAt: new Date().toISOString(),
+        confirmedBy: req.user?.claims?.email || 'teacher'
+      });
+
+      // If confirmed, create attendance mark
+      if (status === 'confirmed') {
+        const notificationDoc = await db.collection('wilmaAbsenceNotifications').doc(id).get();
+        const notification = notificationDoc.data();
+
+        if (notification) {
+          const mark = {
+            id: db.collection('wilmaAttendanceMarks').doc().id,
+            studentId: notification.studentId,
+            studentName: notification.studentName,
+            date: notification.date,
+            timeSlot: '08:00-09:30',
+            subject: 'Poissaolo',
+            markType: markType || 'sick',
+            status: 'confirmed',
+            notes: `Huoltajan ilmoitus: ${notification.reason}`,
+            teacherId: req.user?.claims?.sub || 'system',
+            teacherName: req.user?.claims?.email || 'System',
+            parentNotified: true,
+            createdAt: new Date().toISOString()
+          };
+
+          await db.collection('wilmaAttendanceMarks').doc(mark.id).set(mark);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/absence-notifications/:id/confirm');
+      res.status(500).json({ message: "Failed to confirm absence notification" });
+    }
+  });
+
   // Wilma Classes routes (Complete CRUD)
   app.get('/api/wilma/classes', async (req, res) => {
     try {

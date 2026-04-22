@@ -1,0 +1,679 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import EnhancedClassSelector from '@/components/EnhancedClassSelector';
+import { 
+  CheckCircle, XCircle, Clock, AlertTriangle, FileText, 
+  Calendar, User, Filter, Save, Bell, MessageSquare, Eye
+} from 'lucide-react';
+
+interface Student {
+  id: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  studentClass: string;
+  parent1Email?: string;
+  parent2Email?: string;
+}
+
+interface AttendanceMark {
+  id: string;
+  studentId: string;
+  studentName: string;
+  date: string;
+  timeSlot: string;
+  subject: string;
+  markType: 'present' | 'absent' | 'late' | 'sick' | 'unauthorized_absence' | 'excused';
+  status: 'pending' | 'confirmed' | 'clarified';
+  notes: string;
+  teacherId: string;
+  teacherName: string;
+  parentNotified: boolean;
+  parentNote?: string;
+  clarificationNote?: string;
+  createdAt: string;
+}
+
+interface AbsenceNotification {
+  id: string;
+  studentId: string;
+  studentName: string;
+  date: string;
+  reason: string;
+  parentName: string;
+  parentEmail: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  createdAt: string;
+}
+
+export default function WilmaStyleAttendance() {
+  const queryClient = useQueryClient();
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('08:00-09:30');
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [viewMode, setViewMode] = useState<'roster' | 'marks' | 'notifications'>('roster');
+  const [attendanceData, setAttendanceData] = useState<{ [key: string]: string }>({});
+  const [notes, setNotes] = useState<{ [key: string]: string }>({});
+
+  const currentUser = JSON.parse(localStorage.getItem('wilma_user') || '{}');
+
+  // Fetch classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ['wilma-classes'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/classes');
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
+  // Fetch students for selected class
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
+    queryKey: ['class-students', selectedClass],
+    queryFn: async () => {
+      if (!selectedClass) return [];
+      const response = await fetch(`/api/wilma/users?role=student`);
+      if (!response.ok) return [];
+      const allStudents = await response.json();
+      return allStudents.filter((s: Student) => s.studentClass === selectedClass);
+    },
+    enabled: !!selectedClass
+  });
+
+  // Fetch existing attendance marks
+  const { data: existingMarks = [] } = useQuery({
+    queryKey: ['attendance-marks', selectedDate, selectedClass],
+    queryFn: async () => {
+      const params = new URLSearchParams({ date: selectedDate });
+      const response = await fetch(`/api/wilma/attendance-marks?${params}`);
+      if (!response.ok) return [];
+      const marks = await response.json();
+      return marks.filter((m: AttendanceMark) => 
+        students.some((s: Student) => s.studentId === m.studentId)
+      );
+    },
+    enabled: !!selectedClass && students.length > 0
+  });
+
+  // Fetch absence notifications
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['absence-notifications', selectedDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/absence-notifications?date=${selectedDate}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
+  // Save attendance mutation
+  const saveAttendanceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/wilma/attendance-marks/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to save attendance');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance-marks'] });
+      alert('✅ Läsnäolot tallennettu!');
+      setAttendanceData({});
+      setNotes({});
+    },
+    onError: () => {
+      alert('❌ Tallennus epäonnistui');
+    }
+  });
+
+  // Confirm notification mutation
+  const confirmNotificationMutation = useMutation({
+    mutationFn: async ({ id, status, markType }: { id: string; status: string; markType: string }) => {
+      const response = await fetch(`/api/wilma/absence-notifications/${id}/confirm`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, markType }),
+      });
+      if (!response.ok) throw new Error('Failed to confirm notification');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['absence-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-marks'] });
+      alert('✅ Ilmoitus käsitelty!');
+    }
+  });
+
+  // Update mark mutation
+  const updateMarkMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await fetch(`/api/wilma/attendance-marks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to update mark');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance-marks'] });
+      alert('✅ Merkintä päivitetty!');
+    }
+  });
+
+  // Initialize attendance data from existing marks
+  useEffect(() => {
+    const data: { [key: string]: string } = {};
+    existingMarks.forEach((mark: AttendanceMark) => {
+      data[mark.studentId] = mark.markType;
+    });
+    setAttendanceData(data);
+  }, [existingMarks]);
+
+  const handleAttendanceChange = (studentId: string, markType: string) => {
+    setAttendanceData(prev => ({
+      ...prev,
+      [studentId]: markType
+    }));
+  };
+
+  const handleSaveAttendance = () => {
+    if (!selectedClass || !selectedSubject) {
+      alert('Valitse luokka ja aine');
+      return;
+    }
+
+    const marks = Object.entries(attendanceData).map(([studentId, markType]) => {
+      const student = students.find((s: Student) => s.studentId === studentId);
+      return {
+        studentId,
+        studentName: student ? `${student.firstName} ${student.lastName}` : '',
+        date: selectedDate,
+        timeSlot: selectedTimeSlot,
+        subject: selectedSubject,
+        markType,
+        notes: notes[studentId] || '',
+        teacherId: currentUser.id,
+        teacherName: `${currentUser.firstName} ${currentUser.lastName}`,
+        status: markType === 'unauthorized_absence' ? 'pending' : 'confirmed'
+      };
+    });
+
+    saveAttendanceMutation.mutate({ marks });
+  };
+
+  const getMarkColor = (markType: string) => {
+    switch (markType) {
+      case 'present': return 'bg-green-100 text-green-700 border-green-300';
+      case 'absent': return 'bg-red-100 text-red-700 border-red-300';
+      case 'late': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'sick': return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'unauthorized_absence': return 'bg-orange-100 text-orange-700 border-orange-300';
+      case 'excused': return 'bg-purple-100 text-purple-700 border-purple-300';
+      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
+  const getMarkLabel = (markType: string) => {
+    switch (markType) {
+      case 'present': return 'Läsnä';
+      case 'absent': return 'Poissa';
+      case 'late': return 'Myöhässä';
+      case 'sick': return 'Sairas';
+      case 'unauthorized_absence': return 'Luvaton poissaolo';
+      case 'excused': return 'Selvitetty';
+      default: return markType;
+    }
+  };
+
+  // Roster View - Wilma Style
+  if (viewMode === 'roster') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <CheckCircle className="w-6 h-6 text-blue-600" />
+            Läsnäolon merkintä
+          </h2>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'roster' ? 'default' : 'outline'}
+              onClick={() => setViewMode('roster')}
+              size="sm"
+            >
+              Nimilista
+            </Button>
+            <Button
+              variant={viewMode === 'marks' ? 'default' : 'outline'}
+              onClick={() => setViewMode('marks')}
+              size="sm"
+            >
+              Merkinnät
+            </Button>
+            <Button
+              variant={viewMode === 'notifications' ? 'default' : 'outline'}
+              onClick={() => setViewMode('notifications')}
+              size="sm"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Ilmoitukset ({notifications.filter((n: any) => n.status === 'pending').length})
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <Card className="border-2 border-blue-200">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label>Luokka *</Label>
+                <EnhancedClassSelector
+                  classes={classes}
+                  value={selectedClass}
+                  onChange={setSelectedClass}
+                  placeholder="Valitse luokka..."
+                  required={true}
+                  showDetails={false}
+                  viewMode="dropdown"
+                />
+              </div>
+              <div>
+                <Label>Päivämäärä *</Label>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Tunti *</Label>
+                <select
+                  value={selectedTimeSlot}
+                  onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="08:00-09:30">1. tunti (08:00-09:30)</option>
+                  <option value="09:45-11:15">2. tunti (09:45-11:15)</option>
+                  <option value="11:30-13:00">3. tunti (11:30-13:00)</option>
+                  <option value="13:15-14:45">4. tunti (13:15-14:45)</option>
+                  <option value="15:00-16:30">5. tunti (15:00-16:30)</option>
+                </select>
+              </div>
+              <div>
+                <Label>Aine *</Label>
+                <Input
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  placeholder="esim. Matematiikka"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Student Roster */}
+        {selectedClass && (
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+              <CardTitle className="flex items-center justify-between">
+                <span>Luokan {selectedClass} nimilista</span>
+                <Badge variant="outline">{students.length} oppilasta</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {studentsLoading ? (
+                <div className="p-12 text-center">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600">Ladataan oppilaita...</p>
+                </div>
+              ) : students.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  Ei oppilaita valitussa luokassa
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {students.map((student: Student, index: number) => {
+                    const currentMark = attendanceData[student.studentId] || 'present';
+                    const hasNotification = notifications.some(
+                      (n: AbsenceNotification) => n.studentId === student.studentId && n.status === 'pending'
+                    );
+
+                    return (
+                      <div
+                        key={student.id}
+                        className={`p-4 hover:bg-gray-50 transition-colors ${
+                          currentMark !== 'present' ? 'bg-yellow-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 flex-1">
+                            <span className="text-gray-500 font-mono w-8">{index + 1}.</span>
+                            <div className="flex-1">
+                              <p className="font-semibold text-lg">
+                                {student.lastName}, {student.firstName}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                ID: {student.studentId}
+                                {hasNotification && (
+                                  <Badge className="ml-2 bg-orange-600">
+                                    <Bell className="w-3 h-3 mr-1" />
+                                    Huoltajan ilmoitus
+                                  </Badge>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Quick Mark Buttons - Wilma Style */}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={currentMark === 'present' ? 'default' : 'outline'}
+                              onClick={() => handleAttendanceChange(student.studentId, 'present')}
+                              className={currentMark === 'present' ? 'bg-green-600 hover:bg-green-700' : ''}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Läsnä
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={currentMark === 'absent' ? 'default' : 'outline'}
+                              onClick={() => handleAttendanceChange(student.studentId, 'absent')}
+                              className={currentMark === 'absent' ? 'bg-red-600 hover:bg-red-700' : ''}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Poissa
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={currentMark === 'late' ? 'default' : 'outline'}
+                              onClick={() => handleAttendanceChange(student.studentId, 'late')}
+                              className={currentMark === 'late' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                            >
+                              <Clock className="w-4 h-4 mr-1" />
+                              Myöhässä
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={currentMark === 'sick' ? 'default' : 'outline'}
+                              onClick={() => handleAttendanceChange(student.studentId, 'sick')}
+                              className={currentMark === 'sick' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                            >
+                              Sairas
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={currentMark === 'unauthorized_absence' ? 'default' : 'outline'}
+                              onClick={() => handleAttendanceChange(student.studentId, 'unauthorized_absence')}
+                              className={currentMark === 'unauthorized_absence' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-1" />
+                              Luvaton
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Notes field */}
+                        {currentMark !== 'present' && (
+                          <div className="mt-3 ml-12">
+                            <Input
+                              placeholder="Lisätiedot..."
+                              value={notes[student.studentId] || ''}
+                              onChange={(e) => setNotes(prev => ({
+                                ...prev,
+                                [student.studentId]: e.target.value
+                              }))}
+                              className="text-sm"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Save Button */}
+        {selectedClass && students.length > 0 && (
+          <div className="flex justify-end gap-3">
+            <Button
+              onClick={() => {
+                setAttendanceData({});
+                setNotes({});
+              }}
+              variant="outline"
+            >
+              Tyhjennä
+            </Button>
+            <Button
+              onClick={handleSaveAttendance}
+              disabled={saveAttendanceMutation.isPending || !selectedSubject}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="lg"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saveAttendanceMutation.isPending ? 'Tallennetaan...' : 'Tallenna läsnäolot'}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Notifications View
+  if (viewMode === 'notifications') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Bell className="w-6 h-6 text-orange-600" />
+            Poissaoloilmoitukset
+          </h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setViewMode('roster')}
+              size="sm"
+            >
+              Takaisin nimilistaan
+            </Button>
+          </div>
+        </div>
+
+        <Card className="border-2 border-orange-200">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+            <CardTitle>Huoltajien ilmoitukset</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {notifications.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Bell className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p>Ei uusia ilmoituksia</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {notifications.map((notification: AbsenceNotification) => (
+                  <Card key={notification.id} className="border-2 border-orange-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="w-5 h-5 text-orange-600" />
+                            <p className="font-bold text-lg">{notification.studentName}</p>
+                            <Badge className={
+                              notification.status === 'pending' ? 'bg-orange-600' :
+                              notification.status === 'confirmed' ? 'bg-green-600' :
+                              'bg-red-600'
+                            }>
+                              {notification.status === 'pending' ? 'Odottaa' :
+                               notification.status === 'confirmed' ? 'Hyväksytty' :
+                               'Hylätty'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            {notification.date}
+                          </p>
+                          <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                            <p className="text-sm font-semibold mb-1">Syy:</p>
+                            <p className="text-sm">{notification.reason}</p>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Ilmoittaja: {notification.parentName} ({notification.parentEmail})
+                          </p>
+                        </div>
+
+                        {notification.status === 'pending' && (
+                          <div className="flex flex-col gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              onClick={() => confirmNotificationMutation.mutate({
+                                id: notification.id,
+                                status: 'confirmed',
+                                markType: 'sick'
+                              })}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Hyväksy (Sairas)
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => confirmNotificationMutation.mutate({
+                                id: notification.id,
+                                status: 'confirmed',
+                                markType: 'excused'
+                              })}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Hyväksy (Selvitetty)
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => confirmNotificationMutation.mutate({
+                                id: notification.id,
+                                status: 'rejected',
+                                markType: 'unauthorized_absence'
+                              })}
+                              className="text-red-600"
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Hylkää
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Marks View - Show all marks
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <FileText className="w-6 h-6 text-blue-600" />
+          Läsnäolomerkinnät
+        </h2>
+        <Button
+          variant="outline"
+          onClick={() => setViewMode('roster')}
+          size="sm"
+        >
+          Takaisin nimilistaan
+        </Button>
+      </div>
+
+      <Card className="border-2 border-blue-200">
+        <CardContent className="p-6">
+          {existingMarks.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <p>Ei merkintöjä valitulle päivälle</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {existingMarks.map((mark: AttendanceMark) => (
+                <Card key={mark.id} className={`border-2 ${getMarkColor(mark.markType)}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-lg">{mark.studentName}</p>
+                        <p className="text-sm text-gray-600">
+                          {mark.subject} • {mark.timeSlot}
+                        </p>
+                        <Badge className={`mt-2 ${getMarkColor(mark.markType)}`}>
+                          {getMarkLabel(mark.markType)}
+                        </Badge>
+                        {mark.notes && (
+                          <p className="text-sm mt-2 italic">"{mark.notes}"</p>
+                        )}
+                        {mark.status === 'pending' && (
+                          <Badge className="mt-2 bg-orange-600">
+                            Odottaa selvitystä
+                          </Badge>
+                        )}
+                      </div>
+                      {mark.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => updateMarkMutation.mutate({
+                              id: mark.id,
+                              data: { ...mark, markType: 'sick', status: 'clarified' }
+                            })}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Sairas
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => updateMarkMutation.mutate({
+                              id: mark.id,
+                              data: { ...mark, markType: 'late', status: 'clarified' }
+                            })}
+                            className="bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            Myöhässä
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => updateMarkMutation.mutate({
+                              id: mark.id,
+                              data: { ...mark, markType: 'excused', status: 'clarified' }
+                            })}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            Selvitetty
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
