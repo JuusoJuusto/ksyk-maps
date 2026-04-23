@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon, Lock, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Users, GraduationCap, UserCheck, Baby, Briefcase, Heart, Shield, Stethoscope, UserCog, Brain, BookOpen, Wrench, Coffee, Laptop, FileText, HardHat, Utensils, ClipboardList, Backpack, Settings as SettingsIcon, Lock, Eye, EyeOff, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WILMA_ROLES } from "@shared/wilmaConfig";
 
@@ -56,6 +56,7 @@ const ROLE_ICONS: Record<string, any> = {
   cafeteria_staff: Utensils,
   substitute_teacher: ClipboardList,
   student_teacher: Backpack,
+  'nuoriso-ohjaaja': Target,
   custom: SettingsIcon,
 };
 
