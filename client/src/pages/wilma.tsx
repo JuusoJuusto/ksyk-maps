@@ -385,7 +385,18 @@ export default function Wilma() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#003d82] via-[#0052a3] to-[#0066cc] flex items-center justify-center p-4">
+      <div 
+        className="min-h-screen bg-gradient-to-br from-[#003d82] via-[#0052a3] to-[#0066cc] flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: 'url(/wilma-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundBlendMode: 'overlay',
+        }}
+      >
+        {/* Overlay for better readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#003d82]/90 via-[#0052a3]/85 to-[#0066cc]/90"></div>
+        
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{

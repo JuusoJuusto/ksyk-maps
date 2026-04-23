@@ -1,132 +1,93 @@
 import { useState, useEffect } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import WilmaHomeTab from "@/components/WilmaHomeTab";
 import WilmaTimetable from "@/components/WilmaTimetable";
 import WilmaGrades from "@/components/WilmaGrades";
-import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
 import WilmaHomework from "@/components/WilmaHomework";
+import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import { 
-  LogOut, Home, Calendar, Award, UserCheck, FileText, MessageSquare, 
-  Menu, Bell, Search, GraduationCap
+  LogOut, Home, Calendar, Award, FileText, 
+  MessageSquare, UserCheck, BookOpen, Settings, Menu, User
 } from "lucide-react";
 
 export default function WilmaStudent() {
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute('/wilma/:studentId/:section?');
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [activeSection, setActiveSection] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState(params?.section || 'home');
 
   useEffect(() => {
-    if (params?.section) {
-      setActiveSection(params.section);
-    }
-  }, [params?.section]);
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem('wilma_user');
-      
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          
-          if (user.role === 'student') {
-            setCurrentUser(user);
-            
-            if (!params?.studentId) {
-              const returnPath = params?.section || 'home';
-              setLocation(`/wilma/${user.studentId}/${returnPath}`);
-            }
-          } else {
-            // Redirect non-students
-            if (user.role === 'admin' || user.role === 'teacher') {
-              setLocation('/wilma-admin');
-            } else {
-              setLocation('/wilma');
-            }
-          }
-        } catch (err) {
-          console.error('Auth check failed:', err);
+    // Check authentication
+    const storedUser = localStorage.getItem('wilma_user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user.role === 'student') {
+          setCurrentUser(user);
+          setIsLoading(false);
+        } else {
           setLocation('/wilma');
         }
-      } else {
+      } catch (err) {
         setLocation('/wilma');
       }
-      setIsLoading(false);
-    };
-
-    if (isLoading) {
-      checkAuth();
-    }
-  }, [params?.studentId]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('wilma_user');
+    } else {
       setLocation('/wilma');
     }
+  }, [setLocation]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('wilma_user');
+    setLocation('/wilma');
   };
-
-  const navigateTo = (section: string) => {
-    setActiveSection(section);
-    setLocation(`/wilma/${currentUser.studentId}/${section}`);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Ladataan Wilmaa...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentUser) {
-    return null;
-  }
 
   const navigationItems = [
     { id: 'home', label: 'Etusivu', icon: Home },
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'grades', label: 'Arvosanat', icon: Award },
-    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
+    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
+    { id: 'courses', label: 'Kurssit', icon: BookOpen },
+    { id: 'settings', label: 'Asetukset', icon: Settings },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Ladataan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) return null;
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden">
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col ${
+      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
-      } md:${sidebarOpen ? 'w-64' : 'w-20'}`}>
+      }`}>
         {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-[#003d82]">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-white rounded flex items-center justify-center">
-                  <GraduationCap className="w-4 h-4 text-[#003d82]" />
+                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                  <User className="w-4 h-4 text-[#003d82]" />
                 </div>
-                <span className="font-bold text-base text-white">Wilma</span>
+                <span className="font-bold text-base text-white tracking-wide">Wilma</span>
               </div>
               <Button
                 onClick={() => setSidebarOpen(false)}
-                className="p-1.5 hover:bg-white/10 rounded"
+                className="p-1.5 hover:bg-white/20 rounded-md transition-all duration-200"
                 variant="ghost"
                 size="sm"
               >
@@ -136,7 +97,7 @@ export default function WilmaStudent() {
           ) : (
             <Button
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 hover:bg-white/10 rounded mx-auto"
+              className="p-1.5 hover:bg-white/20 rounded-md mx-auto transition-all duration-200"
               variant="ghost"
               size="sm"
             >
@@ -146,22 +107,24 @@ export default function WilmaStudent() {
         </div>
 
         {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 ${!sidebarOpen && 'hidden'}`}>
+        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 ${!sidebarOpen && 'hidden'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-[#003d82] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-900 truncate">
                 {currentUser.firstName} {currentUser.lastName}
               </p>
-              <p className="text-xs text-gray-500 truncate">Opiskelija</p>
+              <p className="text-xs text-gray-500 truncate">
+                Opiskelija • {currentUser.studentClass || 'Ei luokkaa'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Navigation - Scrollable */}
-        <nav className="flex-1 overflow-y-auto py-2">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-2 px-2 scrollbar-thin">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -169,16 +132,21 @@ export default function WilmaStudent() {
             return (
               <button
                 key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors relative ${
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mb-1 group ${
                   isActive
-                    ? 'bg-[#e8f0fe] text-[#003d82] border-r-2 border-[#003d82]'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#003d82]'
-                } ${!sidebarOpen && 'justify-center px-2'}`}
+                    ? 'bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-md scale-105'
+                    : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
+                }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#003d82]'}`} />
                 {sidebarOpen && (
-                  <span className="flex-1 text-left truncate">{item.label}</span>
+                  <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                    {item.label}
+                  </span>
+                )}
+                {isActive && sidebarOpen && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
                 )}
               </button>
             );
@@ -189,48 +157,52 @@ export default function WilmaStudent() {
         <div className="p-3 border-t border-[#dddddd] flex-shrink-0">
           <Button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors ${
-              !sidebarOpen && 'justify-center px-2'
+            variant="outline"
+            className={`w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all ${
+              !sidebarOpen && 'justify-center'
             }`}
-            variant="ghost"
           >
             <LogOut className="w-4 h-4" />
-            {sidebarOpen && <span>Kirjaudu ulos</span>}
+            {sidebarOpen && <span className="text-sm font-medium">Kirjaudu ulos</span>}
           </Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'ml-64' : 'ml-16'} md:${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        {/* Top Bar */}
-        <header className="h-14 bg-[#003d82] border-b border-[#002d5f] flex items-center justify-between px-4 md:px-6">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base md:text-lg font-bold text-white truncate">
-              {navigationItems.find(item => item.id === activeSection)?.label || 'Wilma'}
-            </h1>
-            <p className="text-xs text-white/70 hidden md:block truncate">
-              {new Date().toLocaleDateString('fi-FI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="relative hover:bg-white/10 p-2">
-              <Bell className="w-4 h-4 text-white" />
-            </Button>
-            <Button variant="ghost" size="sm" className="hover:bg-white/10 p-2 hidden md:flex">
-              <Search className="w-4 h-4 text-white" />
-            </Button>
-          </div>
-        </header>
-
-        {/* Content Area - Responsive Padding */}
-        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden">
+      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {activeSection === 'home' && <WilmaHomeTab userRole="student" userRoles={['student']} />}
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'grades' && <WilmaGrades />}
-          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
           {activeSection === 'homework' && <WilmaHomework />}
+          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'courses' && (
+            <Card className="shadow-lg border-[#dddddd]">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
+                <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                  <BookOpen className="w-6 h-6" />
+                  Kurssit
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-gray-600">Kurssit-osio tulossa pian...</p>
+              </CardContent>
+            </Card>
+          )}
+          {activeSection === 'settings' && (
+            <Card className="shadow-lg border-[#dddddd]">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
+                <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                  <Settings className="w-6 h-6" />
+                  Asetukset
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-gray-600">Asetukset-osio tulossa pian...</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>
