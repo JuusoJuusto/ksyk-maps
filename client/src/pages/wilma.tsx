@@ -421,30 +421,34 @@ export default function Wilma() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Optional branding on background */}
-          <div className="absolute bottom-8 left-8 text-white z-10 drop-shadow-lg">
-            <h1 className="text-5xl font-bold mb-2">Wilma</h1>
-            <p className="text-xl">Oppilashallintojärjestelmä</p>
+          {/* Branding overlay with better visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+          <div className="absolute bottom-8 left-8 text-white z-10">
+            <h1 className="text-6xl font-bold mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Wilma</h1>
+            <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintojärjestelmä</p>
+            <p className="text-sm opacity-90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              © 2026 Wilma by SL Studio • Kaikki oikeudet pidätetään
+            </p>
           </div>
         </div>
 
         {/* Right Side - Login Form */}
         <div className="w-full lg:w-1/2 xl:w-1/3 bg-white flex items-center justify-center p-6">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-sm">
             {/* Logo and Title */}
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-lg mx-auto mb-4 flex items-center justify-center shadow-md">
-                <Lock className="w-8 h-8 text-white" />
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-lg mx-auto mb-3 flex items-center justify-center shadow-md">
+                <Lock className="w-7 h-7 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-[#003d82] mb-1">{tr.welcome}</h1>
+              <h1 className="text-xl font-bold text-[#003d82] mb-1">{tr.welcome}</h1>
               <p className="text-gray-600 text-sm">{tr.school}</p>
             </div>
 
             {!showForgotPassword ? (
               <>
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-3">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
                       {tr.username}
                     </label>
                     <Input 
@@ -454,12 +458,12 @@ export default function Wilma() {
                       placeholder={language === 'fi' ? 'Käyttäjätunnus' : 'Username'} 
                       required 
                       disabled={isLoading} 
-                      className="w-full h-11 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82]" 
+                      className="w-full h-10 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82]" 
                       autoComplete="username" 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
                       {tr.password}
                     </label>
                     <div className="relative">
@@ -470,7 +474,7 @@ export default function Wilma() {
                         placeholder={language === 'fi' ? 'Salasana' : 'Password'} 
                         required 
                         disabled={isLoading} 
-                        className="w-full h-11 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82] pr-10" 
+                        className="w-full h-10 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82] pr-10" 
                         autoComplete="current-password" 
                       />
                       <button
@@ -483,9 +487,9 @@ export default function Wilma() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#003d82] focus:ring-[#003d82]" />
+                      <input type="checkbox" className="w-3.5 h-3.5 rounded border-gray-300 text-[#003d82] focus:ring-[#003d82]" />
                       <span className="text-gray-600">{language === 'fi' ? 'Muista minut' : 'Remember me'}</span>
                     </label>
                     <button
@@ -498,14 +502,14 @@ export default function Wilma() {
                   </div>
 
                   {loginError && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-md flex items-start gap-2 text-sm">
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md flex items-start gap-2 text-xs">
                       <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>{loginError}</span>
                     </div>
                   )}
                   
                   {sessionExpiredMessage && (
-                    <div className="bg-orange-50 border border-orange-200 text-orange-700 px-3 py-2.5 rounded-md flex items-start gap-2 text-sm">
+                    <div className="bg-orange-50 border border-orange-200 text-orange-700 px-3 py-2 rounded-md flex items-start gap-2 text-xs">
                       <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>{sessionExpiredMessage}</span>
                     </div>
@@ -513,7 +517,7 @@ export default function Wilma() {
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-11 bg-[#003d82] hover:bg-[#0052a3] text-white font-semibold shadow-sm transition-colors" 
+                    className="w-full h-10 bg-[#003d82] hover:bg-[#0052a3] text-white font-semibold shadow-sm transition-colors" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -527,18 +531,18 @@ export default function Wilma() {
                   </Button>
                 </form>
                 
-                <div className="mt-6 space-y-4">
+                <div className="mt-5 space-y-3">
                   <div className="text-center">
                     <button 
                       onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
-                      className="text-sm text-gray-600 hover:text-[#003d82] font-medium flex items-center gap-2 mx-auto"
+                      className="text-xs text-gray-600 hover:text-[#003d82] font-medium flex items-center gap-2 mx-auto"
                     >
                       <span className="text-base">{language === 'fi' ? '🇬🇧' : '🇫🇮'}</span>
                       {language === 'fi' ? 'English' : 'Suomi'}
                     </button>
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3">
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-2.5">
                     <p className="text-xs text-blue-800 text-center">
                       <strong>{language === 'fi' ? 'Huom!' : 'Note!'}</strong> {tr.noAccount}
                     </p>
