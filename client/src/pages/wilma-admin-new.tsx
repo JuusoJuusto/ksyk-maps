@@ -39,6 +39,7 @@ export default function WilmaAdminNew() {
   }, [params?.section]);
 
   useEffect(() => {
+    // Only run auth check ONCE on initial mount
     const checkAuth = () => {
       const storedUser = localStorage.getItem('wilma_user');
       
@@ -53,7 +54,7 @@ export default function WilmaAdminNew() {
           if (hasAccess) {
             setCurrentUser(user);
             
-            // Only redirect if adminId is missing or wrong, but don't re-check auth
+            // Only redirect if adminId is missing or wrong
             if (!params?.adminId) {
               const returnPath = params?.section || 'home';
               setLocation(`/wilma-admin/${user.id}/${returnPath}`);
@@ -80,11 +81,9 @@ export default function WilmaAdminNew() {
       setIsLoading(false);
     };
 
-    // Only run auth check on initial load, not on every section change
-    if (isLoading) {
-      checkAuth();
-    }
-  }, [params?.adminId]); // Removed params?.section from dependencies
+    // CRITICAL FIX: Only run on initial mount, never again
+    checkAuth();
+  }, []); // Empty dependency array - runs ONCE on mount only
 
   const handleLogout = async () => {
     try {
@@ -150,24 +149,24 @@ export default function WilmaAdminNew() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden">
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col ${
+      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       } md:${sidebarOpen ? 'w-64' : 'w-20'}`}>
         {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-[#003d82]">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-white rounded flex items-center justify-center">
+                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
                   <GraduationCap className="w-4 h-4 text-[#003d82]" />
                 </div>
-                <span className="font-bold text-base text-white">Wilma</span>
+                <span className="font-bold text-base text-white tracking-wide">Wilma</span>
               </div>
               <Button
                 onClick={() => setSidebarOpen(false)}
-                className="p-1.5 hover:bg-white/10 rounded"
+                className="p-1.5 hover:bg-white/20 rounded-md transition-all duration-200"
                 variant="ghost"
                 size="sm"
               >
@@ -177,7 +176,7 @@ export default function WilmaAdminNew() {
           ) : (
             <Button
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 hover:bg-white/10 rounded mx-auto"
+              className="p-1.5 hover:bg-white/20 rounded-md mx-auto transition-all duration-200"
               variant="ghost"
               size="sm"
             >
@@ -187,9 +186,9 @@ export default function WilmaAdminNew() {
         </div>
 
         {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 ${!sidebarOpen && 'hidden'}`}>
+        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 ${!sidebarOpen && 'hidden'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-[#003d82] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -204,7 +203,7 @@ export default function WilmaAdminNew() {
         </div>
 
         {/* Navigation - Scrollable */}
-        <nav className="flex-1 overflow-y-auto py-2">
+        <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -213,15 +212,18 @@ export default function WilmaAdminNew() {
               <button
                 key={item.id}
                 onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors relative ${
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-all duration-200 relative group ${
                   isActive
-                    ? 'bg-[#e8f0fe] text-[#003d82] border-r-2 border-[#003d82]'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#003d82]'
+                    ? 'bg-gradient-to-r from-[#e8f0fe] to-[#d3e3fd] text-[#003d82] border-r-3 border-[#003d82] shadow-sm'
+                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 hover:text-[#003d82]'
                 } ${!sidebarOpen && 'justify-center px-2'}`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                 {sidebarOpen && (
                   <span className="flex-1 text-left truncate">{item.label}</span>
+                )}
+                {isActive && sidebarOpen && (
+                  <div className="w-1.5 h-1.5 bg-[#003d82] rounded-full animate-pulse" />
                 )}
               </button>
             );
@@ -229,16 +231,16 @@ export default function WilmaAdminNew() {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-3 border-t border-[#dddddd] flex-shrink-0">
+        <div className="p-3 border-t border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-red-50 to-pink-50">
           <Button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors ${
+            className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium text-red-600 hover:bg-red-100 hover:text-red-700 rounded-md transition-all duration-200 border border-transparent hover:border-red-200 hover:shadow-md ${
               !sidebarOpen && 'justify-center px-2'
             }`}
             variant="ghost"
           >
             <LogOut className="w-4 h-4" />
-            {sidebarOpen && <span>Kirjaudu ulos</span>}
+            {sidebarOpen && <span className="font-semibold">Kirjaudu ulos</span>}
           </Button>
         </div>
       </aside>
@@ -246,28 +248,32 @@ export default function WilmaAdminNew() {
       {/* Main Content */}
       <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'ml-64' : 'ml-16'} md:${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         {/* Top Bar */}
-        <header className="h-14 bg-[#003d82] border-b border-[#002d5f] flex items-center justify-between px-4 md:px-6">
+        <header className="h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] flex items-center justify-between px-4 md:px-6 shadow-md">
           <div className="flex-1 min-w-0">
-            <h1 className="text-base md:text-lg font-bold text-white truncate">
+            <h1 className="text-base md:text-lg font-bold text-white truncate flex items-center gap-2">
               {filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma'}
+              <span className="text-xs font-normal text-white/70 hidden md:inline">
+                • {new Date().toLocaleDateString('fi-FI', { weekday: 'short' })}
+              </span>
             </h1>
             <p className="text-xs text-white/70 hidden md:block truncate">
-              {new Date().toLocaleDateString('fi-FI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString('fi-FI', { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="relative hover:bg-white/10 p-2">
+            <Button variant="ghost" size="sm" className="relative hover:bg-white/20 p-2 rounded-md transition-all duration-200">
               <Bell className="w-4 h-4 text-white" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             </Button>
-            <Button variant="ghost" size="sm" className="hover:bg-white/10 p-2 hidden md:flex">
+            <Button variant="ghost" size="sm" className="hover:bg-white/20 p-2 rounded-md hidden md:flex transition-all duration-200">
               <Search className="w-4 h-4 text-white" />
             </Button>
           </div>
         </header>
 
         {/* Content Area - Responsive Padding */}
-        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden">
+        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {activeSection === 'home' && <WilmaHomeTab userRole={currentUser.role} userRoles={roles} />}
           {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'students' && <PeopleManager />}
@@ -284,34 +290,61 @@ export default function WilmaAdminNew() {
           {activeSection === 'journal' && <WilmaLessonJournal />}
           
           {activeSection === 'rooms' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Tilat</CardTitle>
+            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
+                <CardTitle className="text-[#003d82] flex items-center gap-2">
+                  <Building className="w-5 h-5" />
+                  Tilat
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Tilat-ominaisuus tulossa pian...</p>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Building className="w-8 h-8 text-[#003d82]" />
+                  </div>
+                  <p className="text-gray-600 font-medium">Tilat-ominaisuus tulossa pian...</p>
+                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
+                </div>
               </CardContent>
             </Card>
           )}
           
           {activeSection === 'analytics' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytiikka</CardTitle>
+            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
+                <CardTitle className="text-[#003d82] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Analytiikka
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Analytiikka-ominaisuus tulossa pian...</p>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-8 h-8 text-[#003d82]" />
+                  </div>
+                  <p className="text-gray-600 font-medium">Analytiikka-ominaisuus tulossa pian...</p>
+                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
+                </div>
               </CardContent>
             </Card>
           )}
           
           {activeSection === 'reports' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Raportit</CardTitle>
+            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-[#dddddd]">
+                <CardTitle className="text-[#003d82] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Raportit
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Raportit-ominaisuus tulossa pian...</p>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-8 h-8 text-[#003d82]" />
+                  </div>
+                  <p className="text-gray-600 font-medium">Raportit-ominaisuus tulossa pian...</p>
+                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
+                </div>
               </CardContent>
             </Card>
           )}

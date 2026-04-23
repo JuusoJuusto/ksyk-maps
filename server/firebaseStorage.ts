@@ -1896,6 +1896,664 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // ============================================
+  // WILMA COURSES OPERATIONS
+  // ============================================
+  
+  async getWilmaCourses(teacherId?: string, classId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaCourses');
+      if (teacherId) query = query.where('teacherId', '==', teacherId);
+      if (classId) query = query.where('classId', '==', classId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting Wilma courses:', error);
+      return [];
+    }
+  }
+
+  async getWilmaCourse(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaCourses').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting Wilma course:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaCourse(courseData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaCourses').doc();
+      const data = { ...courseData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating Wilma course:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaCourse(id: string, courseData: any): Promise<any> {
+    try {
+      await db.collection('wilmaCourses').doc(id).update({ ...courseData, updatedAt: new Date() });
+      return await this.getWilmaCourse(id);
+    } catch (error) {
+      console.error('Error updating Wilma course:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaCourse(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaCourses').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting Wilma course:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA LESSON JOURNAL OPERATIONS
+  // ============================================
+  
+  async getWilmaLessonJournals(courseId?: string, teacherId?: string, date?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaLessonJournal');
+      if (courseId) query = query.where('courseId', '==', courseId);
+      if (teacherId) query = query.where('teacherId', '==', teacherId);
+      if (date) query = query.where('date', '==', date);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting lesson journals:', error);
+      return [];
+    }
+  }
+
+  async getWilmaLessonJournal(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaLessonJournal').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting lesson journal:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaLessonJournal(journalData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaLessonJournal').doc();
+      const data = { ...journalData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating lesson journal:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaLessonJournal(id: string, journalData: any): Promise<any> {
+    try {
+      await db.collection('wilmaLessonJournal').doc(id).update({ ...journalData, updatedAt: new Date() });
+      return await this.getWilmaLessonJournal(id);
+    } catch (error) {
+      console.error('Error updating lesson journal:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaLessonJournal(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaLessonJournal').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting lesson journal:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA HOMEWORK EXTENDED OPERATIONS
+  // ============================================
+  
+  async getWilmaHomeworkExtended(courseId?: string, teacherId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaHomeworkExtended');
+      if (courseId) query = query.where('courseId', '==', courseId);
+      if (teacherId) query = query.where('teacherId', '==', teacherId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting homework:', error);
+      return [];
+    }
+  }
+
+  async getWilmaHomeworkExtendedById(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaHomeworkExtended').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting homework:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaHomeworkExtended(homeworkData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaHomeworkExtended').doc();
+      const data = { ...homeworkData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating homework:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaHomeworkExtended(id: string, homeworkData: any): Promise<any> {
+    try {
+      await db.collection('wilmaHomeworkExtended').doc(id).update({ ...homeworkData, updatedAt: new Date() });
+      return await this.getWilmaHomeworkExtendedById(id);
+    } catch (error) {
+      console.error('Error updating homework:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaHomeworkExtended(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaHomeworkExtended').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting homework:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA HOMEWORK SUBMISSIONS OPERATIONS
+  // ============================================
+  
+  async getWilmaHomeworkSubmissions(homeworkId?: string, studentId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaHomeworkSubmissions');
+      if (homeworkId) query = query.where('homeworkId', '==', homeworkId);
+      if (studentId) query = query.where('studentId', '==', studentId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting submissions:', error);
+      return [];
+    }
+  }
+
+  async getWilmaHomeworkSubmission(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaHomeworkSubmissions').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting submission:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaHomeworkSubmission(submissionData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaHomeworkSubmissions').doc();
+      const data = { ...submissionData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating submission:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaHomeworkSubmission(id: string, submissionData: any): Promise<any> {
+    try {
+      await db.collection('wilmaHomeworkSubmissions').doc(id).update({ ...submissionData, updatedAt: new Date() });
+      return await this.getWilmaHomeworkSubmission(id);
+    } catch (error) {
+      console.error('Error updating submission:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaHomeworkSubmission(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaHomeworkSubmissions').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA EXAMS EXTENDED OPERATIONS
+  // ============================================
+  
+  async getWilmaExamsExtended(courseId?: string, teacherId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaExamsExtended');
+      if (courseId) query = query.where('courseId', '==', courseId);
+      if (teacherId) query = query.where('teacherId', '==', teacherId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting exams:', error);
+      return [];
+    }
+  }
+
+  async getWilmaExamExtended(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaExamsExtended').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting exam:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaExamExtended(examData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaExamsExtended').doc();
+      const data = { ...examData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating exam:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaExamExtended(id: string, examData: any): Promise<any> {
+    try {
+      await db.collection('wilmaExamsExtended').doc(id).update({ ...examData, updatedAt: new Date() });
+      return await this.getWilmaExamExtended(id);
+    } catch (error) {
+      console.error('Error updating exam:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaExamExtended(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaExamsExtended').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting exam:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA EXAM RESULTS OPERATIONS
+  // ============================================
+  
+  async getWilmaExamResults(examId?: string, studentId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaExamResults');
+      if (examId) query = query.where('examId', '==', examId);
+      if (studentId) query = query.where('studentId', '==', studentId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting exam results:', error);
+      return [];
+    }
+  }
+
+  async getWilmaExamResult(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaExamResults').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting exam result:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaExamResult(resultData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaExamResults').doc();
+      const data = { ...resultData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating exam result:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaExamResult(id: string, resultData: any): Promise<any> {
+    try {
+      await db.collection('wilmaExamResults').doc(id).update({ ...resultData, updatedAt: new Date() });
+      return await this.getWilmaExamResult(id);
+    } catch (error) {
+      console.error('Error updating exam result:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaExamResult(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaExamResults').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting exam result:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA BEHAVIOR NOTES OPERATIONS
+  // ============================================
+  
+  async getWilmaBehaviorNotes(studentId?: string, teacherId?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaBehaviorNotes');
+      if (studentId) query = query.where('studentId', '==', studentId);
+      if (teacherId) query = query.where('teacherId', '==', teacherId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting behavior notes:', error);
+      return [];
+    }
+  }
+
+  async getWilmaBehaviorNote(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaBehaviorNotes').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting behavior note:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaBehaviorNote(noteData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaBehaviorNotes').doc();
+      const data = { ...noteData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating behavior note:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaBehaviorNote(id: string, noteData: any): Promise<any> {
+    try {
+      await db.collection('wilmaBehaviorNotes').doc(id).update({ ...noteData, updatedAt: new Date() });
+      return await this.getWilmaBehaviorNote(id);
+    } catch (error) {
+      console.error('Error updating behavior note:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaBehaviorNote(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaBehaviorNotes').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting behavior note:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA NOTIFICATIONS OPERATIONS
+  // ============================================
+  
+  async getWilmaNotifications(userId: string, unreadOnly?: boolean): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaNotifications').where('userId', '==', userId);
+      if (unreadOnly) query = query.where('isRead', '==', false);
+      const snapshot = await query.orderBy('createdAt', 'desc').get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      return [];
+    }
+  }
+
+  async getWilmaNotification(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaNotifications').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting notification:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaNotification(notificationData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaNotifications').doc();
+      const data = { ...notificationData, id: docRef.id, createdAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaNotification(id: string, notificationData: any): Promise<any> {
+    try {
+      await db.collection('wilmaNotifications').doc(id).update(notificationData);
+      return await this.getWilmaNotification(id);
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      throw error;
+    }
+  }
+
+  async markWilmaNotificationAsRead(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaNotifications').doc(id).update({ isRead: true, readAt: new Date() });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaNotification(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaNotifications').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA CALENDAR EVENTS OPERATIONS
+  // ============================================
+  
+  async getWilmaCalendarEvents(userId?: string, startDate?: string, endDate?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaCalendarEvents');
+      if (userId) query = query.where('userId', '==', userId);
+      if (startDate) query = query.where('startDate', '>=', startDate);
+      if (endDate) query = query.where('startDate', '<=', endDate);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting calendar events:', error);
+      return [];
+    }
+  }
+
+  async getWilmaCalendarEvent(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaCalendarEvents').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting calendar event:', error);
+      return undefined;
+    }
+  }
+
+  async createWilmaCalendarEvent(eventData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaCalendarEvents').doc();
+      const data = { ...eventData, id: docRef.id, createdAt: new Date(), updatedAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      throw error;
+    }
+  }
+
+  async updateWilmaCalendarEvent(id: string, eventData: any): Promise<any> {
+    try {
+      await db.collection('wilmaCalendarEvents').doc(id).update({ ...eventData, updatedAt: new Date() });
+      return await this.getWilmaCalendarEvent(id);
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaCalendarEvent(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaCalendarEvents').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // WILMA ANALYTICS OPERATIONS
+  // ============================================
+  
+  async createWilmaAnalytic(analyticData: any): Promise<void> {
+    try {
+      const docRef = db.collection('wilmaAnalytics').doc();
+      await docRef.set({ ...analyticData, id: docRef.id, createdAt: new Date() });
+    } catch (error) {
+      console.error('Error creating analytic:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaAnalytics(userId?: string, eventType?: string, days?: number): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaAnalytics');
+      if (userId) query = query.where('userId', '==', userId);
+      if (eventType) query = query.where('eventType', '==', eventType);
+      if (days) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        query = query.where('createdAt', '>=', cutoffDate);
+      }
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting analytics:', error);
+      return [];
+    }
+  }
+
+  async getWilmaAnalyticsSummary(days?: number): Promise<any> {
+    try {
+      const analytics = await this.getWilmaAnalytics(undefined, undefined, days);
+      return {
+        totalEvents: analytics.length,
+        eventsByType: analytics.reduce((acc: any, a: any) => {
+          acc[a.eventType] = (acc[a.eventType] || 0) + 1;
+          return acc;
+        }, {}),
+        eventsByUser: analytics.reduce((acc: any, a: any) => {
+          acc[a.userId] = (acc[a.userId] || 0) + 1;
+          return acc;
+        }, {})
+      };
+    } catch (error) {
+      console.error('Error getting analytics summary:', error);
+      return {};
+    }
+  }
+
+  // ============================================
+  // WILMA AI INTERACTIONS OPERATIONS
+  // ============================================
+  
+  async createWilmaAiInteraction(interactionData: any): Promise<any> {
+    try {
+      const docRef = db.collection('wilmaAiInteractions').doc();
+      const data = { ...interactionData, id: docRef.id, createdAt: new Date() };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating AI interaction:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaAiInteractions(userId?: string, featureType?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaAiInteractions');
+      if (userId) query = query.where('userId', '==', userId);
+      if (featureType) query = query.where('featureType', '==', featureType);
+      const snapshot = await query.orderBy('createdAt', 'desc').get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting AI interactions:', error);
+      return [];
+    }
+  }
+
+  async updateWilmaAiInteraction(id: string, interactionData: any): Promise<any> {
+    try {
+      await db.collection('wilmaAiInteractions').doc(id).update(interactionData);
+      const doc = await db.collection('wilmaAiInteractions').doc(id).get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error updating AI interaction:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaAiUsageStats(days?: number): Promise<any> {
+    try {
+      const interactions = await this.getWilmaAiInteractions();
+      const filtered = days ? interactions.filter((i: any) => {
+        const date = i.createdAt?.toDate?.() || new Date(i.createdAt);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        return date >= cutoff;
+      }) : interactions;
+      
+      return {
+        totalInteractions: filtered.length,
+        byFeature: filtered.reduce((acc: any, i: any) => {
+          acc[i.featureType] = (acc[i.featureType] || 0) + 1;
+          return acc;
+        }, {}),
+        avgRating: filtered.filter((i: any) => i.rating).reduce((sum: number, i: any) => sum + i.rating, 0) / filtered.filter((i: any) => i.rating).length || 0,
+        totalTokens: filtered.reduce((sum: number, i: any) => sum + (i.tokensUsed || 0), 0)
+      };
+    } catch (error) {
+      console.error('Error getting AI usage stats:', error);
+      return {};
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

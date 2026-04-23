@@ -803,5 +803,347 @@ export type WilmaExam = typeof wilmaExams.$inferSelect;
 export type InsertWilmaExam = z.infer<typeof insertWilmaExamSchema>;
 
 
-// Export schema additions
-export * from './schema-additions';
+// ============================================
+// WILMA EXTENDED TABLES - Full Implementation
+// ============================================
+
+// Wilma Classes table (for grouping students)
+export const wilmaClasses = pgTable("wilma_classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // e.g., "9A", "8B"
+  gradeLevel: integer("grade_level").notNull(), // 7, 8, 9
+  teacherId: varchar("teacher_id"), // Class teacher (reference to wilmaUsers)
+  teacherName: varchar("teacher_name"),
+  students: text("students").array(), // Array of student IDs
+  year: varchar("year").notNull(), // Academic year: "2025-2026"
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Courses table (subjects taught)
+export const wilmaCourses = pgTable("wilma_courses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // e.g., "Mathematics", "English"
+  code: varchar("code").notNull().unique(), // e.g., "MATH9A", "ENG8B"
+  teacherId: varchar("teacher_id").notNull(),
+  teacherName: varchar("teacher_name").notNull(),
+  classId: varchar("class_id"), // Reference to wilmaClasses
+  className: varchar("class_name"),
+  schedule: jsonb("schedule"), // Weekly schedule: [{day: 1, time: "08:00-09:30", room: "A101"}]
+  credits: integer("credits").default(1),
+  description: text("description"),
+  learningObjectives: text("learning_objectives").array(),
+  year: varchar("year").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Lesson Journal (Tuntipäiväkirja)
+export const wilmaLessonJournal = pgTable("wilma_lesson_journal", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull(),
+  courseName: varchar("course_name").notNull(),
+  teacherId: varchar("teacher_id").notNull(),
+  teacherName: varchar("teacher_name").notNull(),
+  date: varchar("date").notNull(), // YYYY-MM-DD
+  timeSlot: varchar("time_slot").notNull(), // "08:00-09:30"
+  topic: varchar("topic").notNull(), // What was taught
+  content: text("content"), // Detailed lesson content
+  homework: text("homework"), // Homework assigned
+  notes: text("notes"), // Additional notes
+  attachments: jsonb("attachments"), // File attachments: [{name, url, type}]
+  attendanceMarked: boolean("attendance_marked").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Homework Extended (with rubrics and advanced features)
+export const wilmaHomeworkExtended = pgTable("wilma_homework_extended", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull(),
+  courseName: varchar("course_name").notNull(),
+  teacherId: varchar("teacher_id").notNull(),
+  teacherName: varchar("teacher_name").notNull(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  instructions: text("instructions"),
+  dueDate: varchar("due_date").notNull(), // YYYY-MM-DD
+  dueTime: varchar("due_time"), // HH:MM
+  maxScore: integer("max_score").default(100),
+  rubric: jsonb("rubric"), // Grading rubric: [{criteria, points, description}]
+  attachments: jsonb("attachments"), // Teacher attachments
+  allowLateSubmission: boolean("allow_late_submission").default(false),
+  latePenalty: integer("late_penalty").default(0), // Percentage penalty
+  requiresFile: boolean("requires_file").default(false),
+  fileTypes: text("file_types").array(), // Allowed file types: ['pdf', 'docx']
+  maxFileSize: integer("max_file_size").default(10), // MB
+  isPublished: boolean("is_published").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Homework Submissions
+export const wilmaHomeworkSubmissions = pgTable("wilma_homework_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  homeworkId: varchar("homework_id").notNull(),
+  studentId: varchar("student_id").notNull(),
+  studentName: varchar("student_name").notNull(),
+  content: text("content"), // Text submission
+  files: jsonb("files"), // Submitted files: [{name, url, type, size}]
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  isLate: boolean("is_late").default(false),
+  grade: integer("grade"), // Score received
+  feedback: text("feedback"), // Teacher feedback
+  rubricScores: jsonb("rubric_scores"), // Scores per rubric criteria
+  gradedAt: timestamp("graded_at"),
+  gradedBy: varchar("graded_by"), // Teacher ID
+  status: varchar("status").default("submitted"), // submitted, graded, returned
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Exams Extended (detailed exam management)
+export const wilmaExamsExtended = pgTable("wilma_exams_extended", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull(),
+  courseName: varchar("course_name").notNull(),
+  teacherId: varchar("teacher_id").notNull(),
+  teacherName: varchar("teacher_name").notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  date: varchar("date").notNull(), // YYYY-MM-DD
+  startTime: varchar("start_time").notNull(), // HH:MM
+  endTime: varchar("end_time").notNull(), // HH:MM
+  duration: integer("duration").notNull(), // Minutes
+  room: varchar("room").notNull(),
+  topics: text("topics").array(), // Topics covered
+  maxScore: integer("max_score").default(100),
+  instructions: text("instructions"),
+  materials: text("materials"), // Allowed materials
+  seatingPlan: jsonb("seating_plan"), // Seating arrangement
+  isPublished: boolean("is_published").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Exam Results
+export const wilmaExamResults = pgTable("wilma_exam_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  examId: varchar("exam_id").notNull(),
+  studentId: varchar("student_id").notNull(),
+  studentName: varchar("student_name").notNull(),
+  score: integer("score").notNull(),
+  maxScore: integer("max_score").notNull(),
+  percentage: numeric("percentage"), // Calculated percentage
+  grade: varchar("grade"), // Letter grade or numeric
+  feedback: text("feedback"),
+  sectionScores: jsonb("section_scores"), // Scores per section
+  timeSpent: integer("time_spent"), // Minutes
+  submittedAt: timestamp("submitted_at"),
+  gradedAt: timestamp("graded_at"),
+  gradedBy: varchar("graded_by"), // Teacher ID
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Behavior Notes (teacher observations)
+export const wilmaBehaviorNotes = pgTable("wilma_behavior_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull(),
+  studentName: varchar("student_name").notNull(),
+  teacherId: varchar("teacher_id").notNull(),
+  teacherName: varchar("teacher_name").notNull(),
+  type: varchar("type").notNull(), // positive, negative, neutral, warning, incident
+  category: varchar("category"), // behavior, academic, attendance, other
+  title: varchar("title").notNull(),
+  note: text("note").notNull(),
+  date: varchar("date").notNull(), // YYYY-MM-DD
+  visibility: varchar("visibility").default("teacher"), // teacher, parent, student, admin
+  severity: varchar("severity").default("low"), // low, medium, high, critical
+  actionTaken: text("action_taken"),
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: varchar("follow_up_date"),
+  parentNotified: boolean("parent_notified").default(false),
+  parentNotifiedAt: timestamp("parent_notified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Notifications (system notifications)
+export const wilmaNotifications = pgTable("wilma_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // Recipient
+  userName: varchar("user_name").notNull(),
+  type: varchar("type").notNull(), // message, grade, homework, exam, attendance, announcement, behavior
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  link: varchar("link"), // Link to related content
+  priority: varchar("priority").default("normal"), // low, normal, high, urgent
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  sendEmail: boolean("send_email").default(false),
+  emailSent: boolean("email_sent").default(false),
+  emailSentAt: timestamp("email_sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+// Wilma Calendar Events (integrated calendar)
+export const wilmaCalendarEvents = pgTable("wilma_calendar_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // If personal event, otherwise null for school-wide
+  userName: varchar("user_name"),
+  type: varchar("type").notNull(), // lesson, exam, homework, meeting, event, holiday, other
+  title: varchar("title").notNull(),
+  description: text("description"),
+  startDate: varchar("start_date").notNull(), // YYYY-MM-DD
+  startTime: varchar("start_time"), // HH:MM
+  endDate: varchar("end_date"),
+  endTime: varchar("end_time"),
+  location: varchar("location"),
+  room: varchar("room"),
+  isAllDay: boolean("is_all_day").default(false),
+  isRecurring: boolean("is_recurring").default(false),
+  recurrenceRule: varchar("recurrence_rule"), // RRULE format
+  color: varchar("color").default("#3B82F6"),
+  relatedId: varchar("related_id"), // ID of related homework/exam/etc
+  relatedType: varchar("related_type"), // homework, exam, etc
+  attendees: text("attendees").array(), // User IDs
+  reminders: jsonb("reminders"), // [{type: 'email', minutes: 60}]
+  isPublic: boolean("is_public").default(false),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Analytics (usage and performance data)
+export const wilmaAnalytics = pgTable("wilma_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  userRole: varchar("user_role"), // student, teacher, parent, admin
+  eventType: varchar("event_type").notNull(), // login, view_grades, submit_homework, etc
+  eventCategory: varchar("event_category"), // academic, attendance, messaging, etc
+  eventData: jsonb("event_data"), // Additional event-specific data
+  sessionId: varchar("session_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  duration: integer("duration"), // Seconds
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Wilma AI Interactions (AI feature usage tracking)
+export const wilmaAiInteractions = pgTable("wilma_ai_interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  userName: varchar("user_name").notNull(),
+  userRole: varchar("user_role").notNull(),
+  featureType: varchar("feature_type").notNull(), // homework_help, study_planner, grade_explanation, lesson_summary
+  prompt: text("prompt").notNull(), // User's question/request
+  response: text("response").notNull(), // AI's response
+  model: varchar("model"), // AI model used
+  tokensUsed: integer("tokens_used"),
+  responseTime: integer("response_time"), // Milliseconds
+  rating: integer("rating"), // User rating 1-5
+  feedback: text("feedback"), // User feedback
+  wasHelpful: boolean("was_helpful"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertWilmaClassSchema = createInsertSchema(wilmaClasses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaCourseSchema = createInsertSchema(wilmaCourses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaLessonJournalSchema = createInsertSchema(wilmaLessonJournal).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaHomeworkExtendedSchema = createInsertSchema(wilmaHomeworkExtended).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaHomeworkSubmissionSchema = createInsertSchema(wilmaHomeworkSubmissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaExamExtendedSchema = createInsertSchema(wilmaExamsExtended).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaExamResultSchema = createInsertSchema(wilmaExamResults).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaBehaviorNoteSchema = createInsertSchema(wilmaBehaviorNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaNotificationSchema = createInsertSchema(wilmaNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWilmaCalendarEventSchema = createInsertSchema(wilmaCalendarEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaAnalyticSchema = createInsertSchema(wilmaAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWilmaAiInteractionSchema = createInsertSchema(wilmaAiInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new tables
+export type WilmaClass = typeof wilmaClasses.$inferSelect;
+export type InsertWilmaClass = z.infer<typeof insertWilmaClassSchema>;
+export type WilmaCourse = typeof wilmaCourses.$inferSelect;
+export type InsertWilmaCourse = z.infer<typeof insertWilmaCourseSchema>;
+export type WilmaLessonJournal = typeof wilmaLessonJournal.$inferSelect;
+export type InsertWilmaLessonJournal = z.infer<typeof insertWilmaLessonJournalSchema>;
+export type WilmaHomeworkExtended = typeof wilmaHomeworkExtended.$inferSelect;
+export type InsertWilmaHomeworkExtended = z.infer<typeof insertWilmaHomeworkExtendedSchema>;
+export type WilmaHomeworkSubmission = typeof wilmaHomeworkSubmissions.$inferSelect;
+export type InsertWilmaHomeworkSubmission = z.infer<typeof insertWilmaHomeworkSubmissionSchema>;
+export type WilmaExamExtended = typeof wilmaExamsExtended.$inferSelect;
+export type InsertWilmaExamExtended = z.infer<typeof insertWilmaExamExtendedSchema>;
+export type WilmaExamResult = typeof wilmaExamResults.$inferSelect;
+export type InsertWilmaExamResult = z.infer<typeof insertWilmaExamResultSchema>;
+export type WilmaBehaviorNote = typeof wilmaBehaviorNotes.$inferSelect;
+export type InsertWilmaBehaviorNote = z.infer<typeof insertWilmaBehaviorNoteSchema>;
+export type WilmaNotification = typeof wilmaNotifications.$inferSelect;
+export type InsertWilmaNotification = z.infer<typeof insertWilmaNotificationSchema>;
+export type WilmaCalendarEvent = typeof wilmaCalendarEvents.$inferSelect;
+export type InsertWilmaCalendarEvent = z.infer<typeof insertWilmaCalendarEventSchema>;
+export type WilmaAnalytic = typeof wilmaAnalytics.$inferSelect;
+export type InsertWilmaAnalytic = z.infer<typeof insertWilmaAnalyticSchema>;
+export type WilmaAiInteraction = typeof wilmaAiInteractions.$inferSelect;
+export type InsertWilmaAiInteraction = z.infer<typeof insertWilmaAiInteractionSchema>;

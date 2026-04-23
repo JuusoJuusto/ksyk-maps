@@ -133,6 +133,92 @@ export interface IStorage {
   getTopSearches(limit?: number): Promise<any[]>;
   getPopularRooms(limit?: number): Promise<any[]>;
   getVisitorStats(days?: number): Promise<any>;
+  
+  // ============================================
+  // WILMA EXTENDED OPERATIONS
+  // ============================================
+  
+  // Wilma Classes operations
+  getWilmaClasses(year?: string): Promise<any[]>;
+  getWilmaClass(id: string): Promise<any | undefined>;
+  createWilmaClass(classData: any): Promise<any>;
+  updateWilmaClass(id: string, classData: any): Promise<any>;
+  deleteWilmaClass(id: string): Promise<void>;
+  
+  // Wilma Courses operations
+  getWilmaCourses(teacherId?: string, classId?: string): Promise<any[]>;
+  getWilmaCourse(id: string): Promise<any | undefined>;
+  createWilmaCourse(courseData: any): Promise<any>;
+  updateWilmaCourse(id: string, courseData: any): Promise<any>;
+  deleteWilmaCourse(id: string): Promise<void>;
+  
+  // Wilma Lesson Journal operations
+  getWilmaLessonJournals(courseId?: string, teacherId?: string, date?: string): Promise<any[]>;
+  getWilmaLessonJournal(id: string): Promise<any | undefined>;
+  createWilmaLessonJournal(journalData: any): Promise<any>;
+  updateWilmaLessonJournal(id: string, journalData: any): Promise<any>;
+  deleteWilmaLessonJournal(id: string): Promise<void>;
+  
+  // Wilma Homework Extended operations
+  getWilmaHomeworkExtended(courseId?: string, teacherId?: string): Promise<any[]>;
+  getWilmaHomeworkExtendedById(id: string): Promise<any | undefined>;
+  createWilmaHomeworkExtended(homeworkData: any): Promise<any>;
+  updateWilmaHomeworkExtended(id: string, homeworkData: any): Promise<any>;
+  deleteWilmaHomeworkExtended(id: string): Promise<void>;
+  
+  // Wilma Homework Submissions operations
+  getWilmaHomeworkSubmissions(homeworkId?: string, studentId?: string): Promise<any[]>;
+  getWilmaHomeworkSubmission(id: string): Promise<any | undefined>;
+  createWilmaHomeworkSubmission(submissionData: any): Promise<any>;
+  updateWilmaHomeworkSubmission(id: string, submissionData: any): Promise<any>;
+  deleteWilmaHomeworkSubmission(id: string): Promise<void>;
+  
+  // Wilma Exams Extended operations
+  getWilmaExamsExtended(courseId?: string, teacherId?: string): Promise<any[]>;
+  getWilmaExamExtended(id: string): Promise<any | undefined>;
+  createWilmaExamExtended(examData: any): Promise<any>;
+  updateWilmaExamExtended(id: string, examData: any): Promise<any>;
+  deleteWilmaExamExtended(id: string): Promise<void>;
+  
+  // Wilma Exam Results operations
+  getWilmaExamResults(examId?: string, studentId?: string): Promise<any[]>;
+  getWilmaExamResult(id: string): Promise<any | undefined>;
+  createWilmaExamResult(resultData: any): Promise<any>;
+  updateWilmaExamResult(id: string, resultData: any): Promise<any>;
+  deleteWilmaExamResult(id: string): Promise<void>;
+  
+  // Wilma Behavior Notes operations
+  getWilmaBehaviorNotes(studentId?: string, teacherId?: string): Promise<any[]>;
+  getWilmaBehaviorNote(id: string): Promise<any | undefined>;
+  createWilmaBehaviorNote(noteData: any): Promise<any>;
+  updateWilmaBehaviorNote(id: string, noteData: any): Promise<any>;
+  deleteWilmaBehaviorNote(id: string): Promise<void>;
+  
+  // Wilma Notifications operations
+  getWilmaNotifications(userId: string, unreadOnly?: boolean): Promise<any[]>;
+  getWilmaNotification(id: string): Promise<any | undefined>;
+  createWilmaNotification(notificationData: any): Promise<any>;
+  updateWilmaNotification(id: string, notificationData: any): Promise<any>;
+  markWilmaNotificationAsRead(id: string): Promise<void>;
+  deleteWilmaNotification(id: string): Promise<void>;
+  
+  // Wilma Calendar Events operations
+  getWilmaCalendarEvents(userId?: string, startDate?: string, endDate?: string): Promise<any[]>;
+  getWilmaCalendarEvent(id: string): Promise<any | undefined>;
+  createWilmaCalendarEvent(eventData: any): Promise<any>;
+  updateWilmaCalendarEvent(id: string, eventData: any): Promise<any>;
+  deleteWilmaCalendarEvent(id: string): Promise<void>;
+  
+  // Wilma Analytics operations
+  createWilmaAnalytic(analyticData: any): Promise<void>;
+  getWilmaAnalytics(userId?: string, eventType?: string, days?: number): Promise<any[]>;
+  getWilmaAnalyticsSummary(days?: number): Promise<any>;
+  
+  // Wilma AI Interactions operations
+  createWilmaAiInteraction(interactionData: any): Promise<any>;
+  getWilmaAiInteractions(userId?: string, featureType?: string): Promise<any[]>;
+  updateWilmaAiInteraction(id: string, interactionData: any): Promise<any>;
+  getWilmaAiUsageStats(days?: number): Promise<any>;
 }
 
 
