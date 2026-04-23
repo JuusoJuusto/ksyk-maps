@@ -13,6 +13,11 @@ import ClassesManager from "@/components/ClassesManager";
 import WilmaStyleAttendance from "@/components/WilmaStyleAttendance";
 import CourseManager from "@/components/CourseManager";
 import AnnouncementManager from "@/components/AnnouncementManager";
+import WilmaTimetable from "@/components/WilmaTimetable";
+import WilmaGrades from "@/components/WilmaGrades";
+import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
+import WilmaHomework from "@/components/WilmaHomework";
+import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
@@ -267,47 +272,16 @@ export default function WilmaAdminNew() {
           {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'students' && <PeopleManager />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
-          {activeSection === 'schedule' && <ScheduleManager />}
+          {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'teachers' && <TeacherDirectory />}
           {activeSection === 'classes' && <ClassesManager />}
           {activeSection === 'courses' && <CourseManager />}
-          {activeSection === 'attendance' && <WilmaStyleAttendance />}
+          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
           {activeSection === 'announcements' && <AnnouncementManager />}
           {activeSection === 'settings' && <WilmaSettingsManager />}
-          
-          {/* Placeholder for new features */}
-          {activeSection === 'grades' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Arvosanat</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Arvosanat-ominaisuus tulossa pian...</p>
-              </CardContent>
-            </Card>
-          )}
-          
-          {activeSection === 'homework' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Tehtävät</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Tehtävät-ominaisuus tulossa pian...</p>
-              </CardContent>
-            </Card>
-          )}
-          
-          {activeSection === 'journal' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Tuntipäiväkirja</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Tuntipäiväkirja-ominaisuus tulossa pian...</p>
-              </CardContent>
-            </Card>
-          )}
+          {activeSection === 'grades' && <WilmaGrades />}
+          {activeSection === 'homework' && <WilmaHomework />}
+          {activeSection === 'journal' && <WilmaLessonJournal />}
           
           {activeSection === 'rooms' && (
             <Card>
