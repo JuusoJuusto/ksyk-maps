@@ -366,7 +366,7 @@ export default function EnhancedWilmaUserManager() {
     students: 0, // Students are in their own tab
     teachers: wilmaUsers.filter((u: WilmaUser) => u.role === 'teacher').length,
     parents: 0, // Parents are in their own tab
-    staff: wilmaUsers.filter((u: WilmaUser) => ['admin', 'principal', 'vice_principal', 'counselor', 'social_worker', 'nurse', 'psychologist', 'special_ed_teacher', 'assistant', 'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'substitute_teacher', 'student_teacher', 'custom'].includes(u.role)).length,
+    staff: wilmaUsers.filter((u: WilmaUser) => ['admin', 'principal', 'vice_principal', 'counselor', 'social_worker', 'nurse', 'psychologist', 'special_ed_teacher', 'assistant', 'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'substitute_teacher', 'student_teacher', 'nuoriso-ohjaaja', 'custom'].includes(u.role)).length,
   };
 
   return (
