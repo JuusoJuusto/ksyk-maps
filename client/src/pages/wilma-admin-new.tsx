@@ -46,16 +46,14 @@ export default function WilmaAdminNew() {
           );
           
           if (hasAccess) {
-            if (params?.adminId && params.adminId !== user.id) {
-              const returnPath = params.section || 'home';
-              setLocation(`/wilma-admin/${user.id}/${returnPath}`);
-              return;
-            }
-            
             setCurrentUser(user);
             
+            // Only redirect if adminId is missing or wrong, but don't re-check auth
             if (!params?.adminId) {
               const returnPath = params?.section || 'home';
+              setLocation(`/wilma-admin/${user.id}/${returnPath}`);
+            } else if (params.adminId !== user.id) {
+              const returnPath = params.section || 'home';
               setLocation(`/wilma-admin/${user.id}/${returnPath}`);
             }
           } else {
@@ -77,8 +75,11 @@ export default function WilmaAdminNew() {
       setIsLoading(false);
     };
 
-    checkAuth();
-  }, [params?.adminId, params?.section]);
+    // Only run auth check on initial load, not on every section change
+    if (isLoading) {
+      checkAuth();
+    }
+  }, [params?.adminId]); // Removed params?.section from dependencies
 
   const handleLogout = async () => {
     try {
@@ -123,7 +124,7 @@ export default function WilmaAdminNew() {
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'messages', label: 'Viestit', icon: MessageSquare, badge: 2 },
+    { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'journal', label: 'Tuntipäiväkirja', icon: FileText, teacherOnly: true },
     { id: 'students', label: 'Opiskelijat', icon: Users, adminOnly: true },
     { id: 'staff', label: 'Henkilökunta', icon: GraduationCap, adminOnly: true },
@@ -144,50 +145,50 @@ export default function WilmaAdminNew() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f5f5f5] overflow-x-hidden">
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 flex flex-col ${
-        sidebarOpen ? 'w-64' : 'w-20'
-      }`}>
+      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col ${
+        sidebarOpen ? 'w-64' : 'w-16'
+      } md:${sidebarOpen ? 'w-64' : 'w-20'}`}>
         {/* Logo & Brand */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 flex-shrink-0">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-[#003d82]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 text-white" />
+                <div className="w-7 h-7 bg-white rounded flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-[#003d82]" />
                 </div>
-                <span className="font-bold text-lg text-gray-900">Wilma</span>
+                <span className="font-bold text-base text-white">Wilma</span>
               </div>
               <Button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-1.5 hover:bg-white/10 rounded"
                 variant="ghost"
                 size="sm"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4 text-white" />
               </Button>
             </>
           ) : (
             <Button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg mx-auto"
+              className="p-1.5 hover:bg-white/10 rounded mx-auto"
               variant="ghost"
               size="sm"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4 text-white" />
             </Button>
           )}
         </div>
 
         {/* User Info */}
-        <div className={`px-4 py-4 border-b border-gray-200 flex-shrink-0 ${!sidebarOpen && 'hidden'}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 ${!sidebarOpen && 'hidden'}`}>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-[#003d82] rounded-full flex items-center justify-center text-white font-semibold text-sm">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
+              <p className="text-xs font-semibold text-gray-900 truncate">
                 {currentUser.firstName} {currentUser.lastName}
               </p>
               <p className="text-xs text-gray-500 truncate">
@@ -198,7 +199,7 @@ export default function WilmaAdminNew() {
         </div>
 
         {/* Navigation - Scrollable */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-2">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -207,22 +208,15 @@ export default function WilmaAdminNew() {
               <button
                 key={item.id}
                 onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative ${
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors relative ${
                   isActive
-                    ? 'bg-blue-50 text-blue-600 border-r-3 border-blue-600'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                } ${!sidebarOpen && 'justify-center'}`}
+                    ? 'bg-[#e8f0fe] text-[#003d82] border-r-2 border-[#003d82]'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#003d82]'
+                } ${!sidebarOpen && 'justify-center px-2'}`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-4 h-4 flex-shrink-0" />
                 {sidebarOpen && (
-                  <>
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && (
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
+                  <span className="flex-1 text-left truncate">{item.label}</span>
                 )}
               </button>
             );
@@ -230,46 +224,45 @@ export default function WilmaAdminNew() {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200 flex-shrink-0">
+        <div className="p-3 border-t border-[#dddddd] flex-shrink-0">
           <Button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${
-              !sidebarOpen && 'justify-center'
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors ${
+              !sidebarOpen && 'justify-center px-2'
             }`}
             variant="ghost"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             {sidebarOpen && <span>Kirjaudu ulos</span>}
           </Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'ml-64' : 'ml-16'} md:${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
+        <header className="h-14 bg-[#003d82] border-b border-[#002d5f] flex items-center justify-between px-4 md:px-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base md:text-lg font-bold text-white truncate">
               {filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma'}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-white/70 hidden md:block truncate">
               {new Date().toLocaleDateString('fi-FI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="relative hover:bg-white/10 p-2">
+              <Bell className="w-4 h-4 text-white" />
             </Button>
-            <Button variant="ghost" size="sm">
-              <Search className="w-5 h-5" />
+            <Button variant="ghost" size="sm" className="hover:bg-white/10 p-2 hidden md:flex">
+              <Search className="w-4 h-4 text-white" />
             </Button>
           </div>
         </header>
 
-        {/* Content Area - Full Width */}
-        <div className="p-6">
+        {/* Content Area - Responsive Padding */}
+        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden">
           {activeSection === 'home' && <WilmaHomeTab userRole={currentUser.role} userRoles={roles} />}
           {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'students' && <PeopleManager />}
