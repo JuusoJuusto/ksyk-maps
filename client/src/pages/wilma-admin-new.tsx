@@ -131,7 +131,7 @@ export default function WilmaAdminNew() {
     { id: 'home', label: 'Etusivu', icon: Home },
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'grades', label: 'Arvosanat', icon: Award },
-    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
+    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'journal', label: 'Tuntipäiväkirja', icon: FileText, teacherOnly: true },

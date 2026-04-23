@@ -313,7 +313,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                     </Button>
                     <Button className="w-full justify-start text-sm md:text-base" variant="outline" size="sm">
                       <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                      Poissaolot
+                      Tuntimerkinnät
                     </Button>
                   </>
                 )}

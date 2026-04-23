@@ -32,6 +32,7 @@ import WilmaTeacher from "@/pages/wilma-teacher";
 import WilmaParent from "@/pages/wilma-parent";
 import WilmaHome from "@/pages/wilma-home";
 import WilmaAdmin from "@/pages/wilma-admin-new";
+import WilmaSupportStaff from "@/pages/wilma-support-staff";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
 import ClassDetail from "@/pages/class-detail";
@@ -81,6 +82,16 @@ function Router() {
       <Route path="/wilma-teacher/:userId" component={WilmaTeacher} />
       <Route path="/wilma-parent/:userId/:section" component={WilmaParent} />
       <Route path="/wilma-parent/:userId" component={WilmaParent} />
+      <Route path="/wilma-kuraattori/:userId/:section" component={WilmaSupportStaff} />
+      <Route path="/wilma-kuraattori/:userId" component={WilmaSupportStaff} />
+      <Route path="/wilma-terveydenhoitaja/:userId/:section" component={WilmaSupportStaff} />
+      <Route path="/wilma-terveydenhoitaja/:userId" component={WilmaSupportStaff} />
+      <Route path="/wilma-psykologi/:userId/:section" component={WilmaSupportStaff} />
+      <Route path="/wilma-psykologi/:userId" component={WilmaSupportStaff} />
+      <Route path="/wilma-nuoriso-ohjaaja/:userId/:section" component={WilmaSupportStaff} />
+      <Route path="/wilma-nuoriso-ohjaaja/:userId" component={WilmaSupportStaff} />
+      <Route path="/wilma-sosiaalityontekija/:userId/:section" component={WilmaSupportStaff} />
+      <Route path="/wilma-sosiaalityontekija/:userId" component={WilmaSupportStaff} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
       <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />

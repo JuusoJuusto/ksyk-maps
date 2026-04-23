@@ -27,6 +27,14 @@ export default function WilmaHome() {
         console.log('WilmaHome - Roles:', roles);
         console.log('WilmaHome - Role:', user.role);
         
+        // Support staff roles (kuraattori, terveydenhoitaja, psykologi, nuoriso-ohjaaja, sosiaalityontekija)
+        const supportStaffRoles = ['kuraattori', 'terveydenhoitaja', 'psykologi', 'nuoriso-ohjaaja', 'sosiaalityontekija'];
+        if (supportStaffRoles.includes(user.role) || roles.some((r: string) => supportStaffRoles.includes(r))) {
+          console.log('WilmaHome - Redirecting to support staff page:', `/wilma-${user.role}/${user.id}`);
+          setLocation(`/wilma-${user.role}/${user.id}`);
+          return;
+        }
+        
         // Admin, teacher, principal, vice_principal go to admin panel
         if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal') || user.role === 'admin' || user.role === 'teacher' || user.role === 'principal' || user.role === 'vice_principal') {
           console.log('WilmaHome - Redirecting to admin panel:', `/wilma-admin/${user.id}`);
@@ -266,7 +274,7 @@ export default function WilmaHome() {
                   </Button>
                   <Button className="w-full justify-start" variant="outline">
                     <FileText className="w-4 h-4 mr-2" />
-                    Poissaolot
+                    Tuntimerkinnät
                   </Button>
                 </div>
               </CardContent>

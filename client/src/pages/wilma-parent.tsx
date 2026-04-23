@@ -58,7 +58,7 @@ export default function WilmaParent() {
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
+    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'progress', label: 'Edistyminen', icon: TrendingUp },
     { id: 'notifications', label: 'Ilmoitukset', icon: Bell },
@@ -281,7 +281,7 @@ export default function WilmaParent() {
                   {activeSection === 'schedule' && 'Lukujärjestys-näkymä tulossa pian...'}
                   {activeSection === 'grades' && 'Arvosanat-näkymä tulossa pian...'}
                   {activeSection === 'homework' && 'Tehtävät-näkymä tulossa pian...'}
-                  {activeSection === 'attendance' && 'Poissaolot-näkymä tulossa pian...'}
+                  {activeSection === 'attendance' && 'Tuntimerkinnät-näkymä tulossa pian...'}
                   {activeSection === 'messages' && 'Viestit-näkymä tulossa pian...'}
                   {activeSection === 'progress' && 'Edistyminen-näkymä tulossa pian...'}
                   {activeSection === 'notifications' && 'Ilmoitukset-näkymä tulossa pian...'}

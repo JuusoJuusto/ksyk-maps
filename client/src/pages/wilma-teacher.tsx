@@ -60,7 +60,7 @@ export default function WilmaTeacher() {
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
+    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings },
   ];

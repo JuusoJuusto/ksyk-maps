@@ -53,7 +53,7 @@ export default function WilmaStudent() {
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
+    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
     { id: 'settings', label: 'Asetukset', icon: Settings },
