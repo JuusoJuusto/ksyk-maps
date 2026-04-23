@@ -28,6 +28,7 @@ import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
 import SLStudio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
+import WilmaStudent from "@/pages/wilma-student";
 import WilmaHome from "@/pages/wilma-home";
 import WilmaMessage from "@/pages/wilma-message";
 import WilmaCompose from "@/pages/wilma-compose";
@@ -85,10 +86,8 @@ function Router() {
       <Route path="/wilma-admin" component={WilmaAdmin} />
       <Route path="/wilma/teacher/:teacherId" component={WilmaTeacher} />
       <Route path="/wilma/teacher/:teacherId/:section" component={WilmaTeacher} />
-      <Route path="/wilma/:studentId" component={Wilma} />
-      <Route path="/wilma/:studentId/message/:messageId" component={WilmaMessage} />
-      <Route path="/wilma/:studentId/compose" component={WilmaCompose} />
-      <Route path="/wilma/:studentId/:section" component={Wilma} />
+      <Route path="/wilma/:studentId/:section" component={WilmaStudent} />
+      <Route path="/wilma/:studentId" component={WilmaStudent} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={SLStudio} />
