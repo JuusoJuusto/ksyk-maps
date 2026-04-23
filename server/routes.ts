@@ -3764,6 +3764,110 @@ https://ksykmaps.vercel.app
   });
 
   // ============================================
+  // WILMA SUPPORT TICKETS API
+  // ============================================
+  
+  // Create support ticket
+  app.post('/api/wilma/tickets', async (req, res) => {
+    try {
+      const { title, description, category, priority, userId, userRole } = req.body;
+      
+      if (!title || !description || !category || !priority || !userId) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      const ticket = {
+        id: ticketId,
+        title,
+        description,
+        category,
+        priority,
+        userId,
+        userRole: userRole || 'student',
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        responses: []
+      };
+      
+      // Store in Firestore
+      await db.collection('wilma_support_tickets').doc(ticketId).set(ticket);
+      
+      console.log('✅ Support ticket created:', ticketId);
+      res.status(201).json(ticket);
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/tickets', { body: req.body });
+      res.status(500).json({ message: 'Failed to create support ticket' });
+    }
+  });
+  
+  // Get support tickets (filtered by user or all for admin)
+  app.get('/api/wilma/tickets', async (req, res) => {
+    try {
+      const { userId, userRole } = req.query;
+      
+      let query = db.collection('wilma_support_tickets');
+      
+      // If not admin, filter by userId
+      if (userRole !== 'admin' && userRole !== 'teacher' && userId) {
+        query = query.where('userId', '==', userId);
+      }
+      
+      const snapshot = await query.orderBy('createdAt', 'desc').get();
+      const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      res.json(tickets);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/tickets', { query: req.query });
+      res.status(500).json({ message: 'Failed to fetch support tickets' });
+    }
+  });
+  
+  // Update support ticket (status, add response, etc.)
+  app.put('/api/wilma/tickets/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const ticketRef = db.collection('wilma_support_tickets').doc(id);
+      const ticketDoc = await ticketRef.get();
+      
+      if (!ticketDoc.exists) {
+        return res.status(404).json({ message: 'Ticket not found' });
+      }
+      
+      const updatedData = {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await ticketRef.update(updatedData);
+      
+      const updatedTicket = await ticketRef.get();
+      res.json({ id: updatedTicket.id, ...updatedTicket.data() });
+    } catch (error) {
+      await logError(error, 'PUT /api/wilma/tickets/:id', { ticketId: req.params.id });
+      res.status(500).json({ message: 'Failed to update support ticket' });
+    }
+  });
+  
+  // Delete support ticket (admin only)
+  app.delete('/api/wilma/tickets/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      await db.collection('wilma_support_tickets').doc(id).delete();
+      
+      res.status(204).send();
+    } catch (error) {
+      await logError(error, 'DELETE /api/wilma/tickets/:id', { ticketId: req.params.id });
+      res.status(500).json({ message: 'Failed to delete support ticket' });
+    }
+  });
+
+  // ============================================
   // REGISTER WILMA EXTENDED ROUTES
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');

@@ -731,11 +731,6 @@ export default function Wilma() {
             </Card>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-          <p className="opacity-80">© 2026 Wilma by SL Studio • {language === 'fi' ? 'Kaikki oikeudet pidätetään' : 'All rights reserved'}</p>
-        </div>
       </div>
     );
   }

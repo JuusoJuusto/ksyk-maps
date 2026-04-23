@@ -19,6 +19,7 @@ import WilmaGrades from "@/components/WilmaGrades";
 import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
 import WilmaHomework from "@/components/WilmaHomework";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
+import WilmaSupportTab from "@/components/WilmaSupportTab";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
@@ -273,9 +274,6 @@ export default function WilmaAdminNew() {
         {/* Content Area - Responsive Padding */}
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {activeSection === 'home' && <WilmaHomeTab userRole={currentUser.role} userRoles={roles} />}
-          {activeSection === 'staff' && <EnhancedWilmaUserManager />}
-          {activeSection === 'students' && <PeopleManager />}
-          {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'schedule' && (
             <div className="space-y-4">
               {isAdmin ? (
@@ -285,70 +283,26 @@ export default function WilmaAdminNew() {
               )}
             </div>
           )}
-          {activeSection === 'teachers' && <TeacherDirectory />}
+          {activeSection === 'students' && <PeopleManager />}
+          {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'classes' && <ClassesManager />}
           {activeSection === 'courses' && <CourseManager />}
-          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
-          {activeSection === 'announcements' && <AnnouncementManager />}
-          {activeSection === 'settings' && <WilmaSettingsManager />}
-          {activeSection === 'grades' && <WilmaGrades />}
-          {activeSection === 'homework' && <WilmaHomework />}
-          {activeSection === 'journal' && <WilmaLessonJournal />}
-          
-          {activeSection === 'rooms' && (
-            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
-                <CardTitle className="text-[#003d82] flex items-center gap-2">
-                  <Building className="w-5 h-5" />
-                  Tilat
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Building className="w-8 h-8 text-[#003d82]" />
-                  </div>
-                  <p className="text-gray-600 font-medium">Tilat-ominaisuus tulossa pian...</p>
-                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {activeSection === 'analytics' && (
+          {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'support' && <WilmaSupportTab />}
+          {activeSection === 'settings' && (
             <Card className="shadow-lg border-[#dddddd] animate-slideUp">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
                 <CardTitle className="text-[#003d82] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Analytiikka
+                  <Settings className="w-5 h-5" />
+                  Asetukset
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center py-8">
                   <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BarChart3 className="w-8 h-8 text-[#003d82]" />
+                    <Settings className="w-8 h-8 text-[#003d82]" />
                   </div>
-                  <p className="text-gray-600 font-medium">Analytiikka-ominaisuus tulossa pian...</p>
-                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {activeSection === 'reports' && (
-            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-[#dddddd]">
-                <CardTitle className="text-[#003d82] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Raportit
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-8 h-8 text-[#003d82]" />
-                  </div>
-                  <p className="text-gray-600 font-medium">Raportit-ominaisuus tulossa pian...</p>
+                  <p className="text-gray-600 font-medium">Asetukset-ominaisuus tulossa pian...</p>
                   <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
                 </div>
               </CardContent>

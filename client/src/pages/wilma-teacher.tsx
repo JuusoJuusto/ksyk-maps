@@ -11,6 +11,8 @@ import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import ClassesManager from "@/components/ClassesManager";
 import CourseManager from "@/components/CourseManager";
+import SubstituteTeacherMode from "@/components/SubstituteTeacherMode";
+import WilmaSupportTab from "@/components/WilmaSupportTab";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, 
@@ -54,6 +56,7 @@ export default function WilmaTeacher() {
 
   const navigationItems = [
     { id: 'home', label: 'Etusivu', icon: Home },
+    { id: 'substitute', label: 'Sijaisuudet', icon: UserCheck },
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'journal', label: 'Tuntipäiväkirja', icon: ClipboardList },
     { id: 'classes', label: 'Luokat', icon: Users },
@@ -182,6 +185,7 @@ export default function WilmaTeacher() {
       <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {activeSection === 'home' && <WilmaHomeTab userRole="teacher" userRoles={['teacher']} />}
+          {activeSection === 'substitute' && <SubstituteTeacherMode />}
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'journal' && <WilmaLessonJournal />}
           {activeSection === 'classes' && <ClassesManager />}
@@ -190,6 +194,7 @@ export default function WilmaTeacher() {
           {activeSection === 'homework' && <WilmaHomework />}
           {activeSection === 'attendance' && <WilmaAttendanceTracker />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'settings' && (
             <Card className="shadow-lg border-[#dddddd]">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
