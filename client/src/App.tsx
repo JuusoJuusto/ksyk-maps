@@ -18,7 +18,6 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
-import Builder from "@/pages/builder";
 import HSL from "@/pages/hsl";
 import Lunch from "@/pages/lunch";
 import Features from "@/pages/features";
@@ -32,8 +31,6 @@ import WilmaStudent from "@/pages/wilma-student";
 import WilmaTeacher from "@/pages/wilma-teacher";
 import WilmaParent from "@/pages/wilma-parent";
 import WilmaHome from "@/pages/wilma-home";
-import WilmaMessage from "@/pages/wilma-message";
-import WilmaCompose from "@/pages/wilma-compose";
 import WilmaAdmin from "@/pages/wilma-admin-new";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
@@ -78,6 +75,12 @@ function Router() {
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma/forgot-password" component={ForgotPassword} />
       <Route path="/wilma/reset-password" component={ResetPassword} />
+      <Route path="/wilma-student/:userId/:section" component={WilmaStudent} />
+      <Route path="/wilma-student/:userId" component={WilmaStudent} />
+      <Route path="/wilma-teacher/:userId/:section" component={WilmaTeacher} />
+      <Route path="/wilma-teacher/:userId" component={WilmaTeacher} />
+      <Route path="/wilma-parent/:userId/:section" component={WilmaParent} />
+      <Route path="/wilma-parent/:userId" component={WilmaParent} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
       <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
@@ -85,14 +88,8 @@ function Router() {
       <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />
       <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
       <Route path="/wilma-admin" component={WilmaAdmin} />
-      <Route path="/wilma-teacher/:teacherId/:section" component={WilmaTeacher} />
-      <Route path="/wilma-teacher/:teacherId" component={WilmaTeacher} />
-      <Route path="/wilma-student/:studentId/:section" component={WilmaStudent} />
-      <Route path="/wilma-student/:studentId" component={WilmaStudent} />
-      <Route path="/wilma-parent/:parentId/:section" component={WilmaParent} />
-      <Route path="/wilma-parent/:parentId" component={WilmaParent} />
-      <Route path="/wilma/:studentId/:section" component={WilmaStudent} />
-      <Route path="/wilma/:studentId" component={WilmaStudent} />
+      <Route path="/wilma/:userId/:section" component={WilmaHome} />
+      <Route path="/wilma/:userId" component={WilmaHome} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={SLStudio} />

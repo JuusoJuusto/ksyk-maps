@@ -17,16 +17,49 @@ export default function WilmaHome() {
     const storedUser = localStorage.getItem('wilma_user');
     if (storedUser) {
       try {
-        setCurrentUser(JSON.parse(storedUser));
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        
+        // Role-based routing
+        const roles = user.roles || [user.role];
+        
+        console.log('WilmaHome - User:', user);
+        console.log('WilmaHome - Roles:', roles);
+        console.log('WilmaHome - Role:', user.role);
+        
+        // Admin, teacher, principal, vice_principal go to admin panel
+        if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal') || user.role === 'admin' || user.role === 'teacher' || user.role === 'principal' || user.role === 'vice_principal') {
+          console.log('WilmaHome - Redirecting to admin panel:', `/wilma-admin/${user.id}`);
+          setLocation(`/wilma-admin/${user.id}`);
+          return;
+        }
+        
+        // Student goes to student page
+        if (roles.includes('student') || user.role === 'student') {
+          console.log('WilmaHome - Redirecting to student page:', `/wilma-student/${user.id}`);
+          setLocation(`/wilma-student/${user.id}`);
+          return;
+        }
+        
+        // Parent goes to parent page
+        if (roles.includes('parent') || user.role === 'parent') {
+          console.log('WilmaHome - Redirecting to parent page:', `/wilma-parent/${user.id}`);
+          setLocation(`/wilma-parent/${user.id}`);
+          return;
+        }
+        
+        // If no specific role match, stay on home page
+        console.log('WilmaHome - No role match, staying on home');
+        setIsLoading(false);
       } catch (err) {
         console.error('Failed to parse user:', err);
         setLocation('/wilma');
       }
     } else {
+      console.log('WilmaHome - No user found, redirecting to login');
       setLocation('/wilma');
     }
-    setIsLoading(false);
-  }, []);
+  }, [setLocation]);
 
   if (isLoading) {
     return (

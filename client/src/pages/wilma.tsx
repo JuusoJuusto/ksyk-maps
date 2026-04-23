@@ -319,26 +319,26 @@ export default function Wilma() {
       setIsLoading(false);
       
       // Check if there's a return path to redirect to
-      if (returnPath) {
-        setLocation(returnPath);
+      const savedReturnPath = returnPath || localStorage.getItem('wilma_return_path');
+      
+      if (savedReturnPath && savedReturnPath !== '/wilma') {
+        localStorage.removeItem('wilma_return_path');
+        setLocation(savedReturnPath);
         setReturnPath('');
         return;
       }
       
-      // Role-based routing with return path support
-      const returnPath = localStorage.getItem('wilma_return_path');
+      // Role-based routing
+      const roles = data.roles || [data.role];
       
-      if (returnPath && returnPath !== '/wilma') {
-        localStorage.removeItem('wilma_return_path');
-        setLocation(returnPath);
-      } else if (data.role === 'admin' || data.role === 'teacher' || data.role === 'principal' || data.role === 'vice_principal') {
-        setLocation(`/wilma-admin/${data.id}/home`);
-      } else if (data.role === 'student') {
-        setLocation(`/wilma-student/${data.id}`);
-      } else if (data.role === 'parent') {
-        setLocation(`/wilma-parent/${data.id}`);
-      } else if (data.studentId) {
-        setLocation(`/wilma/${data.studentId}`);
+      // Check if user has admin, teacher, principal, or vice_principal role
+      if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal') || data.role === 'admin' || data.role === 'teacher' || data.role === 'principal' || data.role === 'vice_principal') {
+        console.log('Redirecting to admin panel:', `/wilma-admin/${data.id}`);
+        setLocation(`/wilma-admin/${data.id}`);
+      } else {
+        // Student, parent, or other roles use /wilma/:userId
+        console.log('Redirecting to user page:', `/wilma/${data.id}`);
+        setLocation(`/wilma/${data.id}`);
       }
     } catch {
       setLoginError(language === 'fi' ? 'Yhteysvirhe. Tarkista palvelimen tila.' : 'Connection error. Please check if the server is running.');
@@ -385,19 +385,22 @@ export default function Wilma() {
       setConfirmNewPassword('');
       
       // Role-based routing with return path support
-      const returnPath = localStorage.getItem('wilma_return_path');
+      const savedReturnPath = localStorage.getItem('wilma_return_path');
       
-      if (returnPath && returnPath !== '/wilma') {
+      if (savedReturnPath && savedReturnPath !== '/wilma') {
         localStorage.removeItem('wilma_return_path');
-        setLocation(returnPath);
-      } else if (updatedUser.role === 'admin' || updatedUser.role === 'teacher' || updatedUser.role === 'principal' || updatedUser.role === 'vice_principal') {
-        setLocation(`/wilma-admin/${updatedUser.id}/home`);
-      } else if (updatedUser.role === 'student') {
-        setLocation(`/wilma-student/${updatedUser.id}`);
-      } else if (updatedUser.role === 'parent') {
-        setLocation(`/wilma-parent/${updatedUser.id}`);
-      } else if (updatedUser.studentId) {
-        setLocation(`/wilma/${updatedUser.studentId}`);
+        setLocation(savedReturnPath);
+      } else {
+        const roles = updatedUser.roles || [updatedUser.role];
+        
+        if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal') || updatedUser.role === 'admin' || updatedUser.role === 'teacher' || updatedUser.role === 'principal' || updatedUser.role === 'vice_principal') {
+          console.log('Redirecting to admin panel after password change:', `/wilma-admin/${updatedUser.id}`);
+          setLocation(`/wilma-admin/${updatedUser.id}`);
+        } else {
+          // Student, parent, or other roles use /wilma/:userId
+          console.log('Redirecting to user page after password change:', `/wilma/${updatedUser.id}`);
+          setLocation(`/wilma/${updatedUser.id}`);
+        }
       }
     } catch (error) {
       setPasswordChangeError(language === 'fi' ? 'Salasanan vaihto epäonnistui' : 'Failed to change password');
@@ -408,60 +411,55 @@ export default function Wilma() {
 
   if (!isLoggedIn) {
     return (
-      <div 
-        className="min-h-screen bg-gradient-to-br from-[#003d82] via-[#0052a3] to-[#0066cc] flex items-center justify-center p-4 relative"
-        style={{
-          backgroundImage: 'url(/wilma-bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundBlendMode: 'overlay',
-        }}
-      >
-        {/* Overlay for better readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#003d82]/90 via-[#0052a3]/85 to-[#0066cc]/90"></div>
-        
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
+      <div className="min-h-screen flex">
+        {/* Left Side - Background Image */}
+        <div 
+          className="hidden lg:flex lg:w-1/2 xl:w-2/3 relative"
+          style={{
+            backgroundImage: 'url(/wilma-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Optional branding on background */}
+          <div className="absolute bottom-8 left-8 text-white z-10 drop-shadow-lg">
+            <h1 className="text-5xl font-bold mb-2">Wilma</h1>
+            <p className="text-xl">Oppilashallintojärjestelmä</p>
+          </div>
         </div>
 
-        <Card className="w-full max-w-md shadow-2xl relative z-10 border-2 border-blue-200">
-          <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white rounded-t-lg pb-8">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                <Lock className="w-10 h-10 text-[#003d82]" />
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-1/2 xl:w-1/3 bg-white flex items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            {/* Logo and Title */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-lg mx-auto mb-4 flex items-center justify-center shadow-md">
+                <Lock className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-3xl font-bold mb-2">{tr.welcome}</CardTitle>
-              <p className="text-blue-100 text-sm">{tr.school} - {language === 'fi' ? 'Oppilashallintojärjestelmä' : 'Student Management System'}</p>
+              <h1 className="text-2xl font-bold text-[#003d82] mb-1">{tr.welcome}</h1>
+              <p className="text-gray-600 text-sm">{tr.school}</p>
             </div>
-          </CardHeader>
-          <CardContent className="p-8">
+
             {!showForgotPassword ? (
               <>
-                <p className="text-center text-gray-600 mb-6 font-medium">{tr.loginInstructions}</p>
-                <form onSubmit={handleLogin} className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                      <User className="w-4 h-4" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       {tr.username}
                     </label>
                     <Input 
                       type="text" 
                       value={username} 
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder={language === 'fi' ? 'esim. matti.virtanen' : 'e.g. john.doe'} 
+                      placeholder={language === 'fi' ? 'Käyttäjätunnus' : 'Username'} 
                       required 
                       disabled={isLoading} 
-                      className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500" 
+                      className="w-full h-11 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82]" 
                       autoComplete="username" 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       {tr.password}
                     </label>
                     <div className="relative">
@@ -469,58 +467,58 @@ export default function Wilma() {
                         type={showPassword ? "text" : "password"}
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••" 
+                        placeholder={language === 'fi' ? 'Salasana' : 'Password'} 
                         required 
                         disabled={isLoading} 
-                        className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500 pr-12" 
+                        className="w-full h-11 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82] pr-10" 
                         autoComplete="current-password" 
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#003d82] focus:ring-[#003d82]" />
                       <span className="text-gray-600">{language === 'fi' ? 'Muista minut' : 'Remember me'}</span>
                     </label>
                     <button
                       type="button"
                       onClick={() => setLocation('/wilma/forgot-password')}
-                      className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                      className="text-[#003d82] hover:underline font-medium"
                     >
                       {language === 'fi' ? 'Unohditko salasanan?' : 'Forgot password?'}
                     </button>
                   </div>
 
                   {loginError && (
-                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2 animate-shake">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium">{loginError}</span>
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-md flex items-start gap-2 text-sm">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{loginError}</span>
                     </div>
                   )}
                   
                   {sessionExpiredMessage && (
-                    <div className="bg-orange-50 border-2 border-orange-200 text-orange-700 px-4 py-3 rounded-lg flex items-start gap-2">
-                      <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium">{sessionExpiredMessage}</span>
+                    <div className="bg-orange-50 border border-orange-200 text-orange-700 px-3 py-2.5 rounded-md flex items-start gap-2 text-sm">
+                      <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{sessionExpiredMessage}</span>
                     </div>
                   )}
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#0066cc] text-white text-lg font-bold shadow-lg transition-all" 
+                    className="w-full h-11 bg-[#003d82] hover:bg-[#0052a3] text-white font-semibold shadow-sm transition-colors" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <span className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         {tr.loggingIn}
                       </span>
                     ) : (
@@ -530,27 +528,18 @@ export default function Wilma() {
                 </form>
                 
                 <div className="mt-6 space-y-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">{language === 'fi' ? 'Tai' : 'Or'}</span>
-                    </div>
-                  </div>
-                  
                   <div className="text-center">
                     <button 
                       onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-2 mx-auto"
+                      className="text-sm text-gray-600 hover:text-[#003d82] font-medium flex items-center gap-2 mx-auto"
                     >
-                      <span className="text-lg">{language === 'fi' ? '🇬🇧' : '🇫🇮'}</span>
+                      <span className="text-base">{language === 'fi' ? '🇬🇧' : '🇫🇮'}</span>
                       {language === 'fi' ? 'English' : 'Suomi'}
                     </button>
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800 text-center">
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3">
+                    <p className="text-xs text-blue-800 text-center">
                       <strong>{language === 'fi' ? 'Huom!' : 'Note!'}</strong> {tr.noAccount}
                     </p>
                   </div>
@@ -560,14 +549,14 @@ export default function Wilma() {
               <div className="space-y-4">
                 <button
                   onClick={() => setShowForgotPassword(false)}
-                  className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2 mb-4"
+                  className="text-[#003d82] hover:text-[#0052a3] font-semibold flex items-center gap-2 mb-4"
                 >
                   ← {language === 'fi' ? 'Takaisin kirjautumiseen' : 'Back to login'}
                 </button>
                 
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <Mail className="w-8 h-8 text-blue-600" />
+                    <Mail className="w-8 h-8 text-[#003d82]" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">
                     {language === 'fi' ? 'Palauta salasana' : 'Reset Password'}
@@ -582,7 +571,7 @@ export default function Wilma() {
                 {!resetSuccess ? (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                         {language === 'fi' ? 'Sähköpostiosoite' : 'Email Address'}
                       </label>
                       <Input
@@ -590,18 +579,26 @@ export default function Wilma() {
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
                         placeholder={language === 'fi' ? 'esim. matti.virtanen@koulu.fi' : 'e.g. john.doe@school.com'}
-                        className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500"
+                        className="w-full h-11 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82]"
                       />
                     </div>
                     <Button
                       onClick={handleForgotPassword}
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      disabled={isLoading}
+                      className="w-full h-11 bg-[#003d82] hover:bg-[#0052a3] text-white font-semibold"
                     >
-                      {language === 'fi' ? 'Lähetä palautuslinkki' : 'Send Reset Link'}
+                      {isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          {language === 'fi' ? 'Lähetetään...' : 'Sending...'}
+                        </span>
+                      ) : (
+                        language === 'fi' ? 'Lähetä palautuslinkki' : 'Send Reset Link'
+                      )}
                     </Button>
                   </>
                 ) : (
-                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                     <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
                       <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
@@ -617,8 +614,8 @@ export default function Wilma() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Password Change Dialog */}
         {showPasswordChangeDialog && (
