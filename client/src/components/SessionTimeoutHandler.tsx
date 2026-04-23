@@ -124,11 +124,13 @@ export default function SessionTimeoutHandler() {
   const seconds = timeRemaining % 60;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md border-4 border-yellow-500 shadow-2xl animate-pulse">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <Card className="w-full max-w-md border-4 border-yellow-500 shadow-2xl">
         <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50">
           <CardTitle className="flex items-center gap-3 text-yellow-800">
-            <AlertTriangle className="w-8 h-8" />
+            <div className="p-2 bg-yellow-200 rounded-full">
+              <AlertTriangle className="w-6 h-6 text-yellow-700" />
+            </div>
             <div>
               <p className="text-xl font-bold">Istunto vanhenee pian!</p>
               <p className="text-sm font-normal text-yellow-700">
@@ -138,24 +140,24 @@ export default function SessionTimeoutHandler() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center justify-center gap-3 p-4 bg-yellow-100 rounded-lg">
+          <div className="flex items-center justify-center gap-3 p-4 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg border-2 border-yellow-300">
             <Clock className="w-12 h-12 text-yellow-600" />
             <div className="text-center">
-              <p className="text-4xl font-bold text-yellow-800">
+              <p className="text-4xl font-bold text-yellow-800 tabular-nums">
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </p>
-              <p className="text-sm text-yellow-700">jäljellä</p>
+              <p className="text-sm text-yellow-700 font-medium">jäljellä</p>
             </div>
           </div>
 
-          <p className="text-center text-gray-700">
+          <p className="text-center text-gray-700 font-medium">
             Haluatko jatkaa istuntoa vai kirjautua ulos?
           </p>
 
           <div className="flex gap-3">
             <Button
               onClick={extendSession}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all"
               size="lg"
             >
               <Clock className="w-5 h-5 mr-2" />
@@ -164,7 +166,7 @@ export default function SessionTimeoutHandler() {
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="flex-1 border-2 border-red-500 text-red-600 hover:bg-red-50"
+              className="flex-1 border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 transition-all"
               size="lg"
             >
               <LogOut className="w-5 h-5 mr-2" />
@@ -172,8 +174,8 @@ export default function SessionTimeoutHandler() {
             </Button>
           </div>
 
-          <p className="text-xs text-center text-gray-500">
-            Istunto päättyy automaattisesti 30 minuutin toimettomuuden jälkeen turvallisuussyistä.
+          <p className="text-xs text-center text-gray-500 bg-gray-50 p-2 rounded">
+            💡 Istunto päättyy automaattisesti 30 minuutin toimettomuuden jälkeen turvallisuussyistä.
           </p>
         </CardContent>
       </Card>
