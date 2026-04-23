@@ -90,6 +90,16 @@ export default function EnhancedUserSelector({
         return 'Huoltaja';
       case 'admin':
         return 'Ylläpitäjä';
+      case 'nuoriso-ohjaaja':
+        return 'Nuoriso-ohjaaja';
+      case 'counselor':
+        return 'Opinto-ohjaaja';
+      case 'social_worker':
+        return 'Kuraattori';
+      case 'psychologist':
+        return 'Psykologi';
+      case 'nurse':
+        return 'Terveydenhoitaja';
       default:
         return role;
     }
