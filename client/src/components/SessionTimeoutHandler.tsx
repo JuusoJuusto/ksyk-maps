@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, LogOut } from 'lucide-react';
 
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before timeout
-const CHECK_INTERVAL = 60 * 1000; // Check every minute
+const SESSION_TIMEOUT = 60 * 60 * 1000; // 60 minutes
+const WARNING_TIME = 10 * 60 * 1000; // Show warning 10 minutes before timeout
+const CHECK_INTERVAL = 30 * 1000; // Check every 30 seconds
 
 export default function SessionTimeoutHandler() {
   const [, setLocation] = useLocation();

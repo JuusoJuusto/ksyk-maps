@@ -62,6 +62,7 @@ export default function WilmaTeacher() {
     { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
+    { id: 'support', label: 'Tuki', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings },
   ];
 

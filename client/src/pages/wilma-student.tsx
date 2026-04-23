@@ -8,6 +8,7 @@ import WilmaGrades from "@/components/WilmaGrades";
 import WilmaHomework from "@/components/WilmaHomework";
 import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
+import WilmaSupportTab from "@/components/WilmaSupportTab";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, User
@@ -56,6 +57,7 @@ export default function WilmaStudent() {
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
+    { id: 'support', label: 'Tuki', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings },
   ];
 
@@ -180,6 +182,7 @@ export default function WilmaStudent() {
           {activeSection === 'homework' && <WilmaHomework />}
           {activeSection === 'attendance' && <WilmaAttendanceTracker />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'courses' && (
             <Card className="shadow-lg border-[#dddddd]">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
