@@ -41,8 +41,11 @@ export default function WilmaStudent() {
   }, [setLocation]);
 
   const handleLogout = () => {
+    // Save current location as return path
+    const currentPath = window.location.pathname;
+    localStorage.setItem('wilma_return_path', currentPath);
     localStorage.removeItem('wilma_user');
-    setLocation('/wilma');
+    setLocation('/wilma?session=expired');
   };
 
   const navigationItems = [

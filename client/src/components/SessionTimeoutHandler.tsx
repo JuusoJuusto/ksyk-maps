@@ -21,6 +21,10 @@ export default function SessionTimeoutHandler() {
 
   const handleLogout = useCallback(async () => {
     try {
+      // Save current location as return path
+      const currentPath = window.location.pathname;
+      localStorage.setItem('wilma_return_path', currentPath);
+      
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
@@ -29,7 +33,7 @@ export default function SessionTimeoutHandler() {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('wilma_user');
-      setLocation('/wilma');
+      setLocation('/wilma?session=expired');
     }
   }, [setLocation]);
 

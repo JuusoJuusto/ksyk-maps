@@ -87,6 +87,10 @@ export default function WilmaAdminNew() {
   }, []); // Empty dependency array - runs ONCE on mount only
 
   const handleLogout = async () => {
+    // Save current location as return path
+    const currentPath = window.location.pathname;
+    localStorage.setItem('wilma_return_path', currentPath);
+    
     try {
       await fetch('/api/auth/logout', { 
         method: 'POST',
@@ -96,7 +100,7 @@ export default function WilmaAdminNew() {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('wilma_user');
-      setLocation('/wilma');
+      setLocation('/wilma?session=expired');
     }
   };
 

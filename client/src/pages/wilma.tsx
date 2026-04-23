@@ -130,14 +130,23 @@ export default function Wilma() {
     // Check for session expiration in URL
     const urlParams = new URLSearchParams(window.location.search);
     const invalidSession = urlParams.get('invalidsession');
+    const sessionParam = urlParams.get('session');
     const returnPathParam = urlParams.get('returnpath');
     
-    if (invalidSession) {
+    if (invalidSession || sessionParam === 'expired') {
       setSessionExpiredMessage(language === 'fi' 
         ? 'Istuntosi on vanhentunut. Kirjaudu uudelleen sisään.' 
         : 'Your session has expired. Please log in again.');
-      if (returnPathParam) {
-        setReturnPath(returnPathParam);
+      
+      // Check for return path
+      const returnPath = localStorage.getItem('wilma_return_path') || returnPathParam;
+      if (returnPath) {
+        setReturnPath(returnPath);
+        setTimeout(() => {
+          setSessionExpiredMessage(prev => prev + (language === 'fi'
+            ? ' Sinut ohjataan takaisin edelliselle sivulle kirjautumisen jälkeen.'
+            : ' You will be redirected to your previous page after login.'));
+        }, 1000);
       }
     }
     
@@ -316,11 +325,18 @@ export default function Wilma() {
         return;
       }
       
-      // Role-based routing
-      if (data.role === 'admin' || data.role === 'teacher') {
-        setLocation('/wilma-admin');
+      // Role-based routing with return path support
+      const returnPath = localStorage.getItem('wilma_return_path');
+      
+      if (returnPath && returnPath !== '/wilma') {
+        localStorage.removeItem('wilma_return_path');
+        setLocation(returnPath);
+      } else if (data.role === 'admin' || data.role === 'teacher' || data.role === 'principal' || data.role === 'vice_principal') {
+        setLocation(`/wilma-admin/${data.id}/home`);
+      } else if (data.role === 'student') {
+        setLocation(`/wilma-student/${data.id}`);
       } else if (data.role === 'parent') {
-        setLocation(`/wilma/parent/${data.id}`);
+        setLocation(`/wilma-parent/${data.id}`);
       } else if (data.studentId) {
         setLocation(`/wilma/${data.studentId}`);
       }
@@ -368,11 +384,18 @@ export default function Wilma() {
       setNewPassword('');
       setConfirmNewPassword('');
       
-      // Role-based routing
-      if (updatedUser.role === 'admin' || updatedUser.role === 'teacher') {
-        setLocation('/wilma-admin');
+      // Role-based routing with return path support
+      const returnPath = localStorage.getItem('wilma_return_path');
+      
+      if (returnPath && returnPath !== '/wilma') {
+        localStorage.removeItem('wilma_return_path');
+        setLocation(returnPath);
+      } else if (updatedUser.role === 'admin' || updatedUser.role === 'teacher' || updatedUser.role === 'principal' || updatedUser.role === 'vice_principal') {
+        setLocation(`/wilma-admin/${updatedUser.id}/home`);
+      } else if (updatedUser.role === 'student') {
+        setLocation(`/wilma-student/${updatedUser.id}`);
       } else if (updatedUser.role === 'parent') {
-        setLocation(`/wilma/parent/${updatedUser.id}`);
+        setLocation(`/wilma-parent/${updatedUser.id}`);
       } else if (updatedUser.studentId) {
         setLocation(`/wilma/${updatedUser.studentId}`);
       }
