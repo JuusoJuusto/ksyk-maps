@@ -21,6 +21,7 @@ import WilmaHomework from "@/components/WilmaHomework";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
+import WilmaSettingsTab from "@/components/WilmaSettingsTab";
 import AdminHomeworkManager from "@/components/AdminHomeworkManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
@@ -343,25 +344,7 @@ export default function WilmaAdminNew() {
               </CardContent>
             </Card>
           )}
-          {activeSection === 'settings' && (
-            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
-                <CardTitle className="text-[#003d82] flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Asetukset
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Settings className="w-8 h-8 text-[#003d82]" />
-                  </div>
-                  <p className="text-gray-600 font-medium">Asetukset-ominaisuus tulossa pian...</p>
-                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {activeSection === 'settings' && <WilmaSettingsTab />}
         </div>
       </main>
 
