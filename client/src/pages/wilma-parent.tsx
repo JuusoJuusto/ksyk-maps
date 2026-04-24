@@ -81,9 +81,9 @@ export default function WilmaParent() {
   const currentChild = children.find(c => c.id === selectedChild);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden">
-      {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col shadow-lg ${
+    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
+      {/* Sidebar - Hidden on mobile, shown on desktop */}
+      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       }`}>
         {/* Logo & Brand */}
@@ -198,7 +198,46 @@ export default function WilmaParent() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <main className={`transition-all duration-300 md:${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+        {/* Mobile Header */}
+        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                <Baby className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Wilma</p>
+                <p className="text-xs text-purple-100">{currentUser.firstName}</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/20"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+          {/* Mobile Child Selector */}
+          {children.length > 0 && (
+            <div className="px-4 pb-3">
+              <select
+                value={selectedChild || ''}
+                onChange={(e) => setSelectedChild(e.target.value)}
+                className="w-full border-0 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                {children.map(child => (
+                  <option key={child.id} value={child.id}>
+                    {child.firstName} {child.lastName} ({child.class})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {/* Child Info Banner */}
           {currentChild && (
@@ -292,6 +331,41 @@ export default function WilmaParent() {
           )}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-50">
+        <div className="grid grid-cols-5 gap-1 px-2 py-2">
+          {[
+            { id: 'home', label: 'Koti', icon: Home },
+            { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
+            { id: 'grades', label: 'Arvosanat', icon: Award },
+            { id: 'messages', label: 'Viestit', icon: MessageSquare },
+            { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                <span className={`text-[10px] font-medium truncate w-full text-center ${
+                  isActive ? 'text-white' : 'text-gray-600'
+                }`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

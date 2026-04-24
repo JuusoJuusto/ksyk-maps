@@ -152,9 +152,9 @@ export default function WilmaAdminNew() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden">
-      {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex flex-col shadow-lg ${
+    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
+      {/* Sidebar - Hidden on mobile, shown on desktop */}
+      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       } md:${sidebarOpen ? 'w-64' : 'w-20'}`}>
         {/* Logo & Brand */}
@@ -249,9 +249,9 @@ export default function WilmaAdminNew() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'ml-64' : 'ml-16'} md:${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        {/* Top Bar */}
-        <header className="h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] flex items-center justify-between px-4 md:px-6 shadow-md">
+      <main className={`transition-all duration-300 min-h-screen md:${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+        {/* Top Bar - Desktop */}
+        <header className="hidden md:flex h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] items-center justify-between px-4 md:px-6 shadow-md">
           <div className="flex-1 min-w-0">
             <h1 className="text-base md:text-lg font-bold text-white truncate flex items-center gap-2">
               {filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma'}
@@ -272,6 +272,35 @@ export default function WilmaAdminNew() {
             <Button variant="ghost" size="sm" className="hover:bg-white/20 p-2 rounded-md hidden md:flex transition-all duration-200">
               <Search className="w-4 h-4 text-white" />
             </Button>
+          </div>
+        </header>
+
+        {/* Mobile Header */}
+        <header className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                <GraduationCap className="w-5 h-5 text-[#003d82]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Wilma</p>
+                <p className="text-xs text-blue-100">{currentUser.firstName}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="relative hover:bg-white/20 p-2 rounded-md">
+                <Bell className="w-5 h-5 text-white" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 p-2 rounded-md"
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -316,6 +345,41 @@ export default function WilmaAdminNew() {
           )}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-50">
+        <div className="grid grid-cols-5 gap-1 px-2 py-2">
+          {[
+            { id: 'home', label: 'Koti', icon: Home },
+            { id: 'students', label: 'Oppilaat', icon: Users },
+            { id: 'staff', label: 'Henkilöstö', icon: GraduationCap },
+            { id: 'messages', label: 'Viestit', icon: MessageSquare },
+            { id: 'settings', label: 'Asetukset', icon: Settings },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigateTo(item.id)}
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-br from-[#003d82] to-[#0052a3] text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                <span className={`text-[10px] font-medium truncate w-full text-center ${
+                  isActive ? 'text-white' : 'text-gray-600'
+                }`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
