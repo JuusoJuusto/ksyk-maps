@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   Calendar, BookOpen, Mail, Clock, 
   Award, CheckCircle, 
-  MessageSquare, FileText, BarChart3, Users
+  MessageSquare, FileText, BarChart3, Users, ExternalLink
 } from "lucide-react";
 
 interface WilmaHomeTabProps {
@@ -56,6 +56,27 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* School Website Link Banner */}
+      <Card className="border-2 border-[#003d82] bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-lg text-[#003d82] mb-1">Kulosaaren yhteiskoulu</h3>
+              <p className="text-sm text-gray-700">
+                Vieraile koulumme verkkosivuilla saadaksesi lisätietoja tapahtumista ja uutisista
+              </p>
+            </div>
+            <Button
+              onClick={() => window.open('https://ksyk.fi', '_blank')}
+              className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2 whitespace-nowrap"
+            >
+              <ExternalLink className="w-4 h-4" />
+              ksyk.fi
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-[#003d82] text-white border-0 rounded-lg shadow-md">

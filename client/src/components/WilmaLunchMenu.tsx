@@ -1,55 +1,77 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, ExternalLink, Calendar, Clock, Leaf, AlertCircle } from "lucide-react";
+import { UtensilsCrossed, ExternalLink, Calendar, Leaf, AlertCircle, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface MenuItem {
+  name: string;
+  diets?: string;
+  allergens?: string;
+}
+
+interface MenuDay {
+  date: string;
+  items: MenuItem[];
+}
 
 export default function WilmaLunchMenu() {
   const today = new Date();
-  const weekdays = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'];
+  const weekdays = ['Sunnuntai', 'Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai'];
   const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-  // Mock lunch menu data
-  const lunchMenu = [
-    {
-      day: 'Maanantai',
-      main: 'Lihapullat ja perunamuusi',
-      vegetarian: 'Kasvisjauheliha ja perunamuusi',
-      salad: 'Salaattipöytä',
-      dessert: 'Hedelmä',
-      allergens: ['Maito', 'Gluteeni']
+  // Fetch real lunch menu data from Compass Group API
+  const { data: menuData, isLoading, error } = useQuery({
+    queryKey: ['lunch-menu'],
+    queryFn: async () => {
+      const response = await fetch('https://www.compass-group.fi/menuapi/feed/json?costNumber=3026&language=fi');
+      if (!response.ok) throw new Error('Failed to fetch menu');
+      return await response.json();
     },
-    {
-      day: 'Tiistai',
-      main: 'Broilerkastike ja riisi',
-      vegetarian: 'Kasvis-currykastike ja riisi',
-      salad: 'Salaattipöytä',
-      dessert: 'Jogurtti',
-      allergens: ['Maito']
-    },
-    {
-      day: 'Keskiviikko',
-      main: 'Kalakeitto ja leipää',
-      vegetarian: 'Kasviskeitto ja leipää',
-      salad: 'Salaattipöytä',
-      dessert: 'Marjapuuro',
-      allergens: ['Kala', 'Maito', 'Gluteeni']
-    },
-    {
-      day: 'Torstai',
-      main: 'Spagetti ja jauhelihakastike',
-      vegetarian: 'Spagetti ja kasvisjauhelihakastike',
-      salad: 'Salaattipöytä',
-      dessert: 'Hedelmä',
-      allergens: ['Gluteeni', 'Maito']
-    },
-    {
-      day: 'Perjantai',
-      main: 'Lohikiusaus ja salaatti',
-      vegetarian: 'Kasvisgratiini ja salaatti',
-      salad: 'Salaattipöytä',
-      dessert: 'Jäätelö',
-      allergens: ['Kala', 'Maito']
-    }
-  ];
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    retry: 2
+  });
+
+  // Parse menu data
+  const parsedMenu: MenuDay[] = menuData?.menus?.[0]?.days || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#003d82] animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Ladataan ruokalistaa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !parsedMenu || parsedMenu.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Lounaslista</h2>
+            <p className="text-gray-600 mt-1">Kulosaaren yhteiskoulun ruokalista</p>
+          </div>
+          <Button
+            onClick={() => window.open('https://ksyk.fi', '_blank')}
+            className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Koulun verkkosivuille
+          </Button>
+        </div>
+        <Card className="border-2 border-red-200 bg-red-50">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-800 font-semibold">Ruokalistan lataus epäonnistui</p>
+            <p className="text-sm text-red-700 mt-2">Yritä myöhemmin uudelleen</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -68,31 +90,26 @@ export default function WilmaLunchMenu() {
         </Button>
       </div>
 
-      {/* Info Card */}
-      <Card className="border-2 border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Clock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-blue-900">Lounasaika</p>
-              <p className="text-sm text-blue-800 mt-1">
-                Lounas tarjoillaan klo 11:00-13:00 välisenä aikana. 
-                Muista noudattaa ruokailusääntöjä ja palauttaa astiat niille varattuun paikkaan.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Weekly Menu */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {lunchMenu.map((menu, idx) => {
-          const dayIndex = idx + 1; // Monday = 1
-          const isToday = currentDay === dayIndex;
-          
+        {parsedMenu.map((menuDay, idx) => {
+          const menuDate = new Date(menuDay.date);
+          const dayName = weekdays[menuDate.getDay()];
+          const isToday = menuDate.toDateString() === today.toDateString();
+          // Skip weekends
+          if (menuDate.getDay() === 0 || menuDate.getDay() === 6) return null;
+
+          // Get menu items
+          const mainDishes = menuDay.items.filter((item: MenuItem) => 
+            !item.diets?.includes('G') && !item.diets?.includes('VEG')
+          );
+          const vegetarianDishes = menuDay.items.filter((item: MenuItem) => 
+            item.diets?.includes('VEG') || item.diets?.includes('G')
+          );
+
           return (
             <Card 
-              key={menu.day} 
+              key={menuDay.date} 
               className={`border-2 transition-all ${
                 isToday 
                   ? 'border-green-500 shadow-lg scale-105' 
@@ -107,7 +124,7 @@ export default function WilmaLunchMenu() {
                 <CardTitle className="flex items-center justify-between text-base">
                   <span className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    {menu.day}
+                    {dayName} {menuDate.getDate()}.{menuDate.getMonth() + 1}.
                   </span>
                   {isToday && (
                     <span className="text-xs bg-white text-green-600 px-2 py-1 rounded-full font-bold">
@@ -117,47 +134,64 @@ export default function WilmaLunchMenu() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
-                {/* Main Course */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <UtensilsCrossed className="w-4 h-4 text-[#003d82]" />
-                    <p className="text-xs font-semibold text-gray-600">Pääruoka</p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900">{menu.main}</p>
-                </div>
-
-                {/* Vegetarian Option */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Leaf className="w-4 h-4 text-green-600" />
-                    <p className="text-xs font-semibold text-gray-600">Kasvisvaihtoehto</p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900">{menu.vegetarian}</p>
-                </div>
-
-                {/* Salad & Dessert */}
-                <div className="pt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-600">
-                    <span className="font-semibold">Lisäksi:</span> {menu.salad}, {menu.dessert}
-                  </p>
-                </div>
-
-                {/* Allergens */}
-                {menu.allergens.length > 0 && (
-                  <div className="pt-2 border-t border-gray-200">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-3 h-3 text-orange-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">Allergeenit:</p>
-                        <p className="text-xs text-gray-600">{menu.allergens.join(', ')}</p>
-                      </div>
+                {/* Main Dishes */}
+                {mainDishes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <UtensilsCrossed className="w-4 h-4 text-[#003d82]" />
+                      <p className="text-xs font-semibold text-gray-600">Pääruoka</p>
                     </div>
+                    {mainDishes.map((item: MenuItem, i: number) => (
+                      <div key={i} className="mb-2">
+                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                        {item.diets && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
+                )}
+
+                {/* Vegetarian Options */}
+                {vegetarianDishes.length > 0 && (
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf className="w-4 h-4 text-green-600" />
+                      <p className="text-xs font-semibold text-gray-600">Kasvisvaihtoehto</p>
+                    </div>
+                    {vegetarianDishes.map((item: MenuItem, i: number) => (
+                      <div key={i} className="mb-2">
+                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                        {item.diets && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Show all items if no categorization */}
+                {mainDishes.length === 0 && vegetarianDishes.length === 0 && menuDay.items.length > 0 && (
+                  <div>
+                    {menuDay.items.map((item: MenuItem, i: number) => (
+                      <div key={i} className="mb-2">
+                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                        {item.diets && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* No menu available */}
+                {menuDay.items.length === 0 && (
+                  <p className="text-sm text-gray-500 italic">Ei ruokalistaa saatavilla</p>
                 )}
               </CardContent>
             </Card>
           );
-        })}
+        }).filter(Boolean)}
       </div>
 
       {/* Additional Info */}
