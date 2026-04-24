@@ -21,7 +21,7 @@ import WilmaHomework from "@/components/WilmaHomework";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
-import WilmaSettingsTab from "@/components/WilmaSettingsTab";
+import WilmaAdminSettings from "@/components/WilmaAdminSettings";
 import AdminHomeworkManager from "@/components/AdminHomeworkManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
@@ -344,7 +344,7 @@ export default function WilmaAdminNew() {
               </CardContent>
             </Card>
           )}
-          {activeSection === 'settings' && <WilmaSettingsTab />}
+          {activeSection === 'settings' && <WilmaAdminSettings />}
         </div>
       </main>
 
