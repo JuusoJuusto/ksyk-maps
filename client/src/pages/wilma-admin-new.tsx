@@ -23,6 +23,8 @@ import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
 import WilmaAdminSettings from "@/components/WilmaAdminSettings";
 import AdminHomeworkManager from "@/components/AdminHomeworkManager";
+import NotificationCenter from "@/components/NotificationCenter";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
@@ -266,10 +268,7 @@ export default function WilmaAdminNew() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="relative hover:bg-white/20 p-2 rounded-md transition-all duration-200">
-              <Bell className="w-4 h-4 text-white" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            </Button>
+            <NotificationCenter userId={currentUser.id} />
             <Button variant="ghost" size="sm" className="hover:bg-white/20 p-2 rounded-md hidden md:flex transition-all duration-200">
               <Search className="w-4 h-4 text-white" />
             </Button>
@@ -289,10 +288,7 @@ export default function WilmaAdminNew() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="relative hover:bg-white/20 p-2 rounded-md">
-                <Bell className="w-5 h-5 text-white" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              </Button>
+              <NotificationCenter userId={currentUser.id} />
               <Button
                 onClick={handleLogout}
                 variant="ghost"
@@ -325,25 +321,7 @@ export default function WilmaAdminNew() {
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
-          {activeSection === 'reports' && (
-            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
-                <CardTitle className="text-[#003d82] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Raportit
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-8 h-8 text-[#003d82]" />
-                  </div>
-                  <p className="text-gray-600 font-medium">Raportit-ominaisuus tulossa pian...</p>
-                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {activeSection === 'reports' && <AnalyticsDashboard />}
           {activeSection === 'settings' && <WilmaAdminSettings />}
         </div>
       </main>
