@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Calendar, Leaf, AlertCircle, Loader2, RefreshCw } from "lucide-react";
@@ -14,8 +13,7 @@ interface MenuItem {
 
 export default function WilmaLunchMenu() {
   const today = new Date();
-  const weekdays = ['Sunnuntai', 'Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai'];
-  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const currentDay = today.getDay();
   const isWeekend = currentDay === 0 || currentDay === 6;
 
   // Fetch and parse XML lunch menu data (same as main lunch page)
@@ -116,68 +114,6 @@ export default function WilmaLunchMenu() {
           </Button>
         </CardContent>
       </Card>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-[#003d82] animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Ladataan ruokalistaa...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Find today's index
-  const todayIndex = parsedMenu.findIndex(item => {
-    const dateMatch = item.date.match(/(\d{2})-(\d{2})-(\d{4})/);
-    if (dateMatch) {
-      const itemDate = new Date(
-        parseInt(dateMatch[3]),
-        parseInt(dateMatch[2]) - 1,
-        parseInt(dateMatch[1])
-      );
-      return itemDate.toDateString() === today.toDateString();
-    }
-    return false;
-  });
-
-  if (error || !parsedMenu || parsedMenu.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Lounaslista</h2>
-            <p className="text-gray-600 mt-1">Amica - Kulis</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => refetch()}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Päivitä
-            </Button>
-            <Button
-              onClick={() => window.open('https://ksyk.fi', '_blank')}
-              className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Koulun sivuille
-            </Button>
-          </div>
-        </div>
-        <Card className="border-2 border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-800 font-semibold">Ruokalistan lataus epäonnistui</p>
-            <p className="text-sm text-red-700 mt-2">Yritä myöhemmin uudelleen</p>
-          </CardContent>
-        </Card>
-      </div>
     );
   }
 
@@ -312,64 +248,6 @@ export default function WilmaLunchMenu() {
           <p className="text-xs text-gray-600 text-center">
             Ruokalista tarjoaa Amica / Compass Group Finland
           </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-      {/* Additional Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-2 border-purple-200">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Leaf className="w-5 h-5 text-purple-600" />
-              Erityisruokavaliot
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-700">
-              Jos sinulla on erityisruokavalio (esim. laktoositon, gluteeniton, allergia), 
-              ilmoita siitä keittiöhenkilökunnalle. Voimme tarjota sinulle sopivan vaihtoehdon.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-orange-200">
-          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
-              Ruokahävikki
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-700">
-              Ota vain sen verran ruokaa kuin jaksat syödä. Yhdessä voimme vähentää ruokahävikkiä 
-              ja toimia ympäristöystävällisemmin. Kiitos!
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* External Link Card */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Lisätietoja koulusta</h3>
-              <p className="text-sm text-gray-700">
-                Vieraile koulumme verkkosivuilla saadaksesi lisätietoja tapahtumista, 
-                uutisista ja muista tärkeistä asioista.
-              </p>
-            </div>
-            <Button
-              onClick={() => window.open('https://ksyk.fi', '_blank')}
-              variant="outline"
-              className="border-[#003d82] text-[#003d82] hover:bg-[#003d82] hover:text-white flex items-center gap-2 whitespace-nowrap"
-            >
-              <ExternalLink className="w-4 h-4" />
-              ksyk.fi
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
