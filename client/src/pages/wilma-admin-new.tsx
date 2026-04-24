@@ -156,7 +156,7 @@ export default function WilmaAdminNew() {
       {/* Sidebar - Hidden on mobile, shown on desktop */}
       <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
-      } md:${sidebarOpen ? 'w-64' : 'w-20'}`}>
+      }`}>
         {/* Logo & Brand */}
         <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
           {sidebarOpen ? (
@@ -249,7 +249,7 @@ export default function WilmaAdminNew() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 min-h-screen md:${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
         {/* Top Bar - Desktop */}
         <header className="hidden md:flex h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] items-center justify-between px-4 md:px-6 shadow-md">
           <div className="flex-1 min-w-0">

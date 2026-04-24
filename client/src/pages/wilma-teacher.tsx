@@ -185,7 +185,7 @@ export default function WilmaTeacher() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 md:${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <main className={`transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg">
           <div className="flex items-center justify-between px-4 py-3">
