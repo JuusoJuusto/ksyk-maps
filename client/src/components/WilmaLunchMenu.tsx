@@ -1,39 +1,78 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, ExternalLink, Calendar, Leaf, AlertCircle, Loader2 } from "lucide-react";
+import { UtensilsCrossed, ExternalLink, Calendar, Leaf, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 interface MenuItem {
-  name: string;
-  diets?: string;
-  allergens?: string;
-}
-
-interface MenuDay {
   date: string;
-  items: MenuItem[];
+  dayName: string;
+  vegetarian: string;
+  regular: string;
+  dessert?: string;
 }
 
 export default function WilmaLunchMenu() {
   const today = new Date();
   const weekdays = ['Sunnuntai', 'Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai'];
   const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const isWeekend = currentDay === 0 || currentDay === 6;
 
-  // Fetch real lunch menu data from backend proxy (avoids CORS)
-  const { data: menuData, isLoading, error } = useQuery({
+  // Fetch and parse XML lunch menu data (same as main lunch page)
+  const { data: menuItems, isLoading, error, refetch } = useQuery({
     queryKey: ['lunch-menu'],
     queryFn: async () => {
       const response = await fetch('/api/lunch-menu');
       if (!response.ok) throw new Error('Failed to fetch menu');
-      return await response.json();
+      const text = await response.text();
+      
+      // Parse XML
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "text/xml");
+      const items = xml.querySelectorAll("item");
+      const parsedMenu: MenuItem[] = [];
+
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const title = item.querySelector("title")?.textContent || "";
+        const description = item.querySelector("description")?.textContent || "";
+        const dayName = title.split(",")[0] || "";
+
+        const lines = description
+          .split("<br>")
+          .map(line => line.replace(/<[^>]*>/g, "").trim())
+          .filter(line => line.length > 0);
+
+        let vegetarian = "";
+        let regular = "";
+        let dessert = "";
+
+        lines.forEach(line => {
+          if (line.includes("Kasvislounas:")) {
+            vegetarian = line.replace("Kasvislounas:", "").trim();
+          } else if (line.includes("Lounas:")) {
+            regular = line.replace("Lounas:", "").trim();
+          } else if (line.includes("Jälkiruoka:")) {
+            dessert = line.replace("Jälkiruoka:", "").trim();
+          }
+        });
+
+        parsedMenu.push({
+          date: title,
+          dayName,
+          vegetarian: vegetarian || "Ei saatavilla",
+          regular: regular || "Ei saatavilla",
+          dessert
+        });
+      }
+
+      return parsedMenu;
     },
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
     retry: 2
   });
 
-  // Parse menu data
-  const parsedMenu: MenuDay[] = menuData?.menus?.[0]?.days || [];
+  const parsedMenu = menuItems || [];
 
   if (isLoading) {
     return (
@@ -46,21 +85,45 @@ export default function WilmaLunchMenu() {
     );
   }
 
+  // Find today's index
+  const todayIndex = parsedMenu.findIndex(item => {
+    const dateMatch = item.date.match(/(\d{2})-(\d{2})-(\d{4})/);
+    if (dateMatch) {
+      const itemDate = new Date(
+        parseInt(dateMatch[3]),
+        parseInt(dateMatch[2]) - 1,
+        parseInt(dateMatch[1])
+      );
+      return itemDate.toDateString() === today.toDateString();
+    }
+    return false;
+  });
+
   if (error || !parsedMenu || parsedMenu.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Lounaslista</h2>
-            <p className="text-gray-600 mt-1">Kulosaaren yhteiskoulun ruokalista</p>
+            <p className="text-gray-600 mt-1">Amica - Kulis</p>
           </div>
-          <Button
-            onClick={() => window.open('https://ksyk.fi', '_blank')}
-            className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Koulun verkkosivuille
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Päivitä
+            </Button>
+            <Button
+              onClick={() => window.open('https://ksyk.fi', '_blank')}
+              className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Koulun sivuille
+            </Button>
+          </div>
         </div>
         <Card className="border-2 border-red-200 bg-red-50">
           <CardContent className="p-6 text-center">
@@ -79,119 +142,142 @@ export default function WilmaLunchMenu() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Lounaslista</h2>
-          <p className="text-gray-600 mt-1">Kulosaaren yhteiskoulun ruokalista</p>
+          <p className="text-gray-600 mt-1">Amica - Kulis</p>
         </div>
-        <Button
-          onClick={() => window.open('https://ksyk.fi', '_blank')}
-          className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Koulun verkkosivuille
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Päivitä
+          </Button>
+          <Button
+            onClick={() => window.open('https://ksyk.fi', '_blank')}
+            className="bg-[#003d82] hover:bg-[#0052a3] flex items-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Koulun sivuille
+          </Button>
+        </div>
       </div>
 
+      {/* Weekend Notice */}
+      {isWeekend && (
+        <Card className="border-2 border-blue-200 bg-blue-50">
+          <CardContent className="p-6 text-center">
+            <Calendar className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+            <p className="text-blue-800 font-semibold">Ravintola on suljettu viikonloppuisin</p>
+            <p className="text-sm text-blue-700 mt-2">Ruokalista on saatavilla maanantaista perjantaihin</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Today's Menu - Highlighted */}
+      {!isWeekend && todayIndex >= 0 && parsedMenu[todayIndex] && (
+        <Card className="border-4 border-orange-500 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
+          <CardHeader className="bg-orange-500 text-white">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Calendar className="w-6 h-6" />
+                Tänään
+              </span>
+              <span className="bg-white text-orange-600 text-sm px-3 py-1 rounded-full font-bold">
+                {parsedMenu[todayIndex].dayName}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="bg-white rounded-lg p-4 shadow-md border-2 border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Leaf className="w-5 h-5 text-green-600" />
+                <h3 className="font-bold text-lg text-green-700">Kasvislounas</h3>
+              </div>
+              <p className="text-gray-800 text-base leading-relaxed">
+                {parsedMenu[todayIndex].vegetarian}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-md border-2 border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <UtensilsCrossed className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-lg text-blue-700">Lounas</h3>
+              </div>
+              <p className="text-gray-800 text-base leading-relaxed">
+                {parsedMenu[todayIndex].regular}
+              </p>
+            </div>
+            {parsedMenu[todayIndex].dessert && (
+              <div className="bg-white rounded-lg p-4 shadow-md border-2 border-pink-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">🍰</span>
+                  <h3 className="font-bold text-lg text-pink-700">Jälkiruoka</h3>
+                </div>
+                <p className="text-gray-800 text-base leading-relaxed">
+                  {parsedMenu[todayIndex].dessert}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Weekly Menu */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {parsedMenu.map((menuDay, idx) => {
-          const menuDate = new Date(menuDay.date);
-          const dayName = weekdays[menuDate.getDay()];
-          const isToday = menuDate.toDateString() === today.toDateString();
-          // Skip weekends
-          if (menuDate.getDay() === 0 || menuDate.getDay() === 6) return null;
+      <div>
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-blue-600" />
+          Viikon ruokalista
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {parsedMenu.map((item, index) => {
+            const isToday = index === todayIndex;
+            const dayColors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500"];
+            const dayColor = dayColors[index % dayColors.length];
 
-          // Get menu items
-          const mainDishes = menuDay.items.filter((item: MenuItem) => 
-            !item.diets?.includes('G') && !item.diets?.includes('VEG')
-          );
-          const vegetarianDishes = menuDay.items.filter((item: MenuItem) => 
-            item.diets?.includes('VEG') || item.diets?.includes('G')
-          );
-
-          return (
-            <Card 
-              key={menuDay.date} 
-              className={`border-2 transition-all ${
-                isToday 
-                  ? 'border-green-500 shadow-lg scale-105' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <CardHeader className={`${
-                isToday 
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                  : 'bg-gradient-to-r from-gray-50 to-gray-100'
-              }`}>
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {dayName} {menuDate.getDate()}.{menuDate.getMonth() + 1}.
-                  </span>
-                  {isToday && (
-                    <span className="text-xs bg-white text-green-600 px-2 py-1 rounded-full font-bold">
-                      TÄNÄÄN
-                    </span>
+            return (
+              <Card 
+                key={index} 
+                className={`transition-all hover:shadow-xl ${
+                  isToday ? 'ring-4 ring-orange-400 shadow-lg' : 'hover:scale-105'
+                }`}
+              >
+                <CardHeader className={`${dayColor} text-white`}>
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <span>{item.dayName}</span>
+                    {isToday && (
+                      <span className="text-xs bg-white text-orange-600 px-2 py-1 rounded-full font-bold">
+                        TÄNÄÄN
+                      </span>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-white/90">{item.date.split(",")[1]?.trim()}</p>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  <div>
+                    <p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">
+                      <Leaf className="h-3 w-3" />
+                      Kasvis
+                    </p>
+                    <p className="text-sm text-gray-700">{item.vegetarian}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-700 mb-1 flex items-center gap-1">
+                      <UtensilsCrossed className="h-3 w-3" />
+                      Lounas
+                    </p>
+                    <p className="text-sm text-gray-700">{item.regular}</p>
+                  </div>
+                  {item.dessert && (
+                    <div>
+                      <p className="text-xs font-bold text-pink-700 mb-1">🍰 Jälkiruoka</p>
+                      <p className="text-sm text-gray-700">{item.dessert}</p>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                {/* Main Dishes */}
-                {mainDishes.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <UtensilsCrossed className="w-4 h-4 text-[#003d82]" />
-                      <p className="text-xs font-semibold text-gray-600">Pääruoka</p>
-                    </div>
-                    {mainDishes.map((item: MenuItem, i: number) => (
-                      <div key={i} className="mb-2">
-                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
-                        {item.diets && (
-                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Vegetarian Options */}
-                {vegetarianDishes.length > 0 && (
-                  <div className="pt-2 border-t border-gray-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Leaf className="w-4 h-4 text-green-600" />
-                      <p className="text-xs font-semibold text-gray-600">Kasvisvaihtoehto</p>
-                    </div>
-                    {vegetarianDishes.map((item: MenuItem, i: number) => (
-                      <div key={i} className="mb-2">
-                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
-                        {item.diets && (
-                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Show all items if no categorization */}
-                {mainDishes.length === 0 && vegetarianDishes.length === 0 && menuDay.items.length > 0 && (
-                  <div>
-                    {menuDay.items.map((item: MenuItem, i: number) => (
-                      <div key={i} className="mb-2">
-                        <p className="text-sm font-semibold text-gray-900">{item.name}</p>
-                        {item.diets && (
-                          <p className="text-xs text-gray-500 mt-0.5">{item.diets}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* No menu available */}
-                {menuDay.items.length === 0 && (
-                  <p className="text-sm text-gray-500 italic">Ei ruokalistaa saatavilla</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        }).filter(Boolean)}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* Additional Info */}

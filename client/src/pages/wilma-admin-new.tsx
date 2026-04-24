@@ -142,7 +142,7 @@ export default function WilmaAdminNew() {
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
     { id: 'reports', label: 'Raportit', icon: TrendingUp },
     { id: 'support', label: 'Tuki', icon: MessageSquare },
-    { id: 'settings', label: 'Asetukset', icon: Settings },
+    { id: 'settings', label: 'Asetukset', icon: Settings, adminOnly: true },
   ];
 
   const filteredNavItems = navigationItems.filter(item => {
@@ -324,6 +324,25 @@ export default function WilmaAdminNew() {
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
+          {activeSection === 'reports' && (
+            <Card className="shadow-lg border-[#dddddd] animate-slideUp">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
+                <CardTitle className="text-[#003d82] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Raportit
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-8 h-8 text-[#003d82]" />
+                  </div>
+                  <p className="text-gray-600 font-medium">Raportit-ominaisuus tulossa pian...</p>
+                  <p className="text-sm text-gray-400 mt-2">Tämä ominaisuus on kehitteillä</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {activeSection === 'settings' && (
             <Card className="shadow-lg border-[#dddddd] animate-slideUp">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
