@@ -12,7 +12,7 @@ import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import ClassesManager from "@/components/ClassesManager";
 import CourseManager from "@/components/CourseManager";
-import SubstituteTeacherMode from "@/components/SubstituteTeacherMode";
+import EnhancedSubstituteSystem from "@/components/EnhancedSubstituteSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
 import { 
@@ -211,7 +211,7 @@ export default function WilmaTeacher() {
 
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
           {activeSection === 'home' && <WilmaHomeTab userRole="teacher" userRoles={['teacher']} />}
-          {activeSection === 'substitute' && <SubstituteTeacherMode />}
+          {activeSection === 'substitute' && <EnhancedSubstituteSystem />}
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'journal' && <WilmaLessonJournal />}
           {activeSection === 'classes' && <ClassesManager />}
