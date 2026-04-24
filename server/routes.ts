@@ -2202,8 +2202,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch class students" });
     }
   });
-    }
-  });
 
   app.put('/api/wilma/classes/:id', isAuthenticated, async (req: any, res) => {
     try {
