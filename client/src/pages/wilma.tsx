@@ -651,65 +651,11 @@ export default function Wilma() {
         )}
       </div>
     );
-  }kaaksesi.'
-                    : 'You must change your temporary password to continue.'}
-                </p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-bold">
-                      {language === 'fi' ? 'Uusi salasana' : 'New Password'}
-                    </Label>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder={language === 'fi' ? 'Vähintään 6 merkkiä' : 'Minimum 6 characters'}
-                      required
-                      className="mt-2 h-12"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-bold">
-                      {language === 'fi' ? 'Vahvista salasana' : 'Confirm Password'}
-                    </Label>
-                    <Input
-                      type="password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder={language === 'fi' ? 'Kirjoita salasana uudelleen' : 'Re-enter password'}
-                      required
-                      className="mt-2 h-12"
-                    />
-                  </div>
-                  
-                  {passwordChangeError && (
-                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium text-sm">{passwordChangeError}</span>
-                    </div>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#0066cc] text-white text-lg font-bold"
-                  >
-                    {language === 'fi' ? 'Vaihda salasana' : 'Change Password'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+  }
 
-        {/* Logout Confirmation Dialog */}
-        {showLogoutConfirm && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-2 border-red-500">
-              <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-                <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                  <LogOut className="w-6 h-6" />
+  // If logged in, redirect to appropriate page
+  return null;
+}
                   {language === 'fi' ? 'Kirjaudu ulos' : 'Logout'}
                 </CardTitle>
               </CardHeader>
