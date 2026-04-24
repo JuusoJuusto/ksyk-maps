@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 
 interface WilmaSettingsTabProps {
   userRole: 'student' | 'teacher' | 'parent';
@@ -80,6 +81,9 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
               setCompactView(settings.compactView ?? false);
               setFontSize(settings.fontSize || "medium");
               setLanguage(settings.language || "fi");
+              
+              // Apply font size and compact view
+              applyAppearanceSettings(settings.fontSize || "medium", settings.compactView ?? false);
               return;
             }
           }
@@ -107,12 +111,38 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
           setCompactView(settings.compactView ?? false);
           setFontSize(settings.fontSize || "medium");
           setLanguage(settings.language || "fi");
+          
+          // Apply font size and compact view
+          applyAppearanceSettings(settings.fontSize || "medium", settings.compactView ?? false);
         }
       };
 
       loadSettings();
     }
   }, []);
+
+  // Apply appearance settings to document
+  const applyAppearanceSettings = (fontSize: string, compactView: boolean) => {
+    // Apply font size
+    const root = document.documentElement;
+    switch (fontSize) {
+      case 'small':
+        root.style.fontSize = '14px';
+        break;
+      case 'large':
+        root.style.fontSize = '18px';
+        break;
+      default:
+        root.style.fontSize = '16px';
+    }
+
+    // Apply compact view
+    if (compactView) {
+      root.classList.add('compact-view');
+    } else {
+      root.classList.remove('compact-view');
+    }
+  };
 
   const saveSettings = async () => {
     if (!currentUser) return;
@@ -138,6 +168,9 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
 
     // Save to localStorage
     localStorage.setItem(`wilma_settings_${currentUser.id}`, JSON.stringify(settings));
+
+    // Apply appearance settings immediately
+    applyAppearanceSettings(fontSize, compactView);
 
     // Save to backend (if available)
     try {
@@ -216,6 +249,9 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
             {/* Profile Tab */}
             <TabsContent value="profile" className="space-y-6">
               <div className="space-y-4">
+                {/* Profile Picture Upload */}
+                <ProfilePictureUpload currentUser={currentUser} />
+
                 <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
                   <div className="w-16 h-16 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
                     {currentUser.firstName[0]}{currentUser.lastName[0]}
