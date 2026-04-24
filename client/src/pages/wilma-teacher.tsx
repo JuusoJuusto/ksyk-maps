@@ -16,6 +16,7 @@ import EnhancedSubstituteSystem from "@/components/EnhancedSubstituteSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
 import WilmaSettingsTab from "@/components/WilmaSettingsTab";
+import NotificationCenter from "@/components/NotificationCenter";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, 
@@ -199,14 +200,17 @@ export default function WilmaTeacher() {
                 <p className="text-xs text-green-100">{currentUser.firstName}</p>
               </div>
             </div>
-            <Button
-              onClick={handleLogout}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/20"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <NotificationCenter userId={currentUser.id} />
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20"
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
 
