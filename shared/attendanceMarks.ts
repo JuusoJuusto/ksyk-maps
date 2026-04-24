@@ -368,6 +368,56 @@ export function getMarksByCategory(category: AttendanceMark['category']): Attend
   return ATTENDANCE_MARKS.filter(mark => mark.category === category);
 }
 
+// Helper function to get mark color for display
+export function getMarkColor(markType: string): string {
+  const mark = ATTENDANCE_MARKS.find(m => m.id === markType);
+  if (!mark) return 'bg-gray-100 text-gray-800';
+  
+  // Convert hex colors to Tailwind-like classes
+  if (mark.bgColor === '#FF0000') return 'bg-red-500 text-white';
+  if (mark.bgColor === '#FFB6C1') return 'bg-pink-300 text-gray-900';
+  if (mark.bgColor === '#FFA500') return 'bg-orange-400 text-gray-900';
+  if (mark.bgColor === '#00FFFF') return 'bg-cyan-400 text-gray-900';
+  if (mark.bgColor === '#ADD8E6') return 'bg-blue-300 text-gray-900';
+  if (mark.bgColor === '#00FF00') return 'bg-green-400 text-gray-900';
+  if (mark.bgColor === '#006400') return 'bg-green-700 text-white';
+  if (mark.bgColor === '#90EE90') return 'bg-green-300 text-gray-900';
+  if (mark.bgColor === '#FF00FF') return 'bg-fuchsia-500 text-white';
+  if (mark.bgColor === '#8B4513') return 'bg-amber-700 text-white';
+  if (mark.bgColor === '#FFFF00') return 'bg-yellow-300 text-gray-900';
+  if (mark.bgColor === '#D3D3D3') return 'bg-gray-300 text-gray-900';
+  if (mark.bgColor === '#ffffff') return 'bg-white text-gray-900 border border-gray-300';
+  
+  return 'bg-gray-100 text-gray-800';
+}
+
+// Helper function to get mark label
+export function getMarkLabel(markType: string): string {
+  const mark = ATTENDANCE_MARKS.find(m => m.id === markType);
+  return mark ? mark.label : markType;
+}
+
+// Simplified mark codes for Wilma-style display
+export const WILMA_MARK_CODES: Record<string, { label: string; color: string }> = {
+  'P': { label: 'Läsnä', color: 'bg-white text-gray-900 border border-gray-300' },
+  'M': { label: 'Myöhässä', color: 'bg-pink-300 text-gray-900' },
+  'M+': { label: 'Myöhässä yli 15 min', color: 'bg-orange-400 text-gray-900' },
+  'S': { label: 'Selvittämätön', color: 'bg-red-500 text-white' },
+  'SPe1': { label: 'Ennalta anottu 1h', color: 'bg-green-400 text-gray-900' },
+  'SPe2': { label: 'Ennalta anottu 2h', color: 'bg-green-400 text-gray-900' },
+  'SPe': { label: 'Ennalta anottu', color: 'bg-green-400 text-gray-900' },
+  'SM': { label: 'Opetus muualla', color: 'bg-cyan-400 text-gray-900' },
+  'SKT': { label: 'Koulun toiminta', color: 'bg-blue-300 text-gray-900' },
+  'ST': { label: 'Terveydellinen', color: 'bg-green-700 text-white' },
+  'SKS': { label: 'Koulu selvittänyt', color: 'bg-green-300 text-gray-900' },
+  'SMU': { label: 'Muu selvitetty', color: 'bg-green-300 text-gray-900' },
+  'L': { label: 'Luvaton', color: 'bg-fuchsia-500 text-white' },
+  'Pois': { label: 'Poistettu', color: 'bg-amber-700 text-white' },
+  'KKu': { label: 'Kotitehtävät tekemättä', color: 'bg-gray-300 text-gray-900' },
+  'T': { label: 'Tiedoksi', color: 'bg-pink-300 text-gray-900' },
+  'H': { label: 'Hyvä', color: 'bg-yellow-300 text-gray-900' },
+};
+
 // Color chart for visualization
 export const ATTENDANCE_COLOR_CHART = {
   present: { label: 'Läsnä', color: '#ffffff', count: 1 },

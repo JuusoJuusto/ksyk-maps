@@ -7,6 +7,7 @@ import WilmaTimetable from "@/components/WilmaTimetable";
 import WilmaGrades from "@/components/WilmaGrades";
 import WilmaHomework from "@/components/WilmaHomework";
 import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
+import WilmaAttendanceCalendar from "@/components/WilmaAttendanceCalendar";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import ClassesManager from "@/components/ClassesManager";
@@ -194,7 +195,7 @@ export default function WilmaTeacher() {
           {activeSection === 'courses' && <CourseManager />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <WilmaHomework />}
-          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
+          {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="teacher" />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}

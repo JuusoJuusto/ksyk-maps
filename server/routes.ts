@@ -3868,6 +3868,35 @@ https://ksykmaps.vercel.app
   });
 
   // ============================================
+  // LUNCH MENU PROXY (CORS FIX)
+  // ============================================
+  
+  // Proxy lunch menu API to avoid CORS issues
+  app.get('/api/lunch-menu', async (req, res) => {
+    try {
+      const response = await fetch('https://www.compass-group.fi/menuapi/feed/json?costNumber=3026&language=fi');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch menu: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Set CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      
+      res.json(data);
+    } catch (error) {
+      await logError(error, 'GET /api/lunch-menu');
+      res.status(500).json({ 
+        message: 'Failed to fetch lunch menu',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // ============================================
   // REGISTER WILMA EXTENDED ROUTES
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');

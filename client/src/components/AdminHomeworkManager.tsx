@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
   FileText, Search, Filter, Edit, Trash2, Eye, 
-  CheckCircle, Clock, XCircle, Award, Calendar, User
+  CheckCircle, Clock, XCircle, Award, Calendar, User, Users
 } from "lucide-react";
 
 interface Homework {

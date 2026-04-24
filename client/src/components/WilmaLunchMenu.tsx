@@ -20,11 +20,11 @@ export default function WilmaLunchMenu() {
   const weekdays = ['Sunnuntai', 'Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai'];
   const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-  // Fetch real lunch menu data from Compass Group API
+  // Fetch real lunch menu data from backend proxy (avoids CORS)
   const { data: menuData, isLoading, error } = useQuery({
     queryKey: ['lunch-menu'],
     queryFn: async () => {
-      const response = await fetch('https://www.compass-group.fi/menuapi/feed/json?costNumber=3026&language=fi');
+      const response = await fetch('/api/lunch-menu');
       if (!response.ok) throw new Error('Failed to fetch menu');
       return await response.json();
     },

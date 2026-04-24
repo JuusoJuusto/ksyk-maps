@@ -7,6 +7,7 @@ import WilmaTimetable from "@/components/WilmaTimetable";
 import WilmaGrades from "@/components/WilmaGrades";
 import WilmaHomework from "@/components/WilmaHomework";
 import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
+import WilmaAttendanceCalendar from "@/components/WilmaAttendanceCalendar";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
@@ -182,7 +183,7 @@ export default function WilmaStudent() {
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <WilmaHomework />}
-          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
+          {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="student" />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
