@@ -10,6 +10,7 @@ import {
   Save, Eye, EyeOff, Mail, Phone, MapPin, Calendar
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface WilmaSettingsTabProps {
   userRole: 'student' | 'teacher' | 'parent';
@@ -17,6 +18,7 @@ interface WilmaSettingsTabProps {
 
 export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,8 +42,7 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
 
-  // Appearance settings
-  const [darkMode, setDarkMode] = useState(false);
+  // Appearance settings - removed local darkMode state, using theme context
   const [compactView, setCompactView] = useState(false);
   const [fontSize, setFontSize] = useState("medium");
 
@@ -55,32 +56,65 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
       setCurrentUser(user);
       setEmail(user.email || "");
       
-      // Load saved settings from localStorage
-      const savedSettings = localStorage.getItem(`wilma_settings_${user.id}`);
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        setPhone(settings.phone || "");
-        setAddress(settings.address || "");
-        setEmergencyContact(settings.emergencyContact || "");
-        setEmergencyPhone(settings.emergencyPhone || "");
-        setEmailNotifications(settings.emailNotifications ?? true);
-        setPushNotifications(settings.pushNotifications ?? true);
-        setGradeNotifications(settings.gradeNotifications ?? true);
-        setHomeworkNotifications(settings.homeworkNotifications ?? true);
-        setAttendanceNotifications(settings.attendanceNotifications ?? true);
-        setMessageNotifications(settings.messageNotifications ?? true);
-        setProfileVisibility(settings.profileVisibility || "school");
-        setShowEmail(settings.showEmail ?? false);
-        setShowPhone(settings.showPhone ?? false);
-        setDarkMode(settings.darkMode ?? false);
-        setCompactView(settings.compactView ?? false);
-        setFontSize(settings.fontSize || "medium");
-        setLanguage(settings.language || "fi");
-      }
+      // Load saved settings from backend first, then fallback to localStorage
+      const loadSettings = async () => {
+        try {
+          const response = await fetch(`/api/wilma/user-settings/${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.settings) {
+              const settings = data.settings;
+              setPhone(settings.phone || "");
+              setAddress(settings.address || "");
+              setEmergencyContact(settings.emergencyContact || "");
+              setEmergencyPhone(settings.emergencyPhone || "");
+              setEmailNotifications(settings.emailNotifications ?? true);
+              setPushNotifications(settings.pushNotifications ?? true);
+              setGradeNotifications(settings.gradeNotifications ?? true);
+              setHomeworkNotifications(settings.homeworkNotifications ?? true);
+              setAttendanceNotifications(settings.attendanceNotifications ?? true);
+              setMessageNotifications(settings.messageNotifications ?? true);
+              setProfileVisibility(settings.profileVisibility || "school");
+              setShowEmail(settings.showEmail ?? false);
+              setShowPhone(settings.showPhone ?? false);
+              setCompactView(settings.compactView ?? false);
+              setFontSize(settings.fontSize || "medium");
+              setLanguage(settings.language || "fi");
+              return;
+            }
+          }
+        } catch (error) {
+          console.log('Failed to load settings from backend, using localStorage');
+        }
+
+        // Fallback to localStorage
+        const savedSettings = localStorage.getItem(`wilma_settings_${user.id}`);
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          setPhone(settings.phone || "");
+          setAddress(settings.address || "");
+          setEmergencyContact(settings.emergencyContact || "");
+          setEmergencyPhone(settings.emergencyPhone || "");
+          setEmailNotifications(settings.emailNotifications ?? true);
+          setPushNotifications(settings.pushNotifications ?? true);
+          setGradeNotifications(settings.gradeNotifications ?? true);
+          setHomeworkNotifications(settings.homeworkNotifications ?? true);
+          setAttendanceNotifications(settings.attendanceNotifications ?? true);
+          setMessageNotifications(settings.messageNotifications ?? true);
+          setProfileVisibility(settings.profileVisibility || "school");
+          setShowEmail(settings.showEmail ?? false);
+          setShowPhone(settings.showPhone ?? false);
+          setCompactView(settings.compactView ?? false);
+          setFontSize(settings.fontSize || "medium");
+          setLanguage(settings.language || "fi");
+        }
+      };
+
+      loadSettings();
     }
   }, []);
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     if (!currentUser) return;
 
     const settings = {
@@ -97,18 +131,50 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
       profileVisibility,
       showEmail,
       showPhone,
-      darkMode,
       compactView,
       fontSize,
       language
     };
 
+    // Save to localStorage
     localStorage.setItem(`wilma_settings_${currentUser.id}`, JSON.stringify(settings));
 
-    toast({
-      title: "Asetukset tallennettu",
-      description: "Asetuksesi on päivitetty onnistuneesti.",
-    });
+    // Save to backend (if available)
+    try {
+      const response = await fetch('/api/wilma/user-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          settings
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Asetukset tallennettu",
+          description: "Asetuksesi on päivitetty onnistuneesti palvelimelle.",
+        });
+      } else {
+        throw new Error('Failed to save to server');
+      }
+    } catch (error) {
+      // Fallback to localStorage only
+      toast({
+        title: "Asetukset tallennettu paikallisesti",
+        description: "Asetuksesi on tallennettu laitteellesi.",
+      });
+    }
+
+    // Apply language change if needed
+    if (language !== 'fi') {
+      toast({
+        title: "Kieli vaihdettu",
+        description: "Lataa sivu uudelleen ottaaksesi kieliasetukset käyttöön.",
+      });
+    }
   };
 
   if (!currentUser) return null;
@@ -354,8 +420,14 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
                     <p className="text-sm text-gray-600">Käytä tummaa teemaa</p>
                   </div>
                   <Switch
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
+                    checked={theme === 'dark' || theme === 'neon'}
+                    onCheckedChange={(checked) => {
+                      setTheme(checked ? 'dark' : 'light');
+                      toast({
+                        title: checked ? "Tumma tila käytössä" : "Vaalea tila käytössä",
+                        description: "Teema vaihdettu onnistuneesti.",
+                      });
+                    }}
                   />
                 </div>
 
@@ -381,6 +453,27 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
                     <option value="small">Pieni</option>
                     <option value="medium">Keskikokoinen</option>
                     <option value="large">Suuri</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="theme-mode">Teematila</Label>
+                  <select
+                    id="theme-mode"
+                    value={theme}
+                    onChange={(e) => {
+                      setTheme(e.target.value as 'light' | 'dark' | 'neon' | 'system');
+                      toast({
+                        title: "Teema vaihdettu",
+                        description: `${e.target.value === 'light' ? 'Vaalea' : e.target.value === 'dark' ? 'Tumma' : e.target.value === 'neon' ? 'Neon' : 'Järjestelmä'} teema käytössä.`,
+                      });
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="light">Vaalea</option>
+                    <option value="dark">Tumma</option>
+                    <option value="system">Järjestelmän mukaan</option>
+                    {theme === 'neon' && <option value="neon">Neon (Erikoistila)</option>}
                   </select>
                 </div>
               </div>

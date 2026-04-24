@@ -1438,6 +1438,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User settings endpoint
+  app.post('/api/wilma/user-settings', async (req, res) => {
+    try {
+      const { userId, settings } = req.body;
+      
+      if (!userId || !settings) {
+        return res.status(400).json({ message: "Missing userId or settings" });
+      }
+
+      // Save settings to Firestore
+      const settingsRef = db.collection('wilma_user_settings').doc(userId);
+      await settingsRef.set({
+        ...settings,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      console.log(`✅ Settings saved for user ${userId}`);
+      res.json({ success: true, message: "Settings saved successfully" });
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/user-settings', { userId: req.body.userId });
+      res.status(500).json({ message: "Failed to save settings" });
+    }
+  });
+
+  app.get('/api/wilma/user-settings/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const settingsRef = db.collection('wilma_user_settings').doc(userId);
+      const doc = await settingsRef.get();
+
+      if (!doc.exists) {
+        return res.json({ settings: null });
+      }
+
+      res.json({ settings: doc.data() });
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/user-settings/:userId', { userId: req.params.userId });
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
   // Bulk send welcome emails
   app.post('/api/wilma/send-bulk-emails', isAuthenticated, async (req: any, res) => {
     try {
