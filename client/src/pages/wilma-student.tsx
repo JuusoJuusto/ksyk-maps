@@ -11,6 +11,7 @@ import WilmaAttendanceCalendar from "@/components/WilmaAttendanceCalendar";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
+import WilmaSettingsTab from "@/components/WilmaSettingsTab";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, User, UtensilsCrossed
@@ -223,19 +224,7 @@ export default function WilmaStudent() {
               </CardContent>
             </Card>
           )}
-          {activeSection === 'settings' && (
-            <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                  <Settings className="w-6 h-6" />
-                  Asetukset
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-gray-600">Asetukset-osio tulossa pian...</p>
-              </CardContent>
-            </Card>
-          )}
+          {activeSection === 'settings' && <WilmaSettingsTab userRole="student" />}
         </div>
       </main>
 
