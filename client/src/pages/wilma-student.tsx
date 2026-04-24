@@ -80,7 +80,7 @@ export default function WilmaStudent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
       {/* Sidebar - Hidden on mobile, shown on desktop */}
-      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-50 flex-col shadow-lg ${
+      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       }`}>
         {/* Logo & Brand */}
@@ -240,7 +240,7 @@ export default function WilmaStudent() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-40">
         <div className="grid grid-cols-5 gap-1 px-2 py-2">
           {[
             { id: 'home', label: 'Koti', icon: Home },
