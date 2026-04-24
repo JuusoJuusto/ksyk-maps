@@ -20,10 +20,12 @@ import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
 import WilmaHomework from "@/components/WilmaHomework";
 import WilmaLessonJournal from "@/components/WilmaLessonJournal";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
+import WilmaLunchMenu from "@/components/WilmaLunchMenu";
+import AdminHomeworkManager from "@/components/AdminHomeworkManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
-  MessageSquare, FileText, Search, Menu, Award, TrendingUp
+  MessageSquare, FileText, Search, Menu, Award, TrendingUp, UtensilsCrossed
 } from "lucide-react";
 
 export default function WilmaAdminNew() {
@@ -135,7 +137,9 @@ export default function WilmaAdminNew() {
     { id: 'staff', label: 'Henkilökunta', icon: GraduationCap, adminOnly: true },
     { id: 'classes', label: 'Luokat', icon: Users, adminOnly: true },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
+    { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
+    { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
     { id: 'reports', label: 'Raportit', icon: TrendingUp },
     { id: 'support', label: 'Tuki', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings },
@@ -287,7 +291,9 @@ export default function WilmaAdminNew() {
           {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'classes' && <ClassesManager />}
           {activeSection === 'courses' && <CourseManager />}
+          {activeSection === 'homework' && <AdminHomeworkManager />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'settings' && (
             <Card className="shadow-lg border-[#dddddd] animate-slideUp">

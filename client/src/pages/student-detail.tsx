@@ -18,6 +18,23 @@ export default function StudentDetail() {
   const adminId = params?.adminId;
   const studentId = params?.studentId;
 
+  // CRITICAL FIX: Preserve user session when viewing student details
+  // This prevents logout when returning from student profile
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Check and preserve authentication
+  useState(() => {
+    const storedUser = localStorage.getItem('wilma_user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+      } catch (err) {
+        console.error('Failed to parse stored user:', err);
+      }
+    }
+  });
+
   // Fetch student data
   const { data: student, isLoading, error } = useQuery({
     queryKey: ["student-detail", studentId],
