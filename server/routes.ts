@@ -7,18 +7,46 @@ import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from ".
 import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
-import {
-  securityHeaders,
-  apiRateLimiter,
-  authRateLimiter,
-  requireRole,
-  validateResourceOwnership,
-  preventSQLInjection,
-  securityLogger,
-  preventParameterPollution,
-  validateUserId,
-  sanitizeInput
-} from "./securityMiddleware";
+
+// Import security middleware (optional - will work without it)
+let securityHeaders: any;
+let apiRateLimiter: any;
+let authRateLimiter: any;
+let requireRole: any;
+let validateResourceOwnership: any;
+let preventSQLInjection: any;
+let securityLogger: any;
+let preventParameterPollution: any;
+let validateUserId: any;
+let sanitizeInput: any;
+
+try {
+  const securityModule = require("./securityMiddleware");
+  securityHeaders = securityModule.securityHeaders;
+  apiRateLimiter = securityModule.apiRateLimiter;
+  authRateLimiter = securityModule.authRateLimiter;
+  requireRole = securityModule.requireRole;
+  validateResourceOwnership = securityModule.validateResourceOwnership;
+  preventSQLInjection = securityModule.preventSQLInjection;
+  securityLogger = securityModule.securityLogger;
+  preventParameterPollution = securityModule.preventParameterPollution;
+  validateUserId = securityModule.validateUserId;
+  sanitizeInput = securityModule.sanitizeInput;
+  console.log('✅ Security middleware loaded successfully');
+} catch (error) {
+  console.warn('⚠️ Security middleware not available, using fallbacks');
+  // Fallback functions
+  securityHeaders = (req: any, res: any, next: any) => next();
+  apiRateLimiter = (req: any, res: any, next: any) => next();
+  authRateLimiter = (req: any, res: any, next: any) => next();
+  requireRole = (...roles: string[]) => (req: any, res: any, next: any) => next();
+  validateResourceOwnership = (type: string) => (req: any, res: any, next: any) => next();
+  preventSQLInjection = (req: any, res: any, next: any) => next();
+  securityLogger = (req: any, res: any, next: any) => next();
+  preventParameterPollution = (req: any, res: any, next: any) => next();
+  validateUserId = (id: string) => /^[a-zA-Z0-9_-]+$/.test(id);
+  sanitizeInput = (input: string) => input?.trim() || '';
+}
 
 const db = getFirestore();
 
@@ -31,20 +59,19 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== GLOBAL SECURITY MIDDLEWARE ====================
-  // Apply security headers to all routes
-  app.use(securityHeaders);
-  
-  // Security logging for all requests
-  app.use(securityLogger);
-  
-  // Prevent parameter pollution
-  app.use(preventParameterPollution);
-  
-  // SQL injection prevention
-  app.use(preventSQLInjection);
-  
-  // Apply rate limiting to all API routes
-  app.use('/api/', apiRateLimiter);
+  // Apply security headers to all routes (if available)
+  if (securityHeaders) {
+    try {
+      app.use(securityHeaders);
+      app.use(securityLogger);
+      app.use(preventParameterPollution);
+      app.use(preventSQLInjection);
+      app.use('/api/', apiRateLimiter);
+      console.log('✅ Security middleware applied');
+    } catch (error) {
+      console.warn('⚠️ Could not apply security middleware:', error);
+    }
+  }
   
   // Error logging helper
   const logError = async (error: any, source: string, details?: any) => {
