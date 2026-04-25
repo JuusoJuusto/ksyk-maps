@@ -7,10 +7,40 @@ import {
   FileText, Calendar, BarChart3, PieChart, Activity,
   Download, RefreshCw, Filter
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AnalyticsDashboard() {
+  const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+
+  // Fetch analytics data
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/analytics/summary?range=${timeRange}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnalyticsData(data);
+      } else {
+        throw new Error('Failed to fetch analytics');
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+      toast({
+        title: "Virhe",
+        description: "Analytiikkatietojen lataus epäonnistui",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [timeRange]);
 
   // Mock data - replace with real API calls
   const stats = {
@@ -58,9 +88,11 @@ export default function AnalyticsDashboard() {
   ];
 
   const handleRefresh = async () => {
-    setLoading(true);
-    // TODO: Fetch fresh data from API
-    setTimeout(() => setLoading(false), 1000);
+    await fetchAnalytics();
+    toast({
+      title: "Päivitetty",
+      description: "Analytiikkatiedot on päivitetty",
+    });
   };
 
   const handleExport = () => {

@@ -10,6 +10,7 @@ import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
 import SessionTimeoutHandler from "@/components/SessionTimeoutHandler";
+import CookieConsent from "@/components/CookieConsent";
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
 import { trackPageView, trackEasterEgg, initAnalytics } from "@/lib/analytics";
@@ -185,6 +186,7 @@ function App() {
               <HelpProvider>
                 <HelpBubble>
                   <SessionTimeoutHandler />
+                  <CookieConsent />
                   <Toaster />
                   <Router />
                   <Analytics />

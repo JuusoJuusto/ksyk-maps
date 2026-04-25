@@ -7,6 +7,18 @@ import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from ".
 import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
+import {
+  securityHeaders,
+  apiRateLimiter,
+  authRateLimiter,
+  requireRole,
+  validateResourceOwnership,
+  preventSQLInjection,
+  securityLogger,
+  preventParameterPollution,
+  validateUserId,
+  sanitizeInput
+} from "./securityMiddleware";
 
 const db = getFirestore();
 
@@ -18,6 +30,22 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ==================== GLOBAL SECURITY MIDDLEWARE ====================
+  // Apply security headers to all routes
+  app.use(securityHeaders);
+  
+  // Security logging for all requests
+  app.use(securityLogger);
+  
+  // Prevent parameter pollution
+  app.use(preventParameterPollution);
+  
+  // SQL injection prevention
+  app.use(preventSQLInjection);
+  
+  // Apply rate limiting to all API routes
+  app.use('/api/', apiRateLimiter);
+  
   // Error logging helper
   const logError = async (error: any, source: string, details?: any) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1224,8 +1252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma User routes
-  app.get('/api/wilma/users', async (req, res) => {
+  // Wilma User routes - SECURED
+  app.get('/api/wilma/users', isAuthenticated, requireRole('admin', 'owner', 'teacher'), async (req: any, res) => {
     try {
       console.log('🔵 GET /api/wilma/users called');
       const role = req.query.role as string | undefined;
@@ -1241,10 +1269,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma User by ID route (MUST BE BEFORE :id routes to avoid conflicts)
-  app.get('/api/wilma/users/:id', async (req, res) => {
+  // Wilma User by ID route - SECURED with ownership validation
+  app.get('/api/wilma/users/:id', isAuthenticated, validateResourceOwnership('user'), async (req: any, res) => {
     try {
       console.log('🔍 GET /api/wilma/users/:id called with ID:', req.params.id);
+      
+      // Validate user ID format
+      if (!validateUserId(req.params.id)) {
+        return res.status(400).json({ 
+          message: "Invalid user ID format",
+          code: "INVALID_USER_ID"
+        });
+      }
+      
       const wilmaUser = await storage.getWilmaUser(req.params.id);
       
       if (!wilmaUser) {
@@ -1546,9 +1583,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma Grade routes
-  app.get('/api/wilma/grades/:studentId', async (req, res) => {
+  // Wilma Grade routes - SECURED
+  app.get('/api/wilma/grades/:studentId', isAuthenticated, validateResourceOwnership('grade'), async (req: any, res) => {
     try {
+      // Validate student ID format
+      if (!validateUserId(req.params.studentId)) {
+        return res.status(400).json({ 
+          message: "Invalid student ID format",
+          code: "INVALID_STUDENT_ID"
+        });
+      }
+      
       const grades = await storage.getWilmaGrades(req.params.studentId);
       res.json(grades);
     } catch (error) {
@@ -1557,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/wilma/grades', isAuthenticated, async (req: any, res) => {
+  app.post('/api/wilma/grades', isAuthenticated, requireRole('admin', 'owner', 'teacher'), async (req: any, res) => {
     try {
       const grade = await storage.createWilmaGrade(req.body);
       res.status(201).json(grade);
@@ -1567,9 +1612,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma Assignment routes
-  app.get('/api/wilma/assignments/:studentId', async (req, res) => {
+  // Wilma Assignment routes - SECURED
+  app.get('/api/wilma/assignments/:studentId', isAuthenticated, validateResourceOwnership('student'), async (req: any, res) => {
     try {
+      // Validate student ID format
+      if (!validateUserId(req.params.studentId)) {
+        return res.status(400).json({ 
+          message: "Invalid student ID format",
+          code: "INVALID_STUDENT_ID"
+        });
+      }
+      
       const assignments = await storage.getWilmaAssignments(req.params.studentId);
       res.json(assignments);
     } catch (error) {
@@ -1578,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/wilma/assignments', isAuthenticated, async (req: any, res) => {
+  app.post('/api/wilma/assignments', isAuthenticated, requireRole('admin', 'owner', 'teacher'), async (req: any, res) => {
     try {
       const assignment = await storage.createWilmaAssignment(req.body);
       res.status(201).json(assignment);
@@ -1588,12 +1641,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wilma Message routes
-  app.get('/api/wilma/messages', async (req, res) => {
+  // Wilma Message routes - SECURED
+  app.get('/api/wilma/messages', isAuthenticated, async (req: any, res) => {
     try {
-      // Get all messages (admin view) - use storage layer
-      const messages = await storage.getAllWilmaMessages();
-      res.json(messages);
+      // Only admins can see all messages
+      const user = req.currentUser || await storage.getUser(req.user.claims.sub);
+      
+      if (user.role === 'admin' || user.role === 'owner') {
+        const messages = await storage.getAllWilmaMessages();
+        res.json(messages);
+      } else {
+        // Regular users only see their own messages
+        const messages = await storage.getWilmaMessages(req.user.claims.sub);
+        res.json(messages);
+      }
     } catch (error) {
       await logError(error, 'GET /api/wilma/messages');
       res.status(500).json({ message: "Failed to fetch messages" });
@@ -1608,9 +1669,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Recipient, subject, and message are required" });
       }
       
+      // Sanitize inputs
+      const sanitizedSubject = sanitizeInput(subject);
+      const sanitizedMessage = sanitizeInput(message);
+      
       const messageData = {
         recipient,
-        subject,
+        subject: sanitizedSubject,
         message,
         sender: req.user?.claims?.email || 'admin',
         sentAt: new Date().toISOString(),
@@ -3941,6 +4006,187 @@ https://ksykmaps.vercel.app
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');
   registerWilmaExtendedRoutes(app);
+
+  // ==================== ANALYTICS ENDPOINTS ====================
+  // Track page view
+  app.post('/api/analytics/pageview', async (req, res) => {
+    try {
+      const { page, timestamp, userAgent, referrer } = req.body;
+      
+      await db.collection('analytics_pageviews').add({
+        page,
+        timestamp: timestamp || new Date().toISOString(),
+        userAgent: userAgent || req.get('user-agent'),
+        referrer: referrer || req.get('referer'),
+        ip: req.ip,
+        createdAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      await logError(error, 'POST /api/analytics/pageview');
+      res.status(500).json({ message: "Failed to track page view" });
+    }
+  });
+
+  // Track event
+  app.post('/api/analytics/event', async (req, res) => {
+    try {
+      const { event, data, timestamp } = req.body;
+      
+      await db.collection('analytics_events').add({
+        event,
+        data: data || {},
+        timestamp: timestamp || new Date().toISOString(),
+        userAgent: req.get('user-agent'),
+        ip: req.ip,
+        createdAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      await logError(error, 'POST /api/analytics/event');
+      res.status(500).json({ message: "Failed to track event" });
+    }
+  });
+
+  // Get analytics data (admin only)
+  app.get('/api/analytics/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const timeRange = req.query.range || 'month'; // week, month, year
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (timeRange === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (timeRange === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (timeRange === 'year') {
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+      
+      // Get page views
+      const pageviewsSnapshot = await db.collection('analytics_pageviews')
+        .where('timestamp', '>=', startDate.toISOString())
+        .get();
+      
+      // Get events
+      const eventsSnapshot = await db.collection('analytics_events')
+        .where('timestamp', '>=', startDate.toISOString())
+        .get();
+      
+      const pageviews = pageviewsSnapshot.docs.map(doc => doc.data());
+      const events = eventsSnapshot.docs.map(doc => doc.data());
+      
+      // Calculate summary
+      const summary = {
+        totalPageviews: pageviews.length,
+        totalEvents: events.length,
+        uniquePages: [...new Set(pageviews.map(pv => pv.page))].length,
+        topPages: getTopPages(pageviews),
+        topEvents: getTopEvents(events),
+        pageviewsByDay: groupByDay(pageviews),
+        eventsByType: groupByEventType(events)
+      };
+      
+      res.json(summary);
+    } catch (error) {
+      await logError(error, 'GET /api/analytics/summary');
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // Helper functions for analytics
+  function getTopPages(pageviews: any[]) {
+    const pageCounts: Record<string, number> = {};
+    pageviews.forEach(pv => {
+      pageCounts[pv.page] = (pageCounts[pv.page] || 0) + 1;
+    });
+    return Object.entries(pageCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([page, count]) => ({ page, count }));
+  }
+
+  function getTopEvents(events: any[]) {
+    const eventCounts: Record<string, number> = {};
+    events.forEach(ev => {
+      eventCounts[ev.event] = (eventCounts[ev.event] || 0) + 1;
+    });
+    return Object.entries(eventCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([event, count]) => ({ event, count }));
+  }
+
+  function groupByDay(items: any[]) {
+    const dayGroups: Record<string, number> = {};
+    items.forEach(item => {
+      const day = new Date(item.timestamp).toISOString().split('T')[0];
+      dayGroups[day] = (dayGroups[day] || 0) + 1;
+    });
+    return dayGroups;
+  }
+
+  function groupByEventType(events: any[]) {
+    const typeGroups: Record<string, number> = {};
+    events.forEach(ev => {
+      typeGroups[ev.event] = (typeGroups[ev.event] || 0) + 1;
+    });
+    return typeGroups;
+  }
+
+  // ==================== ADMIN SETTINGS ENDPOINTS ====================
+  // Save admin settings
+  app.post('/api/wilma/admin-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const settings = req.body;
+      
+      // Save to Firestore
+      await db.collection('wilmaAdminSettings').doc('global').set({
+        ...settings,
+        updatedAt: new Date().toISOString(),
+        updatedBy: req.user.claims.sub
+      });
+      
+      res.json({ success: true, settings });
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/admin-settings');
+      res.status(500).json({ message: "Failed to save admin settings" });
+    }
+  });
+
+  // Get admin settings
+  app.get('/api/wilma/admin-settings', async (req, res) => {
+    try {
+      const doc = await db.collection('wilmaAdminSettings').doc('global').get();
+      
+      if (!doc.exists) {
+        // Return default settings
+        return res.json({
+          smtpEnabled: true,
+          smtpHost: "smtp.gmail.com",
+          smtpPort: "587",
+          maintenanceMode: false
+        });
+      }
+      
+      res.json(doc.data());
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/admin-settings');
+      res.status(500).json({ message: "Failed to fetch admin settings" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
