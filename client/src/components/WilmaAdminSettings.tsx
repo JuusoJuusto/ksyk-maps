@@ -31,8 +31,8 @@ export default function WilmaAdminSettings() {
     principalEmail: "",
     
     // SMTP Configuration
-    smtpEnabled: true,
-    smtpHost: "smtp.gmail.com",
+    smtpEnabled: false,
+    smtpHost: "",
     smtpPort: "587",
     smtpSecure: true,
     smtpUser: "",
@@ -103,69 +103,31 @@ export default function WilmaAdminSettings() {
   });
 
   useEffect(() => {
-    // Load saved settings from backend
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/api/wilma/admin-settings');
-        if (response.ok) {
-          const data = await response.json();
-          setSettings({ ...settings, ...data });
-        } else {
-          // Fallback to localStorage
-          const savedSettings = localStorage.getItem('wilma_app_settings');
-          if (savedSettings) {
-            setSettings({ ...settings, ...JSON.parse(savedSettings) });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-        // Fallback to localStorage
-        const savedSettings = localStorage.getItem('wilma_app_settings');
-        if (savedSettings) {
-          setSettings({ ...settings, ...JSON.parse(savedSettings) });
-        }
-      }
-    };
-    
-    loadSettings();
+    // Load saved settings
+    const savedSettings = localStorage.getItem('wilma_app_settings');
+    if (savedSettings) {
+      setSettings({ ...settings, ...JSON.parse(savedSettings) });
+    }
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
     
-    try {
-      // Save to backend
-      const response = await fetch('/api/wilma/admin-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save settings');
-      }
-      
-      // Also save to localStorage as backup
-      localStorage.setItem('wilma_app_settings', JSON.stringify(settings));
-      
-      setIsSaving(false);
-      setSaved(true);
-      
-      toast({
-        title: "Asetukset tallennettu",
-        description: "Järjestelmän asetukset on päivitetty onnistuneesti.",
-      });
-      
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      setIsSaving(false);
-      toast({
-        title: "Virhe",
-        description: "Asetusten tallennus epäonnistui. Yritä uudelleen.",
-        variant: "destructive"
-      });
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Save to localStorage (in production, save to database)
+    localStorage.setItem('wilma_app_settings', JSON.stringify(settings));
+    
+    setIsSaving(false);
+    setSaved(true);
+    
+    toast({
+      title: "Asetukset tallennettu",
+      description: "Järjestelmän asetukset on päivitetty onnistuneesti.",
+    });
+    
+    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
@@ -195,7 +157,7 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
@@ -219,18 +181,6 @@ export default function WilmaAdminSettings() {
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Turvallisuus</span>
-          </TabsTrigger>
-          <TabsTrigger value="integrations">
-            <Globe className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Integraatiot</span>
-          </TabsTrigger>
-          <TabsTrigger value="backup">
-            <Database className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Varmuuskopiot</span>
-          </TabsTrigger>
-          <TabsTrigger value="advanced">
-            <Settings className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Lisäasetukset</span>
           </TabsTrigger>
         </TabsList>
 
@@ -421,30 +371,6 @@ export default function WilmaAdminSettings() {
                         onChange={(e) => setSettings({ ...settings, smtpFromEmail: e.target.value })}
                       />
                     </div>
-                  </div>
-
-                  {/* Test SMTP Connection Button */}
-                  <div className="border-t pt-4">
-                    <Button
-                      onClick={async () => {
-                        toast({
-                          title: "Testataan yhteyttä...",
-                          description: "Lähetetään testisähköposti",
-                        });
-                        // TODO: Implement SMTP test endpoint
-                        setTimeout(() => {
-                          toast({
-                            title: "Yhteys toimii!",
-                            description: "Testisähköposti lähetetty onnistuneesti",
-                          });
-                        }, 2000);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Testaa SMTP-yhteyttä
-                    </Button>
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -751,286 +677,6 @@ export default function WilmaAdminSettings() {
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Integrations Tab */}
-        <TabsContent value="integrations" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                <Globe className="w-5 h-5" />
-                API-integraatiot
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* Google Classroom */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  Google Classroom
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Google Classroom -integraatio</p>
-                      <p className="text-sm text-gray-600">Synkronoi tehtävät ja arvosanat</p>
-                    </div>
-                    <Switch />
-                  </div>
-                  <div>
-                    <Label htmlFor="googleApiKey">Google API -avain</Label>
-                    <Input
-                      id="googleApiKey"
-                      type="password"
-                      placeholder="Syötä API-avain"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Microsoft Teams */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Microsoft Teams
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Teams-integraatio</p>
-                      <p className="text-sm text-gray-600">Luo automaattisesti Teams-tiimit luokille</p>
-                    </div>
-                    <Switch />
-                  </div>
-                  <div>
-                    <Label htmlFor="teamsClientId">Client ID</Label>
-                    <Input
-                      id="teamsClientId"
-                      placeholder="Syötä Client ID"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="teamsClientSecret">Client Secret</Label>
-                    <Input
-                      id="teamsClientSecret"
-                      type="password"
-                      placeholder="Syötä Client Secret"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Webhooks */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Webhookit</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="webhookUrl">Webhook URL</Label>
-                    <Input
-                      id="webhookUrl"
-                      placeholder="https://example.com/webhook"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Lähetä tapahtumat webhookiin</p>
-                      <p className="text-sm text-gray-600">Arvosanat, läsnäolot, viestit</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Backup Tab */}
-        <TabsContent value="backup" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                <Database className="w-5 h-5" />
-                Varmuuskopiot ja palautus
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* Automatic Backups */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Automaattiset varmuuskopiot</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Automaattiset varmuuskopiot</p>
-                      <p className="text-sm text-gray-600">Luo varmuuskopio päivittäin</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div>
-                    <Label htmlFor="backupTime">Varmuuskopioinnin aika</Label>
-                    <Input
-                      id="backupTime"
-                      type="time"
-                      defaultValue="02:00"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="backupRetention">Säilytysaika (päivää)</Label>
-                    <Input
-                      id="backupRetention"
-                      type="number"
-                      defaultValue="30"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Manual Backup */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Manuaalinen varmuuskopiointi</h4>
-                <div className="space-y-3">
-                  <Button className="w-full bg-[#003d82] hover:bg-[#0052a3]">
-                    <Database className="w-4 h-4 mr-2" />
-                    Luo varmuuskopio nyt
-                  </Button>
-                  <p className="text-sm text-gray-600">
-                    Viimeisin varmuuskopio: 24.4.2026 klo 02:00
-                  </p>
-                </div>
-              </div>
-
-              {/* Restore */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Palauta varmuuskopiosta</h4>
-                <div className="space-y-3">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-yellow-900">Varoitus</p>
-                        <p className="text-xs text-yellow-700 mt-1">
-                          Palautus korvaa kaikki nykyiset tiedot. Varmista että haluat jatkaa.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    Valitse varmuuskopio palautettavaksi
-                  </Button>
-                </div>
-              </div>
-
-              {/* Export/Import */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Vie/Tuo asetukset</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline">
-                    Vie asetukset
-                  </Button>
-                  <Button variant="outline">
-                    Tuo asetukset
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Advanced Tab */}
-        <TabsContent value="advanced" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                <Settings className="w-5 h-5" />
-                Lisäasetukset
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* Performance */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Suorituskyky</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Välimuisti käytössä</p>
-                      <p className="text-sm text-gray-600">Nopeuttaa sivujen latautumista</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div>
-                    <Label htmlFor="cacheExpiry">Välimuistin vanhenemisaika (min)</Label>
-                    <Input
-                      id="cacheExpiry"
-                      type="number"
-                      defaultValue="15"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Logging */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Lokitus</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="logLevel">Lokitustaso</Label>
-                    <select
-                      id="logLevel"
-                      defaultValue="info"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="error">Vain virheet</option>
-                      <option value="warn">Varoitukset ja virheet</option>
-                      <option value="info">Info, varoitukset ja virheet</option>
-                      <option value="debug">Kaikki (debug)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="logRetention">Lokien säilytysaika (päivää)</Label>
-                    <Input
-                      id="logRetention"
-                      type="number"
-                      value={settings.logRetentionDays}
-                      onChange={(e) => setSettings({ ...settings, logRetentionDays: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Database */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Tietokanta</h4>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full">
-                    Optimoi tietokanta
-                  </Button>
-                  <Button variant="outline" className="w-full text-red-600 hover:text-red-700">
-                    Tyhjennä välimuisti
-                  </Button>
-                </div>
-              </div>
-
-              {/* Danger Zone */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-red-600 mb-3">Vaaravyöhyke</h4>
-                <div className="space-y-3">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-red-900">Nollaa järjestelmä</p>
-                        <p className="text-xs text-red-700 mt-1">
-                          Poistaa KAIKKI tiedot pysyvästi. Tätä toimintoa ei voi peruuttaa.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="destructive" className="w-full">
-                    Nollaa järjestelmä
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
