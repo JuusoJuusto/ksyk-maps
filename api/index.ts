@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set security headers
@@ -7,10 +8,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
   
-  // TODO: Implement rate limiting using Vercel KV or external service
-  // Traditional express-rate-limit doesn't work in serverless environment
-  // Consider using: Vercel Edge Config, Upstash Redis, or database-based tracking
+  // Rate limiting
+  const clientIP = getRealIP(req.headers);
+  const rateLimit = checkRateLimit(clientIP, 100, 60000); // 100 requests per minute
+  
+  // Set rate limit headers
+  res.setHeader('X-RateLimit-Limit', '100');
+  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
+  res.setHeader('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString());
+  
+  // Check if rate limit exceeded
+  if (!rateLimit.allowed) {
+    console.log(`⚠️ Rate limit exceeded for IP: ${clientIP}`);
+    return res.status(429).json({
+      message: 'Too many requests. Please try again later.',
+      retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+    });
+  }
+  
+  // Sanitize request body for POST/PUT/PATCH requests
+  if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method || '')) {
+    req.body = sanitizeObject(req.body);
+  }
   
   try {
     // Simple router based on URL path
@@ -1073,14 +1094,16 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       try {
         const now = new Date();
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
-        // Mock data for now - replace with real storage calls when implemented
+        // Get real active sessions from last 5 minutes
+        // TODO: Implement real-time session tracking in Firestore
+        // For now, return empty structure to avoid mock data
         return res.status(200).json({
-          activeUsers: Math.floor(Math.random() * 25) + 5,
-          newUsersToday: Math.floor(Math.random() * 100) + 20,
-          currentPageViews: Math.floor(Math.random() * 500) + 100,
-          timestamp: now.toISOString()
+          activeUsers: 0,
+          newUsersToday: 0,
+          currentPageViews: 0,
+          timestamp: now.toISOString(),
+          note: 'Real-time analytics tracking not yet implemented'
         });
       } catch (error) {
         console.error('Failed to fetch live analytics:', error);
@@ -1093,87 +1116,15 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       const timeRange = req.query.timeRange as string || '24h';
       
       try {
-        // Generate realistic mock data based on time range
-        let multiplier = 1;
-        if (timeRange === '7d') multiplier = 7;
-        else if (timeRange === '30d') multiplier = 30;
+        // Use real analytics data from Firestore
+        let days = 1;
+        if (timeRange === '7d') days = 7;
+        else if (timeRange === '30d') days = 30;
         
-        const baseViews = Math.floor(Math.random() * 1000) + 500;
-        const baseUsers = Math.floor(baseViews * 0.6);
-        const baseSessions = Math.floor(baseUsers * 1.2);
+        const summary = await storage.getAnalyticsSummary(days);
         
-        return res.status(200).json({
-          totalPageViews: baseViews * multiplier,
-          uniqueVisitors: baseUsers * multiplier,
-          totalSessions: baseSessions * multiplier,
-          avgSessionDuration: Math.floor(Math.random() * 300) + 120, // 2-7 minutes
-          bounceRate: Math.random() * 0.4 + 0.2, // 20-60%
-          topPages: [
-            { page: '/', views: Math.floor(baseViews * 0.4), avgDuration: 180 },
-            { page: '/directory', views: Math.floor(baseViews * 0.25), avgDuration: 240 },
-            { page: '/lunch', views: Math.floor(baseViews * 0.15), avgDuration: 90 },
-            { page: '/features', views: Math.floor(baseViews * 0.1), avgDuration: 150 },
-            { page: '/hsl', views: Math.floor(baseViews * 0.05), avgDuration: 120 }
-          ],
-          topSearches: [
-            { query: 'classroom', count: Math.floor(Math.random() * 100) + 50, resultClicks: Math.floor(Math.random() * 80) + 30 },
-            { query: 'library', count: Math.floor(Math.random() * 80) + 40, resultClicks: Math.floor(Math.random() * 60) + 25 },
-            { query: 'cafeteria', count: Math.floor(Math.random() * 60) + 30, resultClicks: Math.floor(Math.random() * 40) + 20 },
-            { query: 'toilet', count: Math.floor(Math.random() * 50) + 25, resultClicks: Math.floor(Math.random() * 30) + 15 }
-          ],
-          topRooms: [
-            { roomId: 'M101', roomName: 'Main Auditorium', views: Math.floor(Math.random() * 200) + 100 },
-            { roomId: 'L205', roomName: 'Computer Lab', views: Math.floor(Math.random() * 150) + 75 },
-            { roomId: 'K301', roomName: 'Library', views: Math.floor(Math.random() * 180) + 90 }
-          ],
-          topBuildings: [
-            { buildingId: 'M', buildingName: 'Main Building', views: Math.floor(Math.random() * 300) + 200 },
-            { buildingId: 'L', buildingName: 'Learning Center', views: Math.floor(Math.random() * 250) + 150 },
-            { buildingId: 'K', buildingName: 'Knowledge Hub', views: Math.floor(Math.random() * 200) + 100 }
-          ],
-          deviceBreakdown: [
-            { device: 'Mobile', count: Math.floor(baseUsers * 0.6), percentage: 60 },
-            { device: 'Desktop', count: Math.floor(baseUsers * 0.3), percentage: 30 },
-            { device: 'Tablet', count: Math.floor(baseUsers * 0.1), percentage: 10 }
-          ],
-          browserBreakdown: [
-            { browser: 'Chrome', count: Math.floor(baseUsers * 0.5), percentage: 50 },
-            { browser: 'Safari', count: Math.floor(baseUsers * 0.25), percentage: 25 },
-            { browser: 'Firefox', count: Math.floor(baseUsers * 0.15), percentage: 15 },
-            { browser: 'Edge', count: Math.floor(baseUsers * 0.1), percentage: 10 }
-          ],
-          countryBreakdown: [
-            { country: 'Finland', count: Math.floor(baseUsers * 0.7), percentage: 70 },
-            { country: 'Sweden', count: Math.floor(baseUsers * 0.15), percentage: 15 },
-            { country: 'Norway', count: Math.floor(baseUsers * 0.1), percentage: 10 },
-            { country: 'Denmark', count: Math.floor(baseUsers * 0.05), percentage: 5 }
-          ],
-          hourlyActivity: Array.from({ length: 24 }, (_, hour) => ({
-            hour,
-            views: Math.floor(Math.random() * 100) + (hour >= 8 && hour <= 18 ? 50 : 10),
-            users: Math.floor(Math.random() * 50) + (hour >= 8 && hour <= 18 ? 25 : 5)
-          })),
-          dailyActivity: Array.from({ length: Math.min(30, multiplier) }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            return {
-              date: date.toISOString().split('T')[0],
-              views: Math.floor(Math.random() * 500) + 200,
-              users: Math.floor(Math.random() * 200) + 100,
-              sessions: Math.floor(Math.random() * 250) + 120
-            };
-          }).reverse(),
-          featureUsage: [
-            { feature: 'Room Search', uses: Math.floor(Math.random() * 500) + 200, uniqueUsers: Math.floor(Math.random() * 200) + 100 },
-            { feature: 'Navigation', uses: Math.floor(Math.random() * 300) + 150, uniqueUsers: Math.floor(Math.random() * 150) + 75 },
-            { feature: 'Building View', uses: Math.floor(Math.random() * 400) + 180, uniqueUsers: Math.floor(Math.random() * 180) + 90 },
-            { feature: 'Lunch Menu', uses: Math.floor(Math.random() * 200) + 100, uniqueUsers: Math.floor(Math.random() * 100) + 50 }
-          ],
-          errorStats: [
-            { error: '404 Not Found', count: Math.floor(Math.random() * 20) + 5, affectedUsers: Math.floor(Math.random() * 15) + 3 },
-            { error: 'Network Error', count: Math.floor(Math.random() * 10) + 2, affectedUsers: Math.floor(Math.random() * 8) + 2 }
-          ]
-        });
+        // Return real data from database
+        return res.status(200).json(summary);
       } catch (error) {
         console.error('Failed to fetch analytics summary:', error);
         return res.status(500).json({ message: 'Failed to fetch analytics summary' });
@@ -1186,32 +1137,9 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       const limit = parseInt(req.query.limit as string) || 100;
       
       try {
-        // Generate mock recent events
-        const events = [];
-        const eventTypes = ['page_view', 'search', 'room_view', 'building_view', 'navigation', 'feature_use'];
-        const pages = ['/', '/directory', '/lunch', '/features', '/hsl'];
-        const countries = ['Finland', 'Sweden', 'Norway', 'Denmark'];
-        const devices = ['Mobile', 'Desktop', 'Tablet'];
-        
-        for (let i = 0; i < Math.min(limit, 50); i++) {
-          const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-          const timestamp = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
-          
-          events.push({
-            id: `event_${i}_${timestamp.getTime()}`,
-            type,
-            page: type === 'page_view' ? pages[Math.floor(Math.random() * pages.length)] : undefined,
-            query: type === 'search' ? ['classroom', 'library', 'cafeteria'][Math.floor(Math.random() * 3)] : undefined,
-            roomId: type === 'room_view' ? `R${Math.floor(Math.random() * 999) + 100}` : undefined,
-            buildingId: type === 'building_view' ? ['M', 'L', 'K'][Math.floor(Math.random() * 3)] : undefined,
-            feature: type === 'feature_use' ? ['Room Search', 'Navigation', 'Lunch Menu'][Math.floor(Math.random() * 3)] : undefined,
-            timestamp: timestamp.toISOString(),
-            device: devices[Math.floor(Math.random() * devices.length)],
-            country: countries[Math.floor(Math.random() * countries.length)]
-          });
-        }
-        
-        return res.status(200).json(events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        // TODO: Implement real event tracking in Firestore
+        // For now, return empty array to avoid mock data
+        return res.status(200).json([]);
       } catch (error) {
         console.error('Failed to fetch analytics events:', error);
         return res.status(500).json({ message: 'Failed to fetch analytics events' });
@@ -1223,14 +1151,17 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       const timeRange = req.query.timeRange as string || '24h';
       
       try {
+        // TODO: Implement real performance monitoring
+        // For now, return empty structure to avoid mock data
         return res.status(200).json({
-          avgLoadTime: Math.floor(Math.random() * 1000) + 200, // 200-1200ms
-          errorRate: Math.random() * 0.05, // 0-5%
-          cacheHitRate: Math.floor(Math.random() * 30) + 70, // 70-100%
-          serverResponseTime: Math.floor(Math.random() * 100) + 50, // 50-150ms
-          databaseQueryTime: Math.floor(Math.random() * 50) + 10, // 10-60ms
-          uptime: 99.9,
-          throughput: Math.floor(Math.random() * 1000) + 500 // requests per minute
+          avgLoadTime: 0,
+          errorRate: 0,
+          cacheHitRate: 0,
+          serverResponseTime: 0,
+          databaseQueryTime: 0,
+          uptime: 100,
+          throughput: 0,
+          note: 'Performance monitoring not yet implemented'
         });
       } catch (error) {
         console.error('Failed to fetch performance metrics:', error);
@@ -1306,7 +1237,17 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         console.log('🔵 GET /api/wilma/users/' + id);
         
         try {
-          const wilmaUser = await storage.getWilmaUser(id);
+          let wilmaUser;
+          
+          // Check if ID is an 8-digit student ID (numeric only)
+          if (/^\d{8}$/.test(id)) {
+            console.log('🔍 Detected 8-digit student ID, looking up by studentId field');
+            wilmaUser = await storage.getWilmaUserByStudentId(id);
+          } else {
+            // Otherwise, treat as Firebase ID
+            console.log('🔍 Looking up by Firebase ID');
+            wilmaUser = await storage.getWilmaUser(id);
+          }
           
           if (!wilmaUser) {
             console.log('❌ User not found:', id);
@@ -1865,9 +1806,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       // GET /wilma/students/:id/enrollments - Get student enrollments
       const enrollmentsMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/enrollments$/);
       if (enrollmentsMatch && req.method === 'GET') {
-        const studentId = enrollmentsMatch[1];
-        console.log('🔵 GET /api/wilma/students/' + studentId + '/enrollments');
+        const id = enrollmentsMatch[1];
+        console.log('🔵 GET /api/wilma/students/' + id + '/enrollments');
         try {
+          // Look up student by ID (supports both Firebase ID and 8-digit student ID)
+          let student;
+          if (/^\d{8}$/.test(id)) {
+            student = await storage.getWilmaUserByStudentId(id);
+          } else {
+            student = await storage.getWilmaUser(id);
+          }
+          
+          if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+          }
+          
+          const studentId = student.id; // Use Firebase ID for course lookup
+          
           // Get all courses where student is enrolled
           const allCourses = await storage.getWilmaCourses();
           const studentEnrollments = allCourses.filter((course: any) => 
@@ -1913,9 +1868,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       // GET /wilma/students/:id/schedule - Get student schedule
       const studentScheduleMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/schedule$/);
       if (studentScheduleMatch && req.method === 'GET') {
-        const studentId = studentScheduleMatch[1];
-        console.log('🔵 GET /api/wilma/students/' + studentId + '/schedule');
+        const id = studentScheduleMatch[1];
+        console.log('🔵 GET /api/wilma/students/' + id + '/schedule');
         try {
+          // Look up student by ID (supports both Firebase ID and 8-digit student ID)
+          let student;
+          if (/^\d{8}$/.test(id)) {
+            student = await storage.getWilmaUserByStudentId(id);
+          } else {
+            student = await storage.getWilmaUser(id);
+          }
+          
+          if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+          }
+          
+          const studentId = student.id; // Use Firebase ID for course lookup
+          
           // Get student's enrolled courses
           const allCourses = await storage.getWilmaCourses();
           const studentCourses = allCourses.filter((course: any) => 

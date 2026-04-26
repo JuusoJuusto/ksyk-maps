@@ -750,6 +750,30 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async getWilmaUserByStudentId(studentId: string): Promise<any | undefined> {
+    try {
+      console.log('🔍 Looking up student by studentId:', studentId);
+      
+      // Only search in students subcollection
+      const snapshot = await db.collection('wilmaUsers').doc('students').collection('list')
+        .where('studentId', '==', studentId)
+        .limit(1)
+        .get();
+      
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        console.log('✅ Found student by studentId:', doc.id);
+        return { id: doc.id, ...doc.data() };
+      }
+      
+      console.log('❌ Student not found with studentId:', studentId);
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching Wilma user by studentId:', error);
+      return undefined;
+    }
+  }
+
   async createWilmaUser(wilmaUser: any): Promise<any> {
     try {
       console.log('🔵 FirebaseStorage.createWilmaUser called with:', JSON.stringify(wilmaUser, null, 2));
