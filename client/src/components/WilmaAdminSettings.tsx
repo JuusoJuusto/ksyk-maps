@@ -31,8 +31,8 @@ export default function WilmaAdminSettings() {
     principalEmail: "",
     
     // SMTP Configuration
-    smtpEnabled: false,
-    smtpHost: "",
+    smtpEnabled: true,
+    smtpHost: "smtp.gmail.com",
     smtpPort: "587",
     smtpSecure: true,
     smtpUser: "",

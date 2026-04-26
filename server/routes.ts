@@ -3936,6 +3936,91 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // ==================== SIMPLE ANALYTICS ENDPOINTS ====================
+  // Track page view (simple, no auth required for tracking)
+  app.post('/api/analytics/pageview', async (req, res) => {
+    try {
+      const { page, timestamp } = req.body;
+      
+      await db.collection('analytics_pageviews').add({
+        page: page || '/',
+        timestamp: timestamp || new Date().toISOString(),
+        userAgent: req.get('user-agent') || 'unknown',
+        ip: req.ip || 'unknown',
+        createdAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Analytics pageview error:', error);
+      res.status(500).json({ message: "Failed to track page view" });
+    }
+  });
+
+  // Track event (simple, no auth required for tracking)
+  app.post('/api/analytics/event', async (req, res) => {
+    try {
+      const { event, data, timestamp } = req.body;
+      
+      await db.collection('analytics_events').add({
+        event: event || 'unknown',
+        data: data || {},
+        timestamp: timestamp || new Date().toISOString(),
+        userAgent: req.get('user-agent') || 'unknown',
+        ip: req.ip || 'unknown',
+        createdAt: new Date().toISOString()
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Analytics event error:', error);
+      res.status(500).json({ message: "Failed to track event" });
+    }
+  });
+
+  // Get analytics summary (admin only, uses existing isAuthenticated)
+  app.get('/api/analytics/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'owner' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const timeRange = req.query.range || 'month';
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (timeRange === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (timeRange === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (timeRange === 'year') {
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+      
+      const pageviewsSnapshot = await db.collection('analytics_pageviews')
+        .where('timestamp', '>=', startDate.toISOString())
+        .get();
+      
+      const eventsSnapshot = await db.collection('analytics_events')
+        .where('timestamp', '>=', startDate.toISOString())
+        .get();
+      
+      const pageviews = pageviewsSnapshot.docs.map(doc => doc.data());
+      const events = eventsSnapshot.docs.map(doc => doc.data());
+      
+      res.json({
+        totalPageviews: pageviews.length,
+        totalEvents: events.length,
+        pageviews,
+        events
+      });
+    } catch (error) {
+      console.error('Analytics summary error:', error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
   // ============================================
   // REGISTER WILMA EXTENDED ROUTES
   // ============================================
