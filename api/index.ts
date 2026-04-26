@@ -1868,8 +1868,12 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         const studentId = enrollmentsMatch[1];
         console.log('🔵 GET /api/wilma/students/' + studentId + '/enrollments');
         try {
-          // Return empty array for now - implement when courses are ready
-          return res.status(200).json([]);
+          // Get all courses where student is enrolled
+          const allCourses = await storage.getWilmaCourses();
+          const studentEnrollments = allCourses.filter((course: any) => 
+            course.enrolledStudents && course.enrolledStudents.includes(studentId)
+          );
+          return res.status(200).json(studentEnrollments);
         } catch (error: any) {
           console.error('❌ Error getting enrollments:', error);
           return res.status(500).json({ message: "Failed to fetch enrollments" });
@@ -1882,12 +1886,27 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           const studentId = req.query.studentId as string | undefined;
           console.log('🔵 GET /api/wilma/attendance-marks', { studentId });
           try {
-            // Return empty array for now - implement when attendance system is ready
-            return res.status(200).json([]);
+            if (!studentId) {
+              return res.status(400).json({ message: "studentId is required" });
+            }
+            const attendanceMarks = await storage.getWilmaAttendance(studentId);
+            return res.status(200).json(attendanceMarks);
           } catch (error: any) {
             console.error('❌ Error getting attendance marks:', error);
             return res.status(500).json({ message: "Failed to fetch attendance marks" });
           }
+        }
+      }
+
+      // POST /wilma/attendance-marks - Create attendance mark
+      if (apiPath === '/wilma/attendance-marks' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/attendance-marks');
+        try {
+          const attendanceMark = await storage.createWilmaAttendance(req.body);
+          return res.status(201).json(attendanceMark);
+        } catch (error: any) {
+          console.error('❌ Error creating attendance mark:', error);
+          return res.status(500).json({ message: "Failed to create attendance mark" });
         }
       }
 
@@ -1897,8 +1916,23 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         const studentId = studentScheduleMatch[1];
         console.log('🔵 GET /api/wilma/students/' + studentId + '/schedule');
         try {
-          // Return empty array for now - implement when schedule system is ready
-          return res.status(200).json([]);
+          // Get student's enrolled courses
+          const allCourses = await storage.getWilmaCourses();
+          const studentCourses = allCourses.filter((course: any) => 
+            course.enrolledStudents && course.enrolledStudents.includes(studentId)
+          );
+          
+          // Extract schedule from courses
+          const schedule = studentCourses.flatMap((course: any) => 
+            (course.schedule || []).map((slot: any) => ({
+              ...slot,
+              courseId: course.id,
+              courseName: course.name,
+              teacherId: course.teacherId
+            }))
+          );
+          
+          return res.status(200).json(schedule);
         } catch (error: any) {
           console.error('❌ Error getting student schedule:', error);
           return res.status(500).json({ message: "Failed to fetch schedule" });
@@ -1906,14 +1940,18 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
 
       // GET /wilma/courses - Get all courses
-      if (apiPath === '/wilma/courses' && req.method === 'GET') {
-        console.log('🔵 GET /api/wilma/courses');
-        try {
-          // Return empty array for now - implement when course system is ready
-          return res.status(200).json([]);
-        } catch (error: any) {
-          console.error('❌ Error getting courses:', error);
-          return res.status(500).json({ message: "Failed to fetch courses" });
+      if (apiPath === '/wilma/courses' || apiPath.startsWith('/wilma/courses?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/courses');
+          try {
+            const teacherId = req.query.teacherId as string | undefined;
+            const classId = req.query.classId as string | undefined;
+            const courses = await storage.getWilmaCourses(teacherId, classId);
+            return res.status(200).json(courses);
+          } catch (error: any) {
+            console.error('❌ Error getting courses:', error);
+            return res.status(500).json({ message: "Failed to fetch courses" });
+          }
         }
       }
 
@@ -1921,16 +1959,84 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       if (apiPath === '/wilma/courses' && req.method === 'POST') {
         console.log('🔵 POST /api/wilma/courses');
         try {
-          // Return mock course for now - implement when course system is ready
-          const course = {
-            id: `course_${Date.now()}`,
-            ...req.body,
-            createdAt: new Date().toISOString()
-          };
+          const course = await storage.createWilmaCourse(req.body);
           return res.status(201).json(course);
         } catch (error: any) {
           console.error('❌ Error creating course:', error);
           return res.status(500).json({ message: "Failed to create course" });
+        }
+      }
+
+      // GET /wilma/courses/:id - Get single course
+      const courseMatch = apiPath.match(/^\/wilma\/courses\/([^\/]+)$/);
+      if (courseMatch && req.method === 'GET') {
+        const id = courseMatch[1];
+        console.log('🔵 GET /api/wilma/courses/' + id);
+        try {
+          const course = await storage.getWilmaCourse(id);
+          if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+          }
+          return res.status(200).json(course);
+        } catch (error: any) {
+          console.error('❌ Error getting course:', error);
+          return res.status(500).json({ message: "Failed to fetch course" });
+        }
+      }
+
+      // PUT /wilma/courses/:id - Update course
+      if (courseMatch && req.method === 'PUT') {
+        const id = courseMatch[1];
+        console.log('🔵 PUT /api/wilma/courses/' + id);
+        try {
+          const course = await storage.updateWilmaCourse(id, req.body);
+          return res.status(200).json(course);
+        } catch (error: any) {
+          console.error('❌ Error updating course:', error);
+          return res.status(500).json({ message: "Failed to update course" });
+        }
+      }
+
+      // DELETE /wilma/courses/:id - Delete course
+      if (courseMatch && req.method === 'DELETE') {
+        const id = courseMatch[1];
+        console.log('🔵 DELETE /api/wilma/courses/' + id);
+        try {
+          await storage.deleteWilmaCourse(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting course:', error);
+          return res.status(500).json({ message: "Failed to delete course" });
+        }
+      }
+
+      // GET /wilma/grades - Get grades
+      if (apiPath === '/wilma/grades' || apiPath.startsWith('/wilma/grades?')) {
+        if (req.method === 'GET') {
+          const studentId = req.query.studentId as string | undefined;
+          console.log('🔵 GET /api/wilma/grades', { studentId });
+          try {
+            if (!studentId) {
+              return res.status(400).json({ message: "studentId is required" });
+            }
+            const grades = await storage.getWilmaGrades(studentId);
+            return res.status(200).json(grades);
+          } catch (error: any) {
+            console.error('❌ Error getting grades:', error);
+            return res.status(500).json({ message: "Failed to fetch grades" });
+          }
+        }
+      }
+
+      // POST /wilma/grades - Create grade
+      if (apiPath === '/wilma/grades' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/grades');
+        try {
+          const grade = await storage.createWilmaGrade(req.body);
+          return res.status(201).json(grade);
+        } catch (error: any) {
+          console.error('❌ Error creating grade:', error);
+          return res.status(500).json({ message: "Failed to create grade" });
         }
       }
     }
