@@ -1,0 +1,196 @@
+/* Wilma Theme - Official Colors */
+:root {
+  /* Primary Wilma Colors */
+  --wilma-blue: #003d82;
+  --wilma-dark-blue: #002855;
+  --wilma-light-blue: #e6f2ff;
+  --wilma-medium-blue: #0056b3;
+  
+  /* Background Colors */
+  --wilma-bg-main: #f5f5f5;
+  --wilma-bg-card: #ffffff;
+  --wilma-bg-hover: #f0f0f0;
+  --wilma-bg-selected: #e6f2ff;
+  
+  /* Text Colors */
+  --wilma-text-primary: #333333;
+  --wilma-text-secondary: #666666;
+  --wilma-text-muted: #999999;
+  --wilma-text-white: #ffffff;
+  
+  /* Status Colors */
+  --wilma-success: #28a745;
+  --wilma-warning: #ffc107;
+  --wilma-danger: #dc3545;
+  --wilma-info: #17a2b8;
+  
+  /* Border Colors */
+  --wilma-border: #dee2e6;
+  --wilma-border-light: #e9ecef;
+  --wilma-border-dark: #adb5bd;
+  
+  /* Shadow */
+  --wilma-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --wilma-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --wilma-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --wilma-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Wilma Button Styles */
+.wilma-btn-primary {
+  background-color: var(--wilma-blue);
+  color: var(--wilma-text-white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.wilma-btn-primary:hover {
+  background-color: var(--wilma-dark-blue);
+  box-shadow: var(--wilma-shadow-md);
+}
+
+.wilma-btn-secondary {
+  background-color: var(--wilma-bg-card);
+  color: var(--wilma-text-primary);
+  border: 1px solid var(--wilma-border);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.wilma-btn-secondary:hover {
+  background-color: var(--wilma-bg-hover);
+  border-color: var(--wilma-border-dark);
+}
+
+/* Wilma Card Styles */
+.wilma-card {
+  background-color: var(--wilma-bg-card);
+  border: 1px solid var(--wilma-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--wilma-shadow-sm);
+  padding: 1.5rem;
+}
+
+.wilma-card:hover {
+  box-shadow: var(--wilma-shadow);
+}
+
+/* Wilma Navigation */
+.wilma-nav {
+  background-color: var(--wilma-blue);
+  color: var(--wilma-text-white);
+  box-shadow: var(--wilma-shadow-md);
+}
+
+.wilma-nav-item {
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s;
+}
+
+.wilma-nav-item:hover {
+  color: var(--wilma-text-white);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.wilma-nav-item.active {
+  color: var(--wilma-text-white);
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+/* Wilma Table */
+.wilma-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wilma-table th {
+  background-color: var(--wilma-light-blue);
+  color: var(--wilma-text-primary);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid var(--wilma-border);
+}
+
+.wilma-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--wilma-border-light);
+}
+
+.wilma-table tr:hover {
+  background-color: var(--wilma-bg-hover);
+}
+
+/* Wilma Input */
+.wilma-input {
+  border: 1px solid var(--wilma-border);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.wilma-input:focus {
+  outline: none;
+  border-color: var(--wilma-blue);
+  box-shadow: 0 0 0 3px rgba(0, 61, 130, 0.1);
+}
+
+/* Wilma Badge */
+.wilma-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.wilma-badge-primary {
+  background-color: var(--wilma-light-blue);
+  color: var(--wilma-blue);
+}
+
+.wilma-badge-success {
+  background-color: #d4edda;
+  color: var(--wilma-success);
+}
+
+.wilma-badge-warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.wilma-badge-danger {
+  background-color: #f8d7da;
+  color: var(--wilma-danger);
+}
+
+/* Wilma Logo Styles */
+.wilma-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.wilma-logo-lg {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.wilma-logo-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--wilma-shadow-sm);
+}
