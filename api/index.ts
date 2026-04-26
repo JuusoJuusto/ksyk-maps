@@ -2150,6 +2150,275 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           return res.status(500).json({ message: "Failed to check AI content" });
         }
       }
+
+      // GET /wilma/exams - Get all exams
+      if (apiPath === '/wilma/exams' || apiPath.startsWith('/wilma/exams?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/exams');
+          try {
+            const studentId = req.query.studentId as string | undefined;
+            const teacherId = req.query.teacherId as string | undefined;
+            const status = req.query.status as string | undefined;
+            
+            // Mock data for now - replace with real Firestore query
+            const exams = [
+              {
+                id: "1",
+                subject: "Matematiikka",
+                course: "MAA7 - Derivaatta",
+                date: "2026-05-05",
+                time: "10:00",
+                duration: 90,
+                room: "Luokka 301",
+                teacher: "M. Virtanen",
+                teacherId: "teacher1",
+                topics: ["Derivaatan määritelmä", "Derivoimissäännöt", "Sovellukset"],
+                status: "upcoming",
+                materials: ["Laskin", "Kaavakokoelma"],
+                instructions: "Tuo mukanasi laskin ja kaavakokoelma. Älä unohda henkilöllisyystodistusta.",
+                studentIds: ["student1", "student2"]
+              }
+            ];
+            
+            let filteredExams = exams;
+            
+            if (studentId) {
+              filteredExams = filteredExams.filter(e => e.studentIds.includes(studentId));
+            }
+            
+            if (teacherId) {
+              filteredExams = filteredExams.filter(e => e.teacherId === teacherId);
+            }
+            
+            if (status) {
+              filteredExams = filteredExams.filter(e => e.status === status);
+            }
+            
+            console.log(`✅ Found ${filteredExams.length} exams`);
+            return res.status(200).json(filteredExams);
+          } catch (error: any) {
+            console.error('❌ Error fetching exams:', error);
+            return res.status(500).json({ message: "Failed to fetch exams" });
+          }
+        }
+      }
+
+      // POST /wilma/exams - Create exam
+      if (apiPath === '/wilma/exams' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/exams');
+        try {
+          const examData = req.body;
+          
+          // Validate required fields
+          if (!examData.subject || !examData.date || !examData.time) {
+            return res.status(400).json({ message: "Missing required fields" });
+          }
+          
+          // Mock creation - replace with real Firestore
+          const newExam = {
+            id: `exam_${Date.now()}`,
+            ...examData,
+            createdAt: new Date().toISOString()
+          };
+          
+          console.log('✅ Exam created:', newExam.id);
+          return res.status(201).json(newExam);
+        } catch (error: any) {
+          console.error('❌ Error creating exam:', error);
+          return res.status(500).json({ message: "Failed to create exam" });
+        }
+      }
+
+      // GET /wilma/exams/:id - Get single exam
+      const examMatch = apiPath.match(/^\/wilma\/exams\/([^\/]+)$/);
+      if (examMatch && req.method === 'GET') {
+        const id = examMatch[1];
+        console.log('🔵 GET /api/wilma/exams/' + id);
+        
+        try {
+          // Mock data - replace with real Firestore query
+          const exam = {
+            id,
+            subject: "Matematiikka",
+            course: "MAA7 - Derivaatta",
+            date: "2026-05-05",
+            time: "10:00",
+            duration: 90,
+            room: "Luokka 301",
+            teacher: "M. Virtanen",
+            topics: ["Derivaatan määritelmä", "Derivoimissäännöt", "Sovellukset"],
+            status: "upcoming",
+            materials: ["Laskin", "Kaavakokoelma"],
+            instructions: "Tuo mukanasi laskin ja kaavakokoelma."
+          };
+          
+          console.log('✅ Exam found:', id);
+          return res.status(200).json(exam);
+        } catch (error: any) {
+          console.error('❌ Error fetching exam:', error);
+          return res.status(500).json({ message: "Failed to fetch exam" });
+        }
+      }
+
+      // PUT /wilma/exams/:id - Update exam
+      if (examMatch && req.method === 'PUT') {
+        const id = examMatch[1];
+        console.log('🔵 PUT /api/wilma/exams/' + id);
+        
+        try {
+          const updates = req.body;
+          
+          // Mock update - replace with real Firestore
+          const updatedExam = {
+            id,
+            ...updates,
+            updatedAt: new Date().toISOString()
+          };
+          
+          console.log('✅ Exam updated:', id);
+          return res.status(200).json(updatedExam);
+        } catch (error: any) {
+          console.error('❌ Error updating exam:', error);
+          return res.status(500).json({ message: "Failed to update exam" });
+        }
+      }
+
+      // GET /wilma/announcements - Get all announcements
+      if (apiPath === '/wilma/announcements' || apiPath.startsWith('/wilma/announcements?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/announcements');
+          try {
+            const category = req.query.category as string | undefined;
+            const audience = req.query.audience as string | undefined;
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+            
+            // Mock data - replace with real Firestore query
+            const announcements = [
+              {
+                id: "1",
+                title: "Kevätjuhla 15.5.2026",
+                content: "Koulun kevätjuhla järjestetään perjantaina 15.5.2026 klo 18:00 koulun juhlasalissa.",
+                author: "Rehtori Virtanen",
+                authorRole: "Rehtori",
+                date: "2026-04-20",
+                category: "event",
+                isPinned: true,
+                targetAudience: ["students", "parents", "teachers"]
+              },
+              {
+                id: "2",
+                title: "TÄRKEÄ: Ylioppilaskirjoitukset",
+                content: "Kevään 2026 ylioppilaskirjoitusten ilmoittautuminen päättyy 30.4.2026.",
+                author: "Opinto-ohjaaja Korhonen",
+                authorRole: "Opinto-ohjaaja",
+                date: "2026-04-22",
+                category: "urgent",
+                isPinned: true,
+                targetAudience: ["students", "parents"]
+              }
+            ];
+            
+            let filteredAnnouncements = announcements;
+            
+            if (category) {
+              filteredAnnouncements = filteredAnnouncements.filter(a => a.category === category);
+            }
+            
+            if (audience) {
+              filteredAnnouncements = filteredAnnouncements.filter(a => 
+                a.targetAudience.includes(audience)
+              );
+            }
+            
+            // Apply limit
+            filteredAnnouncements = filteredAnnouncements.slice(0, limit);
+            
+            console.log(`✅ Found ${filteredAnnouncements.length} announcements`);
+            return res.status(200).json(filteredAnnouncements);
+          } catch (error: any) {
+            console.error('❌ Error fetching announcements:', error);
+            return res.status(500).json({ message: "Failed to fetch announcements" });
+          }
+        }
+      }
+
+      // POST /wilma/announcements - Create announcement
+      if (apiPath === '/wilma/announcements' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/announcements');
+        try {
+          const announcementData = req.body;
+          
+          // Validate required fields
+          if (!announcementData.title || !announcementData.content) {
+            return res.status(400).json({ message: "Missing required fields" });
+          }
+          
+          // Mock creation - replace with real Firestore
+          const newAnnouncement = {
+            id: `announcement_${Date.now()}`,
+            ...announcementData,
+            date: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString()
+          };
+          
+          console.log('✅ Announcement created:', newAnnouncement.id);
+          return res.status(201).json(newAnnouncement);
+        } catch (error: any) {
+          console.error('❌ Error creating announcement:', error);
+          return res.status(500).json({ message: "Failed to create announcement" });
+        }
+      }
+
+      // GET /wilma/announcements/:id - Get single announcement
+      const announcementMatch = apiPath.match(/^\/wilma\/announcements\/([^\/]+)$/);
+      if (announcementMatch && req.method === 'GET') {
+        const id = announcementMatch[1];
+        console.log('🔵 GET /api/wilma/announcements/' + id);
+        
+        try {
+          // Mock data - replace with real Firestore query
+          const announcement = {
+            id,
+            title: "Kevätjuhla 15.5.2026",
+            content: "Koulun kevätjuhla järjestetään perjantaina 15.5.2026 klo 18:00.",
+            author: "Rehtori Virtanen",
+            authorRole: "Rehtori",
+            date: "2026-04-20",
+            category: "event",
+            isPinned: true,
+            targetAudience: ["students", "parents", "teachers"]
+          };
+          
+          console.log('✅ Announcement found:', id);
+          return res.status(200).json(announcement);
+        } catch (error: any) {
+          console.error('❌ Error fetching announcement:', error);
+          return res.status(500).json({ message: "Failed to fetch announcement" });
+        }
+      }
+
+      // PUT /wilma/announcements/:id - Update announcement
+      if (announcementMatch && req.method === 'PUT') {
+        const id = announcementMatch[1];
+        console.log('🔵 PUT /api/wilma/announcements/' + id);
+        
+        try {
+          const updates = req.body;
+          
+          // Mock update - replace with real Firestore
+          const updatedAnnouncement = {
+            id,
+            ...updates,
+            updatedAt: new Date().toISOString()
+          };
+          
+          console.log('✅ Announcement updated:', id);
+          return res.status(200).json(updatedAnnouncement);
+        } catch (error: any) {
+          console.error('❌ Error updating announcement:', error);
+          return res.status(500).json({ message: "Failed to update announcement" });
+        }
+      }
     }
     
     // 404 for unknown routes
@@ -2168,6 +2437,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         '/auth/admin-login',
         '/wilma/users',
         '/wilma/login',
+        '/wilma/exams',
+        '/wilma/announcements',
         '/test-email (POST)'
       ]
     });
