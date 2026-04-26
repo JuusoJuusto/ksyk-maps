@@ -241,6 +241,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: "Failed to fetch lunch menu" });
       }
     }
+
+    // Logs endpoint - for error logging
+    if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'POST') {
+      console.log('📝 POST /api/logs - Client log received');
+      try {
+        const logData = req.body;
+        console.log('Client log:', logData);
+        // In production, you would save this to a logging service
+        return res.status(200).json({ message: "Log received" });
+      } catch (error: any) {
+        console.error('Error processing log:', error);
+        return res.status(500).json({ message: "Failed to process log" });
+      }
+    }
     
     // Tickets endpoints
     if (apiPath.startsWith('/tickets')) {

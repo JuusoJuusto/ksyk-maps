@@ -154,6 +154,9 @@ export default function WilmaAdminNew() {
     return true;
   });
 
+  // Get current section label safely
+  const currentSectionLabel = filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
       {/* Sidebar - Hidden on mobile, shown on desktop */}
@@ -257,7 +260,7 @@ export default function WilmaAdminNew() {
         <header className="hidden md:flex h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] items-center justify-between px-4 md:px-6 shadow-md">
           <div className="flex-1 min-w-0">
             <h1 className="text-base md:text-lg font-bold text-white truncate flex items-center gap-2">
-              {filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma'}
+              {currentSectionLabel}
               <span className="text-xs font-normal text-white/70 hidden md:inline">
                 • {new Date().toLocaleDateString('fi-FI', { weekday: 'short' })}
               </span>
