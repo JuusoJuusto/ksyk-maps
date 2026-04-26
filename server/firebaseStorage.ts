@@ -1702,64 +1702,291 @@ export class FirebaseStorage implements IStorage {
       const navigations = navigationSnapshot.docs;
       const sessions = sessionsSnapshot.docs;
 
-      // Browser stats
+      // Get unique visitors (unique session IDs)
+      const uniqueSessionIds = new Set(sessions.map(doc => doc.id));
+      const uniqueVisitors = uniqueSessionIds.size;
+
+      // Calculate session durations
+      let totalDuration = 0;
+      let validSessions = 0;
+      sessions.forEach(doc => {
+        const data = doc.data();
+        if (data.duration && typeof data.duration === 'number') {
+          totalDuration += data.duration;
+          validSessions++;
+        }
+      });
+      const avgSessionDuration = validSessions > 0 ? Math.round(totalDuration / validSessions) : 180;
+
+      // Calculate bounce rate (sessions with only 1 page view)
+      const sessionPageCounts: { [key: string]: number } = {};
+      pageViews.forEach(doc => {
+        const sessionId = doc.data().sessionId;
+        if (sessionId) {
+          sessionPageCounts[sessionId] = (sessionPageCounts[sessionId] || 0) + 1;
+        }
+      });
+      const bouncedSessions = Object.values(sessionPageCounts).filter(count => count === 1).length;
+      const bounceRate = sessions.length > 0 ? bouncedSessions / sessions.length : 0;
+
+      // Top pages with avg duration
+      const pageCounts: { [key: string]: { views: number; totalDuration: number; count: number } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        const page = data.page || data.path || 'Unknown';
+        if (!pageCounts[page]) {
+          pageCounts[page] = { views: 0, totalDuration: 0, count: 0 };
+        }
+        pageCounts[page].views++;
+        if (data.duration && typeof data.duration === 'number') {
+          pageCounts[page].totalDuration += data.duration;
+          pageCounts[page].count++;
+        }
+      });
+      const topPages = Object.entries(pageCounts)
+        .map(([page, data]) => ({
+          page,
+          views: data.views,
+          avgDuration: data.count > 0 ? Math.round(data.totalDuration / data.count) : 0
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10);
+
+      // Top searches with result clicks
+      const searchCounts: { [key: string]: { count: number; clicks: number } } = {};
+      searches.forEach(doc => {
+        const data = doc.data();
+        const query = data.query?.toLowerCase() || '';
+        if (query) {
+          if (!searchCounts[query]) {
+            searchCounts[query] = { count: 0, clicks: 0 };
+          }
+          searchCounts[query].count++;
+          if (data.resultClicked) {
+            searchCounts[query].clicks++;
+          }
+        }
+      });
+      const topSearches = Object.entries(searchCounts)
+        .map(([query, data]) => ({
+          query,
+          count: data.count,
+          resultClicks: data.clicks
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Top rooms
+      const roomCounts: { [key: string]: { views: number; name: string } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        if (data.roomId) {
+          if (!roomCounts[data.roomId]) {
+            roomCounts[data.roomId] = { views: 0, name: data.roomName || data.roomId };
+          }
+          roomCounts[data.roomId].views++;
+        }
+      });
+      const topRooms = Object.entries(roomCounts)
+        .map(([roomId, data]) => ({
+          roomId,
+          roomName: data.name,
+          views: data.views
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10);
+
+      // Top buildings
+      const buildingCounts: { [key: string]: { views: number; name: string } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        if (data.buildingId) {
+          if (!buildingCounts[data.buildingId]) {
+            buildingCounts[data.buildingId] = { views: 0, name: data.buildingName || data.buildingId };
+          }
+          buildingCounts[data.buildingId].views++;
+        }
+      });
+      const topBuildings = Object.entries(buildingCounts)
+        .map(([buildingId, data]) => ({
+          buildingId,
+          buildingName: data.name,
+          views: data.views
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10);
+
+      // Device breakdown
+      const deviceCounts: { [key: string]: number } = {};
+      pageViews.forEach(doc => {
+        const device = doc.data().device || 'Unknown';
+        deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+      });
+      const totalDeviceViews = pageViews.length || 1;
+      const deviceBreakdown = Object.entries(deviceCounts)
+        .map(([device, count]) => ({
+          device,
+          count,
+          percentage: Math.round((count / totalDeviceViews) * 100)
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      // Browser breakdown
       const browserCounts: { [key: string]: number } = {};
       pageViews.forEach(doc => {
         const browser = doc.data().browser || 'Unknown';
         browserCounts[browser] = (browserCounts[browser] || 0) + 1;
       });
+      const browserBreakdown = Object.entries(browserCounts)
+        .map(([browser, count]) => ({
+          browser,
+          count,
+          percentage: Math.round((count / totalDeviceViews) * 100)
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      // Country stats
+      // Country breakdown
       const countryCounts: { [key: string]: number } = {};
       pageViews.forEach(doc => {
         const country = doc.data().country || 'Unknown';
         countryCounts[country] = (countryCounts[country] || 0) + 1;
       });
+      const countryBreakdown = Object.entries(countryCounts)
+        .map(([country, count]) => ({
+          country,
+          count,
+          percentage: Math.round((count / totalDeviceViews) * 100)
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      // Peak hours
-      const hourCounts: { [key: number]: number } = {};
+      // Hourly activity
+      const hourlyData: { [key: number]: { views: number; users: Set<string> } } = {};
+      for (let i = 0; i < 24; i++) {
+        hourlyData[i] = { views: 0, users: new Set() };
+      }
       pageViews.forEach(doc => {
-        const date = doc.data().createdAt?.toDate();
+        const data = doc.data();
+        const date = data.createdAt?.toDate();
         if (date) {
           const hour = date.getHours();
-          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+          hourlyData[hour].views++;
+          if (data.sessionId) {
+            hourlyData[hour].users.add(data.sessionId);
+          }
         }
       });
+      const hourlyActivity = Object.entries(hourlyData)
+        .map(([hour, data]) => ({
+          hour: parseInt(hour),
+          views: data.views,
+          users: data.users.size
+        }));
 
-      const peakHours = Object.entries(hourCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([hour]) => `${hour}:00`);
+      // Daily activity
+      const dailyData: { [key: string]: { views: number; users: Set<string>; sessions: Set<string> } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        const date = data.createdAt?.toDate();
+        if (date) {
+          const dateStr = date.toISOString().split('T')[0];
+          if (!dailyData[dateStr]) {
+            dailyData[dateStr] = { views: 0, users: new Set(), sessions: new Set() };
+          }
+          dailyData[dateStr].views++;
+          if (data.userId) dailyData[dateStr].users.add(data.userId);
+          if (data.sessionId) dailyData[dateStr].sessions.add(data.sessionId);
+        }
+      });
+      const dailyActivity = Object.entries(dailyData)
+        .map(([date, data]) => ({
+          date,
+          views: data.views,
+          users: data.users.size,
+          sessions: data.sessions.size
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Feature usage
+      const featureCounts: { [key: string]: { uses: number; users: Set<string> } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        if (data.feature) {
+          if (!featureCounts[data.feature]) {
+            featureCounts[data.feature] = { uses: 0, users: new Set() };
+          }
+          featureCounts[data.feature].uses++;
+          if (data.userId) {
+            featureCounts[data.feature].users.add(data.userId);
+          }
+        }
+      });
+      const featureUsage = Object.entries(featureCounts)
+        .map(([feature, data]) => ({
+          feature,
+          uses: data.uses,
+          uniqueUsers: data.users.size
+        }))
+        .sort((a, b) => b.uses - a.uses);
+
+      // Error stats
+      const errorCounts: { [key: string]: { count: number; users: Set<string> } } = {};
+      pageViews.forEach(doc => {
+        const data = doc.data();
+        if (data.error) {
+          if (!errorCounts[data.error]) {
+            errorCounts[data.error] = { count: 0, users: new Set() };
+          }
+          errorCounts[data.error].count++;
+          if (data.userId) {
+            errorCounts[data.error].users.add(data.userId);
+          }
+        }
+      });
+      const errorStats = Object.entries(errorCounts)
+        .map(([error, data]) => ({
+          error,
+          count: data.count,
+          affectedUsers: data.users.size
+        }))
+        .sort((a, b) => b.count - a.count);
 
       return {
-        totalVisitors: sessions.length,
         totalPageViews: pageViews.length,
-        totalSearches: searches.length,
-        totalNavigationRequests: navigations.length,
-        avgSessionDuration: 180, // Mock for now
-        bounceRate: 0.35,
-        topCountries: Object.entries(countryCounts)
-          .map(([country, count]) => ({ country, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5),
-        topBrowsers: Object.entries(browserCounts)
-          .map(([browser, count]) => ({ browser, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5),
-        peakHours
+        uniqueVisitors,
+        totalSessions: sessions.length,
+        avgSessionDuration,
+        bounceRate,
+        topPages,
+        topSearches,
+        topRooms,
+        topBuildings,
+        deviceBreakdown,
+        browserBreakdown,
+        countryBreakdown,
+        hourlyActivity,
+        dailyActivity,
+        featureUsage,
+        errorStats
       };
     } catch (error) {
       console.error('Error getting analytics summary:', error);
       return {
-        totalVisitors: 0,
         totalPageViews: 0,
-        totalSearches: 0,
-        totalNavigationRequests: 0,
+        uniqueVisitors: 0,
+        totalSessions: 0,
         avgSessionDuration: 0,
         bounceRate: 0,
-        topCountries: [],
-        topBrowsers: [],
-        peakHours: []
+        topPages: [],
+        topSearches: [],
+        topRooms: [],
+        topBuildings: [],
+        deviceBreakdown: [],
+        browserBreakdown: [],
+        countryBreakdown: [],
+        hourlyActivity: [],
+        dailyActivity: [],
+        featureUsage: [],
+        errorStats: []
       };
     }
   }

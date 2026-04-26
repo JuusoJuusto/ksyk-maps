@@ -305,10 +305,10 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
         {/* Right Column */}
         <div className="space-y-4 md:space-y-6">
           {/* Quick Actions */}
-          <Card className="border-2 border-purple-200">
-            <CardHeader className="bg-purple-50 p-4 md:p-6">
+          <Card className="border-2 border-[#003d82]">
+            <CardHeader className="bg-[#e6f2ff] p-4 md:p-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-[#003d82]" />
                 Pika-toiminnot
               </CardTitle>
             </CardHeader>
@@ -420,7 +420,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                       <span className="font-semibold">8.5/10</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }} />
+                      <div className="bg-[#003d82] h-2 rounded-full" style={{ width: '85%' }} />
                     </div>
                   </div>
                 </div>
@@ -463,7 +463,7 @@ export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabP
                       <span className="font-semibold">{isAdmin ? '4.2/5' : '7.8/10'}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: isAdmin ? '84%' : '78%' }} />
+                      <div className="bg-[#0056b3] h-2 rounded-full" style={{ width: isAdmin ? '84%' : '78%' }} />
                     </div>
                   </div>
                 </div>

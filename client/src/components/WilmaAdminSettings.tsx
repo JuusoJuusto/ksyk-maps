@@ -273,7 +273,7 @@ export default function WilmaAdminSettings() {
         {/* Academic Year Tab */}
         <TabsContent value="academic" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+            <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <Calendar className="w-5 h-5" />
                 Lukuvuoden asetukset

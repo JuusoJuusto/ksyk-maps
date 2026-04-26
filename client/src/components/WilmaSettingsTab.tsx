@@ -215,7 +215,7 @@ export default function WilmaSettingsTab({ userRole }: WilmaSettingsTabProps) {
   return (
     <div className="space-y-6">
       <Card className="shadow-lg border-[#dddddd]">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
+        <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b border-[#dddddd]">
           <CardTitle className="flex items-center gap-2 text-[#003d82]">
             <Settings className="w-6 h-6" />
             Asetukset

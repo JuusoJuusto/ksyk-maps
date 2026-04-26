@@ -241,7 +241,7 @@ export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAtt
       case 'excused':
       case 'school_clarified':
       case 'other_clarified':
-      case 'unauthorized_clarified': return 'bg-purple-100 text-purple-700 border-purple-300';
+      case 'unauthorized_clarified': return 'bg-gray-100 text-gray-700 border-gray-300';
       case 'teaching_elsewhere':
       case 'school_activity':
       case 'pre_approved_leave': return 'bg-indigo-100 text-indigo-700 border-indigo-300';
@@ -947,7 +947,7 @@ export default function WilmaStyleAttendance({ preSelectedClass }: WilmaStyleAtt
                               id: mark.id,
                               data: { ...mark, markType: 'excused', status: 'clarified' }
                             })}
-                            className="bg-purple-600 hover:bg-purple-700"
+                            className="bg-gray-600 hover:bg-gray-700"
                           >
                             Selvitetty
                           </Button>

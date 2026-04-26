@@ -185,10 +185,10 @@ export default function WilmaSettingsManager() {
       </Card>
 
       {/* Notification Settings */}
-      <Card className="border-2 border-purple-200">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
+      <Card className="border-2 border-gray-200">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
           <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-purple-600" />
+            <Bell className="w-5 h-5 text-[#003d82]" />
             Ilmoitukset
           </CardTitle>
         </CardHeader>
