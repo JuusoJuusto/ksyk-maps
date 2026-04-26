@@ -203,6 +203,7 @@ export interface IStorage {
   createWilmaNotification(notificationData: any): Promise<any>;
   updateWilmaNotification(id: string, notificationData: any): Promise<any>;
   markWilmaNotificationAsRead(id: string): Promise<void>;
+  markAllWilmaNotificationsAsRead(userId: string): Promise<void>;
   deleteWilmaNotification(id: string): Promise<void>;
   
   // Wilma Calendar Events operations

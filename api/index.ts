@@ -1833,6 +1833,78 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // GET /wilma/notifications - Get user notifications
+      if (apiPath === '/wilma/notifications' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/notifications called');
+        try {
+          const userId = req.query.userId as string;
+          if (!userId) {
+            return res.status(400).json({ message: "User ID is required" });
+          }
+          const notifications = await storage.getWilmaNotifications(userId);
+          return res.status(200).json(notifications);
+        } catch (error: any) {
+          console.error('❌ Error fetching notifications:', error);
+          return res.status(500).json({ message: "Failed to fetch notifications" });
+        }
+      }
+
+      // POST /wilma/notifications - Create notification
+      if (apiPath === '/wilma/notifications' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/notifications called');
+        try {
+          const notification = await storage.createWilmaNotification(req.body);
+          return res.status(201).json(notification);
+        } catch (error: any) {
+          console.error('❌ Error creating notification:', error);
+          return res.status(500).json({ message: "Failed to create notification" });
+        }
+      }
+
+      // PUT /wilma/notifications/:id/read - Mark notification as read
+      const notificationReadMatch = apiPath.match(/^\/wilma\/notifications\/([^\/]+)\/read$/);
+      if (notificationReadMatch && req.method === 'PUT') {
+        const id = notificationReadMatch[1];
+        console.log('🔵 PUT /api/wilma/notifications/' + id + '/read');
+        try {
+          await storage.markWilmaNotificationAsRead(id);
+          return res.status(200).json({ success: true });
+        } catch (error: any) {
+          console.error('❌ Error marking notification as read:', error);
+          return res.status(500).json({ message: "Failed to mark notification as read" });
+        }
+      }
+
+      // PUT /wilma/notifications/mark-all-read - Mark all notifications as read
+      if (apiPath === '/wilma/notifications/mark-all-read' && req.method === 'PUT') {
+        console.log('🔵 PUT /api/wilma/notifications/mark-all-read called');
+        try {
+          const userId = req.query.userId as string;
+          if (!userId) {
+            return res.status(400).json({ message: "User ID is required" });
+          }
+          await storage.markAllWilmaNotificationsAsRead(userId);
+          return res.status(200).json({ success: true });
+        } catch (error: any) {
+          console.error('❌ Error marking all notifications as read:', error);
+          return res.status(500).json({ message: "Failed to mark all notifications as read" });
+        }
+      }
+
+      // DELETE /wilma/notifications/:id - Delete notification
+      const notificationDeleteMatch = apiPath.match(/^\/wilma\/notifications\/([^\/]+)$/);
+      if (notificationDeleteMatch && req.method === 'DELETE') {
+        const id = notificationDeleteMatch[1];
+        console.log('🔵 DELETE /api/wilma/notifications/' + id);
+        try {
+          await storage.deleteWilmaNotification(id);
+          return res.status(200).json({ success: true });
+        } catch (error: any) {
+          console.error('❌ Error deleting notification:', error);
+          return res.status(500).json({ message: "Failed to delete notification" });
+        }
+      }
+
       // GET /wilma/students/:id/enrollments - Get student enrollments
       const enrollmentsMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/enrollments$/);
       if (enrollmentsMatch && req.method === 'GET') {

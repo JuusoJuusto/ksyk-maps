@@ -2797,6 +2797,26 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async markAllWilmaNotificationsAsRead(userId: string): Promise<void> {
+    try {
+      const snapshot = await db.collection('wilmaNotifications')
+        .where('userId', '==', userId)
+        .where('isRead', '==', false)
+        .get();
+      
+      const batch = db.batch();
+      snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { isRead: true, readAt: new Date() });
+      });
+      
+      await batch.commit();
+      console.log(`✅ Marked ${snapshot.size} notifications as read for user ${userId}`);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  }
+
   async deleteWilmaNotification(id: string): Promise<void> {
     try {
       await db.collection('wilmaNotifications').doc(id).delete();
