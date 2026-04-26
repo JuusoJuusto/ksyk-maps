@@ -86,12 +86,12 @@ export default function WilmaStudent() {
         sidebarOpen ? 'w-64' : 'w-16'
       }`}>
         {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#0066CC] to-[#6B4FBB]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <User className="w-4 h-4 text-[#003d82]" />
+                  <User className="w-4 h-4 text-[#0066CC]" />
                 </div>
                 <span className="font-bold text-base text-white tracking-wide">Wilma</span>
               </div>
@@ -119,7 +119,7 @@ export default function WilmaStudent() {
         {/* User Info */}
         <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 ${!sidebarOpen && 'hidden'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#0066CC] to-[#6B4FBB] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -145,11 +145,11 @@ export default function WilmaStudent() {
                 onClick={() => setActiveSection(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mb-1 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-md scale-105'
+                    ? 'bg-gradient-to-r from-[#0066CC] to-[#6B4FBB] text-white shadow-md scale-105'
                     : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
                 }`}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#003d82]'}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#0066CC]'}`} />
                 {sidebarOpen && (
                   <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-700'}`}>
                     {item.label}
@@ -181,11 +181,11 @@ export default function WilmaStudent() {
       {/* Main Content */}
       <main className={`transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
+        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-[#0066CC] to-[#6B4FBB] text-white shadow-lg">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <User className="w-5 h-5 text-[#003d82]" />
+                <User className="w-5 h-5 text-[#0066CC]" />
               </div>
               <div>
                 <p className="text-sm font-bold">Wilma</p>
@@ -251,7 +251,7 @@ export default function WilmaStudent() {
                 onClick={() => setActiveSection(item.id)}
                 className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-br from-[#003d82] to-[#0052a3] text-white shadow-md'
+                    ? 'bg-gradient-to-br from-[#0066CC] to-[#6B4FBB] text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >

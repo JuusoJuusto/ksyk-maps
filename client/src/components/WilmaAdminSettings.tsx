@@ -157,14 +157,10 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
-          </TabsTrigger>
-          <TabsTrigger value="smtp">
-            <Mail className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">SMTP</span>
           </TabsTrigger>
           <TabsTrigger value="academic">
             <Calendar className="w-4 h-4 mr-2" />
@@ -270,122 +266,6 @@ export default function WilmaAdminSettings() {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SMTP Configuration Tab */}
-        <TabsContent value="smtp" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                <Server className="w-5 h-5" />
-                SMTP-asetukset
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">Ota SMTP käyttöön</p>
-                  <p className="text-sm text-gray-600">Lähetä sähköposteja järjestelmästä</p>
-                </div>
-                <Switch
-                  checked={settings.smtpEnabled}
-                  onCheckedChange={(checked) => 
-                    setSettings({ ...settings, smtpEnabled: checked })
-                  }
-                />
-              </div>
-
-              {settings.smtpEnabled && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-2">
-                      <Label htmlFor="smtpHost">SMTP-palvelin</Label>
-                      <Input
-                        id="smtpHost"
-                        placeholder="smtp.gmail.com"
-                        value={settings.smtpHost}
-                        onChange={(e) => setSettings({ ...settings, smtpHost: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="smtpPort">Portti</Label>
-                      <Input
-                        id="smtpPort"
-                        type="number"
-                        value={settings.smtpPort}
-                        onChange={(e) => setSettings({ ...settings, smtpPort: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">Suojattu yhteys (TLS/SSL)</p>
-                      <p className="text-sm text-gray-600">Käytä salattua yhteyttä</p>
-                    </div>
-                    <Switch
-                      checked={settings.smtpSecure}
-                      onCheckedChange={(checked) => 
-                        setSettings({ ...settings, smtpSecure: checked })
-                      }
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="smtpUser">Käyttäjänimi</Label>
-                      <Input
-                        id="smtpUser"
-                        value={settings.smtpUser}
-                        onChange={(e) => setSettings({ ...settings, smtpUser: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="smtpPassword">Salasana</Label>
-                      <Input
-                        id="smtpPassword"
-                        type="password"
-                        value={settings.smtpPassword}
-                        onChange={(e) => setSettings({ ...settings, smtpPassword: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="smtpFromName">Lähettäjän nimi</Label>
-                      <Input
-                        id="smtpFromName"
-                        value={settings.smtpFromName}
-                        onChange={(e) => setSettings({ ...settings, smtpFromName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="smtpFromEmail">Lähettäjän sähköposti</Label>
-                      <Input
-                        id="smtpFromEmail"
-                        type="email"
-                        value={settings.smtpFromEmail}
-                        onChange={(e) => setSettings({ ...settings, smtpFromEmail: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-blue-900">SMTP-asetukset</p>
-                        <p className="text-xs text-blue-700 mt-1">
-                          Gmail: smtp.gmail.com:587, Outlook: smtp-mail.outlook.com:587
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

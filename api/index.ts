@@ -1861,6 +1861,78 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           return res.status(500).json({ message: "Failed to mark message as read" });
         }
       }
+
+      // GET /wilma/students/:id/enrollments - Get student enrollments
+      const enrollmentsMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/enrollments$/);
+      if (enrollmentsMatch && req.method === 'GET') {
+        const studentId = enrollmentsMatch[1];
+        console.log('🔵 GET /api/wilma/students/' + studentId + '/enrollments');
+        try {
+          // Return empty array for now - implement when courses are ready
+          return res.status(200).json([]);
+        } catch (error: any) {
+          console.error('❌ Error getting enrollments:', error);
+          return res.status(500).json({ message: "Failed to fetch enrollments" });
+        }
+      }
+
+      // GET /wilma/attendance-marks - Get attendance marks
+      if (apiPath === '/wilma/attendance-marks' || apiPath.startsWith('/wilma/attendance-marks?')) {
+        if (req.method === 'GET') {
+          const studentId = req.query.studentId as string | undefined;
+          console.log('🔵 GET /api/wilma/attendance-marks', { studentId });
+          try {
+            // Return empty array for now - implement when attendance system is ready
+            return res.status(200).json([]);
+          } catch (error: any) {
+            console.error('❌ Error getting attendance marks:', error);
+            return res.status(500).json({ message: "Failed to fetch attendance marks" });
+          }
+        }
+      }
+
+      // GET /wilma/students/:id/schedule - Get student schedule
+      const studentScheduleMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/schedule$/);
+      if (studentScheduleMatch && req.method === 'GET') {
+        const studentId = studentScheduleMatch[1];
+        console.log('🔵 GET /api/wilma/students/' + studentId + '/schedule');
+        try {
+          // Return empty array for now - implement when schedule system is ready
+          return res.status(200).json([]);
+        } catch (error: any) {
+          console.error('❌ Error getting student schedule:', error);
+          return res.status(500).json({ message: "Failed to fetch schedule" });
+        }
+      }
+
+      // GET /wilma/courses - Get all courses
+      if (apiPath === '/wilma/courses' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/courses');
+        try {
+          // Return empty array for now - implement when course system is ready
+          return res.status(200).json([]);
+        } catch (error: any) {
+          console.error('❌ Error getting courses:', error);
+          return res.status(500).json({ message: "Failed to fetch courses" });
+        }
+      }
+
+      // POST /wilma/courses - Create course
+      if (apiPath === '/wilma/courses' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/courses');
+        try {
+          // Return mock course for now - implement when course system is ready
+          const course = {
+            id: `course_${Date.now()}`,
+            ...req.body,
+            createdAt: new Date().toISOString()
+          };
+          return res.status(201).json(course);
+        } catch (error: any) {
+          console.error('❌ Error creating course:', error);
+          return res.status(500).json({ message: "Failed to create course" });
+        }
+      }
     }
     
     // 404 for unknown routes

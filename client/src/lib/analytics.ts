@@ -53,9 +53,11 @@ export const trackPageView = async (page: string) => {
           userId: getUserId(),
         }
       }),
+    }).catch(() => {
+      // Silently fail - analytics shouldn't break the app
     });
   } catch (error) {
-    console.error('Analytics tracking failed:', error);
+    // Silently fail - analytics shouldn't break the app
   }
 };
 
@@ -80,7 +82,7 @@ export const trackEasterEgg = async (eggType: string) => {
           userId: getUserId(),
         }
       }),
-    });
+    }).catch(() => {});
 
     // Also track in easter eggs endpoint
     await fetch('/api/easter-eggs/track', {
@@ -90,9 +92,9 @@ export const trackEasterEgg = async (eggType: string) => {
         eggId: eggType,
         eggName: eggType,
       }),
-    });
+    }).catch(() => {});
   } catch (error) {
-    console.error('Easter egg tracking failed:', error);
+    // Silently fail
   }
 };
 
@@ -117,9 +119,9 @@ export const trackFeatureUse = async (feature: string) => {
           userId: getUserId(),
         }
       }),
-    });
+    }).catch(() => {});
   } catch (error) {
-    console.error('Feature tracking failed:', error);
+    // Silently fail
   }
 };
 
@@ -144,9 +146,9 @@ export const trackSearch = async (query: string) => {
           userId: getUserId(),
         }
       }),
-    });
+    }).catch(() => {});
   } catch (error) {
-    console.error('Search tracking failed:', error);
+    // Silently fail
   }
 };
 
@@ -171,9 +173,9 @@ export const trackNavigation = async (from: string, to: string) => {
           userId: getUserId(),
         }
       }),
-    });
+    }).catch(() => {});
   } catch (error) {
-    console.error('Navigation tracking failed:', error);
+    // Silently fail
   }
 };
 

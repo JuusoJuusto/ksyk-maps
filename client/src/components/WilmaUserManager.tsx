@@ -75,12 +75,16 @@ export default function WilmaUserManager() {
     mutationFn: async (user: any) => {
       console.log('🔵 Creating Wilma user:', user);
       
-      // Generate 6-digit student ID
-      const studentId = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate 8-digit student ID for students
+      let studentId = '';
+      if (user.role === 'student') {
+        studentId = Math.floor(10000000 + Math.random() * 90000000).toString();
+        console.log('🎓 Generated 8-digit student ID:', studentId);
+      }
       
       const userData = {
         ...user,
-        studentId
+        studentId: studentId || undefined
       };
       
       const response = await fetch("/api/wilma/users", {
@@ -114,7 +118,7 @@ export default function WilmaUserManager() {
         isActive: true,
         sendEmailInvitation: false
       });
-      alert(`Wilma user created successfully!\n\nStudent ID: ${data.studentId}` + (newUser.sendEmailInvitation ? "\n\nLogin credentials have been sent to the user's email." : ""));
+      alert(`Wilma user created successfully!${data.studentId ? `\n\nStudent ID: ${data.studentId}` : ''}` + (newUser.sendEmailInvitation ? "\n\nLogin credentials have been sent to the user's email." : ""));
     },
     onError: (error: any) => {
       console.error('❌ Error creating user:', error);

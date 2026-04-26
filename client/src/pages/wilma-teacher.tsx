@@ -99,7 +99,7 @@ export default function WilmaTeacher() {
             <>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <GraduationCap className="w-4 h-4 text-[#003d82]" />
+                  <img src="/ksykmaps_logo.png" alt="KSYK" className="w-4 h-4" />
                 </div>
                 <span className="font-bold text-base text-white tracking-wide">Wilma</span>
               </div>
