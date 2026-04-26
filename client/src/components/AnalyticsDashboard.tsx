@@ -169,6 +169,55 @@ export default function AnalyticsDashboard() {
         ))}
       </div>
 
+      {/* Real Analytics Data */}
+      {analyticsData && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#003d82]">
+              <Activity className="w-5 h-5" />
+              Sivuston käyttö ({timeRange === 'week' ? 'Viikko' : timeRange === 'month' ? 'Kuukausi' : 'Vuosi'})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-sm text-gray-600 font-medium">Sivulataukset</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {analyticsData.totalPageviews || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Kaikki sivulataukset ajanjaksolla
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-sm text-gray-600 font-medium">Tapahtumat</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {analyticsData.totalEvents || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Käyttäjien toiminnot
+                </p>
+              </div>
+            </div>
+            {analyticsData.pageviews && analyticsData.pageviews.length > 0 && (
+              <div className="mt-4 bg-white p-4 rounded-lg">
+                <p className="text-sm font-semibold text-gray-900 mb-2">Viimeisimmät sivulataukset:</p>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {analyticsData.pageviews.slice(0, 10).map((pv: any, idx: number) => (
+                    <div key={idx} className="text-xs text-gray-600 flex justify-between">
+                      <span className="font-mono">{pv.page}</span>
+                      <span className="text-gray-400">
+                        {new Date(pv.timestamp).toLocaleString('fi-FI')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
