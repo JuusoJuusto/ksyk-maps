@@ -236,7 +236,7 @@ export default function ClassDetail() {
                       <Card 
                         key={student.id}
                         className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-indigo-100 hover:border-indigo-300"
-                        onClick={() => setLocation(`/wilma-admin/${adminId}/student-view/${student.id}`)}
+                        onClick={() => setLocation(`/wilma-admin/${adminId}/student-view/${student.studentId || student.id}`)}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">

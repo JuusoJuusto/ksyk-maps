@@ -35,7 +35,7 @@ export default function StudentDetail() {
     }
   });
 
-  // Fetch student data
+  // Fetch student data - support both Firebase ID and 8-digit student ID
   const { data: student, isLoading, error } = useQuery({
     queryKey: ["student-detail", studentId],
     queryFn: async () => {
@@ -43,7 +43,16 @@ export default function StudentDetail() {
       if (!studentId) {
         throw new Error("No student ID provided");
       }
-      const response = await fetch(`/api/wilma/users/${studentId}`);
+      
+      // Check if it's an 8-digit student ID
+      const isStudentId = /^\d{8}$/.test(studentId);
+      const endpoint = isStudentId 
+        ? `/api/wilma/users/by-student-id/${studentId}`
+        : `/api/wilma/users/${studentId}`;
+      
+      console.log(`🔍 Using endpoint: ${endpoint} (isStudentId: ${isStudentId})`);
+      
+      const response = await fetch(endpoint);
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(`Student not found (ID: ${studentId})`);

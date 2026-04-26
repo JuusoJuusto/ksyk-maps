@@ -225,8 +225,10 @@ export default function PeopleManager() {
                           console.log('🔍 Student studentId:', student.studentId);
                           const currentPath = window.location.pathname;
                           const adminId = currentPath.split('/')[2];
-                          const targetUrl = `/wilma-admin/${adminId}/student-view/${student.id}`;
-                          console.log('🔍 Target URL:', targetUrl);
+                          // Use 8-digit student ID if available, otherwise use Firebase ID
+                          const identifier = student.studentId || student.id;
+                          const targetUrl = `/wilma-admin/${adminId}/student-view/${identifier}`;
+                          console.log('🔍 Target URL:', targetUrl, '(using', student.studentId ? 'student ID' : 'Firebase ID', ')');
                           setLocation(targetUrl);
                         }}
                       >

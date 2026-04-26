@@ -1244,6 +1244,30 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // GET /wilma/users/by-student-id/:studentId - Get user by 8-digit student ID
+      const getByStudentIdMatch = apiPath.match(/^\/wilma\/users\/by-student-id\/(\d{8})$/);
+      if (getByStudentIdMatch && req.method === 'GET') {
+        const studentId = getByStudentIdMatch[1];
+        console.log('🔵 GET /api/wilma/users/by-student-id/' + studentId);
+        
+        try {
+          const wilmaUser = await storage.getWilmaUserByStudentId(studentId);
+          
+          if (!wilmaUser) {
+            console.log('❌ Student not found with ID:', studentId);
+            return res.status(404).json({ message: "Student not found" });
+          }
+          
+          console.log('✅ Student found:', wilmaUser.id, wilmaUser.firstName, wilmaUser.lastName);
+          // Remove password from response
+          const { password: _, ...userResponse } = wilmaUser;
+          return res.status(200).json(userResponse);
+        } catch (error: any) {
+          console.error('❌ Error fetching student by ID:', error);
+          return res.status(500).json({ message: "Failed to fetch student" });
+        }
+      }
+
       // GET /wilma/users/:id - Get single Wilma user by ID
       const getUserMatch = apiPath.match(/^\/wilma\/users\/([^\/\?]+)$/);
       if (getUserMatch && req.method === 'GET') {
