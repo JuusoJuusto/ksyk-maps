@@ -21,6 +21,23 @@ interface ScheduleEntry {
   breakType?: 'short' | 'lunch';
 }
 
+interface LessonSettings {
+  lessonNumber: number;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  customizable: boolean;
+  isYH?: boolean; // Yhteinen hetki
+}
+
+interface BreakSettings {
+  breakNumber: number;
+  afterLesson: number;
+  duration: number;
+  type: 'short' | 'lunch' | 'yh';
+  customizable: boolean;
+}
+
 interface ScheduleSettings {
   lessonDuration: number;
   shortBreakDuration: number;
@@ -29,6 +46,9 @@ interface ScheduleSettings {
   schoolEndTime: string;
   periodsPerDay: number;
   lunchBreakAfterPeriod: number;
+  customLessons: LessonSettings[];
+  customBreaks: BreakSettings[];
+  enableIndividualCustomization: boolean;
 }
 
 interface Holiday {
@@ -62,6 +82,9 @@ export default function ScheduleBuilder() {
     schoolEndTime: "16:00",
     periodsPerDay: 8,
     lunchBreakAfterPeriod: 4,
+    customLessons: [],
+    customBreaks: [],
+    enableIndividualCustomization: false,
   });
   
   const [entryForm, setEntryForm] = useState({
@@ -85,7 +108,12 @@ export default function ScheduleBuilder() {
     for (let i = 0; i < scheduleSettings.periodsPerDay; i++) {
       const [hours, minutes] = currentTime.split(':').map(Number);
       const startMinutes = hours * 60 + minutes;
-      const endMinutes = startMinutes + scheduleSettings.lessonDuration;
+      
+      // Check for custom lesson duration
+      const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === i + 1);
+      const lessonDuration = customLesson?.duration || scheduleSettings.lessonDuration;
+      
+      const endMinutes = startMinutes + lessonDuration;
       
       const endHours = Math.floor(endMinutes / 60);
       const endMins = endMinutes % 60;
@@ -94,15 +122,21 @@ export default function ScheduleBuilder() {
       slots.push(`${currentTime}-${endTime}`);
       
       // Add break time
-      let breakDuration = scheduleSettings.shortBreakDuration;
-      if (i + 1 === scheduleSettings.lunchBreakAfterPeriod) {
-        breakDuration = scheduleSettings.lunchBreakDuration;
+      if (i < scheduleSettings.periodsPerDay - 1) {
+        const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === i + 1);
+        let breakDuration = scheduleSettings.shortBreakDuration;
+        
+        if (customBreak) {
+          breakDuration = customBreak.duration;
+        } else if (i + 1 === scheduleSettings.lunchBreakAfterPeriod) {
+          breakDuration = scheduleSettings.lunchBreakDuration;
+        }
+        
+        const nextStartMinutes = endMinutes + breakDuration;
+        const nextHours = Math.floor(nextStartMinutes / 60);
+        const nextMins = nextStartMinutes % 60;
+        currentTime = `${String(nextHours).padStart(2, '0')}:${String(nextMins).padStart(2, '0')}`;
       }
-      
-      const nextStartMinutes = endMinutes + breakDuration;
-      const nextHours = Math.floor(nextStartMinutes / 60);
-      const nextMins = nextStartMinutes % 60;
-      currentTime = `${String(nextHours).padStart(2, '0')}:${String(nextMins).padStart(2, '0')}`;
     }
     
     return slots;
@@ -566,7 +600,7 @@ export default function ScheduleBuilder() {
             </DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="times" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="times">
                 <Clock className="w-4 h-4 mr-2" />
                 Ajat
@@ -574,6 +608,10 @@ export default function ScheduleBuilder() {
               <TabsTrigger value="periods">
                 <Calendar className="w-4 h-4 mr-2" />
                 Tunnit
+              </TabsTrigger>
+              <TabsTrigger value="individual">
+                <Settings className="w-4 h-4 mr-2" />
+                Yksilöllinen
               </TabsTrigger>
             </TabsList>
             
@@ -650,20 +688,205 @@ export default function ScheduleBuilder() {
                   Esikatselu
                 </h4>
                 <div className="space-y-1 text-sm text-blue-800">
-                  {generateTimeSlots().map((slot, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="font-medium">{idx + 1}. tunti:</span>
-                      <span>{slot}</span>
-                      {idx + 1 === scheduleSettings.lunchBreakAfterPeriod && (
-                        <span className="ml-2 text-xs bg-orange-200 px-2 py-0.5 rounded">
-                          <Utensils className="w-3 h-3 inline mr-1" />
-                          Ruokatauko
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                  {generateTimeSlots().map((slot, idx) => {
+                    const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === idx + 1);
+                    const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === idx + 1);
+                    const isLunchBreak = idx + 1 === scheduleSettings.lunchBreakAfterPeriod;
+                    
+                    return (
+                      <div key={idx}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{idx + 1}. tunti:</span>
+                          <span>{slot}</span>
+                          {customLesson?.isYH && (
+                            <span className="ml-2 text-xs bg-blue-200 px-2 py-0.5 rounded font-semibold">
+                              YH
+                            </span>
+                          )}
+                          {customLesson?.duration && customLesson.duration !== scheduleSettings.lessonDuration && (
+                            <span className="ml-2 text-xs bg-green-200 px-2 py-0.5 rounded">
+                              {customLesson.duration} min
+                            </span>
+                          )}
+                        </div>
+                        {idx < scheduleSettings.periodsPerDay - 1 && (
+                          <div className="ml-4 text-xs text-gray-600 flex items-center gap-2">
+                            {customBreak ? (
+                              <>
+                                <Coffee className="w-3 h-3" />
+                                {customBreak.type === 'lunch' && <Utensils className="w-3 h-3" />}
+                                {customBreak.type === 'yh' ? 'YH-tauko' : customBreak.type === 'lunch' ? 'Ruokatauko' : 'Välitunti'}: {customBreak.duration} min
+                              </>
+                            ) : isLunchBreak ? (
+                              <>
+                                <Utensils className="w-3 h-3" />
+                                Ruokatauko: {scheduleSettings.lunchBreakDuration} min
+                              </>
+                            ) : (
+                              <>
+                                <Coffee className="w-3 h-3" />
+                                Välitunti: {scheduleSettings.shortBreakDuration} min
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="individual" className="space-y-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="enableIndividual"
+                  checked={scheduleSettings.enableIndividualCustomization}
+                  onChange={(e) => setScheduleSettings({ ...scheduleSettings, enableIndividualCustomization: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="enableIndividual" className="font-semibold">
+                  Ota käyttöön yksilöllinen muokkaus
+                </Label>
+              </div>
+              
+              {scheduleSettings.enableIndividualCustomization && (
+                <div className="space-y-6">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2">
+                      💡 Yksilöllinen muokkaus
+                    </h4>
+                    <p className="text-sm text-blue-800">
+                      Voit nyt muokata jokaisen oppitunnin ja välitunnin kestoa erikseen. 
+                      Tämä antaa täyden joustavuuden lukujärjestyksen rakentamiseen.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Oppituntien kestot
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {Array.from({ length: scheduleSettings.periodsPerDay }, (_, i) => {
+                        const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === i + 1);
+                        const duration = customLesson?.duration || scheduleSettings.lessonDuration;
+                        
+                        return (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                            <span className="font-medium text-sm w-20">{i + 1}. tunti:</span>
+                            <Input
+                              type="number"
+                              min="15"
+                              max="120"
+                              value={duration}
+                              onChange={(e) => {
+                                const newDuration = parseInt(e.target.value);
+                                const updatedLessons = scheduleSettings.customLessons.filter(l => l.lessonNumber !== i + 1);
+                                updatedLessons.push({
+                                  lessonNumber: i + 1,
+                                  startTime: '',
+                                  endTime: '',
+                                  duration: newDuration,
+                                  customizable: true,
+                                });
+                                setScheduleSettings({ ...scheduleSettings, customLessons: updatedLessons });
+                              }}
+                              className="w-24"
+                            />
+                            <span className="text-sm text-gray-600">minuuttia</span>
+                            <div className="flex items-center gap-2 ml-auto">
+                              <input
+                                type="checkbox"
+                                id={`yh-${i}`}
+                                checked={customLesson?.isYH || false}
+                                onChange={(e) => {
+                                  const updatedLessons = scheduleSettings.customLessons.filter(l => l.lessonNumber !== i + 1);
+                                  updatedLessons.push({
+                                    lessonNumber: i + 1,
+                                    startTime: '',
+                                    endTime: '',
+                                    duration: duration,
+                                    customizable: true,
+                                    isYH: e.target.checked,
+                                  });
+                                  setScheduleSettings({ ...scheduleSettings, customLessons: updatedLessons });
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <Label htmlFor={`yh-${i}`} className="text-sm">YH</Label>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Coffee className="w-4 h-4" />
+                      Välituntien kestot
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {Array.from({ length: scheduleSettings.periodsPerDay - 1 }, (_, i) => {
+                        const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === i + 1);
+                        const isLunchBreak = i + 1 === scheduleSettings.lunchBreakAfterPeriod;
+                        const defaultDuration = isLunchBreak ? scheduleSettings.lunchBreakDuration : scheduleSettings.shortBreakDuration;
+                        const duration = customBreak?.duration || defaultDuration;
+                        const breakType = customBreak?.type || (isLunchBreak ? 'lunch' : 'short');
+                        
+                        return (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                            <span className="font-medium text-sm w-32">Tauko {i + 1}. jälkeen:</span>
+                            <Input
+                              type="number"
+                              min="5"
+                              max="60"
+                              value={duration}
+                              onChange={(e) => {
+                                const newDuration = parseInt(e.target.value);
+                                const updatedBreaks = scheduleSettings.customBreaks.filter(b => b.afterLesson !== i + 1);
+                                updatedBreaks.push({
+                                  breakNumber: i + 1,
+                                  afterLesson: i + 1,
+                                  duration: newDuration,
+                                  type: breakType,
+                                  customizable: true,
+                                });
+                                setScheduleSettings({ ...scheduleSettings, customBreaks: updatedBreaks });
+                              }}
+                              className="w-24"
+                            />
+                            <span className="text-sm text-gray-600">min</span>
+                            <select
+                              value={breakType}
+                              onChange={(e) => {
+                                const updatedBreaks = scheduleSettings.customBreaks.filter(b => b.afterLesson !== i + 1);
+                                updatedBreaks.push({
+                                  breakNumber: i + 1,
+                                  afterLesson: i + 1,
+                                  duration: duration,
+                                  type: e.target.value as 'short' | 'lunch' | 'yh',
+                                  customizable: true,
+                                });
+                                setScheduleSettings({ ...scheduleSettings, customBreaks: updatedBreaks });
+                              }}
+                              className="px-3 py-1 border rounded-md text-sm"
+                            >
+                              <option value="short">Välitunti</option>
+                              <option value="lunch">Ruokatauko</option>
+                              <option value="yh">YH-tauko</option>
+                            </select>
+                            {breakType === 'lunch' && <Utensils className="w-4 h-4 text-orange-600" />}
+                            {breakType === 'yh' && <span className="text-xs bg-blue-100 px-2 py-1 rounded">YH</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
           <DialogFooter>

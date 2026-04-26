@@ -149,7 +149,7 @@ export default function RealAnalytics() {
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Real Analytics Dashboard</h2>
           <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-[#28a745] animate-pulse' : 'bg-gray-400'}`}></div>
             <span className="text-sm text-gray-600">{isLive ? 'Live' : 'Paused'}</span>
           </div>
         </div>
@@ -179,58 +179,58 @@ export default function RealAnalytics() {
         </div>
       </div>
 
-      {/* Real-time Overview Cards */}
+      {/* Real-time Overview Cards - WILMA COLORS ONLY */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-[#28a745]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold text-green-600">{liveStats?.activeUsers || 0}</p>
-                <p className="text-xs text-green-600">+{liveStats?.newUsersToday || 0} today</p>
+                <p className="text-sm font-medium text-gray-600">Active Users</p>
+                <p className="text-2xl font-bold text-[#28a745]">{liveStats?.activeUsers || 0}</p>
+                <p className="text-xs text-[#28a745]">+{liveStats?.newUsersToday || 0} today</p>
               </div>
-              <Eye className="h-8 w-8 text-green-500" />
+              <Eye className="h-8 w-8 text-[#28a745]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-[#003d82]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Page Views</p>
-                <p className="text-2xl font-bold text-blue-600">{formatNumber(summary?.totalPageViews || 0)}</p>
+                <p className="text-sm font-medium text-gray-600">Page Views</p>
+                <p className="text-2xl font-bold text-[#003d82]">{formatNumber(summary?.totalPageViews || 0)}</p>
                 <p className="text-xs text-gray-600">Last {timeRange}</p>
               </div>
-              <Activity className="h-8 w-8 text-blue-500" />
+              <Activity className="h-8 w-8 text-[#003d82]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-[#0056b3]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Unique Visitors</p>
-                <p className="text-2xl font-bold text-purple-600">{formatNumber(summary?.uniqueVisitors || 0)}</p>
+                <p className="text-sm font-medium text-gray-600">Unique Visitors</p>
+                <p className="text-2xl font-bold text-[#0056b3]">{formatNumber(summary?.uniqueVisitors || 0)}</p>
                 <p className="text-xs text-gray-600">{summary?.totalSessions || 0} sessions</p>
               </div>
-              <Users className="h-8 w-8 text-purple-500" />
+              <Users className="h-8 w-8 text-[#0056b3]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-[#666666]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Session</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-sm font-medium text-gray-600">Avg Session</p>
+                <p className="text-2xl font-bold text-[#666666]">
                   {formatDuration(summary?.avgSessionDuration || 0)}
                 </p>
                 <p className="text-xs text-gray-600">{Math.round((1 - (summary?.bounceRate || 0)) * 100)}% engaged</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-500" />
+              <Clock className="h-8 w-8 text-[#666666]" />
             </div>
           </CardContent>
         </Card>
@@ -264,9 +264,9 @@ export default function RealAnalytics() {
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
-                    <Area type="monotone" dataKey="views" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} name="Page Views" />
-                    <Area type="monotone" dataKey="users" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} name="Unique Users" />
-                    <Area type="monotone" dataKey="sessions" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.6} name="Sessions" />
+                    <Area type="monotone" dataKey="views" stackId="1" stroke="#003d82" fill="#003d82" fillOpacity={0.6} name="Page Views" />
+                    <Area type="monotone" dataKey="users" stackId="1" stroke="#28a745" fill="#28a745" fillOpacity={0.6} name="Unique Users" />
+                    <Area type="monotone" dataKey="sessions" stackId="1" stroke="#0056b3" fill="#0056b3" fillOpacity={0.6} name="Sessions" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -342,7 +342,7 @@ export default function RealAnalytics() {
                         nameKey="device"
                       >
                         {(summary?.deviceBreakdown || []).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={['#3B82F6', '#10B981', '#F59E0B', '#EF4444'][index % 4]} />
+                          <Cell key={`cell-${index}`} fill={['#003d82', '#28a745', '#666666', '#999999'][index % 4]} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -352,7 +352,7 @@ export default function RealAnalytics() {
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   {summary?.deviceBreakdown?.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'][index % 4] }}></div>
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ['#003d82', '#28a745', '#666666', '#999999'][index % 4] }}></div>
                       <span className="text-sm">{item.device}: {item.percentage}%</span>
                     </div>
                   ))}
@@ -373,7 +373,7 @@ export default function RealAnalytics() {
                       <div className="flex items-center gap-2">
                         <div className="w-24 bg-gray-200 rounded-full h-2">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full"
+                            className="bg-[#003d82] h-2 rounded-full"
                             style={{ width: `${country.percentage}%` }}
                           />
                         </div>
@@ -399,8 +399,8 @@ export default function RealAnalytics() {
                     <XAxis dataKey="hour" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="views" fill="#3B82F6" name="Page Views" />
-                    <Bar dataKey="users" fill="#10B981" name="Users" />
+                    <Bar dataKey="views" fill="#003d82" name="Page Views" />
+                    <Bar dataKey="users" fill="#28a745" name="Users" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -423,7 +423,7 @@ export default function RealAnalytics() {
                   {summary?.topRooms?.slice(0, 10).map((room, index) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                        <div className="w-6 h-6 rounded bg-[#e6f2ff] flex items-center justify-center text-[#003d82] font-bold text-xs">
                           {index + 1}
                         </div>
                         <span className="text-sm font-medium">{room.roomName || room.roomId}</span>
@@ -448,7 +448,7 @@ export default function RealAnalytics() {
                   {summary?.topBuildings?.slice(0, 10).map((building, index) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs">
+                        <div className="w-6 h-6 rounded bg-[#d4edda] flex items-center justify-center text-[#28a745] font-bold text-xs">
                           {index + 1}
                         </div>
                         <span className="text-sm font-medium">{building.buildingName || building.buildingId}</span>
@@ -510,7 +510,7 @@ export default function RealAnalytics() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-[#003d82] h-2 rounded-full"
                         style={{ width: `${(page.views / (summary.topPages[0]?.views || 1)) * 100}%` }}
                       />
                     </div>
@@ -527,7 +527,7 @@ export default function RealAnalytics() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-[#28a745]">
                     {performance?.avgLoadTime || 0}ms
                   </div>
                   <div className="text-sm text-gray-600">Avg Load Time</div>
@@ -537,7 +537,7 @@ export default function RealAnalytics() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-[#003d82]">
                     {Math.round((1 - (performance?.errorRate || 0)) * 100)}%
                   </div>
                   <div className="text-sm text-gray-600">Success Rate</div>
@@ -547,7 +547,7 @@ export default function RealAnalytics() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-[#0056b3]">
                     {performance?.cacheHitRate || 0}%
                   </div>
                   <div className="text-sm text-gray-600">Cache Hit Rate</div>
@@ -592,7 +592,7 @@ export default function RealAnalytics() {
                 <div className="space-y-2">
                   {recentEvents.slice(0, 50).map((event: AnalyticsEvent) => (
                     <div key={event.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-[#28a745] rounded-full animate-pulse"></div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">

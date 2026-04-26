@@ -435,10 +435,10 @@ export default function Wilma() {
         {/* Right Side - Login Form */}
         <div className="w-full lg:w-1/2 xl:w-1/3 bg-white flex items-center justify-center p-6">
           <div className="w-full max-w-sm">
-            {/* Logo and Title */}
+            {/* Logo and Title - LARGER LOGO (48px) */}
             <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-lg mx-auto mb-3 flex items-center justify-center shadow-md">
-                <Lock className="w-7 h-7 text-white" />
+              <div className="wilma-logo-container mx-auto mb-3">
+                <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="Wilma" className="wilma-logo-lg" />
               </div>
               <h1 className="text-xl font-bold text-[#003d82] mb-1">{tr.welcome}</h1>
               <p className="text-gray-600 text-sm">{tr.school}</p>
