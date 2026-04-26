@@ -320,6 +320,31 @@ export default function StudentForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // VALIDATION: Parent 1 email and phone are MANDATORY
+    if (!formData.parent1Email || !formData.parent1Email.trim()) {
+      alert("❌ Huoltajan 1 sähköposti on pakollinen! (Parent 1 email is required!)");
+      return;
+    }
+    
+    if (!formData.parent1Phone || !formData.parent1Phone.trim()) {
+      alert("❌ Huoltajan 1 puhelinnumero on pakollinen! (Parent 1 phone is required!)");
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.parent1Email)) {
+      alert("❌ Virheellinen sähköpostiosoite! (Invalid email address!)");
+      return;
+    }
+    
+    // Validate phone format (basic)
+    if (formData.parent1Phone.length < 8) {
+      alert("❌ Virheellinen puhelinnumero! (Invalid phone number!)");
+      return;
+    }
+    
     saveMutation.mutate(formData);
   };
 
@@ -660,23 +685,25 @@ export default function StudentForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Sähköposti (Email)</Label>
+                  <Label>Sähköposti (Email) <span className="text-red-500">*</span></Label>
                   <Input
                     type="email"
                     value={formData.parent1Email}
                     onChange={(e) => setFormData({ ...formData, parent1Email: e.target.value })}
                     placeholder="maria.virtanen@email.fi"
                     className="mt-1"
+                    required
                   />
                 </div>
                 <div>
-                  <Label>Puhelin (Phone)</Label>
+                  <Label>Puhelin (Phone) <span className="text-red-500">*</span></Label>
                   <Input
                     type="tel"
                     value={formData.parent1Phone}
                     onChange={(e) => setFormData({ ...formData, parent1Phone: e.target.value })}
                     placeholder="+358 XX XXX XXXX"
                     className="mt-1"
+                    required
                   />
                 </div>
                 <div>
