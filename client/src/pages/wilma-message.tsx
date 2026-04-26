@@ -85,7 +85,7 @@ export default function WilmaMessage() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-semibold">Wilma - Brando</h1>
+              <h1 className="text-2xl font-semibold">Wilma - Kulosaaren yhteiskoulu</h1>
               <p className="text-sm text-blue-200">
                 <User className="w-4 h-4 inline mr-1" />
                 {currentUser.firstName} {currentUser.lastName}

@@ -240,7 +240,7 @@ export default function Wilma() {
 
   const t = {
     fi: {
-      school: 'Brando', login: 'Kirjaudu sisään', username: 'Käyttäjätunnus', password: 'Salasana',
+      school: 'Kulosaaren yhteiskoulu', login: 'Kirjaudu sisään', username: 'Käyttäjätunnus', password: 'Salasana',
       loginButton: 'Kirjaudu', loggingIn: 'Kirjaudutaan...', welcome: 'Tervetuloa Wilmaan',
       loginInstructions: 'Kirjaudu sisään käyttäjätunnuksellasi ja salasanallasi',
       noAccount: 'Eikö sinulla ole tunnuksia? Ota yhteyttä ylläpitäjään.',
@@ -258,7 +258,7 @@ export default function Wilma() {
       viewAll: 'Näytä kaikki', noClasses: 'Ei tunteja',
     },
     en: {
-      school: 'Brando', login: 'Login', username: 'Username', password: 'Password',
+      school: 'Kulosaari High School', login: 'Login', username: 'Username', password: 'Password',
       loginButton: 'Login', loggingIn: 'Logging in...', welcome: 'Welcome to Wilma',
       loginInstructions: 'Login with your username and password',
       noAccount: "Don't have credentials? Contact administrator.",

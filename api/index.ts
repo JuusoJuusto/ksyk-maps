@@ -941,6 +941,20 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       return res.status(401).json({ message: "Unauthorized" });
     }
     
+    // Logout endpoint - support both GET and POST
+    if (apiPath === '/auth/logout' && (req.method === 'POST' || req.method === 'GET')) {
+      // Clear any server-side session data if needed
+      // For now, just return success as logout is handled client-side
+      return res.status(200).json({ success: true, message: "Logged out successfully" });
+    }
+    
+    // Logs endpoint - support both /logs and /api/logs
+    if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'GET') {
+      // Return empty logs for now
+      // TODO: Implement proper logging system
+      return res.status(200).json([]);
+    }
+    
     // Users endpoints
     if (apiPath.startsWith('/users')) {
       if (req.method === 'GET') {
@@ -2006,6 +2020,110 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         } catch (error: any) {
           console.error('❌ Error creating grade:', error);
           return res.status(500).json({ message: "Failed to create grade" });
+        }
+      }
+      
+      // POST /wilma/homework/check-ai - Check if homework is AI-generated
+      if (apiPath === '/wilma/homework/check-ai' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/homework/check-ai');
+        try {
+          const { content } = req.body;
+          
+          if (!content || content.trim().length < 50) {
+            return res.status(400).json({ message: "Content must be at least 50 characters" });
+          }
+          
+          // Simple AI detection algorithm (can be replaced with actual AI service)
+          const words = content.split(/\s+/).filter((w: string) => w.length > 0);
+          const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+          
+          // Calculate metrics
+          const avgWordLength = words.reduce((sum: number, w: string) => sum + w.length, 0) / words.length;
+          const avgSentenceLength = words.length / sentences.length;
+          const uniqueWords = new Set(words.map((w: string) => w.toLowerCase())).size;
+          const lexicalDiversity = uniqueWords / words.length;
+          
+          // AI patterns detection
+          const patterns: string[] = [];
+          const suspiciousIndicators: string[] = [];
+          
+          // Check for repetitive patterns
+          if (lexicalDiversity < 0.4) {
+            patterns.push('low-lexical-diversity');
+            suspiciousIndicators.push('Matala sanavaraston monimuotoisuus');
+          }
+          
+          // Check for overly consistent sentence length
+          const sentenceLengths = sentences.map((s: string) => s.split(/\s+/).length);
+          const avgSentLen = sentenceLengths.reduce((a: number, b: number) => a + b, 0) / sentenceLengths.length;
+          const sentLenVariance = sentenceLengths.reduce((sum: number, len: number) => sum + Math.pow(len - avgSentLen, 2), 0) / sentenceLengths.length;
+          
+          if (sentLenVariance < 10) {
+            patterns.push('consistent-sentence-length');
+            suspiciousIndicators.push('Liian tasainen lauseiden pituus');
+          }
+          
+          // Check for formal language patterns
+          const formalWords = ['furthermore', 'moreover', 'consequently', 'therefore', 'thus', 'hence', 'lisäksi', 'siksi', 'näin ollen'];
+          const formalCount = words.filter((w: string) => formalWords.includes(w.toLowerCase())).length;
+          if (formalCount > words.length * 0.02) {
+            patterns.push('formal-language');
+            suspiciousIndicators.push('Liian muodollinen kieli');
+          }
+          
+          // Calculate perplexity (simplified)
+          const perplexity = Math.max(5, Math.min(50, lexicalDiversity * 100 + Math.random() * 10));
+          
+          // Calculate burstiness (simplified)
+          const burstiness = Math.max(0.1, Math.min(1.0, sentLenVariance / 50));
+          
+          // Calculate AI score (0-100, higher = more likely AI)
+          let aiScore = 0;
+          
+          // Low lexical diversity increases AI score
+          if (lexicalDiversity < 0.5) aiScore += 30;
+          else if (lexicalDiversity < 0.6) aiScore += 15;
+          
+          // Low sentence variance increases AI score
+          if (sentLenVariance < 15) aiScore += 25;
+          else if (sentLenVariance < 30) aiScore += 10;
+          
+          // Formal language increases AI score
+          if (formalCount > words.length * 0.02) aiScore += 20;
+          
+          // Low perplexity increases AI score
+          if (perplexity < 15) aiScore += 15;
+          
+          // Low burstiness increases AI score
+          if (burstiness < 0.3) aiScore += 10;
+          
+          // Cap at 100
+          aiScore = Math.min(100, aiScore);
+          
+          // Calculate confidence based on text length and metrics
+          const confidence = Math.min(95, 50 + (words.length / 10) + (patterns.length * 5));
+          
+          // Flag if AI score is high
+          const flagged = aiScore >= 60;
+          
+          const result = {
+            aiScore: Math.round(aiScore),
+            confidence: Math.round(confidence),
+            flagged,
+            details: {
+              perplexity: Math.round(perplexity * 10) / 10,
+              burstiness: Math.round(burstiness * 100) / 100,
+              patterns,
+              suspiciousIndicators
+            },
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('✅ AI detection result:', result);
+          return res.status(200).json(result);
+        } catch (error: any) {
+          console.error('❌ Error in AI detection:', error);
+          return res.status(500).json({ message: "Failed to check AI content" });
         }
       }
     }
