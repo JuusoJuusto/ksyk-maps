@@ -16,11 +16,13 @@ import EnhancedSubstituteSystem from "@/components/EnhancedSubstituteSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
 import WilmaSettingsTab from "@/components/WilmaSettingsTab";
+import WilmaExams from "@/components/WilmaExams";
+import WilmaAnnouncements from "@/components/WilmaAnnouncements";
 import NotificationCenter from "@/components/NotificationCenter";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, 
-  GraduationCap, Users, ClipboardList, UtensilsCrossed
+  GraduationCap, Users, ClipboardList, UtensilsCrossed, ClipboardCheck, Megaphone
 } from "lucide-react";
 
 export default function WilmaTeacher() {
@@ -67,8 +69,10 @@ export default function WilmaTeacher() {
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
+    { id: 'exams', label: 'Kokeet', icon: ClipboardCheck },
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
+    { id: 'announcements', label: 'Ilmoitukset', icon: Megaphone },
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
     { id: 'support', label: 'Tuki', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings },
@@ -223,8 +227,10 @@ export default function WilmaTeacher() {
           {activeSection === 'courses' && <CourseManager />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <WilmaHomework />}
+          {activeSection === 'exams' && <WilmaExams />}
           {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="teacher" />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'announcements' && <WilmaAnnouncements />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'settings' && <WilmaSettingsTab userRole="teacher" />}

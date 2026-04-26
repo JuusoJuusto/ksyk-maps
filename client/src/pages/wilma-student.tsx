@@ -12,10 +12,12 @@ import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import WilmaSupportTab from "@/components/WilmaSupportTab";
 import WilmaLunchMenu from "@/components/WilmaLunchMenu";
 import WilmaSettingsTab from "@/components/WilmaSettingsTab";
+import WilmaExams from "@/components/WilmaExams";
+import WilmaAnnouncements from "@/components/WilmaAnnouncements";
 import NotificationCenter from "@/components/NotificationCenter";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
-  MessageSquare, UserCheck, BookOpen, Settings, Menu, User, UtensilsCrossed
+  MessageSquare, UserCheck, BookOpen, Settings, Menu, User, UtensilsCrossed, ClipboardCheck, Megaphone
 } from "lucide-react";
 
 export default function WilmaStudent() {
@@ -58,8 +60,10 @@ export default function WilmaStudent() {
     { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
+    { id: 'exams', label: 'Kokeet', icon: ClipboardCheck },
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
+    { id: 'announcements', label: 'Ilmoitukset', icon: Megaphone },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
     { id: 'support', label: 'Tuki', icon: MessageSquare },
@@ -211,8 +215,10 @@ export default function WilmaStudent() {
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <WilmaHomework />}
+          {activeSection === 'exams' && <WilmaExams />}
           {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="student" />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
+          {activeSection === 'announcements' && <WilmaAnnouncements />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'courses' && (
