@@ -130,6 +130,9 @@ export interface IStorage {
   createUserSession(session: any): Promise<void>;
   updateUserSession(sessionId: string, updates: any): Promise<void>;
   getAnalyticsSummary(days?: number): Promise<any>;
+  getLiveAnalytics(): Promise<any>;
+  getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]>;
+  getPerformanceMetrics(timeRange: string): Promise<any>;
   getTopSearches(limit?: number): Promise<any[]>;
   getPopularRooms(limit?: number): Promise<any[]>;
   getVisitorStats(days?: number): Promise<any>;

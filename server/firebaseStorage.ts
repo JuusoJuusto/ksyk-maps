@@ -2085,6 +2085,183 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async getLiveAnalytics(): Promise<any> {
+    try {
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Get active sessions from last 5 minutes
+      const activeSessionsSnapshot = await db.collection('userSessions')
+        .where('lastActivity', '>=', fiveMinutesAgo)
+        .get();
+
+      // Get new users today
+      const newUsersTodaySnapshot = await db.collection('userSessions')
+        .where('createdAt', '>=', todayStart)
+        .get();
+
+      // Calculate current page views from active sessions
+      let currentPageViews = 0;
+      activeSessionsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        currentPageViews += data.pageViews || 0;
+      });
+
+      return {
+        activeUsers: activeSessionsSnapshot.size,
+        newUsersToday: newUsersTodaySnapshot.size,
+        currentPageViews,
+        timestamp: now.toISOString()
+      };
+    } catch (error) {
+      console.error('Error getting live analytics:', error);
+      return {
+        activeUsers: 0,
+        newUsersToday: 0,
+        currentPageViews: 0,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  async getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]> {
+    try {
+      let cutoffDate = new Date();
+      
+      // Calculate cutoff date based on time range
+      if (timeRange === '1h') {
+        cutoffDate.setHours(cutoffDate.getHours() - 1);
+      } else if (timeRange === '24h') {
+        cutoffDate.setDate(cutoffDate.getDate() - 1);
+      } else if (timeRange === '7d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 7);
+      } else if (timeRange === '30d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 30);
+      }
+
+      // Query page views as events
+      const snapshot = await db.collection('pageViews')
+        .where('createdAt', '>=', cutoffDate)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          type: data.type || 'page_view',
+          page: data.page || data.path,
+          query: data.query,
+          roomId: data.roomId,
+          buildingId: data.buildingId,
+          feature: data.feature,
+          error: data.error,
+          userId: data.userId,
+          sessionId: data.sessionId,
+          ipAddress: data.ipAddress || 'Unknown',
+          userAgent: data.userAgent || 'Unknown',
+          timestamp: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+          duration: data.duration,
+          referrer: data.referrer,
+          device: data.device || 'Unknown',
+          browser: data.browser || 'Unknown',
+          os: data.os || 'Unknown',
+          country: data.country,
+          city: data.city
+        };
+      });
+    } catch (error) {
+      console.error('Error getting analytics events:', error);
+      return [];
+    }
+  }
+
+  async getPerformanceMetrics(timeRange: string): Promise<any> {
+    try {
+      let cutoffDate = new Date();
+      
+      // Calculate cutoff date based on time range
+      if (timeRange === '1h') {
+        cutoffDate.setHours(cutoffDate.getHours() - 1);
+      } else if (timeRange === '24h') {
+        cutoffDate.setDate(cutoffDate.getDate() - 1);
+      } else if (timeRange === '7d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 7);
+      } else if (timeRange === '30d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 30);
+      }
+
+      // Get page views for load time calculation
+      const pageViewsSnapshot = await db.collection('pageViews')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+
+      // Get errors for error rate calculation
+      const errorsSnapshot = await db.collection('appLogs')
+        .where('level', '==', 'error')
+        .where('createdAt', '>=', cutoffDate)
+        .get();
+
+      const totalRequests = pageViewsSnapshot.size;
+      const errorCount = errorsSnapshot.size;
+
+      // Calculate average load time
+      let totalLoadTime = 0;
+      let loadTimeCount = 0;
+
+      pageViewsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const loadTime = data.loadTime || data.duration;
+        if (loadTime && typeof loadTime === 'number') {
+          totalLoadTime += loadTime;
+          loadTimeCount++;
+        }
+      });
+
+      const avgLoadTime = loadTimeCount > 0 ? Math.round(totalLoadTime / loadTimeCount) : 0;
+      const errorRate = totalRequests > 0 ? errorCount / totalRequests : 0;
+
+      // Calculate server response time from API logs if available
+      let totalResponseTime = 0;
+      let responseTimeCount = 0;
+
+      pageViewsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const responseTime = data.serverResponseTime;
+        if (responseTime && typeof responseTime === 'number') {
+          totalResponseTime += responseTime;
+          responseTimeCount++;
+        }
+      });
+
+      const serverResponseTime = responseTimeCount > 0 ? Math.round(totalResponseTime / responseTimeCount) : 0;
+
+      return {
+        avgLoadTime,
+        errorRate: Math.round(errorRate * 10000) / 100, // Convert to percentage with 2 decimals
+        cacheHitRate: 0, // TODO: Implement cache tracking
+        serverResponseTime,
+        databaseQueryTime: 0, // TODO: Implement query time tracking
+        uptime: 100, // TODO: Implement uptime tracking
+        throughput: totalRequests
+      };
+    } catch (error) {
+      console.error('Error getting performance metrics:', error);
+      return {
+        avgLoadTime: 0,
+        errorRate: 0,
+        cacheHitRate: 0,
+        serverResponseTime: 0,
+        databaseQueryTime: 0,
+        uptime: 100,
+        throughput: 0
+      };
+    }
+  }
+
   // Wilma Classes operations
   async getWilmaClasses(): Promise<any[]> {
     try {

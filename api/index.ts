@@ -1120,19 +1120,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     // Live Analytics Endpoint
     if (apiPath === '/analytics/live' && req.method === 'GET') {
       try {
-        const now = new Date();
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        
-        // Get real active sessions from last 5 minutes
-        // TODO: Implement real-time session tracking in Firestore
-        // For now, return empty structure to avoid mock data
-        return res.status(200).json({
-          activeUsers: 0,
-          newUsersToday: 0,
-          currentPageViews: 0,
-          timestamp: now.toISOString(),
-          note: 'Real-time analytics tracking not yet implemented'
-        });
+        const liveStats = await storage.getLiveAnalytics();
+        return res.status(200).json(liveStats);
       } catch (error) {
         console.error('Failed to fetch live analytics:', error);
         return res.status(500).json({ message: 'Failed to fetch live analytics' });
@@ -1165,9 +1154,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       const limit = parseInt(req.query.limit as string) || 100;
       
       try {
-        // TODO: Implement real event tracking in Firestore
-        // For now, return empty array to avoid mock data
-        return res.status(200).json([]);
+        const events = await storage.getAnalyticsEvents(timeRange, limit);
+        return res.status(200).json(events);
       } catch (error) {
         console.error('Failed to fetch analytics events:', error);
         return res.status(500).json({ message: 'Failed to fetch analytics events' });
@@ -1179,18 +1167,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       const timeRange = req.query.timeRange as string || '24h';
       
       try {
-        // TODO: Implement real performance monitoring
-        // For now, return empty structure to avoid mock data
-        return res.status(200).json({
-          avgLoadTime: 0,
-          errorRate: 0,
-          cacheHitRate: 0,
-          serverResponseTime: 0,
-          databaseQueryTime: 0,
-          uptime: 100,
-          throughput: 0,
-          note: 'Performance monitoring not yet implemented'
-        });
+        const performance = await storage.getPerformanceMetrics(timeRange);
+        return res.status(200).json(performance);
       } catch (error) {
         console.error('Failed to fetch performance metrics:', error);
         return res.status(500).json({ message: 'Failed to fetch performance metrics' });
