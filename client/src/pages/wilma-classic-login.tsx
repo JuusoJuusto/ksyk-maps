@@ -156,8 +156,8 @@ export default function WilmaClassicLogin() {
         </div>
 
         {/* Info Box */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded p-4">
-          <p className="text-sm text-blue-800">
+        <div className="mt-4 bg-[#e6f2ff] border border-[#003d82] rounded p-4">
+          <p className="text-sm text-[#003d82]">
             <strong>Huom!</strong> Eikö sinulla ole tunnuksia? Ota yhteyttä ylläpitäjään.
           </p>
         </div>

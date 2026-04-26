@@ -166,7 +166,7 @@ export default function WilmaCompose() {
           <CardContent className="p-6 bg-white">
             <div className="space-y-5">
               {/* Recipient */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <div className="bg-[#e6f2ff] border-2 border-[#003d82] rounded-lg p-4">
                 <label className="block text-sm font-bold text-gray-800 mb-2">
                   {tr.recipient} <span className="text-red-600">*</span>
                 </label>
@@ -183,7 +183,7 @@ export default function WilmaCompose() {
               </div>
 
               {/* Subject */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <div className="bg-[#e6f2ff] border-2 border-[#003d82] rounded-lg p-4">
                 <label className="block text-sm font-bold text-gray-800 mb-2">
                   {tr.subject} <span className="text-red-600">*</span>
                 </label>
@@ -227,7 +227,7 @@ export default function WilmaCompose() {
               </div>
 
               {/* Message */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <div className="bg-[#e6f2ff] border-2 border-[#003d82] rounded-lg p-4">
                 <label className="block text-sm font-bold text-gray-800 mb-2">
                   {tr.message} <span className="text-red-600">*</span>
                 </label>
@@ -243,7 +243,7 @@ export default function WilmaCompose() {
               </div>
 
               {/* Attachments */}
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="bg-[#d4edda] border-2 border-[#28a745] rounded-lg p-4">
                 <label className="block text-sm font-bold text-gray-800 mb-2">
                   {tr.attachments}
                 </label>
@@ -267,7 +267,7 @@ export default function WilmaCompose() {
                 </Button>
                 <Button 
                   variant="outline"
-                  className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 py-4"
+                  className="border-2 border-[#003d82] text-[#003d82] hover:bg-[#e6f2ff] py-4"
                   onClick={handleSaveDraft}
                 >
                   <Save className="w-5 h-5 mr-2" />

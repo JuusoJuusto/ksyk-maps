@@ -128,7 +128,7 @@ export default function WilmaMessage() {
                 </div>
               </div>
               {message.unread && (
-                <Badge className="bg-purple-600 text-white">{tr.unread}</Badge>
+                <Badge className="bg-[#003d82] text-white">{tr.unread}</Badge>
               )}
             </div>
           </CardHeader>

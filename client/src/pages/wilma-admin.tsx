@@ -381,9 +381,9 @@ export default function WilmaAdmin() {
                           { room: 'Kirjasto', status: 'available', capacity: 50 }
                         ].map((room, idx) => (
                           <div key={idx} className={`p-3 rounded-lg border-2 ${
-                            room.status === 'available' ? 'bg-green-50 border-green-200' :
-                            room.status === 'occupied' ? 'bg-red-50 border-red-200' :
-                            'bg-yellow-50 border-yellow-200'
+                            room.status === 'available' ? 'bg-[#d4edda] border-[#28a745]' :
+                            room.status === 'occupied' ? 'bg-[#f8d7da] border-[#dc3545]' :
+                            'bg-[#fff3cd] border-[#ffc107]'
                           }`}>
                             <p className="font-semibold text-sm">{room.room}</p>
                             <p className="text-xs text-gray-600">{room.capacity} paikkaa</p>
@@ -470,9 +470,9 @@ export default function WilmaAdmin() {
                           <div key={idx} className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg">
                             <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${
-                                announcement.priority === 'high' ? 'bg-red-500' :
-                                announcement.priority === 'medium' ? 'bg-yellow-500' :
-                                'bg-green-500'
+                                announcement.priority === 'high' ? 'bg-[#dc3545]' :
+                                announcement.priority === 'medium' ? 'bg-[#ffc107]' :
+                                'bg-[#28a745]'
                               }`} />
                               <div>
                                 <p className="font-semibold text-sm">{announcement.title}</p>
@@ -534,11 +534,11 @@ export default function WilmaAdmin() {
                         <p className="text-xs text-gray-600 mt-1">Tässä kuussa</p>
                       </CardContent>
                     </Card>
-                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                    <Card className="bg-gradient-to-br from-[#e6f2ff] to-[#f0f8ff] border-[#003d82]">
                       <CardContent className="p-4">
-                        <Award className="w-8 h-8 text-purple-600 mb-2" />
+                        <Award className="w-8 h-8 text-[#003d82] mb-2" />
                         <p className="text-sm font-medium text-gray-700">Keskiarvo</p>
-                        <p className="text-2xl font-bold text-purple-600 mt-1">8.2</p>
+                        <p className="text-2xl font-bold text-[#003d82] mt-1">8.2</p>
                         <p className="text-xs text-gray-600 mt-1">Asteikolla 4-10</p>
                       </CardContent>
                     </Card>

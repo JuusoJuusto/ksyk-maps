@@ -92,7 +92,7 @@ export default function WilmaParent() {
             <>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <Baby className="w-4 h-4 text-purple-600" />
+                  <Baby className="w-4 h-4 text-[#003d82]" />
                 </div>
                 <span className="font-bold text-base text-white tracking-wide">Wilma</span>
               </div>
@@ -168,7 +168,7 @@ export default function WilmaParent() {
                     : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
                 }`}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-purple-600'}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#003d82]'}`} />
                 {sidebarOpen && (
                   <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-700'}`}>
                     {item.label}
@@ -204,11 +204,11 @@ export default function WilmaParent() {
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <Baby className="w-5 h-5 text-purple-600" />
+                <Baby className="w-5 h-5 text-[#003d82]" />
               </div>
               <div>
                 <p className="text-sm font-bold">Wilma</p>
-                <p className="text-xs text-purple-100">{currentUser.firstName}</p>
+                <p className="text-xs text-blue-100">{currentUser.firstName}</p>
               </div>
             </div>
             <Button
@@ -263,8 +263,8 @@ export default function WilmaParent() {
           {/* Content Sections */}
           {activeSection === 'home' && (
             <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-purple-900">
+              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b border-[#dddddd]">
+                <CardTitle className="flex items-center gap-2 text-[#003d82]">
                   <Home className="w-6 h-6" />
                   Etusivu
                 </CardTitle>
@@ -304,8 +304,8 @@ export default function WilmaParent() {
 
           {['schedule', 'grades', 'homework', 'attendance', 'messages', 'progress', 'notifications', 'settings'].includes(activeSection) && (
             <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-purple-900">
+              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b border-[#dddddd]">
+                <CardTitle className="flex items-center gap-2 text-[#003d82]">
                   {navigationItems.find(item => item.id === activeSection)?.icon && 
                     (() => {
                       const Icon = navigationItems.find(item => item.id === activeSection)!.icon;

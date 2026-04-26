@@ -542,8 +542,8 @@ export default function Wilma() {
                     </button>
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-100 rounded-md p-2.5">
-                    <p className="text-xs text-blue-800 text-center">
+                  <div className="bg-[#e6f2ff] border border-[#003d82] rounded-md p-2.5">
+                    <p className="text-xs text-[#003d82] text-center">
                       <strong>{language === 'fi' ? 'Huom!' : 'Note!'}</strong> {tr.noAccount}
                     </p>
                   </div>
@@ -602,9 +602,9 @@ export default function Wilma() {
                     </Button>
                   </>
                 ) : (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <CheckCircle className="w-10 h-10 text-green-600" />
+                  <div className="bg-[#d4edda] border border-[#28a745] rounded-lg p-6 text-center">
+                    <div className="w-16 h-16 bg-[#d4edda] rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <CheckCircle className="w-10 h-10 text-[#28a745]" />
                     </div>
                     <p className="text-green-800 font-semibold">
                       {language === 'fi' ? 'Palautuslinkki l├ñhetetty!' : 'Reset link sent!'}

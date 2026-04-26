@@ -151,11 +151,11 @@ export default function WilmaHome() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Viestit</p>
+                  <p className="text-blue-100 text-sm">Viestit</p>
                   <p className="text-3xl font-bold mt-1">3</p>
-                  <p className="text-purple-100 text-sm mt-1">Lukematonta</p>
+                  <p className="text-blue-100 text-sm mt-1">Lukematonta</p>
                 </div>
-                <Mail className="w-12 h-12 text-purple-200" />
+                <Mail className="w-12 h-12 text-blue-200" />
               </div>
             </CardContent>
           </Card>
@@ -248,9 +248,9 @@ export default function WilmaHome() {
           <div className="space-y-6">
             {/* Quick Actions */}
             <Card>
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff]">
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-purple-600" />
+                  <MessageSquare className="w-5 h-5 text-[#003d82]" />
                   Pika-toiminnot
                 </CardTitle>
               </CardHeader>
@@ -297,9 +297,9 @@ export default function WilmaHome() {
                   ].map((announcement, idx) => (
                     <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className={`w-2 h-2 rounded-full mt-2 ${
-                        announcement.priority === 'high' ? 'bg-red-500' :
-                        announcement.priority === 'medium' ? 'bg-yellow-500' :
-                        'bg-green-500'
+                        announcement.priority === 'high' ? 'bg-[#dc3545]' :
+                        announcement.priority === 'medium' ? 'bg-[#ffc107]' :
+                        'bg-[#28a745]'
                       }`} />
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-gray-900">{announcement.title}</p>
@@ -327,7 +327,7 @@ export default function WilmaHome() {
                       <span className="font-semibold">95%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '95%' }} />
+                      <div className="bg-[#28a745] h-2 rounded-full" style={{ width: '95%' }} />
                     </div>
                   </div>
                   <div>
@@ -336,7 +336,7 @@ export default function WilmaHome() {
                       <span className="font-semibold">88%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: '88%' }} />
+                      <div className="bg-[#003d82] h-2 rounded-full" style={{ width: '88%' }} />
                     </div>
                   </div>
                   <div>
@@ -345,7 +345,7 @@ export default function WilmaHome() {
                       <span className="font-semibold">8.5/10</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }} />
+                      <div className="bg-[#0056b3] h-2 rounded-full" style={{ width: '85%' }} />
                     </div>
                   </div>
                 </div>
