@@ -211,7 +211,7 @@ export default function WilmaStudent() {
         </div>
 
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
-          {activeSection === 'home' && <WilmaHomeTab userRole="student" userRoles={['student']} />}
+          {activeSection === 'home' && <WilmaHomeTabEnhanced userRole="student" userRoles={['student']} userId={currentUser.id} userName={`${currentUser.firstName} ${currentUser.lastName}`} />}
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <WilmaHomework />}

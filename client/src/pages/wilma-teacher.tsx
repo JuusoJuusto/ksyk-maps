@@ -219,7 +219,7 @@ export default function WilmaTeacher() {
         </div>
 
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
-          {activeSection === 'home' && <WilmaHomeTab userRole="teacher" userRoles={['teacher']} />}
+          {activeSection === 'home' && <WilmaHomeTabEnhanced userRole="teacher" userRoles={['teacher']} userId={currentUser.id} userName={`${currentUser.firstName} ${currentUser.lastName}`} />}
           {activeSection === 'substitute' && <EnhancedSubstituteSystem />}
           {activeSection === 'schedule' && <WilmaTimetable />}
           {activeSection === 'journal' && <WilmaLessonJournal />}

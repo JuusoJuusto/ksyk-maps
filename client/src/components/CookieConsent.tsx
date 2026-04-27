@@ -5,38 +5,50 @@ import { X, Cookie } from "lucide-react";
 
 // Track page view function
 const trackPageView = () => {
-  const consent = localStorage.getItem('cookie_consent');
-  if (consent) {
-    const consentData = JSON.parse(consent);
-    if (consentData.analytics) {
-      fetch('/api/analytics/pageview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page: window.location.pathname,
-          timestamp: new Date().toISOString(),
-        })
-      }).catch(console.error);
+  try {
+    const consent = localStorage.getItem('cookie_consent');
+    if (consent) {
+      const consentData = JSON.parse(consent);
+      if (consentData.analytics) {
+        fetch('/api/analytics/pageview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: window.location.pathname,
+            timestamp: new Date().toISOString(),
+          })
+        }).catch(() => {
+          // Silently fail - analytics shouldn't break the app
+        });
+      }
     }
+  } catch (error) {
+    // Silently fail
   }
 };
 
 // Track event function
 const trackEvent = (eventName: string, data?: any) => {
-  const consent = localStorage.getItem('cookie_consent');
-  if (consent) {
-    const consentData = JSON.parse(consent);
-    if (consentData.analytics) {
-      fetch('/api/analytics/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: eventName,
-          data: data || {},
-          timestamp: new Date().toISOString(),
-        })
-      }).catch(console.error);
+  try {
+    const consent = localStorage.getItem('cookie_consent');
+    if (consent) {
+      const consentData = JSON.parse(consent);
+      if (consentData.analytics) {
+        fetch('/api/analytics/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: eventName,
+            data: data || {},
+            timestamp: new Date().toISOString(),
+          })
+        }).catch(() => {
+          // Silently fail
+        });
+      }
     }
+  } catch (error) {
+    // Silently fail
   }
 };
 

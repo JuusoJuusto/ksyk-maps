@@ -538,7 +538,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 <div>
                   <p className="text-4xl font-bold text-gray-900">18°C</p>
                   <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
-                  <p className="text-xs text-gray-500 mt-1">Helsinki, Finland</p>
+                  <p className="text-xs text-gray-500 mt-1">Helsinki, Kulosaari</p>
                 </div>
                 <div className="text-6xl">⛅</div>
               </div>
