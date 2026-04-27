@@ -1781,15 +1781,44 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
-      // GET /wilma/messages - Get all messages
-      if (apiPath === '/wilma/messages' && req.method === 'GET') {
-        console.log('🔵 GET /api/wilma/messages called');
-        try {
-          const messages = await storage.getWilmaMessagesAll();
-          return res.status(200).json(messages);
-        } catch (error: any) {
-          console.error('❌ Error getting messages:', error);
-          return res.status(500).json({ message: "Failed to fetch messages" });
+      // GET /wilma/messages - Get all messages (with optional filters)
+      if (apiPath === '/wilma/messages' || apiPath.startsWith('/wilma/messages?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/messages called');
+          try {
+            const recipientId = req.query.recipientId as string | undefined;
+            const unread = req.query.unread as string | undefined;
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+            
+            let messages = await storage.getWilmaMessagesAll();
+            
+            // Filter by recipient
+            if (recipientId) {
+              messages = messages.filter((m: any) => m.recipientId === recipientId);
+            }
+            
+            // Filter by unread status
+            if (unread === 'true') {
+              messages = messages.filter((m: any) => !m.read);
+            }
+            
+            // Sort by timestamp (newest first)
+            messages.sort((a: any, b: any) => {
+              const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+              const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+              return timeB - timeA;
+            });
+            
+            // Apply limit
+            if (limit) {
+              messages = messages.slice(0, limit);
+            }
+            
+            return res.status(200).json(messages);
+          } catch (error: any) {
+            console.error('❌ Error getting messages:', error);
+            return res.status(500).json({ message: "Failed to fetch messages" });
+          }
         }
       }
 
@@ -2140,6 +2169,58 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         } catch (error: any) {
           console.error('❌ Error creating grade:', error);
           return res.status(500).json({ message: "Failed to create grade" });
+        }
+      }
+
+      // GET /wilma/homework - Get homework assignments
+      if (apiPath === '/wilma/homework' || apiPath.startsWith('/wilma/homework?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/homework called');
+          try {
+            const studentId = req.query.studentId as string | undefined;
+            const courseId = req.query.courseId as string | undefined;
+            
+            // Try to get from extended homework first
+            try {
+              let homework = await storage.getWilmaHomeworkExtendedAll();
+              
+              // Filter by student or course if provided
+              if (studentId) {
+                homework = homework.filter((h: any) => h.studentId === studentId || !h.studentId);
+              }
+              if (courseId) {
+                homework = homework.filter((h: any) => h.courseId === courseId);
+              }
+              
+              // Sort by due date
+              homework.sort((a: any, b: any) => {
+                const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+                const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                return dateA - dateB;
+              });
+              
+              return res.status(200).json(homework);
+            } catch (extendedError) {
+              // If extended homework doesn't exist, return empty array
+              console.log('No homework found, returning empty array');
+              return res.status(200).json([]);
+            }
+          } catch (error: any) {
+            console.error('❌ Error getting homework:', error);
+            return res.status(500).json({ message: "Failed to fetch homework" });
+          }
+        }
+      }
+
+      // POST /wilma/homework - Create homework assignment
+      if (apiPath === '/wilma/homework' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/homework');
+        try {
+          const homework = await storage.createWilmaHomeworkExtended(req.body);
+          return res.status(201).json(homework);
+        } catch (error: any) {
+          console.error('❌ Error creating homework:', error);
+          return res.status(500).json({ message: "Failed to create homework" });
         }
       }
       

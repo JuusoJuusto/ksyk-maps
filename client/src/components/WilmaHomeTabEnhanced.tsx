@@ -74,7 +74,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   const [showGreeting, setShowGreeting] = useState(true);
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
-  const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
+  const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('light');
 
   // Load preferences from localStorage and backend on mount
   useEffect(() => {
@@ -352,6 +352,38 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     retry: false
   });
 
+  // Fetch schedule data
+  const { data: scheduleData } = useQuery({
+    queryKey: ['wilma-schedule', userId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/wilma/schedule?userId=${userId}`);
+        if (!response.ok) {
+          // Return mock data if endpoint doesn't exist yet
+          return [
+            { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
+            { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
+            { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
+            { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
+            { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
+          ];
+        }
+        return response.json();
+      } catch (error) {
+        // Return mock data on error
+        return [
+          { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
+          { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
+          { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
+          { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
+          { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
+        ];
+      }
+    },
+    enabled: !!userId,
+    retry: false
+  });
+
   const studentsCount = studentsData?.length || 0;
   const teachersCount = teachersData?.length || 0;
   const totalUsersCount = allUsersData?.length || 0;
@@ -360,6 +392,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   const attendancePercentage = attendanceData || 95;
   const homeworkList = homeworkData || [];
   const recentMessages = recentMessagesData || [];
+  const todaySchedule = scheduleData || [];
 
   // Widget renderer helper
   const renderWidget = (widgetId: string) => {
@@ -526,13 +559,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
-                {[
-                  { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
-                  { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
-                  { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
-                  { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
-                  { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
-                ].map((lesson, idx) => (
+                {todaySchedule.map((lesson: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
                       <div className="text-xs md:text-sm font-medium text-gray-600 w-20 md:w-32 flex-shrink-0">
@@ -617,34 +644,49 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                     <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
                     <p className="text-xs text-gray-500 mt-1">Helsinki, Kulosaari</p>
                   </div>
-                  <div className="text-7xl">⛅</div>
+                  <div className="text-7xl">
+                    <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" className="text-gray-400" fill="currentColor" opacity="0.3"/>
+                      <circle cx="12" cy="8" r="3" className="text-yellow-400" fill="currentColor"/>
+                      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth={2} className="text-yellow-400"/>
+                    </svg>
+                  </div>
                 </div>
 
                 {/* Weather Details */}
                 <div className="grid grid-cols-2 gap-3 pt-3 border-t">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">💨</span>
+                    <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
                     <div>
                       <p className="text-xs text-gray-500">Wind</p>
                       <p className="text-sm font-semibold">12 km/h</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">💧</span>
+                    <svg className="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd"/>
+                    </svg>
                     <div>
                       <p className="text-xs text-gray-500">Humidity</p>
                       <p className="text-sm font-semibold">65%</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">🌡️</span>
+                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
                     <div>
                       <p className="text-xs text-gray-500">Feels Like</p>
                       <p className="text-sm font-semibold">16°C</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">👁️</span>
+                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
                     <div>
                       <p className="text-xs text-gray-500">Visibility</p>
                       <p className="text-sm font-semibold">10 km</p>
@@ -652,24 +694,74 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   </div>
                 </div>
 
+                {/* Hourly Forecast */}
+                <div className="border-t pt-3">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Hourly Forecast</p>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {[
+                      { time: '14:00', temp: '18°', icon: 'sun' },
+                      { time: '15:00', temp: '19°', icon: 'sun' },
+                      { time: '16:00', temp: '19°', icon: 'cloud-sun' },
+                      { time: '17:00', temp: '18°', icon: 'cloud' },
+                      { time: '18:00', temp: '17°', icon: 'cloud' },
+                      { time: '19:00', temp: '16°', icon: 'cloud-rain' },
+                    ].map((hour, idx) => (
+                      <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 rounded min-w-[60px]">
+                        <p className="text-xs font-medium text-gray-700">{hour.time}</p>
+                        <div className="my-1">
+                          {hour.icon === 'sun' && (
+                            <svg className="w-6 h-6 mx-auto text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                              <circle cx="10" cy="10" r="3"/>
+                              <path d="M10 1v2M10 17v2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M1 10h2M17 10h2M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42" stroke="currentColor" strokeWidth={1.5} fill="none"/>
+                            </svg>
+                          )}
+                          {hour.icon === 'cloud-sun' && (
+                            <svg className="w-6 h-6 mx-auto text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
+                            </svg>
+                          )}
+                          {hour.icon === 'cloud' && (
+                            <svg className="w-6 h-6 mx-auto text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
+                            </svg>
+                          )}
+                          {hour.icon === 'cloud-rain' && (
+                            <svg className="w-6 h-6 mx-auto text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
+                              <path d="M7 18v-2M10 18v-2M13 18v-2" stroke="currentColor" strokeWidth={1.5} fill="none"/>
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-gray-900">{hour.temp}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* 3-Day Forecast */}
                 <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-3">
                   <div className="p-2 bg-white/50 rounded">
                     <p className="font-semibold text-gray-700">Mon</p>
-                    <p className="text-3xl my-1">☀️</p>
-                    <p className="text-gray-600 font-semibold">20°</p>
+                    <svg className="w-8 h-8 mx-auto my-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <circle cx="10" cy="10" r="3"/>
+                    </svg>
+                    <p className="text-gray-900 font-semibold">20°</p>
                     <p className="text-gray-500 text-xs">12°</p>
                   </div>
                   <div className="p-2 bg-white/50 rounded">
                     <p className="font-semibold text-gray-700">Tue</p>
-                    <p className="text-3xl my-1">🌧️</p>
-                    <p className="text-gray-600 font-semibold">15°</p>
+                    <svg className="w-8 h-8 mx-auto my-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
+                    </svg>
+                    <p className="text-gray-900 font-semibold">15°</p>
                     <p className="text-gray-500 text-xs">10°</p>
                   </div>
                   <div className="p-2 bg-white/50 rounded">
                     <p className="font-semibold text-gray-700">Wed</p>
-                    <p className="text-3xl my-1">⛅</p>
-                    <p className="text-gray-600 font-semibold">17°</p>
+                    <svg className="w-8 h-8 mx-auto my-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
+                    </svg>
+                    <p className="text-gray-900 font-semibold">17°</p>
                     <p className="text-gray-500 text-xs">11°</p>
                   </div>
                 </div>
