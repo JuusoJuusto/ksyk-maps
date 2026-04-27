@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
-import WilmaHomeTab from "@/components/WilmaHomeTab";
+import WilmaHomeTabEnhanced from "@/components/WilmaHomeTabEnhanced";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import ScheduleManager from "@/components/ScheduleManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
@@ -38,6 +38,7 @@ export default function WilmaAdminNew() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(params?.section || 'home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (params?.section) {
@@ -306,7 +307,14 @@ export default function WilmaAdminNew() {
 
         {/* Content Area - Responsive Padding */}
         <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
-          {activeSection === 'home' && <WilmaHomeTab userRole={currentUser.role} userRoles={roles} />}
+          {activeSection === 'home' && (
+            <WilmaHomeTabEnhanced 
+              userRole={currentUser.role} 
+              userRoles={roles}
+              userId={currentUser.id}
+              userName={`${currentUser.firstName} ${currentUser.lastName}`}
+            />
+          )}
           {activeSection === 'schedule' && (
             <div className="space-y-4">
               {isAdmin ? (
@@ -329,13 +337,12 @@ export default function WilmaAdminNew() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - Improved with Hamburger Menu */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-40">
         <div className="grid grid-cols-5 gap-1 px-2 py-2">
           {[
             { id: 'home', label: 'Koti', icon: Home },
             { id: 'students', label: 'Oppilaat', icon: Users },
-            { id: 'staff', label: 'Henkilöstö', icon: GraduationCap },
             { id: 'messages', label: 'Viestit', icon: MessageSquare },
             { id: 'settings', label: 'Asetukset', icon: Settings },
           ].map((item) => {
@@ -361,8 +368,117 @@ export default function WilmaAdminNew() {
               </button>
             );
           })}
+          
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-100"
+          >
+            <Menu className="w-5 h-5 mb-1 text-gray-600" />
+            <span className="text-[10px] font-medium truncate w-full text-center text-gray-600">
+              Lisää
+            </span>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Menu Modal */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200" onClick={() => setMobileMenuOpen(false)}>
+          <div 
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle Bar */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
+            </div>
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">Valikko</h3>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="px-4 py-4 space-y-2">
+              {[
+                { id: 'staff', label: 'Henkilöstö', icon: GraduationCap, desc: 'Hallinnoi henkilökuntaa' },
+                { id: 'schedule', label: 'Lukujärjestys', icon: Calendar, desc: 'Katso ja muokkaa aikatauluja' },
+                { id: 'attendance', label: 'Läsnäolot', icon: UserCheck, desc: 'Tarkastele läsnäoloja' },
+                { id: 'grades', label: 'Arvosanat', icon: Award, desc: 'Hallinnoi arvosanoja' },
+                { id: 'homework', label: 'Tehtävät', icon: FileText, desc: 'Tarkastele tehtäviä' },
+                { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed, desc: 'Lounasruokalista' },
+                { id: 'analytics', label: 'Analytiikka', icon: BarChart3, desc: 'Tilastot ja raportit' },
+                { id: 'notifications', label: 'Ilmoitukset', icon: Bell, desc: 'Järjestelmäilmoitukset' },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      navigateTo(item.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg'
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    <div className={`p-3 rounded-lg ${
+                      isActive ? 'bg-white/20' : 'bg-white'
+                    }`}>
+                      <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-[#003d82]'}`} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className={`font-semibold ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                        {item.label}
+                      </p>
+                      <p className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
+                        {item.desc}
+                      </p>
+                    </div>
+                    {isActive && (
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+              
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-all mt-4"
+              >
+                <div className="p-3 rounded-lg bg-white">
+                  <LogOut className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold">Kirjaudu ulos</p>
+                  <p className="text-xs text-red-500">Poistu järjestelmästä</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
