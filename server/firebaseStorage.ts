@@ -2827,6 +2827,38 @@ export class FirebaseStorage implements IStorage {
   }
 
   // ============================================
+  // WILMA DASHBOARD PREFERENCES OPERATIONS
+  // ============================================
+  
+  async saveWilmaDashboardPreferences(userId: string, preferences: any): Promise<void> {
+    try {
+      await db.collection('wilmaDashboardPreferences').doc(userId).set({
+        ...preferences,
+        userId,
+        updatedAt: new Date().toISOString()
+      });
+      console.log(`✅ Dashboard preferences saved for user: ${userId}`);
+    } catch (error) {
+      console.error('Error saving dashboard preferences:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaDashboardPreferences(userId: string): Promise<any | null> {
+    try {
+      const doc = await db.collection('wilmaDashboardPreferences').doc(userId).get();
+      if (!doc.exists) {
+        console.log(`ℹ️ No dashboard preferences found for user: ${userId}`);
+        return null;
+      }
+      return doc.data();
+    } catch (error) {
+      console.error('Error getting dashboard preferences:', error);
+      return null;
+    }
+  }
+
+  // ============================================
   // WILMA CALENDAR EVENTS OPERATIONS
   // ============================================
   

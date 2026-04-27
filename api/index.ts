@@ -1905,6 +1905,38 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // POST /wilma/dashboard-preferences - Save dashboard preferences
+      if (apiPath === '/wilma/dashboard-preferences' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/dashboard-preferences called');
+        try {
+          const { userId, preferences } = req.body;
+          
+          if (!userId || !preferences) {
+            return res.status(400).json({ message: "userId and preferences are required" });
+          }
+          
+          await storage.saveWilmaDashboardPreferences(userId, preferences);
+          return res.status(200).json({ success: true, message: 'Preferences saved successfully' });
+        } catch (error: any) {
+          console.error('❌ Error saving dashboard preferences:', error);
+          return res.status(500).json({ message: "Failed to save preferences" });
+        }
+      }
+
+      // GET /wilma/dashboard-preferences/:userId - Get dashboard preferences
+      const dashboardPrefsMatch = apiPath.match(/^\/wilma\/dashboard-preferences\/([^\/]+)$/);
+      if (dashboardPrefsMatch && req.method === 'GET') {
+        const userId = dashboardPrefsMatch[1];
+        console.log('🔵 GET /api/wilma/dashboard-preferences/' + userId);
+        try {
+          const preferences = await storage.getWilmaDashboardPreferences(userId);
+          return res.status(200).json(preferences || null);
+        } catch (error: any) {
+          console.error('❌ Error loading dashboard preferences:', error);
+          return res.status(500).json({ message: "Failed to load preferences" });
+        }
+      }
+
       // GET /wilma/students/:id/enrollments - Get student enrollments
       const enrollmentsMatch = apiPath.match(/^\/wilma\/students\/([^\/]+)\/enrollments$/);
       if (enrollmentsMatch && req.method === 'GET') {

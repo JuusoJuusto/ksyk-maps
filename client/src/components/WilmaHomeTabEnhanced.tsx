@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { 
   Calendar, BookOpen, Mail, Clock, 
   Award, CheckCircle, 
   MessageSquare, FileText, BarChart3, Users, ExternalLink,
   Settings, Eye, EyeOff, RotateCcw, Edit2, Save, X, Sparkles,
-  TrendingUp, Bell, Link as LinkIcon, Activity, GripVertical
+  TrendingUp, Bell, Link as LinkIcon, Activity, GripVertical,
+  Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2
 } from "lucide-react";
 
 interface WilmaHomeTabProps {
@@ -32,6 +35,7 @@ interface DashboardPreferences {
   widgets: WidgetConfig[];
   greeting: string;
   showGreeting: boolean;
+  themeMode: 'system' | 'light' | 'dark';
 }
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
@@ -44,11 +48,15 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'performance', title: 'Performance', visible: true, size: 'medium', order: 6 },
   { id: 'recentActivity', title: 'Recent Activity', visible: true, size: 'medium', order: 7 },
   { id: 'upcomingEvents', title: 'Upcoming Events', visible: true, size: 'medium', order: 8 },
+  { id: 'weather', title: 'Weather', visible: true, size: 'small', order: 9 },
+  { id: 'quotes', title: 'Daily Quote', visible: true, size: 'medium', order: 10 },
+  { id: 'quickLinks', title: 'Quick Links', visible: true, size: 'small', order: 11 },
 ];
 
 export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId, userName }: WilmaHomeTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { darkMode, toggleDarkMode } = useDarkMode();
   
   // Determine user roles
   const roles = userRoles.length > 0 ? userRoles : [userRole];
@@ -63,8 +71,9 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   const [showGreeting, setShowGreeting] = useState(true);
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
+  const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
 
-  // Load preferences from localStorage on mount
+  // Load preferences from localStorage and backend on mount
   useEffect(() => {
     const savedPrefs = localStorage.getItem(`wilma_dashboard_${userId}`);
     if (savedPrefs) {
@@ -73,11 +82,41 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         setWidgets(prefs.widgets || DEFAULT_WIDGETS);
         setCustomGreeting(prefs.greeting || '');
         setShowGreeting(prefs.showGreeting !== false);
+        setThemeMode(prefs.themeMode || 'system');
       } catch (e) {
         console.error('Failed to load dashboard preferences:', e);
       }
     }
+    
+    // Also try to load from backend
+    if (userId) {
+      fetch(`/api/wilma/dashboard-preferences/${userId}`)
+        .then(res => res.json())
+        .then(prefs => {
+          if (prefs) {
+            setWidgets(prefs.widgets || DEFAULT_WIDGETS);
+            setCustomGreeting(prefs.greeting || '');
+            setShowGreeting(prefs.showGreeting !== false);
+            setThemeMode(prefs.themeMode || 'system');
+          }
+        })
+        .catch(err => console.log('Could not load preferences from backend:', err));
+    }
   }, [userId]);
+
+  // Apply theme mode
+  useEffect(() => {
+    if (themeMode === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark !== darkMode) {
+        toggleDarkMode();
+      }
+    } else if (themeMode === 'light' && darkMode) {
+      toggleDarkMode();
+    } else if (themeMode === 'dark' && !darkMode) {
+      toggleDarkMode();
+    }
+  }, [themeMode, darkMode, toggleDarkMode]);
 
   // Save preferences
   const savePreferences = useMutation({
@@ -137,11 +176,58 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     setTempTitle('');
   };
 
+  // Update widget size
+  const updateWidgetSize = (widgetId: string, size: 'small' | 'medium' | 'large') => {
+    const updated = widgets.map(w => 
+      w.id === widgetId ? { ...w, size } : w
+    );
+    setWidgets(updated);
+  };
+
+  // Handle drag end
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(visibleWidgets);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    // Update order
+    const updated = items.map((item, index) => ({
+      ...item,
+      order: index
+    }));
+    
+    // Update all widgets with new order
+    const allWidgets = widgets.map(w => {
+      const found = updated.find(u => u.id === w.id);
+      return found ? { ...found } : w;
+    });
+    
+    setWidgets(allWidgets);
+    
+    toast({
+      title: "Reordered!",
+      description: "Widget order updated. Don't forget to save!",
+    });
+  };
+
+  // Get size class for grid layout
+  const getSizeClass = (size?: 'small' | 'medium' | 'large') => {
+    switch (size) {
+      case 'small': return 'col-span-1';
+      case 'medium': return 'col-span-1 md:col-span-2';
+      case 'large': return 'col-span-1 md:col-span-3';
+      default: return 'col-span-1 md:col-span-2';
+    }
+  };
+
   // Reset to defaults
   const resetToDefaults = () => {
     setWidgets(DEFAULT_WIDGETS);
     setCustomGreeting('');
     setShowGreeting(true);
+    setThemeMode('system');
     toast({
       title: "Reset Complete",
       description: "Dashboard has been reset to default settings.",
@@ -154,6 +240,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
       widgets,
       greeting: customGreeting,
       showGreeting,
+      themeMode,
     };
     savePreferences.mutate(prefs);
     setCustomizationMode(false);
@@ -442,6 +529,109 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           </Card>
         );
 
+      case 'weather':
+        return (
+          <Card key={widgetId} className="border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-4xl font-bold text-gray-900">18°C</p>
+                  <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
+                  <p className="text-xs text-gray-500 mt-1">Helsinki, Finland</p>
+                </div>
+                <div className="text-6xl">⛅</div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-3">
+                <div className="p-2 bg-white/50 rounded">
+                  <p className="font-semibold text-gray-700">Mon</p>
+                  <p className="text-2xl my-1">☀️</p>
+                  <p className="text-gray-600">20°</p>
+                </div>
+                <div className="p-2 bg-white/50 rounded">
+                  <p className="font-semibold text-gray-700">Tue</p>
+                  <p className="text-2xl my-1">🌧️</p>
+                  <p className="text-gray-600">15°</p>
+                </div>
+                <div className="p-2 bg-white/50 rounded">
+                  <p className="font-semibold text-gray-700">Wed</p>
+                  <p className="text-2xl my-1">⛅</p>
+                  <p className="text-gray-600">17°</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'quotes':
+        const quotes = [
+          "Education is the most powerful weapon which you can use to change the world. - Nelson Mandela",
+          "The beautiful thing about learning is that no one can take it away from you. - B.B. King",
+          "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
+          "The only way to do great work is to love what you do. - Steve Jobs",
+          "Believe you can and you're halfway there. - Theodore Roosevelt"
+        ];
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        
+        return (
+          <Card key={widgetId} className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
+            {widgetHeader}
+            <CardContent className="p-4 md:p-6">
+              <div className="text-center">
+                <Quote className="w-12 h-12 mx-auto mb-3 text-yellow-600" />
+                <p className="text-sm italic text-gray-700 leading-relaxed">"{randomQuote}"</p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'quickLinks':
+        return (
+          <Card key={widgetId} className="border-2 border-indigo-200">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="justify-start h-auto py-3"
+                  onClick={() => window.open('https://ksyk.fi', '_blank')}
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  <span className="text-xs">School Site</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="justify-start h-auto py-3"
+                  onClick={() => window.location.href = '/wilma'}
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  <span className="text-xs">Wilma</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="justify-start h-auto py-3"
+                  onClick={() => window.location.href = '/lunch'}
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  <span className="text-xs">Lunch Menu</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="justify-start h-auto py-3"
+                  onClick={() => window.location.href = '/'}
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  <span className="text-xs">Campus Map</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
       default:
         return null;
     }
@@ -483,6 +673,43 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Theme Mode Selector */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                Theme Mode
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  size="sm"
+                  variant={themeMode === 'light' ? "default" : "outline"}
+                  onClick={() => setThemeMode('light')}
+                  className="flex flex-col items-center py-3 h-auto"
+                >
+                  <Sun className="w-5 h-5 mb-1" />
+                  <span className="text-xs">Light</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={themeMode === 'dark' ? "default" : "outline"}
+                  onClick={() => setThemeMode('dark')}
+                  className="flex flex-col items-center py-3 h-auto"
+                >
+                  <Moon className="w-5 h-5 mb-1" />
+                  <span className="text-xs">Dark</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={themeMode === 'system' ? "default" : "outline"}
+                  onClick={() => setThemeMode('system')}
+                  className="flex flex-col items-center py-3 h-auto"
+                >
+                  <Monitor className="w-5 h-5 mb-1" />
+                  <span className="text-xs">System</span>
+                </Button>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">Choose your preferred theme</p>
+            </div>
+
             {/* Custom Greeting */}
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
@@ -512,10 +739,51 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                     className="justify-start"
                   >
                     {widget.visible ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
-                    {widget.title}
+                    <span className="truncate text-xs">{widget.customTitle || widget.title}</span>
                   </Button>
                 ))}
               </div>
+            </div>
+
+            {/* Widget Sizes */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                Widget Sizes (Visible Widgets Only)
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {widgets.filter(w => w.visible).map((widget) => (
+                  <div key={widget.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-xs font-medium truncate flex-1">{widget.customTitle || widget.title}</span>
+                    <div className="flex gap-1 ml-2">
+                      <Button
+                        size="sm"
+                        variant={widget.size === 'small' ? "default" : "outline"}
+                        onClick={() => updateWidgetSize(widget.id, 'small')}
+                        className="h-7 px-2"
+                      >
+                        <Minimize2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={widget.size === 'medium' ? "default" : "outline"}
+                        onClick={() => updateWidgetSize(widget.id, 'medium')}
+                        className="h-7 px-2"
+                      >
+                        <span className="text-xs">M</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={widget.size === 'large' ? "default" : "outline"}
+                        onClick={() => updateWidgetSize(widget.id, 'large')}
+                        className="h-7 px-2"
+                      >
+                        <Maximize2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">Small (1 col), Medium (2 cols), Large (3 cols)</p>
             </div>
 
             {/* Action Buttons */}
@@ -561,10 +829,39 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         </CardContent>
       </Card>
 
-      {/* Render Visible Widgets */}
-      <div className="space-y-4 md:space-y-6">
-        {visibleWidgets.map((widget) => renderWidget(widget.id))}
-      </div>
+      {/* Render Visible Widgets with Drag-and-Drop */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="widgets">
+          {(provided) => (
+            <div 
+              {...provided.droppableProps} 
+              ref={provided.innerRef}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6"
+            >
+              {visibleWidgets.map((widget, index) => (
+                <Draggable 
+                  key={widget.id} 
+                  draggableId={widget.id} 
+                  index={index}
+                  isDragDisabled={!customizationMode}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`${getSizeClass(widget.size)} ${snapshot.isDragging ? 'opacity-50 scale-105' : ''} transition-all`}
+                    >
+                      {renderWidget(widget.id)}
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 }

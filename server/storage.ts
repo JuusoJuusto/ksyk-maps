@@ -206,6 +206,10 @@ export interface IStorage {
   markAllWilmaNotificationsAsRead(userId: string): Promise<void>;
   deleteWilmaNotification(id: string): Promise<void>;
   
+  // Wilma Dashboard Preferences operations
+  saveWilmaDashboardPreferences(userId: string, preferences: any): Promise<void>;
+  getWilmaDashboardPreferences(userId: string): Promise<any | null>;
+  
   // Wilma Calendar Events operations
   getWilmaCalendarEvents(userId?: string, startDate?: string, endDate?: string): Promise<any[]>;
   getWilmaCalendarEvent(id: string): Promise<any | undefined>;
