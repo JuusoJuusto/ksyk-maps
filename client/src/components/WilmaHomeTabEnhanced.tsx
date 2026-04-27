@@ -48,9 +48,12 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'performance', title: 'Performance', visible: true, size: 'medium', order: 6 },
   { id: 'recentActivity', title: 'Recent Activity', visible: true, size: 'medium', order: 7 },
   { id: 'upcomingEvents', title: 'Upcoming Events', visible: true, size: 'medium', order: 8 },
-  { id: 'weather', title: 'Weather', visible: true, size: 'small', order: 9 },
+  { id: 'weather', title: 'Weather', visible: true, size: 'medium', order: 9 },
   { id: 'quotes', title: 'Daily Quote', visible: true, size: 'medium', order: 10 },
   { id: 'quickLinks', title: 'Quick Links', visible: true, size: 'small', order: 11 },
+  { id: 'homework', title: 'Homework', visible: false, size: 'medium', order: 12 },
+  { id: 'attendance', title: 'Attendance Summary', visible: false, size: 'medium', order: 13 },
+  { id: 'messages', title: 'Recent Messages', visible: false, size: 'medium', order: 14 },
 ];
 
 export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId, userName }: WilmaHomeTabProps) {
@@ -285,11 +288,16 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   const { data: messagesData } = useQuery({
     queryKey: ['wilma-messages-count', userId],
     queryFn: async () => {
-      const response = await fetch(`/api/wilma/messages?recipientId=${userId}&unread=true`);
-      if (!response.ok) return [];
-      return response.json();
+      try {
+        const response = await fetch(`/api/wilma/messages?recipientId=${userId}&unread=true`);
+        if (!response.ok) return [];
+        return response.json();
+      } catch (error) {
+        return [];
+      }
     },
-    enabled: !!userId
+    enabled: !!userId,
+    retry: false
   });
 
   const { data: coursesData } = useQuery({
@@ -315,12 +323,43 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     enabled: isStudent && !!userId
   });
 
+  const { data: homeworkData } = useQuery({
+    queryKey: ['wilma-homework', userId],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/wilma/homework');
+        if (!response.ok) return [];
+        return response.json();
+      } catch (error) {
+        return [];
+      }
+    },
+    retry: false
+  });
+
+  const { data: recentMessagesData } = useQuery({
+    queryKey: ['wilma-recent-messages', userId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/wilma/messages?recipientId=${userId}&limit=5`);
+        if (!response.ok) return [];
+        return response.json();
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!userId,
+    retry: false
+  });
+
   const studentsCount = studentsData?.length || 0;
   const teachersCount = teachersData?.length || 0;
   const totalUsersCount = allUsersData?.length || 0;
   const unreadMessages = messagesData?.length || 0;
   const activeCourses = coursesData?.length || 0;
   const attendancePercentage = attendanceData || 95;
+  const homeworkList = homeworkData || [];
+  const recentMessages = recentMessagesData || [];
 
   // Widget renderer helper
   const renderWidget = (widgetId: string) => {
@@ -570,29 +609,69 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           <Card key={widgetId} className="border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50">
             {widgetHeader}
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-4xl font-bold text-gray-900">18°C</p>
-                  <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
-                  <p className="text-xs text-gray-500 mt-1">Helsinki, Kulosaari</p>
+              <div className="space-y-4">
+                {/* Current Weather */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-5xl font-bold text-gray-900">18°C</p>
+                    <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
+                    <p className="text-xs text-gray-500 mt-1">Helsinki, Kulosaari</p>
+                  </div>
+                  <div className="text-7xl">⛅</div>
                 </div>
-                <div className="text-6xl">⛅</div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-3">
-                <div className="p-2 bg-white/50 rounded">
-                  <p className="font-semibold text-gray-700">Mon</p>
-                  <p className="text-2xl my-1">☀️</p>
-                  <p className="text-gray-600">20°</p>
+
+                {/* Weather Details */}
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">💨</span>
+                    <div>
+                      <p className="text-xs text-gray-500">Wind</p>
+                      <p className="text-sm font-semibold">12 km/h</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">💧</span>
+                    <div>
+                      <p className="text-xs text-gray-500">Humidity</p>
+                      <p className="text-sm font-semibold">65%</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🌡️</span>
+                    <div>
+                      <p className="text-xs text-gray-500">Feels Like</p>
+                      <p className="text-sm font-semibold">16°C</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">👁️</span>
+                    <div>
+                      <p className="text-xs text-gray-500">Visibility</p>
+                      <p className="text-sm font-semibold">10 km</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-2 bg-white/50 rounded">
-                  <p className="font-semibold text-gray-700">Tue</p>
-                  <p className="text-2xl my-1">🌧️</p>
-                  <p className="text-gray-600">15°</p>
-                </div>
-                <div className="p-2 bg-white/50 rounded">
-                  <p className="font-semibold text-gray-700">Wed</p>
-                  <p className="text-2xl my-1">⛅</p>
-                  <p className="text-gray-600">17°</p>
+
+                {/* 3-Day Forecast */}
+                <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-3">
+                  <div className="p-2 bg-white/50 rounded">
+                    <p className="font-semibold text-gray-700">Mon</p>
+                    <p className="text-3xl my-1">☀️</p>
+                    <p className="text-gray-600 font-semibold">20°</p>
+                    <p className="text-gray-500 text-xs">12°</p>
+                  </div>
+                  <div className="p-2 bg-white/50 rounded">
+                    <p className="font-semibold text-gray-700">Tue</p>
+                    <p className="text-3xl my-1">🌧️</p>
+                    <p className="text-gray-600 font-semibold">15°</p>
+                    <p className="text-gray-500 text-xs">10°</p>
+                  </div>
+                  <div className="p-2 bg-white/50 rounded">
+                    <p className="font-semibold text-gray-700">Wed</p>
+                    <p className="text-3xl my-1">⛅</p>
+                    <p className="text-gray-600 font-semibold">17°</p>
+                    <p className="text-gray-500 text-xs">11°</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -616,6 +695,77 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
               <div className="text-center">
                 <Quote className="w-12 h-12 mx-auto mb-3 text-yellow-600" />
                 <p className="text-sm italic text-gray-700 leading-relaxed">"{randomQuote}"</p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'homework':
+        return (
+          <Card key={widgetId} className="border-2 border-orange-200">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                {homeworkList.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No homework assigned</p>
+                ) : (
+                  homeworkList.slice(0, 5).map((hw: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-semibold text-gray-900">{hw.title || 'Homework'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{hw.subject || 'General'}</p>
+                      <p className="text-xs text-orange-600 mt-1">Due: {hw.dueDate ? new Date(hw.dueDate).toLocaleDateString('fi-FI') : 'No date'}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'attendance':
+        return (
+          <Card key={widgetId} className="border-2 border-green-200">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-6xl font-bold text-green-600 mb-2">{attendancePercentage}%</div>
+                <p className="text-sm text-gray-600">Overall Attendance</p>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <div className="p-2 bg-green-50 rounded">
+                    <p className="font-semibold text-green-700">Present</p>
+                    <p className="text-lg font-bold text-green-600">85</p>
+                  </div>
+                  <div className="p-2 bg-red-50 rounded">
+                    <p className="font-semibold text-red-700">Absent</p>
+                    <p className="text-lg font-bold text-red-600">5</p>
+                  </div>
+                  <div className="p-2 bg-yellow-50 rounded">
+                    <p className="font-semibold text-yellow-700">Late</p>
+                    <p className="text-lg font-bold text-yellow-600">3</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'messages':
+        return (
+          <Card key={widgetId} className="border-2 border-blue-200">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                {recentMessages.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No recent messages</p>
+                ) : (
+                  recentMessages.map((msg: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                      <p className="text-sm font-semibold text-gray-900">{msg.subject || 'No Subject'}</p>
+                      <p className="text-xs text-gray-600 mt-1">From: {msg.senderName || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleDateString('fi-FI') : ''}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
