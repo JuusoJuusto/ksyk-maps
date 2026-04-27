@@ -37,6 +37,7 @@ import WilmaSupportStaff from "@/pages/wilma-support-staff";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
 import ClassDetail from "@/pages/class-detail";
+import ChessPage from "@/pages/chess";
 import ResetPassword from "@/pages/reset-password";
 import ForgotPassword from "@/pages/forgot-password";
 import NotFound from "@/pages/not-found";
@@ -94,6 +95,7 @@ function Router() {
       <Route path="/wilma-sosiaalityontekija/:userId/:section" component={WilmaSupportStaff} />
       <Route path="/wilma-sosiaalityontekija/:userId" component={WilmaSupportStaff} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
+      <Route path="/wilma-admin/:adminId/chess" component={ChessPage} />
       <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
       <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
@@ -101,6 +103,7 @@ function Router() {
       <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
       <Route path="/wilma-admin" component={WilmaAdmin} />
       <Route path="/wilma/:userId/:section" component={WilmaHome} />
+      <Route path="/wilma/:userId/chess" component={ChessPage} />
       <Route path="/wilma/:userId" component={WilmaHome} />
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />

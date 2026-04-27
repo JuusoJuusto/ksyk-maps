@@ -176,7 +176,7 @@ export default function StudentDetail() {
             <TabsTrigger value="attendance" className="data-[state=active]:bg-[#7cb342] data-[state=active]:text-white rounded-lg">
               <CheckCircle className="w-4 h-4 mr-2" />
               <span className="hidden md:inline">Tuntimerkinnät</span>
-              <span className="md:hidden">Läsnä</span>
+              <span className="md:hidden">Tunnit</span>
             </TabsTrigger>
             <TabsTrigger value="schedule" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white rounded-lg">
               <Calendar className="w-4 h-4 mr-2" />
@@ -257,7 +257,7 @@ export default function StudentDetail() {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/90 text-sm">Läsnäolo</p>
+                        <p className="text-white/90 text-sm">Tuntimerkinnät</p>
                         <p className="text-3xl font-bold mt-1">{attendancePercentage}%</p>
                         <p className="text-white/90 text-sm mt-1">{attendanceMarks.length} merkintää</p>
                       </div>

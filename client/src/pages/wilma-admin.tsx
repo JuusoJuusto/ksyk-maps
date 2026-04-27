@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import PeopleManager from "@/components/PeopleManager";
-import WilmaHomeTab from "@/components/WilmaHomeTab";
+import WilmaHomeTabEnhanced from "@/components/WilmaHomeTabEnhanced";
 import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import ScheduleManager from "@/components/ScheduleManager";
 import ScheduleSettingsManager from "@/components/ScheduleSettingsManager";

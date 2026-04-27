@@ -344,7 +344,7 @@ export default function WilmaAdminNew() {
             { id: 'home', label: 'Koti', icon: Home },
             { id: 'students', label: 'Oppilaat', icon: Users },
             { id: 'messages', label: 'Viestit', icon: MessageSquare },
-            { id: 'settings', label: 'Asetukset', icon: Settings },
+            { id: 'courses', label: 'Kurssit', icon: BookOpen },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -384,10 +384,29 @@ export default function WilmaAdminNew() {
 
       {/* Mobile Menu Modal */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200" onClick={() => setMobileMenuOpen(false)}>
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200" 
+          onClick={() => setMobileMenuOpen(false)}
+        >
           <div 
             className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              const startY = touch.clientY;
+              const handleTouchMove = (moveEvent: TouchEvent) => {
+                const currentY = moveEvent.touches[0].clientY;
+                const diff = currentY - startY;
+                if (diff > 100) {
+                  setMobileMenuOpen(false);
+                  document.removeEventListener('touchmove', handleTouchMove);
+                }
+              };
+              document.addEventListener('touchmove', handleTouchMove);
+              document.addEventListener('touchend', () => {
+                document.removeEventListener('touchmove', handleTouchMove);
+              }, { once: true });
+            }}
           >
             {/* Handle Bar */}
             <div className="flex justify-center pt-3 pb-2">
@@ -414,12 +433,13 @@ export default function WilmaAdminNew() {
               {[
                 { id: 'staff', label: 'Henkilöstö', icon: GraduationCap, desc: 'Hallinnoi henkilökuntaa' },
                 { id: 'schedule', label: 'Lukujärjestys', icon: Calendar, desc: 'Katso ja muokkaa aikatauluja' },
-                { id: 'attendance', label: 'Läsnäolot', icon: UserCheck, desc: 'Tarkastele läsnäoloja' },
+                { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck, desc: 'Tarkastele tuntimerkintöjä' },
                 { id: 'grades', label: 'Arvosanat', icon: Award, desc: 'Hallinnoi arvosanoja' },
                 { id: 'homework', label: 'Tehtävät', icon: FileText, desc: 'Tarkastele tehtäviä' },
                 { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed, desc: 'Lounasruokalista' },
-                { id: 'analytics', label: 'Analytiikka', icon: BarChart3, desc: 'Tilastot ja raportit' },
-                { id: 'notifications', label: 'Ilmoitukset', icon: Bell, desc: 'Järjestelmäilmoitukset' },
+                { id: 'reports', label: 'Raportit', icon: BarChart3, desc: 'Tilastot ja raportit' },
+                { id: 'support', label: 'Tuki', icon: MessageSquare, desc: 'Tukipyynnöt' },
+                { id: 'settings', label: 'Asetukset', icon: Settings, desc: 'Järjestelmäasetukset' },
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;

@@ -393,7 +393,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-white/80 text-xs md:text-sm">
-                      {isAdmin ? 'Opiskelijat' : 'Läsnäolo'}
+                      {isAdmin ? 'Opiskelijat' : 'Tuntimerkinnät'}
                     </p>
                     <p className="text-2xl md:text-3xl font-bold mt-1">
                       {isAdmin ? studentsCount : '95%'}
