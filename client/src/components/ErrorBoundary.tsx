@@ -86,11 +86,11 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReload = () => {
-    window.location.reload();
+    window.location.href = '/wilma';
   };
 
   handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = '/wilma';
   };
 
   handleSubmitTicket = async () => {

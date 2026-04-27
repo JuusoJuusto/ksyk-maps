@@ -282,9 +282,45 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     enabled: isAdmin
   });
 
+  const { data: messagesData } = useQuery({
+    queryKey: ['wilma-messages-count', userId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/messages?recipientId=${userId}&unread=true`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!userId
+  });
+
+  const { data: coursesData } = useQuery({
+    queryKey: ['wilma-courses-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/courses');
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
+  const { data: attendanceData } = useQuery({
+    queryKey: ['wilma-attendance', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const response = await fetch(`/api/wilma/attendance-marks?studentId=${userId}`);
+      if (!response.ok) return null;
+      const marks = await response.json();
+      const present = marks.filter((m: any) => m.markType === 'present').length;
+      const total = marks.length;
+      return total > 0 ? Math.round((present / total) * 100) : 95;
+    },
+    enabled: isStudent && !!userId
+  });
+
   const studentsCount = studentsData?.length || 0;
   const teachersCount = teachersData?.length || 0;
   const totalUsersCount = allUsersData?.length || 0;
+  const unreadMessages = messagesData?.length || 0;
+  const activeCourses = coursesData?.length || 0;
+  const attendancePercentage = attendanceData || 95;
 
   // Widget renderer helper
   const renderWidget = (widgetId: string) => {
@@ -396,7 +432,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                       {isAdmin ? 'Opiskelijat' : 'Tuntimerkinnät'}
                     </p>
                     <p className="text-2xl md:text-3xl font-bold mt-1">
-                      {isAdmin ? studentsCount : '95%'}
+                      {isAdmin ? studentsCount : `${attendancePercentage}%`}
                     </p>
                     <p className="text-white/80 text-xs md:text-sm mt-1">
                       {isAdmin ? 'Aktiivisia' : 'Tällä viikolla'}
@@ -413,7 +449,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   <div>
                     <p className="text-gray-600 text-xs md:text-sm">Viestit</p>
                     <p className="text-2xl md:text-3xl font-bold mt-1 text-[#003d82]">
-                      {isAdmin ? '12' : '3'}
+                      {unreadMessages}
                     </p>
                     <p className="text-gray-600 text-xs md:text-sm mt-1">
                       {isAdmin ? 'Uutta' : 'Lukematonta'}
@@ -429,10 +465,10 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 text-xs md:text-sm">
-                      {isAdmin ? 'Opettajat' : isStudent ? 'Keskiarvo' : 'Kurssit'}
+                      {isAdmin ? 'Opettajat' : isStudent ? 'Tuntimerkinnät' : 'Kurssit'}
                     </p>
                     <p className="text-2xl md:text-3xl font-bold mt-1 text-[#003d82]">
-                      {isAdmin ? teachersCount : isStudent ? '8.5' : '12'}
+                      {isAdmin ? teachersCount : isStudent ? `${attendancePercentage}%` : activeCourses}
                     </p>
                     <p className="text-gray-600 text-xs md:text-sm mt-1">
                       {isAdmin ? 'Aktiivisia' : isStudent ? 'Tällä jaksolla' : 'Aktiivisia'}

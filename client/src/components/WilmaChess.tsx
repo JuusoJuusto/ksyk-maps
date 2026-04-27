@@ -46,16 +46,27 @@ export default function WilmaChess({ userId, userName }: WilmaChessProps) {
   const [copied, setCopied] = useState(false);
   const [gameMode, setGameMode] = useState<'menu' | 'create' | 'join' | 'playing' | 'invite'>('menu');
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch all Wilma users for invitation
+  // Fetch all Wilma users for invitation (exclude parents)
   const { data: wilmaUsers = [] } = useQuery({
     queryKey: ['wilma-users-chess'],
     queryFn: async () => {
       const response = await fetch('/api/wilma/users');
       if (!response.ok) return [];
-      return response.json();
+      const users = await response.json();
+      // Filter out parents
+      return users.filter((user: any) => user.role !== 'parent');
     },
     enabled: gameMode === 'invite'
+  });
+
+  // Filter users based on search query
+  const filteredUsers = wilmaUsers.filter((user: any) => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    const role = user.role.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return fullName.includes(query) || role.includes(query);
   });
 
   // Create new game
@@ -439,23 +450,36 @@ export default function WilmaChess({ userId, userName }: WilmaChessProps) {
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <p className="text-sm text-gray-600">Select a player to invite:</p>
+            
+            {/* Search Bar */}
+            <Input
+              placeholder="Search players..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+            
             <div className="max-h-64 overflow-y-auto space-y-2">
-              {wilmaUsers
-                .filter((user: any) => user.id !== userId)
-                .map((user: any) => (
-                  <button
-                    key={user.id}
-                    onClick={() => setSelectedUser(user.id)}
-                    className={`w-full p-3 rounded-lg text-left transition-all ${
-                      selectedUser === user.id
-                        ? 'bg-[#003d82] text-white'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  >
-                    <p className="font-semibold">{user.firstName} {user.lastName}</p>
-                    <p className="text-xs opacity-75">{user.role}</p>
-                  </button>
-                ))}
+              {filteredUsers.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No players found</p>
+              ) : (
+                filteredUsers
+                  .filter((user: any) => user.id !== userId)
+                  .map((user: any) => (
+                    <button
+                      key={user.id}
+                      onClick={() => setSelectedUser(user.id)}
+                      className={`w-full p-3 rounded-lg text-left transition-all ${
+                        selectedUser === user.id
+                          ? 'bg-[#003d82] text-white'
+                          : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      <p className="font-semibold">{user.firstName} {user.lastName}</p>
+                      <p className="text-xs opacity-75">{user.role}</p>
+                    </button>
+                  ))
+              )}
             </div>
             <div className="flex gap-2">
               <Button
