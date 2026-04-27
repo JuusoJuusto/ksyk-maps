@@ -1,23 +1,172 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar, BookOpen, Mail, Clock, 
   Award, CheckCircle, 
-  MessageSquare, FileText, BarChart3, Users, ExternalLink
+  MessageSquare, FileText, BarChart3, Users, ExternalLink,
+  Settings, Eye, EyeOff, RotateCcw, Edit2, Save, X, Sparkles,
+  TrendingUp, Bell, Link as LinkIcon, Activity
 } from "lucide-react";
 
 interface WilmaHomeTabProps {
   userRole?: string;
   userRoles?: string[];
+  userId?: string;
+  userName?: string;
 }
 
-export default function WilmaHomeTab({ userRole, userRoles = [] }: WilmaHomeTabProps) {
+interface WidgetConfig {
+  id: string;
+  title: string;
+  visible: boolean;
+  customTitle?: string;
+  size?: 'small' | 'medium' | 'large';
+  order: number;
+}
+
+interface DashboardPreferences {
+  widgets: WidgetConfig[];
+  greeting: string;
+  showGreeting: boolean;
+}
+
+const DEFAULT_WIDGETS: WidgetConfig[] = [
+  { id: 'stats', title: 'Quick Stats', visible: true, size: 'large', order: 0 },
+  { id: 'schedule', title: "Today's Schedule", visible: true, size: 'large', order: 1 },
+  { id: 'grades', title: 'Recent Grades', visible: true, size: 'large', order: 2 },
+  { id: 'overview', title: 'Overview', visible: true, size: 'large', order: 3 },
+  { id: 'quickActions', title: 'Quick Actions', visible: true, size: 'medium', order: 4 },
+  { id: 'announcements', title: 'Announcements', visible: true, size: 'medium', order: 5 },
+  { id: 'performance', title: 'Performance', visible: true, size: 'medium', order: 6 },
+  { id: 'recentActivity', title: 'Recent Activity', visible: true, size: 'medium', order: 7 },
+  { id: 'upcomingEvents', title: 'Upcoming Events', visible: true, size: 'medium', order: 8 },
+];
+
+export default function WilmaHomeTab({ userRole, userRoles = [], userId, userName }: WilmaHomeTabProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   // Determine if user is admin/principal (no grades)
   const roles = userRoles.length > 0 ? userRoles : [userRole];
   const isAdmin = roles.some((r: string) => ['admin', 'principal', 'vice_principal'].includes(r));
   const isStudent = roles.includes('student');
   const isTeacher = roles.includes('teacher');
+  
+  // Customization state
+  const [customizationMode, setCustomizationMode] = useState(false);
+  const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
+  const [customGreeting, setCustomGreeting] = useState('');
+  const [showGreeting, setShowGreeting] = useState(true);
+  const [editingWidget, setEditingWidget] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState('');
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const savedPrefs = localStorage.getItem(`wilma_dashboard_${userId}`);
+    if (savedPrefs) {
+      try {
+        const prefs: DashboardPreferences = JSON.parse(savedPrefs);
+        setWidgets(prefs.widgets || DEFAULT_WIDGETS);
+        setCustomGreeting(prefs.greeting || '');
+        setShowGreeting(prefs.showGreeting !== false);
+      } catch (e) {
+        console.error('Failed to load dashboard preferences:', e);
+      }
+    }
+  }, [userId]);
+
+  // Save preferences to localStorage and backend
+  const savePreferences = useMutation({
+    mutationFn: async (prefs: DashboardPreferences) => {
+      // Save to localStorage
+      localStorage.setItem(`wilma_dashboard_${userId}`, JSON.stringify(prefs));
+      
+      // Save to backend
+      const response = await fetch('/api/wilma/dashboard-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, preferences: prefs }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to save preferences');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Saved!",
+        description: "Your dashboard preferences have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-preferences', userId] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save preferences. Changes saved locally only.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Get personalized greeting
+  const getGreeting = () => {
+    if (customGreeting) return customGreeting;
+    
+    const hour = new Date().getHours();
+    const name = userName || 'there';
+    
+    if (hour < 12) return `Good morning, ${name}! ☀️`;
+    if (hour < 18) return `Good afternoon, ${name}! 👋`;
+    return `Good evening, ${name}! 🌙`;
+  };
+
+  // Toggle widget visibility
+  const toggleWidget = (widgetId: string) => {
+    const updated = widgets.map(w => 
+      w.id === widgetId ? { ...w, visible: !w.visible } : w
+    );
+    setWidgets(updated);
+  };
+
+  // Update widget title
+  const updateWidgetTitle = (widgetId: string, newTitle: string) => {
+    const updated = widgets.map(w => 
+      w.id === widgetId ? { ...w, customTitle: newTitle } : w
+    );
+    setWidgets(updated);
+    setEditingWidget(null);
+    setTempTitle('');
+  };
+
+  // Reset to defaults
+  const resetToDefaults = () => {
+    setWidgets(DEFAULT_WIDGETS);
+    setCustomGreeting('');
+    setShowGreeting(true);
+    toast({
+      title: "Reset Complete",
+      description: "Dashboard has been reset to default settings.",
+    });
+  };
+
+  // Save current configuration
+  const handleSaveConfiguration = () => {
+    const prefs: DashboardPreferences = {
+      widgets,
+      greeting: customGreeting,
+      showGreeting,
+    };
+    savePreferences.mutate(prefs);
+    setCustomizationMode(false);
+  };
+
+  // Get visible widgets sorted by order
+  const visibleWidgets = widgets
+    .filter(w => w.visible)
+    .sort((a, b) => a.order - b.order);
 
   // Fetch real data from API
   const { data: studentsData } = useQuery({
