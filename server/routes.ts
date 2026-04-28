@@ -1462,6 +1462,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Password reset email endpoint
+  app.post('/api/wilma/users/:id/send-password-reset', async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get user details
+      const userDoc = await db.collection('wilmaUsers').doc(id).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ success: false, message: "Käyttäjää ei löytynyt" });
+      }
+
+      const user = userDoc.data();
+      if (!user?.email) {
+        return res.status(400).json({ success: false, message: "Käyttäjällä ei ole sähköpostiosoitetta" });
+      }
+
+      // Generate reset token (simple random string for now)
+      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const resetExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+      // Save reset token to user document
+      await db.collection('wilmaUsers').doc(id).update({
+        resetToken,
+        resetTokenExpiry: resetExpiry.toISOString()
+      });
+
+      // Send email
+      const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+      
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #003d82;">Salasanan nollaus - Wilma</h2>
+          <p>Hei ${user.firstName} ${user.lastName},</p>
+          <p>Olet pyytänyt salasanan nollausta Wilma-järjestelmään.</p>
+          <p>Klikkaa alla olevaa linkkiä nollataksesi salasanasi:</p>
+          <p style="margin: 20px 0;">
+            <a href="${resetLink}" style="background-color: #003d82; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              Nollaa salasana
+            </a>
+          </p>
+          <p>Linkki on voimassa 1 tunnin ajan.</p>
+          <p>Jos et pyytänyt salasanan nollausta, voit jättää tämän viestin huomiotta.</p>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+          <p style="color: #666; font-size: 12px;">
+            Tämä on automaattinen viesti. Älä vastaa tähän viestiin.
+          </p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Salasanan nollaus - Wilma',
+        html: emailHtml
+      });
+
+      console.log(`✅ Password reset email sent to ${user.email}`);
+      res.json({ success: true, message: `Salasanan nollauslinkki lähetetty osoitteeseen ${user.email}` });
+    } catch (error) {
+      console.error('❌ Password reset email error:', error);
+      await logError(error, 'POST /api/wilma/users/:id/send-password-reset', { userId: req.params.id });
+      res.status(500).json({ success: false, message: "Sähköpostin lähetys epäonnistui" });
+    }
+  });
+
   app.get('/api/wilma/user-settings/:userId', async (req, res) => {
     try {
       const { userId } = req.params;

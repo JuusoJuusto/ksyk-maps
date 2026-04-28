@@ -707,6 +707,21 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           loadWeather();
         }, []);
 
+        // Helper functions
+        const getWeatherIcon = (symbol: number) => {
+          if (symbol <= 2) return 'sun';
+          if (symbol <= 4) return 'cloud-sun';
+          if (symbol <= 30) return 'cloud';
+          if (symbol <= 50) return 'cloud-rain';
+          return 'cloud';
+        };
+
+        const getDayName = (daysAhead: number) => {
+          const date = new Date();
+          date.setDate(date.getDate() + daysAhead);
+          return date.toLocaleDateString('fi-FI', { weekday: 'short' });
+        };
+
         // Generate hourly forecast times
         const now = new Date();
         const currentHour = now.getHours();
@@ -721,21 +736,6 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 weatherSymbol: 4
               };
             });
-
-        // Get day names for 3-day forecast
-        const getDayName = (daysAhead: number) => {
-          const date = new Date();
-          date.setDate(date.getDate() + daysAhead);
-          return date.toLocaleDateString('fi-FI', { weekday: 'short' });
-        };
-
-        const getWeatherIcon = (symbol: number) => {
-          if (symbol <= 2) return 'sun';
-          if (symbol <= 4) return 'cloud-sun';
-          if (symbol <= 30) return 'cloud';
-          if (symbol <= 50) return 'cloud-rain';
-          return 'cloud';
-        };
 
         return (
           <Card key={widgetId} className="border-2 border-cyan-200 dark:border-cyan-800 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 group relative">
