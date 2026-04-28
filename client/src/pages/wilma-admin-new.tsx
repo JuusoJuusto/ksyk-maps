@@ -159,7 +159,6 @@ export default function WilmaAdminNew() {
 
   // Get current section label safely
   const currentSectionLabel = filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma';
-  const currentSectionLabel = filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">

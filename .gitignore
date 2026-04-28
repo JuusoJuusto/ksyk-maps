@@ -15,6 +15,12 @@ vite.config.ts.*
 serviceAccountKey.json
 **/serviceAccountKey.json
 
+# Documentation - Keep only README and SYSTEM-GUIDE
+*.md
+!README.md
+!README-FI.md
+!SYSTEM-GUIDE.md
+
 # IDE
 .vscode/*
 !.vscode/extensions.json

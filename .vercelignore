@@ -6,3 +6,12 @@ dist
 *.log
 .vscode
 .idea
+
+# Documentation files - not needed for deployment
+*.md
+!README.md
+!README-FI.md
+
+# Sensitive files
+serviceAccountKey.json
+.env
