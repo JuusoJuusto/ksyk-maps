@@ -1526,6 +1526,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Wilma Schedule routes
+  // Get schedule by userId (query param)
+  app.get('/api/wilma/schedule', async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+      
+      // Return mock schedule data for now
+      const mockSchedule = [
+        { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
+        { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
+        { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
+        { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
+        { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
+      ];
+      
+      res.json(mockSchedule);
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/schedule', { userId: req.query.userId });
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
+
   app.get('/api/wilma/schedules/:studentId', async (req, res) => {
     try {
       const schedules = await storage.getWilmaSchedules(req.params.studentId);
