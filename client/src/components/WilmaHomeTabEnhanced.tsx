@@ -1028,6 +1028,176 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           </Card>
         );
 
+      case 'grades':
+        return (
+          <Card key={widgetId} className="border-2 border-purple-200 dark:border-purple-800 group relative">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {[
+                  { subject: 'Matematiikka', grade: '9', date: '15.04.2026', teacher: 'M. Virtanen', color: 'text-green-600' },
+                  { subject: 'Englanti', grade: '8', date: '12.04.2026', teacher: 'A. Korhonen', color: 'text-green-600' },
+                  { subject: 'Fysiikka', grade: '10', date: '10.04.2026', teacher: 'P. Nieminen', color: 'text-green-600' },
+                  { subject: 'Historia', grade: '7', date: '08.04.2026', teacher: 'L. Mäkinen', color: 'text-yellow-600' },
+                ].map((grade, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{grade.subject}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{grade.teacher} • {grade.date}</p>
+                    </div>
+                    <div className={`text-2xl font-bold ${grade.color} dark:opacity-90`}>
+                      {grade.grade}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'overview':
+        return (
+          <Card key={widgetId} className="border-2 border-indigo-200 dark:border-indigo-800 group relative">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Kursseja</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">{activeCourses}</p>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <p className="text-xs text-green-700 dark:text-green-400 font-medium">Läsnäolo</p>
+                    <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">{attendancePercentage}%</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <p className="text-xs text-purple-700 dark:text-purple-400 font-medium">Tehtäviä</p>
+                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-300 mt-1">{homeworkList.length}</p>
+                  </div>
+                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <p className="text-xs text-orange-700 dark:text-orange-400 font-medium">Viestejä</p>
+                    <p className="text-2xl font-bold text-orange-900 dark:text-orange-300 mt-1">{unreadMessages}</p>
+                  </div>
+                </div>
+                <div className="pt-3 border-t dark:border-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Nykyinen jakso: <span className="font-semibold text-gray-900 dark:text-gray-100">Jakso 4</span>
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Lukuvuosi: <span className="font-semibold text-gray-900 dark:text-gray-100">2025-2026</span>
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'performance':
+        return (
+          <Card key={widgetId} className="border-2 border-teal-200 dark:border-teal-800 group relative">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Keskiarvo</span>
+                    <span className="text-lg font-bold text-teal-600 dark:text-teal-400">8.5</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="bg-teal-600 dark:bg-teal-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tehtävät palautettu</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">92%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="bg-green-600 dark:bg-green-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Aktiivisuus</span>
+                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">88%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full" style={{ width: '88%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'announcements':
+        return (
+          <Card key={widgetId} className="border-2 border-amber-200 dark:border-amber-800 group relative">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {[
+                  { title: 'Kevätjuhla 15.5.', type: 'event', icon: <Calendar className="w-4 h-4" />, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+                  { title: 'Uusi ruokalista julkaistu', type: 'info', icon: <Bell className="w-4 h-4" />, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+                  { title: 'Kirjasto suljettu 20.4.', type: 'warning', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+                ].map((announcement, idx) => (
+                  <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg ${announcement.color}`}>
+                    {announcement.icon}
+                    <p className="text-sm font-medium flex-1">{announcement.title}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'quickActions':
+        return (
+          <Card key={widgetId} className="border-2 border-pink-200 dark:border-pink-800 group relative">
+            {widgetHeader}
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-auto py-4 flex-col gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  onClick={() => window.location.href = '/wilma?tab=viestit'}
+                >
+                  <Mail className="w-5 h-5" />
+                  <span className="text-xs">Uusi viesti</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-auto py-4 flex-col gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  onClick={() => window.location.href = '/wilma?tab=tehtävät'}
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="text-xs">Tehtävät</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-auto py-4 flex-col gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  onClick={() => window.location.href = '/wilma?tab=arvosanat'}
+                >
+                  <Award className="w-5 h-5" />
+                  <span className="text-xs">Arvosanat</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-auto py-4 flex-col gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  onClick={() => window.location.href = '/wilma?tab=tuntimerkinnät'}
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="text-xs">Läsnäolo</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
       default:
         return null;
     }
