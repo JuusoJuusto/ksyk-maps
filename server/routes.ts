@@ -1554,8 +1554,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const students = await storage.getWilmaUsers('student');
+      console.log(`📊 Found ${students.length} students`);
+      
       let sent = 0;
       let failed = 0;
+      const errors: string[] = [];
       
       for (const student of students) {
         if (student.email && student.password && student.isTemporaryPassword) {
@@ -1565,27 +1568,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           try {
             const emailService = await import('./emailService');
-            await emailService.sendWilmaStudentWelcomeEmail(
+            const result = await emailService.sendWilmaStudentWelcomeEmail(
               student.email,
               `${student.firstName} ${student.lastName}`,
               student.password,
               student.studentId,
               parentEmails.length > 0 ? parentEmails : undefined
             );
-            sent++;
-            console.log(`✅ Email sent to ${student.email}`);
-          } catch (emailError) {
+            
+            if (result.success) {
+              sent++;
+              console.log(`✅ Email sent to ${student.email}`);
+            } else {
+              failed++;
+              errors.push(`${student.email}: ${result.error || 'Unknown error'}`);
+              console.error(`❌ Failed to send email to ${student.email}:`, result.error);
+            }
+          } catch (emailError: any) {
             console.error(`❌ Failed to send email to ${student.email}:`, emailError);
             failed++;
+            errors.push(`${student.email}: ${emailError.message || 'Unknown error'}`);
           }
+        } else {
+          console.log(`⏭️ Skipping ${student.email} - missing email, password, or not temporary`);
         }
       }
       
       console.log(`📊 Bulk email complete: ${sent} sent, ${failed} failed`);
-      res.json({ success: true, sent, failed });
-    } catch (error) {
+      res.json({ success: true, sent, failed, errors: errors.slice(0, 10) }); // Return first 10 errors
+    } catch (error: any) {
+      console.error('❌ Bulk email error:', error);
       await logError(error, 'POST /api/wilma/send-bulk-emails');
-      res.status(500).json({ message: "Failed to send bulk emails" });
+      res.status(500).json({ 
+        message: "Failed to send bulk emails",
+        error: error.message || 'Unknown error'
+      });
     }
   });
 
@@ -4106,6 +4123,47 @@ https://ksykmaps.vercel.app
     } catch (error) {
       console.error('Analytics summary error:', error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // ============================================
+  // WILMA SETTINGS ENDPOINTS
+  // ============================================
+  
+  // Get settings
+  app.get('/api/wilma/settings', async (req, res) => {
+    try {
+      const settingsRef = db.collection('wilma_settings').doc('app_settings');
+      const doc = await settingsRef.get();
+      
+      if (!doc.exists) {
+        return res.json({});
+      }
+      
+      res.json(doc.data());
+    } catch (error) {
+      await logError(error, 'GET /api/wilma/settings');
+      res.status(500).json({ message: "Asetusten lataus epäonnistui" });
+    }
+  });
+
+  // Save settings
+  app.post('/api/wilma/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Vain ylläpitäjät voivat muokata asetuksia" });
+      }
+
+      const settingsRef = db.collection('wilma_settings').doc('app_settings');
+      await settingsRef.set(req.body, { merge: true });
+      
+      console.log('✅ Settings saved to Firestore');
+      
+      res.json({ success: true, message: "Asetukset tallennettu" });
+    } catch (error) {
+      await logError(error, 'POST /api/wilma/settings');
+      res.status(500).json({ message: "Asetusten tallennus epäonnistui" });
     }
   });
 

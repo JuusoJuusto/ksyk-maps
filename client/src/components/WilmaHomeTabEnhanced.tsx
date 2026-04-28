@@ -615,21 +615,21 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'recentActivity':
         return (
-          <Card key={widgetId} className="border-2 border-blue-200 group relative">
+          <Card key={widgetId} className="border-2 border-blue-200 dark:border-blue-800 group relative">
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
                 {[
-                  { icon: <Mail className="w-4 h-4 text-blue-600" />, text: 'New message from teacher', time: '5 min ago' },
-                  { icon: <Award className="w-4 h-4 text-green-600" />, text: 'Grade updated: Math 9/10', time: '1 hour ago' },
-                  { icon: <FileText className="w-4 h-4 text-orange-600" />, text: 'Homework submitted', time: '2 hours ago' },
-                  { icon: <Bell className="w-4 h-4 text-red-600" />, text: 'Attendance marked', time: '3 hours ago' },
+                  { icon: <Mail className="w-4 h-4 text-blue-600" />, text: 'Uusi viesti opettajalta', time: '5 min sitten' },
+                  { icon: <Award className="w-4 h-4 text-green-600" />, text: 'Arvosana päivitetty: Matematiikka 9/10', time: '1 tunti sitten' },
+                  { icon: <FileText className="w-4 h-4 text-orange-600" />, text: 'Kotitehtävä palautettu', time: '2 tuntia sitten' },
+                  { icon: <Bell className="w-4 h-4 text-red-600" />, text: 'Tuntimerkintä merkitty', time: '3 tuntia sitten' },
                 ].map((activity, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-2 md:p-3 bg-gray-50 rounded-lg">
+                  <div key={idx} className="flex items-start gap-3 p-2 md:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className="mt-0.5">{activity.icon}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.text}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{activity.time}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{activity.text}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{activity.time}</p>
                     </div>
                   </div>
                 ))}
@@ -640,21 +640,21 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'upcomingEvents':
         return (
-          <Card key={widgetId} className="border-2 border-green-200 group relative">
+          <Card key={widgetId} className="border-2 border-green-200 dark:border-green-800 group relative">
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
                 {[
-                  { title: 'Math Exam', date: 'Tomorrow, 10:00', color: 'bg-red-100 text-red-700' },
-                  { title: 'Parent Meeting', date: 'Friday, 15:00', color: 'bg-blue-100 text-blue-700' },
-                  { title: 'Sports Day', date: 'Next Monday', color: 'bg-green-100 text-green-700' },
-                  { title: 'Science Fair', date: 'May 15', color: 'bg-orange-100 text-orange-700' },
+                  { title: 'Matematiikan koe', date: 'Huomenna, 10:00', color: 'bg-red-100 text-red-700' },
+                  { title: 'Vanhempainilta', date: 'Perjantai, 15:00', color: 'bg-blue-100 text-blue-700' },
+                  { title: 'Liikuntapäivä', date: 'Ensi maanantai', color: 'bg-green-100 text-green-700' },
+                  { title: 'Tiedemessut', date: '15. toukokuuta', color: 'bg-orange-100 text-orange-700' },
                 ].map((event, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-2 md:p-3 bg-gray-50 rounded-lg">
+                  <div key={idx} className="flex items-center gap-3 p-2 md:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className={`w-2 h-2 rounded-full ${event.color.split(' ')[0].replace('100', '500')}`}></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                      <p className="text-xs text-gray-600">{event.date}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{event.title}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{event.date}</p>
                     </div>
                   </div>
                 ))}
@@ -890,21 +890,21 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'quotes':
         const quotes = [
-          "Education is the most powerful weapon which you can use to change the world. - Nelson Mandela",
-          "The beautiful thing about learning is that no one can take it away from you. - B.B. King",
-          "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
-          "The only way to do great work is to love what you do. - Steve Jobs",
-          "Believe you can and you're halfway there. - Theodore Roosevelt"
+          "Koulutus on tehokkain ase, jolla voit muuttaa maailmaa. - Nelson Mandela",
+          "Oppimisen kauneus on siinä, että kukaan ei voi ottaa sitä sinulta pois. - B.B. King",
+          "Menestys ei ole lopullista, epäonnistuminen ei ole kohtalokasta: rohkeus jatkaa on se mikä merkitsee. - Winston Churchill",
+          "Ainoa tapa tehdä hienoa työtä on rakastaa sitä mitä teet. - Steve Jobs",
+          "Usko että pystyt ja olet jo puolivälissä. - Theodore Roosevelt"
         ];
         const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
         
         return (
-          <Card key={widgetId} className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50 group relative">
+          <Card key={widgetId} className="border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-gray-800 dark:to-gray-900 group relative">
             {widgetHeader}
             <CardContent className="p-4 md:p-6">
               <div className="text-center">
-                <Quote className="w-12 h-12 mx-auto mb-3 text-yellow-600" />
-                <p className="text-sm italic text-gray-700 leading-relaxed">"{randomQuote}"</p>
+                <Quote className="w-12 h-12 mx-auto mb-3 text-yellow-600 dark:text-yellow-500" />
+                <p className="text-sm italic text-gray-700 dark:text-gray-300 leading-relaxed">"{randomQuote}"</p>
               </div>
             </CardContent>
           </Card>
@@ -912,18 +912,18 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'homework':
         return (
-          <Card key={widgetId} className="border-2 border-orange-200 group relative">
+          <Card key={widgetId} className="border-2 border-orange-200 dark:border-orange-800 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="space-y-2">
                 {homeworkList.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No homework assigned</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Ei kotitehtäviä</p>
                 ) : (
                   homeworkList.slice(0, 5).map((hw: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-semibold text-gray-900">{hw.title || 'Homework'}</p>
-                      <p className="text-xs text-gray-600 mt-1">{hw.subject || 'General'}</p>
-                      <p className="text-xs text-orange-600 mt-1">Due: {hw.dueDate ? new Date(hw.dueDate).toLocaleDateString('fi-FI') : 'No date'}</p>
+                    <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{hw.title || 'Kotitehtävä'}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{hw.subject || 'Yleinen'}</p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Palautus: {hw.dueDate ? new Date(hw.dueDate).toLocaleDateString('fi-FI') : 'Ei päivämäärää'}</p>
                     </div>
                   ))
                 )}
@@ -934,24 +934,24 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'attendance':
         return (
-          <Card key={widgetId} className="border-2 border-green-200 group relative">
+          <Card key={widgetId} className="border-2 border-green-200 dark:border-green-800 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="text-center">
-                <div className="text-6xl font-bold text-green-600 mb-2">{attendancePercentage}%</div>
-                <p className="text-sm text-gray-600">Overall Attendance</p>
+                <div className="text-6xl font-bold text-green-600 dark:text-green-500 mb-2">{attendancePercentage}%</div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Kokonaisläsnäolo</p>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                  <div className="p-2 bg-green-50 rounded">
-                    <p className="font-semibold text-green-700">Present</p>
-                    <p className="text-lg font-bold text-green-600">85</p>
+                  <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <p className="font-semibold text-green-700 dark:text-green-400">Läsnä</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-500">85</p>
                   </div>
-                  <div className="p-2 bg-red-50 rounded">
-                    <p className="font-semibold text-red-700">Absent</p>
-                    <p className="text-lg font-bold text-red-600">5</p>
+                  <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                    <p className="font-semibold text-red-700 dark:text-red-400">Poissa</p>
+                    <p className="text-lg font-bold text-red-600 dark:text-red-500">5</p>
                   </div>
-                  <div className="p-2 bg-yellow-50 rounded">
-                    <p className="font-semibold text-yellow-700">Late</p>
-                    <p className="text-lg font-bold text-yellow-600">3</p>
+                  <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                    <p className="font-semibold text-yellow-700 dark:text-yellow-400">Myöhässä</p>
+                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-500">3</p>
                   </div>
                 </div>
               </div>
@@ -961,18 +961,18 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'messages':
         return (
-          <Card key={widgetId} className="border-2 border-blue-200 group relative">
+          <Card key={widgetId} className="border-2 border-blue-200 dark:border-blue-800 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="space-y-2">
                 {recentMessages.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No recent messages</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Ei viestejä</p>
                 ) : (
                   recentMessages.map((msg: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                      <p className="text-sm font-semibold text-gray-900">{msg.subject || 'No Subject'}</p>
-                      <p className="text-xs text-gray-600 mt-1">From: {msg.senderName || 'Unknown'}</p>
-                      <p className="text-xs text-gray-500 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleDateString('fi-FI') : ''}</p>
+                    <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{msg.subject || 'Ei aihetta'}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Lähettäjä: {msg.senderName || 'Tuntematon'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleDateString('fi-FI') : ''}</p>
                     </div>
                   ))
                 )}
@@ -983,23 +983,23 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'quickLinks':
         return (
-          <Card key={widgetId} className="border-2 border-indigo-200 group relative">
+          <Card key={widgetId} className="border-2 border-indigo-200 dark:border-indigo-800 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="justify-start h-auto py-3"
+                  className="justify-start h-auto py-3 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={() => window.open('https://ksyk.fi', '_blank')}
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
-                  <span className="text-xs">School Site</span>
+                  <span className="text-xs">Koulun sivusto</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="justify-start h-auto py-3"
+                  className="justify-start h-auto py-3 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={() => window.location.href = '/wilma'}
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
@@ -1008,20 +1008,20 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="justify-start h-auto py-3"
+                  className="justify-start h-auto py-3 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={() => window.location.href = '/lunch'}
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
-                  <span className="text-xs">Lunch Menu</span>
+                  <span className="text-xs">Lounaslista</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="justify-start h-auto py-3"
+                  className="justify-start h-auto py-3 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={() => window.location.href = '/'}
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
-                  <span className="text-xs">Campus Map</span>
+                  <span className="text-xs">Kampuskartta</span>
                 </Button>
               </div>
             </CardContent>

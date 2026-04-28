@@ -12,14 +12,16 @@ import {
   AlertCircle, Users, BookOpen, GraduationCap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function WilmaAdminSettings() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // App Settings State
-  const [settings, setSettings] = useState({
+  // Default settings
+  const defaultSettings = {
     // School Information
     schoolName: "Kulosaaren yhteiskoulu",
     schoolCode: "KSYK",
@@ -100,34 +102,75 @@ export default function WilmaAdminSettings() {
     allowRegistration: false,
     requireEmailVerification: true,
     logRetentionDays: "90",
+  };
+
+  const [settings, setSettings] = useState(defaultSettings);
+
+  // Load settings from API
+  const { data: loadedSettings, isLoading } = useQuery({
+    queryKey: ['wilma-settings'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/wilma/settings');
+        if (!response.ok) {
+          // Return default settings if API fails
+          return defaultSettings;
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        return defaultSettings;
+      }
+    },
+    retry: false
   });
 
+  // Update local state when settings are loaded
   useEffect(() => {
-    // Load saved settings
-    const savedSettings = localStorage.getItem('wilma_app_settings');
-    if (savedSettings) {
-      setSettings({ ...settings, ...JSON.parse(savedSettings) });
+    if (loadedSettings) {
+      setSettings({ ...defaultSettings, ...loadedSettings });
     }
-  }, []);
+  }, [loadedSettings]);
+
+  // Save settings mutation
+  const saveSettings = useMutation({
+    mutationFn: async (settingsData: typeof settings) => {
+      const response = await fetch('/api/wilma/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsData),
+      });
+      if (!response.ok) throw new Error('Tallennus epäonnistui');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wilma-settings'] });
+      setSaved(true);
+      toast({
+        title: "Asetukset tallennettu",
+        description: "Järjestelmän asetukset on päivitetty onnistuneesti tietokantaan.",
+      });
+      setTimeout(() => setSaved(false), 3000);
+    },
+    onError: (error) => {
+      toast({
+        title: "Virhe",
+        description: "Asetusten tallennus epäonnistui. Yritä uudelleen.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Save to localStorage (in production, save to database)
+    // Also save to localStorage as backup
     localStorage.setItem('wilma_app_settings', JSON.stringify(settings));
     
+    // Save to database
+    await saveSettings.mutateAsync(settings);
+    
     setIsSaving(false);
-    setSaved(true);
-    
-    toast({
-      title: "Asetukset tallennettu",
-      description: "Järjestelmän asetukset on päivitetty onnistuneesti.",
-    });
-    
-    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
