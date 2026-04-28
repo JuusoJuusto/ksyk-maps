@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Calendar, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { FileText, Calendar, CheckCircle, Clock, AlertTriangle, Upload, Shield } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { analyzePlagiarism, getScoreColor, getScoreBgColor, getConfidenceColor } from "@/lib/plagiarismChecker";
 
 interface Homework {
   id: string;
@@ -16,17 +21,109 @@ interface Homework {
 }
 
 export default function WilmaHomework() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending' | 'submitted' | 'graded' | 'overdue'>('all');
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
+  const [submissionText, setSubmissionText] = useState("");
+  const [plagiarismResultsOpen, setPlagiarismResultsOpen] = useState(false);
+  const [plagiarismResults, setPlagiarismResults] = useState<any>(null);
 
-  // Mock data
-  const homework: Homework[] = [
-    { id: "1", title: "Matematiikan kotitehtävät s. 45-47", subject: "Matematiikka", description: "Ratkaise tehtävät 1-15", dueDate: "25.04.2026", status: "pending", teacher: "M. Virtanen", priority: "high" },
-    { id: "2", title: "Englannin essee", subject: "Englanti", description: "Kirjoita 300 sanan essee aiheesta 'My Future'", dueDate: "28.04.2026", status: "pending", teacher: "A. Korhonen", priority: "medium" },
-    { id: "3", title: "Fysiikan laboratorioraportti", subject: "Fysiikka", description: "Kirjoita raportti viime viikon kokeesta", dueDate: "23.04.2026", status: "overdue", teacher: "P. Nieminen", priority: "high" },
-    { id: "4", title: "Historian tenttiin valmistautuminen", subject: "Historia", description: "Lue luvut 5-7 ja tee muistiinpanot", dueDate: "30.04.2026", status: "pending", teacher: "L. Mäkinen", priority: "medium" },
-    { id: "5", title: "Kemian tehtävät", subject: "Kemia", description: "Tehtävät 20-25 työkirjasta", dueDate: "20.04.2026", status: "submitted", teacher: "S. Lahtinen", priority: "low" },
-    { id: "6", title: "Ruotsin sanakoe", subject: "Ruotsi", description: "Opettele sanat kappaleesta 8", dueDate: "18.04.2026", status: "graded", grade: "9", teacher: "K. Andersson", priority: "low" },
-  ];
+  // Fetch homework from API
+  const { data: homework = [], isLoading } = useQuery({
+    queryKey: ['wilma-homework'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/wilma/homework');
+        if (!response.ok) {
+          // Return mock data if API fails
+          return [
+            { id: "1", title: "Matematiikan kotitehtävät s. 45-47", subject: "Matematiikka", description: "Ratkaise tehtävät 1-15", dueDate: "25.04.2026", status: "pending", teacher: "M. Virtanen", priority: "high" },
+            { id: "2", title: "Englannin essee", subject: "Englanti", description: "Kirjoita 300 sanan essee aiheesta 'My Future'", dueDate: "28.04.2026", status: "pending", teacher: "A. Korhonen", priority: "medium" },
+            { id: "3", title: "Fysiikan laboratorioraportti", subject: "Fysiikka", description: "Kirjoita raportti viime viikon kokeesta", dueDate: "23.04.2026", status: "overdue", teacher: "P. Nieminen", priority: "high" },
+            { id: "4", title: "Historian tenttiin valmistautuminen", subject: "Historia", description: "Lue luvut 5-7 ja tee muistiinpanot", dueDate: "30.04.2026", status: "pending", teacher: "L. Mäkinen", priority: "medium" },
+            { id: "5", title: "Kemian tehtävät", subject: "Kemia", description: "Tehtävät 20-25 työkirjasta", dueDate: "20.04.2026", status: "submitted", teacher: "S. Lahtinen", priority: "low" },
+            { id: "6", title: "Ruotsin sanakoe", subject: "Ruotsi", description: "Opettele sanat kappaleesta 8", dueDate: "18.04.2026", status: "graded", grade: "9", teacher: "K. Andersson", priority: "low" },
+          ];
+        }
+        return response.json();
+      } catch (error) {
+        // Return mock data on error
+        return [
+          { id: "1", title: "Matematiikan kotitehtävät s. 45-47", subject: "Matematiikka", description: "Ratkaise tehtävät 1-15", dueDate: "25.04.2026", status: "pending", teacher: "M. Virtanen", priority: "high" },
+          { id: "2", title: "Englannin essee", subject: "Englanti", description: "Kirjoita 300 sanan essee aiheesta 'My Future'", dueDate: "28.04.2026", status: "pending", teacher: "A. Korhonen", priority: "medium" },
+          { id: "3", title: "Fysiikan laboratorioraportti", subject: "Fysiikka", description: "Kirjoita raportti viime viikon kokeesta", dueDate: "23.04.2026", status: "overdue", teacher: "P. Nieminen", priority: "high" },
+          { id: "4", title: "Historian tenttiin valmistautuminen", subject: "Historia", description: "Lue luvut 5-7 ja tee muistiinpanot", dueDate: "30.04.2026", status: "pending", teacher: "L. Mäkinen", priority: "medium" },
+          { id: "5", title: "Kemian tehtävät", subject: "Kemia", description: "Tehtävät 20-25 työkirjasta", dueDate: "20.04.2026", status: "submitted", teacher: "S. Lahtinen", priority: "low" },
+          { id: "6", title: "Ruotsin sanakoe", subject: "Ruotsi", description: "Opettele sanat kappaleesta 8", dueDate: "18.04.2026", status: "graded", grade: "9", teacher: "K. Andersson", priority: "low" },
+        ];
+      }
+    },
+    retry: false
+  });
+
+  // Submit homework mutation
+  const submitHomework = useMutation({
+    mutationFn: async ({ homeworkId, submission }: { homeworkId: string; submission: string }) => {
+      const response = await fetch(`/api/wilma/homework/${homeworkId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission }),
+      });
+      if (!response.ok) throw new Error('Palautus epäonnistui');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wilma-homework'] });
+      toast({
+        title: "Palautettu!",
+        description: "Tehtävä on palautettu onnistuneesti.",
+      });
+      setSubmitDialogOpen(false);
+      setSubmissionText("");
+      setSelectedHomework(null);
+    },
+    onError: () => {
+      toast({
+        title: "Virhe",
+        description: "Tehtävän palautus epäonnistui. Yritä uudelleen.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!selectedHomework || !submissionText.trim()) {
+      toast({
+        title: "Virhe",
+        description: "Kirjoita vastaus ennen palautusta.",
+        variant: "destructive",
+      });
+      return;
+    }
+    submitHomework.mutate({ homeworkId: selectedHomework.id, submission: submissionText });
+  };
+
+  const handleCheckPlagiarism = () => {
+    if (!submissionText.trim()) {
+      toast({
+        title: "Virhe",
+        description: "Kirjoita teksti ennen plagiointitarkistusta.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const results = analyzePlagiarism(submissionText);
+    setPlagiarismResults(results);
+    setPlagiarismResultsOpen(true);
+  };
+
+  const openSubmitDialog = (hw: Homework) => {
+    setSelectedHomework(hw);
+    setSubmitDialogOpen(true);
+    setSubmissionText("");
+  };
 
   const stats = {
     pending: homework.filter(h => h.status === 'pending').length,
@@ -219,7 +316,12 @@ export default function WilmaHomework() {
                     </div>
                     <div className="flex gap-2 mt-3">
                       {hw.status === 'pending' && (
-                        <Button size="sm" className="bg-[#003d82] hover:bg-[#002d5f]">
+                        <Button 
+                          size="sm" 
+                          className="bg-[#003d82] hover:bg-[#002d5f]"
+                          onClick={() => openSubmitDialog(hw)}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
                           Palauta tehtävä
                         </Button>
                       )}
@@ -234,6 +336,125 @@ export default function WilmaHomework() {
           </Card>
         ))}
       </div>
+
+      {/* Submit Dialog */}
+      <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Palauta tehtävä</DialogTitle>
+            <DialogDescription>
+              {selectedHomework?.title} - {selectedHomework?.subject}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Vastauksesi
+              </label>
+              <Textarea
+                value={submissionText}
+                onChange={(e) => setSubmissionText(e.target.value)}
+                placeholder="Kirjoita vastauksesi tähän..."
+                className="min-h-[200px]"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Merkkejä: {submissionText.length}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <p className="text-sm text-blue-900">
+                Voit tarkistaa tekstisi plagiointitarkistimella ennen palautusta
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCheckPlagiarism}
+              disabled={!submissionText.trim()}
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Tarkista plagiointi
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!submissionText.trim() || submitHomework.isPending}
+              className="bg-[#003d82] hover:bg-[#002d5f]"
+            >
+              {submitHomework.isPending ? "Lähetetään..." : "Palauta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Plagiarism Results Dialog */}
+      <Dialog open={plagiarismResultsOpen} onOpenChange={setPlagiarismResultsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Plagiointitarkistuksen tulokset</DialogTitle>
+            <DialogDescription>
+              Analyysi perustuu tekstin rakenteeseen ja tyyliin
+            </DialogDescription>
+          </DialogHeader>
+          {plagiarismResults && (
+            <div className="space-y-4">
+              {/* Score Display */}
+              <div className="text-center p-6 bg-gray-50 rounded-lg">
+                <div className={`text-6xl font-bold mb-2 ${getScoreColor(plagiarismResults.score)}`}>
+                  {plagiarismResults.score}
+                </div>
+                <p className="text-sm text-gray-600">Pisteet (0-100)</p>
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getScoreBgColor(plagiarismResults.score)}`}>
+                  Luotettavuus: {plagiarismResults.confidence === 'high' ? 'Korkea' : plagiarismResults.confidence === 'medium' ? 'Keskitaso' : 'Matala'}
+                </div>
+              </div>
+
+              {/* Flags */}
+              {plagiarismResults.flags.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-900 mb-2">Havaitut ongelmat:</h4>
+                  <div className="space-y-2">
+                    {plagiarismResults.flags.map((flag: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                        <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-yellow-900">{flag}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {plagiarismResults.recommendations.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-900 mb-2">Suositukset:</h4>
+                  <div className="space-y-2">
+                    {plagiarismResults.recommendations.map((rec: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-blue-900">{rec}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-xs text-gray-600">
+                  <strong>Huom:</strong> Tämä on automaattinen analyysi, joka perustuu tekstin rakenteeseen. 
+                  Se ei korvaa opettajan arviointia. Käytä tuloksia ohjeena tekstisi parantamiseen.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setPlagiarismResultsOpen(false)}>
+              Sulje
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
