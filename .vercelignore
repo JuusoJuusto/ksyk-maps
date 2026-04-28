@@ -11,6 +11,7 @@ dist
 *.md
 !README.md
 !README-FI.md
+!SYSTEM-GUIDE.md
 
 # Sensitive files
 serviceAccountKey.json
