@@ -1873,6 +1873,31 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // GET /wilma/schedule - Get schedule by userId (query param)
+      if (apiPath === '/wilma/schedule' && req.method === 'GET') {
+        console.log('🔵 GET /api/wilma/schedule called');
+        try {
+          const userId = req.query.userId as string;
+          if (!userId) {
+            return res.status(400).json({ message: "userId is required" });
+          }
+          
+          // Return mock schedule data for now
+          const mockSchedule = [
+            { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
+            { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
+            { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
+            { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
+            { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
+          ];
+          
+          return res.status(200).json(mockSchedule);
+        } catch (error: any) {
+          console.error('❌ Error getting schedule:', error);
+          return res.status(500).json({ message: "Failed to fetch schedule" });
+        }
+      }
+
       // GET /wilma/schedules - Get all schedules
       if (apiPath === '/wilma/schedules' || apiPath.startsWith('/wilma/schedules?')) {
         if (req.method === 'GET') {

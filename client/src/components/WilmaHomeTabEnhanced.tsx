@@ -12,7 +12,8 @@ import {
   MessageSquare, FileText, BarChart3, Users, ExternalLink,
   Settings, Eye, EyeOff, RotateCcw, Edit2, Save, X, Sparkles,
   TrendingUp, Bell, Link as LinkIcon, Activity, GripVertical,
-  Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2, Maximize
+  Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2, Maximize,
+  AlertCircle
 } from "lucide-react";
 
 interface WilmaHomeTabProps {
