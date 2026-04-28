@@ -138,14 +138,14 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     },
     onSuccess: () => {
       toast({
-        title: "Saved!",
-        description: "Your dashboard preferences have been saved.",
+        title: "Tallennettu!",
+        description: "Kojelaudan asetukset on tallennettu.",
       });
     },
     onError: () => {
       toast({
-        title: "Saved Locally",
-        description: "Changes saved to your device only.",
+        title: "Tallennettu paikallisesti",
+        description: "Muutokset tallennettu vain laitteellesi.",
       });
     },
   });
@@ -232,8 +232,8 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     setWidgets(allWidgets);
     
     toast({
-      title: "Reordered!",
-      description: "Widget order updated. Don't forget to save!",
+      title: "Järjestetty uudelleen!",
+      description: "Widgettien järjestys päivitetty. Muista tallentaa!",
     });
   };
 
@@ -254,8 +254,8 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     setShowGreeting(true);
     setThemeMode('system');
     toast({
-      title: "Reset Complete",
-      description: "Dashboard has been reset to default settings.",
+      title: "Palautus valmis",
+      description: "Kojelauta on palautettu oletusasetuksiin.",
     });
   };
 
@@ -492,7 +492,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           <button
             onClick={() => cycleWidgetSize(widgetId)}
             className="absolute bottom-1 right-1 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-all opacity-0 group-hover:opacity-100 z-10"
-            title={`Current: ${widget.size || 'medium'}. Click to resize`}
+            title={`Nykyinen: ${widget.size === 'small' ? 'Pieni' : widget.size === 'large' ? 'Suuri' : 'Keskikokoinen'}. Klikkaa muuttaaksesi kokoa`}
           >
             <Maximize className="w-3 h-3" />
           </button>
@@ -984,7 +984,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 className="flex items-center gap-2"
               >
                 <Settings className="w-4 h-4" />
-                {customizationMode ? 'Done' : 'Customize'}
+                {customizationMode ? 'Valmis' : 'Muokkaa'}
               </Button>
             </div>
           </CardContent>
@@ -993,18 +993,18 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       {/* Customization Panel */}
       {customizationMode && (
-        <Card className="border-2 border-orange-300 bg-orange-50">
+        <Card className="border-2 border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-700">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-900">
+            <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100">
               <Settings className="w-5 h-5" />
-              Dashboard Customization
+              Kojelaudan muokkaus
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Theme Mode Selector */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Theme Mode
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                Teeman tila
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <Button
@@ -1014,7 +1014,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   className="flex flex-col items-center py-3 h-auto"
                 >
                   <Sun className="w-5 h-5 mb-1" />
-                  <span className="text-xs">Light</span>
+                  <span className="text-xs">Vaalea</span>
                 </Button>
                 <Button
                   size="sm"
@@ -1023,7 +1023,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   className="flex flex-col items-center py-3 h-auto"
                 >
                   <Moon className="w-5 h-5 mb-1" />
-                  <span className="text-xs">Dark</span>
+                  <span className="text-xs">Tumma</span>
                 </Button>
                 <Button
                   size="sm"
@@ -1032,30 +1032,30 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   className="flex flex-col items-center py-3 h-auto"
                 >
                   <Monitor className="w-5 h-5 mb-1" />
-                  <span className="text-xs">System</span>
+                  <span className="text-xs">Järjestelmä</span>
                 </Button>
               </div>
-              <p className="text-xs text-gray-600 mt-2">Choose your preferred theme</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Valitse haluamasi teema</p>
             </div>
 
             {/* Custom Greeting */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Custom Greeting
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                Mukautettu tervehdys
               </label>
               <Input
                 value={customGreeting}
                 onChange={(e) => setCustomGreeting(e.target.value)}
-                placeholder="Enter your custom greeting..."
-                className="mb-2"
+                placeholder="Kirjoita oma tervehdyksesi..."
+                className="mb-2 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
               />
-              <p className="text-xs text-gray-600">Leave empty for automatic time-based greeting</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Jätä tyhjäksi automaattista aikaan perustuvaa tervehdystä varten</p>
             </div>
 
             {/* Widget Visibility */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Visible Widgets
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                Näkyvät widgetit
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {widgets.map((widget) => (
@@ -1075,13 +1075,13 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
             {/* Widget Sizes */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Widget Sizes (Visible Widgets Only)
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                Widgettien koot (vain näkyvät widgetit)
               </label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {widgets.filter(w => w.visible).map((widget) => (
-                  <div key={widget.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span className="text-xs font-medium truncate flex-1">{widget.customTitle || widget.title}</span>
+                  <div key={widget.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <span className="text-xs font-medium truncate flex-1 dark:text-gray-200">{widget.customTitle || widget.title}</span>
                     <div className="flex gap-1 ml-2">
                       <Button
                         size="sm"
@@ -1097,7 +1097,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                         onClick={() => updateWidgetSize(widget.id, 'medium')}
                         className="h-7 px-2"
                       >
-                        <span className="text-xs">M</span>
+                        <span className="text-xs">K</span>
                       </Button>
                       <Button
                         size="sm"
@@ -1111,7 +1111,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-600 mt-2">Small (1 col), Medium (2 cols), Large (3 cols)</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Pieni (1 sar), Keskikokoinen (2 sar), Suuri (3 sar)</p>
             </div>
 
             {/* Action Buttons */}
@@ -1121,7 +1121,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 className="flex-1 bg-[#003d82] hover:bg-[#0052a3]"
               >
                 <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                Tallenna muutokset
               </Button>
               <Button
                 onClick={resetToDefaults}
@@ -1129,7 +1129,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 className="flex-1"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Reset to Default
+                Palauta oletukset
               </Button>
             </div>
           </CardContent>
