@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Clock, AlertCircle, Calendar, TrendingUp, Download, Filter, Search, Sparkles, Users, BarChart } from "lucide-react";
-import { generateStructuredOutput } from "@/lib/geminiAI";
 import { useToast } from "@/hooks/use-toast";
 
 interface AttendanceRecord {
@@ -97,66 +96,118 @@ export default function WilmaAttendanceTracker() {
   const analyzeWithAI = async () => {
     setAiAnalyzing(true);
     try {
-      const prompt = `Analyze this school attendance data and provide insights:
+      // Rule-based analysis instead of AI
+      const attendanceRate = parseFloat(stats.percentage);
+      
+      // Calculate health score based on attendance rate
+      let healthScore = 0;
+      let healthStatus = "";
+      if (attendanceRate >= 95) {
+        healthScore = 10;
+        healthStatus = "Erinomainen läsnäolo";
+      } else if (attendanceRate >= 90) {
+        healthScore = 8;
+        healthStatus = "Hyvä läsnäolo";
+      } else if (attendanceRate >= 85) {
+        healthScore = 6;
+        healthStatus = "Tyydyttävä läsnäolo";
+      } else if (attendanceRate >= 80) {
+        healthScore = 4;
+        healthStatus = "Heikko läsnäolo";
+      } else {
+        healthScore = 2;
+        healthStatus = "Huolestuttava läsnäolo";
+      }
 
-Total Students: ${stats.totalStudents}
-Present: ${stats.present}
-Absent: ${stats.absent}
-Late: ${stats.late}
-Excused: ${stats.excused}
-Attendance Rate: ${stats.percentage}%
+      // Analyze patterns
+      const patterns: string[] = [];
+      const lateRate = (stats.late / attendance.length) * 100;
+      const absentRate = (stats.absent / attendance.length) * 100;
+      
+      if (lateRate > 10) {
+        patterns.push(`Korkea myöhästymisprosentti: ${lateRate.toFixed(1)}%`);
+      }
+      if (absentRate > 5) {
+        patterns.push(`Poissaoloprosentti on ${absentRate.toFixed(1)}%`);
+      }
+      if (stats.excused > stats.absent / 2) {
+        patterns.push("Suurin osa poissaoloista on hyväksyttyjä");
+      }
 
-Recent patterns:
-${attendance.slice(0, 10).map(a => `${a.studentName} (${a.class}): ${a.status} on ${a.date}${a.reason ? ` - ${a.reason}` : ''}`).join('\n')}
-
-Provide:
-1. Overall attendance health assessment
-2. Patterns or concerns
-3. Recommendations for improvement
-4. Students who may need attention
-5. Positive observations
-
-Return as JSON.`;
-
-      const schema = {
-        type: "object",
-        properties: {
-          healthScore: { type: "number" },
-          healthStatus: { type: "string" },
-          patterns: {
-            type: "array",
-            items: { type: "string" }
-          },
-          concerns: {
-            type: "array",
-            items: { type: "string" }
-          },
-          recommendations: {
-            type: "array",
-            items: { type: "string" }
-          },
-          studentsNeedingAttention: {
-            type: "array",
-            items: { type: "string" }
-          },
-          positives: {
-            type: "array",
-            items: { type: "string" }
-          }
+      // Identify concerns
+      const concerns: string[] = [];
+      if (attendanceRate < 90) {
+        concerns.push("Läsnäoloprosentti alle tavoitteen (90%)");
+      }
+      if (stats.late > 5) {
+        concerns.push(`${stats.late} myöhästymistä havaittu`);
+      }
+      
+      // Find students with multiple absences
+      const studentAbsences = new Map<string, number>();
+      attendance.forEach(a => {
+        if (a.status === 'absent' || a.status === 'late') {
+          studentAbsences.set(a.studentName, (studentAbsences.get(a.studentName) || 0) + 1);
         }
+      });
+      
+      const studentsNeedingAttention: string[] = [];
+      studentAbsences.forEach((count, name) => {
+        if (count >= 2) {
+          studentsNeedingAttention.push(`${name} (${count} poissaoloa/myöhästymistä)`);
+        }
+      });
+
+      // Generate recommendations
+      const recommendations: string[] = [];
+      if (lateRate > 10) {
+        recommendations.push("Harkitse myöhästymisten syiden selvittämistä");
+      }
+      if (absentRate > 5) {
+        recommendations.push("Ota yhteyttä usein poissaolevien oppilaiden huoltajiin");
+      }
+      if (studentsNeedingAttention.length > 0) {
+        recommendations.push("Seuraa tarkasti usein poissaolevien oppilaiden tilannetta");
+      }
+      if (attendanceRate >= 90) {
+        recommendations.push("Jatka nykyistä läsnäolon seurantaa");
+      }
+
+      // Positive observations
+      const positives: string[] = [];
+      if (attendanceRate >= 95) {
+        positives.push("Erinomainen läsnäoloprosentti!");
+      }
+      if (stats.present > stats.absent * 10) {
+        positives.push("Valtaosa oppilaista on säännöllisesti paikalla");
+      }
+      if (stats.excused > stats.absent / 2) {
+        positives.push("Poissaolot ovat pääosin hyväksyttyjä ja perusteltuja");
+      }
+      if (lateRate < 5) {
+        positives.push("Myöhästymiset ovat harvinaisia");
+      }
+
+      const insights = {
+        healthScore,
+        healthStatus,
+        patterns,
+        concerns,
+        recommendations,
+        studentsNeedingAttention,
+        positives
       };
 
-      const insights = await generateStructuredOutput(prompt, schema);
       setAiInsights(insights);
       toast({
-        title: "AI-analyysi valmis!",
+        title: "Analyysi valmis!",
         description: "Tuntimerkintöjen analyysi on valmis.",
       });
     } catch (error) {
-      console.error("AI analysis error:", error);
+      console.error("Analysis error:", error);
       toast({
         title: "Virhe",
-        description: "AI-analyysi epäonnistui. Yritä uudelleen.",
+        description: "Analyysi epäonnistui. Yritä uudelleen.",
         variant: "destructive",
       });
     } finally {
@@ -210,7 +261,7 @@ Return as JSON.`;
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                AI-analyysi
+                Analysoi
               </>
             )}
           </Button>
@@ -227,7 +278,7 @@ Return as JSON.`;
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-600" />
-              AI-analyysin tulokset
+              Analyysin tulokset
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

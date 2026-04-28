@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, CheckCircle, Clock, AlertCircle, HelpCircle } from "lucide-react";
+import { MessageSquare, Send, CheckCircle, Clock, AlertCircle, HelpCircle, Bot } from "lucide-react";
+import SupportBot from "./SupportBot";
 
 interface Ticket {
   id: string;
@@ -86,6 +87,9 @@ export default function WilmaSupportTab() {
 
   return (
     <div className="space-y-6">
+      {/* Support Bot */}
+      <SupportBot />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -97,6 +101,29 @@ export default function WilmaSupportTab() {
           Uusi tukipyyntö
         </Button>
       </div>
+
+      {/* Bot Info Card */}
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg text-gray-900 mb-1">Kokeile Apu-Pöllö tukibottia! 🦉</h3>
+              <p className="text-sm text-gray-700 mb-3">
+                Apu-Pöllö on ystävällinen tukibotti, joka voi auttaa sinua yleisimmissä kysymyksissä välittömästi. 
+                Klikkaa oikeassa alakulmassa olevaa sinistä nappia avataksesi keskustelun!
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="bg-white">Nopeat vastaukset</Badge>
+                <Badge variant="outline" className="bg-white">24/7 saatavilla</Badge>
+                <Badge variant="outline" className="bg-white">Suomenkielinen</Badge>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* New Ticket Form */}
       {showNewTicket && (
