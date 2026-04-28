@@ -12,7 +12,7 @@ import {
   MessageSquare, FileText, BarChart3, Users, ExternalLink,
   Settings, Eye, EyeOff, RotateCcw, Edit2, Save, X, Sparkles,
   TrendingUp, Bell, Link as LinkIcon, Activity, GripVertical,
-  Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2
+  Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2, Maximize
 } from "lucide-react";
 
 interface WilmaHomeTabProps {
@@ -75,6 +75,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('light');
+  const [resizingWidget, setResizingWidget] = useState<string | null>(null);
 
   // Load preferences from localStorage and backend on mount
   useEffect(() => {
@@ -185,6 +186,25 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
       w.id === widgetId ? { ...w, size } : w
     );
     setWidgets(updated);
+  };
+
+  // Cycle widget size (for corner resize button)
+  const cycleWidgetSize = (widgetId: string) => {
+    const widget = widgets.find(w => w.id === widgetId);
+    if (!widget) return;
+    
+    const sizeOrder: ('small' | 'medium' | 'large')[] = ['small', 'medium', 'large'];
+    const currentIndex = sizeOrder.indexOf(widget.size || 'medium');
+    const nextIndex = (currentIndex + 1) % sizeOrder.length;
+    const nextSize = sizeOrder[nextIndex];
+    
+    updateWidgetSize(widgetId, nextSize);
+    
+    toast({
+      title: "Widget resized!",
+      description: `Size changed to ${nextSize}`,
+      duration: 1500,
+    });
   };
 
   // Handle drag end
@@ -403,16 +423,16 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     const isEditing = editingWidget === widgetId;
 
     const widgetHeader = (
-      <CardHeader className="bg-white border-b border-[#dddddd] p-4 md:p-6">
-        <CardTitle className="flex items-center justify-between text-base md:text-lg text-gray-900">
+      <CardHeader className="bg-white dark:bg-gray-800 border-b border-[#dddddd] dark:border-gray-700 p-4 md:p-6 relative">
+        <CardTitle className="flex items-center justify-between text-base md:text-lg text-gray-900 dark:text-gray-100">
           <div className="flex items-center gap-2">
-            {customizationMode && <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />}
+            {customizationMode && <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-move" />}
             {isEditing ? (
               <div className="flex items-center gap-2">
                 <Input
                   value={tempTitle}
                   onChange={(e) => setTempTitle(e.target.value)}
-                  className="h-8 text-sm"
+                  className="h-8 text-sm dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   placeholder={widget.title}
                   autoFocus
                 />
@@ -465,6 +485,16 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
             </Button>
           )}
         </CardTitle>
+        {/* Corner Resize Button */}
+        {!customizationMode && (
+          <button
+            onClick={() => cycleWidgetSize(widgetId)}
+            className="absolute bottom-1 right-1 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-all opacity-0 group-hover:opacity-100 z-10"
+            title={`Current: ${widget.size || 'medium'}. Click to resize`}
+          >
+            <Maximize className="w-3 h-3" />
+          </button>
+        )}
       </CardHeader>
     );
 
@@ -472,7 +502,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     switch (widgetId) {
       case 'stats':
         return (
-          <div key={widgetId} className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div key={widgetId} className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 group">
             <Card className="bg-[#003d82] text-white border-0 rounded-lg shadow-md">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
@@ -555,24 +585,24 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'schedule':
         return (
-          <Card key={widgetId} className="border border-[#dddddd] rounded-lg shadow-sm">
+          <Card key={widgetId} className="border border-[#dddddd] dark:border-gray-700 dark:bg-gray-800 rounded-lg shadow-sm group relative">
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
                 {todaySchedule.map((lesson: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={idx} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                     <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
-                      <div className="text-xs md:text-sm font-medium text-gray-600 w-20 md:w-32 flex-shrink-0">
+                      <div className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 w-20 md:w-32 flex-shrink-0">
                         <Clock className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
                         {lesson.time}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{lesson.subject}</p>
-                        <p className="text-xs md:text-sm text-gray-600 truncate">{lesson.room} • {lesson.teacher}</p>
+                        <p className="font-semibold text-sm md:text-base text-gray-900 dark:text-gray-100 truncate">{lesson.subject}</p>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">{lesson.room} • {lesson.teacher}</p>
                       </div>
                     </div>
                     {lesson.subject !== 'Lounastauko' && (
-                      <Button size="sm" variant="outline" className="ml-2 flex-shrink-0 text-xs md:text-sm">Näytä</Button>
+                      <Button size="sm" variant="outline" className="ml-2 flex-shrink-0 text-xs md:text-sm dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">Näytä</Button>
                     )}
                   </div>
                 ))}
@@ -583,7 +613,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'recentActivity':
         return (
-          <Card key={widgetId} className="border-2 border-blue-200">
+          <Card key={widgetId} className="border-2 border-blue-200 group relative">
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
@@ -608,7 +638,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'upcomingEvents':
         return (
-          <Card key={widgetId} className="border-2 border-green-200">
+          <Card key={widgetId} className="border-2 border-green-200 group relative">
             {widgetHeader}
             <CardContent className="p-3 md:p-6">
               <div className="space-y-2 md:space-y-3">
@@ -632,21 +662,46 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         );
 
       case 'weather':
+        // Generate real hourly forecast times starting from current hour
+        const now = new Date();
+        const currentHour = now.getHours();
+        const hourlyForecast = Array.from({ length: 6 }, (_, i) => {
+          const hour = (currentHour + i) % 24;
+          const temp = 18 - i; // Simulated temperature decrease
+          let icon = 'sun';
+          if (hour >= 18 || hour < 6) icon = 'cloud';
+          else if (hour >= 16) icon = 'cloud-sun';
+          if (i === 5) icon = 'cloud-rain';
+          
+          return {
+            time: `${hour.toString().padStart(2, '0')}:00`,
+            temp: `${temp}°`,
+            icon
+          };
+        });
+
+        // Get day names for 3-day forecast
+        const getDayName = (daysAhead: number) => {
+          const date = new Date();
+          date.setDate(date.getDate() + daysAhead);
+          return date.toLocaleDateString('en-US', { weekday: 'short' });
+        };
+
         return (
-          <Card key={widgetId} className="border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50">
+          <Card key={widgetId} className="border-2 border-cyan-200 dark:border-cyan-800 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="space-y-4">
                 {/* Current Weather */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-5xl font-bold text-gray-900">18°C</p>
-                    <p className="text-sm text-gray-600 mt-1">Partly Cloudy</p>
-                    <p className="text-xs text-gray-500 mt-1">Helsinki, Kulosaari</p>
+                    <p className="text-5xl font-bold text-gray-900 dark:text-gray-100">18°C</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Partly Cloudy</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Helsinki, Kulosaari</p>
                   </div>
                   <div className="text-7xl">
                     <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" className="text-gray-400" fill="currentColor" opacity="0.3"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" className="text-gray-400 dark:text-gray-500" fill="currentColor" opacity="0.3"/>
                       <circle cx="12" cy="8" r="3" className="text-yellow-400" fill="currentColor"/>
                       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth={2} className="text-yellow-400"/>
                     </svg>
@@ -654,60 +709,53 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 </div>
 
                 {/* Weather Details */}
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t dark:border-gray-700">
                   <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                     </svg>
                     <div>
-                      <p className="text-xs text-gray-500">Wind</p>
-                      <p className="text-sm font-semibold">12 km/h</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Wind</p>
+                      <p className="text-sm font-semibold dark:text-gray-200">12 km/h</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-6 h-6 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd"/>
                     </svg>
                     <div>
-                      <p className="text-xs text-gray-500">Humidity</p>
-                      <p className="text-sm font-semibold">65%</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Humidity</p>
+                      <p className="text-sm font-semibold dark:text-gray-200">65%</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                     </svg>
                     <div>
-                      <p className="text-xs text-gray-500">Feels Like</p>
-                      <p className="text-sm font-semibold">16°C</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Feels Like</p>
+                      <p className="text-sm font-semibold dark:text-gray-200">16°C</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
                     <div>
-                      <p className="text-xs text-gray-500">Visibility</p>
-                      <p className="text-sm font-semibold">10 km</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Visibility</p>
+                      <p className="text-sm font-semibold dark:text-gray-200">10 km</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Hourly Forecast */}
-                <div className="border-t pt-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Hourly Forecast</p>
+                <div className="border-t dark:border-gray-700 pt-3">
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Hourly Forecast</p>
                   <div className="flex gap-2 overflow-x-auto pb-2">
-                    {[
-                      { time: '14:00', temp: '18°', icon: 'sun' },
-                      { time: '15:00', temp: '19°', icon: 'sun' },
-                      { time: '16:00', temp: '19°', icon: 'cloud-sun' },
-                      { time: '17:00', temp: '18°', icon: 'cloud' },
-                      { time: '18:00', temp: '17°', icon: 'cloud' },
-                      { time: '19:00', temp: '16°', icon: 'cloud-rain' },
-                    ].map((hour, idx) => (
-                      <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 rounded min-w-[60px]">
-                        <p className="text-xs font-medium text-gray-700">{hour.time}</p>
+                    {hourlyForecast.map((hour, idx) => (
+                      <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 dark:bg-gray-700/50 rounded min-w-[60px]">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{hour.time}</p>
                         <div className="my-1">
                           {hour.icon === 'sun' && (
                             <svg className="w-6 h-6 mx-auto text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
@@ -721,48 +769,48 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                             </svg>
                           )}
                           {hour.icon === 'cloud' && (
-                            <svg className="w-6 h-6 mx-auto text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                             </svg>
                           )}
                           {hour.icon === 'cloud-rain' && (
-                            <svg className="w-6 h-6 mx-auto text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-6 h-6 mx-auto text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                               <path d="M7 18v-2M10 18v-2M13 18v-2" stroke="currentColor" strokeWidth={1.5} fill="none"/>
                             </svg>
                           )}
                         </div>
-                        <p className="text-xs font-semibold text-gray-900">{hour.temp}</p>
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">{hour.temp}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* 3-Day Forecast */}
-                <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-3">
-                  <div className="p-2 bg-white/50 rounded">
-                    <p className="font-semibold text-gray-700">Mon</p>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs border-t dark:border-gray-700 pt-3">
+                  <div className="p-2 bg-white/50 dark:bg-gray-700/50 rounded">
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">{getDayName(1)}</p>
                     <svg className="w-8 h-8 mx-auto my-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                       <circle cx="10" cy="10" r="3"/>
                     </svg>
-                    <p className="text-gray-900 font-semibold">20°</p>
-                    <p className="text-gray-500 text-xs">12°</p>
+                    <p className="text-gray-900 dark:text-gray-100 font-semibold">20°</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">12°</p>
                   </div>
-                  <div className="p-2 bg-white/50 rounded">
-                    <p className="font-semibold text-gray-700">Tue</p>
-                    <svg className="w-8 h-8 mx-auto my-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="p-2 bg-white/50 dark:bg-gray-700/50 rounded">
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">{getDayName(2)}</p>
+                    <svg className="w-8 h-8 mx-auto my-1 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                     </svg>
-                    <p className="text-gray-900 font-semibold">15°</p>
-                    <p className="text-gray-500 text-xs">10°</p>
+                    <p className="text-gray-900 dark:text-gray-100 font-semibold">15°</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">10°</p>
                   </div>
-                  <div className="p-2 bg-white/50 rounded">
-                    <p className="font-semibold text-gray-700">Wed</p>
-                    <svg className="w-8 h-8 mx-auto my-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="p-2 bg-white/50 dark:bg-gray-700/50 rounded">
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">{getDayName(3)}</p>
+                    <svg className="w-8 h-8 mx-auto my-1 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                     </svg>
-                    <p className="text-gray-900 font-semibold">17°</p>
-                    <p className="text-gray-500 text-xs">11°</p>
+                    <p className="text-gray-900 dark:text-gray-100 font-semibold">17°</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">11°</p>
                   </div>
                 </div>
               </div>
@@ -781,7 +829,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
         
         return (
-          <Card key={widgetId} className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
+          <Card key={widgetId} className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50 group relative">
             {widgetHeader}
             <CardContent className="p-4 md:p-6">
               <div className="text-center">
@@ -794,7 +842,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'homework':
         return (
-          <Card key={widgetId} className="border-2 border-orange-200">
+          <Card key={widgetId} className="border-2 border-orange-200 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="space-y-2">
@@ -816,7 +864,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'attendance':
         return (
-          <Card key={widgetId} className="border-2 border-green-200">
+          <Card key={widgetId} className="border-2 border-green-200 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="text-center">
@@ -843,7 +891,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'messages':
         return (
-          <Card key={widgetId} className="border-2 border-blue-200">
+          <Card key={widgetId} className="border-2 border-blue-200 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="space-y-2">
@@ -865,7 +913,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'quickLinks':
         return (
-          <Card key={widgetId} className="border-2 border-indigo-200">
+          <Card key={widgetId} className="border-2 border-indigo-200 group relative">
             {widgetHeader}
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-2">
