@@ -141,6 +141,8 @@ export default function WilmaAdminNew() {
     { id: 'staff', label: 'Henkilökunta', icon: GraduationCap, adminOnly: true },
     { id: 'classes', label: 'Luokat', icon: Users, adminOnly: true },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
+    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+    { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
@@ -328,6 +330,8 @@ export default function WilmaAdminNew() {
           {activeSection === 'staff' && <EnhancedWilmaUserManager />}
           {activeSection === 'classes' && <ClassesManager />}
           {activeSection === 'courses' && <CourseManager />}
+          {activeSection === 'attendance' && <WilmaAttendanceTracker />}
+          {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <AdminHomeworkManager />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}
@@ -342,7 +346,7 @@ export default function WilmaAdminNew() {
         <div className="grid grid-cols-5 gap-1 px-2 py-2">
           {[
             { id: 'home', label: 'Koti', icon: Home },
-            { id: 'students', label: 'Oppilaat', icon: Users },
+            { id: 'attendance', label: 'Tuntim.', icon: UserCheck },
             { id: 'messages', label: 'Viestit', icon: MessageSquare },
             { id: 'courses', label: 'Kurssit', icon: BookOpen },
           ].map((item) => {

@@ -40,6 +40,7 @@ import ClassDetail from "@/pages/class-detail";
 import ChessPage from "@/pages/chess";
 import ResetPassword from "@/pages/reset-password";
 import ForgotPassword from "@/pages/forgot-password";
+import AIAssistantPage from "@/pages/ai-assistant";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -112,6 +113,7 @@ function Router() {
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
       <Route path="/debug-buildings" component={DebugBuildings} />
+      <Route path="/ai-assistant" component={AIAssistantPage} />
       <Route component={NotFound} />
     </Switch>
   );

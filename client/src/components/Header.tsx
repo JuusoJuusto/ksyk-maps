@@ -188,6 +188,18 @@ export default function Header() {
                     HSL
                   </Button>
                 </Link>
+                
+                {/* AI Assistant Button */}
+                <Link href="/ai-assistant">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="bg-purple-50 border-purple-600 text-purple-700 hover:bg-purple-100 font-semibold shadow-sm animate-pulse"
+                    data-testid="button-ai"
+                  >
+                    ✨ AI Assistant
+                  </Button>
+                </Link>
               </>
             ) : (
               <>
@@ -394,6 +406,14 @@ export default function Header() {
                           className="w-full p-3 text-left rounded-lg bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all hover:shadow-lg"
                         >
                           {t('quickActions.transport')}
+                        </button>
+                      </Link>
+                      <Link href="/ai-assistant">
+                        <button
+                          onClick={() => setShowMobileMenu(false)}
+                          className="w-full p-3 text-left rounded-lg bg-purple-50 border border-purple-300 text-purple-700 hover:bg-purple-100 transition-all hover:shadow-lg animate-pulse"
+                        >
+                          ✨ AI Assistant
                         </button>
                       </Link>
                     </div>
