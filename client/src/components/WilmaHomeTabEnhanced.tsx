@@ -39,21 +39,21 @@ interface DashboardPreferences {
 }
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { id: 'stats', title: 'Quick Stats', visible: true, size: 'large', order: 0 },
-  { id: 'schedule', title: "Today's Schedule", visible: true, size: 'large', order: 1 },
-  { id: 'grades', title: 'Recent Grades', visible: true, size: 'large', order: 2 },
-  { id: 'overview', title: 'Overview', visible: true, size: 'large', order: 3 },
-  { id: 'quickActions', title: 'Quick Actions', visible: true, size: 'medium', order: 4 },
-  { id: 'announcements', title: 'Announcements', visible: true, size: 'medium', order: 5 },
-  { id: 'performance', title: 'Performance', visible: true, size: 'medium', order: 6 },
-  { id: 'recentActivity', title: 'Recent Activity', visible: true, size: 'medium', order: 7 },
-  { id: 'upcomingEvents', title: 'Upcoming Events', visible: true, size: 'medium', order: 8 },
-  { id: 'weather', title: 'Weather', visible: true, size: 'medium', order: 9 },
-  { id: 'quotes', title: 'Daily Quote', visible: true, size: 'medium', order: 10 },
-  { id: 'quickLinks', title: 'Quick Links', visible: true, size: 'small', order: 11 },
-  { id: 'homework', title: 'Homework', visible: false, size: 'medium', order: 12 },
-  { id: 'attendance', title: 'Attendance Summary', visible: false, size: 'medium', order: 13 },
-  { id: 'messages', title: 'Recent Messages', visible: false, size: 'medium', order: 14 },
+  { id: 'stats', title: 'Pikatilastot', visible: true, size: 'large', order: 0 },
+  { id: 'schedule', title: "Tämän päivän lukujärjestys", visible: true, size: 'large', order: 1 },
+  { id: 'grades', title: 'Viimeisimmät arvosanat', visible: true, size: 'large', order: 2 },
+  { id: 'overview', title: 'Yleiskatsaus', visible: true, size: 'large', order: 3 },
+  { id: 'quickActions', title: 'Pikatoiminnot', visible: true, size: 'medium', order: 4 },
+  { id: 'announcements', title: 'Ilmoitukset', visible: true, size: 'medium', order: 5 },
+  { id: 'performance', title: 'Suorituskyky', visible: true, size: 'medium', order: 6 },
+  { id: 'recentActivity', title: 'Viimeaikainen toiminta', visible: true, size: 'medium', order: 7 },
+  { id: 'upcomingEvents', title: 'Tulevat tapahtumat', visible: true, size: 'medium', order: 8 },
+  { id: 'weather', title: 'Sää', visible: true, size: 'medium', order: 9 },
+  { id: 'quotes', title: 'Päivän lainaus', visible: true, size: 'medium', order: 10 },
+  { id: 'quickLinks', title: 'Pikalinkit', visible: true, size: 'small', order: 11 },
+  { id: 'homework', title: 'Kotitehtävät', visible: false, size: 'medium', order: 12 },
+  { id: 'attendance', title: 'Tuntimerkinnät yhteenveto', visible: false, size: 'medium', order: 13 },
+  { id: 'messages', title: 'Viimeisimmät viestit', visible: false, size: 'medium', order: 14 },
 ];
 
 export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId, userName }: WilmaHomeTabProps) {
@@ -155,11 +155,11 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     if (customGreeting) return customGreeting;
     
     const hour = new Date().getHours();
-    const name = userName || 'there';
+    const name = userName || 'siellä';
     
-    if (hour < 12) return `Good morning, ${name}! ☀️`;
-    if (hour < 18) return `Good afternoon, ${name}! 👋`;
-    return `Good evening, ${name}! 🌙`;
+    if (hour < 12) return `Hyvää huomenta, ${name}! ☀️`;
+    if (hour < 18) return `Hyvää iltapäivää, ${name}! 👋`;
+    return `Hyvää iltaa, ${name}! 🌙`;
   };
 
   // Toggle widget visibility
@@ -200,9 +200,11 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     
     updateWidgetSize(widgetId, nextSize);
     
+    const sizeNames = { small: 'Pieni', medium: 'Keskikokoinen', large: 'Suuri' };
+    
     toast({
-      title: "Widget resized!",
-      description: `Size changed to ${nextSize}`,
+      title: "Widgetin koko muutettu!",
+      description: `Koko vaihdettu: ${sizeNames[nextSize]}`,
       duration: 1500,
     });
   };
