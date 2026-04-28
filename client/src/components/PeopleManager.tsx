@@ -238,6 +238,31 @@ export default function PeopleManager() {
                       <Button 
                         size="sm" 
                         variant="outline" 
+                        className="text-blue-600 hover:bg-blue-50 px-2 md:px-3"
+                        onClick={() => {
+                          if (confirm(`Lähetä salasanan nollauslinkki oppilaalle ${student.firstName} ${student.lastName}?`)) {
+                            fetch(`/api/wilma/users/${student.id}/send-password-reset`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' }
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                              if (data.success) {
+                                alert(`✅ Salasanan nollauslinkki lähetetty osoitteeseen ${student.email}`);
+                              } else {
+                                alert(`❌ Virhe: ${data.message}`);
+                              }
+                            })
+                            .catch(err => alert(`❌ Virhe lähetyksessä: ${err.message}`));
+                          }
+                        }}
+                        title="Lähetä salasanan nollauslinkki"
+                      >
+                        <Mail className="w-3 h-3 md:w-4 md:h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
                         className="text-red-600 hover:bg-red-50 px-2 md:px-3"
                         onClick={() => {
                           if (confirm(`Poista ${student.firstName} ${student.lastName}?`)) {
