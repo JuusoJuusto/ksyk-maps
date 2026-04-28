@@ -98,11 +98,13 @@ export async function fetchFMIWeather(place: string = "Helsinki"): Promise<FMIWe
  */
 export async function fetchFMIForecast(place: string = "Helsinki", hours: number = 24): Promise<FMIForecast[]> {
   try {
-    const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::hirlam::surface::point::simple&place=${encodeURIComponent(place)}&maxlocations=1`;
+    // FMI forecast API - using timestep parameter for hourly data
+    const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::hirlam::surface::point::timestep&place=${encodeURIComponent(place)}&timestep=60`;
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`FMI API error: ${response.status}`);
+      console.warn(`FMI forecast API returned ${response.status}, using fallback`);
+      return [];
     }
 
     const xmlText = await response.text();
