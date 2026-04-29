@@ -7,6 +7,9 @@ import {
   TrendingUp, Award, CheckCircle, AlertCircle, GraduationCap,
   MessageSquare, FileText, BarChart3
 } from "lucide-react";
+import WilmaTeacher from "@/pages/wilma-teacher";
+import WilmaStudent from "@/pages/wilma-student";
+import WilmaParent from "@/pages/wilma-parent";
 
 export default function WilmaHome() {
   const [, setLocation] = useLocation();
@@ -35,29 +38,16 @@ export default function WilmaHome() {
           return;
         }
         
-        // Admin, teacher, principal, vice_principal go to admin panel
-        if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal') || user.role === 'admin' || user.role === 'teacher' || user.role === 'principal' || user.role === 'vice_principal') {
+        // Admin, principal, vice_principal go to admin panel
+        if (roles.includes('admin') || roles.includes('principal') || roles.includes('vice_principal') || user.role === 'admin' || user.role === 'principal' || user.role === 'vice_principal') {
           console.log('WilmaHome - Redirecting to admin panel:', `/wilma-admin/${user.id}`);
           setLocation(`/wilma-admin/${user.id}`);
           return;
         }
         
-        // Student goes to student page
-        if (roles.includes('student') || user.role === 'student') {
-          console.log('WilmaHome - Redirecting to student page:', `/wilma-student/${user.id}`);
-          setLocation(`/wilma-student/${user.id}`);
-          return;
-        }
-        
-        // Parent goes to parent page
-        if (roles.includes('parent') || user.role === 'parent') {
-          console.log('WilmaHome - Redirecting to parent page:', `/wilma-parent/${user.id}`);
-          setLocation(`/wilma-parent/${user.id}`);
-          return;
-        }
-        
-        // If no specific role match, stay on home page
-        console.log('WilmaHome - No role match, staying on home');
+        // Teacher and Student stay on /wilma/:userId but show different interfaces
+        // The interface will be determined by the role in the component
+        console.log('WilmaHome - Staying on /wilma/:userId with role:', user.role);
         setIsLoading(false);
       } catch (err) {
         console.error('Failed to parse user:', err);
@@ -88,7 +78,24 @@ export default function WilmaHome() {
   const isAdmin = roles.includes('admin') || roles.includes('principal');
   const isTeacher = roles.includes('teacher');
   const isStudent = roles.includes('student');
+  const isParent = roles.includes('parent');
 
+  // If teacher, show teacher interface (import from wilma-teacher)
+  if (isTeacher) {
+    return <WilmaTeacher />;
+  }
+
+  // If student, show student interface (import from wilma-student)
+  if (isStudent) {
+    return <WilmaStudent />;
+  }
+
+  // If parent, show parent interface (import from wilma-parent)
+  if (isParent) {
+    return <WilmaParent />;
+  }
+
+  // Default fallback (shouldn't reach here due to routing)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
