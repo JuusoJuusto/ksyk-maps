@@ -191,6 +191,12 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
   // Cycle widget size (for corner resize button)
   const cycleWidgetSize = (widgetId: string) => {
+    // Safety check: ensure widgets array exists
+    if (!widgets || !Array.isArray(widgets)) {
+      console.warn('Widgets array is not initialized');
+      return;
+    }
+    
     const widget = widgets.find(w => w.id === widgetId);
     if (!widget) return;
     
@@ -273,7 +279,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   };
 
   // Get visible widgets sorted by order
-  const visibleWidgets = widgets
+  const visibleWidgets = (widgets || DEFAULT_WIDGETS)
     .filter(w => w.visible)
     .sort((a, b) => a.order - b.order);
 
@@ -419,6 +425,12 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
   // Widget renderer helper
   const renderWidget = (widgetId: string) => {
+    // Safety check: ensure widgets array exists
+    if (!widgets || !Array.isArray(widgets)) {
+      console.warn('Widgets array is not initialized');
+      return null;
+    }
+    
     const widget = widgets.find(w => w.id === widgetId);
     if (!widget) return null;
 
