@@ -1654,126 +1654,61 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         console.log('🔵 POST /api/wilma/send-bulk-emails called');
         
         try {
-          const { sendEmail } = await import('../server/emailService.js');
-          const { getWilmaInvitationEmail } = await import('../server/emailTemplates.js');
+          const { sendWilmaStudentWelcomeEmail } = await import('../server/emailService.js');
           
           // Get all students with temporary passwords
-          const allUsers = await storage.getWilmaUsersAll();
-          const studentsWithTempPasswords = allUsers.filter((user: any) => 
-            user.role === 'student' && user.isTemporaryPassword && user.plainPassword && user.email
+          const students = await storage.getWilmaUsers('student');
+          console.log(`📊 Found ${students.length} students`);
+          
+          const studentsWithTempPasswords = students.filter((user: any) => 
+            user.email && user.password && user.isTemporaryPassword
           );
           
           console.log(`📧 Found ${studentsWithTempPasswords.length} students with temporary passwords`);
           
           let sent = 0;
           let failed = 0;
-          const results = [];
+          const errors: string[] = [];
           
           for (const student of studentsWithTempPasswords) {
-            try {
-              // Send email to student
-              const studentEmailHtml = getWilmaInvitationEmail({
-                firstName: student.firstName,
-                lastName: student.lastName,
-                username: student.username,
-                password: student.plainPassword,
-                role: 'student',
-                appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
-              });
+            if (student.email && student.password && student.isTemporaryPassword) {
+              const parentEmails = [];
+              if (student.parent1Email) parentEmails.push(student.parent1Email);
+              if (student.parent2Email) parentEmails.push(student.parent2Email);
               
-              const studentResult = await sendEmail({
-                to: student.email,
-                subject: 'Tervetuloa Wilma KSYK Maps -palveluun',
-                html: studentEmailHtml
-              });
-              
-              if (studentResult.success) {
-                sent++;
-                console.log(`✅ Email sent to student: ${student.email}`);
-              } else {
+              try {
+                const result = await sendWilmaStudentWelcomeEmail(
+                  student.email,
+                  `${student.firstName} ${student.lastName}`,
+                  student.password,
+                  student.studentId || student.username || student.email,
+                  parentEmails.length > 0 ? parentEmails : undefined
+                );
+                
+                if (result.success) {
+                  sent++;
+                  console.log(`✅ Email sent to ${student.email}`);
+                } else {
+                  failed++;
+                  errors.push(`${student.email}: ${result.error || 'Unknown error'}`);
+                  console.error(`❌ Failed to send email to ${student.email}:`, result.error);
+                }
+              } catch (emailError: any) {
+                console.error(`❌ Failed to send email to ${student.email}:`, emailError);
                 failed++;
-                console.log(`❌ Failed to send email to student: ${student.email}`);
+                errors.push(`${student.email}: ${emailError.message || 'Unknown error'}`);
               }
-              
-              // Send emails to parents if they exist
-              if (student.parent1Email && student.parent1PlainPassword) {
-                const parent1EmailHtml = getWilmaInvitationEmail({
-                  firstName: student.parent1FirstName || 'Huoltaja',
-                  lastName: student.parent1LastName || '',
-                  username: student.parent1Username || student.parent1Email,
-                  password: student.parent1PlainPassword,
-                  role: 'parent',
-                  appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app',
-                  childName: `${student.firstName} ${student.lastName}`
-                });
-                
-                const parent1Result = await sendEmail({
-                  to: student.parent1Email,
-                  subject: 'Tervetuloa Wilma KSYK Maps -palveluun',
-                  html: parent1EmailHtml
-                });
-                
-                if (parent1Result.success) {
-                  sent++;
-                  console.log(`✅ Email sent to parent 1: ${student.parent1Email}`);
-                } else {
-                  failed++;
-                  console.log(`❌ Failed to send email to parent 1: ${student.parent1Email}`);
-                }
-              }
-              
-              if (student.parent2Email && student.parent2PlainPassword) {
-                const parent2EmailHtml = getWilmaInvitationEmail({
-                  firstName: student.parent2FirstName || 'Huoltaja',
-                  lastName: student.parent2LastName || '',
-                  username: student.parent2Username || student.parent2Email,
-                  password: student.parent2PlainPassword,
-                  role: 'parent',
-                  appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app',
-                  childName: `${student.firstName} ${student.lastName}`
-                });
-                
-                const parent2Result = await sendEmail({
-                  to: student.parent2Email,
-                  subject: 'Tervetuloa Wilma KSYK Maps -palveluun',
-                  html: parent2EmailHtml
-                });
-                
-                if (parent2Result.success) {
-                  sent++;
-                  console.log(`✅ Email sent to parent 2: ${student.parent2Email}`);
-                } else {
-                  failed++;
-                  console.log(`❌ Failed to send email to parent 2: ${student.parent2Email}`);
-                }
-              }
-              
-              results.push({
-                student: `${student.firstName} ${student.lastName}`,
-                email: student.email,
-                success: true
-              });
-              
-            } catch (error: any) {
-              failed++;
-              console.error(`❌ Error sending emails for student ${student.email}:`, error);
-              results.push({
-                student: `${student.firstName} ${student.lastName}`,
-                email: student.email,
-                success: false,
-                error: error.message
-              });
+            } else {
+              console.log(`⏭️ Skipping ${student.email} - missing email, password, or not temporary`);
             }
           }
           
-          console.log(`\n✅ Bulk email complete: ${sent} sent, ${failed} failed`);
-          
-          return res.status(200).json({
-            success: true,
-            sent,
-            failed,
-            total: studentsWithTempPasswords.length,
-            results
+          console.log(`📊 Bulk email complete: ${sent} sent, ${failed} failed`);
+          return res.status(200).json({ 
+            success: true, 
+            sent, 
+            failed, 
+            errors: errors.slice(0, 10) // Return first 10 errors
           });
           
         } catch (error: any) {
