@@ -1606,6 +1606,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test email endpoint
+  app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('📧 Test email requested');
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { to } = req.body;
+      if (!to) {
+        return res.status(400).json({ message: "Email address required" });
+      }
+
+      const emailService = await import('./emailService');
+      const result = await emailService.sendEmail({
+        to,
+        subject: 'Test Email from KSYK Maps',
+        html: `
+          <h1>Test Email</h1>
+          <p>This is a test email from KSYK Maps.</p>
+          <p>If you received this, email configuration is working correctly!</p>
+          <p>Sent at: ${new Date().toLocaleString('fi-FI')}</p>
+        `
+      });
+
+      if (result.success) {
+        res.json({ success: true, message: 'Test email sent successfully', messageId: result.messageId });
+      } else {
+        res.status(500).json({ success: false, message: 'Failed to send test email', error: result.error });
+      }
+    } catch (error: any) {
+      console.error('❌ Test email error:', error);
+      res.status(500).json({ success: false, message: 'Failed to send test email', error: error.message });
+    }
+  });
+
   // Wilma Schedule routes
   // Get schedule by userId (query param)
   app.get('/api/wilma/schedule', async (req, res) => {

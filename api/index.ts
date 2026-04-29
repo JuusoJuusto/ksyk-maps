@@ -1782,6 +1782,38 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // POST /test-email - Test email configuration
+      if (apiPath === '/test-email' && req.method === 'POST') {
+        console.log('🔵 POST /api/test-email called');
+        try {
+          const { to } = req.body;
+          if (!to) {
+            return res.status(400).json({ message: "Email address required" });
+          }
+
+          const { sendEmail } = await import('../server/emailService.js');
+          const result = await sendEmail({
+            to,
+            subject: 'Test Email from KSYK Maps',
+            html: `
+              <h1>Test Email</h1>
+              <p>This is a test email from KSYK Maps.</p>
+              <p>If you received this, email configuration is working correctly!</p>
+              <p>Sent at: ${new Date().toLocaleString('fi-FI')}</p>
+            `
+          });
+
+          if (result.success) {
+            return res.status(200).json({ success: true, message: 'Test email sent successfully', messageId: result.messageId });
+          } else {
+            return res.status(500).json({ success: false, message: 'Failed to send test email', error: result.error });
+          }
+        } catch (error: any) {
+          console.error('❌ Test email error:', error);
+          return res.status(500).json({ success: false, message: 'Failed to send test email', error: error.message });
+        }
+      }
+
       // GET /wilma/settings - Get Wilma settings
       if (apiPath === '/wilma/settings' && req.method === 'GET') {
         console.log('🔵 GET /api/wilma/settings called');
