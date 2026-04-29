@@ -891,11 +891,14 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
 
       case 'quotes':
         const quotes = [
-          "Koulutus on tehokkain ase, jolla voit muuttaa maailmaa. - Nelson Mandela",
-          "Oppimisen kauneus on siinä, että kukaan ei voi ottaa sitä sinulta pois. - B.B. King",
-          "Menestys ei ole lopullista, epäonnistuminen ei ole kohtalokasta: rohkeus jatkaa on se mikä merkitsee. - Winston Churchill",
-          "Ainoa tapa tehdä hienoa työtä on rakastaa sitä mitä teet. - Steve Jobs",
-          "Usko että pystyt ja olet jo puolivälissä. - Theodore Roosevelt"
+          "Education is the most powerful weapon which you can use to change the world. - Nelson Mandela",
+          "The beautiful thing about learning is that no one can take it away from you. - B.B. King",
+          "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
+          "The only way to do great work is to love what you do. - Steve Jobs",
+          "Believe you can and you're halfway there. - Theodore Roosevelt",
+          "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+          "It does not matter how slowly you go as long as you do not stop. - Confucius",
+          "Everything you've ever wanted is on the other side of fear. - George Addair"
         ];
         const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
         
