@@ -865,6 +865,171 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  // Parent-Child Linking operations
+  async linkParentToChild(parentId: string, childId: string): Promise<void> {
+    try {
+      console.log(`🔗 Linking parent ${parentId} to child ${childId}`);
+      
+      // Get parent and child
+      const parent = await this.getWilmaUser(parentId);
+      const child = await this.getWilmaUser(childId);
+      
+      if (!parent || !child) {
+        throw new Error('Parent or child not found');
+      }
+      
+      if (parent.role !== 'parent') {
+        throw new Error('User is not a parent');
+      }
+      
+      if (child.role !== 'student') {
+        throw new Error('User is not a student');
+      }
+      
+      // Check if already linked
+      if (child.parent1Id === parentId || child.parent2Id === parentId) {
+        throw new Error('Parent already linked to this child');
+      }
+      
+      // Determine which parent slot to use
+      let updateData: any = {};
+      if (!child.parent1Id) {
+        updateData = {
+          parent1Id: parentId,
+          parent1FirstName: parent.firstName,
+          parent1LastName: parent.lastName,
+          parent1Email: parent.email,
+          parent1Phone: parent.phone,
+          parent1Relationship: 'Parent',
+        };
+      } else if (!child.parent2Id) {
+        updateData = {
+          parent2Id: parentId,
+          parent2FirstName: parent.firstName,
+          parent2LastName: parent.lastName,
+          parent2Email: parent.email,
+          parent2Phone: parent.phone,
+          parent2Relationship: 'Parent',
+        };
+      } else {
+        throw new Error('Child already has 2 parents linked');
+      }
+      
+      // Update child with parent info
+      await this.updateWilmaUser(childId, updateData);
+      
+      console.log('✅ Parent linked to child successfully');
+    } catch (error) {
+      console.error('Error linking parent to child:', error);
+      throw error;
+    }
+  }
+
+  async unlinkParentFromChild(parentId: string, childId: string): Promise<void> {
+    try {
+      console.log(`🔓 Unlinking parent ${parentId} from child ${childId}`);
+      
+      const child = await this.getWilmaUser(childId);
+      if (!child) {
+        throw new Error('Child not found');
+      }
+      
+      let updateData: any = {};
+      if (child.parent1Id === parentId) {
+        updateData = {
+          parent1Id: null,
+          parent1FirstName: null,
+          parent1LastName: null,
+          parent1Email: null,
+          parent1Phone: null,
+          parent1Relationship: null,
+        };
+      } else if (child.parent2Id === parentId) {
+        updateData = {
+          parent2Id: null,
+          parent2FirstName: null,
+          parent2LastName: null,
+          parent2Email: null,
+          parent2Phone: null,
+          parent2Relationship: null,
+        };
+      } else {
+        throw new Error('Parent not linked to this child');
+      }
+      
+      await this.updateWilmaUser(childId, updateData);
+      
+      console.log('✅ Parent unlinked from child successfully');
+    } catch (error) {
+      console.error('Error unlinking parent from child:', error);
+      throw error;
+    }
+  }
+
+  async getChildrenForParent(parentId: string): Promise<any[]> {
+    try {
+      console.log(`👨‍👩‍👧‍👦 Getting children for parent ${parentId}`);
+      
+      // Search in students subcollection
+      const snapshot1 = await db.collection('wilmaUsers').doc('students').collection('list')
+        .where('parent1Id', '==', parentId)
+        .where('isActive', '==', true)
+        .get();
+      
+      const snapshot2 = await db.collection('wilmaUsers').doc('students').collection('list')
+        .where('parent2Id', '==', parentId)
+        .where('isActive', '==', true)
+        .get();
+      
+      const children = [
+        ...snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...snapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      ];
+      
+      // Remove duplicates
+      const uniqueChildren = Array.from(new Map(children.map(c => [c.id, c])).values());
+      
+      console.log(`✅ Found ${uniqueChildren.length} children for parent`);
+      return uniqueChildren;
+    } catch (error) {
+      console.error('Error getting children for parent:', error);
+      return [];
+    }
+  }
+
+  async getParentsForChild(childId: string): Promise<any[]> {
+    try {
+      console.log(`👨‍👩‍👧 Getting parents for child ${childId}`);
+      
+      const child = await this.getWilmaUser(childId);
+      if (!child) {
+        return [];
+      }
+      
+      const parents: any[] = [];
+      
+      if (child.parent1Id) {
+        const parent1 = await this.getWilmaUser(child.parent1Id);
+        if (parent1) {
+          parents.push(parent1);
+        }
+      }
+      
+      if (child.parent2Id) {
+        const parent2 = await this.getWilmaUser(child.parent2Id);
+        if (parent2) {
+          parents.push(parent2);
+        }
+      }
+      
+      console.log(`✅ Found ${parents.length} parents for child`);
+      return parents;
+    } catch (error) {
+      console.error('Error getting parents for child:', error);
+      return [];
+    }
+  }
+
   // Wilma Schedule operations
   async getWilmaSchedulesAll(classFilter?: string): Promise<any[]> {
     try {

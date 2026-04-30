@@ -2006,6 +2006,70 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // POST /wilma/link-parent-child - Link parent to child
+      if (apiPath === '/wilma/link-parent-child' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/link-parent-child called');
+        try {
+          const { parentId, childId } = req.body;
+          
+          if (!parentId || !childId) {
+            return res.status(400).json({ message: "Parent ID and Child ID are required" });
+          }
+          
+          await storage.linkParentToChild(parentId, childId);
+          return res.status(200).json({ message: "Parent linked to child successfully" });
+        } catch (error: any) {
+          console.error('❌ Error linking parent to child:', error);
+          return res.status(500).json({ message: error.message || "Failed to link parent to child" });
+        }
+      }
+
+      // DELETE /wilma/link-parent-child - Unlink parent from child
+      if (apiPath === '/wilma/link-parent-child' && req.method === 'DELETE') {
+        console.log('🔵 DELETE /api/wilma/link-parent-child called');
+        try {
+          const { parentId, childId } = req.body;
+          
+          if (!parentId || !childId) {
+            return res.status(400).json({ message: "Parent ID and Child ID are required" });
+          }
+          
+          await storage.unlinkParentFromChild(parentId, childId);
+          return res.status(200).json({ message: "Parent unlinked from child successfully" });
+        } catch (error: any) {
+          console.error('❌ Error unlinking parent from child:', error);
+          return res.status(500).json({ message: error.message || "Failed to unlink parent from child" });
+        }
+      }
+
+      // GET /wilma/parent/:parentId/children - Get children for parent
+      const parentChildrenMatch = apiPath.match(/^\/wilma\/parent\/([^\/]+)\/children$/);
+      if (parentChildrenMatch && req.method === 'GET') {
+        const parentId = parentChildrenMatch[1];
+        console.log('🔵 GET /api/wilma/parent/' + parentId + '/children');
+        try {
+          const children = await storage.getChildrenForParent(parentId);
+          return res.status(200).json(children);
+        } catch (error: any) {
+          console.error('❌ Error getting children for parent:', error);
+          return res.status(500).json({ message: "Failed to fetch children" });
+        }
+      }
+
+      // GET /wilma/child/:childId/parents - Get parents for child
+      const childParentsMatch = apiPath.match(/^\/wilma\/child\/([^\/]+)\/parents$/);
+      if (childParentsMatch && req.method === 'GET') {
+        const childId = childParentsMatch[1];
+        console.log('🔵 GET /api/wilma/child/' + childId + '/parents');
+        try {
+          const parents = await storage.getParentsForChild(childId);
+          return res.status(200).json(parents);
+        } catch (error: any) {
+          console.error('❌ Error getting parents for child:', error);
+          return res.status(500).json({ message: "Failed to fetch parents" });
+        }
+      }
+
       // GET /wilma/schedules - Get all schedules
       if (apiPath === '/wilma/schedules' || apiPath.startsWith('/wilma/schedules?')) {
         if (req.method === 'GET') {
