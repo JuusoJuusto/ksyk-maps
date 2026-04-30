@@ -161,8 +161,8 @@ export async function fetchFMIForecast(place: string = "Helsinki", hours: number
       const forecastTime = new Date(time);
       const finlandTimeStr = forecastTime.toLocaleString('fi-FI', { 
         timeZone: 'Europe/Helsinki',
-        hour: '2-digit', 
-        minute: '2-digit' 
+        hour: '2-digit',
+        hour12: false
       });
 
       // Helper to get parameter value
@@ -216,8 +216,8 @@ function generateMockForecast(hours: number): FMIForecast[] {
     const time = new Date(now.getTime() + i * 60 * 60 * 1000);
     const finlandTime = time.toLocaleString('fi-FI', { 
       timeZone: 'Europe/Helsinki',
-      hour: '2-digit', 
-      minute: '2-digit' 
+      hour: '2-digit',
+      hour12: false
     });
     
     // Generate realistic-looking data
