@@ -386,7 +386,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
     queryKey: ['wilma-schedule', userId],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/wilma/schedule?userId=${userId}`);
+        const response = await fetch(`/api/wilma/schedules/${userId}`);
         if (!response.ok) {
           // Return mock data if endpoint doesn't exist yet
           return [
