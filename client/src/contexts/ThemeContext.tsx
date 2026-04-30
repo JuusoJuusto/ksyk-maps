@@ -105,25 +105,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const applyThemeStyles = (activeTheme: 'light' | 'dark' | 'neon') => {
     if (activeTheme === 'neon') {
-      document.documentElement.style.setProperty('--bg-primary', '#0a0a0a');
-      document.documentElement.style.setProperty('--bg-secondary', '#1a1a1a');
-      document.documentElement.style.setProperty('--text-primary', '#00ff00');
-      document.documentElement.style.setProperty('--text-secondary', '#00cc00');
+      // Neon theme - cyberpunk style with dark blue-purple base
+      document.documentElement.style.setProperty('--bg-primary', '#0d1117');
+      document.documentElement.style.setProperty('--bg-secondary', '#161b22');
+      document.documentElement.style.setProperty('--text-primary', '#00ff88');
+      document.documentElement.style.setProperty('--text-secondary', '#00cc66');
       document.documentElement.style.setProperty('--accent', '#ff00ff');
-      document.documentElement.style.setProperty('--border', '#00ff00');
-      document.documentElement.style.setProperty('--tooltip-bg', '#1a1a1a');
-      document.documentElement.style.setProperty('--tooltip-text', '#00ff00');
-      document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%)';
+      document.documentElement.style.setProperty('--border', '#00ff88');
+      document.documentElement.style.setProperty('--tooltip-bg', '#161b22');
+      document.documentElement.style.setProperty('--tooltip-text', '#00ff88');
+      document.body.style.background = 'linear-gradient(135deg, #0d1117 0%, #1a0a2e 100%)';
     } else if (activeTheme === 'dark') {
-      document.documentElement.style.setProperty('--bg-primary', '#0f172a');
-      document.documentElement.style.setProperty('--bg-secondary', '#1e293b');
-      document.documentElement.style.setProperty('--text-primary', '#f1f5f9');
-      document.documentElement.style.setProperty('--text-secondary', '#cbd5e1');
-      document.documentElement.style.setProperty('--accent', '#3b82f6');
-      document.documentElement.style.setProperty('--border', '#334155');
-      document.documentElement.style.setProperty('--tooltip-bg', '#1f2937');
-      document.documentElement.style.setProperty('--tooltip-text', '#f1f5f9');
+      // Modern dark theme - inspired by Discord, Slack, VS Code
+      // Using slate/gray tones instead of pure black
+      document.documentElement.style.setProperty('--bg-primary', '#1e1e2e'); // Soft dark purple-gray
+      document.documentElement.style.setProperty('--bg-secondary', '#2a2a3e'); // Slightly lighter
+      document.documentElement.style.setProperty('--text-primary', '#e0e0e6'); // Soft white
+      document.documentElement.style.setProperty('--text-secondary', '#b4b4c8'); // Muted gray
+      document.documentElement.style.setProperty('--accent', '#5865f2'); // Discord-like blue
+      document.documentElement.style.setProperty('--border', '#3a3a4e'); // Subtle borders
+      document.documentElement.style.setProperty('--tooltip-bg', '#2a2a3e');
+      document.documentElement.style.setProperty('--tooltip-text', '#e0e0e6');
+      document.body.style.background = 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)';
     } else {
+      // Light theme - clean and modern
       document.documentElement.style.setProperty('--bg-primary', '#ffffff');
       document.documentElement.style.setProperty('--bg-secondary', '#f8fafc');
       document.documentElement.style.setProperty('--text-primary', '#0f172a');
@@ -132,6 +137,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--border', '#e2e8f0');
       document.documentElement.style.setProperty('--tooltip-bg', '#1f2937');
       document.documentElement.style.setProperty('--tooltip-text', '#ffffff');
+      document.body.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
     }
   };
 

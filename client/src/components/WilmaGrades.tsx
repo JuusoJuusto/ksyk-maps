@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Grade {
   id: string;
@@ -13,19 +14,25 @@ interface Grade {
 }
 
 export default function WilmaGrades() {
-  // Mock data - replace with real API
-  const grades: Grade[] = [
-    { id: "1", subject: "Matematiikka", grade: "9", teacher: "M. Virtanen", date: "15.04.2026", term: "Kevät 2026", trend: "up", comments: "Erinomaista työskentelyä!" },
-    { id: "2", subject: "Englanti", grade: "8", teacher: "A. Korhonen", date: "14.04.2026", term: "Kevät 2026", trend: "stable", comments: "Hyvä suullinen taito" },
-    { id: "3", subject: "Fysiikka", grade: "10", teacher: "P. Nieminen", date: "12.04.2026", term: "Kevät 2026", trend: "up", comments: "Loistava laboratoriotyö!" },
-    { id: "4", subject: "Historia", grade: "7", teacher: "L. Mäkinen", date: "10.04.2026", term: "Kevät 2026", trend: "down", comments: "Tarvitsee lisää opiskelua" },
-    { id: "5", subject: "Kemia", grade: "9", teacher: "S. Lahtinen", date: "08.04.2026", term: "Kevät 2026", trend: "up" },
-    { id: "6", subject: "Ruotsi", grade: "8", teacher: "K. Andersson", date: "05.04.2026", term: "Kevät 2026", trend: "stable" },
-    { id: "7", subject: "Liikunta", grade: "10", teacher: "J. Koskinen", date: "03.04.2026", term: "Kevät 2026", trend: "stable" },
-    { id: "8", subject: "Biologia", grade: "9", teacher: "T. Heikkinen", date: "01.04.2026", term: "Kevät 2026", trend: "up" },
-  ];
+  // Get current user from auth context
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const studentId = user.id || '';
 
-  const average = (grades.reduce((sum, g) => sum + parseInt(g.grade), 0) / grades.length).toFixed(1);
+  // Fetch grades from API
+  const { data: grades = [], isLoading } = useQuery({
+    queryKey: ['wilma-grades', studentId],
+    queryFn: async () => {
+      if (!studentId) return [];
+      const response = await fetch(`/api/wilma/grades/${studentId}`);
+      if (!response.ok) throw new Error('Failed to fetch grades');
+      return response.json();
+    },
+    enabled: !!studentId,
+  });
+
+  const average = grades.length > 0 
+    ? (grades.reduce((sum: number, g: Grade) => sum + parseInt(g.grade), 0) / grades.length).toFixed(1)
+    : '0.0';
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {

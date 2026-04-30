@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,70 +30,15 @@ export default function AdminHomeworkManager() {
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
 
-  // Mock homework data
-  const homeworkList: Homework[] = [
-    {
-      id: '1',
-      title: 'Matematiikan kotitehtävät - Luku 5',
-      subject: 'Matematiikka',
-      teacher: 'Matti Virtanen',
-      class: '9A',
-      dueDate: '2026-04-25',
-      status: 'submitted',
-      submissions: 28,
-      totalStudents: 30,
-      description: 'Tee tehtävät 1-15 sivulta 87'
+  // Fetch all homework from API
+  const { data: homeworkList = [], isLoading } = useQuery({
+    queryKey: ['admin-homework'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/assignments');
+      if (!response.ok) throw new Error('Failed to fetch homework');
+      return response.json();
     },
-    {
-      id: '2',
-      title: 'Englannin essee: My Summer Holiday',
-      subject: 'Englanti',
-      teacher: 'Anna Korhonen',
-      class: '8B',
-      dueDate: '2026-04-28',
-      status: 'pending',
-      submissions: 15,
-      totalStudents: 25,
-      description: 'Kirjoita 200-300 sanan essee kesälomastasi'
-    },
-    {
-      id: '3',
-      title: 'Fysiikan laboratoriotyö',
-      subject: 'Fysiikka',
-      teacher: 'Pekka Nieminen',
-      class: '9B',
-      dueDate: '2026-04-20',
-      status: 'graded',
-      submissions: 22,
-      totalStudents: 22,
-      grade: '8.5',
-      description: 'Tee laboratoriotyö ja kirjoita raportti'
-    },
-    {
-      id: '4',
-      title: 'Historian tutkielma',
-      subject: 'Historia',
-      teacher: 'Laura Mäkinen',
-      class: '9A',
-      dueDate: '2026-04-22',
-      status: 'late',
-      submissions: 25,
-      totalStudents: 30,
-      description: 'Tutki toisen maailmansodan vaikutuksia Suomeen'
-    },
-    {
-      id: '5',
-      title: 'Kemian tehtävät',
-      subject: 'Kemia',
-      teacher: 'Kari Virtanen',
-      class: '8A',
-      dueDate: '2026-04-26',
-      status: 'pending',
-      submissions: 10,
-      totalStudents: 28,
-      description: 'Tee tehtävät 1-20 työkirjasta'
-    }
-  ];
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {

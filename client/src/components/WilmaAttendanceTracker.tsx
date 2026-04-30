@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,30 +29,34 @@ export default function WilmaAttendanceTracker() {
   const [aiInsights, setAiInsights] = useState<any>(null);
   const { toast } = useToast();
 
-  // Mock data with more realistic entries
-  const attendance: AttendanceRecord[] = [
-    { id: "1", studentName: "Matti Virtanen", studentId: "S001", date: "2026-04-28", status: "present", hours: 0, subject: "Kaikki tunnit", class: "9A" },
-    { id: "2", studentName: "Emma Korhonen", studentId: "S002", date: "2026-04-28", status: "present", hours: 0, subject: "Kaikki tunnit", class: "9A" },
-    { id: "3", studentName: "Ville Mäkinen", studentId: "S003", date: "2026-04-28", status: "late", hours: 1, reason: "Myöhästyi bussista", subject: "Matematiikka", class: "9A" },
-    { id: "4", studentName: "Sofia Nieminen", studentId: "S004", date: "2026-04-28", status: "absent", hours: 6, reason: "Sairaana", subject: "Kaikki tunnit", class: "9B" },
-    { id: "5", studentName: "Eetu Lahtinen", studentId: "S005", date: "2026-04-28", status: "excused", hours: 3, reason: "Lääkärikäynti", subject: "Iltapäivän tunnit", class: "9B" },
-    { id: "6", studentName: "Aino Salminen", studentId: "S006", date: "2026-04-28", status: "present", hours: 0, subject: "Kaikki tunnit", class: "9A" },
-    { id: "7", studentName: "Oskari Heikkinen", studentId: "S007", date: "2026-04-27", status: "late", hours: 1, reason: "Unohti herätyskellon", subject: "Englanti", class: "9A" },
-    { id: "8", studentName: "Liisa Koskinen", studentId: "S008", date: "2026-04-27", status: "present", hours: 0, subject: "Kaikki tunnit", class: "9B" },
-    { id: "9", studentName: "Mikko Järvinen", studentId: "S009", date: "2026-04-27", status: "absent", hours: 6, reason: "Flunssa", subject: "Kaikki tunnit", class: "9A" },
-    { id: "10", studentName: "Ella Rantanen", studentId: "S010", date: "2026-04-26", status: "present", hours: 0, subject: "Kaikki tunnit", class: "9B" },
-  ];
+  // Get current user from auth context
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const studentId = user.id || '';
 
-  const classes = ["all", "9A", "9B", "9C"];
+  // Fetch attendance from API
+  const { data: attendance = [], isLoading } = useQuery({
+    queryKey: ['wilma-attendance', studentId],
+    queryFn: async () => {
+      if (!studentId) return [];
+      const response = await fetch(`/api/wilma/attendance/${studentId}`);
+      if (!response.ok) throw new Error('Failed to fetch attendance');
+      return response.json();
+    },
+    enabled: !!studentId,
+  });
+
+  const classes = ["all", ...Array.from(new Set(attendance.map((a: AttendanceRecord) => a.class).filter(Boolean)))];
 
   const stats = {
-    present: attendance.filter(a => a.status === 'present').length,
-    absent: attendance.filter(a => a.status === 'absent').length,
-    late: attendance.filter(a => a.status === 'late').length,
-    excused: attendance.filter(a => a.status === 'excused').length,
-    totalHours: attendance.reduce((sum, a) => sum + a.hours, 0),
-    percentage: ((attendance.filter(a => a.status === 'present').length / attendance.length) * 100).toFixed(1),
-    totalStudents: new Set(attendance.map(a => a.studentId)).size,
+    present: attendance.filter((a: AttendanceRecord) => a.status === 'present').length,
+    absent: attendance.filter((a: AttendanceRecord) => a.status === 'absent').length,
+    late: attendance.filter((a: AttendanceRecord) => a.status === 'late').length,
+    excused: attendance.filter((a: AttendanceRecord) => a.status === 'excused').length,
+    totalHours: attendance.reduce((sum: number, a: AttendanceRecord) => sum + a.hours, 0),
+    percentage: attendance.length > 0 
+      ? ((attendance.filter((a: AttendanceRecord) => a.status === 'present').length / attendance.length) * 100).toFixed(1)
+      : '0.0',
+    totalStudents: new Set(attendance.map((a: AttendanceRecord) => a.studentId)).size,
   };
 
   const getStatusIcon = (status: string) => {

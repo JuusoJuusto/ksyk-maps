@@ -34,6 +34,37 @@ export default function WilmaTimetable() {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
+  // Get current user from auth context
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = user.id || '';
+
+  // Fetch schedule from API
+  const { data: weekData = [], isLoading } = useQuery({
+    queryKey: ['wilma-schedule', userId, currentWeek],
+    queryFn: async () => {
+      if (!userId) return [];
+      const response = await fetch(`/api/wilma/schedules/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch schedule');
+      const schedules = await response.json();
+      
+      // Transform API data to component format
+      const days = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'];
+      return days.map((day, index) => ({
+        day,
+        date: new Date(Date.now() + (index + currentWeek * 7) * 24 * 60 * 60 * 1000).toLocaleDateString('fi-FI'),
+        lessons: schedules.filter((s: any) => s.dayOfWeek === index).map((s: any) => ({
+          id: s.id,
+          time: `${s.startTime}-${s.endTime}`,
+          subject: s.subject,
+          teacher: s.teacher || '',
+          room: s.room || '',
+          color: s.color || '#003d82',
+        }))
+      }));
+    },
+    enabled: !!userId,
+  });
+
   // Settings state
   const [settings, setSettings] = useState({
     showTeacher: true,
@@ -55,57 +86,63 @@ export default function WilmaTimetable() {
     dayIndex: 0,
   });
 
-  // Mock data - replace with real API data
-  const weekData: TimetableDay[] = [
-    {
-      day: "Maanantai",
-      date: "22.4.2026",
-      lessons: [
-        { id: "1", time: "08:00-09:30", subject: "Matematiikka", teacher: "M. Virtanen", room: "A201", color: "#003d82" },
-        { id: "2", time: "09:45-11:15", subject: "Englanti", teacher: "A. Korhonen", room: "B105", color: "#7cb342" },
-        { id: "3", time: "12:00-13:30", subject: "Fysiikka", teacher: "P. Nieminen", room: "C301", color: "#f57c00" },
-        { id: "4", time: "13:45-15:15", subject: "Historia", teacher: "L. Mäkinen", room: "A105", color: "#5e35b1" },
-      ],
+  // Delete lesson mutation
+  const deleteLesson = useMutation({
+    mutationFn: async (lessonId: string) => {
+      const response = await fetch(`/api/wilma/schedules/${lessonId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete lesson');
     },
-    {
-      day: "Tiistai",
-      date: "23.4.2026",
-      lessons: [
-        { id: "5", time: "08:00-09:30", subject: "Kemia", teacher: "S. Lahtinen", room: "C201", color: "#00897b" },
-        { id: "6", time: "09:45-11:15", subject: "Ruotsi", teacher: "K. Andersson", room: "B203", color: "#d32f2f" },
-        { id: "7", time: "12:00-13:30", subject: "Liikunta", teacher: "J. Koskinen", room: "Sali", color: "#1976d2" },
-        { id: "8", time: "13:45-15:15", subject: "Musiikki", teacher: "E. Virtanen", room: "Musiikkiluokka", color: "#c2185b" },
-      ],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wilma-schedule'] });
+      toast({
+        title: "🗑️ Poistettu",
+        description: "Oppitunti poistettu",
+      });
     },
-    {
-      day: "Keskiviikko",
-      date: "24.4.2026",
-      lessons: [
-        { id: "9", time: "08:00-09:30", subject: "Matematiikka", teacher: "M. Virtanen", room: "A201", color: "#003d82" },
-        { id: "10", time: "09:45-11:15", subject: "Biologia", teacher: "T. Heikkinen", room: "C102", color: "#388e3c" },
-        { id: "11", time: "12:00-13:30", subject: "Maantieto", teacher: "R. Salo", room: "A304", color: "#f57c00" },
-      ],
+  });
+
+  // Save lesson mutation
+  const saveLesson = useMutation({
+    mutationFn: async (lessonData: any) => {
+      const [startTime, endTime] = lessonData.time.split('-');
+      const payload = {
+        userId,
+        dayOfWeek: lessonData.dayIndex,
+        startTime,
+        endTime,
+        subject: lessonData.subject,
+        teacher: lessonData.teacher,
+        room: lessonData.room,
+        color: lessonData.color,
+      };
+
+      if (editingLesson) {
+        const response = await fetch(`/api/wilma/schedules/${editingLesson.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error('Failed to update lesson');
+      } else {
+        const response = await fetch('/api/wilma/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error('Failed to create lesson');
+      }
     },
-    {
-      day: "Torstai",
-      date: "25.4.2026",
-      lessons: [
-        { id: "12", time: "08:00-09:30", subject: "Englanti", teacher: "A. Korhonen", room: "B105", color: "#7cb342" },
-        { id: "13", time: "09:45-11:15", subject: "Fysiikka", teacher: "P. Nieminen", room: "C301", color: "#f57c00" },
-        { id: "14", time: "12:00-13:30", subject: "Äidinkieli", teacher: "M. Lehtonen", room: "A102", color: "#5e35b1" },
-        { id: "15", time: "13:45-15:15", subject: "Kuvataide", teacher: "L. Virtanen", room: "Taideluokka", color: "#e91e63" },
-      ],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wilma-schedule'] });
+      toast({
+        title: "✅ Tallennettu",
+        description: editingLesson ? "Oppitunti päivitetty" : "Uusi oppitunti lisätty",
+      });
+      setShowEditDialog(false);
     },
-    {
-      day: "Perjantai",
-      date: "26.4.2026",
-      lessons: [
-        { id: "16", time: "08:00-09:30", subject: "Historia", teacher: "L. Mäkinen", room: "A105", color: "#5e35b1" },
-        { id: "17", time: "09:45-11:15", subject: "Matematiikka", teacher: "M. Virtanen", room: "A201", color: "#003d82" },
-        { id: "18", time: "12:00-13:30", subject: "Uskonto", teacher: "P. Korhonen", room: "A203", color: "#795548" },
-      ],
-    },
-  ];
+  });
 
   const nextWeek = () => setCurrentWeek(prev => prev + 1);
   const prevWeek = () => setCurrentWeek(prev => prev - 1);
@@ -138,21 +175,20 @@ export default function WilmaTimetable() {
   };
 
   const handleSaveLesson = () => {
-    // TODO: Implement API call to save lesson
-    toast({
-      title: "✅ Tallennettu",
-      description: editingLesson ? "Oppitunti päivitetty" : "Uusi oppitunti lisätty",
-    });
-    setShowEditDialog(false);
+    if (!lessonForm.subject || !lessonForm.time) {
+      toast({
+        title: "❌ Virhe",
+        description: "Oppiaine ja aika ovat pakollisia",
+        variant: "destructive",
+      });
+      return;
+    }
+    saveLesson.mutate(lessonForm);
   };
 
   const handleDeleteLesson = (lessonId: string) => {
     if (confirm("Haluatko varmasti poistaa tämän oppitunnin?")) {
-      // TODO: Implement API call to delete lesson
-      toast({
-        title: "🗑️ Poistettu",
-        description: "Oppitunti poistettu",
-      });
+      deleteLesson.mutate(lessonId);
     }
   };
 

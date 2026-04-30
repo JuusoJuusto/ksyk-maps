@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,10 +71,14 @@ const DAYS = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'];
 
 export default function ScheduleBuilderV2() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Get current user from auth context
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = user.id || '';
   
   // State
   const [timeSlots] = useState<TimeSlot[]>(DEFAULT_TIME_SLOTS);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ day: number; timeSlotId: string } | null>(null);
   const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -91,30 +96,100 @@ export default function ScheduleBuilderV2() {
     color: '#003d82',
   });
 
-  // Load data on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('schedule_builder_v2');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setLessons(data.lessons || []);
-      } catch (e) {
-        console.error('Failed to load schedule:', e);
-      }
-    }
-    
-    const savedTemplates = localStorage.getItem('schedule_templates_v2');
-    if (savedTemplates) {
-      try {
-        setTemplates(JSON.parse(savedTemplates));
-      } catch (e) {
-        console.error('Failed to load templates:', e);
-      }
-    }
-  }, []);
+  // Fetch lessons from API
+  const { data: lessons = [], isLoading } = useQuery({
+    queryKey: ['schedule-builder', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const response = await fetch(`/api/wilma/schedules/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch schedules');
+      const schedules = await response.json();
+      
+      // Transform API data to component format
+      return schedules.map((s: any) => ({
+        id: s.id,
+        timeSlotId: s.timeSlotId || '1',
+        day: s.dayOfWeek,
+        subject: s.subject,
+        teacher: s.teacher || '',
+        room: s.room || '',
+        group: s.group || '',
+        color: s.color || '#003d82',
+      }));
+    },
+    enabled: !!userId,
+  });
+
+  // Create lesson mutation
+  const createLesson = useMutation({
+    mutationFn: async (lessonData: any) => {
+      const response = await fetch('/api/wilma/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          dayOfWeek: lessonData.day,
+          timeSlotId: lessonData.timeSlotId,
+          subject: lessonData.subject,
+          teacher: lessonData.teacher,
+          room: lessonData.room,
+          group: lessonData.group,
+          color: lessonData.color,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to create lesson');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule-builder'] });
+      toast({
+        title: "✅ Lisätty",
+        description: "Uusi oppitunti lisätty",
+      });
+    },
+  });
+
+  // Update lesson mutation
+  const updateLesson = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await fetch(`/api/wilma/schedules/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to update lesson');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule-builder'] });
+      toast({
+        title: "✅ Päivitetty",
+        description: "Oppitunti päivitetty",
+      });
+    },
+  });
+
+  // Delete lesson mutation
+  const deleteLesson = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/wilma/schedules/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete lesson');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule-builder'] });
+      toast({
+        title: "🗑️ Poistettu",
+        description: "Oppitunti poistettu",
+      });
+    },
+  });
 
   // Detect conflicts whenever lessons change
   useEffect(() => {
+    if (!lessons || lessons.length === 0) return;
+    
     const foundConflicts: string[] = [];
     
     // Teacher conflicts
@@ -158,13 +233,23 @@ export default function ScheduleBuilderV2() {
     setConflicts(foundConflicts);
   }, [lessons, timeSlots]);
 
-  // Save schedule
+  // Load templates on mount
+  useEffect(() => {
+    const savedTemplates = localStorage.getItem('schedule_templates_v2');
+    if (savedTemplates) {
+      try {
+        setTemplates(JSON.parse(savedTemplates));
+      } catch (e) {
+        console.error('Failed to load templates:', e);
+      }
+    }
+  }, []);
+
+  // Save schedule (no longer needed - auto-saved via API)
   const saveSchedule = () => {
-    const data = { timeSlots, lessons };
-    localStorage.setItem('schedule_builder_v2', JSON.stringify(data));
     toast({
       title: "✅ Tallennettu",
-      description: "Lukujärjestys tallennettu onnistuneesti",
+      description: "Lukujärjestys tallennettu automaattisesti",
     });
   };
 
@@ -209,26 +294,16 @@ export default function ScheduleBuilderV2() {
       return;
     }
 
+    const lessonData = {
+      ...lessonForm,
+      day: selectedCell.day,
+      timeSlotId: selectedCell.timeSlotId,
+    };
+
     if (editingLesson) {
-      setLessons(lessons.map(l => 
-        l.id === editingLesson.id ? { ...l, ...lessonForm } : l
-      ));
-      toast({
-        title: "✅ Päivitetty",
-        description: "Oppitunti päivitetty",
-      });
+      updateLesson.mutate({ id: editingLesson.id, data: lessonData });
     } else {
-      const newLesson: Lesson = {
-        id: Date.now().toString(),
-        day: selectedCell.day,
-        timeSlotId: selectedCell.timeSlotId,
-        ...lessonForm,
-      };
-      setLessons([...lessons, newLesson]);
-      toast({
-        title: "✅ Lisätty",
-        description: "Uusi oppitunti lisätty",
-      });
+      createLesson.mutate(lessonData);
     }
     
     setShowLessonDialog(false);
@@ -236,38 +311,42 @@ export default function ScheduleBuilderV2() {
   };
 
   // Delete lesson
-  const deleteLesson = () => {
+  const deleteLessonHandler = () => {
     if (!editingLesson) return;
     
-    setLessons(lessons.filter(l => l.id !== editingLesson.id));
+    deleteLesson.mutate(editingLesson.id);
     setShowLessonDialog(false);
     setEditingLesson(null);
-    toast({
-      title: "🗑️ Poistettu",
-      description: "Oppitunti poistettu",
-    });
   };
 
   // Copy lesson to all days
   const copyLessonToAllDays = (lesson: Lesson) => {
-    const newLessons: Lesson[] = [];
+    const newLessons: any[] = [];
     for (let day = 0; day < 5; day++) {
       if (day !== lesson.day) {
         const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === lesson.timeSlotId);
         if (!existingLesson) {
           newLessons.push({
-            ...lesson,
-            id: `${Date.now()}-${day}`,
+            subject: lesson.subject,
+            teacher: lesson.teacher,
+            room: lesson.room,
+            group: lesson.group,
+            color: lesson.color,
             day,
+            timeSlotId: lesson.timeSlotId,
           });
         }
       }
     }
-    setLessons([...lessons, ...newLessons]);
-    toast({
-      title: "📋 Kopioitu",
-      description: `Oppitunti kopioitu ${newLessons.length} päivälle`,
-    });
+    
+    // Create all lessons
+    Promise.all(newLessons.map(l => createLesson.mutateAsync(l)))
+      .then(() => {
+        toast({
+          title: "📋 Kopioitu",
+          description: `Oppitunti kopioitu ${newLessons.length} päivälle`,
+        });
+      });
   };
 
   // Drag handlers
@@ -293,13 +372,13 @@ export default function ScheduleBuilderV2() {
       return;
     }
     
-    setLessons(lessons.map(l => 
-      l.id === draggedLesson.id ? { ...l, day, timeSlotId } : l
-    ));
-    
-    toast({
-      title: "✅ Siirretty",
-      description: "Oppitunti siirretty uuteen paikkaan",
+    updateLesson.mutate({
+      id: draggedLesson.id,
+      data: {
+        ...draggedLesson,
+        day,
+        timeSlotId,
+      }
     });
     
     setDraggedLesson(null);
@@ -335,13 +414,16 @@ export default function ScheduleBuilderV2() {
       }
     }
     
-    setLessons(template.lessons);
-    setShowTemplateDialog(false);
-    
-    toast({
-      title: "✅ Pohja ladattu",
-      description: `Lukujärjestyspohja "${template.name}" ladattu`,
-    });
+    // Delete all current lessons and create new ones from template
+    Promise.all(lessons.map(l => deleteLesson.mutateAsync(l.id)))
+      .then(() => Promise.all(template.lessons.map(l => createLesson.mutateAsync(l))))
+      .then(() => {
+        setShowTemplateDialog(false);
+        toast({
+          title: "✅ Pohja ladattu",
+          description: `Lukujärjestyspohja "${template.name}" ladattu`,
+        });
+      });
   };
 
   // Delete template
@@ -635,7 +717,7 @@ export default function ScheduleBuilderV2() {
             <div className="flex gap-2">
               {editingLesson && (
                 <>
-                  <Button variant="destructive" onClick={deleteLesson}>
+                  <Button variant="destructive" onClick={deleteLessonHandler}>
                     <Trash2 className="w-4 h-4 mr-1" />
                     Poista
                   </Button>

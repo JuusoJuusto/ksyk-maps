@@ -30,37 +30,20 @@ export default function WilmaHomework() {
   const [plagiarismResultsOpen, setPlagiarismResultsOpen] = useState(false);
   const [plagiarismResults, setPlagiarismResults] = useState<any>(null);
 
+  // Get current user from auth context
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const studentId = user.id || '';
+
   // Fetch homework from API
   const { data: homework = [], isLoading } = useQuery({
-    queryKey: ['wilma-homework'],
+    queryKey: ['wilma-homework', studentId],
     queryFn: async () => {
-      try {
-        const response = await fetch('/api/wilma/homework');
-        if (!response.ok) {
-          // Return mock data if API fails
-          return [
-            { id: "1", title: "Matematiikan kotitehtävät s. 45-47", subject: "Matematiikka", description: "Ratkaise tehtävät 1-15", dueDate: "25.04.2026", status: "pending", teacher: "M. Virtanen", priority: "high" },
-            { id: "2", title: "Englannin essee", subject: "Englanti", description: "Kirjoita 300 sanan essee aiheesta 'My Future'", dueDate: "28.04.2026", status: "pending", teacher: "A. Korhonen", priority: "medium" },
-            { id: "3", title: "Fysiikan laboratorioraportti", subject: "Fysiikka", description: "Kirjoita raportti viime viikon kokeesta", dueDate: "23.04.2026", status: "overdue", teacher: "P. Nieminen", priority: "high" },
-            { id: "4", title: "Historian tenttiin valmistautuminen", subject: "Historia", description: "Lue luvut 5-7 ja tee muistiinpanot", dueDate: "30.04.2026", status: "pending", teacher: "L. Mäkinen", priority: "medium" },
-            { id: "5", title: "Kemian tehtävät", subject: "Kemia", description: "Tehtävät 20-25 työkirjasta", dueDate: "20.04.2026", status: "submitted", teacher: "S. Lahtinen", priority: "low" },
-            { id: "6", title: "Ruotsin sanakoe", subject: "Ruotsi", description: "Opettele sanat kappaleesta 8", dueDate: "18.04.2026", status: "graded", grade: "9", teacher: "K. Andersson", priority: "low" },
-          ];
-        }
-        return response.json();
-      } catch (error) {
-        // Return mock data on error
-        return [
-          { id: "1", title: "Matematiikan kotitehtävät s. 45-47", subject: "Matematiikka", description: "Ratkaise tehtävät 1-15", dueDate: "25.04.2026", status: "pending", teacher: "M. Virtanen", priority: "high" },
-          { id: "2", title: "Englannin essee", subject: "Englanti", description: "Kirjoita 300 sanan essee aiheesta 'My Future'", dueDate: "28.04.2026", status: "pending", teacher: "A. Korhonen", priority: "medium" },
-          { id: "3", title: "Fysiikan laboratorioraportti", subject: "Fysiikka", description: "Kirjoita raportti viime viikon kokeesta", dueDate: "23.04.2026", status: "overdue", teacher: "P. Nieminen", priority: "high" },
-          { id: "4", title: "Historian tenttiin valmistautuminen", subject: "Historia", description: "Lue luvut 5-7 ja tee muistiinpanot", dueDate: "30.04.2026", status: "pending", teacher: "L. Mäkinen", priority: "medium" },
-          { id: "5", title: "Kemian tehtävät", subject: "Kemia", description: "Tehtävät 20-25 työkirjasta", dueDate: "20.04.2026", status: "submitted", teacher: "S. Lahtinen", priority: "low" },
-          { id: "6", title: "Ruotsin sanakoe", subject: "Ruotsi", description: "Opettele sanat kappaleesta 8", dueDate: "18.04.2026", status: "graded", grade: "9", teacher: "K. Andersson", priority: "low" },
-        ];
-      }
+      if (!studentId) return [];
+      const response = await fetch(`/api/wilma/assignments/${studentId}`);
+      if (!response.ok) throw new Error('Failed to fetch homework');
+      return response.json();
     },
-    retry: false
+    enabled: !!studentId,
   });
 
   // Submit homework mutation

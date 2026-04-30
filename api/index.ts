@@ -2003,6 +2003,209 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // PUT /wilma/schedules/:id - Update schedule
+      if (scheduleMatch && req.method === 'PUT') {
+        const id = scheduleMatch[1];
+        console.log('🔵 PUT /api/wilma/schedules/' + id);
+        try {
+          const schedule = await storage.updateWilmaSchedule(id, req.body);
+          return res.status(200).json(schedule);
+        } catch (error: any) {
+          console.error('❌ Error updating schedule:', error);
+          return res.status(500).json({ message: "Failed to update schedule" });
+        }
+      }
+
+      // ==================== ATTENDANCE ENDPOINTS ====================
+      
+      // GET /wilma/attendance - Get attendance records
+      if (apiPath === '/wilma/attendance' || apiPath.startsWith('/wilma/attendance?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/attendance called');
+          try {
+            const studentId = req.query.studentId as string | undefined;
+            const classId = req.query.classId as string | undefined;
+            const date = req.query.date as string | undefined;
+            
+            if (studentId) {
+              const attendance = await storage.getWilmaAttendance(studentId);
+              return res.status(200).json(attendance);
+            } else if (classId) {
+              const attendance = await storage.getWilmaAttendanceByClass(classId, date);
+              return res.status(200).json(attendance);
+            } else {
+              return res.status(400).json({ message: "studentId or classId is required" });
+            }
+          } catch (error: any) {
+            console.error('❌ Error getting attendance:', error);
+            return res.status(500).json({ message: "Failed to fetch attendance" });
+          }
+        }
+      }
+
+      // POST /wilma/attendance - Create attendance record
+      if (apiPath === '/wilma/attendance' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/attendance called');
+        try {
+          const attendance = await storage.createWilmaAttendance(req.body);
+          return res.status(201).json(attendance);
+        } catch (error: any) {
+          console.error('❌ Error creating attendance:', error);
+          return res.status(500).json({ message: "Failed to create attendance" });
+        }
+      }
+
+      // PUT /wilma/attendance/:id - Update attendance record
+      const attendanceMatch = apiPath.match(/^\/wilma\/attendance\/([^\/]+)$/);
+      if (attendanceMatch && req.method === 'PUT') {
+        const id = attendanceMatch[1];
+        console.log('🔵 PUT /api/wilma/attendance/' + id);
+        try {
+          const attendance = await storage.updateWilmaAttendance(id, req.body);
+          return res.status(200).json(attendance);
+        } catch (error: any) {
+          console.error('❌ Error updating attendance:', error);
+          return res.status(500).json({ message: "Failed to update attendance" });
+        }
+      }
+
+      // DELETE /wilma/attendance/:id - Delete attendance record
+      if (attendanceMatch && req.method === 'DELETE') {
+        const id = attendanceMatch[1];
+        console.log('🔵 DELETE /api/wilma/attendance/' + id);
+        try {
+          await storage.deleteWilmaAttendance(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting attendance:', error);
+          return res.status(500).json({ message: "Failed to delete attendance" });
+        }
+      }
+
+      // ==================== GRADES ENDPOINTS ====================
+      
+      // GET /wilma/grades - Get grades
+      if (apiPath === '/wilma/grades' || apiPath.startsWith('/wilma/grades?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/grades called');
+          try {
+            const studentId = req.query.studentId as string;
+            if (!studentId) {
+              return res.status(400).json({ message: "studentId is required" });
+            }
+            const grades = await storage.getWilmaGrades(studentId);
+            return res.status(200).json(grades);
+          } catch (error: any) {
+            console.error('❌ Error getting grades:', error);
+            return res.status(500).json({ message: "Failed to fetch grades" });
+          }
+        }
+      }
+
+      // POST /wilma/grades - Create grade
+      if (apiPath === '/wilma/grades' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/grades called');
+        try {
+          const grade = await storage.createWilmaGrade(req.body);
+          return res.status(201).json(grade);
+        } catch (error: any) {
+          console.error('❌ Error creating grade:', error);
+          return res.status(500).json({ message: "Failed to create grade" });
+        }
+      }
+
+      // PUT /wilma/grades/:id - Update grade
+      const gradeMatch = apiPath.match(/^\/wilma\/grades\/([^\/]+)$/);
+      if (gradeMatch && req.method === 'PUT') {
+        const id = gradeMatch[1];
+        console.log('🔵 PUT /api/wilma/grades/' + id);
+        try {
+          const grade = await storage.updateWilmaGrade(id, req.body);
+          return res.status(200).json(grade);
+        } catch (error: any) {
+          console.error('❌ Error updating grade:', error);
+          return res.status(500).json({ message: "Failed to update grade" });
+        }
+      }
+
+      // DELETE /wilma/grades/:id - Delete grade
+      if (gradeMatch && req.method === 'DELETE') {
+        const id = gradeMatch[1];
+        console.log('🔵 DELETE /api/wilma/grades/' + id);
+        try {
+          await storage.deleteWilmaGrade(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting grade:', error);
+          return res.status(500).json({ message: "Failed to delete grade" });
+        }
+      }
+
+      // ==================== ASSIGNMENTS ENDPOINTS ====================
+      
+      // GET /wilma/assignments - Get assignments
+      if (apiPath === '/wilma/assignments' || apiPath.startsWith('/wilma/assignments?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/assignments called');
+          try {
+            const studentId = req.query.studentId as string | undefined;
+            const classId = req.query.classId as string | undefined;
+            
+            if (studentId) {
+              const assignments = await storage.getWilmaAssignments(studentId);
+              return res.status(200).json(assignments);
+            } else if (classId) {
+              const assignments = await storage.getWilmaAssignmentsByClass(classId);
+              return res.status(200).json(assignments);
+            } else {
+              return res.status(400).json({ message: "studentId or classId is required" });
+            }
+          } catch (error: any) {
+            console.error('❌ Error getting assignments:', error);
+            return res.status(500).json({ message: "Failed to fetch assignments" });
+          }
+        }
+      }
+
+      // POST /wilma/assignments - Create assignment
+      if (apiPath === '/wilma/assignments' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/assignments called');
+        try {
+          const assignment = await storage.createWilmaAssignment(req.body);
+          return res.status(201).json(assignment);
+        } catch (error: any) {
+          console.error('❌ Error creating assignment:', error);
+          return res.status(500).json({ message: "Failed to create assignment" });
+        }
+      }
+
+      // PUT /wilma/assignments/:id - Update assignment
+      const assignmentMatch = apiPath.match(/^\/wilma\/assignments\/([^\/]+)$/);
+      if (assignmentMatch && req.method === 'PUT') {
+        const id = assignmentMatch[1];
+        console.log('🔵 PUT /api/wilma/assignments/' + id);
+        try {
+          const assignment = await storage.updateWilmaAssignment(id, req.body);
+          return res.status(200).json(assignment);
+        } catch (error: any) {
+          console.error('❌ Error updating assignment:', error);
+          return res.status(500).json({ message: "Failed to update assignment" });
+        }
+      }
+
+      // DELETE /wilma/assignments/:id - Delete assignment
+      if (assignmentMatch && req.method === 'DELETE') {
+        const id = assignmentMatch[1];
+        console.log('🔵 DELETE /api/wilma/assignments/' + id);
+        try {
+          await storage.deleteWilmaAssignment(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting schedule:', error);
+          return res.status(500).json({ message: "Failed to delete schedule" });
+        }
+      }
+
       // GET /wilma/messages - Get all messages (with optional filters)
       if (apiPath === '/wilma/messages' || apiPath.startsWith('/wilma/messages?')) {
         if (req.method === 'GET') {
