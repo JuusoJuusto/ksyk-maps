@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, User, Users, Mail, Phone, MapPin, Link as LinkIcon, Home } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import BulkEmailConfigDialog, { BulkEmailConfig } from "./BulkEmailConfigDialog";
 
 export default function PeopleManager() {
   const [, setLocation] = useLocation();
@@ -19,11 +20,12 @@ export default function PeopleManager() {
 
   // Bulk email mutation
   const bulkEmailMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (config: BulkEmailConfig) => {
       const response = await fetch('/api/wilma/send-bulk-emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify(config)
       });
       if (!response.ok) {
         const error = await response.json();
@@ -407,6 +409,15 @@ export default function PeopleManager() {
           </Card>
         </div>
       )}
+
+      {/* Bulk Email Configuration Dialog */}
+      <BulkEmailConfigDialog
+        open={showBulkEmailDialog}
+        onOpenChange={setShowBulkEmailDialog}
+        onSend={(config) => bulkEmailMutation.mutate(config)}
+        students={students}
+        isLoading={bulkEmailMutation.isPending}
+      />
     </div>
   );
 }

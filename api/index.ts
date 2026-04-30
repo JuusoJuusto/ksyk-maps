@@ -1300,11 +1300,29 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         const { username, password } = req.body;
         console.log('📝 Username:', username);
         
+        // Check rate limit FIRST
+        const { checkRateLimit, recordLoginAttempt } = await import('../server/rateLimiter.js');
+        const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const rateLimit = await checkRateLimit(username, ipAddress as string);
+        
+        if (!rateLimit.allowed) {
+          console.log(`🔒 Rate limit exceeded for ${username}`);
+          return res.status(429).json({ 
+            message: rateLimit.message || "Too many login attempts",
+            lockedUntil: rateLimit.lockedUntil
+          });
+        }
+        
+        if (rateLimit.message) {
+          console.log(`⚠️ ${rateLimit.message}`);
+        }
+        
         // Validate input with Zod
         const { wilmaLoginSchema } = await import('../shared/validationSchemas.js');
         const validation = wilmaLoginSchema.safeParse(req.body);
         if (!validation.success) {
           console.log('❌ Validation failed:', validation.error.errors);
+          await recordLoginAttempt(username, false, ipAddress as string);
           return res.status(400).json({ 
             message: "Invalid input", 
             errors: validation.error.errors 
@@ -1313,6 +1331,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         
         if (!username || !password) {
           console.log('❌ Missing credentials');
+          await recordLoginAttempt(username, false, ipAddress as string);
           return res.status(400).json({ message: "Username and password required" });
         }
 
@@ -1323,6 +1342,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           
           if (!wilmaUser) {
             console.log('❌ User not found:', username);
+            await recordLoginAttempt(username, false, ipAddress as string);
             return res.status(401).json({ message: "Invalid username or password" });
           }
           
@@ -1373,15 +1393,20 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             console.log('❌ Password mismatch - tried both hashed and plain text');
             console.log('❌ Stored password:', wilmaUser.password?.substring(0, 20) + '...');
             console.log('❌ Input password:', password?.substring(0, 20) + '...');
+            await recordLoginAttempt(username, false, ipAddress as string);
             return res.status(401).json({ message: "Invalid username or password" });
           }
 
           if (!wilmaUser.isActive) {
             console.log('❌ Account is disabled');
+            await recordLoginAttempt(username, false, ipAddress as string);
             return res.status(403).json({ message: "Account is disabled" });
           }
 
           console.log('✅ Login successful for:', username);
+          // Record successful login
+          await recordLoginAttempt(username, true, ipAddress as string);
+          
           // Return user without password but include isTemporaryPassword flag
           const { password: _, ...userWithoutPassword } = wilmaUser;
           return res.status(200).json({
@@ -1390,6 +1415,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           });
         } catch (error: any) {
           console.error('❌ Login error:', error);
+          await recordLoginAttempt(username, false, ipAddress as string);
           return res.status(500).json({ message: "Login failed" });
         }
       }
@@ -1753,50 +1779,68 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         try {
           const { sendWilmaStudentWelcomeEmail } = await import('../server/emailService.js');
           
-          // Get all students with temporary passwords
-          const students = await storage.getWilmaUsers('student');
-          console.log(`📊 Found ${students.length} students`);
+          // Get filter config from request body
+          const { gradeLevel, newStudentsOnly, includeParents, studentClass } = req.body || {};
           
-          const studentsWithTempPasswords = students.filter((user: any) => 
-            user.email && user.password && user.isTemporaryPassword
-          );
+          console.log('📋 Bulk email config:', { gradeLevel, newStudentsOnly, includeParents, studentClass });
           
-          console.log(`📧 Found ${studentsWithTempPasswords.length} students with temporary passwords`);
+          // Get all students
+          let students = await storage.getWilmaUsers('student');
+          console.log(`📊 Found ${students.length} total students`);
+          
+          // Apply filters
+          if (gradeLevel) {
+            students = students.filter((s: any) => s.studentClass?.startsWith(gradeLevel));
+            console.log(`🔍 After grade filter: ${students.length} students`);
+          }
+          
+          if (studentClass) {
+            students = students.filter((s: any) => s.studentClass === studentClass);
+            console.log(`🔍 After class filter: ${students.length} students`);
+          }
+          
+          // Filter by temporary password if requested
+          if (newStudentsOnly) {
+            students = students.filter((s: any) => s.email && s.password && s.isTemporaryPassword);
+            console.log(`🔍 After new students filter: ${students.length} students`);
+          } else {
+            // Just ensure they have email and password
+            students = students.filter((s: any) => s.email && s.password);
+            console.log(`🔍 After email/password filter: ${students.length} students`);
+          }
           
           let sent = 0;
           let failed = 0;
           const errors: string[] = [];
           
-          for (const student of studentsWithTempPasswords) {
-            if (student.email && student.password && student.isTemporaryPassword) {
-              const parentEmails = [];
+          for (const student of students) {
+            const parentEmails = [];
+            if (includeParents) {
               if (student.parent1Email) parentEmails.push(student.parent1Email);
               if (student.parent2Email) parentEmails.push(student.parent2Email);
+            }
+            
+            try {
+              const result = await sendWilmaStudentWelcomeEmail(
+                student.email,
+                `${student.firstName} ${student.lastName}`,
+                student.password,
+                student.studentId || student.username || student.email,
+                parentEmails.length > 0 ? parentEmails : undefined
+              );
               
-              try {
-                const result = await sendWilmaStudentWelcomeEmail(
-                  student.email,
-                  `${student.firstName} ${student.lastName}`,
-                  student.password,
-                  student.studentId || student.username || student.email,
-                  parentEmails.length > 0 ? parentEmails : undefined
-                );
-                
-                if (result.success) {
-                  sent++;
-                  console.log(`✅ Email sent to ${student.email}`);
-                } else {
-                  failed++;
-                  errors.push(`${student.email}: ${result.error || 'Unknown error'}`);
-                  console.error(`❌ Failed to send email to ${student.email}:`, result.error);
-                }
-              } catch (emailError: any) {
-                console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+              if (result.success) {
+                sent++;
+                console.log(`✅ Email sent to ${student.email}${parentEmails.length > 0 ? ` and ${parentEmails.length} parent(s)` : ''}`);
+              } else {
                 failed++;
-                errors.push(`${student.email}: ${emailError.message || 'Unknown error'}`);
+                errors.push(`${student.email}: ${result.error || 'Unknown error'}`);
+                console.error(`❌ Failed to send email to ${student.email}:`, result.error);
               }
-            } else {
-              console.log(`⏭️ Skipping ${student.email} - missing email, password, or not temporary`);
+            } catch (emailError: any) {
+              console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+              failed++;
+              errors.push(`${student.email}: ${emailError.message || 'Unknown error'}`);
             }
           }
           

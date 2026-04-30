@@ -1,98 +1,220 @@
-import { Request, Response, NextFunction } from 'express';
+/**
+ * Rate Limiting for Login Attempts
+ * Prevents brute force attacks by limiting failed login attempts
+ */
 
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
+import { db } from './firebaseStorage';
+
+interface LoginAttempt {
+  email: string;
+  attempts: number;
+  lastAttempt: Date;
+  lockedUntil?: Date;
+  ipAddress?: string;
 }
 
-const store: RateLimitStore = {};
+const MAX_ATTEMPTS = 5;
+const LOCK_DURATION = 15 * 60 * 1000; // 15 minutes
+const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
 
-// Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  Object.keys(store).forEach(key => {
-    if (store[key].resetTime < now) {
-      delete store[key];
-    }
-  });
-}, 5 * 60 * 1000);
-
-export interface RateLimitOptions {
-  windowMs: number; // Time window in milliseconds
-  max: number; // Max requests per window
+/**
+ * Check if a login attempt is allowed
+ * @param email User email
+ * @param ipAddress Optional IP address for additional tracking
+ * @returns Object with allowed status and additional info
+ */
+export async function checkRateLimit(
+  email: string, 
+  ipAddress?: string
+): Promise<{ 
+  allowed: boolean; 
+  remainingAttempts?: number; 
+  lockedUntil?: Date;
   message?: string;
-  keyGenerator?: (req: Request) => string;
-}
-
-export function createRateLimiter(options: RateLimitOptions) {
-  const {
-    windowMs,
-    max,
-    message = 'Too many requests, please try again later.',
-    keyGenerator = (req) => req.ip || 'unknown'
-  } = options;
-
-  return (req: Request, res: Response, next: NextFunction) => {
-    const key = keyGenerator(req);
-    const now = Date.now();
+}> {
+  try {
+    const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
+    const doc = await docRef.get();
     
-    if (!store[key] || store[key].resetTime < now) {
-      store[key] = {
-        count: 1,
-        resetTime: now + windowMs
+    if (!doc.exists) {
+      // First attempt
+      return { 
+        allowed: true, 
+        remainingAttempts: MAX_ATTEMPTS 
       };
-      return next();
     }
     
-    store[key].count++;
+    const data = doc.data() as LoginAttempt;
+    const now = new Date();
     
-    if (store[key].count > max) {
-      return res.status(429).json({
-        error: message,
-        retryAfter: Math.ceil((store[key].resetTime - now) / 1000)
-      });
+    // Check if account is locked
+    if (data.lockedUntil) {
+      const lockedUntil = data.lockedUntil instanceof Date ? data.lockedUntil : data.lockedUntil.toDate();
+      
+      if (now < lockedUntil) {
+        const minutesLeft = Math.ceil((lockedUntil.getTime() - now.getTime()) / 60000);
+        console.log(`🔒 Account locked for ${email}, ${minutesLeft} minutes remaining`);
+        return { 
+          allowed: false, 
+          lockedUntil,
+          message: `Tili on lukittu. Yritä uudelleen ${minutesLeft} minuutin kuluttua.`
+        };
+      } else {
+        // Lock expired, reset attempts
+        await docRef.update({ 
+          attempts: 0, 
+          lockedUntil: null 
+        });
+        return { 
+          allowed: true, 
+          remainingAttempts: MAX_ATTEMPTS 
+        };
+      }
     }
     
-    next();
-  };
+    // Check if we should reset attempts (last attempt was > 1 hour ago)
+    const lastAttempt = data.lastAttempt instanceof Date ? data.lastAttempt : data.lastAttempt.toDate();
+    const timeSinceLastAttempt = now.getTime() - lastAttempt.getTime();
+    
+    if (timeSinceLastAttempt > RESET_WINDOW) {
+      await docRef.update({ attempts: 0 });
+      return { 
+        allowed: true, 
+        remainingAttempts: MAX_ATTEMPTS 
+      };
+    }
+    
+    // Check if max attempts reached
+    if (data.attempts >= MAX_ATTEMPTS) {
+      const lockedUntil = new Date(now.getTime() + LOCK_DURATION);
+      await docRef.update({ lockedUntil });
+      console.log(`🔒 Account locked for ${email} due to ${data.attempts} failed attempts`);
+      return { 
+        allowed: false, 
+        lockedUntil,
+        message: `Liian monta epäonnistunutta kirjautumisyritystä. Tili lukittu 15 minuutiksi.`
+      };
+    }
+    
+    const remaining = MAX_ATTEMPTS - data.attempts;
+    return { 
+      allowed: true, 
+      remainingAttempts: remaining,
+      message: remaining <= 2 ? `Varoitus: ${remaining} yritystä jäljellä ennen tilin lukitsemista` : undefined
+    };
+  } catch (error) {
+    console.error('❌ Error checking rate limit:', error);
+    // On error, allow the attempt (fail open)
+    return { allowed: true };
+  }
 }
 
-// Predefined rate limiters for common use cases
-export const rateLimiters = {
-  // Strict rate limit for authentication endpoints
-  auth: createRateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per 15 minutes
-    message: 'Too many login attempts. Please try again in 15 minutes.'
-  }),
-  
-  // Moderate rate limit for API endpoints
-  api: createRateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    max: 60, // 60 requests per minute
-    message: 'Too many API requests. Please slow down.'
-  }),
-  
-  // Lenient rate limit for general routes
-  general: createRateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute
-    message: 'Too many requests. Please try again shortly.'
-  }),
-  
-  // Very strict for password reset
-  passwordReset: createRateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 attempts per hour
-    message: 'Too many password reset attempts. Please try again in 1 hour.'
-  }),
-  
-  // External service rate limit (HSL, lunch menu, etc.)
-  externalService: createRateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    max: 30, // 30 requests per minute
-    message: 'Too many requests to external service. Please wait a moment.'
-  })
-};
+/**
+ * Record a login attempt
+ * @param email User email
+ * @param success Whether the login was successful
+ * @param ipAddress Optional IP address
+ */
+export async function recordLoginAttempt(
+  email: string, 
+  success: boolean, 
+  ipAddress?: string
+): Promise<void> {
+  try {
+    const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
+    const doc = await docRef.get();
+    
+    if (success) {
+      // Reset on successful login
+      await docRef.set({
+        email: email.toLowerCase(),
+        attempts: 0,
+        lastAttempt: new Date(),
+        ipAddress,
+        lastSuccessfulLogin: new Date()
+      });
+      console.log(`✅ Login attempt recorded for ${email}: SUCCESS`);
+    } else {
+      if (doc.exists) {
+        const data = doc.data() as LoginAttempt;
+        await docRef.update({
+          attempts: (data.attempts || 0) + 1,
+          lastAttempt: new Date(),
+          ipAddress
+        });
+        console.log(`❌ Login attempt recorded for ${email}: FAILED (${(data.attempts || 0) + 1}/${MAX_ATTEMPTS})`);
+      } else {
+        await docRef.set({
+          email: email.toLowerCase(),
+          attempts: 1,
+          lastAttempt: new Date(),
+          ipAddress
+        });
+        console.log(`❌ Login attempt recorded for ${email}: FAILED (1/${MAX_ATTEMPTS})`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error recording login attempt:', error);
+  }
+}
+
+/**
+ * Manually unlock an account (admin function)
+ * @param email User email
+ */
+export async function unlockAccount(email: string): Promise<void> {
+  try {
+    const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
+    await docRef.update({
+      attempts: 0,
+      lockedUntil: null,
+      unlockedAt: new Date(),
+      unlockedBy: 'admin'
+    });
+    console.log(`🔓 Account unlocked for ${email}`);
+  } catch (error) {
+    console.error('❌ Error unlocking account:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get login attempt statistics for an email
+ * @param email User email
+ */
+export async function getLoginAttemptStats(email: string): Promise<LoginAttempt | null> {
+  try {
+    const doc = await db.collection('loginAttempts').doc(email.toLowerCase()).get();
+    if (!doc.exists) return null;
+    return doc.data() as LoginAttempt;
+  } catch (error) {
+    console.error('❌ Error getting login attempt stats:', error);
+    return null;
+  }
+}
+
+/**
+ * Clean up old login attempt records (run periodically)
+ * Removes records older than 30 days
+ */
+export async function cleanupOldLoginAttempts(): Promise<number> {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const snapshot = await db.collection('loginAttempts')
+      .where('lastAttempt', '<', thirtyDaysAgo)
+      .get();
+    
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    
+    console.log(`🧹 Cleaned up ${snapshot.size} old login attempt records`);
+    return snapshot.size;
+  } catch (error) {
+    console.error('❌ Error cleaning up old login attempts:', error);
+    return 0;
+  }
+}
