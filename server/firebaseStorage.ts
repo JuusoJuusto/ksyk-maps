@@ -912,6 +912,21 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async updateWilmaSchedule(id: string, data: any): Promise<any> {
+    try {
+      const updateData = {
+        ...data,
+        updatedAt: new Date(),
+      };
+      await db.collection('wilmaSchedules').doc(id).update(updateData);
+      const doc = await db.collection('wilmaSchedules').doc(id).get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error updating Wilma schedule:', error);
+      throw error;
+    }
+  }
+
   async deleteWilmaSchedule(id: string): Promise<void> {
     try {
       await db.collection('wilmaSchedules').doc(id).delete();
@@ -989,6 +1004,31 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async updateWilmaGrade(id: string, data: any): Promise<any> {
+    try {
+      const updateData = {
+        ...data,
+        updatedAt: new Date(),
+      };
+      await db.collection('wilmaGrades').doc(id).update(updateData);
+      const doc = await db.collection('wilmaGrades').doc(id).get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error updating Wilma grade:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaGrade(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaGrades').doc(id).delete();
+      console.log('✅ Grade deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma grade:', error);
+      throw error;
+    }
+  }
+
   // Wilma Assignment operations
   async getWilmaAssignments(studentId: string): Promise<any[]> {
     try {
@@ -1016,6 +1056,52 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating Wilma assignment:', error);
       throw error;
+    }
+  }
+
+  async updateWilmaAssignment(id: string, data: any): Promise<any> {
+    try {
+      const updateData = {
+        ...data,
+        updatedAt: new Date(),
+      };
+      await db.collection('wilmaAssignments').doc(id).update(updateData);
+      const doc = await db.collection('wilmaAssignments').doc(id).get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error updating Wilma assignment:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaAssignment(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaAssignments').doc(id).delete();
+      console.log('✅ Assignment deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma assignment:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaAssignmentsByClass(classId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaAssignments')
+        .where('classId', '==', classId)
+        .orderBy('dueDate', 'asc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting class assignments:', error);
+      // Fallback without orderBy
+      try {
+        const snapshot = await db.collection('wilmaAssignments')
+          .where('classId', '==', classId)
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (fallbackError) {
+        return [];
+      }
     }
   }
 
@@ -1153,6 +1239,45 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating Wilma attendance:', error);
       throw error;
+    }
+  }
+
+  async updateWilmaAttendance(id: string, data: any): Promise<any> {
+    try {
+      const updateData = {
+        ...data,
+        updatedAt: new Date(),
+      };
+      await db.collection('wilmaAttendance').doc(id).update(updateData);
+      const doc = await db.collection('wilmaAttendance').doc(id).get();
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error updating Wilma attendance:', error);
+      throw error;
+    }
+  }
+
+  async deleteWilmaAttendance(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaAttendance').doc(id).delete();
+      console.log('✅ Attendance deleted:', id);
+    } catch (error) {
+      console.error('Error deleting Wilma attendance:', error);
+      throw error;
+    }
+  }
+
+  async getWilmaAttendanceByClass(classId: string, date?: string): Promise<any[]> {
+    try {
+      let query: any = db.collection('wilmaAttendance').where('classId', '==', classId);
+      if (date) {
+        query = query.where('date', '==', date);
+      }
+      const snapshot = await query.orderBy('date', 'desc').get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting class attendance:', error);
+      return [];
     }
   }
 
