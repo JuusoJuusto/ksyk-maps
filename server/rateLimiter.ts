@@ -3,7 +3,9 @@
  * Prevents brute force attacks by limiting failed login attempts
  */
 
-import { db } from './firebaseStorage';
+import { getFirestore } from 'firebase-admin/firestore';
+
+const db = getFirestore();
 
 interface LoginAttempt {
   email: string;

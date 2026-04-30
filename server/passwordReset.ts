@@ -3,8 +3,10 @@
  * Tokens expire after 24 hours and can only be used once
  */
 
-import { db } from './firebaseStorage';
+import { getFirestore } from 'firebase-admin/firestore';
 import crypto from 'crypto';
+
+const db = getFirestore();
 
 interface PasswordResetToken {
   token: string;
