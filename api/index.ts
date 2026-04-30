@@ -1788,6 +1788,17 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           let students = await storage.getWilmaUsers('student');
           console.log(`📊 Found ${students.length} total students`);
           
+          // Debug: Log first few students to see their structure
+          if (students.length > 0) {
+            console.log('📝 Sample student data:', {
+              hasEmail: !!students[0].email,
+              hasPassword: !!students[0].password,
+              isTemporaryPassword: students[0].isTemporaryPassword,
+              studentClass: students[0].studentClass,
+              firstName: students[0].firstName
+            });
+          }
+          
           // Apply filters
           if (gradeLevel) {
             students = students.filter((s: any) => s.studentClass?.startsWith(gradeLevel));
@@ -1804,9 +1815,20 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             students = students.filter((s: any) => s.email && s.password && s.isTemporaryPassword);
             console.log(`🔍 After new students filter: ${students.length} students`);
           } else {
-            // Just ensure they have email and password
-            students = students.filter((s: any) => s.email && s.password);
-            console.log(`🔍 After email/password filter: ${students.length} students`);
+            // Just ensure they have email - password will be generated if missing
+            students = students.filter((s: any) => s.email);
+            console.log(`🔍 After email filter: ${students.length} students`);
+          }
+          
+          if (students.length === 0) {
+            console.warn('⚠️ No students match the filter criteria!');
+            return res.status(400).json({ 
+              message: "No students found matching the filter criteria",
+              details: {
+                totalStudents: (await storage.getWilmaUsers('student')).length,
+                filters: { gradeLevel, newStudentsOnly, includeParents, studentClass }
+              }
+            });
           }
           
           let sent = 0;
@@ -1814,6 +1836,19 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           const errors: string[] = [];
           
           for (const student of students) {
+            // Generate password if missing
+            if (!student.password) {
+              const { generateTempPassword } = await import('../server/emailService.js');
+              student.password = generateTempPassword();
+              student.isTemporaryPassword = true;
+              // Update student with new password
+              await storage.updateWilmaUser(student.id, {
+                password: student.password,
+                isTemporaryPassword: true
+              });
+              console.log(`🔑 Generated password for ${student.email}`);
+            }
+            
             const parentEmails = [];
             if (includeParents) {
               if (student.parent1Email) parentEmails.push(student.parent1Email);
