@@ -389,6 +389,12 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    // Suppress promotional messages
+    react: {
+      useSuspense: false,
+    },
+    // Disable debug mode in production
+    debug: false,
   });
 
 export default i18n;

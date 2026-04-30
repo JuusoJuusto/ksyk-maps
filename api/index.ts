@@ -1612,6 +1612,103 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
       
+      // POST /wilma/users/:id/send-password-reset - Send password reset email to specific user
+      const passwordResetMatch = apiPath.match(/^\/wilma\/users\/([^\/]+)\/send-password-reset$/);
+      if (passwordResetMatch && req.method === 'POST') {
+        const userId = passwordResetMatch[1];
+        console.log('🔵 POST /api/wilma/users/' + userId + '/send-password-reset');
+        
+        try {
+          // Get user
+          const user = await storage.getWilmaUser(userId);
+          if (!user) {
+            return res.status(404).json({ message: "User not found" });
+          }
+          
+          if (!user.email) {
+            return res.status(400).json({ message: "User has no email address" });
+          }
+          
+          // Generate new temporary password
+          const { generateTempPassword } = await import('../server/emailService.js');
+          const tempPassword = generateTempPassword();
+          
+          // Update user with new temporary password
+          await storage.updateWilmaUser(userId, {
+            password: tempPassword,
+            isTemporaryPassword: true
+          });
+          
+          // Send email
+          const { sendEmail } = await import('../server/emailService.js');
+          const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 30px; text-align: center; color: #fff; }
+    .content { padding: 40px 30px; }
+    .password-box { background: #eff6ff; border: 2px solid #3b82f6; border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0; }
+    .password { font-size: 28px; font-weight: 700; color: #1e40af; font-family: monospace; letter-spacing: 2px; background: #fff; padding: 15px 25px; border-radius: 8px; display: inline-block; }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 Salasanan nollaus / Password Reset</h1>
+    </div>
+    <div class="content">
+      <h2>Hei ${user.firstName}! / Hello ${user.firstName}!</h2>
+      <p><strong>Salasanasi on nollattu.</strong> / <strong>Your password has been reset.</strong></p>
+      
+      <div class="password-box">
+        <div style="color: #6b7280; font-size: 14px; font-weight: 600; margin-bottom: 15px;">UUSI VÄLIAIKAINEN SALASANA / NEW TEMPORARY PASSWORD</div>
+        <div class="password">${tempPassword}</div>
+      </div>
+      
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          <strong>⚠️ Tärkeää / Important:</strong> Vaihda salasanasi heti kirjautumisen jälkeen. / Please change your password immediately after logging in.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app/wilma" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Kirjaudu Wilmaan / Login to Wilma →
+        </a>
+      </div>
+    </div>
+    <div class="footer">
+      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p>Tämä on automaattinen viesti. / This is an automated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+          `;
+          
+          const result = await sendEmail({
+            to: user.email,
+            subject: '🔐 Salasanan nollaus - Password Reset - Wilma KSYK Maps',
+            html: emailHtml
+          });
+          
+          if (!result.success) {
+            throw new Error('Failed to send email');
+          }
+          
+          console.log('✅ Password reset email sent to:', user.email);
+          return res.status(200).json({ success: true, message: 'Password reset email sent' });
+        } catch (error: any) {
+          console.error('❌ Error sending password reset email:', error);
+          return res.status(500).json({ message: "Failed to send password reset email", error: error.message });
+        }
+      }
+      
       // POST /wilma/send-password-reset - Send password reset email
       if (apiPath === '/wilma/send-password-reset' && req.method === 'POST') {
         console.log('🔵 POST /api/wilma/send-password-reset called');
