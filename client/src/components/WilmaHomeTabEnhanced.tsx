@@ -684,9 +684,19 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         useEffect(() => {
           const loadWeather = async () => {
             try {
+              console.log('🌤️ Loading weather data from Open-Meteo API...');
               const { fetchCurrentWeather, fetchHourlyForecast, getWeatherDescription, getMockWeatherData } = await import('@/lib/openMeteoWeather');
               const data = await fetchCurrentWeather(); // Helsinki coordinates by default
               const forecast = await fetchHourlyForecast(60.1699, 24.9384, 6);
+              
+              console.log('🌡️ Weather data received:', {
+                temperature: data?.temperature,
+                feelsLike: data?.feelsLike,
+                humidity: data?.humidity,
+                windSpeed: data?.windSpeed,
+                timestamp: data?.timestamp,
+                isRealData: !!data?.timestamp
+              });
               
               if (data) {
                 setWeatherData({
@@ -694,8 +704,10 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                   forecast: forecast,
                   description: getWeatherDescription(data.weatherCode)
                 });
+                console.log('✅ Real weather data loaded successfully!');
               } else {
                 // Fallback to mock data
+                console.warn('⚠️ No weather data received, using mock data');
                 const mockData = getMockWeatherData();
                 setWeatherData({
                   current: mockData,
@@ -704,7 +716,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 });
               }
             } catch (error) {
-              console.error('Weather fetch error:', error);
+              console.error('❌ Weather fetch error:', error);
               // Use mock data on error
               const { getMockWeatherData, getWeatherDescription } = await import('@/lib/openMeteoWeather');
               const mockData = getMockWeatherData();
@@ -713,6 +725,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 forecast: [],
                 description: getWeatherDescription(mockData.weatherCode)
               });
+              console.warn('⚠️ Using mock weather data due to error');
             } finally {
               setWeatherLoading(false);
             }

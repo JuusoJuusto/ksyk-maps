@@ -56,8 +56,21 @@ export default function BulkEmailConfigDialog({
     if (config.newStudentsOnly && !student.isTemporaryPassword) {
       return false;
     }
+    // Must have email
+    if (!student.email) {
+      return false;
+    }
     return true;
   });
+
+  // Debug logging
+  console.log('📊 Bulk Email Config:', config);
+  console.log('📊 Total students:', students.length);
+  console.log('📊 Filtered students:', filteredStudents.length);
+  if (config.newStudentsOnly) {
+    const tempPasswordStudents = students.filter(s => s.isTemporaryPassword);
+    console.log('📊 Students with temporary passwords:', tempPasswordStudents.length);
+  }
 
   // Count recipients
   const studentCount = filteredStudents.length;
