@@ -98,8 +98,8 @@ export async function fetchFMIWeather(place: string = "Helsinki"): Promise<FMIWe
  */
 export async function fetchFMIForecast(place: string = "Helsinki", hours: number = 24): Promise<FMIForecast[]> {
   try {
-    // FMI forecast API - using timestep parameter for hourly data
-    const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::hirlam::surface::point::simple&place=${encodeURIComponent(place)}&maxlocations=1`;
+    // FMI forecast API - using timevaluepair for better data structure
+    const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::hirlam::surface::point::timevaluepair&place=${encodeURIComponent(place)}&parameters=temperature,weathersymbol3,precipitation1h,windspeedms`;
     
     const response = await fetch(url);
     if (!response.ok) {
@@ -121,7 +121,7 @@ export async function fetchFMIForecast(place: string = "Helsinki", hours: number
 
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
-      const timeElement = member.getElementsByTagName("BsWfs:Time")[0];
+      const timeElement = member.getElementsByTagName("wml2:time")[0];
       const time = timeElement?.textContent || "";
       
       if (!time) continue;
@@ -129,21 +129,22 @@ export async function fetchFMIForecast(place: string = "Helsinki", hours: number
       const forecastTime = new Date(time);
       if (forecastTime > maxTime) continue;
 
-      const paramNameElement = member.getElementsByTagName("BsWfs:ParameterName")[0];
-      const paramValueElement = member.getElementsByTagName("BsWfs:ParameterValue")[0];
-      
-      const paramName = paramNameElement?.textContent || "";
-      const paramValue = parseFloat(paramValueElement?.textContent || "0");
+      const valueElement = member.getElementsByTagName("wml2:value")[0];
+      const paramValue = parseFloat(valueElement?.textContent || "0");
+
+      // Get parameter name from parent
+      const measurementTVP = member.closest("wml2:MeasurementTVP");
+      const paramName = measurementTVP?.parentElement?.getAttribute("gml:id") || "";
 
       if (!dataByTime.has(time)) {
         dataByTime.set(time, { time });
       }
 
       const data = dataByTime.get(time);
-      if (paramName === "Temperature") data.temperature = paramValue;
-      if (paramName === "WeatherSymbol3") data.weatherSymbol = Math.round(paramValue);
-      if (paramName === "Precipitation1h") data.precipitation = paramValue;
-      if (paramName === "WindSpeedMS") data.windSpeed = paramValue;
+      if (paramName.includes("temperature")) data.temperature = paramValue;
+      if (paramName.includes("weathersymbol")) data.weatherSymbol = Math.round(paramValue);
+      if (paramName.includes("precipitation")) data.precipitation = paramValue;
+      if (paramName.includes("windspeed")) data.windSpeed = paramValue;
     }
 
     // Convert to array and sort by time

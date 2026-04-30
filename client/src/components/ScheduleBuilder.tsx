@@ -3,989 +3,822 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Save, Copy, Download, Upload, Calendar, Clock, User, MapPin, Settings, AlertTriangle, CheckCircle, Coffee, Utensils } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Save, Trash2, Copy, Download, Upload, Settings, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface ScheduleEntry {
+interface TimeSlot {
   id: string;
-  dayIndex: number;
-  timeSlot: string;
+  startTime: string;
+  endTime: string;
+  label: string; // e.g., "1. tunti", "2. tunti"
+}
+
+interface Lesson {
+  id: string;
+  timeSlotId: string;
+  day: number; // 0 = Monday, 4 = Friday
   subject: string;
   teacher: string;
   room: string;
+  group?: string; // For split classes
   color: string;
-  studentClass?: string;
-  isBreak?: boolean;
-  breakType?: 'short' | 'lunch';
 }
 
-interface LessonSettings {
-  lessonNumber: number;
-  startTime: string;
-  endTime: string;
-  duration: number;
-  customizable: boolean;
-  isYH?: boolean; // Yhteinen hetki
-}
-
-interface BreakSettings {
-  breakNumber: number;
-  afterLesson: number;
-  duration: number;
-  type: 'short' | 'lunch' | 'yh';
-  customizable: boolean;
-}
-
-interface ScheduleSettings {
-  lessonDuration: number;
-  shortBreakDuration: number;
-  lunchBreakDuration: number;
-  schoolStartTime: string;
-  schoolEndTime: string;
-  periodsPerDay: number;
-  lunchBreakAfterPeriod: number;
-  customLessons: LessonSettings[];
-  customBreaks: BreakSettings[];
-  enableIndividualCustomization: boolean;
-}
-
-interface Holiday {
+interface ScheduleTemplate {
   id: string;
   name: string;
-  startDate: string;
-  endDate: string;
-  type: 'holiday' | 'break' | 'event';
+  timeSlots: TimeSlot[];
+  lessons: Lesson[];
 }
+
+const DEFAULT_TIME_SLOTS: TimeSlot[] = [
+  { id: '1', startTime: '08:00', endTime: '08:45', label: '1. tunti' },
+  { id: '2', startTime: '08:50', endTime: '09:35', label: '2. tunti' },
+  { id: '3', startTime: '09:40', endTime: '10:25', label: '3. tunti' },
+  { id: '4', startTime: '10:45', endTime: '11:30', label: '4. tunti' },
+  { id: '5', startTime: '11:35', endTime: '12:20', label: '5. tunti' },
+  { id: '6', startTime: '12:25', endTime: '13:10', label: 'Lounas' },
+  { id: '7', startTime: '13:15', endTime: '14:00', label: '6. tunti' },
+  { id: '8', startTime: '14:05', endTime: '14:50', label: '7. tunti' },
+];
+
+const SUBJECT_COLORS = [
+  { name: 'Matematiikka', color: '#003d82' },
+  { name: 'Äidinkieli', color: '#7cb342' },
+  { name: 'Englanti', color: '#f57c00' },
+  { name: 'Ruotsi', color: '#5e35b1' },
+  { name: 'Fysiikka', color: '#00897b' },
+  { name: 'Kemia', color: '#d32f2f' },
+  { name: 'Biologia', color: '#1976d2' },
+  { name: 'Maantieto', color: '#c2185b' },
+  { name: 'Historia', color: '#795548' },
+  { name: 'Yhteiskuntaoppi', color: '#607d8b' },
+  { name: 'Uskonto', color: '#9c27b0' },
+  { name: 'Liikunta', color: '#4caf50' },
+  { name: 'Musiikki', color: '#ff9800' },
+  { name: 'Kuvataide', color: '#e91e63' },
+  { name: 'Käsityö', color: '#3f51b5' },
+  { name: 'Kotitalous', color: '#009688' },
+];
+
+const DAYS = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'];
 
 export default function ScheduleBuilder() {
   const { toast } = useToast();
-  const [selectedClass, setSelectedClass] = useState("9A");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [showHolidaysDialog, setShowHolidaysDialog] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null);
-  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([
-    { id: "1", name: "Syysloma", startDate: "2024-10-14", endDate: "2024-10-18", type: "break" },
-    { id: "2", name: "Joululoma", startDate: "2024-12-23", endDate: "2025-01-06", type: "holiday" },
-    { id: "3", name: "Talviloma", startDate: "2025-02-24", endDate: "2025-02-28", type: "break" },
-    { id: "4", name: "Pääsiäisloma", startDate: "2025-04-14", endDate: "2025-04-21", type: "holiday" },
-  ]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(DEFAULT_TIME_SLOTS);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedCell, setSelectedCell] = useState<{ day: number; timeSlotId: string } | null>(null);
+  const [showLessonDialog, setShowLessonDialog] = useState(false);
+  const [showTimeSlotDialog, setShowTimeSlotDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [conflicts, setConflicts] = useState<string[]>([]);
+  const [draggedLesson, setDraggedLesson] = useState<Lesson | null>(null);
+  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   
-  const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
-    lessonDuration: 45,
-    shortBreakDuration: 15,
-    lunchBreakDuration: 30,
-    schoolStartTime: "08:00",
-    schoolEndTime: "16:00",
-    periodsPerDay: 8,
-    lunchBreakAfterPeriod: 4,
-    customLessons: [],
-    customBreaks: [],
-    enableIndividualCustomization: false,
-  });
-  
-  const [entryForm, setEntryForm] = useState({
-    dayIndex: 0,
-    timeSlot: "",
-    subject: "",
-    teacher: "",
-    room: "",
-    color: "#003d82",
-    isBreak: false,
-    breakType: 'short' as 'short' | 'lunch',
+  // Lesson form
+  const [lessonForm, setLessonForm] = useState({
+    subject: '',
+    teacher: '',
+    room: '',
+    group: '',
+    color: '#003d82',
   });
 
-  const days = ["Maanantai", "Tiistai", "Keskiviikko", "Torstai", "Perjantai"];
-  
-  // Generate time slots based on settings
-  const generateTimeSlots = () => {
-    const slots: string[] = [];
-    let currentTime = scheduleSettings.schoolStartTime;
-    
-    for (let i = 0; i < scheduleSettings.periodsPerDay; i++) {
-      const [hours, minutes] = currentTime.split(':').map(Number);
-      const startMinutes = hours * 60 + minutes;
-      
-      // Check for custom lesson duration
-      const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === i + 1);
-      const lessonDuration = customLesson?.duration || scheduleSettings.lessonDuration;
-      
-      const endMinutes = startMinutes + lessonDuration;
-      
-      const endHours = Math.floor(endMinutes / 60);
-      const endMins = endMinutes % 60;
-      
-      const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-      slots.push(`${currentTime}-${endTime}`);
-      
-      // Add break time
-      if (i < scheduleSettings.periodsPerDay - 1) {
-        const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === i + 1);
-        let breakDuration = scheduleSettings.shortBreakDuration;
-        
-        if (customBreak) {
-          breakDuration = customBreak.duration;
-        } else if (i + 1 === scheduleSettings.lunchBreakAfterPeriod) {
-          breakDuration = scheduleSettings.lunchBreakDuration;
-        }
-        
-        const nextStartMinutes = endMinutes + breakDuration;
-        const nextHours = Math.floor(nextStartMinutes / 60);
-        const nextMins = nextStartMinutes % 60;
-        currentTime = `${String(nextHours).padStart(2, '0')}:${String(nextMins).padStart(2, '0')}`;
+  // Time slot form
+  const [timeSlotForm, setTimeSlotForm] = useState({
+    startTime: '',
+    endTime: '',
+    label: '',
+  });
+
+  // Load schedule from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('schedule_builder');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        setTimeSlots(data.timeSlots || DEFAULT_TIME_SLOTS);
+        setLessons(data.lessons || []);
+      } catch (e) {
+        console.error('Failed to load schedule:', e);
       }
     }
     
-    return slots;
-  };
-  
-  const timeSlots = generateTimeSlots();
+    // Load templates
+    const savedTemplates = localStorage.getItem('schedule_templates');
+    if (savedTemplates) {
+      try {
+        setTemplates(JSON.parse(savedTemplates));
+      } catch (e) {
+        console.error('Failed to load templates:', e);
+      }
+    }
+  }, []);
 
-  const classes = ["7A", "7B", "8A", "8B", "9A", "9B"];
-  const subjects = [
-    "Matematiikka",
-    "Äidinkieli",
-    "Englanti",
-    "Ruotsi",
-    "Fysiikka",
-    "Kemia",
-    "Biologia",
-    "Maantieto",
-    "Historia",
-    "Yhteiskuntaoppi",
-    "Liikunta",
-    "Musiikki",
-    "Kuvataide",
-    "Käsityö",
-    "Kotitalous",
-    "Uskonto/Elämänkatsomustieto",
-  ];
+  // Check for conflicts whenever lessons change
+  useEffect(() => {
+    detectConflicts();
+  }, [lessons]);
 
-  const colors = [
-    { name: "Sininen", value: "#003d82" },
-    { name: "Vihreä", value: "#7cb342" },
-    { name: "Oranssi", value: "#f57c00" },
-    { name: "Violetti", value: "#5e35b1" },
-    { name: "Turkoosi", value: "#00897b" },
-    { name: "Punainen", value: "#d32f2f" },
-    { name: "Tummansininen", value: "#1976d2" },
-    { name: "Pinkki", value: "#c2185b" },
-  ];
-
-  const handleAddEntry = () => {
-    setEditingEntry(null);
-    setEntryForm({
-      dayIndex: 0,
-      timeSlot: timeSlots[0],
-      subject: "",
-      teacher: "",
-      room: "",
-      color: "#003d82",
+  // Detect scheduling conflicts
+  const detectConflicts = () => {
+    const foundConflicts: string[] = [];
+    
+    // Check for teacher conflicts (same teacher, same time, different rooms)
+    const teacherSlots = new Map<string, Lesson[]>();
+    lessons.forEach(lesson => {
+      const key = `${lesson.teacher}-${lesson.timeSlotId}-${lesson.day}`;
+      if (!teacherSlots.has(key)) {
+        teacherSlots.set(key, []);
+      }
+      teacherSlots.get(key)!.push(lesson);
     });
-    setShowAddDialog(true);
-  };
-
-  const handleEditEntry = (entry: ScheduleEntry) => {
-    setEditingEntry(entry);
-    setEntryForm({
-      dayIndex: entry.dayIndex,
-      timeSlot: entry.timeSlot,
-      subject: entry.subject,
-      teacher: entry.teacher,
-      room: entry.room,
-      color: entry.color,
+    
+    teacherSlots.forEach((lessonsInSlot, key) => {
+      if (lessonsInSlot.length > 1) {
+        const [teacher, timeSlotId, day] = key.split('-');
+        const timeSlot = timeSlots.find(t => t.id === timeSlotId);
+        foundConflicts.push(
+          `${teacher} on kahdessa paikassa ${DAYS[parseInt(day)]} ${timeSlot?.label}`
+        );
+      }
     });
-    setShowAddDialog(true);
+    
+    // Check for room conflicts (same room, same time)
+    const roomSlots = new Map<string, Lesson[]>();
+    lessons.forEach(lesson => {
+      if (lesson.room) {
+        const key = `${lesson.room}-${lesson.timeSlotId}-${lesson.day}`;
+        if (!roomSlots.has(key)) {
+          roomSlots.set(key, []);
+        }
+        roomSlots.get(key)!.push(lesson);
+      }
+    });
+    
+    roomSlots.forEach((lessonsInSlot, key) => {
+      if (lessonsInSlot.length > 1) {
+        const [room, timeSlotId, day] = key.split('-');
+        const timeSlot = timeSlots.find(t => t.id === timeSlotId);
+        foundConflicts.push(
+          `Luokka ${room} on varattu kahdesti ${DAYS[parseInt(day)]} ${timeSlot?.label}`
+        );
+      }
+    });
+    
+    setConflicts(foundConflicts);
   };
 
-  const handleSaveEntry = () => {
-    if (!entryForm.isBreak && (!entryForm.subject || !entryForm.timeSlot)) {
+  // Save schedule to localStorage
+  const saveSchedule = () => {
+    const data = { timeSlots, lessons };
+    localStorage.setItem('schedule_builder', JSON.stringify(data));
+    toast({
+      title: "✅ Tallennettu",
+      description: "Lukujärjestys tallennettu onnistuneesti",
+    });
+  };
+
+  // Handle cell click
+  const handleCellClick = (day: number, timeSlotId: string) => {
+    const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
+    
+    if (existingLesson) {
+      // Edit existing lesson
+      setEditingLesson(existingLesson);
+      setLessonForm({
+        subject: existingLesson.subject,
+        teacher: existingLesson.teacher,
+        room: existingLesson.room,
+        group: existingLesson.group || '',
+        color: existingLesson.color,
+      });
+    } else {
+      // Create new lesson
+      setEditingLesson(null);
+      setLessonForm({
+        subject: '',
+        teacher: '',
+        room: '',
+        group: '',
+        color: '#003d82',
+      });
+    }
+    
+    setSelectedCell({ day, timeSlotId });
+    setShowLessonDialog(true);
+  };
+
+  // Save lesson
+  const saveLesson = () => {
+    if (!selectedCell) return;
+    
+    if (!lessonForm.subject) {
       toast({
         title: "❌ Virhe",
-        description: "Täytä vähintään oppiaine ja aika",
+        description: "Oppiaine on pakollinen",
         variant: "destructive",
       });
       return;
     }
 
-    if (editingEntry) {
-      // Update existing
-      setScheduleEntries(prev =>
-        prev.map(e => e.id === editingEntry.id ? { ...e, ...entryForm } : e)
-      );
+    if (editingLesson) {
+      // Update existing lesson
+      setLessons(lessons.map(l => 
+        l.id === editingLesson.id 
+          ? { ...l, ...lessonForm }
+          : l
+      ));
       toast({
         title: "✅ Päivitetty",
-        description: "Oppitunti päivitetty onnistuneesti",
+        description: "Oppitunti päivitetty",
       });
     } else {
-      // Add new
-      const newEntry: ScheduleEntry = {
+      // Create new lesson
+      const newLesson: Lesson = {
         id: Date.now().toString(),
-        ...entryForm,
-        studentClass: selectedClass,
+        day: selectedCell.day,
+        timeSlotId: selectedCell.timeSlotId,
+        ...lessonForm,
       };
-      setScheduleEntries(prev => [...prev, newEntry]);
+      setLessons([...lessons, newLesson]);
       toast({
         title: "✅ Lisätty",
-        description: entryForm.isBreak ? "Tauko lisätty lukujärjestykseen" : "Uusi oppitunti lisätty lukujärjestykseen",
+        description: "Uusi oppitunti lisätty",
       });
     }
-
-    setShowAddDialog(false);
+    
+    setShowLessonDialog(false);
+    setSelectedCell(null);
   };
 
-  const handleSaveSettings = () => {
-    localStorage.setItem('scheduleSettings', JSON.stringify(scheduleSettings));
-    toast({
-      title: "✅ Asetukset tallennettu",
-      description: "Lukujärjestyksen asetukset päivitetty",
-    });
-    setShowSettingsDialog(false);
-  };
-
-  const handleAddHoliday = () => {
-    const newHoliday: Holiday = {
-      id: Date.now().toString(),
-      name: "Uusi loma",
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-      type: "holiday",
-    };
-    setHolidays(prev => [...prev, newHoliday]);
-  };
-
-  const handleDeleteHoliday = (id: string) => {
-    setHolidays(prev => prev.filter(h => h.id !== id));
+  // Delete lesson
+  const deleteLesson = () => {
+    if (!editingLesson) return;
+    
+    setLessons(lessons.filter(l => l.id !== editingLesson.id));
+    setShowLessonDialog(false);
+    setEditingLesson(null);
     toast({
       title: "🗑️ Poistettu",
-      description: "Loma poistettu",
+      description: "Oppitunti poistettu",
     });
   };
 
-  // Load settings on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('scheduleSettings');
-    if (saved) {
-      setScheduleSettings(JSON.parse(saved));
-    }
-  }, []);
+  // Copy lesson to another day
+  const copyLesson = (lesson: Lesson, targetDay: number) => {
+    const newLesson: Lesson = {
+      ...lesson,
+      id: Date.now().toString(),
+      day: targetDay,
+    };
+    setLessons([...lessons, newLesson]);
+    toast({
+      title: "📋 Kopioitu",
+      description: `Oppitunti kopioitu ${DAYS[targetDay]}lle`,
+    });
+  };
 
-  const handleDeleteEntry = (id: string) => {
-    if (confirm("Haluatko varmasti poistaa tämän oppitunnin?")) {
-      setScheduleEntries(prev => prev.filter(e => e.id !== id));
+  // Copy lesson to all days
+  const copyLessonToAllDays = (lesson: Lesson) => {
+    const newLessons: Lesson[] = [];
+    for (let day = 0; day < 5; day++) {
+      if (day !== lesson.day) {
+        // Check if slot is empty
+        const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === lesson.timeSlotId);
+        if (!existingLesson) {
+          newLessons.push({
+            ...lesson,
+            id: `${Date.now()}-${day}`,
+            day,
+          });
+        }
+      }
+    }
+    setLessons([...lessons, ...newLessons]);
+    toast({
+      title: "📋 Kopioitu",
+      description: `Oppitunti kopioitu ${newLessons.length} päivälle`,
+    });
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (lesson: Lesson) => {
+    setDraggedLesson(lesson);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (day: number, timeSlotId: string) => {
+    if (!draggedLesson) return;
+    
+    // Check if target slot is empty
+    const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
+    if (existingLesson) {
       toast({
-        title: "🗑️ Poistettu",
-        description: "Oppitunti poistettu",
+        title: "❌ Virhe",
+        description: "Kohderuutu on jo varattu",
+        variant: "destructive",
       });
+      setDraggedLesson(null);
+      return;
     }
+    
+    // Move lesson
+    setLessons(lessons.map(l => 
+      l.id === draggedLesson.id 
+        ? { ...l, day, timeSlotId }
+        : l
+    ));
+    
+    toast({
+      title: "✅ Siirretty",
+      description: "Oppitunti siirretty uuteen paikkaan",
+    });
+    
+    setDraggedLesson(null);
   };
 
-  const handleCopySchedule = () => {
+  // Save as template
+  const saveAsTemplate = () => {
+    const templateName = prompt("Anna lukujärjestyspohjan nimi:");
+    if (!templateName) return;
+    
+    const newTemplate: ScheduleTemplate = {
+      id: Date.now().toString(),
+      name: templateName,
+      timeSlots,
+      lessons,
+    };
+    
+    const updatedTemplates = [...templates, newTemplate];
+    setTemplates(updatedTemplates);
+    localStorage.setItem('schedule_templates', JSON.stringify(updatedTemplates));
+    
     toast({
-      title: "📋 Kopioidaan",
-      description: "Lukujärjestys kopioitu leikepöydälle",
+      title: "✅ Pohja tallennettu",
+      description: `Lukujärjestyspohja "${templateName}" tallennettu`,
     });
   };
 
-  const handleExport = () => {
+  // Load template
+  const loadTemplate = (template: ScheduleTemplate) => {
+    if (lessons.length > 0) {
+      if (!confirm("Nykyinen lukujärjestys korvataan pohjalla. Haluatko jatkaa?")) {
+        return;
+      }
+    }
+    
+    setTimeSlots(template.timeSlots);
+    setLessons(template.lessons);
+    setShowTemplateDialog(false);
+    
     toast({
-      title: "📥 Viedään",
-      description: "Lukujärjestys viedään PDF-muodossa",
+      title: "✅ Pohja ladattu",
+      description: `Lukujärjestyspohja "${template.name}" ladattu`,
     });
   };
 
-  const getEntriesForDay = (dayIndex: number) => {
-    return scheduleEntries
-      .filter(e => e.dayIndex === dayIndex && e.studentClass === selectedClass)
-      .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+  // Delete template
+  const deleteTemplate = (templateId: string) => {
+    const updatedTemplates = templates.filter(t => t.id !== templateId);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('schedule_templates', JSON.stringify(updatedTemplates));
+    
+    toast({
+      title: "🗑️ Poistettu",
+      description: "Lukujärjestyspohja poistettu",
+    });
+  };
+
+  // Get lesson for cell
+  const getLessonForCell = (day: number, timeSlotId: string) => {
+    return lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
+  };
+
+  // Get subject color
+  const getSubjectColor = (subject: string) => {
+    const found = SUBJECT_COLORS.find(s => s.name === subject);
+    return found ? found.color : '#003d82';
+  };
+
+  // Auto-fill color when subject is selected
+  const handleSubjectChange = (subject: string) => {
+    setLessonForm({
+      ...lessonForm,
+      subject,
+      color: getSubjectColor(subject),
+    });
+  };
+
+  // Export schedule
+  const exportSchedule = () => {
+    const data = { timeSlots, lessons };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lukujarjestys_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    toast({
+      title: "📥 Viety",
+      description: "Lukujärjestys viety tiedostoon",
+    });
+  };
+
+  // Import schedule
+  const importSchedule = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        setTimeSlots(data.timeSlots || DEFAULT_TIME_SLOTS);
+        setLessons(data.lessons || []);
+        toast({
+          title: "📤 Tuotu",
+          description: "Lukujärjestys tuotu onnistuneesti",
+        });
+      } catch (error) {
+        toast({
+          title: "❌ Virhe",
+          description: "Tiedoston tuonti epäonnistui",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <Card className="border-[#dddddd] shadow-md">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#003d82] rounded-lg">
-                <img src="/ksykmaps_logo.png" alt="KSYK" className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Lukujärjestyksen rakentaja</h2>
-                <p className="text-sm text-gray-600">Luo ja hallinnoi luokkien lukujärjestyksiä</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="border rounded-md px-3 py-2 text-sm font-medium"
-              >
-                {classes.map(cls => (
-                  <option key={cls} value={cls}>{cls}</option>
-                ))}
-              </select>
+        <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl">Lukujärjestyksen rakentaja</CardTitle>
+            <div className="flex gap-2 flex-wrap">
               <Button
                 size="sm"
-                variant="outline"
-                onClick={handleAddEntry}
+                variant="secondary"
+                onClick={saveSchedule}
               >
-                <Plus className="w-4 h-4 mr-1" />
-                Lisää tunti
+                <Save className="w-4 h-4 mr-1" />
+                Tallenna
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={() => setShowSettingsDialog(true)}
+                variant="secondary"
+                onClick={saveAsTemplate}
               >
-                <Settings className="w-4 h-4 mr-1" />
-                Asetukset
+                <FileText className="w-4 h-4 mr-1" />
+                Tallenna pohjaksi
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={() => setShowHolidaysDialog(true)}
+                variant="secondary"
+                onClick={() => setShowTemplateDialog(true)}
               >
-                <Calendar className="w-4 h-4 mr-1" />
-                Lomat
+                <FileText className="w-4 h-4 mr-1" />
+                Pohjat ({templates.length})
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={handleCopySchedule}
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                Kopioi
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleExport}
+                variant="secondary"
+                onClick={exportSchedule}
               >
                 <Download className="w-4 h-4 mr-1" />
                 Vie
               </Button>
+              <label>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  as="span"
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  Tuo
+                </Button>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importSchedule}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Conflicts Alert */}
+      {conflicts.length > 0 ? (
+        <Alert variant="destructive" className="border-red-300 bg-red-50">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="font-semibold mb-2">Löydetty {conflicts.length} konfliktia:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {conflicts.map((conflict, idx) => (
+                <li key={idx} className="text-sm">{conflict}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : lessons.length > 0 ? (
+        <Alert className="border-green-300 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <div className="font-semibold">Ei konflikteja! Lukujärjestys on valmis.</div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {/* Schedule Grid */}
+      <Card className="border-[#dddddd] shadow-md overflow-x-auto">
+        <CardContent className="p-0">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-800">
+                <th className="border border-gray-300 dark:border-gray-600 p-2 text-sm font-semibold min-w-[100px]">
+                  Aika
+                </th>
+                {DAYS.map((day, index) => (
+                  <th key={index} className="border border-gray-300 dark:border-gray-600 p-2 text-sm font-semibold min-w-[150px]">
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {timeSlots.map((slot) => (
+                <tr key={slot.id}>
+                  <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs bg-gray-50 dark:bg-gray-900">
+                    <div className="font-semibold">{slot.label}</div>
+                    <div className="text-gray-600 dark:text-gray-400">
+                      {slot.startTime} - {slot.endTime}
+                    </div>
+                  </td>
+                  {DAYS.map((_, dayIndex) => {
+                    const lesson = getLessonForCell(dayIndex, slot.id);
+                    return (
+                      <td
+                        key={dayIndex}
+                        className="border border-gray-300 dark:border-gray-600 p-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        onClick={() => handleCellClick(dayIndex, slot.id)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(dayIndex, slot.id)}
+                      >
+                        {lesson ? (
+                          <div
+                            className="p-2 rounded text-white text-xs h-full min-h-[60px] flex flex-col justify-between cursor-move"
+                            style={{ backgroundColor: lesson.color }}
+                            draggable
+                            onDragStart={() => handleDragStart(lesson)}
+                          >
+                            <div>
+                              <div className="font-bold">{lesson.subject}</div>
+                              {lesson.teacher && (
+                                <div className="opacity-90">{lesson.teacher}</div>
+                              )}
+                              {lesson.room && (
+                                <div className="opacity-90">{lesson.room}</div>
+                              )}
+                              {lesson.group && (
+                                <div className="opacity-75 text-xs">{lesson.group}</div>
+                              )}
+                            </div>
+                            <div className="flex gap-1 mt-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const targetDay = prompt(`Kopioi päivälle (0=Ma, 1=Ti, 2=Ke, 3=To, 4=Pe):`);
+                                  if (targetDay !== null) {
+                                    const day = parseInt(targetDay);
+                                    if (day >= 0 && day <= 4) {
+                                      copyLesson(lesson, day);
+                                    }
+                                  }
+                                }}
+                                className="text-xs bg-white/20 hover:bg-white/30 px-1 rounded"
+                                title="Kopioi toiselle päivälle"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2 text-center text-gray-400 dark:text-gray-600 text-xs min-h-[60px] flex items-center justify-center">
+                            <Plus className="w-4 h-4" />
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* Lesson Dialog */}
+      <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingLesson ? 'Muokkaa oppituntia' : 'Lisää oppitunti'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Oppiaine *</Label>
+              <Select
+                value={lessonForm.subject}
+                onValueChange={handleSubjectChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Valitse oppiaine" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBJECT_COLORS.map((subject) => (
+                    <SelectItem key={subject.name} value={subject.name}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded"
+                          style={{ backgroundColor: subject.color }}
+                        />
+                        {subject.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Opettaja</Label>
+              <Input
+                value={lessonForm.teacher}
+                onChange={(e) => setLessonForm({ ...lessonForm, teacher: e.target.value })}
+                placeholder="esim. M. Virtanen"
+              />
+            </div>
+            <div>
+              <Label>Luokka</Label>
+              <Input
+                value={lessonForm.room}
+                onChange={(e) => setLessonForm({ ...lessonForm, room: e.target.value })}
+                placeholder="esim. A201"
+              />
+            </div>
+            <div>
+              <Label>Ryhmä (valinnainen)</Label>
+              <Input
+                value={lessonForm.group}
+                onChange={(e) => setLessonForm({ ...lessonForm, group: e.target.value })}
+                placeholder="esim. Ryhmä A"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between">
+            <div className="flex gap-2">
+              {editingLesson && (
+                <>
+                  <Button
+                    variant="destructive"
+                    onClick={deleteLesson}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Poista
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (editingLesson) {
+                        copyLessonToAllDays(editingLesson);
+                        setShowLessonDialog(false);
+                      }
+                    }}
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Kopioi kaikille päiville
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowLessonDialog(false)}
+              >
+                Peruuta
+              </Button>
+              <Button
+                onClick={saveLesson}
+                className="bg-[#003d82] hover:bg-[#002d5f]"
+              >
+                <Save className="w-4 h-4 mr-1" />
+                Tallenna
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Lukujärjestyspohjat</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+            {templates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Ei tallennettuja pohjia</p>
+                <p className="text-sm mt-1">Tallenna nykyinen lukujärjestys pohjaksi</p>
+              </div>
+            ) : (
+              templates.map((template) => (
+                <Card key={template.id} className="border-[#dddddd]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{template.name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {template.lessons.length} oppituntia • {new Set(template.lessons.map(l => l.subject)).size} oppiainetta
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => loadTemplate(template)}
+                          className="bg-[#003d82] hover:bg-[#002d5f]"
+                        >
+                          Lataa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm(`Haluatko varmasti poistaa pohjan "${template.name}"?`)) {
+                              deleteTemplate(template.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowTemplateDialog(false)}
+            >
+              Sulje
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Statistics */}
+      <Card className="border-[#dddddd]">
+        <CardHeader>
+          <CardTitle className="text-base">Tilastot</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-[#003d82]">{lessons.length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Oppituntia</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[#7cb342]">
+                {new Set(lessons.map(l => l.subject)).size}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Oppiainetta</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[#f57c00]">
+                {new Set(lessons.map(l => l.teacher)).size}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Opettajaa</div>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Schedule Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        {days.map((day, dayIndex) => {
-          const dayEntries = getEntriesForDay(dayIndex);
-          
-          return (
-            <Card key={dayIndex} className="border-[#dddddd] shadow-sm">
-              <CardHeader className="p-3 bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold">
-                    {day}
-                    <span className="block text-xs font-normal opacity-90 mt-0.5">
-                      {dayEntries.length} tuntia
-                    </span>
-                  </CardTitle>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 text-white hover:bg-white/20"
-                    onClick={handleAddEntry}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-2 space-y-2">
-                {dayEntries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-xs text-gray-500 mb-2">Ei oppitunteja</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEntryForm({ ...entryForm, dayIndex });
-                        setShowAddDialog(true);
-                      }}
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Lisää tunti
-                    </Button>
-                  </div>
-                ) : (
-                  dayEntries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="p-2 rounded-lg border-l-4 bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer group relative"
-                      style={{ borderLeftColor: entry.color }}
-                    >
-                      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={() => handleEditEntry(entry)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0 text-red-600"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="flex-1 min-w-0 pr-12">
-                        <p className="text-xs font-semibold text-gray-900 truncate">
-                          {entry.subject}
-                        </p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Clock className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                          <p className="text-xs text-gray-600">{entry.timeSlot}</p>
-                        </div>
-                        {entry.teacher && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <User className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                            <p className="text-xs text-gray-600 truncate">{entry.teacher}</p>
-                          </div>
-                        )}
-                        {entry.room && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                            <p className="text-xs text-gray-600">{entry.room}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingEntry ? "Muokkaa oppituntia" : "Lisää uusi oppitunti"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2 mb-4">
-              <input
-                type="checkbox"
-                id="isBreak"
-                checked={entryForm.isBreak}
-                onChange={(e) => setEntryForm({ ...entryForm, isBreak: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="isBreak">Tämä on tauko</Label>
-            </div>
-            
-            <div>
-              <Label>Päivä *</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 mt-1"
-                value={entryForm.dayIndex}
-                onChange={(e) => setEntryForm({ ...entryForm, dayIndex: parseInt(e.target.value) })}
-              >
-                {days.map((day, index) => (
-                  <option key={index} value={index}>{day}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Aika *</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 mt-1"
-                value={entryForm.timeSlot}
-                onChange={(e) => setEntryForm({ ...entryForm, timeSlot: e.target.value })}
-              >
-                <option value="">Valitse aika</option>
-                {timeSlots.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
-            </div>
-            
-            {entryForm.isBreak ? (
-              <div>
-                <Label>Tauon tyyppi</Label>
-                <select
-                  className="w-full border rounded-md px-3 py-2 mt-1"
-                  value={entryForm.breakType}
-                  onChange={(e) => setEntryForm({ ...entryForm, breakType: e.target.value as 'short' | 'lunch' })}
-                >
-                  <option value="short">Välitunti</option>
-                  <option value="lunch">Ruokatauko</option>
-                </select>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label>Oppiaine *</Label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 mt-1"
-                    value={entryForm.subject}
-                    onChange={(e) => setEntryForm({ ...entryForm, subject: e.target.value })}
-                  >
-                    <option value="">Valitse oppiaine</option>
-                    {subjects.map(subject => (
-                      <option key={subject} value={subject}>{subject}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>Opettaja</Label>
-                  <Input
-                    value={entryForm.teacher}
-                    onChange={(e) => setEntryForm({ ...entryForm, teacher: e.target.value })}
-                    placeholder="esim. M. Virtanen"
-                  />
-                </div>
-                <div>
-                  <Label>Luokka</Label>
-                  <Input
-                    value={entryForm.room}
-                    onChange={(e) => setEntryForm({ ...entryForm, room: e.target.value })}
-                    placeholder="esim. A201"
-                  />
-                </div>
-                <div>
-                  <Label>Väri</Label>
-                  <div className="grid grid-cols-4 gap-2 mt-1">
-                    {colors.map((color) => (
-                      <button
-                        key={color.value}
-                        className={`h-10 rounded-md border-2 transition-all ${
-                          entryForm.color === color.value ? 'border-gray-900 scale-105 shadow-md' : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: color.value }}
-                        onClick={() => setEntryForm({ ...entryForm, color: color.value })}
-                        title={color.name}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              Peruuta
-            </Button>
-            <Button onClick={handleSaveEntry} className="bg-[#003d82] hover:bg-[#002d5f]">
-              <Save className="w-4 h-4 mr-1" />
-              Tallenna
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Settings Dialog */}
-      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Lukujärjestyksen asetukset
-            </DialogTitle>
-          </DialogHeader>
-          <Tabs defaultValue="times" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="times">
-                <Clock className="w-4 h-4 mr-2" />
-                Ajat
-              </TabsTrigger>
-              <TabsTrigger value="periods">
-                <Calendar className="w-4 h-4 mr-2" />
-                Tunnit
-              </TabsTrigger>
-              <TabsTrigger value="individual">
-                <Settings className="w-4 h-4 mr-2" />
-                Yksilöllinen
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="times" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Oppitunnin pituus (min)</Label>
-                  <Input
-                    type="number"
-                    value={scheduleSettings.lessonDuration}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, lessonDuration: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label>Välitunnin pituus (min)</Label>
-                  <Input
-                    type="number"
-                    value={scheduleSettings.shortBreakDuration}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, shortBreakDuration: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label>Ruokatunnin pituus (min)</Label>
-                  <Input
-                    type="number"
-                    value={scheduleSettings.lunchBreakDuration}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, lunchBreakDuration: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label>Ruokatauko tunnin jälkeen</Label>
-                  <Input
-                    type="number"
-                    value={scheduleSettings.lunchBreakAfterPeriod}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, lunchBreakAfterPeriod: parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="periods" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Koulupäivän alku</Label>
-                  <Input
-                    type="time"
-                    value={scheduleSettings.schoolStartTime}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, schoolStartTime: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Koulupäivän loppu</Label>
-                  <Input
-                    type="time"
-                    value={scheduleSettings.schoolEndTime}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, schoolEndTime: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Tunteja päivässä</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={scheduleSettings.periodsPerDay}
-                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, periodsPerDay: parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Esikatselu
-                </h4>
-                <div className="space-y-1 text-sm text-blue-800">
-                  {generateTimeSlots().map((slot, idx) => {
-                    const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === idx + 1);
-                    const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === idx + 1);
-                    const isLunchBreak = idx + 1 === scheduleSettings.lunchBreakAfterPeriod;
-                    
-                    return (
-                      <div key={idx}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{idx + 1}. tunti:</span>
-                          <span>{slot}</span>
-                          {customLesson?.isYH && (
-                            <span className="ml-2 text-xs bg-blue-200 px-2 py-0.5 rounded font-semibold">
-                              YH
-                            </span>
-                          )}
-                          {customLesson?.duration && customLesson.duration !== scheduleSettings.lessonDuration && (
-                            <span className="ml-2 text-xs bg-green-200 px-2 py-0.5 rounded">
-                              {customLesson.duration} min
-                            </span>
-                          )}
-                        </div>
-                        {idx < scheduleSettings.periodsPerDay - 1 && (
-                          <div className="ml-4 text-xs text-gray-600 flex items-center gap-2">
-                            {customBreak ? (
-                              <>
-                                <Coffee className="w-3 h-3" />
-                                {customBreak.type === 'lunch' && <Utensils className="w-3 h-3" />}
-                                {customBreak.type === 'yh' ? 'YH-tauko' : customBreak.type === 'lunch' ? 'Ruokatauko' : 'Välitunti'}: {customBreak.duration} min
-                              </>
-                            ) : isLunchBreak ? (
-                              <>
-                                <Utensils className="w-3 h-3" />
-                                Ruokatauko: {scheduleSettings.lunchBreakDuration} min
-                              </>
-                            ) : (
-                              <>
-                                <Coffee className="w-3 h-3" />
-                                Välitunti: {scheduleSettings.shortBreakDuration} min
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="individual" className="space-y-4 mt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <input
-                  type="checkbox"
-                  id="enableIndividual"
-                  checked={scheduleSettings.enableIndividualCustomization}
-                  onChange={(e) => setScheduleSettings({ ...scheduleSettings, enableIndividualCustomization: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <Label htmlFor="enableIndividual" className="font-semibold">
-                  Ota käyttöön yksilöllinen muokkaus
-                </Label>
-              </div>
-              
-              {scheduleSettings.enableIndividualCustomization && (
-                <div className="space-y-6">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2">
-                      💡 Yksilöllinen muokkaus
-                    </h4>
-                    <p className="text-sm text-blue-800">
-                      Voit nyt muokata jokaisen oppitunnin ja välitunnin kestoa erikseen. 
-                      Tämä antaa täyden joustavuuden lukujärjestyksen rakentamiseen.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Oppituntien kestot
-                    </h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {Array.from({ length: scheduleSettings.periodsPerDay }, (_, i) => {
-                        const customLesson = scheduleSettings.customLessons.find(l => l.lessonNumber === i + 1);
-                        const duration = customLesson?.duration || scheduleSettings.lessonDuration;
-                        
-                        return (
-                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
-                            <span className="font-medium text-sm w-20">{i + 1}. tunti:</span>
-                            <Input
-                              type="number"
-                              min="15"
-                              max="120"
-                              value={duration}
-                              onChange={(e) => {
-                                const newDuration = parseInt(e.target.value);
-                                const updatedLessons = scheduleSettings.customLessons.filter(l => l.lessonNumber !== i + 1);
-                                updatedLessons.push({
-                                  lessonNumber: i + 1,
-                                  startTime: '',
-                                  endTime: '',
-                                  duration: newDuration,
-                                  customizable: true,
-                                });
-                                setScheduleSettings({ ...scheduleSettings, customLessons: updatedLessons });
-                              }}
-                              className="w-24"
-                            />
-                            <span className="text-sm text-gray-600">minuuttia</span>
-                            <div className="flex items-center gap-2 ml-auto">
-                              <input
-                                type="checkbox"
-                                id={`yh-${i}`}
-                                checked={customLesson?.isYH || false}
-                                onChange={(e) => {
-                                  const updatedLessons = scheduleSettings.customLessons.filter(l => l.lessonNumber !== i + 1);
-                                  updatedLessons.push({
-                                    lessonNumber: i + 1,
-                                    startTime: '',
-                                    endTime: '',
-                                    duration: duration,
-                                    customizable: true,
-                                    isYH: e.target.checked,
-                                  });
-                                  setScheduleSettings({ ...scheduleSettings, customLessons: updatedLessons });
-                                }}
-                                className="w-4 h-4"
-                              />
-                              <Label htmlFor={`yh-${i}`} className="text-sm">YH</Label>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Coffee className="w-4 h-4" />
-                      Välituntien kestot
-                    </h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {Array.from({ length: scheduleSettings.periodsPerDay - 1 }, (_, i) => {
-                        const customBreak = scheduleSettings.customBreaks.find(b => b.afterLesson === i + 1);
-                        const isLunchBreak = i + 1 === scheduleSettings.lunchBreakAfterPeriod;
-                        const defaultDuration = isLunchBreak ? scheduleSettings.lunchBreakDuration : scheduleSettings.shortBreakDuration;
-                        const duration = customBreak?.duration || defaultDuration;
-                        const breakType = customBreak?.type || (isLunchBreak ? 'lunch' : 'short');
-                        
-                        return (
-                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
-                            <span className="font-medium text-sm w-32">Tauko {i + 1}. jälkeen:</span>
-                            <Input
-                              type="number"
-                              min="5"
-                              max="60"
-                              value={duration}
-                              onChange={(e) => {
-                                const newDuration = parseInt(e.target.value);
-                                const updatedBreaks = scheduleSettings.customBreaks.filter(b => b.afterLesson !== i + 1);
-                                updatedBreaks.push({
-                                  breakNumber: i + 1,
-                                  afterLesson: i + 1,
-                                  duration: newDuration,
-                                  type: breakType,
-                                  customizable: true,
-                                });
-                                setScheduleSettings({ ...scheduleSettings, customBreaks: updatedBreaks });
-                              }}
-                              className="w-24"
-                            />
-                            <span className="text-sm text-gray-600">min</span>
-                            <select
-                              value={breakType}
-                              onChange={(e) => {
-                                const updatedBreaks = scheduleSettings.customBreaks.filter(b => b.afterLesson !== i + 1);
-                                updatedBreaks.push({
-                                  breakNumber: i + 1,
-                                  afterLesson: i + 1,
-                                  duration: duration,
-                                  type: e.target.value as 'short' | 'lunch' | 'yh',
-                                  customizable: true,
-                                });
-                                setScheduleSettings({ ...scheduleSettings, customBreaks: updatedBreaks });
-                              }}
-                              className="px-3 py-1 border rounded-md text-sm"
-                            >
-                              <option value="short">Välitunti</option>
-                              <option value="lunch">Ruokatauko</option>
-                              <option value="yh">YH-tauko</option>
-                            </select>
-                            {breakType === 'lunch' && <Utensils className="w-4 h-4 text-orange-600" />}
-                            {breakType === 'yh' && <span className="text-xs bg-blue-100 px-2 py-1 rounded">YH</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
-              Peruuta
-            </Button>
-            <Button onClick={handleSaveSettings} className="bg-[#003d82] hover:bg-[#002d5f]">
-              <Save className="w-4 h-4 mr-1" />
-              Tallenna asetukset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Holidays Dialog */}
-      <Dialog open={showHolidaysDialog} onOpenChange={setShowHolidaysDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Lomat ja vapaapäivät
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Button onClick={handleAddHoliday} size="sm" className="bg-green-600 hover:bg-green-700">
-              <Plus className="w-4 h-4 mr-1" />
-              Lisää loma
-            </Button>
-            
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {holidays.map((holiday) => (
-                <Card key={holiday.id} className="border-[#dddddd]">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          value={holiday.name}
-                          onChange={(e) => setHolidays(prev => prev.map(h => 
-                            h.id === holiday.id ? { ...h, name: e.target.value } : h
-                          ))}
-                          placeholder="Loman nimi"
-                          className="font-semibold"
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Alkaa</Label>
-                            <Input
-                              type="date"
-                              value={holiday.startDate}
-                              onChange={(e) => setHolidays(prev => prev.map(h => 
-                                h.id === holiday.id ? { ...h, startDate: e.target.value } : h
-                              ))}
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Päättyy</Label>
-                            <Input
-                              type="date"
-                              value={holiday.endDate}
-                              onChange={(e) => setHolidays(prev => prev.map(h => 
-                                h.id === holiday.id ? { ...h, endDate: e.target.value } : h
-                              ))}
-                            />
-                          </div>
-                        </div>
-                        <select
-                          value={holiday.type}
-                          onChange={(e) => setHolidays(prev => prev.map(h => 
-                            h.id === holiday.id ? { ...h, type: e.target.value as Holiday['type'] } : h
-                          ))}
-                          className="w-full border rounded-md px-3 py-2 text-sm"
-                        >
-                          <option value="holiday">Loma</option>
-                          <option value="break">Tauko</option>
-                          <option value="event">Tapahtuma</option>
-                        </select>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-600"
-                        onClick={() => handleDeleteHoliday(holiday.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowHolidaysDialog(false)} className="bg-[#003d82] hover:bg-[#002d5f]">
-              <Save className="w-4 h-4 mr-1" />
-              Tallenna
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, User, Users, Mail, Phone, MapPin, Link as LinkIcon, Home } from "lucide-react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PeopleManager() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSubTab, setActiveSubTab] = useState("students");
   const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
@@ -31,12 +33,19 @@ export default function PeopleManager() {
     },
     onSuccess: (data) => {
       console.log('✅ Bulk email result:', data);
-      alert(`✅ Lähetetty ${data.sent} sähköpostia onnistuneesti!${data.failed > 0 ? ` Epäonnistui: ${data.failed}` : ''}`);
+      toast({
+        title: "✅ Sähköpostit lähetetty!",
+        description: `Lähetetty ${data.sent} sähköpostia onnistuneesti!${data.failed > 0 ? ` Epäonnistui: ${data.failed}` : ''}`,
+      });
       setShowBulkEmailDialog(false);
     },
     onError: (error: any) => {
       console.error('❌ Bulk email error:', error);
-      alert(`❌ Sähköpostien lähetys epäonnistui: ${error.message}`);
+      toast({
+        title: "❌ Virhe",
+        description: `Sähköpostien lähetys epäonnistui: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 
