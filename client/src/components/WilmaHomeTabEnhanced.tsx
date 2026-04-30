@@ -677,22 +677,22 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         );
 
       case 'weather':
-        // Use FMI weather data
+        // Use Open-Meteo weather data
         const [weatherData, setWeatherData] = useState<any>(null);
         const [weatherLoading, setWeatherLoading] = useState(true);
 
         useEffect(() => {
           const loadWeather = async () => {
             try {
-              const { fetchFMIWeather, fetchFMIForecast, getWeatherDescription, getMockWeatherData } = await import('@/lib/fmiWeather');
-              const data = await fetchFMIWeather('Helsinki');
-              const forecast = await fetchFMIForecast('Helsinki', 6);
+              const { fetchCurrentWeather, fetchHourlyForecast, getWeatherDescription, getMockWeatherData } = await import('@/lib/openMeteoWeather');
+              const data = await fetchCurrentWeather(); // Helsinki coordinates by default
+              const forecast = await fetchHourlyForecast(60.1699, 24.9384, 6);
               
               if (data) {
                 setWeatherData({
                   current: data,
                   forecast: forecast,
-                  description: getWeatherDescription(data.weatherSymbol)
+                  description: getWeatherDescription(data.weatherCode)
                 });
               } else {
                 // Fallback to mock data
@@ -700,18 +700,18 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                 setWeatherData({
                   current: mockData,
                   forecast: [],
-                  description: getWeatherDescription(mockData.weatherSymbol)
+                  description: getWeatherDescription(mockData.weatherCode)
                 });
               }
             } catch (error) {
               console.error('Weather fetch error:', error);
               // Use mock data on error
-              const { getMockWeatherData, getWeatherDescription } = await import('@/lib/fmiWeather');
+              const { getMockWeatherData, getWeatherDescription } = await import('@/lib/openMeteoWeather');
               const mockData = getMockWeatherData();
               setWeatherData({
                 current: mockData,
                 forecast: [],
-                description: getWeatherDescription(mockData.weatherSymbol)
+                description: getWeatherDescription(mockData.weatherCode)
               });
             } finally {
               setWeatherLoading(false);
@@ -721,11 +721,13 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         }, []);
 
         // Helper functions
-        const getWeatherIcon = (symbol: number) => {
-          if (symbol <= 2) return 'sun';
-          if (symbol <= 4) return 'cloud-sun';
-          if (symbol <= 30) return 'cloud';
-          if (symbol <= 50) return 'cloud-rain';
+        const getWeatherIcon = (code: number) => {
+          if (code === 0) return 'sun';
+          if (code <= 3) return 'cloud-sun';
+          if (code <= 48) return 'cloud';
+          if (code <= 67) return 'cloud-rain';
+          if (code <= 77) return 'cloud-snow';
+          if (code <= 99) return 'cloud-lightning';
           return 'cloud';
         };
 
@@ -735,18 +737,19 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
           return date.toLocaleDateString('fi-FI', { weekday: 'short' });
         };
 
-        // Generate hourly forecast times
+        // Generate hourly forecast times - show only hours without minutes
         const now = new Date();
-        const currentHour = now.getHours();
+        const finlandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Helsinki' }));
+        const currentHour = finlandTime.getHours();
         const hourlyForecast = weatherData?.forecast.length > 0 
           ? weatherData.forecast.slice(0, 6)
           : Array.from({ length: 6 }, (_, i) => {
               const hour = (currentHour + i) % 24;
               const temp = 18 - i;
               return {
-                time: `${hour.toString().padStart(2, '0')}:00`,
+                time: hour.toString(), // Just the hour number
                 temperature: temp,
-                weatherSymbol: 4
+                weatherCode: 3
               };
             });
 
@@ -837,23 +840,23 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
                         <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 dark:bg-gray-700/50 rounded min-w-[60px]">
                           <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{hour.time}</p>
                           <div className="my-1">
-                            {getWeatherIcon(hour.weatherSymbol) === 'sun' && (
+                            {getWeatherIcon(hour.weatherCode) === 'sun' && (
                               <svg className="w-6 h-6 mx-auto text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                                 <circle cx="10" cy="10" r="3"/>
                                 <path d="M10 1v2M10 17v2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M1 10h2M17 10h2M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42" stroke="currentColor" strokeWidth={1.5} fill="none"/>
                               </svg>
                             )}
-                            {getWeatherIcon(hour.weatherSymbol) === 'cloud-sun' && (
+                            {getWeatherIcon(hour.weatherCode) === 'cloud-sun' && (
                               <svg className="w-6 h-6 mx-auto text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                               </svg>
                             )}
-                            {getWeatherIcon(hour.weatherSymbol) === 'cloud' && (
+                            {getWeatherIcon(hour.weatherCode) === 'cloud' && (
                               <svg className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                               </svg>
                             )}
-                            {getWeatherIcon(hour.weatherSymbol) === 'cloud-rain' && (
+                            {getWeatherIcon(hour.weatherCode) === 'cloud-rain' && (
                               <svg className="w-6 h-6 mx-auto text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/>
                                 <path d="M7 18v-2M10 18v-2M13 18v-2" stroke="currentColor" strokeWidth={1.5} fill="none"/>
