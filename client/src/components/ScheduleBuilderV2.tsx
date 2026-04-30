@@ -5,25 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Save, Trash2, Copy, Download, Upload, Settings, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { Plus, Save, Trash2, Copy, Download, Upload, AlertTriangle, CheckCircle2, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Types
 interface TimeSlot {
   id: string;
   startTime: string;
   endTime: string;
-  label: string; // e.g., "1. tunti", "2. tunti"
+  label: string;
 }
 
 interface Lesson {
   id: string;
   timeSlotId: string;
-  day: number; // 0 = Monday, 4 = Friday
+  day: number; // 0-4 (Mon-Fri)
   subject: string;
   teacher: string;
   room: string;
-  group?: string; // For split classes
+  group?: string;
   color: string;
 }
 
@@ -34,6 +35,7 @@ interface ScheduleTemplate {
   lessons: Lesson[];
 }
 
+// Constants
 const DEFAULT_TIME_SLOTS: TimeSlot[] = [
   { id: '1', startTime: '08:00', endTime: '08:45', label: '1. tunti' },
   { id: '2', startTime: '08:50', endTime: '09:35', label: '2. tunti' },
@@ -66,20 +68,21 @@ const SUBJECT_COLORS = [
 
 const DAYS = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'];
 
-export default function ScheduleBuilder() {
+export default function ScheduleBuilderV2() {
   const { toast } = useToast();
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(DEFAULT_TIME_SLOTS);
+  
+  // State
+  const [timeSlots] = useState<TimeSlot[]>(DEFAULT_TIME_SLOTS);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ day: number; timeSlotId: string } | null>(null);
   const [showLessonDialog, setShowLessonDialog] = useState(false);
-  const [showTimeSlotDialog, setShowTimeSlotDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [draggedLesson, setDraggedLesson] = useState<Lesson | null>(null);
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   
-  // Lesson form
+  // Form state
   const [lessonForm, setLessonForm] = useState({
     subject: '',
     teacher: '',
@@ -88,28 +91,19 @@ export default function ScheduleBuilder() {
     color: '#003d82',
   });
 
-  // Time slot form
-  const [timeSlotForm, setTimeSlotForm] = useState({
-    startTime: '',
-    endTime: '',
-    label: '',
-  });
-
-  // Load schedule from localStorage
+  // Load data on mount
   useEffect(() => {
-    const saved = localStorage.getItem('schedule_builder');
+    const saved = localStorage.getItem('schedule_builder_v2');
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        setTimeSlots(data.timeSlots || DEFAULT_TIME_SLOTS);
         setLessons(data.lessons || []);
       } catch (e) {
         console.error('Failed to load schedule:', e);
       }
     }
     
-    // Load templates
-    const savedTemplates = localStorage.getItem('schedule_templates');
+    const savedTemplates = localStorage.getItem('schedule_templates_v2');
     if (savedTemplates) {
       try {
         setTemplates(JSON.parse(savedTemplates));
@@ -119,22 +113,15 @@ export default function ScheduleBuilder() {
     }
   }, []);
 
-  // Check for conflicts whenever lessons change
+  // Detect conflicts whenever lessons change
   useEffect(() => {
-    detectConflicts();
-  }, [lessons]);
-
-  // Detect scheduling conflicts
-  const detectConflicts = () => {
     const foundConflicts: string[] = [];
     
-    // Check for teacher conflicts (same teacher, same time, different rooms)
+    // Teacher conflicts
     const teacherSlots = new Map<string, Lesson[]>();
     lessons.forEach(lesson => {
       const key = `${lesson.teacher}-${lesson.timeSlotId}-${lesson.day}`;
-      if (!teacherSlots.has(key)) {
-        teacherSlots.set(key, []);
-      }
+      if (!teacherSlots.has(key)) teacherSlots.set(key, []);
       teacherSlots.get(key)!.push(lesson);
     });
     
@@ -148,14 +135,12 @@ export default function ScheduleBuilder() {
       }
     });
     
-    // Check for room conflicts (same room, same time)
+    // Room conflicts
     const roomSlots = new Map<string, Lesson[]>();
     lessons.forEach(lesson => {
       if (lesson.room) {
         const key = `${lesson.room}-${lesson.timeSlotId}-${lesson.day}`;
-        if (!roomSlots.has(key)) {
-          roomSlots.set(key, []);
-        }
+        if (!roomSlots.has(key)) roomSlots.set(key, []);
         roomSlots.get(key)!.push(lesson);
       }
     });
@@ -171,12 +156,12 @@ export default function ScheduleBuilder() {
     });
     
     setConflicts(foundConflicts);
-  };
+  }, [lessons, timeSlots]);
 
-  // Save schedule to localStorage
+  // Save schedule
   const saveSchedule = () => {
     const data = { timeSlots, lessons };
-    localStorage.setItem('schedule_builder', JSON.stringify(data));
+    localStorage.setItem('schedule_builder_v2', JSON.stringify(data));
     toast({
       title: "✅ Tallennettu",
       description: "Lukujärjestys tallennettu onnistuneesti",
@@ -188,7 +173,6 @@ export default function ScheduleBuilder() {
     const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
     
     if (existingLesson) {
-      // Edit existing lesson
       setEditingLesson(existingLesson);
       setLessonForm({
         subject: existingLesson.subject,
@@ -198,7 +182,6 @@ export default function ScheduleBuilder() {
         color: existingLesson.color,
       });
     } else {
-      // Create new lesson
       setEditingLesson(null);
       setLessonForm({
         subject: '',
@@ -227,18 +210,14 @@ export default function ScheduleBuilder() {
     }
 
     if (editingLesson) {
-      // Update existing lesson
       setLessons(lessons.map(l => 
-        l.id === editingLesson.id 
-          ? { ...l, ...lessonForm }
-          : l
+        l.id === editingLesson.id ? { ...l, ...lessonForm } : l
       ));
       toast({
         title: "✅ Päivitetty",
         description: "Oppitunti päivitetty",
       });
     } else {
-      // Create new lesson
       const newLesson: Lesson = {
         id: Date.now().toString(),
         day: selectedCell.day,
@@ -269,26 +248,11 @@ export default function ScheduleBuilder() {
     });
   };
 
-  // Copy lesson to another day
-  const copyLesson = (lesson: Lesson, targetDay: number) => {
-    const newLesson: Lesson = {
-      ...lesson,
-      id: Date.now().toString(),
-      day: targetDay,
-    };
-    setLessons([...lessons, newLesson]);
-    toast({
-      title: "📋 Kopioitu",
-      description: `Oppitunti kopioitu ${DAYS[targetDay]}lle`,
-    });
-  };
-
   // Copy lesson to all days
   const copyLessonToAllDays = (lesson: Lesson) => {
     const newLessons: Lesson[] = [];
     for (let day = 0; day < 5; day++) {
       if (day !== lesson.day) {
-        // Check if slot is empty
         const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === lesson.timeSlotId);
         if (!existingLesson) {
           newLessons.push({
@@ -306,7 +270,7 @@ export default function ScheduleBuilder() {
     });
   };
 
-  // Drag and drop handlers
+  // Drag handlers
   const handleDragStart = (lesson: Lesson) => {
     setDraggedLesson(lesson);
   };
@@ -318,7 +282,6 @@ export default function ScheduleBuilder() {
   const handleDrop = (day: number, timeSlotId: string) => {
     if (!draggedLesson) return;
     
-    // Check if target slot is empty
     const existingLesson = lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
     if (existingLesson) {
       toast({
@@ -330,11 +293,8 @@ export default function ScheduleBuilder() {
       return;
     }
     
-    // Move lesson
     setLessons(lessons.map(l => 
-      l.id === draggedLesson.id 
-        ? { ...l, day, timeSlotId }
-        : l
+      l.id === draggedLesson.id ? { ...l, day, timeSlotId } : l
     ));
     
     toast({
@@ -359,7 +319,7 @@ export default function ScheduleBuilder() {
     
     const updatedTemplates = [...templates, newTemplate];
     setTemplates(updatedTemplates);
-    localStorage.setItem('schedule_templates', JSON.stringify(updatedTemplates));
+    localStorage.setItem('schedule_templates_v2', JSON.stringify(updatedTemplates));
     
     toast({
       title: "✅ Pohja tallennettu",
@@ -375,7 +335,6 @@ export default function ScheduleBuilder() {
       }
     }
     
-    setTimeSlots(template.timeSlots);
     setLessons(template.lessons);
     setShowTemplateDialog(false);
     
@@ -389,31 +348,11 @@ export default function ScheduleBuilder() {
   const deleteTemplate = (templateId: string) => {
     const updatedTemplates = templates.filter(t => t.id !== templateId);
     setTemplates(updatedTemplates);
-    localStorage.setItem('schedule_templates', JSON.stringify(updatedTemplates));
+    localStorage.setItem('schedule_templates_v2', JSON.stringify(updatedTemplates));
     
     toast({
       title: "🗑️ Poistettu",
       description: "Lukujärjestyspohja poistettu",
-    });
-  };
-
-  // Get lesson for cell
-  const getLessonForCell = (day: number, timeSlotId: string) => {
-    return lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
-  };
-
-  // Get subject color
-  const getSubjectColor = (subject: string) => {
-    const found = SUBJECT_COLORS.find(s => s.name === subject);
-    return found ? found.color : '#003d82';
-  };
-
-  // Auto-fill color when subject is selected
-  const handleSubjectChange = (subject: string) => {
-    setLessonForm({
-      ...lessonForm,
-      subject,
-      color: getSubjectColor(subject),
     });
   };
 
@@ -441,7 +380,6 @@ export default function ScheduleBuilder() {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        setTimeSlots(data.timeSlots || DEFAULT_TIME_SLOTS);
         setLessons(data.lessons || []);
         toast({
           title: "📤 Tuotu",
@@ -458,52 +396,52 @@ export default function ScheduleBuilder() {
     reader.readAsText(file);
   };
 
+  // Get lesson for cell
+  const getLessonForCell = (day: number, timeSlotId: string) => {
+    return lessons.find(l => l.day === day && l.timeSlotId === timeSlotId);
+  };
+
+  // Get subject color
+  const getSubjectColor = (subject: string) => {
+    const found = SUBJECT_COLORS.find(s => s.name === subject);
+    return found ? found.color : '#003d82';
+  };
+
+  // Handle subject change
+  const handleSubjectChange = (subject: string) => {
+    setLessonForm({
+      ...lessonForm,
+      subject,
+      color: getSubjectColor(subject),
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <Card className="border-[#dddddd] shadow-md">
         <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">Lukujärjestyksen rakentaja</CardTitle>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <CardTitle className="text-xl">📅 Lukujärjestyksen rakentaja</CardTitle>
             <div className="flex gap-2 flex-wrap">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={saveSchedule}
-              >
+              <Button size="sm" variant="secondary" onClick={saveSchedule}>
                 <Save className="w-4 h-4 mr-1" />
                 Tallenna
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={saveAsTemplate}
-              >
+              <Button size="sm" variant="secondary" onClick={saveAsTemplate}>
                 <FileText className="w-4 h-4 mr-1" />
                 Tallenna pohjaksi
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setShowTemplateDialog(true)}
-              >
+              <Button size="sm" variant="secondary" onClick={() => setShowTemplateDialog(true)}>
                 <FileText className="w-4 h-4 mr-1" />
                 Pohjat ({templates.length})
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={exportSchedule}
-              >
+              <Button size="sm" variant="secondary" onClick={exportSchedule}>
                 <Download className="w-4 h-4 mr-1" />
                 Vie
               </Button>
               <label>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  as="span"
-                >
+                <Button size="sm" variant="secondary" as="span">
                   <Upload className="w-4 h-4 mr-1" />
                   Tuo
                 </Button>
@@ -524,7 +462,7 @@ export default function ScheduleBuilder() {
         <Alert variant="destructive" className="border-red-300 bg-red-50">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <div className="font-semibold mb-2">Löydetty {conflicts.length} konfliktia:</div>
+            <div className="font-semibold mb-2">⚠️ Löydetty {conflicts.length} konfliktia:</div>
             <ul className="list-disc list-inside space-y-1">
               {conflicts.map((conflict, idx) => (
                 <li key={idx} className="text-sm">{conflict}</li>
@@ -536,7 +474,7 @@ export default function ScheduleBuilder() {
         <Alert className="border-green-300 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <div className="font-semibold">Ei konflikteja! Lukujärjestys on valmis.</div>
+            <div className="font-semibold">✅ Ei konflikteja! Lukujärjestys on valmis.</div>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -544,14 +482,14 @@ export default function ScheduleBuilder() {
       {/* Schedule Grid */}
       <Card className="border-[#dddddd] shadow-md overflow-x-auto">
         <CardContent className="p-0">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="border border-gray-300 dark:border-gray-600 p-2 text-sm font-semibold min-w-[100px]">
+              <tr className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
+                <th className="border border-gray-300 dark:border-gray-600 p-3 text-sm font-semibold w-32">
                   Aika
                 </th>
                 {DAYS.map((day, index) => (
-                  <th key={index} className="border border-gray-300 dark:border-gray-600 p-2 text-sm font-semibold min-w-[150px]">
+                  <th key={index} className="border border-gray-300 dark:border-gray-600 p-3 text-sm font-semibold">
                     {day}
                   </th>
                 ))}
@@ -559,10 +497,10 @@ export default function ScheduleBuilder() {
             </thead>
             <tbody>
               {timeSlots.map((slot) => (
-                <tr key={slot.id}>
+                <tr key={slot.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs bg-gray-50 dark:bg-gray-900">
-                    <div className="font-semibold">{slot.label}</div>
-                    <div className="text-gray-600 dark:text-gray-400">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">{slot.label}</div>
+                    <div className="text-gray-600 dark:text-gray-400 text-xs">
                       {slot.startTime} - {slot.endTime}
                     </div>
                   </td>
@@ -571,52 +509,34 @@ export default function ScheduleBuilder() {
                     return (
                       <td
                         key={dayIndex}
-                        className="border border-gray-300 dark:border-gray-600 p-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="border border-gray-300 dark:border-gray-600 p-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         onClick={() => handleCellClick(dayIndex, slot.id)}
                         onDragOver={handleDragOver}
                         onDrop={() => handleDrop(dayIndex, slot.id)}
                       >
                         {lesson ? (
                           <div
-                            className="p-2 rounded text-white text-xs h-full min-h-[60px] flex flex-col justify-between cursor-move"
+                            className="p-3 rounded-lg text-white text-xs h-full min-h-[80px] flex flex-col justify-between cursor-move shadow-sm hover:shadow-md transition-shadow"
                             style={{ backgroundColor: lesson.color }}
                             draggable
                             onDragStart={() => handleDragStart(lesson)}
                           >
                             <div>
-                              <div className="font-bold">{lesson.subject}</div>
+                              <div className="font-bold text-sm mb-1">{lesson.subject}</div>
                               {lesson.teacher && (
-                                <div className="opacity-90">{lesson.teacher}</div>
+                                <div className="opacity-90 text-xs">👤 {lesson.teacher}</div>
                               )}
                               {lesson.room && (
-                                <div className="opacity-90">{lesson.room}</div>
+                                <div className="opacity-90 text-xs">📍 {lesson.room}</div>
                               )}
                               {lesson.group && (
-                                <div className="opacity-75 text-xs">{lesson.group}</div>
+                                <div className="opacity-75 text-xs mt-1">👥 {lesson.group}</div>
                               )}
-                            </div>
-                            <div className="flex gap-1 mt-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const targetDay = prompt(`Kopioi päivälle (0=Ma, 1=Ti, 2=Ke, 3=To, 4=Pe):`);
-                                  if (targetDay !== null) {
-                                    const day = parseInt(targetDay);
-                                    if (day >= 0 && day <= 4) {
-                                      copyLesson(lesson, day);
-                                    }
-                                  }
-                                }}
-                                className="text-xs bg-white/20 hover:bg-white/30 px-1 rounded"
-                                title="Kopioi toiselle päivälle"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="p-2 text-center text-gray-400 dark:text-gray-600 text-xs min-h-[60px] flex items-center justify-center">
-                            <Plus className="w-4 h-4" />
+                          <div className="p-3 text-center text-gray-400 dark:text-gray-600 text-xs min-h-[80px] flex items-center justify-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <Plus className="w-5 h-5" />
                           </div>
                         )}
                       </td>
@@ -629,21 +549,45 @@ export default function ScheduleBuilder() {
         </CardContent>
       </Card>
 
+      {/* Statistics */}
+      <Card className="border-[#dddddd]">
+        <CardHeader>
+          <CardTitle className="text-base">📊 Tilastot</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-3xl font-bold text-[#003d82]">{lessons.length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Oppituntia</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-[#7cb342]">
+                {new Set(lessons.map(l => l.subject)).size}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Oppiainetta</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-[#f57c00]">
+                {new Set(lessons.map(l => l.teacher)).size}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Opettajaa</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Lesson Dialog */}
       <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingLesson ? 'Muokkaa oppituntia' : 'Lisää oppitunti'}
+              {editingLesson ? '✏️ Muokkaa oppituntia' : '➕ Lisää oppitunti'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label>Oppiaine *</Label>
-              <Select
-                value={lessonForm.subject}
-                onValueChange={handleSubjectChange}
-              >
+              <Select value={lessonForm.subject} onValueChange={handleSubjectChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Valitse oppiaine" />
                 </SelectTrigger>
@@ -691,10 +635,7 @@ export default function ScheduleBuilder() {
             <div className="flex gap-2">
               {editingLesson && (
                 <>
-                  <Button
-                    variant="destructive"
-                    onClick={deleteLesson}
-                  >
+                  <Button variant="destructive" onClick={deleteLesson}>
                     <Trash2 className="w-4 h-4 mr-1" />
                     Poista
                   </Button>
@@ -708,22 +649,17 @@ export default function ScheduleBuilder() {
                     }}
                   >
                     <Copy className="w-4 h-4 mr-1" />
-                    Kopioi kaikille päiville
+                    Kopioi kaikille
                   </Button>
                 </>
               )}
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowLessonDialog(false)}
-              >
+              <Button variant="outline" onClick={() => setShowLessonDialog(false)}>
+                <X className="w-4 h-4 mr-1" />
                 Peruuta
               </Button>
-              <Button
-                onClick={saveLesson}
-                className="bg-[#003d82] hover:bg-[#002d5f]"
-              >
+              <Button onClick={saveLesson} className="bg-[#003d82] hover:bg-[#002d5f]">
                 <Save className="w-4 h-4 mr-1" />
                 Tallenna
               </Button>
@@ -736,7 +672,7 @@ export default function ScheduleBuilder() {
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Lukujärjestyspohjat</DialogTitle>
+            <DialogTitle>📚 Lukujärjestyspohjat</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
             {templates.length === 0 ? (
@@ -783,42 +719,12 @@ export default function ScheduleBuilder() {
             )}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowTemplateDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>
               Sulje
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Statistics */}
-      <Card className="border-[#dddddd]">
-        <CardHeader>
-          <CardTitle className="text-base">Tilastot</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-[#003d82]">{lessons.length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Oppituntia</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#7cb342]">
-                {new Set(lessons.map(l => l.subject)).size}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Oppiainetta</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#f57c00]">
-                {new Set(lessons.map(l => l.teacher)).size}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Opettajaa</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

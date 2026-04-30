@@ -13,7 +13,7 @@ import ClassesManager from "@/components/ClassesManager";
 import WilmaStyleAttendance from "@/components/WilmaStyleAttendance";
 import CourseManager from "@/components/CourseManager";
 import AnnouncementManager from "@/components/AnnouncementManager";
-import ScheduleBuilder from "@/components/ScheduleBuilder";
+import ScheduleBuilderV2 from "@/components/ScheduleBuilderV2";
 import WilmaTimetable from "@/components/WilmaTimetable";
 import WilmaGrades from "@/components/WilmaGrades";
 import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
@@ -320,7 +320,7 @@ export default function WilmaAdminNew() {
           {activeSection === 'schedule' && (
             <div className="space-y-4">
               {isAdmin ? (
-                <ScheduleBuilder />
+                <ScheduleBuilderV2 />
               ) : (
                 <WilmaTimetable />
               )}
