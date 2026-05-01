@@ -1,171 +1,198 @@
 /**
- * Open-Meteo Weather API Integration
- * Free API - No API key required
+ * Open-Meteo Weather API Integration - REAL DATA ONLY
+ * Location: Kulosaari, Helsinki (61.6575, 26.3728)
  * Documentation: https://open-meteo.com/en/docs
  * 
  * Features:
- * - 7-day forecast
- * - Hourly data
- * - No rate limits
- * - No authentication required
- * - High accuracy
+ * - Real-time weather data
+ * - Hourly and daily forecasts
+ * - No API key required
+ * - Auto timezone detection
  */
 
 export interface WeatherData {
   temperature: number;
   feelsLike: number;
-  humidity: number;
   windSpeed: number;
-  windDirection: number;
+  windGusts: number;
   precipitation: number;
+  rain: number;
+  showers: number;
+  snowfall: number;
   weatherCode: number;
+  cloudCover: number;
   timestamp: string;
 }
 
 export interface HourlyForecast {
   time: string; // Hour only (e.g., "14")
   temperature: number;
+  apparentTemperature: number;
   weatherCode: number;
-  precipitation: number;
-  windSpeed: number;
+  rain: number;
+  snowfall: number;
+  cloudCover: number;
+  visibility: number;
+  uvIndex: number;
+  isDay: number;
+}
+
+export interface DailyForecast {
+  date: string;
+  weatherCode: number;
+  tempMax: number;
+  tempMin: number;
+  apparentTempMax: number;
+  apparentTempMin: number;
+  windSpeedMax: number;
+  windGustsMax: number;
+  sunrise: string;
+  sunset: string;
+  uvIndexMax: number;
+  daylightDuration: number;
 }
 
 /**
- * Fetch current weather from Open-Meteo API
- * @param latitude Latitude (default: Helsinki 60.1699)
- * @param longitude Longitude (default: Helsinki 24.9384)
- * @returns Current weather data
+ * Fetch current weather from Open-Meteo API - REAL DATA ONLY
+ * Location: Kulosaari, Helsinki (61.6575, 26.3728)
  */
-export async function fetchCurrentWeather(
-  latitude: number = 60.1699,
-  longitude: number = 24.9384
-): Promise<WeatherData | null> {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=Europe/Helsinki`;
-    
-    console.log('🌡️ Fetching Open-Meteo weather for Helsinki');
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Open-Meteo API error: ${response.status}, using mock data`);
-      return getMockWeatherData();
-    }
-
-    const data = await response.json();
-    
-    if (!data.current) {
-      console.warn('No current weather data found, using mock data');
-      return getMockWeatherData();
-    }
-
-    const current = data.current;
-    
-    const weatherData: WeatherData = {
-      temperature: Math.round(current.temperature_2m),
-      feelsLike: Math.round(current.apparent_temperature),
-      humidity: Math.round(current.relative_humidity_2m),
-      windSpeed: Math.round(current.wind_speed_10m),
-      windDirection: Math.round(current.wind_direction_10m),
-      precipitation: current.precipitation || 0,
-      weatherCode: current.weather_code,
-      timestamp: current.time
-    };
-
-    console.log('✅ Weather data fetched successfully:', weatherData);
-    return weatherData;
-  } catch (error) {
-    console.error("Error fetching Open-Meteo weather:", error);
-    return getMockWeatherData();
+export async function fetchCurrentWeather(): Promise<WeatherData> {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&timezone=auto';
+  
+  console.log('🌡️ Fetching REAL weather data from Open-Meteo API for Kulosaari, Helsinki');
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Weather API error: ${response.status}`);
   }
+
+  const data = await response.json();
+  
+  if (!data.current) {
+    throw new Error('No current weather data available');
+  }
+
+  const current = data.current;
+  
+  const weatherData: WeatherData = {
+    temperature: Math.round(current.temperature_2m),
+    feelsLike: Math.round(current.apparent_temperature),
+    windSpeed: Math.round(current.wind_speed_10m * 3.6), // Convert m/s to km/h
+    windGusts: Math.round(current.wind_gusts_10m * 3.6),
+    precipitation: current.precipitation || 0,
+    rain: current.rain || 0,
+    showers: current.showers || 0,
+    snowfall: current.snowfall || 0,
+    weatherCode: current.weather_code,
+    cloudCover: current.cloud_cover || 0,
+    timestamp: current.time
+  };
+
+  console.log('✅ REAL weather data fetched:', weatherData);
+  return weatherData;
 }
 
+
 /**
- * Fetch hourly weather forecast from Open-Meteo API
- * @param latitude Latitude (default: Helsinki)
- * @param longitude Longitude (default: Helsinki)
- * @param hours Number of hours to forecast (default: 24)
- * @returns Array of hourly forecast data
+ * Fetch hourly weather forecast - REAL DATA ONLY
+ * Returns next 24 hours with correct Finland timezone
  */
-export async function fetchHourlyForecast(
-  latitude: number = 60.1699,
-  longitude: number = 24.9384,
-  hours: number = 24
-): Promise<HourlyForecast[]> {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=Europe/Helsinki&forecast_days=2`;
-    
-    console.log('🌤️ Fetching Open-Meteo hourly forecast');
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Open-Meteo forecast API returned ${response.status}, using fallback`);
-      return generateMockForecast(hours);
-    }
+export async function fetchHourlyForecast(hours: number = 24): Promise<HourlyForecast[]> {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&hourly=temperature_2m,rain,snowfall,weather_code,cloud_cover,visibility,uv_index,is_day,apparent_temperature&timezone=auto&forecast_days=2';
+  
+  console.log('🌤️ Fetching REAL hourly forecast from Open-Meteo');
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Forecast API error: ${response.status}`);
+  }
 
-    const data = await response.json();
-    
-    if (!data.hourly || !data.hourly.time) {
-      console.warn('No hourly forecast data found, using fallback');
-      return generateMockForecast(hours);
-    }
+  const data = await response.json();
+  
+  if (!data.hourly || !data.hourly.time) {
+    throw new Error('No hourly forecast data available');
+  }
 
-    const hourly = data.hourly;
-    const forecasts: HourlyForecast[] = [];
+  const hourly = data.hourly;
+  const forecasts: HourlyForecast[] = [];
+  
+  // Get current time in Finland timezone
+  const now = new Date();
+  const currentTime = now.getTime();
+  
+  // Process hourly data - show only hours without minutes
+  for (let i = 0; i < Math.min(hourly.time.length, hours); i++) {
+    const timeStr = hourly.time[i];
+    const forecastDate = new Date(timeStr);
     
-    // Get current hour in Finland timezone
-    const now = new Date();
-    const finlandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Helsinki' }));
-    const currentHour = finlandTime.getHours();
-    
-    // Process hourly data - show only hours without minutes
-    for (let i = 0; i < Math.min(hourly.time.length, hours); i++) {
-      const timeStr = hourly.time[i];
-      const forecastDate = new Date(timeStr);
+    // Only include future hours
+    if (forecastDate.getTime() >= currentTime) {
       const hour = forecastDate.getHours();
       
       forecasts.push({
         time: hour.toString(), // Just the hour number (e.g., "14")
         temperature: Math.round(hourly.temperature_2m[i]),
+        apparentTemperature: Math.round(hourly.apparent_temperature[i]),
         weatherCode: hourly.weather_code[i],
-        precipitation: hourly.precipitation[i] || 0,
-        windSpeed: Math.round(hourly.wind_speed_10m[i])
+        rain: hourly.rain[i] || 0,
+        snowfall: hourly.snowfall[i] || 0,
+        cloudCover: hourly.cloud_cover[i] || 0,
+        visibility: hourly.visibility[i] || 10000,
+        uvIndex: hourly.uv_index[i] || 0,
+        isDay: hourly.is_day[i] || 0
       });
     }
-
-    console.log(`✅ Fetched ${forecasts.length} hourly forecast entries`);
-    return forecasts.slice(0, hours);
-  } catch (error) {
-    console.error("Error fetching Open-Meteo forecast:", error);
-    return generateMockForecast(hours);
+    
+    if (forecasts.length >= hours) break;
   }
+
+  console.log(`✅ Fetched ${forecasts.length} REAL hourly forecast entries`);
+  return forecasts;
 }
 
 /**
- * Generate mock forecast data as fallback
+ * Fetch daily weather forecast - REAL DATA ONLY
  */
-function generateMockForecast(hours: number): HourlyForecast[] {
-  const forecasts: HourlyForecast[] = [];
-  const now = new Date();
-  const finlandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Helsinki' }));
+export async function fetchDailyForecast(days: number = 7): Promise<DailyForecast[]> {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max,daylight_duration&timezone=auto';
   
-  for (let i = 0; i < Math.min(hours, 24); i++) {
-    const hour = (finlandTime.getHours() + i) % 24;
-    
-    // Generate realistic-looking data based on time of day
-    const baseTemp = 15;
-    const tempVariation = Math.sin((hour / 24) * Math.PI * 2) * 5;
-    
+  console.log('📅 Fetching REAL daily forecast from Open-Meteo');
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Daily forecast API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.daily || !data.daily.time) {
+    throw new Error('No daily forecast data available');
+  }
+
+  const daily = data.daily;
+  const forecasts: DailyForecast[] = [];
+  
+  for (let i = 0; i < Math.min(daily.time.length, days); i++) {
     forecasts.push({
-      time: hour.toString(),
-      temperature: Math.round(baseTemp + tempVariation),
-      weatherCode: hour % 6 === 0 ? 61 : (hour % 3 === 0 ? 3 : 1),
-      precipitation: hour % 8 === 0 ? 0.5 : 0,
-      windSpeed: 3 + Math.round(Math.random() * 5)
+      date: daily.time[i],
+      weatherCode: daily.weather_code[i],
+      tempMax: Math.round(daily.temperature_2m_max[i]),
+      tempMin: Math.round(daily.temperature_2m_min[i]),
+      apparentTempMax: Math.round(daily.apparent_temperature_max[i]),
+      apparentTempMin: Math.round(daily.apparent_temperature_min[i]),
+      windSpeedMax: Math.round(daily.wind_speed_10m_max[i] * 3.6), // Convert to km/h
+      windGustsMax: Math.round(daily.wind_gusts_10m_max[i] * 3.6),
+      sunrise: daily.sunrise[i],
+      sunset: daily.sunset[i],
+      uvIndexMax: daily.uv_index_max[i] || 0,
+      daylightDuration: daily.daylight_duration[i] || 0
     });
   }
-  
+
+  console.log(`✅ Fetched ${forecasts.length} REAL daily forecast entries`);
   return forecasts;
 }
+
 
 /**
  * Convert WMO weather code to icon name
@@ -209,46 +236,6 @@ export function getWeatherDescription(code: number): string {
   if (code === 95) return 'Ukkosta';
   if (code === 96 || code === 99) return 'Ukkosta ja rakeita';
   return 'Pilvistä';
-}
-
-/**
- * Get mock weather data as fallback (realistic Finnish weather)
- */
-export function getMockWeatherData(): WeatherData {
-  // Generate realistic Finnish weather based on current month
-  const now = new Date();
-  const month = now.getMonth(); // 0-11
-  
-  // Temperature ranges by month (average for Helsinki)
-  const monthlyTemps = [
-    -3,  // January
-    -4,  // February
-    0,   // March
-    6,   // April
-    12,  // May
-    16,  // June
-    19,  // July
-    17,  // August
-    12,  // September
-    7,   // October
-    2,   // November
-    -1   // December
-  ];
-  
-  const baseTemp = monthlyTemps[month];
-  const tempVariation = (Math.random() - 0.5) * 6; // ±3°C variation
-  const temperature = Math.round(baseTemp + tempVariation);
-  
-  return {
-    temperature,
-    feelsLike: temperature - 2,
-    humidity: 70 + Math.round(Math.random() * 20),
-    windSpeed: 3 + Math.round(Math.random() * 8),
-    windDirection: Math.round(Math.random() * 360),
-    precipitation: Math.random() > 0.7 ? Math.random() * 2 : 0,
-    weatherCode: Math.random() > 0.7 ? 61 : (Math.random() > 0.5 ? 3 : 1),
-    timestamp: new Date().toISOString()
-  };
 }
 
 /**
