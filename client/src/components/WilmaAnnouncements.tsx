@@ -25,87 +25,14 @@ export default function WilmaAnnouncements() {
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
     queryKey: ['/api/wilma/announcements'],
     queryFn: async () => {
-      // Mock data for now - replace with real API call
-      return [
-        {
-          id: "1",
-          title: "Kevätjuhla 15.5.2026",
-          content: "Koulun kevätjuhla järjestetään perjantaina 15.5.2026 klo 18:00 koulun juhlasalissa. Kaikki oppilaat ja vanhemmat ovat tervetulleita! Ohjelmassa musiikkiesityksiä, näytelmiä ja palkintojenjako. Kahvitarjoilu.",
-          author: "Rehtori Virtanen",
-          authorRole: "Rehtori",
-          date: "2026-04-20",
-          category: "event",
-          isPinned: true,
-          targetAudience: ["students", "parents", "teachers"],
-        },
-        {
-          id: "2",
-          title: "TÄRKEÄ: Ylioppilaskirjoitukset",
-          content: "Kevään 2026 ylioppilaskirjoitusten ilmoittautuminen päättyy 30.4.2026. Muistathan ilmoittautua ajoissa Wilman kautta. Lisätietoja opinto-ohjaajalta.",
-          author: "Opinto-ohjaaja Korhonen",
-          authorRole: "Opinto-ohjaaja",
-          date: "2026-04-22",
-          category: "urgent",
-          isPinned: true,
-          targetAudience: ["students", "parents"],
-        },
-        {
-          id: "3",
-          title: "Ruokalan sulkeminen",
-          content: "Koulun ruokala on suljettu remontin vuoksi 25.-27.4.2026. Oppilaat voivat tuoda omat eväät tai käyttää läheistä kahvilaa. Pahoittelemme aiheutuvaa haittaa.",
-          author: "Kiinteistöpäällikkö Nieminen",
-          authorRole: "Kiinteistöpäällikkö",
-          date: "2026-04-18",
-          category: "info",
-          isPinned: false,
-          targetAudience: ["students", "teachers", "staff"],
-        },
-        {
-          id: "4",
-          title: "Vanhempainilta 5.5.2026",
-          content: "Kevään vanhempainilta järjestetään maanantaina 5.5.2026 klo 18:00. Aiheena lukuvuoden 2026-2027 suunnittelu ja opetussuunnitelman muutokset. Ilmoittautumiset Wilman kautta 30.4. mennessä.",
-          author: "Apulaisrehtori Mäkinen",
-          authorRole: "Apulaisrehtori",
-          date: "2026-04-19",
-          category: "event",
-          isPinned: false,
-          targetAudience: ["parents"],
-        },
-        {
-          id: "5",
-          title: "Kirjastopalvelut laajenevat",
-          content: "Koulun kirjasto on nyt auki myös lauantaisin klo 10-14. Voit varata kirjoja ja opiskelutiloja Wilman kautta. Tervetuloa!",
-          author: "Kirjastonhoitaja Lahtinen",
-          authorRole: "Kirjastonhoitaja",
-          date: "2026-04-17",
-          category: "info",
-          isPinned: false,
-          targetAudience: ["students", "teachers"],
-        },
-        {
-          id: "6",
-          title: "Muistutus: Todistusten jako 31.5.",
-          content: "Kevätlukukauden todistukset jaetaan perjantaina 31.5.2026. Todistukset ovat nähtävissä myös Wilmassa samana päivänä klo 12:00 alkaen.",
-          author: "Opinto-ohjaaja Korhonen",
-          authorRole: "Opinto-ohjaaja",
-          date: "2026-04-21",
-          category: "reminder",
-          isPinned: false,
-          targetAudience: ["students", "parents"],
-        },
-        {
-          id: "7",
-          title: "Urheilupäivä 10.5.2026",
-          content: "Koulun perinteinen urheilupäivä järjestetään torstaina 10.5.2026 klo 9-15. Muista tuoda urheiluvarusteet ja juomapullo. Sateella siirtyy sisätiloihin.",
-          author: "Liikunnanopettaja Koskinen",
-          authorRole: "Liikunnanopettaja",
-          date: "2026-04-16",
-          category: "event",
-          isPinned: false,
-          targetAudience: ["students"],
-        },
-      ];
-    }
+      const response = await fetch('/api/wilma/announcements');
+      if (!response.ok) {
+        if (response.status === 404) return [];
+        throw new Error('Failed to fetch announcements');
+      }
+      return response.json();
+    },
+    retry: false
   });
 
   const getCategoryIcon = (category: string) => {

@@ -382,32 +382,15 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
   });
 
   // Fetch schedule data
-  const { data: scheduleData } = useQuery({
+  const { data: scheduleData = [] } = useQuery({
     queryKey: ['wilma-schedule', userId],
     queryFn: async () => {
-      try {
-        const response = await fetch(`/api/wilma/schedules/${userId}`);
-        if (!response.ok) {
-          // Return mock data if endpoint doesn't exist yet
-          return [
-            { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
-            { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
-            { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
-            { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
-            { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
-          ];
-        }
-        return response.json();
-      } catch (error) {
-        // Return mock data on error
-        return [
-          { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
-          { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
-          { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
-          { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
-          { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
-        ];
+      const response = await fetch(`/api/wilma/schedules/${userId}`);
+      if (!response.ok) {
+        if (response.status === 404) return [];
+        throw new Error('Failed to fetch schedule');
       }
+      return response.json();
     },
     enabled: !!userId,
     retry: false
