@@ -499,90 +499,129 @@ export default function ScheduleBuilderV2() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <Card className="border-[#dddddd] shadow-md">
-        <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <CardTitle className="text-xl">📅 Lukujärjestyksen rakentaja</CardTitle>
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="secondary" onClick={saveSchedule}>
-                <Save className="w-4 h-4 mr-1" />
-                Tallenna
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4">
+      {/* Header - Kurre Style: Clean and Minimal */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              Lukujärjestyksen rakentaja
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Luo ja hallinnoi lukujärjestyksiä helposti
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={saveSchedule}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <Save className="w-4 h-4 mr-1.5" />
+              Tallenna
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={saveAsTemplate}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <FileText className="w-4 h-4 mr-1.5" />
+              Tallenna pohjaksi
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setShowTemplateDialog(true)}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <FileText className="w-4 h-4 mr-1.5" />
+              Pohjat ({templates.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={exportSchedule}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              Vie
+            </Button>
+            <label>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                as="span"
+                className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              >
+                <Upload className="w-4 h-4 mr-1.5" />
+                Tuo
               </Button>
-              <Button size="sm" variant="secondary" onClick={saveAsTemplate}>
-                <FileText className="w-4 h-4 mr-1" />
-                Tallenna pohjaksi
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setShowTemplateDialog(true)}>
-                <FileText className="w-4 h-4 mr-1" />
-                Pohjat ({templates.length})
-              </Button>
-              <Button size="sm" variant="secondary" onClick={exportSchedule}>
-                <Download className="w-4 h-4 mr-1" />
-                Vie
-              </Button>
-              <label>
-                <Button size="sm" variant="secondary" as="span">
-                  <Upload className="w-4 h-4 mr-1" />
-                  Tuo
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importSchedule}
-                  className="hidden"
-                />
-              </label>
+              <input
+                type="file"
+                accept=".json"
+                onChange={importSchedule}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Conflicts Alert - Kurre Style: Subtle and Clean */}
+      {conflicts.length > 0 ? (
+        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-red-900 dark:text-red-200 mb-2">
+                Löydetty {conflicts.length} konfliktia
+              </p>
+              <ul className="space-y-1.5">
+                {conflicts.map((conflict, idx) => (
+                  <li key={idx} className="text-sm text-red-700 dark:text-red-300 flex items-start gap-2">
+                    <span className="text-red-400 dark:text-red-500 mt-0.5">•</span>
+                    <span>{conflict}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Conflicts Alert */}
-      {conflicts.length > 0 ? (
-        <Alert variant="destructive" className="border-red-300 bg-red-50">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="font-semibold mb-2">⚠️ Löydetty {conflicts.length} konfliktia:</div>
-            <ul className="list-disc list-inside space-y-1">
-              {conflicts.map((conflict, idx) => (
-                <li key={idx} className="text-sm">{conflict}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
+        </div>
       ) : lessons.length > 0 ? (
-        <Alert className="border-green-300 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            <div className="font-semibold">✅ Ei konflikteja! Lukujärjestys on valmis.</div>
-          </AlertDescription>
-        </Alert>
+        <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <p className="font-medium text-green-900 dark:text-green-200">
+              Ei konflikteja! Lukujärjestys on valmis.
+            </p>
+          </div>
+        </div>
       ) : null}
 
-      {/* Schedule Grid */}
-      <Card className="border-[#dddddd] shadow-md overflow-x-auto">
-        <CardContent className="p-0">
+      {/* Schedule Grid - Kurre Style: Clean, Minimal, Professional */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
-                <th className="border border-gray-300 dark:border-gray-600 p-3 text-sm font-semibold w-32">
+              <tr className="bg-gray-50 dark:bg-gray-900/50">
+                <th className="border-b border-gray-200 dark:border-gray-700 p-4 text-left text-sm font-medium text-gray-700 dark:text-gray-300 w-32">
                   Aika
                 </th>
                 {DAYS.map((day, index) => (
-                  <th key={index} className="border border-gray-300 dark:border-gray-600 p-3 text-sm font-semibold">
+                  <th key={index} className="border-b border-gray-200 dark:border-gray-700 p-4 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
                     {day}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {timeSlots.map((slot) => (
-                <tr key={slot.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs bg-gray-50 dark:bg-gray-900">
-                    <div className="font-semibold text-gray-900 dark:text-gray-100">{slot.label}</div>
-                    <div className="text-gray-600 dark:text-gray-400 text-xs">
+              {timeSlots.map((slot, slotIndex) => (
+                <tr key={slot.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors">
+                  <td className="border-b border-gray-100 dark:border-gray-800 p-3 bg-gray-50/50 dark:bg-gray-900/20">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{slot.label}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {slot.startTime} - {slot.endTime}
                     </div>
                   </td>
@@ -591,33 +630,39 @@ export default function ScheduleBuilderV2() {
                     return (
                       <td
                         key={dayIndex}
-                        className="border border-gray-300 dark:border-gray-600 p-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-800 p-2 cursor-pointer hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all"
                         onClick={() => handleCellClick(dayIndex, slot.id)}
                         onDragOver={handleDragOver}
                         onDrop={() => handleDrop(dayIndex, slot.id)}
                       >
                         {lesson ? (
                           <div
-                            className="p-3 rounded-lg text-white text-xs h-full min-h-[80px] flex flex-col justify-between cursor-move shadow-sm hover:shadow-md transition-shadow"
+                            className="p-3 rounded-lg text-white text-xs h-full min-h-[90px] flex flex-col justify-between cursor-move shadow-sm hover:shadow-md transition-all"
                             style={{ backgroundColor: lesson.color }}
                             draggable
                             onDragStart={() => handleDragStart(lesson)}
                           >
                             <div>
-                              <div className="font-bold text-sm mb-1">{lesson.subject}</div>
+                              <div className="font-semibold text-sm mb-1.5">{lesson.subject}</div>
                               {lesson.teacher && (
-                                <div className="opacity-90 text-xs">👤 {lesson.teacher}</div>
+                                <div className="opacity-90 text-xs flex items-center gap-1">
+                                  <span className="opacity-75">👤</span> {lesson.teacher}
+                                </div>
                               )}
                               {lesson.room && (
-                                <div className="opacity-90 text-xs">📍 {lesson.room}</div>
+                                <div className="opacity-90 text-xs flex items-center gap-1 mt-0.5">
+                                  <span className="opacity-75">📍</span> {lesson.room}
+                                </div>
                               )}
                               {lesson.group && (
-                                <div className="opacity-75 text-xs mt-1">👥 {lesson.group}</div>
+                                <div className="opacity-80 text-xs mt-1.5 pt-1.5 border-t border-white/20">
+                                  👥 {lesson.group}
+                                </div>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <div className="p-3 text-center text-gray-400 dark:text-gray-600 text-xs min-h-[80px] flex items-center justify-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <div className="p-3 text-center text-gray-300 dark:text-gray-600 text-xs min-h-[90px] flex items-center justify-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <Plus className="w-5 h-5" />
                           </div>
                         )}
@@ -628,49 +673,45 @@ export default function ScheduleBuilderV2() {
               ))}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Statistics */}
-      <Card className="border-[#dddddd]">
-        <CardHeader>
-          <CardTitle className="text-base">📊 Tilastot</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-3xl font-bold text-[#003d82]">{lessons.length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Oppituntia</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-[#7cb342]">
-                {new Set(lessons.map(l => l.subject)).size}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Oppiainetta</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-[#f57c00]">
-                {new Set(lessons.map(l => l.teacher)).size}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Opettajaa</div>
-            </div>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">Tilastot</h3>
+        <div className="grid grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="text-3xl font-semibold text-blue-600 dark:text-blue-400">{lessons.length}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Oppituntia</div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-center">
+            <div className="text-3xl font-semibold text-green-600 dark:text-green-400">
+              {new Set(lessons.map(l => l.subject)).size}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Oppiainetta</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-semibold text-orange-600 dark:text-orange-400">
+              {new Set(lessons.map(l => l.teacher)).size}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Opettajaa</div>
+          </div>
+        </div>
+      </div>
 
-      {/* Lesson Dialog */}
+      {/* Lesson Dialog - Kurre Style: Clean and Professional */}
       <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingLesson ? '✏️ Muokkaa oppituntia' : '➕ Lisää oppitunti'}
+            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {editingLesson ? 'Muokkaa oppituntia' : 'Lisää oppitunti'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label>Oppiaine *</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Oppiaine *</Label>
               <Select value={lessonForm.subject} onValueChange={handleSubjectChange}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder="Valitse oppiaine" />
                 </SelectTrigger>
                 <SelectContent>
@@ -678,7 +719,7 @@ export default function ScheduleBuilderV2() {
                     <SelectItem key={subject.name} value={subject.name}>
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-4 h-4 rounded"
+                          className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: subject.color }}
                         />
                         {subject.name}
@@ -689,36 +730,43 @@ export default function ScheduleBuilderV2() {
               </Select>
             </div>
             <div>
-              <Label>Opettaja</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Opettaja</Label>
               <Input
                 value={lessonForm.teacher}
                 onChange={(e) => setLessonForm({ ...lessonForm, teacher: e.target.value })}
                 placeholder="esim. M. Virtanen"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Luokka</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Luokka</Label>
               <Input
                 value={lessonForm.room}
                 onChange={(e) => setLessonForm({ ...lessonForm, room: e.target.value })}
                 placeholder="esim. A201"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Ryhmä (valinnainen)</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ryhmä (valinnainen)</Label>
               <Input
                 value={lessonForm.group}
                 onChange={(e) => setLessonForm({ ...lessonForm, group: e.target.value })}
                 placeholder="esim. Ryhmä A"
+                className="mt-1.5"
               />
             </div>
           </div>
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between gap-2">
             <div className="flex gap-2">
               {editingLesson && (
                 <>
-                  <Button variant="destructive" onClick={deleteLessonHandler}>
-                    <Trash2 className="w-4 h-4 mr-1" />
+                  <Button 
+                    variant="outline" 
+                    onClick={deleteLessonHandler}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1.5" />
                     Poista
                   </Button>
                   <Button
@@ -729,20 +777,27 @@ export default function ScheduleBuilderV2() {
                         setShowLessonDialog(false);
                       }
                     }}
+                    className="text-gray-700 dark:text-gray-300"
                   >
-                    <Copy className="w-4 h-4 mr-1" />
+                    <Copy className="w-4 h-4 mr-1.5" />
                     Kopioi kaikille
                   </Button>
                 </>
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowLessonDialog(false)}>
-                <X className="w-4 h-4 mr-1" />
+              <Button 
+                variant="outline" 
+                onClick={() => setShowLessonDialog(false)}
+                className="text-gray-700 dark:text-gray-300"
+              >
                 Peruuta
               </Button>
-              <Button onClick={saveLesson} className="bg-[#003d82] hover:bg-[#002d5f]">
-                <Save className="w-4 h-4 mr-1" />
+              <Button 
+                onClick={saveLesson} 
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Save className="w-4 h-4 mr-1.5" />
                 Tallenna
               </Button>
             </div>
@@ -750,58 +805,63 @@ export default function ScheduleBuilderV2() {
         </DialogContent>
       </Dialog>
 
-      {/* Template Dialog */}
+      {/* Template Dialog - Kurre Style */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>📚 Lukujärjestyspohjat</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Lukujärjestyspohjat
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
             {templates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Ei tallennettuja pohjia</p>
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Ei tallennettuja pohjia</p>
                 <p className="text-sm mt-1">Tallenna nykyinen lukujärjestys pohjaksi</p>
               </div>
             ) : (
               templates.map((template) => (
-                <Card key={template.id} className="border-[#dddddd]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {template.lessons.length} oppituntia • {new Set(template.lessons.map(l => l.subject)).size} oppiainetta
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => loadTemplate(template)}
-                          className="bg-[#003d82] hover:bg-[#002d5f]"
-                        >
-                          Lataa
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            if (confirm(`Haluatko varmasti poistaa pohjan "${template.name}"?`)) {
-                              deleteTemplate(template.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                <div key={template.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{template.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {template.lessons.length} oppituntia • {new Set(template.lessons.map(l => l.subject)).size} oppiainetta
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => loadTemplate(template)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Lataa
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (confirm(`Haluatko varmasti poistaa pohjan "${template.name}"?`)) {
+                            deleteTemplate(template.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               ))
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowTemplateDialog(false)}
+              className="text-gray-700 dark:text-gray-300"
+            >
               Sulje
             </Button>
           </DialogFooter>
