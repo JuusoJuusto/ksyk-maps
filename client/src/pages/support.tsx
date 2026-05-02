@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle, Send, Ticket } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, CheckCircle, Send, Ticket, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
+import SmartSupportOwl from "@/components/SmartSupportOwl";
 
 export default function Support() {
   const [, setLocation] = useLocation();
@@ -102,18 +104,40 @@ export default function Support() {
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       <Header />
       <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-3xl shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-3xl flex items-center gap-3">
-              <Ticket className="h-8 w-8 text-blue-600" />
-              Contact Support
-            </CardTitle>
-            <p className="text-gray-600 mt-2">
-              Report bugs, request features, or get help with KSYK Maps
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="w-full max-w-6xl">
+          <Tabs defaultValue="tuki-pollo" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="tuki-pollo" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Tuki Pöllö
+              </TabsTrigger>
+              <TabsTrigger value="ticket" className="flex items-center gap-2">
+                <Ticket className="h-4 w-4" />
+                Lähetä tiketti
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tuki Pöllö Tab */}
+            <TabsContent value="tuki-pollo">
+              <div className="max-w-4xl mx-auto">
+                <SmartSupportOwl />
+              </div>
+            </TabsContent>
+
+            {/* Ticket Form Tab */}
+            <TabsContent value="ticket">
+              <Card className="w-full max-w-3xl mx-auto shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-3xl flex items-center gap-3">
+                    <Ticket className="h-8 w-8 text-blue-600" />
+                    Contact Support
+                  </CardTitle>
+                  <p className="text-gray-600 mt-2">
+                    Report bugs, request features, or get help with KSYK Maps
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">{/* ... rest of form ... */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="type">Ticket Type *</Label>
@@ -259,6 +283,9 @@ export default function Support() {
             </form>
           </CardContent>
         </Card>
+      </TabsContent>
+    </Tabs>
+        </div>
       </div>
     </div>
   );

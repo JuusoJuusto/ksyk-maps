@@ -660,86 +660,9 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         );
 
       case 'weather':
-        // Use Open-Meteo weather data
-        const [weatherData, setWeatherData] = useState<any>(null);
-        const [weatherLoading, setWeatherLoading] = useState(true);
-
-        useEffect(() => {
-          const loadWeather = async () => {
-            try {
-              console.log('🌤️ Loading weather data from Open-Meteo API...');
-              const { fetchCurrentWeather, fetchHourlyForecast, getWeatherDescription, getMockWeatherData } = await import('@/lib/openMeteoWeather');
-              const data = await fetchCurrentWeather(); // Helsinki coordinates by default
-              const forecast = await fetchHourlyForecast(60.1699, 24.9384, 6);
-              
-              console.log('🌡️ Weather data received:', {
-                temperature: data?.temperature,
-                feelsLike: data?.feelsLike,
-                humidity: data?.humidity,
-                windSpeed: data?.windSpeed,
-                timestamp: data?.timestamp,
-                isRealData: !!data?.timestamp
-              });
-              
-              if (data) {
-                setWeatherData({
-                  current: data,
-                  forecast: forecast,
-                  description: getWeatherDescription(data.weatherCode)
-                });
-                console.log('✅ Real weather data loaded successfully!');
-              } else {
-                // Fallback to mock data
-                console.warn('⚠️ No weather data received, using mock data');
-                const mockData = getMockWeatherData();
-                setWeatherData({
-                  current: mockData,
-                  forecast: [],
-                  description: getWeatherDescription(mockData.weatherCode)
-                });
-              }
-            } catch (error) {
-              console.error('❌ Weather fetch error:', error);
-              // Use mock data on error
-              const { getMockWeatherData, getWeatherDescription } = await import('@/lib/openMeteoWeather');
-              const mockData = getMockWeatherData();
-              setWeatherData({
-                current: mockData,
-                forecast: [],
-                description: getWeatherDescription(mockData.weatherCode)
-              });
-              console.warn('⚠️ Using mock weather data due to error');
-            } finally {
-              setWeatherLoading(false);
-            }
-          };
-          loadWeather();
-        }, []);
-
-        // Helper functions
-        const getWeatherIcon = (code: number) => {
-          if (code === 0) return 'sun';
-          if (code <= 3) return 'cloud-sun';
-          if (code <= 48) return 'cloud';
-          if (code <= 67) return 'cloud-rain';
-          if (code <= 77) return 'cloud-snow';
-          if (code <= 99) return 'cloud-lightning';
-          return 'cloud';
-        };
-
-        const getDayName = (daysAhead: number) => {
-          const date = new Date();
-          date.setDate(date.getDate() + daysAhead);
-          return date.toLocaleDateString('fi-FI', { weekday: 'short' });
-        };
-
-        // Generate hourly forecast times - show only hours without minutes
-        const now = new Date();
-        const finlandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Helsinki' }));
-        const currentHour = finlandTime.getHours();
-        const hourlyForecast = weatherData?.forecast.length > 0 
-          ? weatherData.forecast.slice(0, 6)
-          : Array.from({ length: 6 }, (_, i) => {
+        // Import FMI Weather Widget dynamically
+        const FMIWeatherWidget = (await import('@/components/FMIWeatherWidget')).default;
+        return <FMIWeatherWidget key={widgetId} widgetId={widgetId} widgetTitle={widgetTitle} customizationMode={customizationMode} onToggle={onToggle} />;om({ length: 6 }, (_, i) => {
               const hour = (currentHour + i) % 24;
               const temp = 18 - i;
               return {
