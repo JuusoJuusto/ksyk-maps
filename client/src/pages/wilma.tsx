@@ -328,7 +328,7 @@ export default function Wilma() {
         return;
       }
       
-      // Role-based routing
+      // Role-based routing - UPDATED TO USE STUDENTID
       const roles = data.roles || [data.role];
       
       // Check if user has admin, teacher, principal, or vice_principal role
@@ -336,9 +336,10 @@ export default function Wilma() {
         console.log('Redirecting to admin panel:', `/wilma-admin/${data.id}`);
         setLocation(`/wilma-admin/${data.id}`);
       } else {
-        // Student, parent, or other roles use /wilma/:userId
-        console.log('Redirecting to user page:', `/wilma/${data.id}`);
-        setLocation(`/wilma/${data.id}`);
+        // Student, parent use /wilma/:studentId (6-digit ID)
+        const studentId = data.studentId || data.id;
+        console.log('Redirecting to user page:', `/wilma/${studentId}`);
+        setLocation(`/wilma/${studentId}`);
       }
     } catch {
       setLoginError(language === 'fi' ? 'Yhteysvirhe. Tarkista palvelimen tila.' : 'Connection error. Please check if the server is running.');
@@ -397,9 +398,10 @@ export default function Wilma() {
           console.log('Redirecting to admin panel after password change:', `/wilma-admin/${updatedUser.id}`);
           setLocation(`/wilma-admin/${updatedUser.id}`);
         } else {
-          // Student, parent, or other roles use /wilma/:userId
-          console.log('Redirecting to user page after password change:', `/wilma/${updatedUser.id}`);
-          setLocation(`/wilma/${updatedUser.id}`);
+          // Student, parent use /wilma/:studentId (6-digit ID)
+          const studentId = updatedUser.studentId || updatedUser.id;
+          console.log('Redirecting to user page after password change:', `/wilma/${studentId}`);
+          setLocation(`/wilma/${studentId}`);
         }
       }
     } catch (error) {

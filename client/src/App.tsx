@@ -31,8 +31,10 @@ import SLStudio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
 import WilmaStudent from "@/pages/wilma-student";
 import WilmaTeacher from "@/pages/wilma-teacher";
-import WilmaParent from "@/pages/wilma-parent";
+import WilmaParentOld from "@/pages/wilma-parent";
 import WilmaHome from "@/pages/wilma-home";
+import WilmaParent from "@/pages/wilma-parent";
+import WilmaRouter from "@/pages/wilma-router";
 import WilmaAdmin from "@/pages/wilma-admin-new";
 import WilmaSupportStaff from "@/pages/wilma-support-staff";
 import StudentForm from "@/pages/student-form";
@@ -76,16 +78,35 @@ function Router() {
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
-      <Route path="/wilma-home" component={WilmaHome} />
+      
+      {/* NEW WILMA ROUTING - Simplified */}
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma/forgot-password" component={ForgotPassword} />
       <Route path="/wilma/reset-password" component={ResetPassword} />
+      
+      {/* Student/Parent routes - Use studentId (6-digit) */}
+      <Route path="/wilma/:studentId/chess" component={ChessPage} />
+      <Route path="/wilma/:studentId/:section" component={WilmaRouter} />
+      <Route path="/wilma/:studentId" component={WilmaRouter} />
+      
+      {/* Admin/Teacher routes - Use Firebase ID */}
+      <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
+      <Route path="/wilma-admin/:adminId/chess" component={ChessPage} />
+      <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
+      <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
+      <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
+      <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />
+      <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
+      <Route path="/wilma-admin" component={WilmaAdmin} />
+      
+      {/* OLD ROUTES - Keep for backward compatibility but redirect */}
+      <Route path="/wilma-home" component={WilmaHome} />
       <Route path="/wilma-student/:userId/:section" component={WilmaStudent} />
       <Route path="/wilma-student/:userId" component={WilmaStudent} />
       <Route path="/wilma-teacher/:userId/:section" component={WilmaTeacher} />
       <Route path="/wilma-teacher/:userId" component={WilmaTeacher} />
-      <Route path="/wilma-parent/:userId/:section" component={WilmaParent} />
-      <Route path="/wilma-parent/:userId" component={WilmaParent} />
+      <Route path="/wilma-parent/:userId/:section" component={WilmaParentOld} />
+      <Route path="/wilma-parent/:userId" component={WilmaParentOld} />
       <Route path="/wilma-kuraattori/:userId/:section" component={WilmaSupportStaff} />
       <Route path="/wilma-kuraattori/:userId" component={WilmaSupportStaff} />
       <Route path="/wilma-terveydenhoitaja/:userId/:section" component={WilmaSupportStaff} />
@@ -96,17 +117,7 @@ function Router() {
       <Route path="/wilma-nuoriso-ohjaaja/:userId" component={WilmaSupportStaff} />
       <Route path="/wilma-sosiaalityontekija/:userId/:section" component={WilmaSupportStaff} />
       <Route path="/wilma-sosiaalityontekija/:userId" component={WilmaSupportStaff} />
-      <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
-      <Route path="/wilma-admin/:adminId/chess" component={ChessPage} />
-      <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
-      <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />
-      <Route path="/wilma-admin/:adminId/add-student" component={StudentForm} />
-      <Route path="/wilma-admin/:adminId/:section" component={WilmaAdmin} />
-      <Route path="/wilma-admin/:adminId" component={WilmaAdmin} />
-      <Route path="/wilma-admin" component={WilmaAdmin} />
-      <Route path="/wilma/:userId/chess" component={ChessPage} />
-      <Route path="/wilma/:userId/:section" component={WilmaHome} />
-      <Route path="/wilma/:userId" component={WilmaHome} />
+      
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
       <Route path="/owlapps" component={SLStudio} />

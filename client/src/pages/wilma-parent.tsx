@@ -1,371 +1,463 @@
-import { useState, useEffect } from "react";
-import { useLocation, useRoute } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  LogOut, Home, Calendar, Award, FileText, 
-  MessageSquare, UserCheck, Settings, Menu, 
-  Users, Baby, TrendingUp, Bell
-} from "lucide-react";
+  Users, Calendar, Award, MessageSquare, CheckCircle, 
+  AlertCircle, LogOut, User, FileText, BookOpen, Bell
+} from 'lucide-react';
 
+/**
+ * Wilma Parent View
+ * - Multi-child support
+ * - Can switch between children
+ * - Can report absences for children
+ * - OLD WILMA STYLE - No gradients
+ */
 export default function WilmaParent() {
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute('/wilma-parent/:parentId?');
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState('home');
-  const [selectedChild, setSelectedChild] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [showAbsenceForm, setShowAbsenceForm] = useState(false);
+  const [absenceDate, setAbsenceDate] = useState('');
+  const [absenceReason, setAbsenceReason] = useState('');
+  const queryClient = useQueryClient();
 
-  // Mock children data - replace with API call
-  const children = [
-    { id: '1', firstName: 'Matti', lastName: 'Virtanen', class: '9A', studentId: '123456' },
-    { id: '2', firstName: 'Liisa', lastName: 'Virtanen', class: '7B', studentId: '123457' },
-  ];
-
+  // Load current user
   useEffect(() => {
-    // Check authentication
     const storedUser = localStorage.getItem('wilma_user');
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        if (user.role === 'parent') {
-          setCurrentUser(user);
-          if (children.length > 0) {
-            setSelectedChild(children[0].id);
-          }
-          setIsLoading(false);
-        } else {
-          setLocation('/wilma');
-        }
+        setCurrentUser(user);
       } catch (err) {
+        console.error('Failed to parse stored user:', err);
         setLocation('/wilma');
       }
     } else {
       setLocation('/wilma');
     }
-  }, [setLocation]);
+  }, []);
 
-  const handleLogout = () => {
-    const currentPath = window.location.pathname;
-    localStorage.setItem('wilma_return_path', currentPath);
-    localStorage.removeItem('wilma_user');
-    setLocation('/wilma?session=expired');
+  // Fetch parent's children
+  const { data: children = [], isLoading } = useQuery({
+    queryKey: ["parent-children", currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) return [];
+      const response = await fetch(`/api/wilma/parent/${currentUser.id}/children`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!currentUser?.id
+  });
+
+  // Auto-select first child if none selected
+  useEffect(() => {
+    if (children.length > 0 && !selectedChildId) {
+      setSelectedChildId(children[0].studentId);
+    }
+  }, [children, selectedChildId]);
+
+  const selectedChild = children.find((c: any) => c.studentId === selectedChildId);
+
+  // Fetch selected child's data
+  const { data: childSchedule = [] } = useQuery({
+    queryKey: ["child-schedule", selectedChildId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/schedules/${selectedChildId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!selectedChildId
+  });
+
+  const { data: childGrades = [] } = useQuery({
+    queryKey: ["child-grades", selectedChildId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/grades/${selectedChildId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!selectedChildId
+  });
+
+  const { data: childAttendance = [] } = useQuery({
+    queryKey: ["child-attendance", selectedChildId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/attendance/${selectedChildId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!selectedChildId
+  });
+
+  const { data: childMessages = [] } = useQuery({
+    queryKey: ["child-messages", selectedChildId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/messages/${selectedChildId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!selectedChildId
+  });
+
+  // Report absence mutation
+  const reportAbsenceMutation = useMutation({
+    mutationFn: async (data: { studentId: string; date: string; reason: string }) => {
+      const response = await fetch('/api/wilma/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: data.studentId,
+          date: data.date,
+          status: 'absent',
+          reason: data.reason,
+          hours: 0
+        })
+      });
+      if (!response.ok) throw new Error('Failed to report absence');
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["child-attendance", selectedChildId] });
+      setShowAbsenceForm(false);
+      setAbsenceDate('');
+      setAbsenceReason('');
+      alert('Poissaolo ilmoitettu onnistuneesti');
+    },
+    onError: () => {
+      alert('Poissaolon ilmoittaminen epäonnistui');
+    }
+  });
+
+  const handleReportAbsence = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildId || !absenceDate || !absenceReason) {
+      alert('Täytä kaikki kentät');
+      return;
+    }
+    reportAbsenceMutation.mutate({
+      studentId: selectedChildId,
+      date: absenceDate,
+      reason: absenceReason
+    });
   };
 
-  const navigationItems = [
-    { id: 'home', label: 'Etusivu', icon: Home },
-    { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
-    { id: 'grades', label: 'Arvosanat', icon: Award },
-    { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
-    { id: 'messages', label: 'Viestit', icon: MessageSquare },
-    { id: 'progress', label: 'Edistyminen', icon: TrendingUp },
-    { id: 'notifications', label: 'Ilmoitukset', icon: Bell },
-    { id: 'settings', label: 'Asetukset', icon: Settings },
-  ];
+  const handleLogout = () => {
+    localStorage.removeItem('wilma_user');
+    setLocation('/wilma');
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Ladataan...</p>
         </div>
       </div>
     );
   }
 
-  if (!currentUser) return null;
+  if (children.length === 0) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <Card className="max-w-md border-2 border-red-200">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Ei lapsia</h2>
+            <p className="text-gray-600 mb-4">Tiliisi ei ole liitetty yhtään lasta.</p>
+            <Button onClick={handleLogout} className="bg-[#003d82] hover:bg-[#002d5f]">
+              Kirjaudu ulos
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  const currentChild = children.find(c => c.id === selectedChild);
+  const attendancePercentage = childAttendance.length > 0
+    ? Math.round((childAttendance.filter((a: any) => a.status === 'present').length / childAttendance.length) * 100)
+    : 0;
+
+  const unreadCount = childMessages.filter((m: any) => !m.isRead).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
-      {/* Sidebar - Hidden on mobile, shown on desktop */}
-      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
-        sidebarOpen ? 'w-64' : 'w-16'
-      }`}>
-        {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600">
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <Baby className="w-4 h-4 text-[#003d82]" />
-                </div>
-                <span className="font-bold text-base text-white tracking-wide">Wilma</span>
-              </div>
-              <Button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1.5 hover:bg-white/20 rounded-md transition-all duration-200"
-                variant="ghost"
-                size="sm"
-              >
-                <Menu className="w-4 h-4 text-white" />
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={() => setSidebarOpen(true)}
-              className="p-1.5 hover:bg-white/20 rounded-md mx-auto transition-all duration-200"
-              variant="ghost"
-              size="sm"
-            >
-              <Menu className="w-4 h-4 text-white" />
-            </Button>
-          )}
-        </div>
-
-        {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-purple-50 to-pink-50 ${!sidebarOpen && 'hidden'}`}>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
-              {currentUser.firstName[0]}{currentUser.lastName[0]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900 truncate">
-                {currentUser.firstName} {currentUser.lastName}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                Huoltaja
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Child Selector */}
-        {sidebarOpen && children.length > 0 && (
-          <div className="px-3 py-3 border-b border-[#dddddd] bg-gradient-to-br from-blue-50 to-indigo-50">
-            <label className="text-xs font-semibold text-gray-700 mb-2 block">Valitse lapsi:</label>
-            <select
-              value={selectedChild || ''}
-              onChange={(e) => setSelectedChild(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {children.map(child => (
-                <option key={child.id} value={child.id}>
-                  {child.firstName} {child.lastName} ({child.class})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 scrollbar-thin">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mb-1 group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md scale-105'
-                    : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
-                }`}
-              >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#003d82]'}`} />
-                {sidebarOpen && (
-                  <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-700'}`}>
-                    {item.label}
-                  </span>
-                )}
-                {isActive && sidebarOpen && (
-                  <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-3 border-t border-[#dddddd] flex-shrink-0">
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className={`w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all ${
-              !sidebarOpen && 'justify-center'
-            }`}
-          >
-            <LogOut className="w-4 h-4" />
-            {sidebarOpen && <span className="text-sm font-medium">Kirjaudu ulos</span>}
-          </Button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
-        {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
-          <div className="flex items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-[#f5f5f5]">
+      {/* OLD WILMA STYLE HEADER */}
+      <header className="bg-[#003d82] text-white border-b-4 border-[#002d5f]">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <Baby className="w-5 h-5 text-[#003d82]" />
-              </div>
+              <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="Logo" className="w-10 h-10 rounded" />
               <div>
-                <p className="text-sm font-bold">Wilma</p>
-                <p className="text-xs text-blue-100">{currentUser.firstName}</p>
+                <h1 className="text-xl font-bold">Wilma - Huoltajanäkymä</h1>
+                <p className="text-sm text-blue-200">Kulosaaren yhteiskoulu</p>
               </div>
             </div>
-            <Button
-              onClick={handleLogout}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/20"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-          {/* Mobile Child Selector */}
-          {children.length > 0 && (
-            <div className="px-4 pb-3">
-              <select
-                value={selectedChild || ''}
-                onChange={(e) => setSelectedChild(e.target.value)}
-                className="w-full border-0 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50"
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="font-semibold">{currentUser?.firstName} {currentUser?.lastName}</p>
+                <p className="text-sm text-blue-200">Huoltaja</p>
+              </div>
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                className="bg-white text-[#003d82] hover:bg-gray-100 border-2"
               >
-                {children.map(child => (
-                  <option key={child.id} value={child.id}>
-                    {child.firstName} {child.lastName} ({child.class})
-                  </option>
-                ))}
-              </select>
+                <LogOut className="w-4 h-4 mr-2" />
+                Kirjaudu ulos
+              </Button>
             </div>
-          )}
+          </div>
         </div>
+      </header>
 
-        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
-          {/* Child Info Banner */}
-          {currentChild && (
-            <Card className="mb-4 border-2 border-purple-200 shadow-md">
-              <CardContent className="p-4 bg-gradient-to-r from-purple-50 to-pink-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                    {currentChild.firstName[0]}{currentChild.lastName[0]}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {currentChild.firstName} {currentChild.lastName}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Luokka: {currentChild.class} • Opiskelijanumero: {currentChild.studentId}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* CHILD SELECTOR */}
+        <Card className="border-2 border-[#dddddd] mb-6">
+          <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#003d82]" />
+              Valitse lapsi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {children.map((child: any) => (
+                <button
+                  key={child.studentId}
+                  onClick={() => setSelectedChildId(child.studentId)}
+                  className={`px-4 py-2 rounded border-2 font-medium transition-colors ${
+                    selectedChildId === child.studentId
+                      ? 'bg-[#003d82] text-white border-[#003d82]'
+                      : 'bg-white text-gray-700 border-[#dddddd] hover:border-[#003d82]'
+                  }`}
+                >
+                  {child.firstName} {child.lastName} ({child.studentClass})
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Content Sections */}
-          {activeSection === 'home' && (
-            <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                  <Home className="w-6 h-6" />
-                  Etusivu
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-                      <CardContent className="p-4 text-center">
-                        <Award className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                        <p className="text-2xl font-bold text-green-900">8.5</p>
-                        <p className="text-sm text-gray-600">Keskiarvo</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
-                      <CardContent className="p-4 text-center">
-                        <UserCheck className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                        <p className="text-2xl font-bold text-blue-900">95%</p>
-                        <p className="text-sm text-gray-600">Läsnäolo</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
-                      <CardContent className="p-4 text-center">
-                        <FileText className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                        <p className="text-2xl font-bold text-orange-900">3</p>
-                        <p className="text-sm text-gray-600">Tehtävää</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <p className="text-gray-600 text-center mt-6">
-                    Tervetuloa huoltajaportaaliin! Täältä voit seurata lapsesi koulunkäyntiä.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {selectedChild && (
+          <>
+            {/* QUICK ACTIONS */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <Card className="border-2 border-[#dddddd]">
+                <CardContent className="p-4 text-center">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#003d82]">{attendancePercentage}%</p>
+                  <p className="text-sm text-gray-600">Läsnäolo</p>
+                </CardContent>
+              </Card>
 
-          {['schedule', 'grades', 'homework', 'attendance', 'messages', 'progress', 'notifications', 'settings'].includes(activeSection) && (
-            <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                  {navigationItems.find(item => item.id === activeSection)?.icon && 
-                    (() => {
-                      const Icon = navigationItems.find(item => item.id === activeSection)!.icon;
-                      return <Icon className="w-6 h-6" />;
-                    })()
-                  }
-                  {navigationItems.find(item => item.id === activeSection)?.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-gray-600">
-                  {activeSection === 'schedule' && 'Lukujärjestys-näkymä tulossa pian...'}
-                  {activeSection === 'grades' && 'Arvosanat-näkymä tulossa pian...'}
-                  {activeSection === 'homework' && 'Tehtävät-näkymä tulossa pian...'}
-                  {activeSection === 'attendance' && 'Tuntimerkinnät-näkymä tulossa pian...'}
-                  {activeSection === 'messages' && 'Viestit-näkymä tulossa pian...'}
-                  {activeSection === 'progress' && 'Edistyminen-näkymä tulossa pian...'}
-                  {activeSection === 'notifications' && 'Ilmoitukset-näkymä tulossa pian...'}
-                  {activeSection === 'settings' && 'Asetukset-näkymä tulossa pian...'}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              <Card className="border-2 border-[#dddddd]">
+                <CardContent className="p-4 text-center">
+                  <Award className="w-8 h-8 text-[#003d82] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#003d82]">{childGrades.length}</p>
+                  <p className="text-sm text-gray-600">Arvosanaa</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-[#dddddd]">
+                <CardContent className="p-4 text-center">
+                  <MessageSquare className="w-8 h-8 text-[#003d82] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#003d82]">{unreadCount}</p>
+                  <p className="text-sm text-gray-600">Uutta viestiä</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-[#dddddd]">
+                <CardContent className="p-4 text-center">
+                  <Button 
+                    onClick={() => setShowAbsenceForm(true)}
+                    className="w-full bg-[#003d82] hover:bg-[#002d5f]"
+                  >
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Ilmoita poissaolo
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ABSENCE FORM */}
+            {showAbsenceForm && (
+              <Card className="border-2 border-[#003d82] mb-6">
+                <CardHeader className="bg-blue-50 border-b-2 border-[#003d82]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#003d82]" />
+                    Ilmoita poissaolo - {selectedChild.firstName} {selectedChild.lastName}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <form onSubmit={handleReportAbsence} className="space-y-4">
+                    <div>
+                      <Label>Päivämäärä</Label>
+                      <Input
+                        type="date"
+                        value={absenceDate}
+                        onChange={(e) => setAbsenceDate(e.target.value)}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label>Syy</Label>
+                      <Textarea
+                        value={absenceReason}
+                        onChange={(e) => setAbsenceReason(e.target.value)}
+                        placeholder="Esim. Sairaus, lääkärikäynti..."
+                        required
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="submit" 
+                        className="bg-[#003d82] hover:bg-[#002d5f]"
+                        disabled={reportAbsenceMutation.isPending}
+                      >
+                        {reportAbsenceMutation.isPending ? 'Lähetetään...' : 'Ilmoita poissaolo'}
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowAbsenceForm(false);
+                          setAbsenceDate('');
+                          setAbsenceReason('');
+                        }}
+                      >
+                        Peruuta
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* CHILD DATA */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Schedule */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#003d82]" />
+                    Lukujärjestys
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {childSchedule.length > 0 ? (
+                    <div className="space-y-2">
+                      {childSchedule.slice(0, 5).map((lesson: any) => (
+                        <div key={lesson.id} className="border-b border-gray-200 pb-2">
+                          <p className="font-semibold text-sm">{lesson.subject}</p>
+                          <p className="text-xs text-gray-600">{lesson.timeSlot} • {lesson.room}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Ei lukujärjestystä</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Grades */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Award className="w-5 h-5 text-[#003d82]" />
+                    Arvosanat
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {childGrades.length > 0 ? (
+                    <div className="space-y-2">
+                      {childGrades.slice(0, 5).map((grade: any) => (
+                        <div key={grade.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                          <div>
+                            <p className="font-semibold text-sm">{grade.subject}</p>
+                            <p className="text-xs text-gray-600">{grade.teacherName}</p>
+                          </div>
+                          <div className="text-xl font-bold text-[#003d82]">{grade.grade}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Ei arvosanoja</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Attendance */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    Tuntimerkinnät
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {childAttendance.length > 0 ? (
+                    <div className="space-y-2">
+                      {childAttendance.slice(0, 5).map((record: any) => (
+                        <div key={record.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                          <div>
+                            <p className="font-semibold text-sm">{record.date}</p>
+                            {record.reason && <p className="text-xs text-gray-600">{record.reason}</p>}
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            record.status === 'present' ? 'bg-green-100 text-green-700' :
+                            record.status === 'absent' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {record.status === 'present' ? 'Läsnä' :
+                             record.status === 'absent' ? 'Poissa' :
+                             'Myöhässä'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Ei tuntimerkintöjä</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Messages */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#003d82]" />
+                    Viestit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {childMessages.length > 0 ? (
+                    <div className="space-y-2">
+                      {childMessages.slice(0, 5).map((message: any) => (
+                        <div key={message.id} className={`border-b border-gray-200 pb-2 ${!message.isRead ? 'font-bold' : ''}`}>
+                          <p className="text-sm">{message.subject}</p>
+                          <p className="text-xs text-gray-600">Lähettäjä: {message.fromUserName}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Ei viestejä</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-40">
-        <div className="grid grid-cols-5 gap-1 px-2 py-2">
-          {[
-            { id: 'home', label: 'Koti', icon: Home },
-            { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
-            { id: 'grades', label: 'Arvosanat', icon: Award },
-            { id: 'messages', label: 'Viestit', icon: MessageSquare },
-            { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'text-white' : 'text-gray-600'}`} />
-                <span className={`text-[10px] font-medium truncate w-full text-center ${
-                  isActive ? 'text-white' : 'text-gray-600'
-                }`}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }

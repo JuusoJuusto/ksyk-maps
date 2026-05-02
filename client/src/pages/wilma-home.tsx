@@ -1,366 +1,566 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { useLocation, useRoute } from 'wouter';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  Home, Calendar, BookOpen, Users, Bell, Mail, Clock, 
-  TrendingUp, Award, CheckCircle, AlertCircle, GraduationCap,
-  MessageSquare, FileText, BarChart3
-} from "lucide-react";
-import WilmaTeacher from "@/pages/wilma-teacher";
-import WilmaStudent from "@/pages/wilma-student";
-import WilmaParent from "@/pages/wilma-parent";
+  Calendar, FileText, MessageSquare, Home, LogOut, User,
+  BookOpen, Clock, Award, CheckCircle, AlertCircle, Mail,
+  Phone, Download, Bell
+} from 'lucide-react';
 
+/**
+ * Wilma Home - Student/Parent View
+ * OLD WILMA STYLE - No gradients, simple colors, clean design
+ * REAL DATA ONLY - No mock data
+ */
 export default function WilmaHome() {
   const [, setLocation] = useLocation();
+  const [match, params] = useRoute('/wilma/:studentId/:section?');
+  const [activeSection, setActiveSection] = useState('frontpage');
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const studentId = params?.studentId;
 
+  // Load current user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('wilma_user');
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         setCurrentUser(user);
-        
-        // Role-based routing
-        const roles = user.roles || [user.role];
-        
-        console.log('WilmaHome - User:', user);
-        console.log('WilmaHome - Roles:', roles);
-        console.log('WilmaHome - Role:', user.role);
-        
-        // Support staff roles (kuraattori, terveydenhoitaja, psykologi, nuoriso-ohjaaja, sosiaalityontekija)
-        const supportStaffRoles = ['kuraattori', 'terveydenhoitaja', 'psykologi', 'nuoriso-ohjaaja', 'sosiaalityontekija'];
-        if (supportStaffRoles.includes(user.role) || roles.some((r: string) => supportStaffRoles.includes(r))) {
-          console.log('WilmaHome - Redirecting to support staff page:', `/wilma-${user.role}/${user.id}`);
-          setLocation(`/wilma-${user.role}/${user.id}`);
-          return;
-        }
-        
-        // Admin, principal, vice_principal go to admin panel
-        if (roles.includes('admin') || roles.includes('principal') || roles.includes('vice_principal') || user.role === 'admin' || user.role === 'principal' || user.role === 'vice_principal') {
-          console.log('WilmaHome - Redirecting to admin panel:', `/wilma-admin/${user.id}`);
-          setLocation(`/wilma-admin/${user.id}`);
-          return;
-        }
-        
-        // Teacher and Student stay on /wilma/:userId but show different interfaces
-        // The interface will be determined by the role in the component
-        console.log('WilmaHome - Staying on /wilma/:userId with role:', user.role);
-        setIsLoading(false);
       } catch (err) {
-        console.error('Failed to parse user:', err);
+        console.error('Failed to parse stored user:', err);
         setLocation('/wilma');
       }
     } else {
-      console.log('WilmaHome - No user found, redirecting to login');
       setLocation('/wilma');
     }
-  }, [setLocation]);
+  }, []);
 
-  if (isLoading) {
+  // Set active section from URL
+  useEffect(() => {
+    if (match && params?.section) {
+      setActiveSection(params.section);
+    } else if (match) {
+      setActiveSection('frontpage');
+    }
+  }, [match, params]);
+
+  // Fetch student data by studentId (6-digit)
+  const { data: student, isLoading: studentLoading } = useQuery({
+    queryKey: ["wilma-student", studentId],
+    queryFn: async () => {
+      if (!studentId) throw new Error("No student ID");
+      const response = await fetch(`/api/wilma/users/by-student-id/${studentId}`);
+      if (!response.ok) throw new Error("Failed to fetch student");
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch schedule - REAL DATA ONLY
+  const { data: schedule = [] } = useQuery({
+    queryKey: ["wilma-schedule", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/schedules/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch grades - REAL DATA ONLY
+  const { data: grades = [] } = useQuery({
+    queryKey: ["wilma-grades", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/grades/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch assignments - REAL DATA ONLY
+  const { data: assignments = [] } = useQuery({
+    queryKey: ["wilma-assignments", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/assignments/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch messages - REAL DATA ONLY
+  const { data: messages = [] } = useQuery({
+    queryKey: ["wilma-messages", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/messages/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch attendance - REAL DATA ONLY
+  const { data: attendance = [] } = useQuery({
+    queryKey: ["wilma-attendance", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/attendance/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  // Fetch exams - REAL DATA ONLY
+  const { data: exams = [] } = useQuery({
+    queryKey: ["wilma-exams", studentId],
+    queryFn: async () => {
+      const response = await fetch(`/api/wilma/exams/${studentId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    },
+    enabled: !!studentId
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('wilma_user');
+    setLocation('/wilma');
+  };
+
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    setLocation(`/wilma/${studentId}/${section === 'frontpage' ? '' : section}`);
+  };
+
+  if (studentLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Ladataan...</p>
         </div>
       </div>
     );
   }
 
-  if (!currentUser) {
-    return null;
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <Card className="max-w-md border-2 border-red-200">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Virhe</h2>
+            <p className="text-gray-600 mb-4">Opiskelijaa ei löytynyt.</p>
+            <Button onClick={() => setLocation('/wilma')} className="bg-[#003d82] hover:bg-[#002d5f]">
+              Takaisin kirjautumiseen
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
-  const roles = currentUser.roles || [currentUser.role];
-  const isAdmin = roles.includes('admin') || roles.includes('principal');
-  const isTeacher = roles.includes('teacher');
-  const isStudent = roles.includes('student');
-  const isParent = roles.includes('parent');
+  // Get today's schedule
+  const today = new Date().getDay(); // 0=Sunday, 1=Monday, etc.
+  const todaySchedule = schedule.filter((s: any) => s.dayOfWeek === today);
 
-  // If teacher, show teacher interface (import from wilma-teacher)
-  if (isTeacher) {
-    return <WilmaTeacher />;
-  }
+  // Get unread messages count
+  const unreadCount = messages.filter((m: any) => !m.isRead).length;
 
-  // If student, show student interface (import from wilma-student)
-  if (isStudent) {
-    return <WilmaStudent />;
-  }
+  // Calculate attendance percentage
+  const attendancePercentage = attendance.length > 0
+    ? Math.round((attendance.filter((a: any) => a.status === 'present').length / attendance.length) * 100)
+    : 0;
 
-  // If parent, show parent interface (import from wilma-parent)
-  if (isParent) {
-    return <WilmaParent />;
-  }
-
-  // Default fallback (shouldn't reach here due to routing)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-[#f5f5f5]">
+      {/* OLD WILMA STYLE HEADER - Flat blue, no gradients */}
+      <header className="bg-[#003d82] text-white border-b-4 border-[#002d5f]">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Home className="w-8 h-8" />
-                Wilma - Etusivu
-              </h1>
-              <p className="text-blue-100 mt-2">
-                Tervetuloa, {currentUser.firstName} {currentUser.lastName}!
-              </p>
+            <div className="flex items-center gap-3">
+              <img src="/kulosaaren_yhteiskoulu_logo.jpeg" alt="Logo" className="w-10 h-10 rounded" />
+              <div>
+                <h1 className="text-xl font-bold">Wilma</h1>
+                <p className="text-sm text-blue-200">Kulosaaren yhteiskoulu</p>
+              </div>
             </div>
-            {isAdmin && (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="font-semibold">{student.firstName} {student.lastName}</p>
+                <p className="text-sm text-blue-200">{student.studentClass}</p>
+              </div>
               <Button 
-                onClick={() => setLocation(`/wilma-admin/${currentUser.id}`)}
-                className="bg-white/20 hover:bg-white/30"
+                onClick={handleLogout}
+                variant="outline"
+                className="bg-white text-[#003d82] hover:bg-gray-100 border-2"
               >
-                <GraduationCap className="w-4 h-4 mr-2" />
-                Hallintapaneeli
+                <LogOut className="w-4 h-4 mr-2" />
+                Kirjaudu ulos
               </Button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Tänään</p>
-                  <p className="text-3xl font-bold mt-1">5</p>
-                  <p className="text-blue-100 text-sm mt-1">Oppituntia</p>
-                </div>
-                <Calendar className="w-12 h-12 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm">Läsnäolo</p>
-                  <p className="text-3xl font-bold mt-1">95%</p>
-                  <p className="text-green-100 text-sm mt-1">Tällä viikolla</p>
-                </div>
-                <CheckCircle className="w-12 h-12 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Viestit</p>
-                  <p className="text-3xl font-bold mt-1">3</p>
-                  <p className="text-blue-100 text-sm mt-1">Lukematonta</p>
-                </div>
-                <Mail className="w-12 h-12 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm">Keskiarvo</p>
-                  <p className="text-3xl font-bold mt-1">8.5</p>
-                  <p className="text-orange-100 text-sm mt-1">Tällä jaksolla</p>
-                </div>
-                <Award className="w-12 h-12 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* OLD WILMA STYLE NAVIGATION - Simple tabs, no gradients */}
+      <nav className="bg-white border-b-2 border-[#dddddd]">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-1">
+            {[
+              { id: 'frontpage', label: 'Etusivu', icon: Home },
+              { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
+              { id: 'grades', label: 'Arvosanat', icon: Award },
+              { id: 'assignments', label: 'Tehtävät', icon: FileText },
+              { id: 'messages', label: 'Viestit', icon: MessageSquare },
+              { id: 'attendance', label: 'Tuntimerkinnät', icon: CheckCircle },
+              { id: 'exams', label: 'Kokeet', icon: BookOpen },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleSectionChange(item.id)}
+                className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors ${
+                  activeSection === item.id
+                    ? 'bg-[#003d82] text-white border-b-4 border-[#002d5f]'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                <span className="hidden md:inline">{item.label}</span>
+                {item.id === 'messages' && unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
+      </nav>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Today's Schedule */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  Tänään lukujärjestys
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  {[
-                    { time: '08:00 - 09:30', subject: 'Matematiikka', room: 'A201', teacher: 'M. Virtanen' },
-                    { time: '09:45 - 11:15', subject: 'Englanti', room: 'B105', teacher: 'A. Korhonen' },
-                    { time: '11:30 - 13:00', subject: 'Lounastauko', room: '-', teacher: '-' },
-                    { time: '13:15 - 14:45', subject: 'Fysiikka', room: 'C301', teacher: 'P. Nieminen' },
-                    { time: '15:00 - 16:30', subject: 'Historia', room: 'A105', teacher: 'L. Mäkinen' },
-                  ].map((lesson, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm font-medium text-gray-600 w-32">
-                          <Clock className="w-4 h-4 inline mr-1" />
-                          {lesson.time}
+      {/* CONTENT AREA - OLD WILMA STYLE */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* FRONTPAGE */}
+        {activeSection === 'frontpage' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900">Tervetuloa, {student.firstName}!</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Today's Schedule */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#003d82]" />
+                    Tänään
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {todaySchedule.length > 0 ? (
+                    <div className="space-y-2">
+                      {todaySchedule.map((lesson: any, idx: number) => (
+                        <div key={idx} className="border-b border-gray-200 pb-2">
+                          <p className="font-semibold text-sm">{lesson.subject}</p>
+                          <p className="text-xs text-gray-600">{lesson.timeSlot} • {lesson.room}</p>
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{lesson.subject}</p>
-                          <p className="text-sm text-gray-600">{lesson.room} • {lesson.teacher}</p>
-                        </div>
-                      </div>
-                      {lesson.subject !== 'Lounastauko' && (
-                        <Button size="sm" variant="outline">Näytä</Button>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Ei tunteja tänään</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Attendance */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    Läsnäolo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold text-[#003d82]">{attendancePercentage}%</p>
+                    <p className="text-sm text-gray-600 mt-2">{attendance.length} merkintää</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Messages */}
+              <Card className="border-2 border-[#dddddd]">
+                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#003d82]" />
+                    Viestit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold text-[#003d82]">{unreadCount}</p>
+                    <p className="text-sm text-gray-600 mt-2">Lukematonta viestiä</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Recent Grades */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-green-600" />
+            <Card className="border-2 border-[#dddddd]">
+              <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Award className="w-5 h-5 text-[#003d82]" />
                   Viimeisimmät arvosanat
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  {[
-                    { subject: 'Matematiikka', grade: '9', date: '15.04.2026', type: 'Koe' },
-                    { subject: 'Englanti', grade: '8', date: '14.04.2026', type: 'Essee' },
-                    { subject: 'Fysiikka', grade: '10', date: '12.04.2026', type: 'Laboratoriotyö' },
-                    { subject: 'Historia', grade: '7', date: '10.04.2026', type: 'Tentti' },
-                  ].map((grade, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold text-gray-900">{grade.subject}</p>
-                        <p className="text-sm text-gray-600">{grade.type} • {grade.date}</p>
+              <CardContent className="p-4">
+                {grades.length > 0 ? (
+                  <div className="space-y-2">
+                    {grades.slice(0, 5).map((grade: any) => (
+                      <div key={grade.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <div>
+                          <p className="font-semibold">{grade.subject}</p>
+                          <p className="text-sm text-gray-600">{grade.teacherName}</p>
+                        </div>
+                        <div className="text-2xl font-bold text-[#003d82]">{grade.grade}</div>
                       </div>
-                      <div className="text-2xl font-bold text-green-600">{grade.grade}</div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Ei arvosanoja</p>
+                )}
               </CardContent>
             </Card>
           </div>
+        )}
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff]">
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#003d82]" />
-                  Pika-toiminnot
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
+        {/* SCHEDULE */}
+        {activeSection === 'schedule' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Calendar className="w-6 h-6 text-[#003d82]" />
+                Lukujärjestys
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {schedule.length > 0 ? (
+                <div className="space-y-4">
+                  {['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'].map((day, dayIdx) => {
+                    const dayLessons = schedule.filter((s: any) => s.dayOfWeek === dayIdx + 1);
+                    return (
+                      <div key={day} className="border-2 border-[#dddddd] rounded">
+                        <div className="bg-[#f5f5f5] px-4 py-2 border-b-2 border-[#dddddd]">
+                          <h3 className="font-bold">{day}</h3>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {dayLessons.length > 0 ? (
+                            dayLessons.map((lesson: any) => (
+                              <div key={lesson.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                                <div>
+                                  <p className="font-semibold">{lesson.subject}</p>
+                                  <p className="text-sm text-gray-600">{lesson.teacherName} • {lesson.room}</p>
+                                </div>
+                                <p className="text-sm font-medium text-[#003d82]">{lesson.timeSlot}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-sm">Ei tunteja</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500">Lukujärjestystä ei ole määritetty</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* GRADES */}
+        {activeSection === 'grades' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Award className="w-6 h-6 text-[#003d82]" />
+                Arvosanat
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {grades.length > 0 ? (
                 <div className="space-y-2">
-                  <Button className="w-full justify-start" variant="outline">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Viestit
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Lukujärjestys
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Kurssit
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Award className="w-4 h-4 mr-2" />
-                    Arvosanat
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Tuntimerkinnät
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Announcements */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-orange-600" />
-                  Ilmoitukset
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {[
-                    { title: 'Koulun sulkeminen', date: '2 tuntia sitten', priority: 'high' },
-                    { title: 'Vanhempainilta', date: '1 päivä sitten', priority: 'medium' },
-                    { title: 'Urheilupäivä', date: '3 päivää sitten', priority: 'low' },
-                  ].map((announcement, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${
-                        announcement.priority === 'high' ? 'bg-[#dc3545]' :
-                        announcement.priority === 'medium' ? 'bg-[#ffc107]' :
-                        'bg-[#28a745]'
-                      }`} />
+                  {grades.map((grade: any) => (
+                    <div key={grade.id} className="flex items-center justify-between border-2 border-[#dddddd] rounded p-3">
                       <div className="flex-1">
-                        <p className="font-semibold text-sm text-gray-900">{announcement.title}</p>
-                        <p className="text-xs text-gray-600 mt-1">{announcement.date}</p>
+                        <p className="font-bold text-lg">{grade.subject}</p>
+                        <p className="text-sm text-gray-600">{grade.teacherName}</p>
+                        {grade.comments && <p className="text-sm text-gray-700 mt-1">{grade.comments}</p>}
+                      </div>
+                      <div className="text-4xl font-bold text-[#003d82]">{grade.grade}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">Ei arvosanoja</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ASSIGNMENTS */}
+        {activeSection === 'assignments' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="w-6 h-6 text-[#003d82]" />
+                Tehtävät
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {assignments.length > 0 ? (
+                <div className="space-y-2">
+                  {assignments.map((assignment: any) => (
+                    <div key={assignment.id} className="border-2 border-[#dddddd] rounded p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-bold">{assignment.title}</p>
+                          <p className="text-sm text-gray-600">{assignment.subject} • {assignment.teacherName}</p>
+                          {assignment.description && <p className="text-sm text-gray-700 mt-2">{assignment.description}</p>}
+                          <p className="text-sm text-gray-600 mt-2">Eräpäivä: {assignment.dueDate}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                          assignment.status === 'graded' ? 'bg-green-100 text-green-700' :
+                          assignment.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {assignment.status === 'graded' ? 'Arvioitu' :
+                           assignment.status === 'submitted' ? 'Palautettu' :
+                           'Odottaa'}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              ) : (
+                <p className="text-gray-500">Ei tehtäviä</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Performance Chart */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-cyan-50 to-teal-50">
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-cyan-600" />
-                  Suorituskyky
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Läsnäolo</span>
-                      <span className="font-semibold">95%</span>
+        {/* MESSAGES */}
+        {activeSection === 'messages' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-[#003d82]" />
+                Viestit
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {messages.length > 0 ? (
+                <div className="space-y-2">
+                  {messages.map((message: any) => (
+                    <div key={message.id} className={`border-2 rounded p-3 ${
+                      message.isRead ? 'border-[#dddddd] bg-white' : 'border-[#003d82] bg-blue-50'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-bold">{message.subject}</p>
+                          <p className="text-sm text-gray-600">Lähettäjä: {message.fromUserName}</p>
+                          <p className="text-sm text-gray-700 mt-2">{message.content}</p>
+                        </div>
+                        {!message.isRead && (
+                          <span className="bg-[#003d82] text-white text-xs px-2 py-1 rounded">Uusi</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-[#28a745] h-2 rounded-full" style={{ width: '95%' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Tehtävät</span>
-                      <span className="font-semibold">88%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-[#003d82] h-2 rounded-full" style={{ width: '88%' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Keskiarvo</span>
-                      <span className="font-semibold">8.5/10</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-[#0056b3] h-2 rounded-full" style={{ width: '85%' }} />
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+              ) : (
+                <p className="text-gray-500">Ei viestejä</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ATTENDANCE */}
+        {activeSection === 'attendance' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                Tuntimerkinnät
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {attendance.length > 0 ? (
+                <div className="space-y-2">
+                  {attendance.map((record: any) => (
+                    <div key={record.id} className="flex items-center justify-between border-2 border-[#dddddd] rounded p-3">
+                      <div>
+                        <p className="font-semibold">{record.date}</p>
+                        {record.reason && <p className="text-sm text-gray-600">{record.reason}</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                          record.status === 'present' ? 'bg-green-100 text-green-700' :
+                          record.status === 'absent' ? 'bg-red-100 text-red-700' :
+                          record.status === 'late' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {record.status === 'present' ? 'Läsnä' :
+                           record.status === 'absent' ? 'Poissa' :
+                           record.status === 'late' ? 'Myöhässä' :
+                           'Hyväksytty poissaolo'}
+                        </span>
+                        <span className="text-sm text-gray-600">{record.hours}h</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">Ei tuntimerkintöjä</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* EXAMS */}
+        {activeSection === 'exams' && (
+          <Card className="border-2 border-[#dddddd]">
+            <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <BookOpen className="w-6 h-6 text-[#003d82]" />
+                Kokeet
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {exams.length > 0 ? (
+                <div className="space-y-2">
+                  {exams.map((exam: any) => (
+                    <div key={exam.id} className="border-2 border-[#dddddd] rounded p-3">
+                      <p className="font-bold text-lg">{exam.subject}</p>
+                      <p className="text-sm text-gray-600">{exam.teacherName}</p>
+                      <div className="mt-2 space-y-1">
+                        <p className="text-sm"><strong>Päivämäärä:</strong> {exam.date}</p>
+                        <p className="text-sm"><strong>Aika:</strong> {exam.time}</p>
+                        <p className="text-sm"><strong>Luokka:</strong> {exam.room}</p>
+                        {exam.topics && <p className="text-sm"><strong>Aiheet:</strong> {exam.topics}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">Ei tulevia kokeita</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 }
