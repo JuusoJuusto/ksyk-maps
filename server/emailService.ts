@@ -508,12 +508,14 @@ export async function sendWilmaStudentWelcomeEmail(
   studentEmail: string,
   studentName: string,
   tempPassword: string,
+  username: string,
   studentId: string,
   parentEmails?: string[]
 ) {
   console.log('\n📧 ========== SENDING WILMA STUDENT WELCOME EMAIL ==========');
   console.log('Student:', studentName);
   console.log('Email:', studentEmail);
+  console.log('Username:', username);
   console.log('Student ID:', studentId);
   console.log('Parent emails:', parentEmails);
   console.log('==========================================================\n');
@@ -538,6 +540,7 @@ export async function sendWilmaStudentWelcomeEmail(
     .password { font-size: 28px; font-weight: 700; color: #1e40af; font-family: monospace; letter-spacing: 2px; background: #fff; padding: 15px 25px; border-radius: 8px; display: inline-block; }
     .button { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; }
     .footer { background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+    .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 20px 0; }
   </style>
 </head>
 <body>
@@ -551,9 +554,15 @@ export async function sendWilmaStudentWelcomeEmail(
       <p><strong>Wilma-tilisi on luotu.</strong> Tässä ovat kirjautumistietosi:</p>
       <p><strong>Your Wilma account has been created.</strong> Here are your login credentials:</p>
       
-      <div class="password-box">
-        <div style="color: #6b7280; font-size: 14px; font-weight: 600; margin-bottom: 15px;">OPISKELIJANUMERO / STUDENT ID</div>
-        <div class="password">${studentId}</div>
+      <div class="info-box">
+        <div style="margin-bottom: 15px;">
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">OPISKELIJANUMERO / STUDENT ID</div>
+          <div style="font-size: 20px; font-weight: 700; color: #1e40af; font-family: monospace;">${studentId}</div>
+        </div>
+        <div>
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">KÄYTTÄJÄTUNNUS / USERNAME</div>
+          <div style="font-size: 20px; font-weight: 700; color: #1e40af; font-family: monospace;">${username}</div>
+        </div>
       </div>
       
       <div class="password-box">

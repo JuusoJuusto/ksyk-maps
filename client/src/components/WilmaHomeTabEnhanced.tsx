@@ -15,6 +15,7 @@ import {
   Sun, Moon, Monitor, Cloud, Quote, Maximize2, Minimize2, Maximize,
   AlertCircle
 } from "lucide-react";
+import FMIWeatherWidget from "@/components/FMIWeatherWidget";
 
 interface WilmaHomeTabProps {
   userRole?: string;
@@ -660,8 +661,6 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         );
 
       case 'weather':
-        // Import FMI Weather Widget dynamically
-        const FMIWeatherWidget = (await import('@/components/FMIWeatherWidget')).default;
         return <FMIWeatherWidget key={widgetId} widgetId={widgetId} widgetTitle={widgetTitle} customizationMode={customizationMode} onToggle={onToggle} />;om({ length: 6 }, (_, i) => {
               const hour = (currentHour + i) % 24;
               const temp = 18 - i;

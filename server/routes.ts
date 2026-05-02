@@ -1378,12 +1378,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set default values
       userData.isActive = userData.isActive !== false; // Default to true
       
-      // Auto-generate student ID for students (8-10 digit numbers)
+      // Auto-generate student ID for students (6-digit numbers)
       if (userData.role === 'student' && !userData.studentId) {
-        // Generate 8-digit student ID (10000000 - 99999999)
-        const random = Math.floor(10000000 + Math.random() * 90000000).toString();
+        // Generate 6-digit student ID (100000 - 999999)
+        const random = Math.floor(100000 + Math.random() * 900000).toString();
         userData.studentId = random;
-        console.log('🎓 Auto-generated student ID:', userData.studentId);
+        console.log('🎓 Auto-generated 6-digit student ID:', userData.studentId);
       }
       
       // Auto-generate email for students if not provided
@@ -1572,6 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               student.email,
               `${student.firstName} ${student.lastName}`,
               student.password,
+              student.username,
               student.studentId,
               parentEmails.length > 0 ? parentEmails : undefined
             );

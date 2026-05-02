@@ -1860,7 +1860,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                 student.email,
                 `${student.firstName} ${student.lastName}`,
                 student.password,
-                student.studentId || student.username || student.email,
+                student.username || student.email,
+                student.studentId || '000000',
                 parentEmails.length > 0 ? parentEmails : undefined
               );
               
