@@ -2148,6 +2148,32 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // GET /wilma/schedules/:userId - Get schedules for a specific user
+      const getUserSchedulesMatch = apiPath.match(/^\/wilma\/schedules\/([^\/]+)$/);
+      if (getUserSchedulesMatch && req.method === 'GET') {
+        const userId = getUserSchedulesMatch[1];
+        console.log('🔵 GET /api/wilma/schedules/' + userId);
+        try {
+          // Get user to find their student ID
+          const user = await storage.getWilmaUser(userId);
+          if (!user) {
+            console.log('❌ User not found:', userId);
+            return res.status(404).json({ message: "User not found" });
+          }
+
+          // Get schedules by student ID
+          const studentId = user.studentId || userId;
+          console.log('📅 Fetching schedules for student ID:', studentId);
+          const schedules = await storage.getWilmaSchedules(studentId);
+          
+          console.log(`✅ Found ${schedules.length} schedules for user ${userId}`);
+          return res.status(200).json(schedules);
+        } catch (error: any) {
+          console.error('❌ Error getting user schedules:', error);
+          return res.status(500).json({ message: "Failed to fetch schedules" });
+        }
+      }
+
       // POST /wilma/schedules - Create schedule
       if (apiPath === '/wilma/schedules' && req.method === 'POST') {
         console.log('🔵 POST /api/wilma/schedules called');
@@ -2161,9 +2187,9 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
 
       // DELETE /wilma/schedules/:id - Delete schedule
-      const scheduleMatch = apiPath.match(/^\/wilma\/schedules\/([^\/]+)$/);
-      if (scheduleMatch && req.method === 'DELETE') {
-        const id = scheduleMatch[1];
+      const deleteScheduleMatch = apiPath.match(/^\/wilma\/schedules\/([^\/]+)$/);
+      if (deleteScheduleMatch && req.method === 'DELETE') {
+        const id = deleteScheduleMatch[1];
         console.log('🔵 DELETE /api/wilma/schedules/' + id);
         try {
           await storage.deleteWilmaSchedule(id);
@@ -2175,8 +2201,9 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
 
       // PUT /wilma/schedules/:id - Update schedule
-      if (scheduleMatch && req.method === 'PUT') {
-        const id = scheduleMatch[1];
+      const updateScheduleMatch = apiPath.match(/^\/wilma\/schedules\/([^\/]+)$/);
+      if (updateScheduleMatch && req.method === 'PUT') {
+        const id = updateScheduleMatch[1];
         console.log('🔵 PUT /api/wilma/schedules/' + id);
         try {
           const schedule = await storage.updateWilmaSchedule(id, req.body);
