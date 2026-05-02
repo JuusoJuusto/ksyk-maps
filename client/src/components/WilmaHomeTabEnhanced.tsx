@@ -661,7 +661,7 @@ export default function WilmaHomeTabEnhanced({ userRole, userRoles = [], userId,
         );
 
       case 'weather':
-        return <FMIWeatherWidget key={widgetId} widgetId={widgetId} widgetTitle={widgetTitle} customizationMode={customizationMode} onToggle={toggleWidget} />;
+        return <FMIWeatherWidget key={widgetId} widgetId={widgetId} widgetTitle={widgetTitle} customizationMode={customizationMode} onToggle={() => toggleWidget(widgetId)} />;
 
       case 'quotes':
         const quotes = [
