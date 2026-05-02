@@ -508,3 +508,142 @@ export function getWilmaPasswordResetEmail(data: {
     </html>
   `;
 }
+
+export function getWilmaParentInvitationEmail(data: {
+  parentFirstName: string;
+  parentLastName: string;
+  parentUsername: string;
+  parentPassword: string;
+  studentFirstName: string;
+  studentLastName: string;
+  studentClass: string;
+  appUrl?: string;
+}): string {
+  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Wilma Parent Account - KSYK Maps</title>
+    </head>
+    <body style="${baseStyles} margin: 0; padding: 20px; background: #f1f5f9;">
+      <div style="${containerStyles}">
+        <!-- Header -->
+        <div style="${headerStyles}">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff;">
+            👨‍👩‍👧‍👦 Tervetuloa Wilmaan
+          </h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; color: #dbeafe;">
+            Huoltajatili luotu • Parent Account Created
+          </p>
+        </div>
+
+        <!-- Content -->
+        <div style="${contentStyles}">
+          <p style="font-size: 18px; margin: 0 0 25px 0; color: #1f2937;">
+            Hei <strong>${data.parentFirstName} ${data.parentLastName}</strong>,
+          </p>
+          
+          <p style="font-size: 16px; margin: 0 0 25px 0; color: #475569;">
+            Lapsesi <strong>${data.studentFirstName} ${data.studentLastName}</strong> (luokka <strong>${data.studentClass}</strong>) on lisätty Wilma-järjestelmään.
+          </p>
+          <p style="font-size: 16px; margin: 0 0 25px 0; color: #475569;">
+            <em>Your child <strong>${data.studentFirstName} ${data.studentLastName}</strong> (class <strong>${data.studentClass}</strong>) has been added to the Wilma system.</em>
+          </p>
+
+          <!-- Parent Credentials Card -->
+          <div style="${cardStyles}">
+            <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #003d82; border-bottom: 2px solid #003d82; padding-bottom: 10px;">
+              🔑 SINUN kirjautumistietosi • YOUR Login Credentials
+            </h2>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 12px 0; font-weight: 600; color: #64748b; width: 40%;">Käyttäjätunnus • Username:</td>
+                <td style="padding: 12px 0; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; color: #003d82; background: #ffffff; padding: 8px 12px; border-radius: 4px; border: 1px solid #cbd5e1;">${data.parentUsername}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; font-weight: 600; color: #64748b;">Salasana • Password:</td>
+                <td style="padding: 12px 0; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; color: #003d82; background: #ffffff; padding: 8px 12px; border-radius: 4px; border: 1px solid #cbd5e1;">${data.parentPassword}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; font-weight: 600; color: #64748b;">Rooli • Role:</td>
+                <td style="padding: 12px 0; font-weight: 600; color: #003d82;">Huoltaja • Parent</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Child Info Card -->
+          <div style="background: #e0f2fe; border: 2px solid #0284c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #0369a1;">
+              👶 Lapsesi tiedot • Your Child's Information
+            </h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: 600; color: #0369a1; width: 40%;">Nimi • Name:</td>
+                <td style="padding: 8px 0; color: #0c4a6e; font-weight: 600;">${data.studentFirstName} ${data.studentLastName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: 600; color: #0369a1;">Luokka • Class:</td>
+                <td style="padding: 8px 0; color: #0c4a6e; font-weight: 600;">${data.studentClass}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- What You Can Do -->
+          <div style="background: #f0fdf4; border: 2px solid #22c55e; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #15803d;">
+              ✅ Mitä voit tehdä Wilmassa • What You Can Do in Wilma
+            </h3>
+            <ul style="margin: 0; padding-left: 20px; color: #166534;">
+              <li style="margin: 8px 0;">Seurata lapsesi arvosanoja • Track your child's grades</li>
+              <li style="margin: 8px 0;">Nähdä lukujärjestyksen • View the schedule</li>
+              <li style="margin: 8px 0;">Ilmoittaa poissaolot • Report absences</li>
+              <li style="margin: 8px 0;">Lukea viestit opettajilta • Read messages from teachers</li>
+              <li style="margin: 8px 0;">Nähdä kotitehtävät ja kokeet • See homework and exams</li>
+            </ul>
+          </div>
+
+          <!-- Action Button -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${appUrl}/wilma" style="${buttonStyles}">
+              🚀 Kirjaudu Wilmaan • Login to Wilma
+            </a>
+          </div>
+
+          <!-- Security Notice -->
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin: 25px 0;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #92400e;">
+              <strong>🔒 Turvallisuushuomautus • Security Notice:</strong>
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #92400e;">
+              Vaihda salasanasi ensimmäisen kirjautumisen jälkeen. Älä jaa tunnuksiasi kenellekään.<br>
+              <em>Please change your password after your first login. Never share your credentials with anyone.</em>
+            </p>
+          </div>
+
+          <p style="font-size: 14px; margin: 25px 0 0 0; color: #64748b;">
+            Jos sinulla on kysyttävää, ota yhteyttä koulun tukeen.<br>
+            <em>If you have any questions, please contact school support.</em>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="${footerStyles}">
+          <p style="margin: 0 0 10px 0; color: #003d82;">
+            <strong>KSYK Maps - Wilma-järjestelmä</strong>
+          </p>
+          <p style="margin: 0 0 10px 0;">
+            © 2026 SL Studio. Kaikki oikeudet pidätetään.
+          </p>
+          <p style="margin: 0; font-size: 12px;">
+            Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}

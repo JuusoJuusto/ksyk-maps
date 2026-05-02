@@ -26,6 +26,18 @@ function generateRandomPassword(): string {
   return password;
 }
 
+// Generate 6-digit student ID
+function generateStudentId(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Generate username from name
+function generateUsername(firstName: string, lastName: string): string {
+  const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
+  const cleanLast = lastName.toLowerCase().replace(/[^a-z]/g, '');
+  return `${cleanFirst}.${cleanLast}@ksyk.fi`;
+}
+
 export default function StudentForm() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/wilma-admin/:adminId/student/:studentId');
@@ -187,7 +199,13 @@ export default function StudentForm() {
                   phone: data.parent1Phone,
                   role: "parent",
                   isActive: true,
-                  isTemporaryPassword: true
+                  isTemporaryPassword: true,
+                  sendEmailInvitation: true, // SEND EMAIL WITH CREDENTIALS
+                  studentInfo: { // PASS STUDENT INFO FOR EMAIL
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    studentClass: data.studentClass
+                  }
                 })
               });
               
@@ -232,7 +250,13 @@ export default function StudentForm() {
                   phone: data.parent2Phone,
                   role: "parent",
                   isActive: true,
-                  isTemporaryPassword: true
+                  isTemporaryPassword: true,
+                  sendEmailInvitation: true, // SEND EMAIL WITH CREDENTIALS
+                  studentInfo: { // PASS STUDENT INFO FOR EMAIL
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    studentClass: data.studentClass
+                  }
                 })
               });
               
@@ -255,6 +279,10 @@ export default function StudentForm() {
       const url = isEdit ? `/api/wilma/users/${studentId}` : "/api/wilma/users";
       const method = isEdit ? "PUT" : "POST";
       
+      // AUTO-GENERATE studentId and username for new students
+      const autoStudentId = isEdit ? undefined : generateStudentId();
+      const autoUsername = isEdit ? undefined : generateUsername(data.firstName, data.lastName);
+      
       const studentData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -273,7 +301,9 @@ export default function StudentForm() {
         specialNeeds: data.medicalInfo,
         notes: data.notes,
         role: "student",
-        username: data.email ? data.email.split('@')[0] : `${data.firstName}.${data.lastName}`.toLowerCase(),
+        // AUTO-GENERATED: studentId and username
+        studentId: autoStudentId,
+        username: autoUsername || data.email?.split('@')[0] || `${data.firstName}.${data.lastName}`.toLowerCase(),
         isActive: true,
         isTemporaryPassword: !isEdit,
         // CRITICAL: Link parent IDs
@@ -291,6 +321,12 @@ export default function StudentForm() {
         parent2Phone: data.hasParent2 ? data.parent2Phone : null,
         parent2Relationship: data.hasParent2 ? data.parent2Relationship : null,
       };
+      
+      console.log('📝 Creating student with:', {
+        studentId: autoStudentId,
+        username: autoUsername,
+        name: `${data.firstName} ${data.lastName}`
+      });
       
       // Only set password for new students
       if (!isEdit) {

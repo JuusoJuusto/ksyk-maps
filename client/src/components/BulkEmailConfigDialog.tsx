@@ -67,17 +67,24 @@ export default function BulkEmailConfigDialog({
   console.log('📊 Bulk Email Config:', config);
   console.log('📊 Total students:', students.length);
   console.log('📊 Filtered students:', filteredStudents.length);
+  console.log('📊 Student emails:', studentCount);
+  console.log('📊 Parent 1 emails:', parent1Count);
+  console.log('📊 Parent 2 emails:', parent2Count);
+  console.log('📊 Total emails to send:', totalEmails);
   if (config.newStudentsOnly) {
     const tempPasswordStudents = students.filter(s => s.isTemporaryPassword);
     console.log('📊 Students with temporary passwords:', tempPasswordStudents.length);
   }
 
-  // Count recipients
+  // Count recipients - FIXED to count actual emails, not students with parents
   const studentCount = filteredStudents.length;
-  const parentCount = config.includeParents 
-    ? filteredStudents.filter(s => s.parent1Email || s.parent2Email).length 
+  const parent1Count = config.includeParents 
+    ? filteredStudents.filter(s => s.parent1Email).length 
     : 0;
-  const totalEmails = studentCount + parentCount;
+  const parent2Count = config.includeParents 
+    ? filteredStudents.filter(s => s.parent2Email).length 
+    : 0;
+  const totalEmails = studentCount + parent1Count + parent2Count;
 
   const handleSend = () => {
     onSend(config);
@@ -183,7 +190,12 @@ export default function BulkEmailConfigDialog({
                 <p className="font-semibold text-gray-900 mb-2">Vastaanottajat</p>
                 <div className="space-y-1 text-sm text-gray-700">
                   <p>• {studentCount} opiskelijaa</p>
-                  {config.includeParents && <p>• {parentCount} huoltajaa</p>}
+                  {config.includeParents && (
+                    <>
+                      <p>• {parent1Count} huoltajaa 1</p>
+                      <p>• {parent2Count} huoltajaa 2</p>
+                    </>
+                  )}
                   <p className="font-semibold text-blue-600 mt-2">
                     Yhteensä {totalEmails} sähköpostia
                   </p>

@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import WilmaSupportTab from "@/components/WilmaSupportTab";
 import { 
   Users, Calendar, Award, MessageSquare, CheckCircle, 
-  AlertCircle, LogOut, User, FileText, BookOpen, Bell
+  AlertCircle, LogOut, User, FileText, BookOpen, Bell, HelpCircle
 } from 'lucide-react';
 
 /**
@@ -22,6 +24,7 @@ export default function WilmaParent() {
   const [, setLocation] = useLocation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const [absenceDate, setAbsenceDate] = useState('');
   const [absenceReason, setAbsenceReason] = useState('');
@@ -343,118 +346,288 @@ export default function WilmaParent() {
               </Card>
             )}
 
-            {/* CHILD DATA */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Schedule */}
-              <Card className="border-2 border-[#dddddd]">
-                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[#003d82]" />
-                    Lukujärjestys
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {childSchedule.length > 0 ? (
-                    <div className="space-y-2">
-                      {childSchedule.slice(0, 5).map((lesson: any) => (
-                        <div key={lesson.id} className="border-b border-gray-200 pb-2">
-                          <p className="font-semibold text-sm">{lesson.subject}</p>
-                          <p className="text-xs text-gray-600">{lesson.timeSlot} • {lesson.room}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Ei lukujärjestystä</p>
-                  )}
-                </CardContent>
-              </Card>
+            {/* CHILD DATA WITH TABS */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-6 bg-white border-2 border-[#dddddd]">
+                <TabsTrigger value="overview" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <User className="w-4 h-4 mr-2" />
+                  Yleiskatsaus
+                </TabsTrigger>
+                <TabsTrigger value="schedule" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Lukujärjestys
+                </TabsTrigger>
+                <TabsTrigger value="grades" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <Award className="w-4 h-4 mr-2" />
+                  Arvosanat
+                </TabsTrigger>
+                <TabsTrigger value="attendance" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Tuntimerkinnät
+                </TabsTrigger>
+                <TabsTrigger value="messages" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Viestit
+                </TabsTrigger>
+                <TabsTrigger value="support" className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white">
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Tuki
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Grades */}
-              <Card className="border-2 border-[#dddddd]">
-                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#003d82]" />
-                    Arvosanat
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {childGrades.length > 0 ? (
-                    <div className="space-y-2">
-                      {childGrades.slice(0, 5).map((grade: any) => (
-                        <div key={grade.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
-                          <div>
-                            <p className="font-semibold text-sm">{grade.subject}</p>
-                            <p className="text-xs text-gray-600">{grade.teacherName}</p>
+              <TabsContent value="overview" className="mt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Schedule */}
+                  <Card className="border-2 border-[#dddddd]">
+                    <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#003d82]" />
+                        Lukujärjestys
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {childSchedule.length > 0 ? (
+                        <div className="space-y-2">
+                          {childSchedule.slice(0, 5).map((lesson: any) => (
+                            <div key={lesson.id} className="border-b border-gray-200 pb-2">
+                              <p className="font-semibold text-sm">{lesson.subject}</p>
+                              <p className="text-xs text-gray-600">{lesson.timeSlot} • {lesson.room}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">Ei lukujärjestystä</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Grades */}
+                  <Card className="border-2 border-[#dddddd]">
+                    <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Award className="w-5 h-5 text-[#003d82]" />
+                        Arvosanat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {childGrades.length > 0 ? (
+                        <div className="space-y-2">
+                          {childGrades.slice(0, 5).map((grade: any) => (
+                            <div key={grade.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                              <div>
+                                <p className="font-semibold text-sm">{grade.subject}</p>
+                                <p className="text-xs text-gray-600">{grade.teacherName}</p>
+                              </div>
+                              <div className="text-xl font-bold text-[#003d82]">{grade.grade}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">Ei arvosanoja</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Attendance */}
+                  <Card className="border-2 border-[#dddddd]">
+                    <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        Tuntimerkinnät
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {childAttendance.length > 0 ? (
+                        <div className="space-y-2">
+                          {childAttendance.slice(0, 5).map((record: any) => (
+                            <div key={record.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
+                              <div>
+                                <p className="font-semibold text-sm">{record.date}</p>
+                                {record.reason && <p className="text-xs text-gray-600">{record.reason}</p>}
+                              </div>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                record.status === 'present' ? 'bg-green-100 text-green-700' :
+                                record.status === 'absent' ? 'bg-red-100 text-red-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {record.status === 'present' ? 'Läsnä' :
+                                 record.status === 'absent' ? 'Poissa' :
+                                 'Myöhässä'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">Ei tuntimerkintöjä</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Messages */}
+                  <Card className="border-2 border-[#dddddd]">
+                    <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-[#003d82]" />
+                        Viestit
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {childMessages.length > 0 ? (
+                        <div className="space-y-2">
+                          {childMessages.slice(0, 5).map((message: any) => (
+                            <div key={message.id} className={`border-b border-gray-200 pb-2 ${!message.isRead ? 'font-bold' : ''}`}>
+                              <p className="text-sm">{message.subject}</p>
+                              <p className="text-xs text-gray-600">Lähettäjä: {message.fromUserName}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">Ei viestejä</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="schedule" className="mt-4">
+                <Card className="border-2 border-[#dddddd]">
+                  <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-[#003d82]" />
+                      Lukujärjestys - {selectedChild.firstName} {selectedChild.lastName}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {childSchedule.length > 0 ? (
+                      <div className="space-y-3">
+                        {childSchedule.map((lesson: any) => (
+                          <div key={lesson.id} className="border-2 border-[#dddddd] rounded p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-bold text-[#003d82]">{lesson.subject}</p>
+                                <p className="text-sm text-gray-600">{lesson.teacherName}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold">{lesson.timeSlot}</p>
+                                <p className="text-sm text-gray-600">{lesson.room}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xl font-bold text-[#003d82]">{grade.grade}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Ei arvosanoja</p>
-                  )}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">Ei lukujärjestystä</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-              {/* Attendance */}
-              <Card className="border-2 border-[#dddddd]">
-                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    Tuntimerkinnät
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {childAttendance.length > 0 ? (
-                    <div className="space-y-2">
-                      {childAttendance.slice(0, 5).map((record: any) => (
-                        <div key={record.id} className="flex items-center justify-between border-b border-gray-200 pb-2">
-                          <div>
-                            <p className="font-semibold text-sm">{record.date}</p>
-                            {record.reason && <p className="text-xs text-gray-600">{record.reason}</p>}
+              <TabsContent value="grades" className="mt-4">
+                <Card className="border-2 border-[#dddddd]">
+                  <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Award className="w-5 h-5 text-[#003d82]" />
+                      Arvosanat - {selectedChild.firstName} {selectedChild.lastName}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {childGrades.length > 0 ? (
+                      <div className="space-y-3">
+                        {childGrades.map((grade: any) => (
+                          <div key={grade.id} className="border-2 border-[#dddddd] rounded p-3 flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-[#003d82]">{grade.subject}</p>
+                              <p className="text-sm text-gray-600">{grade.teacherName}</p>
+                              {grade.date && <p className="text-xs text-gray-500">{grade.date}</p>}
+                            </div>
+                            <div className="text-3xl font-bold text-[#003d82]">{grade.grade}</div>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            record.status === 'present' ? 'bg-green-100 text-green-700' :
-                            record.status === 'absent' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {record.status === 'present' ? 'Läsnä' :
-                             record.status === 'absent' ? 'Poissa' :
-                             'Myöhässä'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Ei tuntimerkintöjä</p>
-                  )}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">Ei arvosanoja</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-              {/* Messages */}
-              <Card className="border-2 border-[#dddddd]">
-                <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-[#003d82]" />
-                    Viestit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {childMessages.length > 0 ? (
-                    <div className="space-y-2">
-                      {childMessages.slice(0, 5).map((message: any) => (
-                        <div key={message.id} className={`border-b border-gray-200 pb-2 ${!message.isRead ? 'font-bold' : ''}`}>
-                          <p className="text-sm">{message.subject}</p>
-                          <p className="text-xs text-gray-600">Lähettäjä: {message.fromUserName}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Ei viestejä</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+              <TabsContent value="attendance" className="mt-4">
+                <Card className="border-2 border-[#dddddd]">
+                  <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      Tuntimerkinnät - {selectedChild.firstName} {selectedChild.lastName}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {childAttendance.length > 0 ? (
+                      <div className="space-y-3">
+                        {childAttendance.map((record: any) => (
+                          <div key={record.id} className="border-2 border-[#dddddd] rounded p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-bold text-[#003d82]">{record.date}</p>
+                                {record.reason && <p className="text-sm text-gray-600">{record.reason}</p>}
+                              </div>
+                              <span className={`px-3 py-1 rounded font-medium ${
+                                record.status === 'present' ? 'bg-green-100 text-green-700' :
+                                record.status === 'absent' ? 'bg-red-100 text-red-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {record.status === 'present' ? 'Läsnä' :
+                                 record.status === 'absent' ? 'Poissa' :
+                                 'Myöhässä'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">Ei tuntimerkintöjä</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="messages" className="mt-4">
+                <Card className="border-2 border-[#dddddd]">
+                  <CardHeader className="bg-[#f5f5f5] border-b-2 border-[#dddddd]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-[#003d82]" />
+                      Viestit - {selectedChild.firstName} {selectedChild.lastName}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {childMessages.length > 0 ? (
+                      <div className="space-y-3">
+                        {childMessages.map((message: any) => (
+                          <div key={message.id} className={`border-2 border-[#dddddd] rounded p-3 ${!message.isRead ? 'bg-blue-50' : ''}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className={`font-bold text-[#003d82] ${!message.isRead ? 'font-extrabold' : ''}`}>
+                                  {message.subject}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">Lähettäjä: {message.fromUserName}</p>
+                                {message.content && <p className="text-sm text-gray-700 mt-2">{message.content}</p>}
+                              </div>
+                              {!message.isRead && (
+                                <span className="ml-2 px-2 py-1 bg-blue-600 text-white text-xs rounded">Uusi</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">Ei viestejä</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="support" className="mt-4">
+                <WilmaSupportTab />
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </main>

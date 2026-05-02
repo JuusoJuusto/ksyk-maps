@@ -35,9 +35,15 @@ export default function PeopleManager() {
     },
     onSuccess: (data) => {
       console.log('✅ Bulk email result:', data);
+      
+      // Calculate total recipients (students + parents)
+      const studentCount = data.sent || 0;
+      const parentCount = data.parentsSent || 0;
+      const totalRecipients = studentCount + (parentCount > 0 ? parentCount : 0);
+      
       toast({
         title: "✅ Sähköpostit lähetetty!",
-        description: `Lähetetty ${data.sent} sähköpostia onnistuneesti!${data.failed > 0 ? ` Epäonnistui: ${data.failed}` : ''}`,
+        description: `Lähetetty ${totalRecipients} sähköpostia (${studentCount} opiskelijaa${parentCount > 0 ? ` + ${parentCount} huoltajaa` : ''})${data.failed > 0 ? `. Epäonnistui: ${data.failed}` : ''}`,
       });
       setShowBulkEmailDialog(false);
     },

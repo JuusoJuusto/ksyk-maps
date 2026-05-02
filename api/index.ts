@@ -1515,16 +1515,33 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                 console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
                 
                 const { sendEmail } = await import('../server/emailService.js');
-                const { getWilmaInvitationEmail } = await import('../server/emailTemplates.js');
+                const { getWilmaInvitationEmail, getWilmaParentInvitationEmail } = await import('../server/emailTemplates.js');
                 
-                const emailHtml = getWilmaInvitationEmail({
-                  firstName: userData.firstName,
-                  lastName: userData.lastName,
-                  username: userData.username,
-                  password: plainPassword, // Use plain password for email
-                  role: userData.role,
-                  appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
-                });
+                // Use parent-specific template if role is parent
+                let emailHtml;
+                if (userData.role === 'parent') {
+                  // For parents, we need student info - check if it's in the request
+                  const studentInfo = req.body.studentInfo || {};
+                  emailHtml = getWilmaParentInvitationEmail({
+                    parentFirstName: userData.firstName,
+                    parentLastName: userData.lastName,
+                    parentUsername: userData.username,
+                    parentPassword: plainPassword,
+                    studentFirstName: studentInfo.firstName || 'Your child',
+                    studentLastName: studentInfo.lastName || '',
+                    studentClass: studentInfo.studentClass || 'N/A',
+                    appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
+                  });
+                } else {
+                  emailHtml = getWilmaInvitationEmail({
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    username: userData.username,
+                    password: plainPassword, // Use plain password for email
+                    role: userData.role,
+                    appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
+                  });
+                }
                 
                 console.log('📤 Calling sendEmail function...');
                 const emailResult = await sendEmail({
@@ -1736,6 +1753,123 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
       
+      // PUT /wilma/users/:id/change-password - Change user password (first-time or regular)
+      const changePasswordMatch = apiPath.match(/^\/wilma\/users\/([^\/]+)\/change-password$/);
+      if (changePasswordMatch && req.method === 'PUT') {
+        const userId = changePasswordMatch[1];
+        console.log('🔵 PUT /api/wilma/users/' + userId + '/change-password');
+        
+        try {
+          const { currentPassword, newPassword, isFirstTime } = req.body;
+          
+          if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "Current password and new password are required" });
+          }
+          
+          if (newPassword.length < 6) {
+            return res.status(400).json({ message: "New password must be at least 6 characters long" });
+          }
+          
+          // Get user
+          const user = await storage.getWilmaUser(userId);
+          if (!user) {
+            return res.status(404).json({ message: "User not found" });
+          }
+          
+          // Verify current password
+          if (user.password !== currentPassword) {
+            return res.status(401).json({ message: "Current password is incorrect" });
+          }
+          
+          // Update password
+          await storage.updateWilmaUser(userId, {
+            password: newPassword,
+            plainPassword: newPassword, // Store plain password for admin viewing
+            isTemporaryPassword: false // No longer temporary
+          });
+          
+          console.log('✅ Password changed successfully for user:', userId);
+          
+          // If this was a first-time password change, send confirmation email
+          if (isFirstTime && user.email) {
+            try {
+              const { sendEmail } = await import('../server/emailService.js');
+              const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center; color: #fff; }
+    .content { padding: 40px 30px; }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✅ Salasana vaihdettu / Password Changed</h1>
+    </div>
+    <div class="content">
+      <h2>Hei ${user.firstName}! / Hello ${user.firstName}!</h2>
+      <p><strong>Salasanasi on vaihdettu onnistuneesti.</strong> / <strong>Your password has been changed successfully.</strong></p>
+      
+      <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="margin: 0; color: #065f46; font-size: 14px;">
+          <strong>✅ Vahvistus / Confirmation:</strong> Voit nyt kirjautua uudella salasanallasi. / You can now log in with your new password.
+        </p>
+      </div>
+      
+      <p>Jos et tehnyt tätä muutosta, ota välittömästi yhteyttä tukeen. / If you did not make this change, please contact support immediately.</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app/wilma" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Kirjaudu Wilmaan / Login to Wilma →
+        </a>
+      </div>
+    </div>
+    <div class="footer">
+      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p>Tämä on automaattinen viesti. / This is an automated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `;
+              
+              await sendEmail({
+                to: user.email,
+                subject: '✅ Salasana vaihdettu - Password Changed - Wilma KSYK Maps',
+                html: emailHtml
+              });
+              
+              console.log('✅ Password change confirmation email sent to:', user.email);
+            } catch (emailError) {
+              console.error('⚠️ Failed to send confirmation email:', emailError);
+              // Don't fail the password change if email fails
+            }
+          }
+          
+          return res.status(200).json({ 
+            success: true, 
+            message: 'Password changed successfully',
+            user: {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              role: user.role,
+              isTemporaryPassword: false
+            }
+          });
+        } catch (error: any) {
+          console.error('❌ Error changing password:', error);
+          return res.status(500).json({ message: "Failed to change password", error: error.message });
+        }
+      }
+      
       // POST /wilma/send-password-reset - Send password reset email
       if (apiPath === '/wilma/send-password-reset' && req.method === 'POST') {
         console.log('🔵 POST /api/wilma/send-password-reset called');
@@ -1834,6 +1968,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           
           let sent = 0;
           let failed = 0;
+          let parentsSent = 0;
           const errors: string[] = [];
           
           for (const student of students) {
@@ -1894,6 +2029,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
               
               if (result.success) {
                 sent++;
+                parentsSent += parentEmails.length;
                 console.log(`✅ Email sent to ${student.email}${parentEmails.length > 0 ? ` and ${parentEmails.length} parent(s)` : ''}`);
               } else {
                 failed++;
@@ -1907,10 +2043,11 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             }
           }
           
-          console.log(`📊 Bulk email complete: ${sent} sent, ${failed} failed`);
+          console.log(`📊 Bulk email complete: ${sent} students, ${parentsSent} parents, ${failed} failed`);
           return res.status(200).json({ 
             success: true, 
             sent, 
+            parentsSent,
             failed, 
             errors: errors.slice(0, 10) // Return first 10 errors
           });

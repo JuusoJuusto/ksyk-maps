@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import FirstTimePasswordDialog from "@/components/FirstTimePasswordDialog";
 import { 
   Calendar, FileText, MessageSquare, Home, BarChart3, Bell, LogOut, User,
   Users, UserCheck, Building, GraduationCap, ClipboardList, Lock, AlertCircle,
@@ -27,10 +28,8 @@ export default function Wilma() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [showPasswordChangeDialog, setShowPasswordChangeDialog] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [showFirstTimePasswordDialog, setShowFirstTimePasswordDialog] = useState(false);
+  const [tempUser, setTempUser] = useState<any>(null); // Store user data while changing password
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
   const [returnPath, setReturnPath] = useState('');
@@ -305,9 +304,11 @@ export default function Wilma() {
 
       setCurrentUser(data);
       
-      // Check if password change is required
-      if (data.requiresPasswordChange) {
-        setShowPasswordChangeDialog(true);
+      // Check if this is a first-time login (temporary password)
+      if (data.isTemporaryPassword) {
+        console.log('🔐 First-time login detected - showing password change dialog');
+        setTempUser(data);
+        setShowFirstTimePasswordDialog(true);
         setIsLoading(false);
         return;
       }
@@ -623,68 +624,44 @@ export default function Wilma() {
           </div>
         </div>
 
-        {/* Password Change Dialog */}
-        {showPasswordChangeDialog && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-2 border-blue-500">
-              <CardHeader className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white">
-                <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                  <Lock className="w-6 h-6" />
-                  {language === 'fi' ? 'Vaihda salasana' : 'Change Password'}
-                </CardTitle>
-                <p className="text-blue-100 text-sm mt-2">
-                  {language === 'fi' 
-                    ? 'Sinun on vaihdettava väliaikainen salasanasi jatkaaksesi.'
-                    : 'You must change your temporary password to continue.'}
-                </p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-bold">
-                      {language === 'fi' ? 'Uusi salasana' : 'New Password'}
-                    </Label>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder={language === 'fi' ? 'Vähintään 6 merkkiä' : 'Minimum 6 characters'}
-                      required
-                      className="mt-2 h-12"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-bold">
-                      {language === 'fi' ? 'Vahvista salasana' : 'Confirm Password'}
-                    </Label>
-                    <Input
-                      type="password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder={language === 'fi' ? 'Kirjoita salasana uudelleen' : 'Re-enter password'}
-                      required
-                      className="mt-2 h-12"
-                    />
-                  </div>
-                  
-                  {passwordChangeError && (
-                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium text-sm">{passwordChangeError}</span>
-                    </div>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#0066cc] text-white text-lg font-bold"
-                  >
-                    {language === 'fi' ? 'Vaihda salasana' : 'Change Password'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {/* First-Time Password Change Dialog */}
+        <FirstTimePasswordDialog
+          open={showFirstTimePasswordDialog}
+          user={tempUser}
+          onSuccess={() => {
+            // Password changed successfully, proceed with login
+            const updatedUser = { ...tempUser, isTemporaryPassword: false };
+            setCurrentUser(updatedUser);
+            setIsLoggedIn(true);
+            localStorage.setItem('wilma_user', JSON.stringify(updatedUser));
+            setShowFirstTimePasswordDialog(false);
+            setTempUser(null);
+            setUsername('');
+            setPassword('');
+            
+            // Check if there's a return path to redirect to
+            const savedReturnPath = returnPath || localStorage.getItem('wilma_return_path');
+            
+            if (savedReturnPath && savedReturnPath !== '/wilma') {
+              localStorage.removeItem('wilma_return_path');
+              setLocation(savedReturnPath);
+              setReturnPath('');
+              return;
+            }
+            
+            // Role-based routing
+            const roles = updatedUser.roles || [updatedUser.role];
+            
+            if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal')) {
+              console.log('Redirecting to admin panel:', `/wilma-admin/${updatedUser.id}`);
+              setLocation(`/wilma-admin/${updatedUser.id}`);
+            } else {
+              const studentId = updatedUser.studentId || updatedUser.id;
+              console.log('Redirecting to user page:', `/wilma/${studentId}`);
+              setLocation(`/wilma/${studentId}`);
+            }
+          }}
+        />
       </div>
     );
   }

@@ -503,7 +503,6 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
 }
 
 
-// Send Wilma student welcome email
 export async function sendWilmaStudentWelcomeEmail(
   studentEmail: string,
   studentName: string,
@@ -526,7 +525,8 @@ export async function sendWilmaStudentWelcomeEmail(
     return { success: false, mode: 'console', error: 'Email not configured' };
   }
 
-  const htmlContent = `
+  // Student email content
+  const studentHtmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -592,13 +592,103 @@ export async function sendWilmaStudentWelcomeEmail(
 </html>
   `;
 
+  // Parent email content - IMPROVED WITH PARENT NAME AND CREDENTIALS FIRST
+  const parentHtmlContent = (parentName: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 30px; text-align: center; color: #fff; }
+    .content { padding: 40px 30px; }
+    .credentials-box { background: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; padding: 25px; margin: 25px 0; }
+    .child-box { background: #eff6ff; border: 2px solid #3b82f6; border-radius: 12px; padding: 25px; margin: 25px 0; }
+    .password { font-size: 24px; font-weight: 700; color: #1e40af; font-family: monospace; letter-spacing: 2px; background: #fff; padding: 12px 20px; border-radius: 8px; display: inline-block; }
+    .button { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+    .section-title { color: #1f2937; font-size: 18px; font-weight: 700; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👨‍👩‍👧‍👦 Tervetuloa Wilmaan!</h1>
+      <p>Huoltajan tili luotu / Parent Account Created</p>
+    </div>
+    <div class="content">
+      <h2>Hei ${parentName}! 👋</h2>
+      <p><strong>Wilma-huoltajatilisi on luotu.</strong> Voit nyt seurata lapsesi koulunkäyntiä Wilmassa.</p>
+      <p><strong>Your Wilma parent account has been created.</strong> You can now monitor your child's school activities.</p>
+      
+      <!-- PARENT CREDENTIALS FIRST -->
+      <div class="credentials-box">
+        <div class="section-title">🔑 OMAT KIRJAUTUMISTIETOSI / YOUR LOGIN CREDENTIALS</div>
+        <div style="margin-bottom: 15px;">
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">KÄYTTÄJÄTUNNUS / USERNAME</div>
+          <div style="font-size: 18px; font-weight: 700; color: #059669; font-family: monospace;">${username}</div>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">VÄLIAIKAINEN SALASANA / TEMPORARY PASSWORD</div>
+          <div class="password" style="color: #059669;">${tempPassword}</div>
+        </div>
+        <div style="background: #dcfce7; border-left: 4px solid #10b981; padding: 15px; border-radius: 6px; margin-top: 15px;">
+          <p style="margin: 0; color: #065f46; font-size: 13px;">
+            <strong>✅ Huoltajana</strong> voit nähdä lapsesi tiedot, arvosanat, poissaolot ja viestit.
+          </p>
+        </div>
+      </div>
+
+      <!-- CHILD CREDENTIALS SECOND -->
+      <div class="child-box">
+        <div class="section-title">👶 LAPSESI KIRJAUTUMISTIEDOT / YOUR CHILD'S CREDENTIALS</div>
+        <p style="color: #475569; font-size: 14px; margin-bottom: 15px;">
+          Alla ovat lapsesi ${studentName} kirjautumistiedot. Voit jakaa nämä lapsellesi.
+        </p>
+        <div style="margin-bottom: 15px;">
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">OPISKELIJANUMERO / STUDENT ID</div>
+          <div style="font-size: 18px; font-weight: 700; color: #1e40af; font-family: monospace;">${studentId}</div>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">KÄYTTÄJÄTUNNUS / USERNAME</div>
+          <div style="font-size: 18px; font-weight: 700; color: #1e40af; font-family: monospace;">${username}</div>
+        </div>
+        <div>
+          <div style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 5px;">VÄLIAIKAINEN SALASANA / TEMPORARY PASSWORD</div>
+          <div class="password">${tempPassword}</div>
+        </div>
+      </div>
+      
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          <strong>⚠️ Tärkeää / Important:</strong> Sekä sinun että lapsesi tulee vaihtaa salasana ensimmäisen kirjautumisen jälkeen. / Both you and your child should change passwords after first login.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ksykmaps.vercel.app/wilma" class="button" style="color: #fff;">
+          Kirjaudu Wilmaan / Login to Wilma →
+        </a>
+      </div>
+    </div>
+    <div class="footer">
+      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p>Tämä on automaattinen viesti. Älä vastaa tähän sähköpostiin.</p>
+      <p>This is an automated message. Please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
   try {
     // Send to student
     await transporter.sendMail({
       from: `"KSYK Maps Wilma" <${process.env.EMAIL_USER}>`,
       to: studentEmail,
       subject: '🎓 Tervetuloa Wilmaan - Welcome to Wilma',
-      html: htmlContent
+      html: studentHtmlContent
     });
     console.log('✅ Email sent to student:', studentEmail);
 
@@ -606,11 +696,16 @@ export async function sendWilmaStudentWelcomeEmail(
     if (parentEmails && parentEmails.length > 0) {
       for (const parentEmail of parentEmails) {
         if (parentEmail) {
+          // Extract parent name from email (first part before @)
+          const parentName = parentEmail.split('@')[0].split('.').map(
+            part => part.charAt(0).toUpperCase() + part.slice(1)
+          ).join(' ');
+          
           await transporter.sendMail({
             from: `"KSYK Maps Wilma" <${process.env.EMAIL_USER}>`,
             to: parentEmail,
-            subject: `🎓 ${studentName} - Wilma-tili luotu / Wilma Account Created`,
-            html: htmlContent
+            subject: `👨‍👩‍👧‍👦 ${studentName} - Wilma-tili luotu / Wilma Account Created`,
+            html: parentHtmlContent(parentName)
           });
           console.log('✅ Email sent to parent:', parentEmail);
         }
