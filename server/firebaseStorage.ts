@@ -778,6 +778,12 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('🔵 FirebaseStorage.createWilmaUser called with:', JSON.stringify(wilmaUser, null, 2));
       
+      // Generate 6-digit studentId if not provided
+      if (!wilmaUser.studentId) {
+        wilmaUser.studentId = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log('🎲 Generated studentId:', wilmaUser.studentId);
+      }
+      
       // Determine collection based on role
       let collectionRef;
       if (wilmaUser.role === 'student') {
@@ -799,7 +805,7 @@ export class FirebaseStorage implements IStorage {
       
       console.log('💾 Saving to Firebase:', JSON.stringify(wilmaUserData, null, 2));
       await docRef.set(wilmaUserData);
-      console.log('✅ Wilma user saved successfully with ID:', docRef.id);
+      console.log('✅ Wilma user saved successfully with ID:', docRef.id, 'StudentID:', wilmaUserData.studentId);
       
       return wilmaUserData;
     } catch (error) {

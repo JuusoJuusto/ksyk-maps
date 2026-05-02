@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import WilmaHome from './wilma-home';
 import WilmaParent from './wilma-parent';
@@ -12,10 +12,12 @@ import WilmaParent from './wilma-parent';
  * - Admin/Teacher: /wilma-admin/:id (Firebase ID)
  * 
  * This component checks the logged-in user's role and routes accordingly
+ * FIXED: Prevents random logouts on back button
  */
 export default function WilmaRouter() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/wilma/:studentId/:section?');
+  const [isValidating, setIsValidating] = useState(true);
   
   useEffect(() => {
     // Check if user is logged in
@@ -24,6 +26,7 @@ export default function WilmaRouter() {
     if (!storedUser) {
       // Not logged in, redirect to login
       setLocation('/wilma');
+      setIsValidating(false);
       return;
     }
 
@@ -40,33 +43,32 @@ export default function WilmaRouter() {
         // Admin/Teacher trying to access student view - redirect to admin panel
         console.log('Admin/Teacher detected, redirecting to admin panel');
         setLocation(`/wilma-admin/${user.id}`);
+        setIsValidating(false);
         return;
       }
       
-      // Check if student/parent is trying to access wrong studentId
-      if (match && params?.studentId) {
-        const requestedStudentId = params.studentId;
-        
-        // For students, ensure they can only access their own studentId
-        if (user.role === 'student' && user.studentId !== requestedStudentId) {
-          console.log('Student trying to access different studentId, redirecting');
-          setLocation(`/wilma/${user.studentId}`);
-          return;
-        }
-        
-        // For parents, check if requested studentId is one of their children
-        if (user.role === 'parent') {
-          // Parent can access any of their children's studentIds
-          // This will be validated by the parent component
-        }
-      }
+      // For students and parents, allow navigation
+      // Don't redirect on every route change - this was causing logouts
+      setIsValidating(false);
       
     } catch (err) {
       console.error('Failed to parse stored user:', err);
       localStorage.removeItem('wilma_user');
       setLocation('/wilma');
+      setIsValidating(false);
     }
-  }, [match, params]);
+  }, []); // Only run once on mount, not on every route change
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Ladataan...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get current user to determine which component to render
   const storedUser = localStorage.getItem('wilma_user');
