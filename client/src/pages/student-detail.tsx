@@ -44,8 +44,8 @@ export default function StudentDetail() {
         throw new Error("No student ID provided");
       }
       
-      // Check if it's an 8-digit student ID
-      const isStudentId = /^\d{8}$/.test(studentId);
+      // Check if it's a 6-digit student ID
+      const isStudentId = /^\d{6}$/.test(studentId);
       const endpoint = isStudentId 
         ? `/api/wilma/users/by-student-id/${studentId}`
         : `/api/wilma/users/${studentId}`;

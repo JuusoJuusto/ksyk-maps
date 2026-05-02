@@ -1236,8 +1236,8 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
-      // GET /wilma/users/by-student-id/:studentId - Get user by 8-digit student ID
-      const getByStudentIdMatch = apiPath.match(/^\/wilma\/users\/by-student-id\/(\d{8})$/);
+      // GET /wilma/users/by-student-id/:studentId - Get user by 6-digit student ID
+      const getByStudentIdMatch = apiPath.match(/^\/wilma\/users\/by-student-id\/(\d{6})$/);
       if (getByStudentIdMatch && req.method === 'GET') {
         const studentId = getByStudentIdMatch[1];
         console.log('🔵 GET /api/wilma/users/by-student-id/' + studentId);
