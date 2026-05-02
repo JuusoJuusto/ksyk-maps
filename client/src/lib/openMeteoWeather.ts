@@ -1,14 +1,18 @@
 /**
- * Open-Meteo Weather API Integration - REAL DATA ONLY
+ * Open-Meteo Weather API Integration - COMPREHENSIVE DATA
  * Location: Kulosaari, Helsinki (61.6575, 26.3728)
  * Documentation: https://open-meteo.com/en/docs
  * 
  * Features:
- * - Real-time weather data
- * - Hourly and daily forecasts
+ * - Real-time weather data with ALL parameters
+ * - Hourly, daily, and 15-minute forecasts
  * - No API key required
  * - Auto timezone detection
+ * - NO MOCK DATA - Shows error if API fails
  */
+
+// Comprehensive API URL with ALL parameters
+const COMPREHENSIVE_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max,daylight_duration&hourly=temperature_2m,rain,showers,snowfall,snow_depth,weather_code,cloud_cover,visibility,uv_index,is_day,apparent_temperature&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&minutely_15=temperature_2m,rain,snowfall,wind_speed_10m,wind_speed_80m,wind_direction_80m,wind_direction_10m&timezone=auto&wind_speed_unit=ms';
 
 export interface WeatherData {
   temperature: number;
@@ -30,7 +34,9 @@ export interface HourlyForecast {
   apparentTemperature: number;
   weatherCode: number;
   rain: number;
+  showers: number;
   snowfall: number;
+  snowDepth: number;
   cloudCover: number;
   visibility: number;
   uvIndex: number;
@@ -52,16 +58,33 @@ export interface DailyForecast {
   daylightDuration: number;
 }
 
+export interface MinutelyForecast {
+  time: string;
+  temperature: number;
+  rain: number;
+  snowfall: number;
+  windSpeed10m: number;
+  windSpeed80m: number;
+  windDirection10m: number;
+  windDirection80m: number;
+}
+
+export interface ComprehensiveWeatherData {
+  current: WeatherData;
+  hourly: HourlyForecast[];
+  daily: DailyForecast[];
+  minutely: MinutelyForecast[];
+}
+
 /**
- * Fetch current weather from Open-Meteo API - REAL DATA ONLY
+ * Fetch comprehensive weather data from Open-Meteo API - REAL DATA ONLY
  * Location: Kulosaari, Helsinki (61.6575, 26.3728)
+ * Returns current, hourly, daily, and 15-minute forecasts
  */
-export async function fetchCurrentWeather(): Promise<WeatherData> {
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&timezone=auto';
+export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherData> {
+  console.log('🌡️ Fetching COMPREHENSIVE weather data from Open-Meteo API for Kulosaari, Helsinki');
   
-  console.log('🌡️ Fetching REAL weather data from Open-Meteo API for Kulosaari, Helsinki');
-  
-  const response = await fetch(url);
+  const response = await fetch(COMPREHENSIVE_API_URL);
   if (!response.ok) {
     throw new Error(`Weather API error: ${response.status}`);
   }
@@ -72,13 +95,13 @@ export async function fetchCurrentWeather(): Promise<WeatherData> {
     throw new Error('No current weather data available');
   }
 
+  // Parse current weather
   const current = data.current;
-  
-  const weatherData: WeatherData = {
+  const currentWeather: WeatherData = {
     temperature: Math.round(current.temperature_2m),
     feelsLike: Math.round(current.apparent_temperature),
-    windSpeed: Math.round(current.wind_speed_10m * 3.6), // Convert m/s to km/h
-    windGusts: Math.round(current.wind_gusts_10m * 3.6),
+    windSpeed: Math.round(current.wind_speed_10m), // Already in m/s from API
+    windGusts: Math.round(current.wind_gusts_10m),
     precipitation: current.precipitation || 0,
     rain: current.rain || 0,
     showers: current.showers || 0,
@@ -88,111 +111,130 @@ export async function fetchCurrentWeather(): Promise<WeatherData> {
     timestamp: current.time
   };
 
-  console.log('✅ REAL weather data fetched:', weatherData);
-  return weatherData;
-}
-
-
-/**
- * Fetch hourly weather forecast - REAL DATA ONLY
- * Returns next 24 hours with correct Finland timezone
- */
-export async function fetchHourlyForecast(hours: number = 24): Promise<HourlyForecast[]> {
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&hourly=temperature_2m,rain,snowfall,weather_code,cloud_cover,visibility,uv_index,is_day,apparent_temperature&timezone=auto&forecast_days=2';
-  
-  console.log('🌤️ Fetching REAL hourly forecast from Open-Meteo');
-  
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Forecast API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.hourly || !data.hourly.time) {
-    throw new Error('No hourly forecast data available');
-  }
-
+  // Parse hourly forecast (next 24 hours)
   const hourly = data.hourly;
-  const forecasts: HourlyForecast[] = [];
+  const hourlyForecasts: HourlyForecast[] = [];
   
-  // Get current time in Finland timezone
-  const now = new Date();
-  const currentTime = now.getTime();
-  
-  // Process hourly data - show only hours without minutes
-  for (let i = 0; i < Math.min(hourly.time.length, hours); i++) {
-    const timeStr = hourly.time[i];
-    const forecastDate = new Date(timeStr);
+  if (hourly && hourly.time) {
+    const now = new Date();
+    const currentTime = now.getTime();
     
-    // Only include future hours
-    if (forecastDate.getTime() >= currentTime) {
-      const hour = forecastDate.getHours();
+    for (let i = 0; i < Math.min(hourly.time.length, 24); i++) {
+      const timeStr = hourly.time[i];
+      const forecastDate = new Date(timeStr);
       
-      forecasts.push({
-        time: hour.toString(), // Just the hour number (e.g., "14")
-        temperature: Math.round(hourly.temperature_2m[i]),
-        apparentTemperature: Math.round(hourly.apparent_temperature[i]),
-        weatherCode: hourly.weather_code[i],
-        rain: hourly.rain[i] || 0,
-        snowfall: hourly.snowfall[i] || 0,
-        cloudCover: hourly.cloud_cover[i] || 0,
-        visibility: hourly.visibility[i] || 10000,
-        uvIndex: hourly.uv_index[i] || 0,
-        isDay: hourly.is_day[i] || 0
+      // Only include future hours
+      if (forecastDate.getTime() >= currentTime) {
+        const hour = forecastDate.getHours();
+        
+        hourlyForecasts.push({
+          time: hour.toString(),
+          temperature: Math.round(hourly.temperature_2m[i]),
+          apparentTemperature: Math.round(hourly.apparent_temperature[i]),
+          weatherCode: hourly.weather_code[i],
+          rain: hourly.rain[i] || 0,
+          showers: hourly.showers[i] || 0,
+          snowfall: hourly.snowfall[i] || 0,
+          snowDepth: hourly.snow_depth[i] || 0,
+          cloudCover: hourly.cloud_cover[i] || 0,
+          visibility: hourly.visibility[i] || 10000,
+          uvIndex: hourly.uv_index[i] || 0,
+          isDay: hourly.is_day[i] || 0
+        });
+      }
+      
+      if (hourlyForecasts.length >= 24) break;
+    }
+  }
+
+  // Parse daily forecast (next 7 days)
+  const daily = data.daily;
+  const dailyForecasts: DailyForecast[] = [];
+  
+  if (daily && daily.time) {
+    for (let i = 0; i < Math.min(daily.time.length, 7); i++) {
+      dailyForecasts.push({
+        date: daily.time[i],
+        weatherCode: daily.weather_code[i],
+        tempMax: Math.round(daily.temperature_2m_max[i]),
+        tempMin: Math.round(daily.temperature_2m_min[i]),
+        apparentTempMax: Math.round(daily.apparent_temperature_max[i]),
+        apparentTempMin: Math.round(daily.apparent_temperature_min[i]),
+        windSpeedMax: Math.round(daily.wind_speed_10m_max[i]),
+        windGustsMax: Math.round(daily.wind_gusts_10m_max[i]),
+        sunrise: daily.sunrise[i],
+        sunset: daily.sunset[i],
+        uvIndexMax: daily.uv_index_max[i] || 0,
+        daylightDuration: daily.daylight_duration[i] || 0
       });
     }
-    
-    if (forecasts.length >= hours) break;
   }
 
-  console.log(`✅ Fetched ${forecasts.length} REAL hourly forecast entries`);
-  return forecasts;
+  // Parse 15-minute forecast
+  const minutely = data.minutely_15;
+  const minutelyForecasts: MinutelyForecast[] = [];
+  
+  if (minutely && minutely.time) {
+    for (let i = 0; i < Math.min(minutely.time.length, 12); i++) { // Next 3 hours (12 * 15min)
+      minutelyForecasts.push({
+        time: minutely.time[i],
+        temperature: Math.round(minutely.temperature_2m[i]),
+        rain: minutely.rain[i] || 0,
+        snowfall: minutely.snowfall[i] || 0,
+        windSpeed10m: Math.round(minutely.wind_speed_10m[i]),
+        windSpeed80m: Math.round(minutely.wind_speed_80m[i]),
+        windDirection10m: minutely.wind_direction_10m[i] || 0,
+        windDirection80m: minutely.wind_direction_80m[i] || 0
+      });
+    }
+  }
+
+  console.log('✅ COMPREHENSIVE weather data fetched:', {
+    current: currentWeather,
+    hourlyCount: hourlyForecasts.length,
+    dailyCount: dailyForecasts.length,
+    minutelyCount: minutelyForecasts.length
+  });
+
+  return {
+    current: currentWeather,
+    hourly: hourlyForecasts,
+    daily: dailyForecasts,
+    minutely: minutelyForecasts
+  };
 }
 
 /**
- * Fetch daily weather forecast - REAL DATA ONLY
+ * Fetch current weather only - REAL DATA ONLY
  */
-export async function fetchDailyForecast(days: number = 7): Promise<DailyForecast[]> {
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max,daylight_duration&timezone=auto';
-  
-  console.log('📅 Fetching REAL daily forecast from Open-Meteo');
-  
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Daily forecast API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.daily || !data.daily.time) {
-    throw new Error('No daily forecast data available');
-  }
-
-  const daily = data.daily;
-  const forecasts: DailyForecast[] = [];
-  
-  for (let i = 0; i < Math.min(daily.time.length, days); i++) {
-    forecasts.push({
-      date: daily.time[i],
-      weatherCode: daily.weather_code[i],
-      tempMax: Math.round(daily.temperature_2m_max[i]),
-      tempMin: Math.round(daily.temperature_2m_min[i]),
-      apparentTempMax: Math.round(daily.apparent_temperature_max[i]),
-      apparentTempMin: Math.round(daily.apparent_temperature_min[i]),
-      windSpeedMax: Math.round(daily.wind_speed_10m_max[i] * 3.6), // Convert to km/h
-      windGustsMax: Math.round(daily.wind_gusts_10m_max[i] * 3.6),
-      sunrise: daily.sunrise[i],
-      sunset: daily.sunset[i],
-      uvIndexMax: daily.uv_index_max[i] || 0,
-      daylightDuration: daily.daylight_duration[i] || 0
-    });
-  }
-
-  console.log(`✅ Fetched ${forecasts.length} REAL daily forecast entries`);
-  return forecasts;
+export async function fetchCurrentWeather(): Promise<WeatherData> {
+  const data = await fetchComprehensiveWeather();
+  return data.current;
 }
 
+/**
+ * Fetch hourly forecast only - REAL DATA ONLY
+ */
+export async function fetchHourlyForecast(hours: number = 24): Promise<HourlyForecast[]> {
+  const data = await fetchComprehensiveWeather();
+  return data.hourly.slice(0, hours);
+}
+
+/**
+ * Fetch daily forecast only - REAL DATA ONLY
+ */
+export async function fetchDailyForecast(days: number = 7): Promise<DailyForecast[]> {
+  const data = await fetchComprehensiveWeather();
+  return data.daily.slice(0, days);
+}
+
+/**
+ * Fetch 15-minute forecast only - REAL DATA ONLY
+ */
+export async function fetchMinutelyForecast(): Promise<MinutelyForecast[]> {
+  const data = await fetchComprehensiveWeather();
+  return data.minutely;
+}
 
 /**
  * Convert WMO weather code to icon name
@@ -254,4 +296,21 @@ export function getWindDirectionFinnish(degrees: number): string {
   const directions = ['Pohjoinen', 'Koillinen', 'Itä', 'Kaakko', 'Etelä', 'Lounas', 'Länsi', 'Luode'];
   const index = Math.round(degrees / 45) % 8;
   return directions[index];
+}
+
+/**
+ * Format time from ISO string to HH:MM
+ */
+export function formatTime(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Format daylight duration from seconds to hours and minutes
+ */
+export function formatDaylightDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}min`;
 }

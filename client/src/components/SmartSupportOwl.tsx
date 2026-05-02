@@ -48,9 +48,91 @@ export default function SmartSupportOwl() {
 
   // Knowledge base - Rule-based responses (NO AI)
   const knowledgeBase = {
+    // Greetings - MASSIVELY EXPANDED
+    tervehdys: {
+      keywords: [
+        // Basic greetings
+        'hei', 'moi', 'moikka', 'terve', 'moro', 'heippa', 'morjens', 'moikku', 'moikka moi',
+        // Time-based
+        'päivää', 'huomenta', 'iltaa', 'yötä', 'hyvää päivää', 'hyvää huomenta', 'hyvää iltaa',
+        // Casual variations
+        'moro', 'moroo', 'moromoi', 'heihei', 'hei hei', 'heips', 'heipsan', 'heipparallaa',
+        'terve terve', 'terveppä terve', 'tere', 'tereh', 'terveiset',
+        // Slang
+        'joo', 'jep', 'jeejee', 'jees', 'yo', 'sup', 'mitä kuuluu', 'miten menee',
+        // English
+        'hello', 'hi', 'hey', 'hola', 'howdy', 'greetings',
+        // Questions
+        'onko täällä ketään', 'hei siellä', 'kuuluuko', 'oletko siellä'
+      ],
+      response: 'Hei! 🦉 Mukava nähdä sinua! Olen Tuki Pöllö ja olen täällä auttamassa sinua.\n\nVoin auttaa sinua monissa asioissa:\n• Salasanojen vaihto\n• Lukujärjestykset\n• Arvosanat\n• Viestit\n• Poissaolot\n• Tekniset ongelmat\n\nMitä haluat tehdä?',
+      quickActions: [
+        { label: 'Salasana', action: 'password', icon: <Settings className="w-4 h-4" /> },
+        { label: 'Lukujärjestys', action: 'schedule', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Arvosanat', action: 'grades', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Viestit', action: 'messages', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Thanks - EXPANDED
+    kiitos: {
+      keywords: [
+        'kiitos', 'kiitti', 'kiitoksia', 'kiitän', 'kiitti paljon', 'kiitos paljon',
+        'thanks', 'thank you', 'thx', 'ty', 'thank u', 'thnx', 'thanx',
+        'kiitti vaan', 'kiitos vaan', 'kiitti siitä', 'kiitos siitä',
+        'paljon kiitoksia', 'suuret kiitokset', 'kiitos avusta',
+        'auttoi', 'auttoi paljon', 'hyvä', 'loistava', 'mahtava', 'täydellinen'
+      ],
+      response: 'Ole hyvä! 🦉 Olen aina täällä auttamassa sinua. Jos tarvitset lisää apua, kysy vain!',
+      quickActions: [
+        { label: 'Takaisin alkuun', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Goodbye - EXPANDED
+    näkemiin: {
+      keywords: [
+        'näkemiin', 'nähdään', 'näkee', 'näkemisiin',
+        'hei hei', 'heihei', 'moi moi', 'moimoi', 'moikka moi',
+        'heippa', 'heippahei', 'heipparallaa',
+        'bye', 'goodbye', 'cya', 'see you', 'see ya', 'later', 'bye bye',
+        'lähen', 'lähen nyt', 'meen', 'meen nyt', 'poistun',
+        'kiitti ja moi', 'kiitos ja näkemiin', 'ok moi', 'okei moi'
+      ],
+      response: 'Näkemiin! 🦉 Toivottavasti sain autettua sinua. Tervetuloa takaisin milloin vain!',
+      quickActions: []
+    },
+    
+    // How are you - EXPANDED
+    kuuluminen: {
+      keywords: [
+        'mitä kuuluu', 'mitäs kuuluu', 'mitä sulle kuuluu',
+        'miten menee', 'miten sulla menee', 'miten voit', 'kuinka voit',
+        'how are you', 'how r u', 'how are u', 'whats up', 'what\'s up',
+        'miten hurisee', 'miten sujuu', 'miten elämä', 'miten päivä',
+        'onko kaikki hyvin', 'voitko hyvin', 'kaikki ok', 'kaikki okei'
+      ],
+      response: 'Kiitos kysymästä! 🦉 Minulla menee hyvin, olen valmis auttamaan sinua!\n\nEntä sinulle - voinko auttaa jossain asiassa?',
+      quickActions: [
+        { label: 'Kyllä, tarvitsen apua', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Help
+    apu: {
+      keywords: ['apu', 'apua', 'help', 'neuvoa', 'ohje', 'ohjeet', 'opastus'],
+      response: 'Totta kai autan! 🦉 Kerro minulle, missä tarvitset apua:\n\n• Salasanan vaihto tai palautus\n• Lukujärjestyksen katselu\n• Arvosanojen tarkistus\n• Viestien lähettäminen\n• Poissaolojen ilmoittaminen\n• Tekniset ongelmat\n\nValitse aihe tai kirjoita kysymyksesi!',
+      quickActions: [
+        { label: 'Salasana', action: 'password', icon: <Settings className="w-4 h-4" /> },
+        { label: 'Lukujärjestys', action: 'schedule', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Arvosanat', action: 'grades', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Viestit', action: 'messages', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
     // Password related
     salasana: {
-      keywords: ['salasana', 'password', 'vaihda', 'unohdin', 'forgot'],
+      keywords: ['salasana', 'password', 'vaihda', 'unohdin', 'forgot', 'kirjaudu', 'login'],
       response: 'Voit vaihtaa salasanasi seuraavasti:\n\n1. Klikkaa "Asetukset" yläpalkista\n2. Valitse "Salasanan vaihto"\n3. Syötä vanha salasana\n4. Syötä uusi salasana kahdesti\n5. Klikkaa "Tallenna"\n\nJos olet unohtanut salasanasi, klikkaa "Unohdin salasanani" kirjautumissivulla.',
       quickActions: [
         { label: 'Avaa asetukset', action: 'open-settings', icon: <Settings className="w-4 h-4" /> },
@@ -100,11 +182,107 @@ export default function SmartSupportOwl() {
     
     // Technical issues
     tekninen: {
-      keywords: ['ei toimi', 'virhe', 'error', 'bug', 'ongelma', 'tekninen'],
+      keywords: ['ei toimi', 'virhe', 'error', 'bug', 'ongelma', 'tekninen', 'rikki', 'broken', 'crash', 'jumissa'],
       response: 'Teknisen ongelman ratkaiseminen:\n\n1. Päivitä sivu (F5 tai Ctrl+R)\n2. Tyhjennä selaimen välimuisti\n3. Kokeile toista selainta\n4. Tarkista internet-yhteys\n\nJos ongelma jatkuu, ota yhteyttä tukeen.',
       quickActions: [
         { label: 'Päivitä sivu', action: 'refresh', icon: <HelpCircle className="w-4 h-4" /> },
         { label: 'Ota yhteyttä tukeen', action: 'contact-support', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Homework
+    kotitehtävät: {
+      keywords: ['kotitehtävä', 'kotitehtävät', 'läksy', 'läksyt', 'homework', 'tehtävä', 'tehtävät'],
+      response: 'Kotitehtävät löydät seuraavasti:\n\n1. Siirry "Wilma" -välilehdelle\n2. Valitse "Kotitehtävät"\n3. Näet kaikki tehtäväsi\n\nVoit myös:\n- Merkitä tehtävät tehdyiksi\n- Ladata liitteitä\n- Palauttaa tehtäviä',
+      quickActions: [
+        { label: 'Avaa kotitehtävät', action: 'open-homework', icon: <FileText className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Exams
+    kokeet: {
+      keywords: ['koe', 'kokeet', 'tentti', 'tentit', 'exam', 'test', 'testi'],
+      response: 'Kokeet ja tentit löydät seuraavasti:\n\n1. Siirry "Wilma" -välilehdelle\n2. Valitse "Kokeet"\n3. Näet tulevat kokeet\n\nKokeista näet:\n- Päivämäärän ja ajan\n- Aiheet\n- Luokan\n- Opettajan',
+      quickActions: [
+        { label: 'Avaa kokeet', action: 'open-exams', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Lunch menu
+    ruoka: {
+      keywords: ['ruoka', 'lounas', 'ruokalista', 'menu', 'lunch', 'syöminen', 'ruokala'],
+      response: 'Ruokalistan näet seuraavasti:\n\n1. Klikkaa "Lounaslista" yläpalkista\n2. Näet tämän viikon ruokalistan\n\nRuokalistassa näkyy:\n- Päivän lounas\n- Allergeenit\n- Kasvisvaihtoehto',
+      quickActions: [
+        { label: 'Avaa ruokalista', action: 'open-lunch', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Map
+    kartta: {
+      keywords: ['kartta', 'map', 'kampus', 'campus', 'missä', 'where', 'sijainti', 'location', 'luokka', 'classroom'],
+      response: 'Kampuskartan löydät seuraavasti:\n\n1. Klikkaa "Kartta" yläpalkista\n2. Näet koko kampuksen kartan\n\nKartasta voit:\n- Etsiä luokkia\n- Nähdä rakennukset\n- Suunnitella reittejä',
+      quickActions: [
+        { label: 'Avaa kartta', action: 'open-map', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Who are you - EXPANDED
+    kuka: {
+      keywords: [
+        'kuka olet', 'mikä olet', 'kuka sinä olet', 'mikä sinä olet',
+        'who are you', 'what are you', 'who r u',
+        'kerro itsestäsi', 'kerro itsestäs', 'esittele itsesi', 'esittäydy',
+        'mikä on nimesi', 'mikä sun nimi on', 'what is your name',
+        'mitä sä oot', 'mitä sä teet', 'mikä tää on'
+      ],
+      response: 'Olen Tuki Pöllö! 🦉\n\nOlen KSYK Mapsin älykäs tukijärjestelmä. Käytän sääntöpohjaista logiikkaa (ei tekoälyä) auttaakseni sinua kaikissa Wilma-järjestelmään liittyvissä asioissa.\n\nOlen täällä 24/7 vastaamassa kysymyksiisi ja auttamassa sinua!',
+      quickActions: [
+        { label: 'Mitä osaat tehdä?', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Casual conversation - NEW
+    jutustelu: {
+      keywords: [
+        'tylsää', 'tylsä', 'ikävä', 'pitkästyttää',
+        'hauskaa', 'hauska', 'vitsi', 'kerro vitsi', 'naurattaa',
+        'cool', 'siisti', 'kiva', 'jees', 'nice',
+        'ok', 'okei', 'okay', 'selvä', 'joo', 'jep', 'yep', 'yes',
+        'ei', 'en', 'en halua', 'ei kiitos', 'no', 'nope',
+        'hmm', 'öö', 'ööö', 'hmmmm', 'no niin'
+      ],
+      response: 'Ymmärrän! 🦉 Jos tarvitset apua jossain asiassa, olen täällä. Voin auttaa sinua:\n\n• Salasanojen kanssa\n• Lukujärjestyksen katsomisessa\n• Arvosanojen tarkistamisessa\n• Viestien lähettämisessä\n• Ja monessa muussa!\n\nKysypä vain!',
+      quickActions: [
+        { label: 'Näytä mitä osaat', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Compliments - NEW
+    kehu: {
+      keywords: [
+        'hyvä', 'loistava', 'mahtava', 'upea', 'hieno', 'kiva',
+        'great', 'awesome', 'amazing', 'fantastic', 'wonderful',
+        'olet hyvä', 'olet paras', 'paras', 'tosi hyvä',
+        'toimii hyvin', 'toimii', 'hyvä homma'
+      ],
+      response: 'Kiitos! 🦉 Olen iloinen että voin auttaa sinua! Se on minun tehtäväni.\n\nJos tarvitset lisää apua, olen aina täällä!',
+      quickActions: [
+        { label: 'Takaisin alkuun', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Complaints - NEW
+    valitus: {
+      keywords: [
+        'huono', 'paska', 'ei toimi', 'ei auta', 'turha',
+        'bad', 'sucks', 'useless', 'stupid', 'dumb',
+        'en ymmärrä', 'en tajua', 'hämmentävä', 'vaikea',
+        'liian vaikea', 'liian monimutkainen'
+      ],
+      response: 'Pahoittelut! 🦉 Yritän parhaani auttaakseni sinua.\n\nKerro tarkemmin mikä ongelma sinulla on, niin yritän auttaa paremmin:\n\n• Salasana-ongelmat?\n• Lukujärjestys-kysymykset?\n• Arvosana-asiat?\n• Viesti-ongelmat?\n• Jotain muuta?\n\nKerro minulle!',
+      quickActions: [
+        { label: 'Ota yhteyttä tukeen', action: 'contact-support', icon: <Mail className="w-4 h-4" /> },
+        { label: 'Näytä ohjeet', action: 'default', icon: <HelpCircle className="w-4 h-4" /> },
       ]
     },
     

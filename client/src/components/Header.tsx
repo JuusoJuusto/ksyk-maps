@@ -189,17 +189,7 @@ export default function Header() {
                   </Button>
                 </Link>
                 
-                {/* AI Assistant Button */}
-                <Link href="/ai-assistant">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="bg-purple-50 border-purple-600 text-purple-700 hover:bg-purple-100 font-semibold shadow-sm animate-pulse"
-                    data-testid="button-ai"
-                  >
-                    ✨ AI Assistant
-                  </Button>
-                </Link>
+                {/* AI Assistant Button - REMOVED per user request */}
               </>
             ) : (
               <>
@@ -408,14 +398,7 @@ export default function Header() {
                           {t('quickActions.transport')}
                         </button>
                       </Link>
-                      <Link href="/ai-assistant">
-                        <button
-                          onClick={() => setShowMobileMenu(false)}
-                          className="w-full p-3 text-left rounded-lg bg-purple-50 border border-purple-300 text-purple-700 hover:bg-purple-100 transition-all hover:shadow-lg animate-pulse"
-                        >
-                          ✨ AI Assistant
-                        </button>
-                      </Link>
+                      {/* AI Assistant Button - REMOVED per user request */}
                     </div>
                   </div>
                 </>
