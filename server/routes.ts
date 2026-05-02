@@ -1561,7 +1561,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors: string[] = [];
       
       for (const student of students) {
-        if (student.email && student.password && student.isTemporaryPassword) {
+        if (student.email && student.isTemporaryPassword) {
+          // If no plainPassword, generate a new one
+          if (!student.plainPassword) {
+            const { hashPassword } = await import('./passwordUtils');
+            const plainPass = generateTempPassword();
+            const hashedPass = await hashPassword(plainPass);
+            
+            student.password = hashedPass;
+            student.plainPassword = plainPass;
+            
+            await storage.updateWilmaUser(student.id, {
+              password: hashedPass,
+              plainPassword: plainPass,
+              isTemporaryPassword: true
+            });
+            console.log(`🔑 Regenerated password for ${student.email}`);
+          }
+          
           const parentEmails = [];
           if (student.parent1Email) parentEmails.push(student.parent1Email);
           if (student.parent2Email) parentEmails.push(student.parent2Email);
@@ -1571,7 +1588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const result = await emailService.sendWilmaStudentWelcomeEmail(
               student.email,
               `${student.firstName} ${student.lastName}`,
-              student.password,
+              student.plainPassword || student.password, // Use plainPassword
               student.username,
               student.studentId,
               parentEmails.length > 0 ? parentEmails : undefined

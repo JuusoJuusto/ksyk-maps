@@ -1491,12 +1491,13 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           // Generate password if email invitation is requested
           let plainPassword = '';
           if (sendEmailInvitation) {
-            plainPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+            const { generateTempPassword } = await import('../server/emailService.js');
+            plainPassword = generateTempPassword(); // Use shorter, simpler password
             console.log('🔑 Generated password for email invitation:', plainPassword);
             
             // Hash the password before storing
             userData.password = await hashPassword(plainPassword);
-            userData.plainPassword = plainPassword; // Store plain password for admin viewing
+            userData.plainPassword = plainPassword; // Store plain password for email sending
             userData.isTemporaryPassword = true; // Force password change on first login
             console.log('🔒 Password hashed successfully');
             
@@ -1839,14 +1840,40 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             // Generate password if missing
             if (!student.password) {
               const { generateTempPassword } = await import('../server/emailService.js');
-              student.password = generateTempPassword();
+              const { hashPassword } = await import('../server/passwordUtils.js');
+              const plainPass = generateTempPassword();
+              const hashedPass = await hashPassword(plainPass);
+              
+              student.password = hashedPass;
+              student.plainPassword = plainPass;
               student.isTemporaryPassword = true;
+              
               // Update student with new password
               await storage.updateWilmaUser(student.id, {
-                password: student.password,
+                password: hashedPass,
+                plainPassword: plainPass,
                 isTemporaryPassword: true
               });
               console.log(`🔑 Generated password for ${student.email}`);
+            }
+            
+            // If student has no plainPassword but has a password, generate a new one
+            if (!student.plainPassword && student.password) {
+              const { generateTempPassword } = await import('../server/emailService.js');
+              const { hashPassword } = await import('../server/passwordUtils.js');
+              const plainPass = generateTempPassword();
+              const hashedPass = await hashPassword(plainPass);
+              
+              student.password = hashedPass;
+              student.plainPassword = plainPass;
+              student.isTemporaryPassword = true;
+              
+              await storage.updateWilmaUser(student.id, {
+                password: hashedPass,
+                plainPassword: plainPass,
+                isTemporaryPassword: true
+              });
+              console.log(`🔑 Regenerated password for ${student.email} (old password was hashed)`);
             }
             
             const parentEmails = [];
@@ -1859,7 +1886,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
               const result = await sendWilmaStudentWelcomeEmail(
                 student.email,
                 `${student.firstName} ${student.lastName}`,
-                student.password,
+                student.plainPassword || student.password, // Use plainPassword if available
                 student.username || student.email,
                 student.studentId || '000000',
                 parentEmails.length > 0 ? parentEmails : undefined

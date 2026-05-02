@@ -260,10 +260,10 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
   }
 }
 
-// Generate a random temporary password
+// Generate a random temporary password (shorter and simpler)
 export function generateTempPassword(): string {
-  const length = 12;
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  const length = 8; // Shorter password
+  const charset = 'abcdefghjkmnpqrstuvwxyz23456789'; // Removed confusing characters (0, O, 1, l, I)
   let password = '';
   for (let i = 0; i < length; i++) {
     password += charset.charAt(Math.floor(Math.random() * charset.length));
