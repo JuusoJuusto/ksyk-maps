@@ -222,7 +222,7 @@ export default function StudentDetail() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Opiskelijanumero</p>
-                      <p className="font-semibold">{student.studentId}</p>
+                      <p className="font-semibold">{student.studentId || 'Ei määritetty'}</p>
                     </div>
                   </div>
 
