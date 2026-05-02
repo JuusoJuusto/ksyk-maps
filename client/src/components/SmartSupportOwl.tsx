@@ -286,6 +286,98 @@ export default function SmartSupportOwl() {
       ]
     },
     
+    // Subject-specific help - NEW
+    aineet: {
+      keywords: [
+        'matematiikka', 'matikka', 'math', 'laskut', 'laskeminen',
+        'fysiikka', 'physics', 'kemia', 'chemistry',
+        'englanti', 'english', 'ruotsi', 'swedish', 'saksa', 'german',
+        'historia', 'history', 'maantieto', 'geography',
+        'biologia', 'biology', 'terveystieto', 'health',
+        'liikunta', 'pe', 'physical education', 'urheilu',
+        'musiikki', 'music', 'kuvataide', 'art',
+        'käsityö', 'crafts', 'kotitalous', 'home economics'
+      ],
+      response: 'Ainekohtainen apu! 🦉\n\nVoin auttaa sinua löytämään:\n\n• Aineen lukujärjestyksen\n• Aineen arvosanat\n• Aineen kotitehtävät\n• Aineen kokeet\n• Aineen opettajan yhteystiedot\n\nMitä haluat tietää?',
+      quickActions: [
+        { label: 'Lukujärjestys', action: 'schedule', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Arvosanat', action: 'grades', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Kotitehtävät', action: 'open-homework', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Kokeet', action: 'open-exams', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Parent-related - NEW
+    huoltaja: {
+      keywords: [
+        'vanhempi', 'vanhemmat', 'äiti', 'isä', 'huoltaja', 'huoltajat',
+        'parent', 'parents', 'mom', 'dad', 'mother', 'father',
+        'vanhempainilta', 'vanhempainvartti', 'parent meeting',
+        'huoltajan viesti', 'vanhemman viesti'
+      ],
+      response: 'Huoltaja-asiat! 🦉\n\nHuoltajat voivat:\n\n• Nähdä opiskelijan tiedot\n• Lukea viestit\n• Ilmoittaa poissaolot\n• Seurata arvosanoja\n• Katsella lukujärjestystä\n\nHuoltajat kirjautuvat omilla tunnuksillaan Wilmaan.',
+      quickActions: [
+        { label: 'Huoltajan ohjeet', action: 'parent-guide', icon: <User className="w-4 h-4" /> },
+        { label: 'Viestit', action: 'messages', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Account issues - NEW
+    tili: {
+      keywords: [
+        'tili', 'account', 'käyttäjätunnus', 'username',
+        'en pääse sisään', 'en voi kirjautua', 'can\'t login', 'cannot login',
+        'lukittu', 'locked', 'estetty', 'blocked',
+        'unohdin käyttäjätunnuksen', 'forgot username'
+      ],
+      response: 'Tili-ongelmat! 🦉\n\nJos et pääse kirjautumaan:\n\n1. Tarkista käyttäjätunnus (yleensä sähköpostiosoite)\n2. Tarkista salasana (huomioi isot/pienet kirjaimet)\n3. Kokeile salasanan palautusta\n4. Ota yhteyttä tukeen jos ongelma jatkuu\n\nKäyttäjätunnuksesi on yleensä: etunimi.sukunimi@ksyk.fi',
+      quickActions: [
+        { label: 'Salasanan palautus', action: 'reset-password', icon: <Settings className="w-4 h-4" /> },
+        { label: 'Ota yhteyttä tukeen', action: 'contact-support', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Mobile app - NEW
+    mobiili: {
+      keywords: [
+        'mobiili', 'mobile', 'puhelin', 'phone', 'älypuhelin', 'smartphone',
+        'android', 'iphone', 'ios', 'app', 'sovellus', 'applikaatio',
+        'lataa', 'download', 'asennus', 'install'
+      ],
+      response: 'Mobiilisovellus! 🦉\n\nKSYK Maps toimii myös mobiililaitteilla:\n\n• Avaa selaimella: ksykmaps.vercel.app\n• Lisää kotinäytölle (PWA)\n• Toimii Androidilla ja iOS:llä\n• Ei erillistä sovellusta tarvita\n\nMobiiliversio on optimoitu pienille näytöille!',
+      quickActions: [
+        { label: 'Ohjeet PWA:han', action: 'pwa-guide', icon: <HelpCircle className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Notifications - NEW
+    ilmoitukset: {
+      keywords: [
+        'ilmoitus', 'ilmoitukset', 'notification', 'notifications',
+        'hälytys', 'hälytykset', 'alert', 'alerts',
+        'muistutus', 'muistutukset', 'reminder', 'reminders',
+        'ei tule ilmoituksia', 'no notifications'
+      ],
+      response: 'Ilmoitukset! 🦉\n\nVoit hallita ilmoituksia:\n\n1. Siirry "Asetukset"\n2. Valitse "Ilmoitukset"\n3. Valitse mitä ilmoituksia haluat\n\nVoit saada ilmoituksia:\n• Uusista viesteistä\n• Uusista arvosanoista\n• Tulevista kokeista\n• Kotitehtävistä',
+      quickActions: [
+        { label: 'Avaa asetukset', action: 'open-settings', icon: <Settings className="w-4 h-4" /> },
+      ]
+    },
+    
+    // Privacy - NEW
+    yksityisyys: {
+      keywords: [
+        'yksityisyys', 'privacy', 'tietosuoja', 'data protection',
+        'gdpr', 'henkilötiedot', 'personal data',
+        'tietojen käsittely', 'data processing',
+        'kuka näkee tietoni', 'who sees my data'
+      ],
+      response: 'Yksityisyys ja tietosuoja! 🦉\n\nTietosi ovat turvassa:\n\n• Tiedot salataan\n• Vain sinä ja opettajat näkevät tietosi\n• Huoltajat näkevät vain lapsensa tiedot\n• Noudatamme GDPR-säädöksiä\n• Tietoja ei jaeta kolmansille osapuolille',
+      quickActions: [
+        { label: 'Tietosuojaseloste', action: 'privacy-policy', icon: <FileText className="w-4 h-4" /> },
+      ]
+    },
+    
     // Default/general help
     default: {
       keywords: [],
