@@ -253,11 +253,10 @@ export const appLogs = pgTable("app_logs", {
 
 // Wilma Users table
 export const wilmaUsers = pgTable("wilma_users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(), // Numeric auto-increment ID
   studentId: varchar("student_id").notNull().unique(), // Unique 6-digit student ID
   username: varchar("username").notNull().unique(),
-  password: varchar("password").notNull(),
-  plainPassword: varchar("plain_password"), // ADMIN ONLY - for viewing purposes
+  password: varchar("password").notNull(), // ALWAYS HASHED with bcrypt
   isTemporaryPassword: boolean("is_temporary_password").default(true), // Force password change on first login
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
@@ -285,8 +284,8 @@ export const wilmaUsers = pgTable("wilma_users", {
   postalCode: varchar("postal_code"),
   city: varchar("city"),
   // Parent/Guardian relationships - REQUIRED for students
-  parent1Id: varchar("parent1_id"), // Reference to parent user ID
-  parent2Id: varchar("parent2_id"), // Reference to parent user ID
+  parent1Id: integer("parent1_id"), // Reference to parent user numeric ID
+  parent2Id: integer("parent2_id"), // Reference to parent user numeric ID
   // Parent 1 info (stored for display purposes)
   parent1FirstName: varchar("parent1_first_name"),
   parent1LastName: varchar("parent1_last_name"),
