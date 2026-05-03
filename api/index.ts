@@ -1129,22 +1129,26 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     }
 
     // Analytics Summary Endpoint
-    if (apiPath === '/analytics/summary' && req.method === 'GET') {
-      const timeRange = req.query.timeRange as string || '24h';
-      
-      try {
-        // Use real analytics data from Firestore
-        let days = 1;
-        if (timeRange === '7d') days = 7;
-        else if (timeRange === '30d') days = 30;
+    if (apiPath === '/analytics/summary' || apiPath.startsWith('/analytics/summary?')) {
+      if (req.method === 'GET') {
+        // Support both 'range' and 'timeRange' query parameters
+        const range = req.query.range as string || req.query.timeRange as string || '24h';
         
-        const summary = await storage.getAnalyticsSummary(days);
-        
-        // Return real data from database
-        return res.status(200).json(summary);
-      } catch (error) {
-        console.error('Failed to fetch analytics summary:', error);
-        return res.status(500).json({ message: 'Failed to fetch analytics summary' });
+        try {
+          // Use real analytics data from Firestore
+          let days = 1;
+          if (range === '7d' || range === 'week') days = 7;
+          else if (range === '30d' || range === 'month') days = 30;
+          else if (range === '24h' || range === 'day') days = 1;
+          
+          const summary = await storage.getAnalyticsSummary(days);
+          
+          // Return real data from database
+          return res.status(200).json(summary);
+        } catch (error) {
+          console.error('Failed to fetch analytics summary:', error);
+          return res.status(500).json({ message: 'Failed to fetch analytics summary' });
+        }
       }
     }
 
@@ -2089,6 +2093,18 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         } catch (error: any) {
           console.error('❌ Error getting Wilma settings:', error);
           return res.status(500).json({ message: "Failed to fetch settings" });
+        }
+      }
+
+      // POST /wilma/settings - Create/Update Wilma settings (alias for PUT)
+      if (apiPath === '/wilma/settings' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/settings called');
+        try {
+          const settings = await storage.updateWilmaSettings(req.body);
+          return res.status(200).json(settings);
+        } catch (error: any) {
+          console.error('❌ Error updating Wilma settings:', error);
+          return res.status(500).json({ message: "Failed to update settings" });
         }
       }
 
