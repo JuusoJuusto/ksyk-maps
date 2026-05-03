@@ -1,30 +1,39 @@
 /**
- * Enable Desktop Environment and Seed Apps
+ * Enable Desktop Environment via API
  * Run with: node scripts/enable-desktop.js
  */
-
-import { storage } from "../server/storage.js";
 
 async function enableDesktop() {
   console.log("🖥️ Enabling Desktop Environment...\n");
 
   try {
+    const baseUrl = process.env.API_URL || 'http://localhost:5000';
+    
     // Enable desktop settings
     console.log("1️⃣ Enabling desktop settings...");
-    await storage.updateWilmaDesktopSettings({
-      enabled: true,
-      defaultWallpaper: "/wilma-bg.jpg",
-      defaultTheme: "light",
-      allowCustomWallpaper: true,
-      allowCustomTheme: true,
-      availableApps: [
-        "calculator", "notepad", "calendar", "music", "calm-music", 
-        "lofi-music", "white-noise", "nature-sounds", "classical-music", 
-        "jazz-music", "games", "code", "books", "mail", "settings", "clock"
-      ],
-      defaultApps: ["calculator", "notepad", "calendar", "mail", "settings", "lofi-music", "white-noise"],
+    const settingsResponse = await fetch(`${baseUrl}/api/wilma/desktop/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        enabled: true,
+        defaultWallpaper: "/wilma-bg.jpg",
+        defaultTheme: "light",
+        allowCustomWallpaper: true,
+        allowCustomTheme: true,
+        availableApps: [
+          "calculator", "notepad", "calendar", "music", "calm-music", 
+          "lofi-music", "white-noise", "nature-sounds", "classical-music", 
+          "jazz-music", "games", "code", "books", "mail", "settings", "clock"
+        ],
+        defaultApps: ["calculator", "notepad", "calendar", "mail", "settings", "lofi-music", "white-noise"],
+      }),
     });
-    console.log("✅ Desktop settings enabled!\n");
+
+    if (settingsResponse.ok) {
+      console.log("✅ Desktop settings enabled!\n");
+    } else {
+      console.log("⚠️  Settings might already be enabled\n");
+    }
 
     console.log("2️⃣ Creating default apps...");
     
@@ -90,10 +99,19 @@ async function enableDesktop() {
 
     for (const app of defaultApps) {
       try {
-        await storage.createWilmaDesktopApp(app);
-        console.log(`✅ Created: ${app.nameFi}`);
+        const response = await fetch(`${baseUrl}/api/wilma/desktop/apps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(app),
+        });
+        
+        if (response.ok) {
+          console.log(`✅ Created: ${app.nameFi}`);
+        } else {
+          console.log(`⚠️  ${app.nameFi} might already exist`);
+        }
       } catch (error) {
-        console.log(`⚠️  ${app.nameFi} might already exist`);
+        console.log(`⚠️  ${app.nameFi} - ${error.message}`);
       }
     }
 
@@ -104,7 +122,7 @@ async function enableDesktop() {
     console.log("\n⚙️  Manage from: Admin Panel → Työpöytä tab\n");
 
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("❌ Error:", error.message);
     throw error;
   }
 }

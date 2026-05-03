@@ -226,7 +226,7 @@ export default function WilmaAdminSettings() {
         {/* School Information Tab */}
         <TabsContent value="school" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+            <CardHeader className="bg-white border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <School className="w-5 h-5" />
                 Koulun perustiedot
@@ -316,7 +316,7 @@ export default function WilmaAdminSettings() {
         {/* Academic Year Tab */}
         <TabsContent value="academic" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-[#e6f2ff] to-[#f0f8ff] border-b">
+            <CardHeader className="bg-white border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <Calendar className="w-5 h-5" />
                 Lukuvuoden asetukset
@@ -379,7 +379,7 @@ export default function WilmaAdminSettings() {
         {/* Schedule Settings Tab */}
         <TabsContent value="schedule" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b">
+            <CardHeader className="bg-white border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <Clock className="w-5 h-5" />
                 Lukujärjestyksen asetukset
@@ -443,7 +443,7 @@ export default function WilmaAdminSettings() {
         {/* Features Tab */}
         <TabsContent value="features" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 border-b">
+            <CardHeader className="bg-white border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <Settings className="w-5 h-5" />
                 Ominaisuuksien asetukset
@@ -535,7 +535,7 @@ export default function WilmaAdminSettings() {
         {/* Security Tab */}
         <TabsContent value="security" className="space-y-4 mt-6">
           <Card>
-            <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 border-b">
+            <CardHeader className="bg-white border-b">
               <CardTitle className="flex items-center gap-2 text-[#003d82]">
                 <Shield className="w-5 h-5" />
                 Turvallisuusasetukset
