@@ -17,6 +17,7 @@ export default function Wilma() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/wilma/:studentId/:section?');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // Add auth checking state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -126,6 +127,8 @@ export default function Wilma() {
   ];
 
   useEffect(() => {
+    setIsCheckingAuth(true); // Start checking
+    
     // Check for session expiration in URL
     const urlParams = new URLSearchParams(window.location.search);
     const invalidSession = urlParams.get('invalidsession');
@@ -156,7 +159,10 @@ export default function Wilma() {
         fetch('/api/wilma/users')
           .then(res => res.ok ? res.json() : null)
           .then(users => {
-            if (!users) return;
+            if (!users) {
+              setIsCheckingAuth(false);
+              return;
+            }
             const userExists = users.find((u: any) => u.id === user.id && u.isActive);
             if (userExists) {
               setCurrentUser(userExists);
@@ -167,11 +173,18 @@ export default function Wilma() {
             } else {
               localStorage.removeItem('wilma_user');
             }
+            setIsCheckingAuth(false); // Done checking
           })
-          .catch(() => localStorage.removeItem('wilma_user'));
+          .catch(() => {
+            localStorage.removeItem('wilma_user');
+            setIsCheckingAuth(false); // Done checking
+          });
       } catch {
         localStorage.removeItem('wilma_user');
+        setIsCheckingAuth(false); // Done checking
       }
+    } else {
+      setIsCheckingAuth(false); // No stored user, done checking
     }
   }, []);
 
@@ -411,6 +424,18 @@ export default function Wilma() {
   };
 
   const tr = t[language];
+
+  // Show loading screen while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-900 font-medium">Ladataan...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
