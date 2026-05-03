@@ -3484,6 +3484,71 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  // ============================================
+  // WILMA DETENTION METHODS
+  // ============================================
+  
+  async getWilmaDetentions(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaDetentions')
+        .orderBy('date', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting detentions:', error);
+      return [];
+    }
+  }
+  
+  async getWilmaDetention(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('wilmaDetentions').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting detention:', error);
+      throw error;
+    }
+  }
+  
+  async createWilmaDetention(detentionData: any): Promise<any> {
+    try {
+      const data = {
+        ...detentionData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const docRef = await db.collection('wilmaDetentions').add(data);
+      return { id: docRef.id, ...data };
+    } catch (error) {
+      console.error('Error creating detention:', error);
+      throw error;
+    }
+  }
+  
+  async updateWilmaDetention(id: string, detentionData: any): Promise<any> {
+    try {
+      const data = {
+        ...detentionData,
+        updatedAt: new Date().toISOString(),
+      };
+      await db.collection('wilmaDetentions').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating detention:', error);
+      throw error;
+    }
+  }
+  
+  async deleteWilmaDetention(id: string): Promise<void> {
+    try {
+      await db.collection('wilmaDetentions').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting detention:', error);
+      throw error;
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

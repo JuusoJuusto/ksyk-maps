@@ -76,7 +76,8 @@ const iconMap: Record<string, any> = {
 };
 
 export default function WilmaDesktop() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id || '';
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -239,11 +240,12 @@ export default function WilmaDesktop() {
 
   return (
     <div 
-      className="fixed inset-0 overflow-hidden"
+      className="fixed inset-0 overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: `url(${wallpaper})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       {/* Desktop Icons */}
@@ -353,12 +355,14 @@ export default function WilmaDesktop() {
 
       {/* Taskbar */}
       <div className="absolute bottom-0 left-0 right-0 h-12 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 flex items-center px-2 gap-2">
-        {/* Start Button */}
+        {/* Start Button with Home Icon */}
         <Button
           onClick={() => setStartMenuOpen(!startMenuOpen)}
-          className="h-10 px-4 bg-blue-600 hover:bg-blue-700"
+          className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
         >
-          <span className="font-bold">Käynnistä</span>
+          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+          </svg>
         </Button>
 
         {/* Open Windows */}

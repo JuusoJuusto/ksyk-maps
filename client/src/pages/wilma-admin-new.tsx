@@ -26,10 +26,11 @@ import AdminHomeworkManager from "@/components/AdminHomeworkManager";
 import NotificationCenter from "@/components/NotificationCenter";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import WilmaDesktopManager from "@/components/WilmaDesktopManager";
+import DetentionManager from "@/components/DetentionManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
-  MessageSquare, FileText, Search, Menu, Award, TrendingUp, UtensilsCrossed, Monitor
+  MessageSquare, FileText, Search, Menu, Award, TrendingUp, UtensilsCrossed, Monitor, AlertTriangle
 } from "lucide-react";
 
 export default function WilmaAdminNew() {
@@ -143,6 +144,7 @@ export default function WilmaAdminNew() {
     { id: 'classes', label: 'Luokat', icon: Users, adminOnly: true },
     { id: 'courses', label: 'Kurssit', icon: BookOpen },
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+    { id: 'detentions', label: 'Jälki-istunnot', icon: AlertTriangle },
     { id: 'grades', label: 'Arvosanat', icon: Award },
     { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
@@ -333,6 +335,7 @@ export default function WilmaAdminNew() {
           {activeSection === 'classes' && <ClassesManager />}
           {activeSection === 'courses' && <CourseManager />}
           {activeSection === 'attendance' && <WilmaAttendanceTracker />}
+          {activeSection === 'detentions' && <DetentionManager />}
           {activeSection === 'grades' && <WilmaGrades />}
           {activeSection === 'homework' && <AdminHomeworkManager />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}

@@ -22,8 +22,9 @@ import NotificationCenter from "@/components/NotificationCenter";
 import { 
   LogOut, Home, Calendar, Award, FileText, 
   MessageSquare, UserCheck, BookOpen, Settings, Menu, 
-  GraduationCap, Users, ClipboardList, UtensilsCrossed, ClipboardCheck, Megaphone
+  GraduationCap, Users, ClipboardList, UtensilsCrossed, ClipboardCheck, Megaphone, AlertTriangle
 } from "lucide-react";
+import DetentionManager from "@/components/DetentionManager";
 
 export default function WilmaTeacher() {
   const [, setLocation] = useLocation();
@@ -71,6 +72,7 @@ export default function WilmaTeacher() {
     { id: 'homework', label: 'Tehtävät', icon: FileText },
     { id: 'exams', label: 'Kokeet', icon: ClipboardCheck },
     { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
+    { id: 'detentions', label: 'Jälki-istunnot', icon: AlertTriangle },
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'announcements', label: 'Ilmoitukset', icon: Megaphone },
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
@@ -229,6 +231,7 @@ export default function WilmaTeacher() {
           {activeSection === 'homework' && <WilmaHomework />}
           {activeSection === 'exams' && <WilmaExams />}
           {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="teacher" />}
+          {activeSection === 'detentions' && <DetentionManager />}
           {activeSection === 'messages' && <EnhancedMessageSystem />}
           {activeSection === 'announcements' && <WilmaAnnouncements />}
           {activeSection === 'lunch' && <WilmaLunchMenu />}

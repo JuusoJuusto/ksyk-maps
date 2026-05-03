@@ -247,6 +247,13 @@ export interface IStorage {
   getWilmaUserDesktopConfig(userId: number): Promise<any | undefined>;
   createWilmaUserDesktopConfig(configData: any): Promise<any>;
   updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any>;
+  
+  // Detention operations
+  getWilmaDetentions(): Promise<any[]>;
+  getWilmaDetention(id: string): Promise<any | undefined>;
+  createWilmaDetention(detentionData: any): Promise<any>;
+  updateWilmaDetention(id: string, detentionData: any): Promise<any>;
+  deleteWilmaDetention(id: string): Promise<void>;
 }
 
 

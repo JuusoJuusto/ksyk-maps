@@ -2547,6 +2547,75 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         }
       }
 
+      // ==================== DETENTIONS ENDPOINTS ====================
+      
+      // GET /wilma/detentions - Get detentions
+      if (apiPath === '/wilma/detentions' || apiPath.startsWith('/wilma/detentions?')) {
+        if (req.method === 'GET') {
+          console.log('🔵 GET /api/wilma/detentions called');
+          try {
+            const status = req.query.status as string | undefined;
+            const studentId = req.query.studentId as string | undefined;
+            
+            let detentions = await storage.getWilmaDetentions();
+            
+            // Filter by status
+            if (status && status !== 'all') {
+              detentions = detentions.filter((d: any) => d.status === status);
+            }
+            
+            // Filter by student
+            if (studentId) {
+              detentions = detentions.filter((d: any) => d.studentId === studentId);
+            }
+            
+            return res.status(200).json(detentions);
+          } catch (error: any) {
+            console.error('❌ Error fetching detentions:', error);
+            return res.status(500).json({ message: "Failed to fetch detentions" });
+          }
+        }
+      }
+
+      // POST /wilma/detentions - Create detention
+      if (apiPath === '/wilma/detentions' && req.method === 'POST') {
+        console.log('🔵 POST /api/wilma/detentions called');
+        try {
+          const detention = await storage.createWilmaDetention(req.body);
+          return res.status(201).json(detention);
+        } catch (error: any) {
+          console.error('❌ Error creating detention:', error);
+          return res.status(500).json({ message: "Failed to create detention" });
+        }
+      }
+
+      // PUT /wilma/detentions/:id - Update detention
+      const detentionMatch = apiPath.match(/^\/wilma\/detentions\/([^\/]+)$/);
+      if (detentionMatch && req.method === 'PUT') {
+        const id = detentionMatch[1];
+        console.log('🔵 PUT /api/wilma/detentions/' + id);
+        try {
+          const detention = await storage.updateWilmaDetention(id, req.body);
+          return res.status(200).json(detention);
+        } catch (error: any) {
+          console.error('❌ Error updating detention:', error);
+          return res.status(500).json({ message: "Failed to update detention" });
+        }
+      }
+
+      // DELETE /wilma/detentions/:id - Delete detention
+      if (detentionMatch && req.method === 'DELETE') {
+        const id = detentionMatch[1];
+        console.log('🔵 DELETE /api/wilma/detentions/' + id);
+        try {
+          await storage.deleteWilmaDetention(id);
+          return res.status(204).send('');
+        } catch (error: any) {
+          console.error('❌ Error deleting detention:', error);
+          return res.status(500).json({ message: "Failed to delete detention" });
+        }
+      }
+
       // GET /wilma/messages - Get all messages (with optional filters)
       if (apiPath === '/wilma/messages' || apiPath.startsWith('/wilma/messages?')) {
         if (req.method === 'GET') {
