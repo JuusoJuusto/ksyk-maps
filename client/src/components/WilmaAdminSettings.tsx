@@ -200,7 +200,7 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
@@ -220,6 +220,10 @@ export default function WilmaAdminSettings() {
           <TabsTrigger value="desktop">
             <Database className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Työpöytä</span>
+          </TabsTrigger>
+          <TabsTrigger value="appearance">
+            <Settings className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Ulkoasu</span>
           </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
@@ -614,6 +618,97 @@ export default function WilmaAdminSettings() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Appearance Tab - NEW */}
+        <TabsContent value="appearance" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <Settings className="w-5 h-5" />
+                Ulkoasun asetukset
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="primaryColor">Pääväri</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="primaryColor"
+                      type="color"
+                      value={settings.primaryColor || '#003d82'}
+                      onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={settings.primaryColor || '#003d82'}
+                      onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                      placeholder="#003d82"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="secondaryColor">Toissijainen väri</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="secondaryColor"
+                      type="color"
+                      value={settings.secondaryColor || '#0052a3'}
+                      onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={settings.secondaryColor || '#0052a3'}
+                      onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
+                      placeholder="#0052a3"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="accentColor">Korostusväri</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="accentColor"
+                      type="color"
+                      value={settings.accentColor || '#00aaff'}
+                      onChange={(e) => setSettings({ ...settings, accentColor: e.target.value })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={settings.accentColor || '#00aaff'}
+                      onChange={(e) => setSettings({ ...settings, accentColor: e.target.value })}
+                      placeholder="#00aaff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="logoUrl">Logo URL</Label>
+                  <Input
+                    id="logoUrl"
+                    value={settings.logoUrl || '/kulosaaren_yhteiskoulu_logo.jpeg'}
+                    onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
+                    placeholder="/kulosaaren_yhteiskoulu_logo.jpeg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="faviconUrl">Favicon URL</Label>
+                  <Input
+                    id="faviconUrl"
+                    value={settings.faviconUrl || '/favicon.png'}
+                    onChange={(e) => setSettings({ ...settings, faviconUrl: e.target.value })}
+                    placeholder="/favicon.png"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -26,6 +26,7 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
   const [weatherData, setWeatherData] = useState<ComprehensiveWeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'hourly' | 'daily'>('hourly');
 
   useEffect(() => {
     const loadWeather = async () => {
@@ -237,53 +238,93 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
               </div>
             )}
 
-            {/* Hourly Forecast - REAL DATA */}
+            {/* Hourly/Daily Tabs */}
             <div className="border-t dark:border-gray-700 pt-3">
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Tuntikohtainen ennuste</p>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {weatherData.hourly.slice(0, 6).map((hour, idx) => (
-                  <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 dark:bg-gray-700/50 rounded min-w-[60px]">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{hour.time}:00</p>
-                    <div className="my-1">
-                      {renderWeatherIcon(hour.weatherCode, 'small')}
-                    </div>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      {hour.temperature}°
-                    </p>
-                    {hour.uvIndex > 0 && (
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                        UV {hour.uvIndex.toFixed(1)}
-                      </p>
-                    )}
-                  </div>
-                ))}
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => setActiveTab('hourly')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'hourly'
+                      ? 'bg-[#003d82] text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Tunnittain
+                </button>
+                <button
+                  onClick={() => setActiveTab('daily')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'daily'
+                      ? 'bg-[#003d82] text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Päivittäin
+                </button>
               </div>
-            </div>
 
-            {/* 3-Day Forecast - REAL DATA */}
-            {weatherData.daily && weatherData.daily.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 text-center text-xs border-t dark:border-gray-700 pt-3">
-                {weatherData.daily.slice(0, 3).map((day, idx) => {
-                  const date = new Date(day.date);
-                  const dayName = date.toLocaleDateString('fi-FI', { weekday: 'short' });
-                  return (
-                    <div key={idx} className="p-2 bg-white/50 dark:bg-gray-700/50 rounded">
-                      <p className="font-semibold text-gray-700 dark:text-gray-300 capitalize">{dayName}</p>
-                      <div className="my-1">
-                        {renderWeatherIcon(day.weatherCode, 'small')}
-                      </div>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold">{day.tempMax}°</p>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">{day.tempMin}°</p>
-                      {day.uvIndexMax > 3 && (
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                          UV {day.uvIndexMax.toFixed(1)}
+              {/* Hourly Forecast */}
+              {activeTab === 'hourly' && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">24 tunnin ennuste</p>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {weatherData.hourly.slice(0, 24).map((hour, idx) => (
+                      <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 dark:bg-gray-700/50 rounded min-w-[60px]">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{hour.time}:00</p>
+                        <div className="my-1">
+                          {renderWeatherIcon(hour.weatherCode, 'small')}
+                        </div>
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                          {hour.temperature}°
                         </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                        {hour.uvIndex > 0 && (
+                          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            UV {hour.uvIndex.toFixed(1)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Daily Forecast */}
+              {activeTab === 'daily' && weatherData.daily && weatherData.daily.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">7 päivän ennuste</p>
+                  <div className="space-y-2">
+                    {weatherData.daily.slice(0, 7).map((day, idx) => {
+                      const date = new Date(day.date);
+                      const dayName = date.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'numeric' });
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-700/50 rounded">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10">
+                              {renderWeatherIcon(day.weatherCode, 'small')}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900 dark:text-gray-100 capitalize text-sm">{dayName}</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">{getWeatherDescription(day.weatherCode)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{day.tempMax}°</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{day.tempMin}°</p>
+                            </div>
+                            {day.uvIndexMax > 3 && (
+                              <div className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded">
+                                UV {day.uvIndexMax.toFixed(1)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Data Source Info */}
             <div className="text-center pt-2 border-t dark:border-gray-700">

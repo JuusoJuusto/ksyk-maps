@@ -449,8 +449,8 @@ export default function Wilma() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Branding overlay with better visibility */}
-          <div className="absolute inset-0 bg-black/50"></div>
+          {/* Branding overlay - lighter for better visibility */}
+          <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute bottom-8 left-8 text-white z-10">
             <h1 className="text-6xl font-bold mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Wilma</h1>
             <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintojärjestelmä</p>
