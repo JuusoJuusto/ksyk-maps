@@ -240,12 +240,13 @@ export default function WilmaDesktop() {
 
   return (
     <div 
-      className="fixed inset-0 overflow-hidden bg-cover bg-center bg-no-repeat"
+      className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
       }}
     >
       {/* Desktop Icons */}

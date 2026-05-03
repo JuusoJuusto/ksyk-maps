@@ -11,20 +11,25 @@
  * - NO MOCK DATA - Shows error if API fails
  */
 
-// Comprehensive API URL with ALL parameters
-const COMPREHENSIVE_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max,daylight_duration&hourly=temperature_2m,rain,showers,snowfall,snow_depth,weather_code,cloud_cover,visibility,uv_index,is_day,apparent_temperature&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&minutely_15=temperature_2m,rain,snowfall,wind_speed_10m,wind_speed_80m,wind_direction_80m,wind_direction_10m&timezone=auto&wind_speed_unit=ms';
+// Comprehensive API URL with ALL parameters including humidity and pressure
+const COMPREHENSIVE_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=61.6575&longitude=26.3728&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max,daylight_duration,precipitation_sum,rain_sum,showers_sum,snowfall_sum,precipitation_hours,precipitation_probability_max&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,rain,showers,snowfall,snow_depth,weather_code,pressure_msl,surface_pressure,cloud_cover,visibility,uv_index,is_day,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&minutely_15=temperature_2m,rain,snowfall,wind_speed_10m,wind_speed_80m,wind_direction_80m,wind_direction_10m&timezone=auto&wind_speed_unit=ms';
 
 export interface WeatherData {
   temperature: number;
   feelsLike: number;
   windSpeed: number;
   windGusts: number;
+  windDirection: number;
   precipitation: number;
   rain: number;
   showers: number;
   snowfall: number;
   weatherCode: number;
   cloudCover: number;
+  humidity: number;
+  pressure: number;
+  surfacePressure: number;
+  isDay: number;
   timestamp: string;
 }
 
@@ -41,6 +46,11 @@ export interface HourlyForecast {
   visibility: number;
   uvIndex: number;
   isDay: number;
+  humidity: number;
+  pressure: number;
+  windSpeed: number;
+  windDirection: number;
+  precipitationProbability: number;
 }
 
 export interface DailyForecast {
@@ -56,6 +66,12 @@ export interface DailyForecast {
   sunset: string;
   uvIndexMax: number;
   daylightDuration: number;
+  precipitationSum: number;
+  rainSum: number;
+  showersSum: number;
+  snowfallSum: number;
+  precipitationHours: number;
+  precipitationProbabilityMax: number;
 }
 
 export interface MinutelyForecast {
@@ -102,12 +118,17 @@ export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherD
     feelsLike: Math.round(current.apparent_temperature),
     windSpeed: Math.round(current.wind_speed_10m), // Already in m/s from API
     windGusts: Math.round(current.wind_gusts_10m),
+    windDirection: current.wind_direction_10m || 0,
     precipitation: current.precipitation || 0,
     rain: current.rain || 0,
     showers: current.showers || 0,
     snowfall: current.snowfall || 0,
     weatherCode: current.weather_code,
     cloudCover: current.cloud_cover || 0,
+    humidity: current.relative_humidity_2m || 0,
+    pressure: Math.round(current.pressure_msl || current.surface_pressure || 1013),
+    surfacePressure: Math.round(current.surface_pressure || 1013),
+    isDay: current.is_day || 1,
     timestamp: current.time
   };
 
@@ -117,33 +138,43 @@ export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherD
   
   if (hourly && hourly.time) {
     const now = new Date();
-    const currentTime = now.getTime();
+    const currentHour = now.getHours();
     
-    for (let i = 0; i < Math.min(hourly.time.length, 24); i++) {
+    // Find the index of the current hour
+    let startIndex = 0;
+    for (let i = 0; i < hourly.time.length; i++) {
+      const forecastDate = new Date(hourly.time[i]);
+      if (forecastDate.getHours() === currentHour && forecastDate.getDate() === now.getDate()) {
+        startIndex = i;
+        break;
+      }
+    }
+    
+    // Get 24 hours starting from current hour
+    for (let i = startIndex; i < Math.min(startIndex + 24, hourly.time.length); i++) {
       const timeStr = hourly.time[i];
       const forecastDate = new Date(timeStr);
+      const hour = forecastDate.getHours();
       
-      // Only include future hours
-      if (forecastDate.getTime() >= currentTime) {
-        const hour = forecastDate.getHours();
-        
-        hourlyForecasts.push({
-          time: hour.toString(),
-          temperature: Math.round(hourly.temperature_2m[i]),
-          apparentTemperature: Math.round(hourly.apparent_temperature[i]),
-          weatherCode: hourly.weather_code[i],
-          rain: hourly.rain[i] || 0,
-          showers: hourly.showers[i] || 0,
-          snowfall: hourly.snowfall[i] || 0,
-          snowDepth: hourly.snow_depth[i] || 0,
-          cloudCover: hourly.cloud_cover[i] || 0,
-          visibility: hourly.visibility[i] || 10000,
-          uvIndex: hourly.uv_index[i] || 0,
-          isDay: hourly.is_day[i] || 0
-        });
-      }
-      
-      if (hourlyForecasts.length >= 24) break;
+      hourlyForecasts.push({
+        time: hour.toString().padStart(2, '0'),
+        temperature: Math.round(hourly.temperature_2m[i]),
+        apparentTemperature: Math.round(hourly.apparent_temperature[i]),
+        weatherCode: hourly.weather_code[i],
+        rain: hourly.rain[i] || 0,
+        showers: hourly.showers[i] || 0,
+        snowfall: hourly.snowfall[i] || 0,
+        snowDepth: hourly.snow_depth[i] || 0,
+        cloudCover: hourly.cloud_cover[i] || 0,
+        visibility: hourly.visibility[i] || 10000,
+        uvIndex: hourly.uv_index[i] || 0,
+        isDay: hourly.is_day[i] || 0,
+        humidity: hourly.relative_humidity_2m[i] || 0,
+        pressure: Math.round(hourly.pressure_msl[i] || hourly.surface_pressure[i] || 1013),
+        windSpeed: Math.round(hourly.wind_speed_10m[i] || 0),
+        windDirection: hourly.wind_direction_10m[i] || 0,
+        precipitationProbability: hourly.precipitation_probability[i] || 0,
+      });
     }
   }
 
@@ -165,7 +196,13 @@ export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherD
         sunrise: daily.sunrise[i],
         sunset: daily.sunset[i],
         uvIndexMax: daily.uv_index_max[i] || 0,
-        daylightDuration: daily.daylight_duration[i] || 0
+        daylightDuration: daily.daylight_duration[i] || 0,
+        precipitationSum: daily.precipitation_sum[i] || 0,
+        rainSum: daily.rain_sum[i] || 0,
+        showersSum: daily.showers_sum[i] || 0,
+        snowfallSum: daily.snowfall_sum[i] || 0,
+        precipitationHours: daily.precipitation_hours[i] || 0,
+        precipitationProbabilityMax: daily.precipitation_probability_max[i] || 0,
       });
     }
   }

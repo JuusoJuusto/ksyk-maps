@@ -39,7 +39,7 @@ export default function DetentionManager() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingDetention, setEditingDetention] = useState<Detention | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterStudent, setFilterStudent] = useState<string>('');
+  const [filterStudent, setFilterStudent] = useState<string>('all');
   
   const [detentionForm, setDetentionForm] = useState({
     studentId: '',
@@ -57,7 +57,7 @@ export default function DetentionManager() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterStatus !== 'all') params.append('status', filterStatus);
-      if (filterStudent) params.append('studentId', filterStudent);
+      if (filterStudent && filterStudent !== 'all') params.append('studentId', filterStudent);
       
       const response = await fetch(`/api/wilma/detentions?${params}`);
       if (!response.ok) throw new Error('Failed to fetch detentions');
@@ -336,7 +336,7 @@ export default function DetentionManager() {
                 <SelectValue placeholder="Kaikki oppilaat" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Kaikki oppilaat</SelectItem>
+                <SelectItem value="all">Kaikki oppilaat</SelectItem>
                 {students.map((student: any) => (
                   <SelectItem key={student.id} value={student.id}>
                     {student.firstName} {student.lastName}
