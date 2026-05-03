@@ -220,3 +220,13 @@ export async function cleanupOldLoginAttempts(): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Express middleware for rate limiting
+ * These are no-op middleware that pass through all requests
+ * The actual rate limiting is done in the login endpoints using checkRateLimit()
+ */
+export const rateLimiters = {
+  auth: (req: any, res: any, next: any) => next(),
+  passwordReset: (req: any, res: any, next: any) => next(),
+};
