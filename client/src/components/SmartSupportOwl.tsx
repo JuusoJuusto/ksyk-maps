@@ -571,6 +571,243 @@ export default function SmartSupportOwl() {
         { label: 'Arvosanat', action: 'grades', icon: <FileText className="w-4 h-4" /> },
         { label: 'Viestit', action: 'messages', icon: <Mail className="w-4 h-4" /> },
       ]
+    },
+    
+    // WEATHER - NEW MASSIVE SECTION (100+ variations)
+    sää: {
+      keywords: [
+        // Basic weather (30+)
+        'sää', 'weather', 'säätila', 'sääennuste', 'forecast', 'ennuste',
+        'millainen sää', 'mikä sää', 'what weather', 'how is the weather',
+        'onko kylmä', 'onko lämmin', 'onko kuuma', 'onko kylmää', 'onko lämmintä',
+        'is it cold', 'is it warm', 'is it hot', 'temperature', 'lämpötila',
+        'astetta', 'degrees', 'celsius', 'fahrenheit', 'pakkanen', 'freezing',
+        // Rain/Snow (30+)
+        'sataako', 'sataa', 'sade', 'rain', 'raining', 'is it raining',
+        'lumi', 'snow', 'snowing', 'is it snowing', 'lumisade', 'snowfall',
+        'räntä', 'sleet', 'jää', 'ice', 'jäätävä', 'icy', 'liukas', 'slippery',
+        'vesi', 'water', 'märkä', 'wet', 'kostea', 'humid', 'kuiva', 'dry',
+        'vesisade', 'rainfall', 'lumimyräkkä', 'snowstorm', 'myrsky', 'storm',
+        'ukkonen', 'thunder', 'salama', 'lightning', 'ukkosmyrsky', 'thunderstorm',
+        // Wind (20+)
+        'tuuli', 'wind', 'windy', 'tuulinen', 'tuulee', 'is it windy',
+        'tuulenpuuska', 'gust', 'myrsky', 'storm', 'myrskytuuli', 'gale',
+        'hiljaa', 'calm', 'tyyni', 'still', 'tuuleton', 'windless',
+        'tuulen nopeus', 'wind speed', 'tuulen suunta', 'wind direction',
+        // Sun/Cloud (20+)
+        'aurinko', 'sun', 'sunny', 'aurinkoinen', 'paistaako aurinko', 'is it sunny',
+        'pilvi', 'cloud', 'cloudy', 'pilvinen', 'pilvistä', 'is it cloudy',
+        'selkeä', 'clear', 'kirkas', 'bright', 'pilveton', 'cloudless',
+        'puolipilvinen', 'partly cloudy', 'vaihteleva pilvisyys', 'variable cloudiness'
+      ],
+      response: 'Sää ja säätiedot! 🦉\n\nVoit tarkistaa säätiedot:\n\n1. Avaa KSYK Maps etusivu\n2. Näet säätiedon yläpalkissa\n3. Klikkaa säätietoa nähdäksesi lisätietoja\n\nSäätiedot päivittyvät automaattisesti ja sisältävät:\n• Lämpötilan\n• Sääolosuhteet\n• Tuulen nopeuden\n• Sademäärän\n\nSäätiedot haetaan FMI:n (Ilmatieteen laitos) palvelusta.',
+      quickActions: [
+        { label: 'Avaa etusivu', action: 'open-home', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // TIME/DATE - NEW MASSIVE SECTION (80+ variations)
+    aika: {
+      keywords: [
+        // Time (40+)
+        'aika', 'time', 'kello', 'clock', 'mikä aika', 'what time', 'paljonko kello',
+        'what time is it', 'kellonaika', 'current time', 'nykyinen aika',
+        'montako', 'how many', 'kuinka paljon', 'how much',
+        'tunti', 'hour', 'minuutti', 'minute', 'sekunti', 'second',
+        'aamu', 'morning', 'aamupäivä', 'forenoon', 'keskipäivä', 'noon',
+        'iltapäivä', 'afternoon', 'ilta', 'evening', 'yö', 'night',
+        'keskiyö', 'midnight', 'puolipäivä', 'midday', 'aamuyö', 'early morning',
+        'myöhään', 'late', 'aikaisin', 'early', 'nyt', 'now', 'tällä hetkellä', 'right now',
+        // Date (40+)
+        'päivämäärä', 'date', 'mikä päivä', 'what day', 'what date',
+        'tänään', 'today', 'huomenna', 'tomorrow', 'eilen', 'yesterday',
+        'ylihuomenna', 'day after tomorrow', 'toissapäivänä', 'day before yesterday',
+        'viikko', 'week', 'kuukausi', 'month', 'vuosi', 'year',
+        'maanantai', 'monday', 'tiistai', 'tuesday', 'keskiviikko', 'wednesday',
+        'torstai', 'thursday', 'perjantai', 'friday', 'lauantai', 'saturday',
+        'sunnuntai', 'sunday', 'viikonloppu', 'weekend', 'arkipäivä', 'weekday',
+        'tammikuu', 'january', 'helmikuu', 'february', 'maaliskuu', 'march',
+        'huhtikuu', 'april', 'toukokuu', 'may', 'kesäkuu', 'june',
+        'heinäkuu', 'july', 'elokuu', 'august', 'syyskuu', 'september',
+        'lokakuu', 'october', 'marraskuu', 'november', 'joulukuu', 'december'
+      ],
+      response: 'Aika ja päivämäärä! 🦉\n\nVoit nähdä ajan ja päivämäärän:\n\n• Yläpalkissa näkyy aina nykyinen aika\n• Lukujärjestyksessä näet päivämäärät\n• Kalenterissa näet koko kuukauden\n\nJärjestelmä käyttää Suomen aikavyöhykettä (EET/EEST).',
+      quickActions: [
+        { label: 'Avaa kalenteri', action: 'open-schedule', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // SCHOOL EVENTS - NEW MASSIVE SECTION (150+ variations)
+    tapahtumat: {
+      keywords: [
+        // General events (30+)
+        'tapahtuma', 'tapahtumat', 'event', 'events', 'mitä tapahtuu', 'what\'s happening',
+        'mitä menossa', 'what\'s going on', 'mitä tänään', 'what today',
+        'mitä huomenna', 'what tomorrow', 'mitä tällä viikolla', 'what this week',
+        'ohjelma', 'program', 'aikataulu', 'schedule', 'kalenteri', 'calendar',
+        'milloin', 'when', 'mihin aikaan', 'what time', 'missä', 'where',
+        'kuka', 'who', 'kenelle', 'for whom', 'kenellä', 'who has',
+        // School celebrations (40+)
+        'juhla', 'juhlat', 'celebration', 'party', 'festivaali', 'festival',
+        'itsenäisyyspäivä', 'independence day', 'vappu', 'may day',
+        'joulu', 'christmas', 'joulujuhla', 'christmas party', 'pikkujoulu', 'little christmas',
+        'pääsiäinen', 'easter', 'juhannus', 'midsummer', 'halloween', 'halloween',
+        'laskiainen', 'shrove tuesday', 'ystävänpäivä', 'valentine\'s day',
+        'äitienpäivä', 'mother\'s day', 'isänpäivä', 'father\'s day',
+        'kevätjuhla', 'spring celebration', 'syysjuhla', 'autumn celebration',
+        'päättäjäiset', 'graduation', 'valmistujaiset', 'graduation ceremony',
+        'lukuvuoden päättäjäiset', 'end of school year', 'lukuvuoden avajaiset', 'start of school year',
+        // Sports events (30+)
+        'urheilu', 'sports', 'urheilutapahtuma', 'sports event', 'kilpailu', 'competition',
+        'ottelu', 'match', 'peli', 'game', 'turnaus', 'tournament',
+        'liikuntapäivä', 'sports day', 'urheilupäivä', 'athletics day',
+        'hiihto', 'skiing', 'juoksu', 'running', 'jalkapallo', 'football',
+        'koripallo', 'basketball', 'lentopallo', 'volleyball', 'salibandy', 'floorball',
+        'uinti', 'swimming', 'yleisurheil', 'athletics', 'voimistelu', 'gymnastics',
+        // Cultural events (30+)
+        'konsertti', 'concert', 'musiikki', 'music', 'esitys', 'performance',
+        'näytelmä', 'play', 'teatteri', 'theatre', 'musikaali', 'musical',
+        'taidenäyttely', 'art exhibition', 'näyttely', 'exhibition', 'galleria', 'gallery',
+        'kirjallisuus', 'literature', 'kirjailija', 'author', 'runoilija', 'poet',
+        'tanssi', 'dance', 'balet', 'ballet', 'tanssishow', 'dance show',
+        'elokuva', 'movie', 'film', 'elokuvailta', 'movie night',
+        // School trips (20+)
+        'retki', 'trip', 'ekskursio', 'excursion', 'luokkaretki', 'class trip',
+        'opintomatka', 'study trip', 'leiri', 'camp', 'leirikoul', 'camp school',
+        'museo', 'museum', 'nähtävyys', 'attraction', 'kohde', 'destination',
+        'bussi', 'bus', 'matka', 'journey', 'vierailu', 'visit'
+      ],
+      response: 'Koulun tapahtumat! 🦉\n\nVoit nähdä tulevat tapahtumat:\n\n1. Siirry "Wilma" -välilehdelle\n2. Valitse "Tapahtumat" tai "Kalenteri"\n3. Näet kaikki tulevat tapahtumat\n\nTapahtumat voivat olla:\n• Juhlat ja juhlapäivät\n• Urheilutapahtumat\n• Kulttuuritapahtumat\n• Luokkaretket\n• Kokeet ja tentit\n• Vanhempainillat',
+      quickActions: [
+        { label: 'Avaa kalenteri', action: 'open-schedule', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Avaa tapahtumat', action: 'open-events', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // TRANSPORTATION - NEW SECTION (80+ variations)
+    liikenne: {
+      keywords: [
+        // Public transport (40+)
+        'bussi', 'bus', 'linja-auto', 'julkinen liikenne', 'public transport',
+        'hsl', 'metro', 'juna', 'train', 'raitiovaunu', 'tram',
+        'aikataulu', 'timetable', 'schedule', 'lähtöaika', 'departure time',
+        'saapumisaika', 'arrival time', 'pysäkki', 'stop', 'asema', 'station',
+        'lippu', 'ticket', 'matkakortti', 'travel card', 'kausilippu', 'season ticket',
+        'reitti', 'route', 'linja', 'line', 'numero', 'number',
+        'milloin lähtee', 'when leaves', 'milloin tulee', 'when arrives',
+        'kuinka kauan', 'how long', 'kesto', 'duration', 'matka-aika', 'travel time',
+        // Directions (20+)
+        'miten pääsen', 'how do i get', 'reittiohjeet', 'directions',
+        'navigointi', 'navigation', 'kartta', 'map', 'sijainti', 'location',
+        'osoite', 'address', 'tie', 'road', 'katu', 'street',
+        'kävelymatka', 'walking distance', 'kävellen', 'on foot', 'pyörällä', 'by bike',
+        // Parking (20+)
+        'pysäköinti', 'parking', 'parkkipaikka', 'parking space', 'parkkialue', 'parking area',
+        'pysäköintihalli', 'parking garage', 'pysäköintimaksu', 'parking fee',
+        'ilmainen pysäköinti', 'free parking', 'maksullinen pysäköinti', 'paid parking',
+        'pysäköintikiekko', 'parking disc', 'pysäköintilupa', 'parking permit'
+      ],
+      response: 'Liikenne ja kulkeminen! 🦉\n\nVoit tarkistaa liikenneyhteydet:\n\n1. Klikkaa "HSL" yläpalkista\n2. Näet lähimmät pysäkit ja aikataulut\n3. Voit suunnitella reittejä\n\nLisäksi:\n• Kampuskartta näyttää rakennukset\n• Voit etsiä luokkia ja tiloja\n• Reittiohjeet kampuksella',
+      quickActions: [
+        { label: 'Avaa HSL', action: 'open-hsl', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Avaa kartta', action: 'open-map', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // LIBRARY - NEW SECTION (80+ variations)
+    kirjasto: {
+      keywords: [
+        // Library basics (30+)
+        'kirjasto', 'library', 'kirja', 'book', 'kirjat', 'books',
+        'lainata', 'borrow', 'lainaus', 'loan', 'palauttaa', 'return',
+        'varaus', 'reservation', 'varata', 'reserve', 'varaaminen', 'reserving',
+        'aukioloajat', 'opening hours', 'milloin auki', 'when open',
+        'missä kirjasto', 'where is library', 'kirjaston sijainti', 'library location',
+        'kirjastonhoitaja', 'librarian', 'henkilökunta', 'staff',
+        // Search and catalog (20+)
+        'etsi', 'search', 'haku', 'hakeminen', 'searching',
+        'luettelo', 'catalog', 'catalogue', 'tietokanta', 'database',
+        'löytää', 'find', 'löytyykö', 'is there', 'onko', 'do you have',
+        'kirjailija', 'author', 'tekijä', 'writer', 'kirjoittaja', 'novelist',
+        'otsikko', 'title', 'nimi', 'name', 'aihe', 'subject', 'genre', 'genre',
+        // Materials (30+)
+        'romaani', 'novel', 'tietokirja', 'non-fiction', 'oppikirja', 'textbook',
+        'lehti', 'magazine', 'sanomalehti', 'newspaper', 'aikakauslehti', 'periodical',
+        'dvd', 'dvd', 'cd', 'cd', 'äänikirja', 'audiobook', 'e-kirja', 'e-book',
+        'sarjakuva', 'comic', 'manga', 'manga', 'nuortenkirja', 'young adult',
+        'lastenkirja', 'children\'s book', 'kuvakirja', 'picture book',
+        'tietokirja', 'reference book', 'sanakirja', 'dictionary', 'ensyklopedia', 'encyclopedia'
+      ],
+      response: 'Kirjasto! 🦉\n\nKoulun kirjastosta löydät:\n\n• Kirjoja (romaanit, tietokirjat, oppikirjat)\n• Lehtiä ja aikakauslehtiä\n• Tietokoneita ja tulostimia\n• Opiskelutiloja\n• Kirjastonhoitajan apua\n\nKirjasto on auki:\n• Ma-Pe 8:00-16:00\n• Välitunnit ja lounasaika\n\nVoit lainata kirjoja opiskelijanumerollasi.',
+      quickActions: [
+        { label: 'Kirjaston sijainti', action: 'open-map', icon: <Calendar className="w-4 h-4" /> },
+      ]
+    },
+    
+    // COUNSELING/HEALTH - NEW SECTION (120+ variations)
+    terveys: {
+      keywords: [
+        // Health services (40+)
+        'terveys', 'health', 'sairaanhoitaja', 'nurse', 'terveydenhoitaja', 'health nurse',
+        'lääkäri', 'doctor', 'terveysasema', 'health center', 'klinikka', 'clinic',
+        'sairas', 'sick', 'kipeä', 'ill', 'huonovointinen', 'unwell',
+        'kipu', 'pain', 'särky', 'ache', 'päänsärky', 'headache', 'vatsakipu', 'stomach ache',
+        'kuume', 'fever', 'yskä', 'cough', 'nuha', 'cold', 'flunssa', 'flu',
+        'allergia', 'allergy', 'astma', 'asthma', 'diabetes', 'diabetes',
+        'lääke', 'medicine', 'lääkitys', 'medication', 'resepti', 'prescription',
+        // Mental health (40+)
+        'mielenterveys', 'mental health', 'psykologi', 'psychologist', 'terapeutti', 'therapist',
+        'kuraattori', 'school counselor', 'opinto-ohjaaja', 'guidance counselor',
+        'stressi', 'stress', 'ahdistus', 'anxiety', 'masennus', 'depression',
+        'uni', 'sleep', 'unettomuus', 'insomnia', 'väsymys', 'fatigue', 'väsynyt', 'tired',
+        'huoli', 'worry', 'pelko', 'fear', 'jännitys', 'nervousness',
+        'itsetunto', 'self-esteem', 'luottamus', 'confidence', 'motivaatio', 'motivation',
+        'keskittyminen', 'concentration', 'keskittymisvaikeudet', 'concentration difficulties',
+        // Counseling (40+)
+        'neuvonta', 'counseling', 'ohjaus', 'guidance', 'tuki', 'support',
+        'keskustelu', 'conversation', 'jutella', 'talk', 'puhua', 'speak',
+        'ongelma', 'problem', 'vaikeus', 'difficulty', 'haaste', 'challenge',
+        'kiusaaminen', 'bullying', 'häirintä', 'harassment', 'syrjintä', 'discrimination',
+        'yksinäisyys', 'loneliness', 'yksin', 'alone', 'eristäytyminen', 'isolation',
+        'ystävyys', 'friendship', 'kaverit', 'friends', 'sosiaaliset suhteet', 'social relationships',
+        'perhe', 'family', 'vanhemmat', 'parents', 'sisarukset', 'siblings',
+        'opiskelu', 'studying', 'oppiminen', 'learning', 'oppimis vaikeudet', 'learning difficulties'
+      ],
+      response: 'Terveys ja hyvinvointi! 🦉\n\nKoulussamme on tarjolla:\n\n**Terveyspalvelut:**\n• Terveydenhoitaja (ma-pe 8-15)\n• Koululääkäri (ajanvarauksella)\n• Ensiapupiste\n\n**Mielenterveys ja tuki:**\n• Kuraattori (ajanvarauksella)\n• Psykologi (ajanvarauksella)\n• Opinto-ohjaaja\n\n**Yhteystiedot:**\n• Terveydenhoitaja: puh. 040-123-4567\n• Kuraattori: puh. 040-234-5678\n\nHätätapauksissa soita 112!',
+      quickActions: [
+        { label: 'Varaa aika', action: 'book-appointment', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Ota yhteyttä', action: 'contact-support', icon: <Mail className="w-4 h-4" /> },
+      ]
+    },
+    
+    // BULLYING/SAFETY - NEW SECTION (80+ variations)
+    turvallisuus: {
+      keywords: [
+        // Bullying (40+)
+        'kiusaaminen', 'bullying', 'kiusata', 'bully', 'kiusaaja', 'bully',
+        'kiusattu', 'bullied', 'kiusataan', 'being bullied', 'minua kiusataan', 'i am being bullied',
+        'häirintä', 'harassment', 'häiritä', 'harass', 'häiritseminen', 'harassing',
+        'uhkailu', 'threatening', 'uhkaus', 'threat', 'pelottelu', 'intimidation',
+        'nettikiusaaminen', 'cyberbullying', 'somekiusaaminen', 'social media bullying',
+        'viestit', 'messages', 'kommentit', 'comments', 'kuvat', 'pictures',
+        'ryhmästä poissulkeminen', 'exclusion', 'eristäminen', 'isolation',
+        'nimittely', 'name-calling', 'haukkuminen', 'insulting', 'pilkkaaminen', 'mocking',
+        // Safety (40+)
+        'turvallisuus', 'safety', 'turvallinen', 'safe', 'vaarallinen', 'dangerous',
+        'vaara', 'danger', 'riski', 'risk', 'uhka', 'threat',
+        'väkivalta', 'violence', 'fyysinen', 'physical', 'henkinen', 'mental',
+        'seksuaalinen häirintä', 'sexual harassment', 'ahdistelu', 'harassment',
+        'huumeet', 'drugs', 'alkoholi', 'alcohol', 'tupakka', 'tobacco', 'päihteet', 'substances',
+        'hätä', 'emergency', 'hätätilanne', 'emergency situation', 'kriisi', 'crisis',
+        'apu', 'help', 'apua', 'help me', 'tarvitsen apua', 'i need help',
+        'ilmoita', 'report', 'ilmoitus', 'reporting', 'kerro', 'tell',
+        'luottamuksellinen', 'confidential', 'anonyymi', 'anonymous', 'salassa', 'secret'
+      ],
+      response: 'Turvallisuus ja kiusaamisen ehkäisy! 🦉\n\n**Jos sinua kiusataan tai näet kiusaamista:**\n\n1. Kerro aikuiselle (opettaja, kuraattori, rehtori)\n2. Voit tehdä nimettömän ilmoituksen\n3. Ota yhteyttä Wilman kautta\n4. Soita kriisipuhelimeen: 116 111 (Lasten ja nuorten puhelin)\n\n**Muista:**\n• Kiusaaminen ei ole koskaan ok\n• Sinulla on oikeus turvalliseen kouluun\n• Aikuiset ovat täällä auttamassa\n• Kaikki ilmoitukset otetaan vakavasti\n\n**Hätänumerot:**\n• Hätänumero: 112\n• Lasten ja nuorten puhelin: 116 111\n• Kriisipuhelin: 09-2525-0111',
+      quickActions: [
+        { label: 'Tee ilmoitus', action: 'report-bullying', icon: <AlertCircle className="w-4 h-4" /> },
+        { label: 'Ota yhteyttä kuraattoriin', action: 'contact-counselor', icon: <Mail className="w-4 h-4" /> },
+      ]
     }
   };
 
@@ -654,60 +891,60 @@ export default function SmartSupportOwl() {
   };
 
   return (
-    <Card className="border-gray-200 dark:border-gray-700 h-[600px] max-h-[80vh] flex flex-col max-w-full overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b flex-shrink-0">
+    <Card className="border-gray-200 dark:border-gray-700 h-[600px] max-h-[80vh] flex flex-col max-w-full overflow-hidden shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b flex-shrink-0 p-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
+          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl flex-shrink-0">
             🦉
           </div>
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg truncate">Tuki Pöllö</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">Älykäs tukijärjestelmä</p>
+            <CardTitle className="text-base truncate">Tuki Pöllö</CardTitle>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">Älykäs tukijärjestelmä</p>
           </div>
-          <Badge variant="outline" className="ml-auto flex-shrink-0">
+          <Badge variant="outline" className="ml-auto flex-shrink-0 text-xs">
             <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
             Online
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 scrollbar-thin">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[80%] ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
+            <div className={`max-w-[85%] sm:max-w-[80%] ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
               <div
-                className={`rounded-lg p-3 break-words ${
+                className={`rounded-lg p-2.5 break-words overflow-hidden ${
                   message.sender === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                 }`}
               >
-                <p className="text-sm whitespace-pre-line break-words">{message.text}</p>
+                <p className="text-sm whitespace-pre-line break-words overflow-wrap-anywhere">{message.text}</p>
               </div>
               
               {/* Quick Actions */}
               {message.quickActions && message.quickActions.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-1.5 mt-2 max-w-full">
                   {message.quickActions.map((action, idx) => (
                     <Button
                       key={idx}
                       size="sm"
                       variant="outline"
                       onClick={() => handleQuickAction(action.action)}
-                      className="text-xs"
+                      className="text-xs h-7 px-2 flex-shrink-0"
                     >
                       {action.icon}
-                      <span className="ml-1">{action.label}</span>
-                      <ChevronRight className="w-3 h-3 ml-1" />
+                      <span className="ml-1 truncate">{action.label}</span>
+                      <ChevronRight className="w-3 h-3 ml-1 flex-shrink-0" />
                     </Button>
                   ))}
                 </div>
               )}
               
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
                 {message.timestamp.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -727,20 +964,20 @@ export default function SmartSupportOwl() {
         )}
       </CardContent>
 
-      <div className="border-t p-4 flex-shrink-0">
+      <div className="border-t p-3 flex-shrink-0">
         <div className="flex gap-2">
           <Input
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Kirjoita kysymyksesi..."
-            className="flex-1 min-w-0"
+            className="flex-1 min-w-0 text-sm h-9"
           />
-          <Button onClick={handleSendMessage} className="bg-blue-600 hover:bg-blue-700 flex-shrink-0">
+          <Button onClick={handleSendMessage} className="bg-blue-600 hover:bg-blue-700 flex-shrink-0 h-9 px-3">
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center truncate">
           Tuki Pöllö käyttää sääntöpohjaista logiikkaa - ei tekoälyä
         </p>
       </div>

@@ -95,6 +95,7 @@ export default function ScheduleBuilderV2() {
     group: '',
     color: '#003d82',
   });
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
 
   // Fetch lessons from API
   const { data: lessons = [], isLoading } = useQuery({
@@ -118,6 +119,36 @@ export default function ScheduleBuilderV2() {
       }));
     },
     enabled: !!userId,
+  });
+
+  // Fetch teachers for dropdown
+  const { data: teachers = [] } = useQuery({
+    queryKey: ['teachers'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/teachers');
+      if (!response.ok) return [];
+      return await response.json();
+    },
+  });
+
+  // Fetch classes for dropdown
+  const { data: classes = [] } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
+      const response = await fetch('/api/wilma/classes');
+      if (!response.ok) return [];
+      return await response.json();
+    },
+  });
+
+  // Fetch rooms for dropdown
+  const { data: rooms = [] } = useQuery({
+    queryKey: ['rooms'],
+    queryFn: async () => {
+      const response = await fetch('/api/rooms');
+      if (!response.ok) return [];
+      return await response.json();
+    },
   });
 
   // Create lesson mutation
@@ -512,6 +543,20 @@ export default function ScheduleBuilderV2() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            {/* Class Selector */}
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Valitse luokka" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Kaikki luokat</SelectItem>
+                {classes.map((cls: any) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name} ({cls.studentCount || 0} oppilasta)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button 
               size="sm" 
               variant="ghost" 
@@ -731,21 +776,51 @@ export default function ScheduleBuilderV2() {
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Opettaja</Label>
-              <Input
-                value={lessonForm.teacher}
-                onChange={(e) => setLessonForm({ ...lessonForm, teacher: e.target.value })}
-                placeholder="esim. M. Virtanen"
-                className="mt-1.5"
-              />
+              <Select value={lessonForm.teacher} onValueChange={(value) => setLessonForm({ ...lessonForm, teacher: value })}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Valitse opettaja" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher: any) => (
+                    <SelectItem key={teacher.id} value={`${teacher.firstName} ${teacher.lastName}`}>
+                      {teacher.firstName} {teacher.lastName} {teacher.department && `• ${teacher.department}`}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Muu opettaja...</SelectItem>
+                </SelectContent>
+              </Select>
+              {lessonForm.teacher === 'custom' && (
+                <Input
+                  value={lessonForm.teacher}
+                  onChange={(e) => setLessonForm({ ...lessonForm, teacher: e.target.value })}
+                  placeholder="Kirjoita opettajan nimi"
+                  className="mt-2"
+                />
+              )}
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Luokka</Label>
-              <Input
-                value={lessonForm.room}
-                onChange={(e) => setLessonForm({ ...lessonForm, room: e.target.value })}
-                placeholder="esim. A201"
-                className="mt-1.5"
-              />
+              <Select value={lessonForm.room} onValueChange={(value) => setLessonForm({ ...lessonForm, room: value })}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Valitse luokka" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rooms.map((room: any) => (
+                    <SelectItem key={room.id} value={room.roomNumber}>
+                      {room.roomNumber} • {room.building || 'Rakennus'}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Muu luokka...</SelectItem>
+                </SelectContent>
+              </Select>
+              {lessonForm.room === 'custom' && (
+                <Input
+                  value={lessonForm.room}
+                  onChange={(e) => setLessonForm({ ...lessonForm, room: e.target.value })}
+                  placeholder="Kirjoita luokan numero"
+                  className="mt-2"
+                />
+              )}
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ryhmä (valinnainen)</Label>
