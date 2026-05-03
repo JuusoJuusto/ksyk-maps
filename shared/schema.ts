@@ -859,6 +859,65 @@ export const wilmaLessonJournal = pgTable("wilma_lesson_journal", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Wilma Detention Settings (Jälki-istunto asetukset)
+export const wilmaDetentionSettings = pgTable("wilma_detention_settings", {
+  id: varchar("id").primaryKey().default('default'),
+  enabled: boolean("enabled").default(true),
+  lateMarksThreshold: integer("late_marks_threshold").default(3), // Number of late marks before detention
+  absentMarksThreshold: integer("absent_marks_threshold").default(5), // Number of absences before detention
+  autoAssignDetention: boolean("auto_assign_detention").default(true),
+  autoSendMessage: boolean("auto_send_message").default(true),
+  messageTemplate: text("message_template").default('Hei {studentName},\n\nSinulle on määrätty jälki-istunto {date} klo {time} luokassa {room}.\n\nSyy: {reason}\n\nYstävällisin terveisin,\n{teacherName}'),
+  detentionDuration: integer("detention_duration").default(60), // Minutes
+  detentionRoom: varchar("detention_room").default('A101'),
+  detentionTime: varchar("detention_time").default('15:00'),
+  notifyParents: boolean("notify_parents").default(true),
+  requireConfirmation: boolean("require_confirmation").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Detentions (Jälki-istunnot)
+export const wilmaDetentions = pgTable("wilma_detentions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: integer("student_id").notNull(), // Numeric student ID
+  studentName: varchar("student_name").notNull(),
+  studentClass: varchar("student_class").notNull(),
+  reason: text("reason").notNull(), // Why detention was assigned
+  reasonType: varchar("reason_type").notNull(), // 'late', 'absent', 'behavior', 'homework', 'other'
+  date: varchar("date").notNull(), // YYYY-MM-DD
+  time: varchar("time").notNull(), // HH:MM
+  duration: integer("duration").default(60), // Minutes
+  room: varchar("room").notNull(),
+  assignedBy: varchar("assigned_by").notNull(), // Teacher/admin name
+  assignedById: integer("assigned_by_id"), // Teacher/admin ID
+  status: varchar("status").default('pending'), // 'pending', 'confirmed', 'completed', 'cancelled', 'no_show'
+  notes: text("notes"), // Additional notes
+  parentNotified: boolean("parent_notified").default(false),
+  parentNotifiedAt: timestamp("parent_notified_at"),
+  studentNotified: boolean("student_notified").default(false),
+  studentNotifiedAt: timestamp("student_notified_at"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  cancelledBy: varchar("cancelled_by"),
+  cancelReason: text("cancel_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wilma Detention Log (History of automatic assignments)
+export const wilmaDetentionLog = pgTable("wilma_detention_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: integer("student_id").notNull(),
+  studentName: varchar("student_name").notNull(),
+  triggerType: varchar("trigger_type").notNull(), // 'late_marks', 'absent_marks', 'manual'
+  triggerCount: integer("trigger_count"), // Number of marks that triggered detention
+  detentionId: varchar("detention_id"), // Reference to created detention
+  autoAssigned: boolean("auto_assigned").default(false),
+  messageSent: boolean("message_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Wilma Homework Extended (with rubrics and advanced features)
 export const wilmaHomeworkExtended = pgTable("wilma_homework_extended", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1146,3 +1205,21 @@ export type WilmaAnalytic = typeof wilmaAnalytics.$inferSelect;
 export type InsertWilmaAnalytic = z.infer<typeof insertWilmaAnalyticSchema>;
 export type WilmaAiInteraction = typeof wilmaAiInteractions.$inferSelect;
 export type InsertWilmaAiInteraction = z.infer<typeof insertWilmaAiInteractionSchema>;
+
+// Detention insert schemas
+export const insertWilmaDetentionSettingsSchema = createInsertSchema(wilmaDetentionSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaDetentionSchema = createInsertSchema(wilmaDetentions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaDetentionLogSchema = createInsertSchema(wilmaDetentionLog).omit({
+  id: true,
+  createdAt: true,
+});
