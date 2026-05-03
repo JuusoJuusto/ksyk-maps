@@ -1489,15 +1489,15 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           const { hashPassword } = await import('../server/passwordUtils.js');
           
           // Generate password if email invitation is requested
-          let plainPassword = '';
+          let plainPasswordForEmail = ''; // Temporary variable for email ONLY - NEVER stored in DB
           if (sendEmailInvitation) {
             const { generateTempPassword } = await import('../server/emailService.js');
-            plainPassword = generateTempPassword(); // Use shorter, simpler password
-            console.log('🔑 Generated password for email invitation:', plainPassword);
+            plainPasswordForEmail = generateTempPassword(); // Use shorter, simpler password
+            console.log('🔑 Generated password for email invitation (length):', plainPasswordForEmail.length);
             
             // Hash the password before storing
-            userData.password = await hashPassword(plainPassword);
-            userData.plainPassword = plainPassword; // Store plain password for email sending
+            userData.password = await hashPassword(plainPasswordForEmail);
+            // DO NOT STORE: userData.plainPassword = ... (SECURITY RISK!)
             userData.isTemporaryPassword = true; // Force password change on first login
             console.log('🔒 Password hashed successfully');
             
@@ -1508,7 +1508,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                 console.log('To:', userData.email);
                 console.log('Name:', userData.firstName, userData.lastName);
                 console.log('Username:', userData.username);
-                console.log('Plain Password:', plainPassword);
+                console.log('Password length:', plainPasswordForEmail.length);
                 console.log('Email User:', process.env.EMAIL_USER);
                 console.log('Email Host:', process.env.EMAIL_HOST);
                 console.log('Email Port:', process.env.EMAIL_PORT);
@@ -1526,7 +1526,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                     parentFirstName: userData.firstName,
                     parentLastName: userData.lastName,
                     parentUsername: userData.username,
-                    parentPassword: plainPassword,
+                    parentPassword: plainPasswordForEmail, // Use temporary variable
                     studentFirstName: studentInfo.firstName || 'Your child',
                     studentLastName: studentInfo.lastName || '',
                     studentClass: studentInfo.studentClass || 'N/A',
@@ -1537,7 +1537,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
                     firstName: userData.firstName,
                     lastName: userData.lastName,
                     username: userData.username,
-                    password: plainPassword, // Use plain password for email
+                    password: plainPasswordForEmail, // Use temporary variable
                     role: userData.role,
                     appUrl: process.env.APP_URL || 'https://ksykmaps.vercel.app'
                   });
@@ -1567,12 +1567,9 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
               }
             }
           } else if (userData.password) {
-            // Store plain password before hashing (for admin viewing)
-            plainPassword = userData.password;
-            userData.plainPassword = plainPassword;
-            
             // Hash manually provided password
             userData.password = await hashPassword(userData.password);
+            // DO NOT STORE: userData.plainPassword = ... (SECURITY RISK!)
             userData.isTemporaryPassword = false; // User set their own password
             console.log('🔒 Manual password hashed successfully');
           }
@@ -1781,10 +1778,13 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
             return res.status(401).json({ message: "Current password is incorrect" });
           }
           
-          // Update password
+          // Update password (hash it first!)
+          const { hashPassword } = await import('../server/passwordUtils.js');
+          const hashedPassword = await hashPassword(newPassword);
+          
           await storage.updateWilmaUser(userId, {
-            password: newPassword,
-            plainPassword: newPassword, // Store plain password for admin viewing
+            password: hashedPassword, // Store HASHED password only
+            // DO NOT STORE: plainPassword (SECURITY RISK!)
             isTemporaryPassword: false // No longer temporary
           });
           
@@ -1972,43 +1972,33 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           const errors: string[] = [];
           
           for (const student of students) {
-            // Generate password if missing
-            if (!student.password) {
-              const { generateTempPassword } = await import('../server/emailService.js');
-              const { hashPassword } = await import('../server/passwordUtils.js');
-              const plainPass = generateTempPassword();
-              const hashedPass = await hashPassword(plainPass);
-              
-              student.password = hashedPass;
-              student.plainPassword = plainPass;
-              student.isTemporaryPassword = true;
-              
-              // Update student with new password
-              await storage.updateWilmaUser(student.id, {
-                password: hashedPass,
-                plainPassword: plainPass,
-                isTemporaryPassword: true
-              });
-              console.log(`🔑 Generated password for ${student.email}`);
-            }
+            let plainPasswordForEmail = ''; // Temporary variable for email ONLY
             
-            // If student has no plainPassword but has a password, generate a new one
-            if (!student.plainPassword && student.password) {
+            // Generate password if missing OR if password is hashed (can't send hashed password in email)
+            if (!student.password || student.password.startsWith('$2')) {
               const { generateTempPassword } = await import('../server/emailService.js');
               const { hashPassword } = await import('../server/passwordUtils.js');
-              const plainPass = generateTempPassword();
-              const hashedPass = await hashPassword(plainPass);
+              plainPasswordForEmail = generateTempPassword();
+              const hashedPass = await hashPassword(plainPasswordForEmail);
               
-              student.password = hashedPass;
-              student.plainPassword = plainPass;
-              student.isTemporaryPassword = true;
-              
+              // Update student with new hashed password
               await storage.updateWilmaUser(student.id, {
                 password: hashedPass,
-                plainPassword: plainPass,
+                // DO NOT STORE: plainPassword (SECURITY RISK!)
                 isTemporaryPassword: true
               });
-              console.log(`🔑 Regenerated password for ${student.email} (old password was hashed)`);
+              console.log(`🔑 Generated new password for ${student.email}`);
+            } else {
+              // If password exists and is not hashed, it's a temporary plain password
+              // This should not happen in production, but handle it for migration
+              plainPasswordForEmail = student.password;
+              const { hashPassword } = await import('../server/passwordUtils.js');
+              const hashedPass = await hashPassword(plainPasswordForEmail);
+              await storage.updateWilmaUser(student.id, {
+                password: hashedPass,
+                isTemporaryPassword: true
+              });
+              console.log(`🔒 Hashed existing plain password for ${student.email}`);
             }
             
             const parentEmails = [];
@@ -2021,7 +2011,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
               const result = await sendWilmaStudentWelcomeEmail(
                 student.email,
                 `${student.firstName} ${student.lastName}`,
-                student.plainPassword || student.password, // Use plainPassword if available
+                plainPasswordForEmail, // Use temporary variable
                 student.username || student.email,
                 student.studentId || '000000',
                 parentEmails.length > 0 ? parentEmails : undefined
