@@ -3420,6 +3420,19 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
     
+    // POST /wilma/desktop/settings - Create/Update desktop settings (alias for PUT)
+    if (apiPath === '/wilma/desktop/settings' && req.method === 'POST') {
+      console.log('🖥️ POST /api/wilma/desktop/settings called');
+      
+      try {
+        const settings = await storage.updateWilmaDesktopSettings(req.body);
+        return res.status(200).json(settings);
+      } catch (error: any) {
+        console.error('❌ Error updating desktop settings:', error);
+        return res.status(500).json({ message: "Failed to update desktop settings" });
+      }
+    }
+    
     // PUT /wilma/desktop/settings - Update desktop settings
     if (apiPath === '/wilma/desktop/settings' && req.method === 'PUT') {
       console.log('🖥️ PUT /api/wilma/desktop/settings called');

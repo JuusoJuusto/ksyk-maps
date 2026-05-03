@@ -156,8 +156,30 @@ export default function Wilma() {
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
+        // Validate user has required fields
+        if (!user.id || !user.username) {
+          console.warn('Invalid stored user data, clearing...');
+          localStorage.removeItem('wilma_user');
+          setIsCheckingAuth(false);
+          return;
+        }
+        
+        // Try to verify user still exists and is active
         fetch('/api/wilma/users')
-          .then(res => res.ok ? res.json() : null)
+          .then(res => {
+            if (!res.ok) {
+              // If API fails, keep user logged in (don't force logout)
+              console.warn('User verification API failed, keeping user logged in');
+              setCurrentUser(user);
+              setIsLoggedIn(true);
+              if (!match && user.studentId) {
+                setLocation(`/wilma/${user.studentId}`);
+              }
+              setIsCheckingAuth(false);
+              return null;
+            }
+            return res.json();
+          })
           .then(users => {
             if (!users) {
               setIsCheckingAuth(false);
@@ -171,20 +193,29 @@ export default function Wilma() {
                 setLocation(`/wilma/${userExists.studentId}`);
               }
             } else {
+              // Only remove if user explicitly doesn't exist or is inactive
+              console.warn('User not found or inactive, logging out');
               localStorage.removeItem('wilma_user');
             }
-            setIsCheckingAuth(false); // Done checking
+            setIsCheckingAuth(false);
           })
-          .catch(() => {
-            localStorage.removeItem('wilma_user');
-            setIsCheckingAuth(false); // Done checking
+          .catch((error) => {
+            // On network error, keep user logged in
+            console.warn('Network error during user verification, keeping user logged in:', error);
+            setCurrentUser(user);
+            setIsLoggedIn(true);
+            if (!match && user.studentId) {
+              setLocation(`/wilma/${user.studentId}`);
+            }
+            setIsCheckingAuth(false);
           });
-      } catch {
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
         localStorage.removeItem('wilma_user');
-        setIsCheckingAuth(false); // Done checking
+        setIsCheckingAuth(false);
       }
     } else {
-      setIsCheckingAuth(false); // No stored user, done checking
+      setIsCheckingAuth(false);
     }
   }, []);
 
