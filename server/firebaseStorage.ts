@@ -3337,7 +3337,7 @@ export class FirebaseStorage implements IStorage {
   
   async getWilmaDesktopSettings(): Promise<any | undefined> {
     try {
-      const snapshot = await this.db.collection('wilmaDesktopSettings').limit(1).get();
+      const snapshot = await db.collection('wilmaDesktopSettings').limit(1).get();
       if (snapshot.empty) return undefined;
       return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
     } catch (error) {
@@ -3348,14 +3348,14 @@ export class FirebaseStorage implements IStorage {
   
   async updateWilmaDesktopSettings(settings: any): Promise<any> {
     try {
-      const snapshot = await this.db.collection('wilmaDesktopSettings').limit(1).get();
+      const snapshot = await db.collection('wilmaDesktopSettings').limit(1).get();
       const data = {
         ...settings,
         updatedAt: new Date().toISOString(),
       };
       
       if (snapshot.empty) {
-        const docRef = await this.db.collection('wilmaDesktopSettings').add({
+        const docRef = await db.collection('wilmaDesktopSettings').add({
           ...data,
           createdAt: new Date().toISOString(),
         });
@@ -3372,7 +3372,7 @@ export class FirebaseStorage implements IStorage {
   
   async getWilmaDesktopApps(): Promise<any[]> {
     try {
-      const snapshot = await this.db.collection('wilmaDesktopApps')
+      const snapshot = await db.collection('wilmaDesktopApps')
         .where('isActive', '==', true)
         .orderBy('sortOrder', 'asc')
         .get();
@@ -3385,7 +3385,7 @@ export class FirebaseStorage implements IStorage {
   
   async getWilmaDesktopApp(id: number): Promise<any | undefined> {
     try {
-      const doc = await this.db.collection('wilmaDesktopApps').doc(id.toString()).get();
+      const doc = await db.collection('wilmaDesktopApps').doc(id.toString()).get();
       if (!doc.exists) return undefined;
       return { id: doc.id, ...doc.data() };
     } catch (error) {
@@ -3401,7 +3401,7 @@ export class FirebaseStorage implements IStorage {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const docRef = await this.db.collection('wilmaDesktopApps').add(data);
+      const docRef = await db.collection('wilmaDesktopApps').add(data);
       return { id: docRef.id, ...data };
     } catch (error) {
       console.error('Error creating desktop app:', error);
@@ -3415,7 +3415,7 @@ export class FirebaseStorage implements IStorage {
         ...appData,
         updatedAt: new Date().toISOString(),
       };
-      await this.db.collection('wilmaDesktopApps').doc(id.toString()).update(data);
+      await db.collection('wilmaDesktopApps').doc(id.toString()).update(data);
       return { id, ...data };
     } catch (error) {
       console.error('Error updating desktop app:', error);
@@ -3425,7 +3425,7 @@ export class FirebaseStorage implements IStorage {
   
   async deleteWilmaDesktopApp(id: number): Promise<void> {
     try {
-      await this.db.collection('wilmaDesktopApps').doc(id.toString()).delete();
+      await db.collection('wilmaDesktopApps').doc(id.toString()).delete();
     } catch (error) {
       console.error('Error deleting desktop app:', error);
       throw error;
@@ -3434,7 +3434,7 @@ export class FirebaseStorage implements IStorage {
   
   async getWilmaUserDesktopConfig(userId: number): Promise<any | undefined> {
     try {
-      const snapshot = await this.db.collection('wilmaUserDesktopConfig')
+      const snapshot = await db.collection('wilmaUserDesktopConfig')
         .where('userId', '==', userId)
         .limit(1)
         .get();
@@ -3453,7 +3453,7 @@ export class FirebaseStorage implements IStorage {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const docRef = await this.db.collection('wilmaUserDesktopConfig').add(data);
+      const docRef = await db.collection('wilmaUserDesktopConfig').add(data);
       return { id: docRef.id, ...data };
     } catch (error) {
       console.error('Error creating user desktop config:', error);
@@ -3463,7 +3463,7 @@ export class FirebaseStorage implements IStorage {
   
   async updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any> {
     try {
-      const snapshot = await this.db.collection('wilmaUserDesktopConfig')
+      const snapshot = await db.collection('wilmaUserDesktopConfig')
         .where('userId', '==', userId)
         .limit(1)
         .get();

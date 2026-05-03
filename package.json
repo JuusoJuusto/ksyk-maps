@@ -28,6 +28,7 @@
     "clean:firebase": "tsx server/cleanAndReseed.ts",
     "clean:rooms": "tsx server/cleanRoomsAndHallways.ts",
     "add:rebrand-announcement": "tsx server/addRebrandAnnouncement.ts",
+    "init:desktop": "tsx scripts/init-desktop.ts",
     "notify:discord": "node scripts/notify-discord.js"
   },
   "dependencies": {

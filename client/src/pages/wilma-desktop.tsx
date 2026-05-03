@@ -97,40 +97,67 @@ export default function WilmaDesktop() {
 
   const fetchDesktopData = async () => {
     try {
+      console.log('🖥️ Fetching desktop data for user:', id);
+      
       // Check if desktop is enabled
       const settingsRes = await fetch("/api/wilma/desktop/settings");
-      if (!settingsRes.ok) throw new Error("Failed to fetch desktop settings");
+      if (!settingsRes.ok) {
+        console.error('❌ Failed to fetch desktop settings:', settingsRes.status);
+        throw new Error("Failed to fetch desktop settings");
+      }
       const settings = await settingsRes.json();
+      console.log('✅ Desktop settings:', settings);
       
       if (!settings.enabled) {
+        console.log('⚠️ Desktop is not enabled');
         toast({
           title: "Työpöytä ei käytössä",
-          description: "Työpöytäympäristö ei ole vielä käytössä.",
+          description: "Työpöytäympäristö ei ole vielä käytössä. Ota se käyttöön admin-asetuksista.",
           variant: "destructive",
         });
-        setLocation(`/wilma/${id}`);
+        setTimeout(() => setLocation(`/wilma/${id}`), 2000);
         return;
       }
       
       setDesktopEnabled(true);
+      console.log('✅ Desktop is enabled');
 
       // Fetch available apps
       const appsRes = await fetch("/api/wilma/desktop/apps");
-      if (!appsRes.ok) throw new Error("Failed to fetch apps");
+      if (!appsRes.ok) {
+        console.error('❌ Failed to fetch apps:', appsRes.status);
+        throw new Error("Failed to fetch apps");
+      }
       const apps = await appsRes.json();
+      console.log('✅ Fetched apps:', apps.length);
+      
+      // If no apps exist, show helpful message
+      if (apps.length === 0) {
+        console.log('⚠️ No desktop apps found');
+        toast({
+          title: "Ei sovelluksia",
+          description: "Työpöydällä ei ole vielä sovelluksia. Pyydä järjestelmänvalvojaa lisäämään sovelluksia.",
+          variant: "destructive",
+        });
+      }
+      
       setAvailableApps(apps);
 
       // Fetch user config
       const configRes = await fetch(`/api/wilma/desktop/config/${id}`);
-      if (!configRes.ok) throw new Error("Failed to fetch user config");
+      if (!configRes.ok) {
+        console.error('❌ Failed to fetch user config:', configRes.status);
+        throw new Error("Failed to fetch user config");
+      }
       const config = await configRes.json();
+      console.log('✅ User config:', config);
       setUserConfig(config);
 
     } catch (error) {
-      console.error("Error fetching desktop data:", error);
+      console.error("❌ Error fetching desktop data:", error);
       toast({
         title: "Virhe",
-        description: "Työpöydän lataaminen epäonnistui",
+        description: "Työpöydän lataaminen epäonnistui. Tarkista konsolista lisätietoja.",
         variant: "destructive",
       });
     } finally {
