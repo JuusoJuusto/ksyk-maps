@@ -237,7 +237,7 @@ export default function WilmaDesktop() {
     return null;
   }
 
-  const wallpaper = userConfig?.wallpaper || "/kulosaaren_yhteiskoulu_logo.jpeg";
+  const wallpaper = userConfig?.wallpaper || "/KSYK-Short-Logo-RGB-Full-Color.png";
   const installedApps = availableApps.filter(app => 
     userConfig?.installedApps?.includes(app.appId)
   );
@@ -246,15 +246,15 @@ export default function WilmaDesktop() {
     <div 
       className="fixed inset-0 overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        backgroundColor: "#000000",
       }}
     >
-      {/* Desktop Background with Logo */}
+      {/* Desktop Background with KSYK Logo */}
       <div 
-        className="absolute inset-0 flex items-center justify-center opacity-10"
+        className="absolute inset-0 flex items-center justify-center opacity-20"
         style={{
           backgroundImage: `url(${wallpaper})`,
-          backgroundSize: "400px 400px",
+          backgroundSize: "300px auto",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
