@@ -195,7 +195,7 @@ export default function WilmaDesktop() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+      <div className="min-h-screen flex items-center justify-center bg-[#003d82]">
         <div className="text-white text-xl">Ladataan työpöytää...</div>
       </div>
     );
@@ -255,7 +255,7 @@ export default function WilmaDesktop() {
             onClick={() => bringToFront(window.id)}
           >
             {/* Window Title Bar */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 flex items-center justify-between cursor-move">
+            <div className="bg-[#003d82] text-white px-4 py-2 flex items-center justify-between cursor-move">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
                   {getIconComponent(window.app.icon)}
@@ -369,7 +369,7 @@ export default function WilmaDesktop() {
       {/* Start Menu */}
       {startMenuOpen && (
         <div className="absolute bottom-14 left-2 w-96 bg-white rounded-lg shadow-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+          <div className="bg-[#003d82] text-white p-4">
             <h3 className="font-bold text-lg">Sovellukset</h3>
           </div>
           <div className="p-4 max-h-[500px] overflow-y-auto">

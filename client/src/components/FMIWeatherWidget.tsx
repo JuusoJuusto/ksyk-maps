@@ -71,7 +71,7 @@ export default function FMIWeatherWidget({
   return (
     <Card 
       key={widgetId} 
-      className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-800 dark:to-gray-900 group relative"
+      className="border-2 border-blue-200 dark:border-blue-800 bg-white dark:from-gray-800 dark:to-gray-900 group relative"
     >
       <CardHeader className="bg-white dark:bg-gray-800 border-b border-[#dddddd] dark:border-gray-700 p-4 md:p-6">
         <CardTitle className="flex items-center justify-between text-base md:text-lg text-gray-900 dark:text-gray-100">
@@ -100,9 +100,6 @@ export default function FMIWeatherWidget({
           <div className="flex flex-col items-center justify-center py-8 text-red-600 dark:text-red-400">
             <AlertCircle className="w-12 h-12 mb-2" />
             <p className="text-sm font-semibold">{error}</p>
-            <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
-              Ei mock-dataa - tarkista internet-yhteys
-            </p>
             <Button
               size="sm"
               variant="outline"
@@ -256,7 +253,7 @@ export default function FMIWeatherWidget({
             {/* Data Source Info */}
             <div className="text-center pt-2 border-t dark:border-gray-700">
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                Tiedot: Ilmatieteen laitos (FMI) • Ei mock-dataa
+                Tiedot: Ilmatieteen laitos (FMI)
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Automaattinen päivitys 5 minuutin välein

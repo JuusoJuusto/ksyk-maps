@@ -200,7 +200,7 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
@@ -216,6 +216,10 @@ export default function WilmaAdminSettings() {
           <TabsTrigger value="features">
             <Settings className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Ominaisuudet</span>
+          </TabsTrigger>
+          <TabsTrigger value="desktop">
+            <Database className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Työpöytä</span>
           </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
@@ -528,6 +532,88 @@ export default function WilmaAdminSettings() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Desktop Tab - NEW */}
+        <TabsContent value="desktop" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <Database className="w-5 h-5" />
+                Työpöytäympäristö
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-900 mb-1">Työpöytäympäristö</p>
+                    <p className="text-sm text-blue-700">
+                      Työpöytäympäristö tarjoaa oppilaille Windows-tyylisen käyttöliittymän sovelluksilla kuten laskin, muistiinpanot ja musiikkisoittimet.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">Työpöytä käytössä</p>
+                  <p className="text-sm text-gray-600">Ota työpöytäympäristö käyttöön kaikille käyttäjille</p>
+                </div>
+                <Switch
+                  checked={settings.desktopEnabled || false}
+                  onCheckedChange={(checked) => 
+                    setSettings({ ...settings, desktopEnabled: checked })
+                  }
+                />
+              </div>
+
+              {settings.desktopEnabled && (
+                <div className="space-y-4 border-t pt-4">
+                  <div>
+                    <Label htmlFor="desktopWallpaper">Oletustapetti (URL)</Label>
+                    <Input
+                      id="desktopWallpaper"
+                      value={settings.desktopWallpaper || '/wilma-bg.jpg'}
+                      onChange={(e) => setSettings({ ...settings, desktopWallpaper: e.target.value })}
+                      placeholder="/wilma-bg.jpg"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="desktopTheme">Teema</Label>
+                    <select
+                      id="desktopTheme"
+                      value={settings.desktopTheme || 'light'}
+                      onChange={(e) => setSettings({ ...settings, desktopTheme: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="light">Vaalea</option>
+                      <option value="dark">Tumma</option>
+                      <option value="auto">Automaattinen</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-sm text-green-800 mb-3">
+                      <strong>Hallinnoi sovelluksia:</strong> Siirry Työpöytä-hallintaan lisätäksesi, muokataksesi tai poistaaksesi sovelluksia.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        // Navigate to desktop manager
+                        window.location.href = '/wilma-admin#desktop-manager';
+                      }}
+                      className="bg-[#003d82] hover:bg-[#0052a3]"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Avaa Työpöytä-hallinta
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

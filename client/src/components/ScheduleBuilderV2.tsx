@@ -99,7 +99,7 @@ export default function ScheduleBuilderV2() {
 
   // Fetch lessons from API
   const { data: lessons = [], isLoading } = useQuery({
-    queryKey: ['schedule-builder', userId],
+    queryKey: ['schedule-builder', userId, selectedClassId],
     queryFn: async () => {
       if (!userId) return [];
       const response = await fetch(`/api/wilma/schedules/${userId}`);
@@ -107,7 +107,7 @@ export default function ScheduleBuilderV2() {
       const schedules = await response.json();
       
       // Transform API data to component format
-      return schedules.map((s: any) => ({
+      const allLessons = schedules.map((s: any) => ({
         id: s.id,
         timeSlotId: s.timeSlotId || '1',
         day: s.dayOfWeek,
@@ -116,7 +116,17 @@ export default function ScheduleBuilderV2() {
         room: s.room || '',
         group: s.group || '',
         color: s.color || '#003d82',
+        classId: s.classId || s.group, // Use classId or group for filtering
       }));
+      
+      // Filter by selected class if not "all"
+      if (selectedClassId !== 'all') {
+        return allLessons.filter((lesson: any) => 
+          lesson.classId === selectedClassId || lesson.group === selectedClassId
+        );
+      }
+      
+      return allLessons;
     },
     enabled: !!userId,
   });

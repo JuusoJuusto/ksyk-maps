@@ -428,7 +428,7 @@ export default function Wilma() {
   // Show loading screen while checking auth
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-blue-900 font-medium">Ladataan...</p>
@@ -450,7 +450,7 @@ export default function Wilma() {
           }}
         >
           {/* Branding overlay with better visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+          <div className="absolute inset-0 bg-black/50"></div>
           <div className="absolute bottom-8 left-8 text-white z-10">
             <h1 className="text-6xl font-bold mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Wilma</h1>
             <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintojärjestelmä</p>

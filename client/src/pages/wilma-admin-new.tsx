@@ -163,13 +163,13 @@ export default function WilmaAdminNew() {
   const currentSectionLabel = filteredNavItems.find(item => item.id === activeSection)?.label || 'Wilma';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#f5f5f5] overflow-x-hidden pb-20 md:pb-0">
       {/* Sidebar - Hidden on mobile, shown on desktop */}
       <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       }`}>
         {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-[#003d82]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
@@ -200,9 +200,9 @@ export default function WilmaAdminNew() {
         </div>
 
         {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 ${!sidebarOpen && 'hidden'}`}>
+        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-blue-50 ${!sidebarOpen && 'hidden'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-[#003d82] to-[#0052a3] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
+            <div className="w-9 h-9 bg-[#003d82] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -228,8 +228,8 @@ export default function WilmaAdminNew() {
                 onClick={() => navigateTo(item.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-all duration-200 relative group ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#e8f0fe] to-[#d3e3fd] text-[#003d82] border-r-3 border-[#003d82] shadow-sm'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 hover:text-[#003d82]'
+                    ? 'bg-[#e8f0fe] text-[#003d82] border-r-3 border-[#003d82] shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#003d82]'
                 } ${!sidebarOpen && 'justify-center px-2'}`}
               >
                 <Icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -245,7 +245,7 @@ export default function WilmaAdminNew() {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-3 border-t border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-red-50 to-pink-50">
+        <div className="p-3 border-t border-[#dddddd] flex-shrink-0 bg-red-50">
           <Button
             onClick={handleLogout}
             className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium text-red-600 hover:bg-red-100 hover:text-red-700 rounded-md transition-all duration-200 border border-transparent hover:border-red-200 hover:shadow-md ${
@@ -262,7 +262,7 @@ export default function WilmaAdminNew() {
       {/* Main Content */}
       <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
         {/* Top Bar - Desktop */}
-        <header className="hidden md:flex h-14 bg-gradient-to-r from-[#003d82] to-[#0052a3] border-b border-[#002d5f] items-center justify-between px-4 md:px-6 shadow-md">
+        <header className="hidden md:flex h-14 bg-[#003d82] border-b border-[#002d5f] items-center justify-between px-4 md:px-6 shadow-md">
           <div className="flex-1 min-w-0">
             <h1 className="text-base md:text-lg font-bold text-white truncate flex items-center gap-2">
               {currentSectionLabel}
@@ -284,7 +284,7 @@ export default function WilmaAdminNew() {
         </header>
 
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg">
+        <header className="md:hidden sticky top-0 z-40 bg-[#003d82] text-white shadow-lg">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
@@ -362,7 +362,7 @@ export default function WilmaAdminNew() {
                 onClick={() => navigateTo(item.id)}
                 className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-br from-[#003d82] to-[#0052a3] text-white shadow-md'
+                    ? 'bg-[#003d82] text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -460,7 +460,7 @@ export default function WilmaAdminNew() {
                     }}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white shadow-lg'
+                        ? 'bg-[#003d82] text-white shadow-lg'
                         : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
                     }`}
                   >
