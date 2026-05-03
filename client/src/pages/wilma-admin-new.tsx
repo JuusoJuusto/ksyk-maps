@@ -25,10 +25,11 @@ import WilmaAdminSettings from "@/components/WilmaAdminSettings";
 import AdminHomeworkManager from "@/components/AdminHomeworkManager";
 import NotificationCenter from "@/components/NotificationCenter";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import WilmaDesktopManager from "@/components/WilmaDesktopManager";
 import { 
   LogOut, Home, Users, Calendar, BookOpen, GraduationCap, 
   Building, Bell, BarChart3, Settings, User, UserCheck, 
-  MessageSquare, FileText, Search, Menu, Award, TrendingUp, UtensilsCrossed
+  MessageSquare, FileText, Search, Menu, Award, TrendingUp, UtensilsCrossed, Monitor
 } from "lucide-react";
 
 export default function WilmaAdminNew() {
@@ -147,6 +148,7 @@ export default function WilmaAdminNew() {
     { id: 'messages', label: 'Viestit', icon: MessageSquare },
     { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
     { id: 'reports', label: 'Raportit', icon: TrendingUp },
+    { id: 'desktop', label: 'Työpöytä', icon: Monitor, adminOnly: true },
     { id: 'support', label: 'Tuki', icon: MessageSquare },
     { id: 'settings', label: 'Asetukset', icon: Settings, adminOnly: true },
   ];
@@ -337,6 +339,7 @@ export default function WilmaAdminNew() {
           {activeSection === 'lunch' && <WilmaLunchMenu />}
           {activeSection === 'support' && <WilmaSupportTab />}
           {activeSection === 'reports' && <AnalyticsDashboard />}
+          {activeSection === 'desktop' && <WilmaDesktopManager />}
           {activeSection === 'settings' && <WilmaAdminSettings />}
         </div>
       </main>

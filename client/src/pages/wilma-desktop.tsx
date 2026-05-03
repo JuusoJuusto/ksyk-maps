@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -77,7 +77,7 @@ const iconMap: Record<string, any> = {
 
 export default function WilmaDesktop() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
@@ -108,7 +108,7 @@ export default function WilmaDesktop() {
           description: "Työpöytäympäristö ei ole vielä käytössä.",
           variant: "destructive",
         });
-        navigate(`/wilma/${id}`);
+        setLocation(`/wilma/${id}`);
         return;
       }
       
@@ -394,7 +394,7 @@ export default function WilmaDesktop() {
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => navigate(`/wilma/${id}`)}
+              onClick={() => setLocation(`/wilma/${id}`)}
             >
               Palaa Wilmaan
             </Button>
