@@ -3348,6 +3348,22 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
     
+    // GET /wilma/teachers - Get all teachers
+    if (apiPath === '/wilma/teachers' && req.method === 'GET') {
+      console.log('👨‍🏫 GET /api/wilma/teachers called');
+      
+      try {
+        const teachers = await storage.getWilmaUsers();
+        const teacherList = teachers.filter((user: any) => 
+          user.role === 'teacher' || (user.roles && user.roles.includes('teacher'))
+        );
+        return res.status(200).json(teacherList);
+      } catch (error: any) {
+        console.error('❌ Error fetching teachers:', error);
+        return res.status(200).json([]);
+      }
+    }
+    
     // ============================================
     // WILMA DESKTOP ENVIRONMENT API
     // ============================================
@@ -3357,8 +3373,26 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       console.log('🖥️ GET /api/wilma/desktop/settings called');
       
       try {
-        const settings = await storage.getWilmaDesktopSettings();
-        return res.status(200).json(settings || {
+        let settings = await storage.getWilmaDesktopSettings();
+        
+        // If no settings exist, return defaults
+        if (!settings) {
+          settings = {
+            enabled: false,
+            defaultWallpaper: "/wilma-bg.jpg",
+            defaultTheme: "light",
+            allowCustomWallpaper: true,
+            allowCustomTheme: true,
+            availableApps: [],
+            defaultApps: [],
+          };
+        }
+        
+        return res.status(200).json(settings);
+      } catch (error: any) {
+        console.error('❌ Error fetching desktop settings:', error);
+        // Return defaults on error instead of 500
+        return res.status(200).json({
           enabled: false,
           defaultWallpaper: "/wilma-bg.jpg",
           defaultTheme: "light",
@@ -3367,9 +3401,6 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
           availableApps: [],
           defaultApps: [],
         });
-      } catch (error: any) {
-        console.error('❌ Error fetching desktop settings:', error);
-        return res.status(500).json({ message: "Failed to fetch desktop settings" });
       }
     }
     

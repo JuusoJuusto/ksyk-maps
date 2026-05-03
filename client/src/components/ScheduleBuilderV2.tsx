@@ -95,7 +95,7 @@ export default function ScheduleBuilderV2() {
     group: '',
     color: '#003d82',
   });
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [selectedClassId, setSelectedClassId] = useState<string>('all');
 
   // Fetch lessons from API
   const { data: lessons = [], isLoading } = useQuery({
@@ -549,7 +549,7 @@ export default function ScheduleBuilderV2() {
                 <SelectValue placeholder="Valitse luokka" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Kaikki luokat</SelectItem>
+                <SelectItem value="all">Kaikki luokat</SelectItem>
                 {classes.map((cls: any) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name} ({cls.studentCount || 0} oppilasta)
