@@ -200,7 +200,7 @@ export default function StudentDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Personal Info */}
               <Card className="lg:col-span-2 border-2 border-blue-200">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader className="bg-blue-50">
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5 text-blue-600" />
                     Henkilötiedot
@@ -297,7 +297,7 @@ export default function StudentDetail() {
             {/* Parents */}
             {(student.parent1FirstName || student.parent2FirstName) && (
               <Card className="border-2 border-purple-200">
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                <CardHeader className="bg-purple-50">
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-purple-600" />
                     Huoltajat
@@ -350,7 +350,7 @@ export default function StudentDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {student.emergencyContactName && (
                 <Card className="border-2 border-red-200">
-                  <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50">
+                  <CardHeader className="bg-red-50">
                     <CardTitle className="flex items-center gap-2">
                       <Phone className="w-5 h-5 text-red-600" />
                       Hätäyhteystieto
@@ -366,7 +366,7 @@ export default function StudentDetail() {
 
               {(student.allergies || student.medications || student.specialNeeds) && (
                 <Card className="border-2 border-orange-200">
-                  <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+                  <CardHeader className="bg-orange-50">
                     <CardTitle className="flex items-center gap-2">
                       <Heart className="w-5 h-5 text-orange-600" />
                       Terveystiedot
@@ -400,7 +400,7 @@ export default function StudentDetail() {
           {/* Schedule Tab */}
           <TabsContent value="schedule">
             <Card className="border-2 border-green-200">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardHeader className="bg-green-50">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-green-600" />
                   Viikon lukujärjestys
@@ -439,7 +439,7 @@ export default function StudentDetail() {
           {/* Grades Tab */}
           <TabsContent value="grades">
             <Card className="border-2 border-purple-200">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+              <CardHeader className="bg-purple-50">
                 <CardTitle className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-purple-600" />
                   Arvosanat
@@ -477,7 +477,7 @@ export default function StudentDetail() {
           {/* Assignments Tab */}
           <TabsContent value="assignments">
             <Card className="border-2 border-orange-200">
-              <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+              <CardHeader className="bg-orange-50">
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-orange-600" />
                   Tehtävät

@@ -68,7 +68,7 @@ export default function ClassDetail() {
 
   if (classLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Ladataan luokan tietoja...</p>
@@ -79,7 +79,7 @@ export default function ClassDetail() {
 
   if (!classData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Luokkaa ei löytynyt</h2>
           <Button onClick={() => setLocation(`/wilma-admin/${adminId}/classes`)} className="mt-4">
@@ -107,7 +107,7 @@ export default function ClassDetail() {
   const femaleCount = students.filter((s: any) => s.gender === 'female').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-2 md:p-4">
+    <div className="min-h-screen bg-[#f5f5f5] p-2 md:p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-4 md:mb-6">
@@ -121,7 +121,7 @@ export default function ClassDetail() {
             Takaisin
           </Button>
           
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+          <div className="bg-[#003d82] text-white rounded-lg p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-2">Luokka {classData.name}</h1>
@@ -149,7 +149,7 @@ export default function ClassDetail() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+          <Card className="bg-blue-500 text-white border-0">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -161,7 +161,7 @@ export default function ClassDetail() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+          <Card className="bg-green-500 text-white border-0">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -173,7 +173,7 @@ export default function ClassDetail() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+          <Card className="bg-purple-500 text-white border-0">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -185,7 +185,7 @@ export default function ClassDetail() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+          <Card className="bg-orange-500 text-white border-0">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -218,7 +218,7 @@ export default function ClassDetail() {
           {/* Students Tab */}
           <TabsContent value="students">
             <Card className="border-2 border-indigo-200">
-              <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+              <CardHeader className="bg-indigo-50">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-indigo-600" />
                   Oppilasluettelo ({students.length})
@@ -240,7 +240,7 @@ export default function ClassDetail() {
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                               {student.firstName[0]}{student.lastName[0]}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -291,7 +291,7 @@ export default function ClassDetail() {
           {/* Schedule Tab */}
           <TabsContent value="schedule">
             <Card className="border-2 border-green-200">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardHeader className="bg-green-50">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-green-600" />
                   Viikon lukujärjestys
