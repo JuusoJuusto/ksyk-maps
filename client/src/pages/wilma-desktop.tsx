@@ -237,7 +237,7 @@ export default function WilmaDesktop() {
     return null;
   }
 
-  const wallpaper = userConfig?.wallpaper || "/KSYK-Short-Logo-RGB-Full-Color.png";
+  const wallpaper = userConfig?.wallpaper || "/KSYK-logo-desktop.png";
   const installedApps = availableApps.filter(app => 
     userConfig?.installedApps?.includes(app.appId)
   );
@@ -251,10 +251,10 @@ export default function WilmaDesktop() {
     >
       {/* Desktop Background with KSYK Logo */}
       <div 
-        className="absolute inset-0 flex items-center justify-center opacity-20"
+        className="absolute inset-0 flex items-center justify-center opacity-25"
         style={{
           backgroundImage: `url(${wallpaper})`,
-          backgroundSize: "300px auto",
+          backgroundSize: "400px auto",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}

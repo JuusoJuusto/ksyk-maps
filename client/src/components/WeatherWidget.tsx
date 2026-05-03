@@ -250,7 +250,7 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                  Tunnittain
+                  24 tunnin ennuste
                 </button>
                 <button
                   onClick={() => setActiveTab('daily')}
@@ -260,14 +260,13 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                  Päivittäin
+                  Seuraavat 7 päivää
                 </button>
               </div>
 
               {/* Hourly Forecast */}
               {activeTab === 'hourly' && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">24 tunnin ennuste</p>
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {weatherData.hourly.slice(0, 24).map((hour, idx) => (
                       <div key={idx} className="flex-shrink-0 text-center p-2 bg-white/50 dark:bg-gray-700/50 rounded min-w-[70px]">
@@ -302,7 +301,6 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
               {/* Daily Forecast */}
               {activeTab === 'daily' && weatherData.daily && weatherData.daily.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">7 päivän ennuste</p>
                   <div className="space-y-2">
                     {weatherData.daily.slice(0, 7).map((day, idx) => {
                       const date = new Date(day.date);
