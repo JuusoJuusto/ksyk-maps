@@ -80,7 +80,7 @@ export default function WilmaTeacher() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Ladataan...</p>
@@ -92,13 +92,13 @@ export default function WilmaTeacher() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#f5f5f5] overflow-x-hidden pb-20 md:pb-0">
       {/* Sidebar - Hidden on mobile, shown on desktop */}
       <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
         sidebarOpen ? 'w-64' : 'w-16'
       }`}>
         {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#003d82] to-[#0052a3]">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-[#003d82]">
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
@@ -129,9 +129,9 @@ export default function WilmaTeacher() {
         </div>
 
         {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-green-50 to-emerald-50 ${!sidebarOpen && 'hidden'}`}>
+        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-green-50 ${!sidebarOpen && 'hidden'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
+            <div className="w-9 h-9 bg-green-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {currentUser.firstName[0]}{currentUser.lastName[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -157,7 +157,7 @@ export default function WilmaTeacher() {
                 onClick={() => setActiveSection(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mb-1 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md scale-105'
+                    ? 'bg-green-600 text-white shadow-md scale-105'
                     : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
                 }`}
               >
@@ -193,7 +193,7 @@ export default function WilmaTeacher() {
       {/* Main Content */}
       <main className={`transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg">
+        <div className="md:hidden sticky top-0 z-40 bg-green-600 text-white shadow-lg">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
@@ -256,7 +256,7 @@ export default function WilmaTeacher() {
                 onClick={() => setActiveSection(item.id)}
                 className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-br from-green-600 to-emerald-600 text-white shadow-md'
+                    ? 'bg-green-600 text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
