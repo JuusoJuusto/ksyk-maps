@@ -227,6 +227,26 @@ export interface IStorage {
   getWilmaAiInteractions(userId?: string, featureType?: string): Promise<any[]>;
   updateWilmaAiInteraction(id: string, interactionData: any): Promise<any>;
   getWilmaAiUsageStats(days?: number): Promise<any>;
+  
+  // ============================================
+  // WILMA DESKTOP ENVIRONMENT OPERATIONS
+  // ============================================
+  
+  // Desktop Settings operations
+  getWilmaDesktopSettings(): Promise<any | undefined>;
+  updateWilmaDesktopSettings(settings: any): Promise<any>;
+  
+  // Desktop Apps operations
+  getWilmaDesktopApps(): Promise<any[]>;
+  getWilmaDesktopApp(id: number): Promise<any | undefined>;
+  createWilmaDesktopApp(appData: any): Promise<any>;
+  updateWilmaDesktopApp(id: number, appData: any): Promise<any>;
+  deleteWilmaDesktopApp(id: number): Promise<void>;
+  
+  // User Desktop Config operations
+  getWilmaUserDesktopConfig(userId: number): Promise<any | undefined>;
+  createWilmaUserDesktopConfig(configData: any): Promise<any>;
+  updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any>;
 }
 
 

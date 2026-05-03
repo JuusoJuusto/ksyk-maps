@@ -3330,6 +3330,160 @@ export class FirebaseStorage implements IStorage {
       return {};
     }
   }
+  
+  // ============================================
+  // WILMA DESKTOP ENVIRONMENT METHODS
+  // ============================================
+  
+  async getWilmaDesktopSettings(): Promise<any | undefined> {
+    try {
+      const snapshot = await this.db.collection('wilmaDesktopSettings').limit(1).get();
+      if (snapshot.empty) return undefined;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('Error getting desktop settings:', error);
+      throw error;
+    }
+  }
+  
+  async updateWilmaDesktopSettings(settings: any): Promise<any> {
+    try {
+      const snapshot = await this.db.collection('wilmaDesktopSettings').limit(1).get();
+      const data = {
+        ...settings,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      if (snapshot.empty) {
+        const docRef = await this.db.collection('wilmaDesktopSettings').add({
+          ...data,
+          createdAt: new Date().toISOString(),
+        });
+        return { id: docRef.id, ...data };
+      } else {
+        await snapshot.docs[0].ref.update(data);
+        return { id: snapshot.docs[0].id, ...data };
+      }
+    } catch (error) {
+      console.error('Error updating desktop settings:', error);
+      throw error;
+    }
+  }
+  
+  async getWilmaDesktopApps(): Promise<any[]> {
+    try {
+      const snapshot = await this.db.collection('wilmaDesktopApps')
+        .where('isActive', '==', true)
+        .orderBy('sortOrder', 'asc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting desktop apps:', error);
+      return [];
+    }
+  }
+  
+  async getWilmaDesktopApp(id: number): Promise<any | undefined> {
+    try {
+      const doc = await this.db.collection('wilmaDesktopApps').doc(id.toString()).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting desktop app:', error);
+      throw error;
+    }
+  }
+  
+  async createWilmaDesktopApp(appData: any): Promise<any> {
+    try {
+      const data = {
+        ...appData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const docRef = await this.db.collection('wilmaDesktopApps').add(data);
+      return { id: docRef.id, ...data };
+    } catch (error) {
+      console.error('Error creating desktop app:', error);
+      throw error;
+    }
+  }
+  
+  async updateWilmaDesktopApp(id: number, appData: any): Promise<any> {
+    try {
+      const data = {
+        ...appData,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.db.collection('wilmaDesktopApps').doc(id.toString()).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating desktop app:', error);
+      throw error;
+    }
+  }
+  
+  async deleteWilmaDesktopApp(id: number): Promise<void> {
+    try {
+      await this.db.collection('wilmaDesktopApps').doc(id.toString()).delete();
+    } catch (error) {
+      console.error('Error deleting desktop app:', error);
+      throw error;
+    }
+  }
+  
+  async getWilmaUserDesktopConfig(userId: number): Promise<any | undefined> {
+    try {
+      const snapshot = await this.db.collection('wilmaUserDesktopConfig')
+        .where('userId', '==', userId)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return undefined;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('Error getting user desktop config:', error);
+      throw error;
+    }
+  }
+  
+  async createWilmaUserDesktopConfig(configData: any): Promise<any> {
+    try {
+      const data = {
+        ...configData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const docRef = await this.db.collection('wilmaUserDesktopConfig').add(data);
+      return { id: docRef.id, ...data };
+    } catch (error) {
+      console.error('Error creating user desktop config:', error);
+      throw error;
+    }
+  }
+  
+  async updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any> {
+    try {
+      const snapshot = await this.db.collection('wilmaUserDesktopConfig')
+        .where('userId', '==', userId)
+        .limit(1)
+        .get();
+      
+      const data = {
+        ...configData,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      if (snapshot.empty) {
+        return this.createWilmaUserDesktopConfig({ userId, ...data });
+      } else {
+        await snapshot.docs[0].ref.update(data);
+        return { id: snapshot.docs[0].id, userId, ...data };
+      }
+    } catch (error) {
+      console.error('Error updating user desktop config:', error);
+      throw error;
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

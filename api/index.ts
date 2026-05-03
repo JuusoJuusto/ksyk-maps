@@ -3348,6 +3348,151 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       }
     }
     
+    // ============================================
+    // WILMA DESKTOP ENVIRONMENT API
+    // ============================================
+    
+    // GET /wilma/desktop/settings - Get desktop settings
+    if (apiPath === '/wilma/desktop/settings' && req.method === 'GET') {
+      console.log('🖥️ GET /api/wilma/desktop/settings called');
+      
+      try {
+        const settings = await storage.getWilmaDesktopSettings();
+        return res.status(200).json(settings || {
+          enabled: false,
+          defaultWallpaper: "/wilma-bg.jpg",
+          defaultTheme: "light",
+          allowCustomWallpaper: true,
+          allowCustomTheme: true,
+          availableApps: [],
+          defaultApps: [],
+        });
+      } catch (error: any) {
+        console.error('❌ Error fetching desktop settings:', error);
+        return res.status(500).json({ message: "Failed to fetch desktop settings" });
+      }
+    }
+    
+    // PUT /wilma/desktop/settings - Update desktop settings
+    if (apiPath === '/wilma/desktop/settings' && req.method === 'PUT') {
+      console.log('🖥️ PUT /api/wilma/desktop/settings called');
+      
+      try {
+        const settings = await storage.updateWilmaDesktopSettings(req.body);
+        console.log('✅ Desktop settings updated');
+        return res.status(200).json(settings);
+      } catch (error: any) {
+        console.error('❌ Error updating desktop settings:', error);
+        return res.status(500).json({ message: "Failed to update desktop settings" });
+      }
+    }
+    
+    // GET /wilma/desktop/apps - Get all desktop apps
+    if (apiPath === '/wilma/desktop/apps' && req.method === 'GET') {
+      console.log('🖥️ GET /api/wilma/desktop/apps called');
+      
+      try {
+        const apps = await storage.getWilmaDesktopApps();
+        return res.status(200).json(apps);
+      } catch (error: any) {
+        console.error('❌ Error fetching desktop apps:', error);
+        return res.status(500).json({ message: "Failed to fetch desktop apps" });
+      }
+    }
+    
+    // POST /wilma/desktop/apps - Create desktop app
+    if (apiPath === '/wilma/desktop/apps' && req.method === 'POST') {
+      console.log('🖥️ POST /api/wilma/desktop/apps called');
+      
+      try {
+        const app = await storage.createWilmaDesktopApp(req.body);
+        console.log('✅ Desktop app created:', app.appId);
+        return res.status(201).json(app);
+      } catch (error: any) {
+        console.error('❌ Error creating desktop app:', error);
+        return res.status(500).json({ message: "Failed to create desktop app" });
+      }
+    }
+    
+    // PUT /wilma/desktop/apps/:id - Update desktop app
+    const updateAppMatch = apiPath.match(/^\/wilma\/desktop\/apps\/(\d+)$/);
+    if (updateAppMatch && req.method === 'PUT') {
+      const id = parseInt(updateAppMatch[1]);
+      console.log('🖥️ PUT /api/wilma/desktop/apps/' + id);
+      
+      try {
+        const app = await storage.updateWilmaDesktopApp(id, req.body);
+        console.log('✅ Desktop app updated:', id);
+        return res.status(200).json(app);
+      } catch (error: any) {
+        console.error('❌ Error updating desktop app:', error);
+        return res.status(500).json({ message: "Failed to update desktop app" });
+      }
+    }
+    
+    // DELETE /wilma/desktop/apps/:id - Delete desktop app
+    const deleteAppMatch = apiPath.match(/^\/wilma\/desktop\/apps\/(\d+)$/);
+    if (deleteAppMatch && req.method === 'DELETE') {
+      const id = parseInt(deleteAppMatch[1]);
+      console.log('🖥️ DELETE /api/wilma/desktop/apps/' + id);
+      
+      try {
+        await storage.deleteWilmaDesktopApp(id);
+        console.log('✅ Desktop app deleted:', id);
+        return res.status(204).send();
+      } catch (error: any) {
+        console.error('❌ Error deleting desktop app:', error);
+        return res.status(500).json({ message: "Failed to delete desktop app" });
+      }
+    }
+    
+    // GET /wilma/desktop/config/:userId - Get user desktop config
+    const getUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/(\d+)$/);
+    if (getUserConfigMatch && req.method === 'GET') {
+      const userId = parseInt(getUserConfigMatch[1]);
+      console.log('🖥️ GET /api/wilma/desktop/config/' + userId);
+      
+      try {
+        let config = await storage.getWilmaUserDesktopConfig(userId);
+        
+        // If no config exists, create default one
+        if (!config) {
+          const settings = await storage.getWilmaDesktopSettings();
+          config = await storage.createWilmaUserDesktopConfig({
+            userId,
+            wallpaper: settings?.defaultWallpaper || "/wilma-bg.jpg",
+            theme: settings?.defaultTheme || "light",
+            installedApps: settings?.defaultApps || [],
+            desktopLayout: {},
+            pinnedApps: [],
+            recentApps: [],
+            customSettings: {},
+          });
+        }
+        
+        return res.status(200).json(config);
+      } catch (error: any) {
+        console.error('❌ Error fetching user desktop config:', error);
+        return res.status(500).json({ message: "Failed to fetch user desktop config" });
+      }
+    }
+    
+    // PUT /wilma/desktop/config/:userId - Update user desktop config
+    const updateUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/(\d+)$/);
+    if (updateUserConfigMatch && req.method === 'PUT') {
+      const userId = parseInt(updateUserConfigMatch[1]);
+      console.log('🖥️ PUT /api/wilma/desktop/config/' + userId);
+      
+      try {
+        const config = await storage.updateWilmaUserDesktopConfig(userId, req.body);
+        console.log('✅ User desktop config updated:', userId);
+        return res.status(200).json(config);
+      } catch (error: any) {
+        console.error('❌ Error updating user desktop config:', error);
+        return res.status(500).json({ message: "Failed to update user desktop config" });
+      }
+    }
+    
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",

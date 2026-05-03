@@ -1223,3 +1223,80 @@ export const insertWilmaDetentionLogSchema = createInsertSchema(wilmaDetentionLo
   id: true,
   createdAt: true,
 });
+
+// ============================================
+// WILMA DESKTOP ENVIRONMENT TABLES
+// ============================================
+
+// Desktop Settings - Global configuration for the desktop environment
+export const wilmaDesktopSettings = pgTable("wilma_desktop_settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  enabled: boolean("enabled").default(false).notNull(), // Enable/disable desktop feature
+  defaultWallpaper: text("default_wallpaper").default("/wilma-bg.jpg"),
+  defaultTheme: varchar("default_theme", { length: 50 }).default("light"),
+  allowCustomWallpaper: boolean("allow_custom_wallpaper").default(true),
+  allowCustomTheme: boolean("allow_custom_theme").default(true),
+  availableApps: jsonb("available_apps").default([]).notNull(), // Array of app IDs that are available
+  defaultApps: jsonb("default_apps").default([]).notNull(), // Default apps for new users
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Desktop Apps - Available applications in the desktop environment
+export const wilmaDesktopApps = pgTable("wilma_desktop_apps", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  appId: varchar("app_id", { length: 100 }).unique().notNull(), // Unique identifier like "calculator", "notepad"
+  name: varchar("name", { length: 100 }).notNull(),
+  nameFi: varchar("name_fi", { length: 100 }),
+  icon: varchar("icon", { length: 100 }).notNull(), // Icon name or emoji
+  description: text("description"),
+  descriptionFi: text("description_fi"),
+  category: varchar("category", { length: 50 }).default("utility"), // utility, education, entertainment, productivity
+  appType: varchar("app_type", { length: 50 }).notNull(), // iframe, component, external
+  appUrl: text("app_url"), // For iframe apps
+  componentName: varchar("component_name", { length: 100 }), // For React component apps
+  width: integer("width").default(800),
+  height: integer("height").default(600),
+  resizable: boolean("resizable").default(true),
+  minimizable: boolean("minimizable").default(true),
+  maximizable: boolean("maximizable").default(true),
+  allowedRoles: text("allowed_roles").array().default(["student", "teacher", "parent", "admin"]), // Who can access
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Desktop Configuration - Per-user desktop customization
+export const wilmaUserDesktopConfig = pgTable("wilma_user_desktop_config", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull(), // References wilmaUsers.id
+  wallpaper: text("wallpaper"),
+  theme: varchar("theme", { length: 50 }).default("light"),
+  installedApps: jsonb("installed_apps").default([]).notNull(), // Array of app IDs
+  desktopLayout: jsonb("desktop_layout").default({}).notNull(), // Icon positions, etc.
+  pinnedApps: jsonb("pinned_apps").default([]).notNull(), // Taskbar pinned apps
+  recentApps: jsonb("recent_apps").default([]).notNull(), // Recently used apps
+  customSettings: jsonb("custom_settings").default({}).notNull(), // User preferences
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Desktop insert schemas
+export const insertWilmaDesktopSettingsSchema = createInsertSchema(wilmaDesktopSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaDesktopAppsSchema = createInsertSchema(wilmaDesktopApps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWilmaUserDesktopConfigSchema = createInsertSchema(wilmaUserDesktopConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
