@@ -5,7 +5,15 @@
 
 import { getFirestore } from 'firebase-admin/firestore';
 
-const db = getFirestore();
+// Lazy-load Firestore to avoid initialization issues
+let db: ReturnType<typeof getFirestore> | null = null;
+
+function getDb() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 interface LoginAttempt {
   email: string;
@@ -35,6 +43,7 @@ export async function checkRateLimit(
   message?: string;
 }> {
   try {
+    const db = getDb();
     const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
     const doc = await docRef.get();
     
@@ -123,6 +132,7 @@ export async function recordLoginAttempt(
   ipAddress?: string
 ): Promise<void> {
   try {
+    const db = getDb();
     const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
     const doc = await docRef.get();
     
@@ -166,6 +176,7 @@ export async function recordLoginAttempt(
  */
 export async function unlockAccount(email: string): Promise<void> {
   try {
+    const db = getDb();
     const docRef = db.collection('loginAttempts').doc(email.toLowerCase());
     await docRef.update({
       attempts: 0,
@@ -186,6 +197,7 @@ export async function unlockAccount(email: string): Promise<void> {
  */
 export async function getLoginAttemptStats(email: string): Promise<LoginAttempt | null> {
   try {
+    const db = getDb();
     const doc = await db.collection('loginAttempts').doc(email.toLowerCase()).get();
     if (!doc.exists) return null;
     return doc.data() as LoginAttempt;
@@ -201,6 +213,7 @@ export async function getLoginAttemptStats(email: string): Promise<LoginAttempt 
  */
 export async function cleanupOldLoginAttempts(): Promise<number> {
   try {
+    const db = getDb();
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const snapshot = await db.collection('loginAttempts')
       .where('lastAttempt', '<', thirtyDaysAgo)
