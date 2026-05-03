@@ -80,7 +80,8 @@ const iconMap: Record<string, any> = {
 
 export default function WilmaDesktop() {
   const params = useParams();
-  const id = params.id || '';
+  // Support both studentId and adminId from routes
+  const id = params.studentId || params.adminId || '';
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -236,7 +237,7 @@ export default function WilmaDesktop() {
     return null;
   }
 
-  const wallpaper = userConfig?.wallpaper || "/wilma-bg.jpg";
+  const wallpaper = userConfig?.wallpaper || "/kulosaaren_yhteiskoulu_logo.jpeg";
   const installedApps = availableApps.filter(app => 
     userConfig?.installedApps?.includes(app.appId)
   );
@@ -245,14 +246,19 @@ export default function WilmaDesktop() {
     <div 
       className="fixed inset-0 overflow-hidden"
       style={{
-        backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "contain",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        backgroundColor: "#003d82",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       }}
     >
+      {/* Desktop Background with Logo */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center opacity-10"
+        style={{
+          backgroundImage: `url(${wallpaper})`,
+          backgroundSize: "400px 400px",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
       {/* Desktop Icons */}
       <div className="absolute inset-0 p-4 grid grid-cols-8 gap-4 content-start">
         {installedApps.slice(0, 16).map((app, index) => (
