@@ -102,6 +102,45 @@ export default function WilmaAdminSettings() {
     allowRegistration: false,
     requireEmailVerification: true,
     logRetentionDays: "90",
+    
+    // Desktop Settings
+    desktopEnabled: false,
+    desktopWallpaper: "/wilma-bg.jpg",
+    desktopTheme: "light",
+    
+    // Appearance Settings
+    primaryColor: "#003d82",
+    secondaryColor: "#0052a3",
+    accentColor: "#00aaff",
+    logoUrl: "/kulosaaren_yhteiskoulu_logo.jpeg",
+    faviconUrl: "/favicon.png",
+    
+    // Language Settings
+    defaultLanguage: "fi",
+    availableLanguages: "fi,en,sv",
+    
+    // Backup Settings
+    autoBackupEnabled: false,
+    backupFrequency: "daily",
+    backupRetentionDays: "30",
+    
+    // Integration Settings
+    googleCalendarEnabled: false,
+    googleCalendarApiKey: "",
+    microsoftTeamsEnabled: false,
+    microsoftTeamsWebhook: "",
+    
+    // Privacy Settings
+    allowDataExport: true,
+    allowDataDeletion: true,
+    cookieConsentRequired: true,
+    analyticsEnabled: true,
+    
+    // Performance Settings
+    cacheEnabled: true,
+    cacheDuration: "3600",
+    compressionEnabled: true,
+    lazyLoadingEnabled: true,
   };
 
   const [settings, setSettings] = useState(defaultSettings);
@@ -200,7 +239,7 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 gap-1">
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
@@ -224,6 +263,18 @@ export default function WilmaAdminSettings() {
           <TabsTrigger value="appearance">
             <Settings className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Ulkoasu</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Globe className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Integraatiot</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            <Bell className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Ilmoitukset</span>
+          </TabsTrigger>
+          <TabsTrigger value="privacy">
+            <Shield className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Tietosuoja</span>
           </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
@@ -707,6 +758,307 @@ export default function WilmaAdminSettings() {
                     onChange={(e) => setSettings({ ...settings, faviconUrl: e.target.value })}
                     placeholder="/favicon.png"
                   />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="defaultLanguage">Oletuskieli</Label>
+                <select
+                  id="defaultLanguage"
+                  value={settings.defaultLanguage || 'fi'}
+                  onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="fi">Suomi</option>
+                  <option value="en">English</option>
+                  <option value="sv">Svenska</option>
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Integrations Tab - NEW */}
+        <TabsContent value="integrations" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <Globe className="w-5 h-5" />
+                Integraatiot
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Google Calendar</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">Google Calendar käytössä</p>
+                      <p className="text-sm text-gray-600">Synkronoi tapahtumat Google Calendarin kanssa</p>
+                    </div>
+                    <Switch
+                      checked={settings.googleCalendarEnabled || false}
+                      onCheckedChange={(checked) => 
+                        setSettings({ ...settings, googleCalendarEnabled: checked })
+                      }
+                    />
+                  </div>
+                  {settings.googleCalendarEnabled && (
+                    <div>
+                      <Label htmlFor="googleCalendarApiKey">API-avain</Label>
+                      <Input
+                        id="googleCalendarApiKey"
+                        type="password"
+                        value={settings.googleCalendarApiKey || ''}
+                        onChange={(e) => setSettings({ ...settings, googleCalendarApiKey: e.target.value })}
+                        placeholder="Syötä Google Calendar API-avain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Microsoft Teams</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">Microsoft Teams käytössä</p>
+                      <p className="text-sm text-gray-600">Lähetä ilmoituksia Teams-kanavalle</p>
+                    </div>
+                    <Switch
+                      checked={settings.microsoftTeamsEnabled || false}
+                      onCheckedChange={(checked) => 
+                        setSettings({ ...settings, microsoftTeamsEnabled: checked })
+                      }
+                    />
+                  </div>
+                  {settings.microsoftTeamsEnabled && (
+                    <div>
+                      <Label htmlFor="microsoftTeamsWebhook">Webhook URL</Label>
+                      <Input
+                        id="microsoftTeamsWebhook"
+                        type="url"
+                        value={settings.microsoftTeamsWebhook || ''}
+                        onChange={(e) => setSettings({ ...settings, microsoftTeamsWebhook: e.target.value })}
+                        placeholder="https://outlook.office.com/webhook/..."
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab - NEW */}
+        <TabsContent value="notifications" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <Bell className="w-5 h-5" />
+                Ilmoitusasetukset
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Sähköposti-ilmoitukset</p>
+                    <p className="text-sm text-gray-600">Lähetä ilmoituksia sähköpostitse</p>
+                  </div>
+                  <Switch
+                    checked={settings.emailNotificationsEnabled}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, emailNotificationsEnabled: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Push-ilmoitukset</p>
+                    <p className="text-sm text-gray-600">Lähetä push-ilmoituksia selaimeen</p>
+                  </div>
+                  <Switch
+                    checked={settings.pushNotificationsEnabled}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, pushNotificationsEnabled: checked })
+                    }
+                  />
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Ilmoitustyypit</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">Uudet arvosanat</p>
+                        <p className="text-sm text-gray-600">Ilmoita uusista arvosanoista</p>
+                      </div>
+                      <Switch
+                        checked={settings.notifyNewGrades}
+                        onCheckedChange={(checked) => 
+                          setSettings({ ...settings, notifyNewGrades: checked })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">Uudet tehtävät</p>
+                        <p className="text-sm text-gray-600">Ilmoita uusista tehtävistä</p>
+                      </div>
+                      <Switch
+                        checked={settings.notifyNewHomework}
+                        onCheckedChange={(checked) => 
+                          setSettings({ ...settings, notifyNewHomework: checked })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">Poissaolot</p>
+                        <p className="text-sm text-gray-600">Ilmoita poissaoloista</p>
+                      </div>
+                      <Switch
+                        checked={settings.notifyAbsence}
+                        onCheckedChange={(checked) => 
+                          setSettings({ ...settings, notifyAbsence: checked })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">Uudet viestit</p>
+                        <p className="text-sm text-gray-600">Ilmoita uusista viesteistä</p>
+                      </div>
+                      <Switch
+                        checked={settings.notifyNewMessage}
+                        onCheckedChange={(checked) => 
+                          setSettings({ ...settings, notifyNewMessage: checked })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Privacy Tab - NEW */}
+        <TabsContent value="privacy" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <Shield className="w-5 h-5" />
+                Tietosuoja-asetukset
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Tietojen vienti sallittu</p>
+                    <p className="text-sm text-gray-600">Käyttäjät voivat viedä omat tietonsa</p>
+                  </div>
+                  <Switch
+                    checked={settings.allowDataExport || false}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, allowDataExport: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Tietojen poisto sallittu</p>
+                    <p className="text-sm text-gray-600">Käyttäjät voivat poistaa omat tietonsa</p>
+                  </div>
+                  <Switch
+                    checked={settings.allowDataDeletion || false}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, allowDataDeletion: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Evästeiden hyväksyntä vaaditaan</p>
+                    <p className="text-sm text-gray-600">Näytä evästeiden hyväksyntäbanneri</p>
+                  </div>
+                  <Switch
+                    checked={settings.cookieConsentRequired || false}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, cookieConsentRequired: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Analytiikka käytössä</p>
+                    <p className="text-sm text-gray-600">Kerää käyttötilastoja</p>
+                  </div>
+                  <Switch
+                    checked={settings.analyticsEnabled || false}
+                    onCheckedChange={(checked) => 
+                      setSettings({ ...settings, analyticsEnabled: checked })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Varmuuskopiointi</h4>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">Automaattinen varmuuskopiointi</p>
+                      <p className="text-sm text-gray-600">Luo automaattisia varmuuskopioita</p>
+                    </div>
+                    <Switch
+                      checked={settings.autoBackupEnabled || false}
+                      onCheckedChange={(checked) => 
+                        setSettings({ ...settings, autoBackupEnabled: checked })
+                      }
+                    />
+                  </div>
+
+                  {settings.autoBackupEnabled && (
+                    <>
+                      <div>
+                        <Label htmlFor="backupFrequency">Varmuuskopiointitiheys</Label>
+                        <select
+                          id="backupFrequency"
+                          value={settings.backupFrequency || 'daily'}
+                          onChange={(e) => setSettings({ ...settings, backupFrequency: e.target.value })}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="hourly">Tunneittain</option>
+                          <option value="daily">Päivittäin</option>
+                          <option value="weekly">Viikoittain</option>
+                          <option value="monthly">Kuukausittain</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="backupRetentionDays">Varmuuskopioiden säilytysaika (päivää)</Label>
+                        <Input
+                          id="backupRetentionDays"
+                          type="number"
+                          value={settings.backupRetentionDays || '30'}
+                          onChange={(e) => setSettings({ ...settings, backupRetentionDays: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>

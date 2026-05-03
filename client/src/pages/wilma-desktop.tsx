@@ -21,6 +21,7 @@ import {
   Code,
   Terminal,
   Gamepad2,
+  Globe,
 } from "lucide-react";
 
 interface DesktopApp {
@@ -64,6 +65,7 @@ const iconMap: Record<string, any> = {
   notepad: FileText,
   music: Music,
   photos: Image,
+  image: Image,
   calendar: Calendar,
   mail: Mail,
   settings: Settings,
@@ -73,6 +75,7 @@ const iconMap: Record<string, any> = {
   code: Code,
   terminal: Terminal,
   games: Gamepad2,
+  globe: Globe,
 };
 
 export default function WilmaDesktop() {
@@ -243,10 +246,11 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "cover",
+        backgroundSize: "contain",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundAttachment: "fixed",
+        backgroundColor: "#003d82",
       }}
     >
       {/* Desktop Icons */}

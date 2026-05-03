@@ -3576,7 +3576,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     }
     
     // GET /wilma/desktop/config/:userId - Get user desktop config
-    const getUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/(\d+)$/);
+    const getUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/([^\/]+)$/);
     if (getUserConfigMatch && req.method === 'GET') {
       const userId = parseInt(getUserConfigMatch[1]);
       console.log('🖥️ GET /api/wilma/desktop/config/' + userId);
@@ -3607,7 +3607,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
     }
     
     // PUT /wilma/desktop/config/:userId - Update user desktop config
-    const updateUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/(\d+)$/);
+    const updateUserConfigMatch = apiPath.match(/^\/wilma\/desktop\/config\/([^\/]+)$/);
     if (updateUserConfigMatch && req.method === 'PUT') {
       const userId = parseInt(updateUserConfigMatch[1]);
       console.log('🖥️ PUT /api/wilma/desktop/config/' + userId);
