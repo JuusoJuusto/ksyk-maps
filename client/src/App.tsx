@@ -93,6 +93,7 @@ function Router() {
       {/* Admin/Teacher routes - Use Firebase ID */}
       <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktop} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
+      <Route path="/wilma-admin/:adminId/groups/:groupId" component={ClassDetail} />
       <Route path="/wilma-admin/:adminId/chess" component={ChessPage} />
       <Route path="/wilma-admin/:adminId/student-view/:studentId" component={StudentDetail} />
       <Route path="/wilma-admin/:adminId/student/:studentId" component={StudentForm} />

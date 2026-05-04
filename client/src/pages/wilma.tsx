@@ -34,6 +34,7 @@ export default function Wilma() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
   const [returnPath, setReturnPath] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Mock data for demo
   const mockSchedule = [
@@ -128,6 +129,14 @@ export default function Wilma() {
 
   useEffect(() => {
     setIsCheckingAuth(true); // Start checking
+    
+    // Check for remember me
+    const rememberedUsername = localStorage.getItem('wilma_username');
+    const shouldRemember = localStorage.getItem('wilma_remember_me') === 'true';
+    if (shouldRemember && rememberedUsername) {
+      setUsername(rememberedUsername);
+      setRememberMe(true);
+    }
     
     // Check for session expiration in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -359,6 +368,16 @@ export default function Wilma() {
       
       setIsLoggedIn(true);
       localStorage.setItem('wilma_user', JSON.stringify(data));
+      
+      // Save remember me preference
+      if (rememberMe) {
+        localStorage.setItem('wilma_remember_me', 'true');
+        localStorage.setItem('wilma_username', username.trim());
+      } else {
+        localStorage.removeItem('wilma_remember_me');
+        localStorage.removeItem('wilma_username');
+      }
+      
       setUsername('');
       setPassword('');
       setIsLoading(false);
@@ -548,7 +567,12 @@ export default function Wilma() {
                   
                   <div className="flex items-center justify-between text-xs">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-3.5 h-3.5 rounded border-gray-300 text-[#003d82] focus:ring-[#003d82]" />
+                      <input 
+                        type="checkbox" 
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 text-[#003d82] focus:ring-[#003d82]" 
+                      />
                       <span className="text-gray-600">{language === 'fi' ? 'Muista minut' : 'Remember me'}</span>
                     </label>
                     <button
