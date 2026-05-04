@@ -1,52 +1,21 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Monitor,
-  Plus,
-  Edit,
-  Trash2,
-  Save,
-  Image as ImageIcon,
-  Palette,
-  AppWindow,
-  Settings as SettingsIcon,
+import { 
+  Monitor, Plus, Edit2, Trash2, Save, X, Eye, EyeOff,
+  Settings, Image, Palette, Grid, List, Search, Filter,
+  CheckCircle, AlertCircle, Upload, Download, RefreshCw
 } from "lucide-react";
 
-interface DesktopSettings {
-  id?: number;
-  enabled: boolean;
-  defaultWallpaper: string;
-  defaultTheme: string;
-  allowCustomWallpaper: boolean;
-  allowCustomTheme: boolean;
-  availableApps: string[];
-  defaultApps: string[];
-}
-
 interface DesktopApp {
-  id?: number;
+  id?: string;
   appId: string;
   name: string;
   nameFi: string;
@@ -67,67 +36,64 @@ interface DesktopApp {
   sortOrder: number;
 }
 
-const defaultApp: DesktopApp = {
-  appId: "",
-  name: "",
-  nameFi: "",
-  icon: "filetext",
-  description: "",
-  descriptionFi: "",
-  category: "utility",
-  appType: "iframe",
-  appUrl: "",
-  width: 800,
-  height: 600,
-  resizable: true,
-  minimizable: true,
-  maximizable: true,
-  allowedRoles: ["student", "teacher", "parent", "admin"],
-  isActive: true,
-  sortOrder: 0,
-};
-
 export default function WilmaDesktopManager() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<DesktopSettings>({
-    enabled: false,
-    defaultWallpaper: "/wilma-bg.jpg",
-    defaultTheme: "light",
+  const [apps, setApps] = useState<DesktopApp[]>([]);
+  const [filteredApps, setFilteredApps] = useState<DesktopApp[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [editingApp, setEditingApp] = useState<DesktopApp | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newApp, setNewApp] = useState<Partial<DesktopApp>>({
+    appId: "",
+    name: "",
+    nameFi: "",
+    icon: "globe",
+    description: "",
+    descriptionFi: "",
+    category: "utility",
+    appType: "iframe",
+    appUrl: "",
+    width: 800,
+    height: 600,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    allowedRoles: ["student", "teacher", "parent", "admin"],
+    isActive: true,
+    sortOrder: apps.length + 1,
+  });
+  const [desktopSettings, setDesktopSettings] = useState({
+    enabled: true,
+    defaultWallpaper: "/KSYK-logo-desktop.png",
+    defaultTheme: "dark",
     allowCustomWallpaper: true,
     allowCustomTheme: true,
-    availableApps: [],
-    defaultApps: [],
   });
-  const [apps, setApps] = useState<DesktopApp[]>([]);
-  const [editingApp, setEditingApp] = useState<DesktopApp | null>(null);
-  const [isAppDialogOpen, setIsAppDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchApps();
+    fetchSettings();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    filterApps();
+  }, [apps, searchQuery, categoryFilter]);
+
+  const fetchApps = async () => {
     try {
-      const [settingsRes, appsRes] = await Promise.all([
-        fetch("/api/wilma/desktop/settings"),
-        fetch("/api/wilma/desktop/apps"),
-      ]);
-
-      if (settingsRes.ok) {
-        const settingsData = await settingsRes.json();
-        setSettings(settingsData);
-      }
-
-      if (appsRes.ok) {
-        const appsData = await appsRes.json();
-        setApps(appsData);
-      }
+      const response = await fetch("/api/wilma/desktop/apps");
+      if (!response.ok) throw new Error("Failed to fetch apps");
+      const data = await response.json();
+      setApps(data);
+      setFilteredApps(data);
     } catch (error) {
-      console.error("Error fetching desktop data:", error);
+      console.error("Error fetching apps:", error);
       toast({
         title: "Virhe",
-        description: "Tietojen lataaminen epäonnistui",
+        description: "Sovellusten lataaminen epäonnistui",
         variant: "destructive",
       });
     } finally {
@@ -135,19 +101,48 @@ export default function WilmaDesktopManager() {
     }
   };
 
-  const saveSettings = async () => {
+  const fetchSettings = async () => {
     try {
-      const res = await fetch("/api/wilma/desktop/settings", {
+      const response = await fetch("/api/wilma/desktop/settings");
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      const data = await response.json();
+      setDesktopSettings(data);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
+  const filterApps = () => {
+    let filtered = apps;
+
+    if (searchQuery) {
+      filtered = filtered.filter(app =>
+        app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.nameFi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter(app => app.category === categoryFilter);
+    }
+
+    setFilteredApps(filtered);
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const response = await fetch("/api/wilma/desktop/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(desktopSettings),
       });
 
-      if (!res.ok) throw new Error("Failed to save settings");
+      if (!response.ok) throw new Error("Failed to save settings");
 
       toast({
-        title: "Tallennettu",
-        description: "Työpöytäasetukset tallennettu onnistuneesti",
+        title: "Tallennettu!",
+        description: "Työpöytäasetukset on tallennettu",
       });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -159,57 +154,51 @@ export default function WilmaDesktopManager() {
     }
   };
 
-  const saveApp = async () => {
-    if (!editingApp) return;
+  const handleToggleApp = async (appId: string) => {
+    const app = apps.find(a => a.id === appId);
+    if (!app) return;
 
     try {
-      const method = editingApp.id ? "PUT" : "POST";
-      const url = editingApp.id
-        ? `/api/wilma/desktop/apps/${editingApp.id}`
-        : "/api/wilma/desktop/apps";
-
-      const res = await fetch(url, {
-        method,
+      const response = await fetch(`/api/wilma/desktop/apps/${appId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingApp),
+        body: JSON.stringify({ ...app, isActive: !app.isActive }),
       });
 
-      if (!res.ok) throw new Error("Failed to save app");
+      if (!response.ok) throw new Error("Failed to toggle app");
+
+      setApps(apps.map(a => a.id === appId ? { ...a, isActive: !a.isActive } : a));
 
       toast({
-        title: "Tallennettu",
-        description: "Sovellus tallennettu onnistuneesti",
+        title: app.isActive ? "Poistettu käytöstä" : "Otettu käyttöön",
+        description: `${app.nameFi} ${app.isActive ? "poistettu käytöstä" : "otettu käyttöön"}`,
       });
-
-      setIsAppDialogOpen(false);
-      setEditingApp(null);
-      fetchData();
     } catch (error) {
-      console.error("Error saving app:", error);
+      console.error("Error toggling app:", error);
       toast({
         title: "Virhe",
-        description: "Sovelluksen tallennus epäonnistui",
+        description: "Sovelluksen tilan muutos epäonnistui",
         variant: "destructive",
       });
     }
   };
 
-  const deleteApp = async (appId: number) => {
+  const handleDeleteApp = async (appId: string) => {
     if (!confirm("Haluatko varmasti poistaa tämän sovelluksen?")) return;
 
     try {
-      const res = await fetch(`/api/wilma/desktop/apps/${appId}`, {
+      const response = await fetch(`/api/wilma/desktop/apps/${appId}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Failed to delete app");
+      if (!response.ok) throw new Error("Failed to delete app");
+
+      setApps(apps.filter(a => a.id !== appId));
 
       toast({
-        title: "Poistettu",
-        description: "Sovellus poistettu onnistuneesti",
+        title: "Poistettu!",
+        description: "Sovellus on poistettu",
       });
-
-      fetchData();
     } catch (error) {
       console.error("Error deleting app:", error);
       toast({
@@ -220,497 +209,590 @@ export default function WilmaDesktopManager() {
     }
   };
 
-  const toggleAppAvailability = (appId: string) => {
-    setSettings(prev => ({
-      ...prev,
-      availableApps: prev.availableApps.includes(appId)
-        ? prev.availableApps.filter(id => id !== appId)
-        : [...prev.availableApps, appId],
-    }));
+  const handleAddApp = async () => {
+    if (!newApp.appId || !newApp.name || !newApp.nameFi) {
+      toast({
+        title: "Virhe",
+        description: "Täytä kaikki pakolliset kentät",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/wilma/desktop/apps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newApp),
+      });
+
+      if (!response.ok) throw new Error("Failed to add app");
+
+      const addedApp = await response.json();
+      setApps([...apps, addedApp]);
+      setShowAddDialog(false);
+      
+      // Reset form
+      setNewApp({
+        appId: "",
+        name: "",
+        nameFi: "",
+        icon: "globe",
+        description: "",
+        descriptionFi: "",
+        category: "utility",
+        appType: "iframe",
+        appUrl: "",
+        width: 800,
+        height: 600,
+        resizable: true,
+        minimizable: true,
+        maximizable: true,
+        allowedRoles: ["student", "teacher", "parent", "admin"],
+        isActive: true,
+        sortOrder: apps.length + 2,
+      });
+
+      toast({
+        title: "Lisätty!",
+        description: "Uusi sovellus on lisätty",
+      });
+    } catch (error) {
+      console.error("Error adding app:", error);
+      toast({
+        title: "Virhe",
+        description: "Sovelluksen lisäys epäonnistui",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleDefaultApp = (appId: string) => {
-    setSettings(prev => ({
-      ...prev,
-      defaultApps: prev.defaultApps.includes(appId)
-        ? prev.defaultApps.filter(id => id !== appId)
-        : [...prev.defaultApps, appId],
-    }));
-  };
+  const categories = [
+    { value: "all", label: "Kaikki" },
+    { value: "utility", label: "Työkalut" },
+    { value: "productivity", label: "Tuottavuus" },
+    { value: "education", label: "Opetus" },
+    { value: "entertainment", label: "Viihde" },
+    { value: "games", label: "Pelit" },
+    { value: "creativity", label: "Luovuus" },
+  ];
 
   if (loading) {
-    return <div className="p-6">Ladataan...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Ladataan...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
-            <Monitor className="w-8 h-8" />
-            Työpöytäympäristö
-          </h2>
-          <p className="text-gray-600 mt-1">
-            Hallinnoi Wilman työpöytäympäristöä ja sovelluksia
-          </p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Monitor className="w-8 h-8 text-[#003d82]" />
+                Työpöytä-hallinta
+              </h1>
+              <p className="text-gray-600 mt-1">Hallinnoi työpöytäsovelluksia ja asetuksia</p>
+            </div>
+            <Button
+              onClick={() => {
+                const storedUser = localStorage.getItem('wilma_user');
+                if (storedUser) {
+                  const user = JSON.parse(storedUser);
+                  setLocation(`/wilma-admin/${user.id}`);
+                }
+              }}
+              variant="outline"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Sulje
+            </Button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Sovelluksia yhteensä</p>
+                    <p className="text-2xl font-bold text-gray-900">{apps.length}</p>
+                  </div>
+                  <Grid className="w-8 h-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Aktiivisia</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {apps.filter(a => a.isActive).length}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Pois käytöstä</p>
+                    <p className="text-2xl font-bold text-gray-600">
+                      {apps.filter(a => !a.isActive).length}
+                    </p>
+                  </div>
+                  <AlertCircle className="w-8 h-8 text-gray-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Kategorioita</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {new Set(apps.map(a => a.category)).size}
+                    </p>
+                  </div>
+                  <Filter className="w-8 h-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="general">
-            <SettingsIcon className="w-4 h-4 mr-2" />
-            Yleiset asetukset
-          </TabsTrigger>
-          <TabsTrigger value="apps">
-            <AppWindow className="w-4 h-4 mr-2" />
-            Sovellukset
-          </TabsTrigger>
-          <TabsTrigger value="appearance">
-            <Palette className="w-4 h-4 mr-2" />
-            Ulkoasu
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="apps" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="apps">
+              <Grid className="w-4 h-4 mr-2" />
+              Sovellukset
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="w-4 h-4 mr-2" />
+              Asetukset
+            </TabsTrigger>
+            <TabsTrigger value="appearance">
+              <Palette className="w-4 h-4 mr-2" />
+              Ulkoasu
+            </TabsTrigger>
+          </TabsList>
 
-        {/* General Settings */}
-        <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Yleiset asetukset</CardTitle>
-              <CardDescription>
-                Ota työpöytäympäristö käyttöön ja määritä perusasetukset
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="enabled" className="text-base font-medium">
-                    Työpöytä käytössä
-                  </Label>
-                  <p className="text-sm text-gray-600">
-                    Ota työpöytäympäristö käyttöön kaikille käyttäjille
-                  </p>
-                </div>
-                <Switch
-                  id="enabled"
-                  checked={settings.enabled}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, enabled: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="customWallpaper" className="text-base font-medium">
-                    Salli mukautetut taustakuvat
-                  </Label>
-                  <p className="text-sm text-gray-600">
-                    Käyttäjät voivat vaihtaa työpöydän taustakuvan
-                  </p>
-                </div>
-                <Switch
-                  id="customWallpaper"
-                  checked={settings.allowCustomWallpaper}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, allowCustomWallpaper: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="customTheme" className="text-base font-medium">
-                    Salli mukautetut teemat
-                  </Label>
-                  <p className="text-sm text-gray-600">
-                    Käyttäjät voivat vaihtaa työpöydän teemaa
-                  </p>
-                </div>
-                <Switch
-                  id="customTheme"
-                  checked={settings.allowCustomTheme}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, allowCustomTheme: checked })
-                  }
-                />
-              </div>
-
-              <div className="pt-4">
-                <Button onClick={saveSettings} className="w-full">
-                  <Save className="w-4 h-4 mr-2" />
-                  Tallenna asetukset
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Apps Management */}
-        <TabsContent value="apps">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Sovellukset</CardTitle>
-                  <CardDescription>
-                    Hallinnoi työpöydän sovelluksia
-                  </CardDescription>
-                </div>
-                <Button
-                  onClick={() => {
-                    setEditingApp(defaultApp);
-                    setIsAppDialogOpen(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Lisää sovellus
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {apps.map((app) => (
-                  <div
-                    key={app.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
-                        {app.icon}
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{app.nameFi || app.name}</h4>
-                        <p className="text-sm text-gray-600">{app.category}</p>
-                      </div>
+          {/* Apps Tab */}
+          <TabsContent value="apps" className="space-y-4">
+            {/* Search and Filter */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Etsi sovelluksia..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col gap-1 mr-4">
-                        <label className="flex items-center gap-2 text-sm">
-                          <Switch
-                            checked={settings.availableApps.includes(app.appId)}
-                            onCheckedChange={() => toggleAppAvailability(app.appId)}
-                          />
-                          Saatavilla
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <Switch
-                            checked={settings.defaultApps.includes(app.appId)}
-                            onCheckedChange={() => toggleDefaultApp(app.appId)}
-                          />
-                          Oletussovellus
-                        </label>
-                      </div>
+                  </div>
+                  <div className="w-full md:w-48">
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button onClick={() => fetchApps()} variant="outline">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Päivitä
+                  </Button>
+                  <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Lisää sovellus
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Apps Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredApps.map(app => (
+                <Card key={app.id} className={`${!app.isActive && 'opacity-60'}`}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Monitor className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold">{app.nameFi}</p>
+                          <p className="text-xs text-gray-500 font-normal">{app.category}</p>
+                        </div>
+                      </span>
+                      <Switch
+                        checked={app.isActive}
+                        onCheckedChange={() => handleToggleApp(app.id!)}
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-gray-600 line-clamp-2">{app.descriptionFi}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="px-2 py-1 bg-gray-100 rounded">{app.appType}</span>
+                      <span className="px-2 py-1 bg-gray-100 rounded">{app.width}x{app.height}</span>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setEditingApp(app);
-                          setIsAppDialogOpen(true);
-                        }}
+                        className="flex-1"
+                        onClick={() => setEditingApp(app)}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit2 className="w-3 h-3 mr-1" />
+                        Muokkaa
                       </Button>
                       <Button
                         size="sm"
-                        variant="destructive"
-                        onClick={() => app.id && deleteApp(app.id)}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteApp(app.id!)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {filteredApps.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Ei sovelluksia löytynyt</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Yleiset asetukset</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Työpöytä käytössä</p>
+                    <p className="text-sm text-gray-600">Ota työpöytäympäristö käyttöön kaikille</p>
                   </div>
-                ))}
-              </div>
+                  <Switch
+                    checked={desktopSettings.enabled}
+                    onCheckedChange={(checked) =>
+                      setDesktopSettings({ ...desktopSettings, enabled: checked })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Salli mukautettu taustakuva</p>
+                    <p className="text-sm text-gray-600">Käyttäjät voivat vaihtaa taustakuvan</p>
+                  </div>
+                  <Switch
+                    checked={desktopSettings.allowCustomWallpaper}
+                    onCheckedChange={(checked) =>
+                      setDesktopSettings({ ...desktopSettings, allowCustomWallpaper: checked })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Salli mukautettu teema</p>
+                    <p className="text-sm text-gray-600">Käyttäjät voivat vaihtaa teeman</p>
+                  </div>
+                  <Switch
+                    checked={desktopSettings.allowCustomTheme}
+                    onCheckedChange={(checked) =>
+                      setDesktopSettings({ ...desktopSettings, allowCustomTheme: checked })
+                    }
+                  />
+                </div>
+                <div className="flex justify-end pt-4 border-t">
+                  <Button onClick={handleSaveSettings} className="bg-[#003d82] hover:bg-[#0052a3]">
+                    <Save className="w-4 h-4 mr-2" />
+                    Tallenna asetukset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <div className="mt-6">
-                <Button onClick={saveSettings} className="w-full">
-                  <Save className="w-4 h-4 mr-2" />
-                  Tallenna sovellusasetukset
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Appearance Tab */}
+          <TabsContent value="appearance" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ulkoasun asetukset</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Oletustaustakuva</Label>
+                  <Input
+                    value={desktopSettings.defaultWallpaper}
+                    onChange={(e) =>
+                      setDesktopSettings({ ...desktopSettings, defaultWallpaper: e.target.value })
+                    }
+                    placeholder="/KSYK-logo-desktop.png"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">URL tai polku taustakuvaan</p>
+                </div>
+                <div>
+                  <Label>Oletusteema</Label>
+                  <select
+                    value={desktopSettings.defaultTheme}
+                    onChange={(e) =>
+                      setDesktopSettings({ ...desktopSettings, defaultTheme: e.target.value })
+                    }
+                    className="w-full mt-1 p-2 border rounded-md"
+                  >
+                    <option value="light">Vaalea</option>
+                    <option value="dark">Tumma</option>
+                    <option value="auto">Automaattinen</option>
+                  </select>
+                </div>
+                <div className="flex justify-end pt-4 border-t">
+                  <Button onClick={handleSaveSettings} className="bg-[#003d82] hover:bg-[#0052a3]">
+                    <Save className="w-4 h-4 mr-2" />
+                    Tallenna ulkoasu
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        {/* Appearance */}
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ulkoasu</CardTitle>
-              <CardDescription>
-                Määritä oletusulkoasu työpöydälle
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="wallpaper">Oletustaustakuva (URL)</Label>
-                <Input
-                  id="wallpaper"
-                  value={settings.defaultWallpaper}
-                  onChange={(e) =>
-                    setSettings({ ...settings, defaultWallpaper: e.target.value })
-                  }
-                  placeholder="/wilma-bg.jpg"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="theme">Oletusteema</Label>
-                <Select
-                  value={settings.defaultTheme}
-                  onValueChange={(value) =>
-                    setSettings({ ...settings, defaultTheme: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Vaalea</SelectItem>
-                    <SelectItem value="dark">Tumma</SelectItem>
-                    <SelectItem value="blue">Sininen</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="pt-4">
-                <Button onClick={saveSettings} className="w-full">
-                  <Save className="w-4 h-4 mr-2" />
-                  Tallenna ulkoasuasetukset
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* App Edit Dialog */}
-      <Dialog open={isAppDialogOpen} onOpenChange={setIsAppDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingApp?.id ? "Muokkaa sovellusta" : "Lisää uusi sovellus"}
-            </DialogTitle>
-            <DialogDescription>
-              Määritä sovelluksen tiedot ja asetukset
-            </DialogDescription>
-          </DialogHeader>
-
-          {editingApp && (
-            <div className="space-y-4">
+      {/* Add App Dialog */}
+      {showAddDialog && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setShowAddDialog(false)}
+          />
+          
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white p-6 flex items-center justify-between">
+              <h3 className="font-bold text-2xl">Lisää uusi sovellus</h3>
+              <Button
+                onClick={() => setShowAddDialog(false)}
+                variant="ghost"
+                className="text-white hover:bg-white/20"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="appId">Sovellustunniste *</Label>
+                <div>
+                  <Label htmlFor="appId">Sovelluksen ID *</Label>
                   <Input
                     id="appId"
-                    value={editingApp.appId}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, appId: e.target.value })
-                    }
-                    placeholder="calculator"
+                    value={newApp.appId}
+                    onChange={(e) => setNewApp({ ...newApp, appId: e.target.value })}
+                    placeholder="esim. my-app"
                   />
                 </div>
-
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="icon">Ikoni</Label>
-                  <Input
+                  <select
                     id="icon"
-                    value={editingApp.icon}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, icon: e.target.value })
-                    }
-                    placeholder="calculator"
-                  />
+                    value={newApp.icon}
+                    onChange={(e) => setNewApp({ ...newApp, icon: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="globe">Globe</option>
+                    <option value="calculator">Calculator</option>
+                    <option value="notepad">Notepad</option>
+                    <option value="music">Music</option>
+                    <option value="image">Image</option>
+                    <option value="calendar">Calendar</option>
+                    <option value="clock">Clock</option>
+                    <option value="books">Books</option>
+                    <option value="video">Video</option>
+                    <option value="code">Code</option>
+                    <option value="terminal">Terminal</option>
+                    <option value="games">Games</option>
+                  </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="name">Nimi (EN) *</Label>
                   <Input
                     id="name"
-                    value={editingApp.name}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, name: e.target.value })
-                    }
+                    value={newApp.name}
+                    onChange={(e) => setNewApp({ ...newApp, name: e.target.value })}
+                    placeholder="App Name"
                   />
                 </div>
-
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="nameFi">Nimi (FI) *</Label>
                   <Input
                     id="nameFi"
-                    value={editingApp.nameFi}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, nameFi: e.target.value })
-                    }
+                    value={newApp.nameFi}
+                    onChange={(e) => setNewApp({ ...newApp, nameFi: e.target.value })}
+                    placeholder="Sovelluksen nimi"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Kuvaus (EN)</Label>
-                <Textarea
-                  id="description"
-                  value={editingApp.description}
-                  onChange={(e) =>
-                    setEditingApp({ ...editingApp, description: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="descriptionFi">Kuvaus (FI)</Label>
-                <Textarea
-                  id="descriptionFi"
-                  value={editingApp.descriptionFi}
-                  onChange={(e) =>
-                    setEditingApp({ ...editingApp, descriptionFi: e.target.value })
-                  }
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="description">Kuvaus (EN)</Label>
+                  <Textarea
+                    id="description"
+                    value={newApp.description}
+                    onChange={(e) => setNewApp({ ...newApp, description: e.target.value })}
+                    placeholder="App description"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="descriptionFi">Kuvaus (FI)</Label>
+                  <Textarea
+                    id="descriptionFi"
+                    value={newApp.descriptionFi}
+                    onChange={(e) => setNewApp({ ...newApp, descriptionFi: e.target.value })}
+                    placeholder="Sovelluksen kuvaus"
+                    rows={2}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="category">Kategoria</Label>
-                  <Select
-                    value={editingApp.category}
-                    onValueChange={(value) =>
-                      setEditingApp({ ...editingApp, category: value })
-                    }
+                  <select
+                    id="category"
+                    value={newApp.category}
+                    onChange={(e) => setNewApp({ ...newApp, category: e.target.value })}
+                    className="w-full p-2 border rounded-md"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="utility">Työkalut</SelectItem>
-                      <SelectItem value="education">Opetus</SelectItem>
-                      <SelectItem value="entertainment">Viihde</SelectItem>
-                      <SelectItem value="productivity">Tuottavuus</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="utility">Työkalut</option>
+                    <option value="productivity">Tuottavuus</option>
+                    <option value="education">Opetus</option>
+                    <option value="entertainment">Viihde</option>
+                    <option value="games">Pelit</option>
+                    <option value="creativity">Luovuus</option>
+                  </select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="appType">Sovellustyyppi</Label>
-                  <Select
-                    value={editingApp.appType}
-                    onValueChange={(value: any) =>
-                      setEditingApp({ ...editingApp, appType: value })
-                    }
+                <div>
+                  <Label htmlFor="appType">Tyyppi</Label>
+                  <select
+                    id="appType"
+                    value={newApp.appType}
+                    onChange={(e) => setNewApp({ ...newApp, appType: e.target.value as "iframe" | "component" | "external" })}
+                    className="w-full p-2 border rounded-md"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="iframe">IFrame</SelectItem>
-                      <SelectItem value="component">Komponentti</SelectItem>
-                      <SelectItem value="external">Ulkoinen</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="iframe">IFrame</option>
+                    <option value="component">Komponentti</option>
+                    <option value="external">Ulkoinen</option>
+                  </select>
                 </div>
               </div>
 
-              {editingApp.appType === "iframe" && (
-                <div className="space-y-2">
-                  <Label htmlFor="appUrl">Sovelluksen URL</Label>
+              {newApp.appType === "iframe" && (
+                <div>
+                  <Label htmlFor="appUrl">URL *</Label>
                   <Input
                     id="appUrl"
-                    value={editingApp.appUrl || ""}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, appUrl: e.target.value })
-                    }
-                    placeholder="https://example.com/app"
-                  />
-                </div>
-              )}
-
-              {editingApp.appType === "component" && (
-                <div className="space-y-2">
-                  <Label htmlFor="componentName">Komponentin nimi</Label>
-                  <Input
-                    id="componentName"
-                    value={editingApp.componentName || ""}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, componentName: e.target.value })
-                    }
-                    placeholder="CalculatorApp"
+                    value={newApp.appUrl}
+                    onChange={(e) => setNewApp({ ...newApp, appUrl: e.target.value })}
+                    placeholder="https://example.com"
                   />
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="width">Leveys (px)</Label>
                   <Input
                     id="width"
                     type="number"
-                    value={editingApp.width}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, width: parseInt(e.target.value) })
-                    }
+                    value={newApp.width}
+                    onChange={(e) => setNewApp({ ...newApp, width: parseInt(e.target.value) })}
                   />
                 </div>
-
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="height">Korkeus (px)</Label>
                   <Input
                     id="height"
                     type="number"
-                    value={editingApp.height}
-                    onChange={(e) =>
-                      setEditingApp({ ...editingApp, height: parseInt(e.target.value) })
-                    }
+                    value={newApp.height}
+                    onChange={(e) => setNewApp({ ...newApp, height: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
 
               <div className="flex gap-4">
-                <label className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Switch
-                    checked={editingApp.resizable}
-                    onCheckedChange={(checked) =>
-                      setEditingApp({ ...editingApp, resizable: checked })
-                    }
+                    checked={newApp.resizable}
+                    onCheckedChange={(checked) => setNewApp({ ...newApp, resizable: checked })}
                   />
-                  <span className="text-sm">Koon muutos</span>
-                </label>
+                  <Label>Koon muutos</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={newApp.minimizable}
+                    onCheckedChange={(checked) => setNewApp({ ...newApp, minimizable: checked })}
+                  />
+                  <Label>Pienennys</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={newApp.maximizable}
+                    onCheckedChange={(checked) => setNewApp({ ...newApp, maximizable: checked })}
+                  />
+                  <Label>Suurennus</Label>
+                </div>
+              </div>
 
-                <label className="flex items-center gap-2">
-                  <Switch
-                    checked={editingApp.minimizable}
-                    onCheckedChange={(checked) =>
-                      setEditingApp({ ...editingApp, minimizable: checked })
-                    }
-                  />
-                  <span className="text-sm">Pienennys</span>
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <Switch
-                    checked={editingApp.maximizable}
-                    onCheckedChange={(checked) =>
-                      setEditingApp({ ...editingApp, maximizable: checked })
-                    }
-                  />
-                  <span className="text-sm">Suurennus</span>
-                </label>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => setShowAddDialog(false)}
+                  variant="outline"
+                >
+                  Peruuta
+                </Button>
+                <Button
+                  onClick={handleAddApp}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Lisää sovellus
+                </Button>
               </div>
             </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAppDialogOpen(false)}>
-              Peruuta
-            </Button>
-            <Button onClick={saveApp}>
-              <Save className="w-4 h-4 mr-2" />
-              Tallenna
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </>
+      )}
     </div>
   );
 }

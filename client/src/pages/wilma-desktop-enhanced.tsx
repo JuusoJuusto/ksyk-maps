@@ -25,6 +25,11 @@ import {
   Home,
 } from "lucide-react";
 
+// Import desktop app components
+import CalculatorApp from "@/components/desktop-apps/CalculatorApp";
+import NotepadApp from "@/components/desktop-apps/NotepadApp";
+import ClockApp from "@/components/desktop-apps/ClockApp";
+
 interface DesktopApp {
   id: string;
   appId: string;
@@ -445,18 +450,55 @@ export default function WilmaDesktopEnhanced() {
                 />
               )}
               {window.app.appType === "component" && (
-                <div className="p-6">
-                  <div className="text-center">
-                    <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      {getIconComponent(window.app.icon)}
+                <div className="h-full">
+                  {window.app.appId === "calculator" && <CalculatorApp />}
+                  {window.app.appId === "notepad" && <NotepadApp />}
+                  {window.app.appId === "clock" && <ClockApp />}
+                  {window.app.appId === "calendar" && (
+                    <div className="p-6">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          {getIconComponent(window.app.icon)}
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {window.app.nameFi || window.app.name}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {window.app.description}
+                        </p>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {window.app.nameFi || window.app.name}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      {window.app.description}
-                    </p>
-                  </div>
+                  )}
+                  {window.app.appId === "settings" && (
+                    <div className="p-6">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          {getIconComponent(window.app.icon)}
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {window.app.nameFi || window.app.name}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {window.app.description}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!["calculator", "notepad", "clock", "calendar", "settings"].includes(window.app.appId) && (
+                    <div className="p-6">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          {getIconComponent(window.app.icon)}
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {window.app.nameFi || window.app.name}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {window.app.description}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               

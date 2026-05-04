@@ -821,7 +821,7 @@ export default function WilmaAdminSettings() {
                         if (storedUser) {
                           try {
                             const user = JSON.parse(storedUser);
-                            setLocation(`/wilma-admin/${user.id}/desktop`);
+                            setLocation(`/wilma-admin/${user.id}/desktop-manager`);
                           } catch (e) {
                             toast({
                               title: "Virhe",
