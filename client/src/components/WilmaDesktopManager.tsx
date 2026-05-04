@@ -173,11 +173,46 @@ export default function WilmaDesktopManager() {
         title: app.isActive ? "Poistettu käytöstä" : "Otettu käyttöön",
         description: `${app.nameFi} ${app.isActive ? "poistettu käytöstä" : "otettu käyttöön"}`,
       });
+      
+      // Refresh apps list
+      await fetchApps();
     } catch (error) {
       console.error("Error toggling app:", error);
       toast({
         title: "Virhe",
         description: "Sovelluksen tilan muutos epäonnistui",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditApp = async () => {
+    if (!editingApp || !editingApp.id) return;
+
+    try {
+      const response = await fetch(`/api/wilma/desktop/apps/${editingApp.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingApp),
+      });
+
+      if (!response.ok) throw new Error("Failed to update app");
+
+      setApps(apps.map(a => a.id === editingApp.id ? editingApp : a));
+      setEditingApp(null);
+
+      toast({
+        title: "Päivitetty!",
+        description: "Sovellus on päivitetty onnistuneesti",
+      });
+      
+      // Refresh apps list
+      await fetchApps();
+    } catch (error) {
+      console.error("Error updating app:", error);
+      toast({
+        title: "Virhe",
+        description: "Sovelluksen päivitys epäonnistui",
         variant: "destructive",
       });
     }
@@ -455,15 +490,15 @@ export default function WilmaDesktopManager() {
                       <span className="px-2 py-1 bg-gray-100 rounded">{app.width}x{app.height}</span>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setEditingApp(app)}
-                      >
-                        <Edit2 className="w-3 h-3 mr-1" />
-                        Muokkaa
-                      </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setEditingApp(app)}
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" />
+                    Muokkaa
+                  </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -585,6 +620,210 @@ export default function WilmaDesktopManager() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit App Dialog */}
+      {editingApp && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setEditingApp(null)}
+          />
+          
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-[#003d82] to-[#0052a3] text-white p-6 flex items-center justify-between">
+              <h3 className="font-bold text-2xl">Muokkaa sovellusta</h3>
+              <Button
+                onClick={() => setEditingApp(null)}
+                variant="ghost"
+                className="text-white hover:bg-white/20"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-appId">Sovelluksen ID</Label>
+                  <Input
+                    id="edit-appId"
+                    value={editingApp.appId}
+                    onChange={(e) => setEditingApp({ ...editingApp, appId: e.target.value })}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-icon">Ikoni</Label>
+                  <select
+                    id="edit-icon"
+                    value={editingApp.icon}
+                    onChange={(e) => setEditingApp({ ...editingApp, icon: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="globe">Globe</option>
+                    <option value="calculator">Calculator</option>
+                    <option value="notepad">Notepad</option>
+                    <option value="music">Music</option>
+                    <option value="image">Image</option>
+                    <option value="calendar">Calendar</option>
+                    <option value="clock">Clock</option>
+                    <option value="books">Books</option>
+                    <option value="video">Video</option>
+                    <option value="code">Code</option>
+                    <option value="terminal">Terminal</option>
+                    <option value="games">Games</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Nimi (EN)</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingApp.name}
+                    onChange={(e) => setEditingApp({ ...editingApp, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-nameFi">Nimi (FI)</Label>
+                  <Input
+                    id="edit-nameFi"
+                    value={editingApp.nameFi}
+                    onChange={(e) => setEditingApp({ ...editingApp, nameFi: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-description">Kuvaus (EN)</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingApp.description}
+                    onChange={(e) => setEditingApp({ ...editingApp, description: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-descriptionFi">Kuvaus (FI)</Label>
+                  <Textarea
+                    id="edit-descriptionFi"
+                    value={editingApp.descriptionFi}
+                    onChange={(e) => setEditingApp({ ...editingApp, descriptionFi: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-category">Kategoria</Label>
+                  <select
+                    id="edit-category"
+                    value={editingApp.category}
+                    onChange={(e) => setEditingApp({ ...editingApp, category: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="utility">Työkalut</option>
+                    <option value="productivity">Tuottavuus</option>
+                    <option value="education">Opetus</option>
+                    <option value="entertainment">Viihde</option>
+                    <option value="games">Pelit</option>
+                    <option value="creativity">Luovuus</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-appType">Tyyppi</Label>
+                  <select
+                    id="edit-appType"
+                    value={editingApp.appType}
+                    onChange={(e) => setEditingApp({ ...editingApp, appType: e.target.value as "iframe" | "component" | "external" })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="iframe">IFrame</option>
+                    <option value="component">Komponentti</option>
+                    <option value="external">Ulkoinen</option>
+                  </select>
+                </div>
+              </div>
+
+              {editingApp.appType === "iframe" && (
+                <div>
+                  <Label htmlFor="edit-appUrl">URL</Label>
+                  <Input
+                    id="edit-appUrl"
+                    value={editingApp.appUrl || ""}
+                    onChange={(e) => setEditingApp({ ...editingApp, appUrl: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-width">Leveys (px)</Label>
+                  <Input
+                    id="edit-width"
+                    type="number"
+                    value={editingApp.width}
+                    onChange={(e) => setEditingApp({ ...editingApp, width: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-height">Korkeus (px)</Label>
+                  <Input
+                    id="edit-height"
+                    type="number"
+                    value={editingApp.height}
+                    onChange={(e) => setEditingApp({ ...editingApp, height: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editingApp.resizable}
+                    onCheckedChange={(checked) => setEditingApp({ ...editingApp, resizable: checked })}
+                  />
+                  <Label>Koon muutos</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editingApp.minimizable}
+                    onCheckedChange={(checked) => setEditingApp({ ...editingApp, minimizable: checked })}
+                  />
+                  <Label>Pienennys</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editingApp.maximizable}
+                    onCheckedChange={(checked) => setEditingApp({ ...editingApp, maximizable: checked })}
+                  />
+                  <Label>Suurennus</Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => setEditingApp(null)}
+                  variant="outline"
+                >
+                  Peruuta
+                </Button>
+                <Button
+                  onClick={handleEditApp}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Tallenna muutokset
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Add App Dialog */}
       {showAddDialog && (

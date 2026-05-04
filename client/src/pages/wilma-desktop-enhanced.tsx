@@ -118,6 +118,18 @@ export default function WilmaDesktopEnhanced() {
     try {
       console.log('🖥️ Fetching desktop data for user:', id);
       
+      // Fetch desktop settings from admin settings
+      const adminSettingsRes = await fetch("/api/wilma/settings");
+      let desktopWallpaper = "/KSYK-logo-desktop.png";
+      let desktopTheme = "dark";
+      
+      if (adminSettingsRes.ok) {
+        const adminSettings = await adminSettingsRes.json();
+        desktopWallpaper = adminSettings.desktopWallpaper || "/KSYK-logo-desktop.png";
+        desktopTheme = adminSettings.desktopTheme || "dark";
+        console.log('✅ Loaded wallpaper from admin settings:', desktopWallpaper);
+      }
+      
       const settingsRes = await fetch("/api/wilma/desktop/settings");
       if (!settingsRes.ok) {
         throw new Error("Failed to fetch desktop settings");
@@ -143,28 +155,35 @@ export default function WilmaDesktopEnhanced() {
       const apps = await appsRes.json();
       console.log('✅ Fetched apps:', apps.length);
       
-      if (apps.length === 0) {
+      // Filter only active apps
+      const activeApps = apps.filter((app: DesktopApp) => app.isActive);
+      console.log('✅ Active apps:', activeApps.length);
+      
+      if (activeApps.length === 0) {
         toast({
           title: "Ei sovelluksia",
-          description: "Työpöydällä ei ole vielä sovelluksia.",
+          description: "Työpöydällä ei ole vielä aktiivisia sovelluksia.",
           variant: "destructive",
         });
       }
       
-      setAvailableApps(apps);
+      setAvailableApps(activeApps);
 
       const configRes = await fetch(`/api/wilma/desktop/config/${id}`);
       if (!configRes.ok) {
         const defaultConfig: DesktopConfig = {
-          wallpaper: "/KSYK-logo-desktop.png",
-          theme: "dark",
-          installedApps: apps.map((app: DesktopApp) => app.appId),
+          wallpaper: desktopWallpaper,
+          theme: desktopTheme,
+          installedApps: activeApps.map((app: DesktopApp) => app.appId),
           desktopLayout: {},
-          pinnedApps: apps.slice(0, 8).map((app: DesktopApp) => app.appId),
+          pinnedApps: activeApps.slice(0, 8).map((app: DesktopApp) => app.appId),
         };
         setUserConfig(defaultConfig);
       } else {
         const config = await configRes.json();
+        // Override with admin settings wallpaper
+        config.wallpaper = desktopWallpaper;
+        config.theme = desktopTheme;
         setUserConfig(config);
       }
 

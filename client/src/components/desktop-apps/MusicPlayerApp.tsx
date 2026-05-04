@@ -40,9 +40,23 @@ export default function MusicPlayerApp() {
     },
     {
       id: 4,
+      title: "White Noise",
+      artist: "Ambient Sounds",
+      url: "https://www.youtube.com/embed/nMfPqeZjc2c?autoplay=1&loop=1&playlist=nMfPqeZjc2c",
+      duration: "LIVE"
+    },
+    {
+      id: 5,
       title: "Nature Sounds",
       artist: "Ambient",
       url: "https://www.youtube.com/embed/eKFTSSKCzWA?autoplay=1",
+      duration: "LIVE"
+    },
+    {
+      id: 6,
+      title: "Rain Sounds",
+      artist: "Nature",
+      url: "https://www.youtube.com/embed/q76bMs-NwRk?autoplay=1",
       duration: "LIVE"
     }
   ];
