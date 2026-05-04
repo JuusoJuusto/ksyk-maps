@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Timer, Alarm } from "lucide-react";
+import { Clock, Timer, Bell } from "lucide-react";
 
 export default function ClockApp() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -150,7 +150,7 @@ export default function ClockApp() {
                   onClick={startTimer}
                   className="bg-green-600 hover:bg-green-700 px-12 py-6 text-xl"
                 >
-                  <Alarm className="w-6 h-6 mr-2" />
+                  <Bell className="w-6 h-6 mr-2" />
                   Käynnistä ajastin
                 </Button>
               </>
