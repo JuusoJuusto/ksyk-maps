@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   School, Mail, Server, Globe, Calendar, Clock, 
   Shield, Bell, Database, Settings, Save, Check,
-  AlertCircle, Users, BookOpen, GraduationCap
+  AlertCircle, Users, BookOpen, GraduationCap, User
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 export default function WilmaAdminSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -239,7 +241,11 @@ export default function WilmaAdminSettings() {
       </div>
 
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 gap-1">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-11 gap-1">
+          <TabsTrigger value="personal">
+            <User className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Omat</span>
+          </TabsTrigger>
           <TabsTrigger value="school">
             <School className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Koulu</span>
@@ -281,6 +287,158 @@ export default function WilmaAdminSettings() {
             <span className="hidden sm:inline">Turvallisuus</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Personal Settings Tab - NEW */}
+        <TabsContent value="personal" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex items-center gap-2 text-[#003d82]">
+                <User className="w-5 h-5" />
+                Omat asetukset
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {/* Profile Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Profiili</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">Etunimi</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="Etunimi"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Sukunimi</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Sukunimi"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Sähköposti</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="email@example.com"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Puhelinnumero</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+358 40 123 4567"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Change Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Salasanan vaihto</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="currentPassword">Nykyinen salasana</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div></div>
+                  <div>
+                    <Label htmlFor="newPassword">Uusi salasana</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPassword">Vahvista uusi salasana</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <Button className="bg-[#003d82] hover:bg-[#0052a3]">
+                  <Save className="w-4 h-4 mr-2" />
+                  Vaihda salasana
+                </Button>
+              </div>
+
+              {/* Preferences Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Asetukset</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Tumma tila</p>
+                      <p className="text-sm text-gray-600">Käytä tummaa teemaa</p>
+                    </div>
+                    <Switch />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Sähköposti-ilmoitukset</p>
+                      <p className="text-sm text-gray-600">Vastaanota ilmoituksia sähköpostitse</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Push-ilmoitukset</p>
+                      <p className="text-sm text-gray-600">Vastaanota push-ilmoituksia</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Automaattinen kirjautuminen</p>
+                      <p className="text-sm text-gray-600">Pysy kirjautuneena sisään</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+              </div>
+
+              {/* Language Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Kieli</h3>
+                <div>
+                  <Label htmlFor="language">Käyttöliittymän kieli</Label>
+                  <select
+                    id="language"
+                    className="w-full mt-1 p-2 border rounded-md"
+                  >
+                    <option value="fi">Suomi</option>
+                    <option value="en">English</option>
+                    <option value="sv">Svenska</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end pt-4 border-t">
+                <Button className="bg-[#003d82] hover:bg-[#0052a3]">
+                  <Save className="w-4 h-4 mr-2" />
+                  Tallenna muutokset
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* School Information Tab */}
         <TabsContent value="school" className="space-y-4 mt-6">
@@ -658,8 +816,20 @@ export default function WilmaAdminSettings() {
                     </p>
                     <Button
                       onClick={() => {
-                        // Navigate to desktop manager
-                        window.location.href = '/wilma-admin#desktop-manager';
+                        // Get current user ID from localStorage
+                        const storedUser = localStorage.getItem('wilma_user');
+                        if (storedUser) {
+                          try {
+                            const user = JSON.parse(storedUser);
+                            setLocation(`/wilma-admin/${user.id}/desktop`);
+                          } catch (e) {
+                            toast({
+                              title: "Virhe",
+                              description: "Käyttäjätietoja ei löytynyt",
+                              variant: "destructive",
+                            });
+                          }
+                        }
                       }}
                       className="bg-[#003d82] hover:bg-[#0052a3]"
                     >

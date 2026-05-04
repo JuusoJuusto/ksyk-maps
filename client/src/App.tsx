@@ -37,7 +37,7 @@ import WilmaParent from "@/pages/wilma-parent";
 import WilmaRouter from "@/pages/wilma-router";
 import WilmaAdmin from "@/pages/wilma-admin-new";
 import WilmaSupportStaff from "@/pages/wilma-support-staff";
-import WilmaDesktop from "@/pages/wilma-desktop";
+import WilmaDesktopEnhanced from "@/pages/wilma-desktop-enhanced";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
 import ClassDetail from "@/pages/class-detail";
@@ -85,13 +85,13 @@ function Router() {
       <Route path="/wilma/reset-password" component={ResetPassword} />
       
       {/* Student/Parent routes - Use studentId (6-digit) */}
-      <Route path="/wilma/:studentId/desktop" component={WilmaDesktop} />
+      <Route path="/wilma/:studentId/desktop" component={WilmaDesktopEnhanced} />
       <Route path="/wilma/:studentId/chess" component={ChessPage} />
       <Route path="/wilma/:studentId/:section" component={WilmaRouter} />
       <Route path="/wilma/:studentId" component={WilmaRouter} />
       
       {/* Admin/Teacher routes - Use Firebase ID */}
-      <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktop} />
+      <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktopEnhanced} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
       <Route path="/wilma-admin/:adminId/groups/:groupId" component={ClassDetail} />
       <Route path="/wilma-admin/:adminId/chess" component={ChessPage} />
