@@ -29,6 +29,11 @@ import {
 import CalculatorApp from "@/components/desktop-apps/CalculatorApp";
 import NotepadApp from "@/components/desktop-apps/NotepadApp";
 import ClockApp from "@/components/desktop-apps/ClockApp";
+import PaintApp from "@/components/desktop-apps/PaintApp";
+import MusicPlayerApp from "@/components/desktop-apps/MusicPlayerApp";
+import CalendarApp from "@/components/desktop-apps/CalendarApp";
+import FileManagerApp from "@/components/desktop-apps/FileManagerApp";
+import SettingsApp from "@/components/desktop-apps/SettingsApp";
 
 interface DesktopApp {
   id: string;
@@ -336,12 +341,13 @@ export default function WilmaDesktopEnhanced() {
     >
       {/* Desktop Background with KSYK Logo */}
       <div 
-        className="absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none"
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
         style={{
           backgroundImage: `url(${wallpaper})`,
           backgroundSize: "400px auto",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
+          opacity: 0.25,
         }}
       />
       
@@ -454,37 +460,12 @@ export default function WilmaDesktopEnhanced() {
                   {window.app.appId === "calculator" && <CalculatorApp />}
                   {window.app.appId === "notepad" && <NotepadApp />}
                   {window.app.appId === "clock" && <ClockApp />}
-                  {window.app.appId === "calendar" && (
-                    <div className="p-6">
-                      <div className="text-center">
-                        <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                          {getIconComponent(window.app.icon)}
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {window.app.nameFi || window.app.name}
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          {window.app.description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {window.app.appId === "settings" && (
-                    <div className="p-6">
-                      <div className="text-center">
-                        <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                          {getIconComponent(window.app.icon)}
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {window.app.nameFi || window.app.name}
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          {window.app.description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {!["calculator", "notepad", "clock", "calendar", "settings"].includes(window.app.appId) && (
+                  {window.app.appId === "paint" && <PaintApp />}
+                  {window.app.appId === "music-player" && <MusicPlayerApp />}
+                  {window.app.appId === "calendar" && <CalendarApp />}
+                  {window.app.appId === "file-manager" && <FileManagerApp />}
+                  {window.app.appId === "settings" && <SettingsApp />}
+                  {!["calculator", "notepad", "clock", "paint", "music-player", "calendar", "file-manager", "settings"].includes(window.app.appId) && (
                     <div className="p-6">
                       <div className="text-center">
                         <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">

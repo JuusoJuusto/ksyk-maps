@@ -785,38 +785,135 @@ export default function WilmaAdminSettings() {
               </div>
 
               {settings.desktopEnabled && (
-                <div className="space-y-4 border-t pt-4">
-                  <div>
-                    <Label htmlFor="desktopWallpaper">Oletustapetti (URL)</Label>
-                    <Input
-                      id="desktopWallpaper"
-                      value={settings.desktopWallpaper || '/wilma-bg.jpg'}
-                      onChange={(e) => setSettings({ ...settings, desktopWallpaper: e.target.value })}
-                      placeholder="/wilma-bg.jpg"
-                    />
+                <div className="space-y-6 border-t pt-6">
+                  {/* Wallpaper Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Taustakuva-asetukset</h3>
+                    
+                    <div>
+                      <Label htmlFor="desktopWallpaper">Taustakuva (URL tai polku)</Label>
+                      <Input
+                        id="desktopWallpaper"
+                        value={settings.desktopWallpaper || '/KSYK-logo-desktop.png'}
+                        onChange={(e) => setSettings({ ...settings, desktopWallpaper: e.target.value })}
+                        placeholder="/KSYK-logo-desktop.png"
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Käytä KSYK-logoa: /KSYK-logo-desktop.png tai omaa kuvaa
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        onClick={() => setSettings({ ...settings, desktopWallpaper: '/KSYK-logo-desktop.png' })}
+                        className="p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-all"
+                      >
+                        <div className="aspect-video bg-black rounded flex items-center justify-center mb-2">
+                          <span className="text-white text-xs">KSYK Logo</span>
+                        </div>
+                        <p className="text-xs text-center">Oletus</p>
+                      </button>
+                      <button
+                        onClick={() => setSettings({ ...settings, desktopWallpaper: '/wilma-bg.jpg' })}
+                        className="p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-all"
+                      >
+                        <div className="aspect-video bg-gradient-to-br from-blue-900 to-blue-700 rounded mb-2"></div>
+                        <p className="text-xs text-center">Wilma</p>
+                      </button>
+                      <button
+                        onClick={() => setSettings({ ...settings, desktopWallpaper: '' })}
+                        className="p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-all"
+                      >
+                        <div className="aspect-video bg-black rounded mb-2"></div>
+                        <p className="text-xs text-center">Musta</p>
+                      </button>
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="desktopTheme">Teema</Label>
-                    <select
-                      id="desktopTheme"
-                      value={settings.desktopTheme || 'light'}
-                      onChange={(e) => setSettings({ ...settings, desktopTheme: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="light">Vaalea</option>
-                      <option value="dark">Tumma</option>
-                      <option value="auto">Automaattinen</option>
-                    </select>
+                  {/* Theme Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Teema-asetukset</h3>
+                    
+                    <div>
+                      <Label htmlFor="desktopTheme">Työpöydän teema</Label>
+                      <select
+                        id="desktopTheme"
+                        value={settings.desktopTheme || 'dark'}
+                        onChange={(e) => setSettings({ ...settings, desktopTheme: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                      >
+                        <option value="dark">Tumma (suositeltu)</option>
+                        <option value="light">Vaalea</option>
+                        <option value="auto">Automaattinen</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-sm text-green-800 mb-3">
-                      <strong>Hallinnoi sovelluksia:</strong> Siirry Työpöytä-hallintaan lisätäksesi, muokataksesi tai poistaaksesi sovelluksia.
-                    </p>
+                  {/* Window Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Ikkunoiden asetukset</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">Läpinäkyvät ikkunat</p>
+                          <p className="text-xs text-gray-600">Ikkunoiden taustat ovat hieman läpinäkyviä</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">Animaatiot</p>
+                          <p className="text-xs text-gray-600">Ikkunoiden avaus- ja sulkemisanimaatiot</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">Varjot</p>
+                          <p className="text-xs text-gray-600">Ikkunoiden varjostukset</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Suorituskyky</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">Korkea suorituskyky</p>
+                          <p className="text-xs text-gray-600">Vähemmän visuaalisia efektejä, parempi suorituskyky</p>
+                        </div>
+                        <Switch />
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">Rajoita avoimia ikkunoita</p>
+                          <p className="text-xs text-gray-600">Maksimi 10 ikkunaa kerralla</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Manager Button */}
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <Settings className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">Työpöytä-hallinta</p>
+                        <p className="text-sm text-gray-700">
+                          Hallinnoi sovelluksia, lisää uusia sovelluksia, muokkaa olemassa olevia ja mukauta työpöytää täysin.
+                        </p>
+                      </div>
+                    </div>
                     <Button
                       onClick={() => {
-                        // Get current user ID from localStorage
                         const storedUser = localStorage.getItem('wilma_user');
                         if (storedUser) {
                           try {
@@ -831,11 +928,27 @@ export default function WilmaAdminSettings() {
                           }
                         }
                       }}
-                      className="bg-[#003d82] hover:bg-[#0052a3]"
+                      className="w-full bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#003d82] text-white font-semibold"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       Avaa Työpöytä-hallinta
                     </Button>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-blue-600">25+</p>
+                      <p className="text-xs text-blue-700">Sovellusta</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-green-600">6</p>
+                      <p className="text-xs text-green-700">Toiminnallista</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-purple-600">100%</p>
+                      <p className="text-xs text-purple-700">Mukautettava</p>
+                    </div>
                   </div>
                 </div>
               )}
