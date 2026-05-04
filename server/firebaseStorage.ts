@@ -3372,11 +3372,17 @@ export class FirebaseStorage implements IStorage {
   
   async getWilmaDesktopApps(): Promise<any[]> {
     try {
-      const snapshot = await db.collection('wilmaDesktopApps')
-        .where('isActive', '==', true)
-        .orderBy('sortOrder', 'asc')
-        .get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('🔍 Fetching desktop apps from Firebase...');
+      const snapshot = await db.collection('wilmaDesktopApps').get();
+      const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter and sort in memory to avoid Firebase index requirement
+      const activeApps = apps
+        .filter((app: any) => app.isActive !== false)
+        .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      
+      console.log(`✅ Found ${activeApps.length} active desktop apps`);
+      return activeApps;
     } catch (error) {
       console.error('Error getting desktop apps:', error);
       return [];
