@@ -1,0 +1,18 @@
+FORCE VERCEL DEPLOYMENT - May 6, 2026 - 23:59 UTC
+
+This file forces Vercel to rebuild with the latest commits.
+
+CRITICAL FIXES INCLUDED:
+- All 70+ TypeScript errors resolved
+- Missing storage interface methods added
+- passwordResetToken field added to User schema
+- Proprietary LICENSE updated
+- README updated with no installation guide
+
+COMMIT: b2947b3
+PREVIOUS COMMITS:
+- 4ab6ba6: TypeScript fixes
+- 5a72872: README/LICENSE updates
+- ce944ed: Cache disable (OLD - Vercel used this by mistake)
+
+DEPLOYMENT SHOULD NOW SUCCEED WITH ZERO TYPESCRIPT ERRORS!
