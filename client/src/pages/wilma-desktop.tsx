@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { AppRenderer } from "@/components/desktop-apps/AppRegistry";
 import {
   Maximize2,
   Minimize2,
@@ -28,6 +29,14 @@ import {
   Palette,
   Cpu,
   MessageSquare,
+  Users,
+  Cloud,
+  HardDrive,
+  Box,
+  Brain,
+  GraduationCap,
+  Trello,
+  Figma as FigmaIcon,
 } from "lucide-react";
 
 interface DesktopApp {
@@ -102,7 +111,25 @@ const iconMap: Record<string, any> = {
   word: FileText,
   powerpoint: FileText,
   outlook: Mail,
-  teams: Video,
+  teams: Users,
+  // New app icons
+  wilma: GraduationCap,
+  zoom: Video,
+  github: Code,
+  slack: MessageSquare,
+  onedrive: Cloud,
+  googledrive: HardDrive,
+  googlemeet: Video,
+  dropbox: Box,
+  notion: FileText,
+  trello: Trello,
+  figma: FigmaIcon,
+  canva: Palette,
+  coursera: GraduationCap,
+  udemy: Video,
+  khanacademy: BookOpen,
+  quizlet: Brain,
+  duolingo: Globe,
 };
 
 export default function WilmaDesktop() {
@@ -120,6 +147,14 @@ export default function WilmaDesktop() {
   const [highestZIndex, setHighestZIndex] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
+  
+  // Windows-like features
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [snapZone, setSnapZone] = useState<'left' | 'right' | 'top' | null>(null);
+  const [showQuickSettings, setShowQuickSettings] = useState(false);
+  const [currentDesktop, setCurrentDesktop] = useState(1);
+  const [totalDesktops] = useState(4); // Virtual desktops
 
   useEffect(() => {
     fetchDesktopData();
@@ -252,6 +287,59 @@ export default function WilmaDesktop() {
     return <IconComponent className="w-6 h-6" />;
   };
 
+  // Windows Snap feature
+  const handleWindowSnap = (windowId: string, zone: 'left' | 'right' | 'top') => {
+    setOpenWindows(openWindows.map(w => {
+      if (w.id !== windowId) return w;
+      
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight - 56; // Subtract taskbar height
+      
+      let newPosition = { x: 0, y: 0 };
+      let newSize = { width: 0, height: 0 };
+      
+      switch (zone) {
+        case 'left':
+          newPosition = { x: 0, y: 0 };
+          newSize = { width: screenWidth / 2, height: screenHeight };
+          break;
+        case 'right':
+          newPosition = { x: screenWidth / 2, y: 0 };
+          newSize = { width: screenWidth / 2, height: screenHeight };
+          break;
+        case 'top':
+          newPosition = { x: 0, y: 0 };
+          newSize = { width: screenWidth, height: screenHeight };
+          break;
+      }
+      
+      return {
+        ...w,
+        position: newPosition,
+        size: newSize,
+        isMaximized: zone === 'top',
+      };
+    }));
+    
+    toast({
+      title: "✨ Ikkuna kohdistettu",
+      description: `Ikkuna kohdistettu ${zone === 'left' ? 'vasemmalle' : zone === 'right' ? 'oikealle' : 'koko näytölle'}`,
+    });
+  };
+
+  // Virtual Desktop switching
+  const switchDesktop = (desktopNumber: number) => {
+    if (desktopNumber < 1 || desktopNumber > totalDesktops) return;
+    setCurrentDesktop(desktopNumber);
+    toast({
+      title: `🖥️ Työpöytä ${desktopNumber}`,
+      description: `Vaihdettu työpöydälle ${desktopNumber}`,
+    });
+  };
+
+  // Filter windows by current desktop (for future implementation)
+  const visibleWindows = openWindows; // In future: filter by desktop
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#003d82]">
@@ -275,7 +363,7 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "contain",
+        backgroundSize: "50%",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",
@@ -369,16 +457,30 @@ export default function WilmaDesktop() {
                   src={window.app.appUrl}
                   className="w-full h-full border-0"
                   title={window.app.name}
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 />
               )}
-              {window.app.appType === "component" && (
-                <div className="p-4">
-                  <p className="text-gray-600">
-                    Component: {window.app.componentName}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {window.app.description}
-                  </p>
+              {window.app.appType === "component" && window.app.componentName && (
+                <AppRenderer
+                  componentName={window.app.componentName}
+                  onClose={() => closeWindow(window.id)}
+                />
+              )}
+              {window.app.appType === "external" && (
+                <div className="flex items-center justify-center h-full p-8 text-center">
+                  <div>
+                    <Globe className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+                    <p className="text-gray-600 font-medium mb-2">Ulkoinen sovellus</p>
+                    <p className="text-sm text-gray-500 mb-4">{window.app.description}</p>
+                    {window.app.appUrl && (
+                      <Button
+                        onClick={() => window.open(window.app.appUrl, '_blank')}
+                        className="bg-blue-600"
+                      >
+                        Avaa uudessa välilehdessä
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
