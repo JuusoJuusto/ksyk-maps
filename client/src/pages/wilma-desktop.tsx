@@ -265,16 +265,17 @@ export default function WilmaDesktop() {
   }
 
   const wallpaper = userConfig?.wallpaper || "/KSYK-logo-desktop.png";
-  const installedApps = availableApps.filter(app => 
-    userConfig?.installedApps?.includes(app.appId)
-  );
+  
+  // Show ALL active apps from the system, not just user's installed apps
+  // This ensures apps toggled ON in desktop manager show for everyone
+  const installedApps = availableApps.filter(app => app.isActive);
 
   return (
     <div 
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "cover",
+        backgroundSize: "contain",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",
