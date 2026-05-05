@@ -342,25 +342,25 @@ export default function WilmaLanding() {
             <div>
               <h4 className="font-bold mb-4">Tuote</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Ominaisuudet</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Hinnoittelu</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tietoturva</a></li>
+                <li><button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition-colors">Ominaisuudet</button></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Hinnoittelu</button></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Tietoturva</button></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Yritys</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Tietoa meistä</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blogi</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Ura</a></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Tietoa meistä</button></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Blogi</button></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Ura</button></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Tuki</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Ohje</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Yhteystiedot</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tila</a></li>
+                <li><button onClick={() => setLocation("/support")} className="hover:text-white transition-colors">Ohje</button></li>
+                <li><button onClick={() => setLocation("/support")} className="hover:text-white transition-colors">Yhteystiedot</button></li>
+                <li><button onClick={() => setLocation("/wilma")} className="hover:text-white transition-colors">Tila</button></li>
               </ul>
             </div>
           </div>
