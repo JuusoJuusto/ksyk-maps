@@ -254,6 +254,77 @@ export interface IStorage {
   createWilmaDetention(detentionData: any): Promise<any>;
   updateWilmaDetention(id: string, detentionData: any): Promise<any>;
   deleteWilmaDetention(id: string): Promise<void>;
+  
+  // ============================================
+  // MISSING METHODS (ADDED TO FIX TYPESCRIPT ERRORS)
+  // ============================================
+  
+  // Wilma User operations (CRITICAL - used extensively in API)
+  getWilmaUsers(role?: string): Promise<any[]>;
+  getWilmaUser(id: string): Promise<any | undefined>;
+  createWilmaUser(wilmaUser: any): Promise<any>;
+  updateWilmaUser(id: string, wilmaUser: any): Promise<any>;
+  deleteWilmaUser(id: string): Promise<void>;
+  getWilmaUserByStudentId(studentId: string): Promise<any | undefined>;
+  getWilmaUserByUsername(username: string): Promise<any | undefined>;
+  
+  // Wilma Schedule operations (used in API)
+  getWilmaSchedules(studentId?: string): Promise<any[]>;
+  getWilmaSchedulesAll(): Promise<any[]>;
+  createWilmaSchedule(scheduleData: any): Promise<any>;
+  updateWilmaSchedule(id: string, scheduleData: any): Promise<any>;
+  deleteWilmaSchedule(id: string): Promise<void>;
+  
+  // Wilma Attendance operations (used in API)
+  getWilmaAttendance(studentId?: string): Promise<any[]>;
+  getWilmaAttendanceByClass(classId: string): Promise<any[]>;
+  createWilmaAttendance(attendanceData: any): Promise<any>;
+  updateWilmaAttendance(id: string, attendanceData: any): Promise<any>;
+  deleteWilmaAttendance(id: string): Promise<void>;
+  
+  // Wilma Grades operations (used in API)
+  getWilmaGrades(studentId?: string): Promise<any[]>;
+  createWilmaGrade(gradeData: any): Promise<any>;
+  updateWilmaGrade(id: string, gradeData: any): Promise<any>;
+  deleteWilmaGrade(id: string): Promise<void>;
+  
+  // Wilma Assignments operations (used in API)
+  getWilmaAssignments(studentId?: string): Promise<any[]>;
+  getWilmaAssignmentsByClass(classId: string): Promise<any[]>;
+  createWilmaAssignment(assignmentData: any): Promise<any>;
+  updateWilmaAssignment(id: string, assignmentData: any): Promise<any>;
+  deleteWilmaAssignment(id: string): Promise<void>;
+  
+  // Wilma Messages operations (used in API)
+  getWilmaMessagesAll(userId?: string): Promise<any[]>;
+  createWilmaMessage(messageData: any): Promise<any>;
+  deleteWilmaMessage(id: string): Promise<void>;
+  markWilmaMessageAsRead(id: string): Promise<void>;
+  
+  // Wilma Settings operations (used in API)
+  getWilmaSettings(): Promise<any | undefined>;
+  updateWilmaSettings(settings: any): Promise<any>;
+  
+  // Parent-Child linking operations (used in API)
+  linkParentToChild(parentId: string, childId: string): Promise<void>;
+  unlinkParentFromChild(parentId: string, childId: string): Promise<void>;
+  getChildrenForParent(parentId: string): Promise<any[]>;
+  getParentsForChild(childId: string): Promise<any[]>;
+  
+  // Homework Extended operations (used in API)
+  getWilmaHomeworkExtendedAll(): Promise<any[]>;
+  
+  // Staff operations (used in API - deleteStaff vs deleteStaffMember)
+  deleteStaff(id: string): Promise<void>;
+  
+  // User operations (used in API for password reset)
+  getUsers(): Promise<User[]>;
+  
+  // Analytics operations (used in API)
+  createAnalyticsEvent(event: any): Promise<void>;
+  getLiveAnalytics(): Promise<any>;
+  getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]>;
+  getPerformanceMetrics(timeRange: string): Promise<any>;
 }
 
 
@@ -704,6 +775,208 @@ class MemStorage implements IStorage {
       { roomId: '5', roomNumber: 'A15', building: 'A Building', visits: 58 }
     ];
   }
+
+  async getVisitorStats(days: number = 30): Promise<any> {
+    // Mock visitor stats
+    return {
+      uniqueVisitors: 1250,
+      returningVisitors: 340,
+      newVisitors: 910,
+      bounceRate: 0.23,
+      avgPagesPerSession: 2.8,
+      topReferrers: [
+        { referrer: 'Direct', count: 650 },
+        { referrer: 'Google', count: 280 },
+        { referrer: 'School Website', count: 180 }
+      ]
+    };
+  }
+
+  // ============================================
+  // MISSING METHOD IMPLEMENTATIONS (STUBS)
+  // ============================================
+  
+  // Wilma User operations
+  async getWilmaUsers(role?: string): Promise<any[]> { return []; }
+  async getWilmaUser(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaUser(wilmaUser: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaUser(id: string, wilmaUser: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaUser(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async getWilmaUserByStudentId(studentId: string): Promise<any | undefined> { return undefined; }
+  async getWilmaUserByUsername(username: string): Promise<any | undefined> { return undefined; }
+  
+  // Wilma Schedule operations
+  async getWilmaSchedules(studentId?: string): Promise<any[]> { return []; }
+  async getWilmaSchedulesAll(): Promise<any[]> { return []; }
+  async createWilmaSchedule(scheduleData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaSchedule(id: string, scheduleData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaSchedule(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Attendance operations
+  async getWilmaAttendance(studentId?: string): Promise<any[]> { return []; }
+  async getWilmaAttendanceByClass(classId: string): Promise<any[]> { return []; }
+  async createWilmaAttendance(attendanceData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaAttendance(id: string, attendanceData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaAttendance(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Grades operations
+  async getWilmaGrades(studentId?: string): Promise<any[]> { return []; }
+  async createWilmaGrade(gradeData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaGrade(id: string, gradeData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaGrade(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Assignments operations
+  async getWilmaAssignments(studentId?: string): Promise<any[]> { return []; }
+  async getWilmaAssignmentsByClass(classId: string): Promise<any[]> { return []; }
+  async createWilmaAssignment(assignmentData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaAssignment(id: string, assignmentData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaAssignment(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Messages operations
+  async getWilmaMessagesAll(userId?: string): Promise<any[]> { return []; }
+  async createWilmaMessage(messageData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaMessage(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async markWilmaMessageAsRead(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Settings operations
+  async getWilmaSettings(): Promise<any | undefined> { return undefined; }
+  async updateWilmaSettings(settings: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Parent-Child linking operations
+  async linkParentToChild(parentId: string, childId: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async unlinkParentFromChild(parentId: string, childId: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async getChildrenForParent(parentId: string): Promise<any[]> { return []; }
+  async getParentsForChild(childId: string): Promise<any[]> { return []; }
+  
+  // Homework Extended operations
+  async getWilmaHomeworkExtendedAll(): Promise<any[]> { return []; }
+  
+  // Wilma Classes operations
+  async getWilmaClasses(year?: string): Promise<any[]> { return []; }
+  async getWilmaClass(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaClass(classData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaClass(id: string, classData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaClass(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Courses operations
+  async getWilmaCourses(teacherId?: string, classId?: string): Promise<any[]> { return []; }
+  async getWilmaCourse(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaCourse(courseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaCourse(id: string, courseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaCourse(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Lesson Journal operations
+  async getWilmaLessonJournals(courseId?: string, teacherId?: string, date?: string): Promise<any[]> { return []; }
+  async getWilmaLessonJournal(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaLessonJournal(journalData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaLessonJournal(id: string, journalData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaLessonJournal(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Homework Extended operations
+  async getWilmaHomeworkExtended(courseId?: string, teacherId?: string): Promise<any[]> { return []; }
+  async getWilmaHomeworkExtendedById(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaHomeworkExtended(homeworkData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaHomeworkExtended(id: string, homeworkData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaHomeworkExtended(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Homework Submissions operations
+  async getWilmaHomeworkSubmissions(homeworkId?: string, studentId?: string): Promise<any[]> { return []; }
+  async getWilmaHomeworkSubmission(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaHomeworkSubmission(submissionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaHomeworkSubmission(id: string, submissionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaHomeworkSubmission(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Exams Extended operations
+  async getWilmaExamsExtended(courseId?: string, teacherId?: string): Promise<any[]> { return []; }
+  async getWilmaExamExtended(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaExamExtended(examData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaExamExtended(id: string, examData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaExamExtended(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Exam Results operations
+  async getWilmaExamResults(examId?: string, studentId?: string): Promise<any[]> { return []; }
+  async getWilmaExamResult(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaExamResult(resultData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaExamResult(id: string, resultData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaExamResult(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Behavior Notes operations
+  async getWilmaBehaviorNotes(studentId?: string, teacherId?: string): Promise<any[]> { return []; }
+  async getWilmaBehaviorNote(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaBehaviorNote(noteData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaBehaviorNote(id: string, noteData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaBehaviorNote(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Notifications operations
+  async getWilmaNotifications(userId: string, unreadOnly?: boolean): Promise<any[]> { return []; }
+  async getWilmaNotification(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaNotification(notificationData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaNotification(id: string, notificationData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async markWilmaNotificationAsRead(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async markAllWilmaNotificationsAsRead(userId: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaNotification(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Dashboard Preferences operations
+  async saveWilmaDashboardPreferences(userId: string, preferences: any): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async getWilmaDashboardPreferences(userId: string): Promise<any | null> { return null; }
+  
+  // Wilma Calendar Events operations
+  async getWilmaCalendarEvents(userId?: string, startDate?: string, endDate?: string): Promise<any[]> { return []; }
+  async getWilmaCalendarEvent(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaCalendarEvent(eventData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaCalendarEvent(id: string, eventData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaCalendarEvent(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Wilma Analytics operations
+  async createWilmaAnalytic(analyticData: any): Promise<void> { /* no-op */ }
+  async getWilmaAnalytics(userId?: string, eventType?: string, days?: number): Promise<any[]> { return []; }
+  async getWilmaAnalyticsSummary(days?: number): Promise<any> { return {}; }
+  
+  // Wilma AI Interactions operations
+  async createWilmaAiInteraction(interactionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async getWilmaAiInteractions(userId?: string, featureType?: string): Promise<any[]> { return []; }
+  async updateWilmaAiInteraction(id: string, interactionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async getWilmaAiUsageStats(days?: number): Promise<any> { return {}; }
+  
+  // Desktop Settings operations
+  async getWilmaDesktopSettings(): Promise<any | undefined> { return undefined; }
+  async updateWilmaDesktopSettings(settings: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Desktop Apps operations
+  async getWilmaDesktopApps(): Promise<any[]> { return []; }
+  async getWilmaDesktopApp(id: number): Promise<any | undefined> { return undefined; }
+  async createWilmaDesktopApp(appData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaDesktopApp(id: number, appData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaDesktopApp(id: number): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // User Desktop Config operations
+  async getWilmaUserDesktopConfig(userId: number): Promise<any | undefined> { return undefined; }
+  async createWilmaUserDesktopConfig(configData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Detention operations
+  async getWilmaDetentions(): Promise<any[]> { return []; }
+  async getWilmaDetention(id: string): Promise<any | undefined> { return undefined; }
+  async createWilmaDetention(detentionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateWilmaDetention(id: string, detentionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteWilmaDetention(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  // Staff operations (alias for deleteStaffMember)
+  async deleteStaff(id: string): Promise<void> { 
+    return this.deleteStaffMember(id);
+  }
+  
+  // User operations (getUsers - returns all users)
+  async getUsers(): Promise<User[]> {
+    return this.getAllUsers();
+  }
+  
+  // Analytics operations
+  async createAnalyticsEvent(event: any): Promise<void> { /* no-op */ }
+  async getLiveAnalytics(): Promise<any> { return {}; }
+  async getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]> { return []; }
+  async getPerformanceMetrics(timeRange: string): Promise<any> { return {}; }
+}
 
   async getVisitorStats(days: number = 30): Promise<any> {
     // Mock visitor stats

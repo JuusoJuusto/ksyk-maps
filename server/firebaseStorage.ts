@@ -1445,7 +1445,7 @@ export class FirebaseStorage implements IStorage {
         query = query.where('date', '==', date);
       }
       const snapshot = await query.orderBy('date', 'desc').get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       console.error('Error getting class attendance:', error);
       return [];
@@ -1697,7 +1697,7 @@ export class FirebaseStorage implements IStorage {
         return undefined;
       }
       const data = doc.data();
-      const ticket = { id: doc.id, ...data };
+      const ticket: any = { id: doc.id, ...data };
       console.log('📧 Ticket email field:', ticket.email);
       console.log('📋 Full ticket data:', JSON.stringify(ticket, null, 2));
       return ticket;
@@ -1765,7 +1765,7 @@ export class FirebaseStorage implements IStorage {
       const doc = await db.collection('appSettings').doc('default').get();
       if (!doc.exists) {
         // Return default settings if not found
-        const defaultSettings: AppSettings = {
+        const defaultSettings: any = {
           id: 'default',
           appName: 'KSYK Map',
           appNameEn: 'KSYK Map',
@@ -1789,7 +1789,7 @@ export class FirebaseStorage implements IStorage {
         };
         // Create default settings
         await db.collection('appSettings').doc('default').set(defaultSettings);
-        return defaultSettings;
+        return defaultSettings as AppSettings;
       }
       return { id: doc.id, ...doc.data() } as AppSettings;
     } catch (error) {
@@ -3553,6 +3553,43 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting detention:', error);
       throw error;
+    }
+  }
+  
+  // ============================================
+  // MISSING METHODS (ADDED TO FIX TYPESCRIPT ERRORS)
+  // ============================================
+  
+  // Homework Extended - get all
+  async getWilmaHomeworkExtendedAll(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('wilmaHomeworkExtended').get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting all homework extended:', error);
+      return [];
+    }
+  }
+  
+  // Staff operations (alias for deleteStaffMember)
+  async deleteStaff(id: string): Promise<void> {
+    return this.deleteStaffMember(id);
+  }
+  
+  // User operations (getUsers - returns all users)
+  async getUsers(): Promise<any[]> {
+    return this.getAllUsers();
+  }
+  
+  // Analytics operations (createAnalyticsEvent only - others already exist)
+  async createAnalyticsEvent(event: any): Promise<void> {
+    try {
+      await db.collection('analyticsEvents').add({
+        ...event,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating analytics event:', error);
     }
   }
 }

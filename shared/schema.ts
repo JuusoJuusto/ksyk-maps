@@ -41,6 +41,8 @@ export const users = pgTable("users", {
   twoFactorSecret: varchar("two_factor_secret"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   twoFactorBackupCodes: text("two_factor_backup_codes"),
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetExpiry: timestamp("password_reset_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
