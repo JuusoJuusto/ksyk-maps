@@ -165,6 +165,7 @@ export default function WilmaDesktop() {
   const fetchDesktopData = async () => {
     try {
       console.log('🖥️ Fetching desktop data for user:', id);
+      console.log('🔄 Cache busting:', Date.now()); // Force fresh data
       
       // Check if desktop is enabled
       const settingsRes = await fetch("/api/wilma/desktop/settings");
@@ -363,7 +364,7 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "15%",
+        backgroundSize: "5%",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",
