@@ -1,0 +1,14 @@
+FORCE VERCEL REBUILD - 2026-05-05 15:30:00
+
+This file triggers a new Vercel deployment.
+
+Changes included:
+- Desktop background: 5% (TINY!)
+- Landing page: Full gradient redesign
+- 44 desktop apps integrated
+- AppRegistry system
+- Lukujärjestys Kurre-style
+- All fixes applied
+
+Timestamp: 1746453000
+Build: FORCE_REBUILD_NOW
