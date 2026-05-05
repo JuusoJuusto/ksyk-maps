@@ -429,9 +429,14 @@ class MemStorage implements IStorage {
       lastName: userData.lastName || null,
       profileImageUrl: userData.profileImageUrl || null,
       role: userData.role || 'user',
-      password: null,
-      isTemporaryPassword: null,
+      password: userData.password || null,
+      isTemporaryPassword: userData.isTemporaryPassword || null,
       canLoginToKsykMaps: userData.canLoginToKsykMaps ?? null,
+      twoFactorSecret: userData.twoFactorSecret || null,
+      twoFactorEnabled: userData.twoFactorEnabled || false,
+      twoFactorBackupCodes: userData.twoFactorBackupCodes || null,
+      passwordResetToken: userData.passwordResetToken || null,
+      passwordResetExpiry: userData.passwordResetExpiry || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -641,14 +646,14 @@ class MemStorage implements IStorage {
     enableAutoSave: true,
     compactMode: false,
     defaultLanguage: 'en',
-    aiSensitivity: 0.7,
+    aiSensitivity: '0.7',
     enableSmartSnap: true,
     enableRoomAutoCreation: false,
     cacheMinutes: 30,
     maxImageSizeMB: 10,
     enablePreloadImages: true,
     enableLazyLoading: true,
-    defaultZoomLevel: 1.0,
+    defaultZoomLevel: '1.0',
     updatedAt: new Date()
   };
 
@@ -976,23 +981,6 @@ class MemStorage implements IStorage {
   async getLiveAnalytics(): Promise<any> { return {}; }
   async getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]> { return []; }
   async getPerformanceMetrics(timeRange: string): Promise<any> { return {}; }
-}
-
-  async getVisitorStats(days: number = 30): Promise<any> {
-    // Mock visitor stats
-    return {
-      uniqueVisitors: 1250,
-      returningVisitors: 340,
-      newVisitors: 910,
-      bounceRate: 0.23,
-      avgPagesPerSession: 2.8,
-      topReferrers: [
-        { referrer: 'Direct', count: 650 },
-        { referrer: 'Google', count: 280 },
-        { referrer: 'School Website', count: 180 }
-      ]
-    };
-  }
 }
 
 // Create storage factory function
