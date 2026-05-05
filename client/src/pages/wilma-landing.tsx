@@ -103,93 +103,96 @@ export default function WilmaLanding() {
     <div className="min-h-screen bg-white overflow-hidden">
       {/* Hero Section with Smooth Animations */}
       <section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-white to-gray-50"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden"
         style={{
+          background: 'linear-gradient(135deg, #003d82 0%, #0052a3 50%, #00a8e8 100%)',
           transform: `translateY(${scrollY * 0.3}px)`,
         }}
       >
-        {/* Subtle Background Pattern */}
-        <div className="absolute inset-0 overflow-hidden opacity-5">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 overflow-hidden opacity-10">
           <div 
-            className="absolute w-96 h-96 rounded-full"
+            className="absolute w-96 h-96 rounded-full bg-white"
             style={{ 
-              background: wilmaBlue,
               top: '-10%',
               left: '-5%',
-              transform: `translate(${scrollY * 0.05}px, ${scrollY * 0.05}px)` 
+              transform: `translate(${scrollY * 0.05}px, ${scrollY * 0.05}px)`,
+              filter: 'blur(100px)'
             }}
           />
           <div 
-            className="absolute w-96 h-96 rounded-full"
+            className="absolute w-96 h-96 rounded-full bg-white"
             style={{ 
-              background: wilmaAccent,
               bottom: '-10%',
               right: '-5%',
-              transform: `translate(${-scrollY * 0.05}px, ${-scrollY * 0.05}px)` 
+              transform: `translate(${-scrollY * 0.05}px, ${-scrollY * 0.05}px)`,
+              filter: 'blur(100px)'
             }}
           />
         </div>
 
-        <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border-2" style={{ borderColor: wilmaBlue, color: wilmaBlue, backgroundColor: `${wilmaBlue}10` }}>
-            <Zap className="w-4 h-4" />
+        <div className={`relative z-10 text-center px-4 max-w-5xl transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <div className="mb-8 inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold border-2 border-white/30 bg-white/10 backdrop-blur-md text-white shadow-2xl animate-pulse">
+            <Zap className="w-5 h-5" />
             Suomen johtava oppilashallintojärjestelmä
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-black mb-6" style={{ color: wilmaBlue }}>
+          <h1 className="text-7xl md:text-9xl font-black mb-8 text-white drop-shadow-2xl">
             Wilma
           </h1>
           
-          <p className="text-2xl md:text-3xl text-gray-700 mb-4 font-light">
+          <p className="text-3xl md:text-4xl text-white mb-6 font-bold drop-shadow-lg">
             Moderni oppilashallintojärjestelmä
           </p>
           
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-white/90 mb-6 max-w-3xl mx-auto drop-shadow-md">
             Tehosta koulusi hallintoa, paranna viestintää ja seuraa oppilaiden edistymistä reaaliajassa
           </p>
           
-          <p className="text-sm text-gray-500 mb-12 flex items-center justify-center gap-2">
+          <p className="text-lg text-white/80 mb-12 flex items-center justify-center gap-2 drop-shadow-md">
             <span>Powered by</span>
-            <span className="font-bold" style={{ color: wilmaBlue }}>SL Studio</span>
+            <span className="font-black text-2xl">SL Studio</span>
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
             <Button 
               size="lg" 
-              className="px-8 py-6 text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
-              style={{ backgroundColor: wilmaBlue, color: 'white' }}
+              className="px-12 py-8 text-xl font-bold shadow-2xl hover:shadow-3xl transition-all transform hover:scale-110 bg-white text-[#003d82] hover:bg-gray-100"
               onClick={() => setLocation("/wilma")}
             >
               Aloita ilmainen kokeilu
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-3 w-6 h-6" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="px-8 py-6 text-lg border-2 transition-all transform hover:scale-105"
-              style={{ borderColor: wilmaBlue, color: wilmaBlue }}
+              className="px-12 py-8 text-xl font-bold border-4 border-white text-white hover:bg-white hover:text-[#003d82] transition-all transform hover:scale-110"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Tutustu ominaisuuksiin
             </Button>
           </div>
 
-          <div className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" style={{ color: wilmaBlue }} />
-              <span>Ei luottokorttia tarvita</span>
+          <div className="flex flex-wrap items-center justify-center gap-8 text-base text-white/90">
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full">
+              <CheckCircle className="w-6 h-6" />
+              <span className="font-semibold">Ei luottokorttia tarvita</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" style={{ color: wilmaBlue }} />
-              <span>30 päivän rahat takaisin</span>
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full">
+              <CheckCircle className="w-6 h-6" />
+              <span className="font-semibold">30 päivän rahat takaisin</span>
+            </div>
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full">
+              <CheckCircle className="w-6 h-6" />
+              <span className="font-semibold">24/7 Tuki</span>
             </div>
           </div>
         </div>
 
         {/* Smooth Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 rounded-full flex items-start justify-center p-2" style={{ borderColor: wilmaBlue }}>
-            <div className="w-1 h-3 rounded-full animate-pulse" style={{ backgroundColor: wilmaBlue }} />
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce">
+          <div className="w-8 h-12 border-4 border-white rounded-full flex items-start justify-center p-2">
+            <div className="w-2 h-4 rounded-full bg-white animate-pulse" />
           </div>
         </div>
       </section>
