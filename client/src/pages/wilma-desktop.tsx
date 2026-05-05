@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   Maximize2,
@@ -22,6 +23,11 @@ import {
   Terminal,
   Gamepad2,
   Globe,
+  Zap,
+  Briefcase,
+  Palette,
+  Cpu,
+  MessageSquare,
 } from "lucide-react";
 
 interface DesktopApp {
@@ -76,6 +82,27 @@ const iconMap: Record<string, any> = {
   terminal: Terminal,
   games: Gamepad2,
   globe: Globe,
+  browser: Globe,
+  editor: FileText,
+  snake: Gamepad2,
+  viewer: Image,
+  tasks: Briefcase,
+  weather: Zap,
+  paint: Palette,
+  system: Cpu,
+  spotify: Music,
+  minecraft: Gamepad2,
+  youtube: Video,
+  steam: Gamepad2,
+  discord: MessageSquare,
+  vscode: Code,
+  messenger: Mail,
+  maps: Globe,
+  excel: FileText,
+  word: FileText,
+  powerpoint: FileText,
+  outlook: Mail,
+  teams: Video,
 };
 
 export default function WilmaDesktop() {
@@ -246,31 +273,25 @@ export default function WilmaDesktop() {
     <div 
       className="fixed inset-0 overflow-hidden"
       style={{
-        backgroundColor: "#000000",
+        backgroundImage: `url(${wallpaper})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "#0078d4",
       }}
     >
-      {/* Desktop Background with KSYK Logo */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center opacity-25"
-        style={{
-          backgroundImage: `url(${wallpaper})`,
-          backgroundSize: "400px auto",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-      {/* Desktop Icons */}
-      <div className="absolute inset-0 p-4 grid grid-cols-8 gap-4 content-start">
-        {installedApps.slice(0, 16).map((app, index) => (
+      {/* Desktop Icons - Windows 11 Style */}
+      <div className="absolute inset-0 p-4 grid grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4 content-start pointer-events-none">
+        {installedApps.slice(0, 48).map((app, index) => (
           <button
             key={app.appId}
             onClick={() => openApp(app)}
-            className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/20 transition-colors group"
+            className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-all group pointer-events-auto backdrop-blur-sm"
           >
-            <div className="w-16 h-16 bg-white/90 rounded-xl shadow-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 bg-white/90 rounded-xl shadow-xl flex items-center justify-center text-blue-600 group-hover:scale-110 group-active:scale-95 transition-transform border border-white/50">
               {getIconComponent(app.icon)}
             </div>
-            <span className="text-white text-xs font-medium text-center drop-shadow-lg">
+            <span className="text-white text-[10px] font-medium text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[70px] line-clamp-2 px-1 py-0.5 rounded bg-black/20 backdrop-blur-sm">
               {app.nameFi || app.name}
             </span>
           </button>
@@ -294,45 +315,45 @@ export default function WilmaDesktop() {
             }}
             onClick={() => bringToFront(window.id)}
           >
-            {/* Window Title Bar */}
-            <div className="bg-[#003d82] text-white px-4 py-2 flex items-center justify-between cursor-move">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 flex items-center justify-center">
+            {/* Windows 11 Style Title Bar */}
+            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between cursor-move">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 flex items-center justify-center text-blue-600">
                   {getIconComponent(window.app.icon)}
                 </div>
-                <span className="font-medium text-sm">
+                <span className="font-medium text-sm text-gray-800">
                   {window.app.nameFi || window.app.name}
                 </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0">
                 {window.app.minimizable && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0 hover:bg-white/20"
+                    className="h-8 w-12 p-0 hover:bg-gray-100 rounded-none"
                     onClick={() => toggleMinimize(window.id)}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-4 h-4 text-gray-700" />
                   </Button>
                 )}
                 {window.app.maximizable && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0 hover:bg-white/20"
+                    className="h-8 w-12 p-0 hover:bg-gray-100 rounded-none"
                     onClick={() => toggleMaximize(window.id)}
                   >
                     {window.isMaximized ? (
-                      <Minimize2 className="w-4 h-4" />
+                      <Minimize2 className="w-4 h-4 text-gray-700" />
                     ) : (
-                      <Maximize2 className="w-4 h-4" />
+                      <Maximize2 className="w-4 h-4 text-gray-700" />
                     )}
                   </Button>
                 )}
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 hover:bg-red-500"
+                  className="h-8 w-12 p-0 hover:bg-red-500 hover:text-white rounded-none"
                   onClick={() => closeWindow(window.id)}
                 >
                   <X className="w-4 h-4" />
@@ -364,80 +385,103 @@ export default function WilmaDesktop() {
         )
       ))}
 
-      {/* Taskbar */}
-      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 flex items-center px-2 gap-2">
-        {/* Start Button with Home Icon */}
+      {/* Windows 11 Style Taskbar */}
+      <div className="absolute bottom-0 left-0 right-0 h-14 bg-gray-900/70 backdrop-blur-xl border-t border-white/10 flex items-center justify-center px-4 gap-1">
+        {/* Start Button - Windows 11 Style */}
         <Button
           onClick={() => setStartMenuOpen(!startMenuOpen)}
-          className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
+          className="h-11 w-11 p-0 bg-transparent hover:bg-white/10 active:bg-white/20 flex items-center justify-center rounded-lg transition-all"
         >
-          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+          <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="8" height="8" rx="1"/>
+            <rect x="13" y="3" width="8" height="8" rx="1"/>
+            <rect x="3" y="13" width="8" height="8" rx="1"/>
+            <rect x="13" y="13" width="8" height="8" rx="1"/>
           </svg>
         </Button>
 
-        {/* Open Windows */}
-        {openWindows.map(window => (
-          <Button
-            key={window.id}
-            onClick={() => {
-              if (window.isMinimized) {
-                toggleMinimize(window.id);
-              }
-              bringToFront(window.id);
-            }}
-            variant={window.isMinimized ? "outline" : "secondary"}
-            className="h-10 px-3 flex items-center gap-2"
-          >
-            {getIconComponent(window.app.icon)}
-            <span className="text-sm max-w-[150px] truncate">
-              {window.app.nameFi || window.app.name}
-            </span>
-          </Button>
-        ))}
+        {/* Open Windows - Centered */}
+        <div className="flex items-center gap-1">
+          {openWindows.map(window => (
+            <Button
+              key={window.id}
+              onClick={() => {
+                if (window.isMinimized) {
+                  toggleMinimize(window.id);
+                }
+                bringToFront(window.id);
+              }}
+              className={`h-11 px-4 flex items-center gap-2 rounded-lg transition-all ${
+                window.isMinimized 
+                  ? "bg-white/5 hover:bg-white/10" 
+                  : "bg-white/15 hover:bg-white/20 border-b-2 border-blue-400"
+              }`}
+            >
+              <div className="w-5 h-5">
+                {getIconComponent(window.app.icon)}
+              </div>
+              <span className="text-sm text-white max-w-[120px] truncate font-medium">
+                {window.app.nameFi || window.app.name}
+              </span>
+            </Button>
+          ))}
+        </div>
 
-        {/* System Tray */}
-        <div className="ml-auto flex items-center gap-4 text-white text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>{currentTime.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" })}</span>
-          </div>
-          <div>
-            {currentTime.toLocaleDateString("fi-FI", { day: "numeric", month: "numeric", year: "numeric" })}
+        {/* System Tray - Windows 11 Style */}
+        <div className="absolute right-4 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-11 w-11 text-white hover:bg-white/10 rounded-lg">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </Button>
+          <div className="px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-all">
+            <div className="text-white text-xs font-medium text-right">
+              <div>{currentTime.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" })}</div>
+              <div className="text-[10px] opacity-80">
+                {currentTime.toLocaleDateString("fi-FI", { day: "numeric", month: "numeric", year: "numeric" })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Start Menu */}
+      {/* Windows 11 Style Start Menu */}
       {startMenuOpen && (
-        <div className="absolute bottom-14 left-2 w-96 bg-white rounded-lg shadow-2xl overflow-hidden">
-          <div className="bg-[#003d82] text-white p-4">
-            <h3 className="font-bold text-lg">Sovellukset</h3>
-          </div>
-          <div className="p-4 max-h-[500px] overflow-y-auto">
-            <div className="grid grid-cols-3 gap-3">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[600px] bg-gray-900/95 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
+          <div className="p-6">
+            <div className="mb-4">
+              <Input
+                placeholder="Hae sovelluksia..."
+                className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-400"
+              />
+            </div>
+            <h3 className="text-white font-semibold mb-3 text-sm">Kiinnitetyt</h3>
+            <div className="grid grid-cols-6 gap-3 max-h-[400px] overflow-y-auto">
               {installedApps.map(app => (
                 <button
                   key={app.appId}
                   onClick={() => openApp(app)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/10 active:bg-white/20 transition-all group"
                 >
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                  <div className="w-12 h-12 bg-white/90 rounded-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-lg">
                     {getIconComponent(app.icon)}
                   </div>
-                  <span className="text-xs text-center font-medium">
+                  <span className="text-[10px] text-white text-center font-medium line-clamp-2">
                     {app.nameFi || app.name}
                   </span>
                 </button>
               ))}
             </div>
           </div>
-          <div className="border-t p-2">
+          <div className="border-t border-white/10 p-3 bg-gray-800/50">
             <Button
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start text-white hover:bg-white/10"
               onClick={() => setLocation(`/wilma/${id}`)}
             >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
               Palaa Wilmaan
             </Button>
           </div>

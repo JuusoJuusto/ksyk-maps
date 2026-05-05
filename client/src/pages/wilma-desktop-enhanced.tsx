@@ -358,15 +358,14 @@ export default function WilmaDesktopEnhanced() {
         backgroundColor: "#000000",
       }}
     >
-      {/* Desktop Background with KSYK Logo */}
+      {/* Desktop Background - FULL BRIGHTNESS, NO OVERLAY */}
       <div 
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `url(${wallpaper})`,
-          backgroundSize: "400px auto",
+          backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          opacity: 0.25,
         }}
       />
       

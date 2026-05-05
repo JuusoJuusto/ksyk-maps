@@ -39,6 +39,7 @@ import WilmaAdmin from "@/pages/wilma-admin-new";
 import WilmaSupportStaff from "@/pages/wilma-support-staff";
 import WilmaDesktopEnhanced from "@/pages/wilma-desktop-enhanced";
 import WilmaDesktopManager from "@/components/WilmaDesktopManager";
+import WilmaLanding from "@/pages/wilma-landing";
 import StudentForm from "@/pages/student-form";
 import StudentDetail from "@/pages/student-detail";
 import ClassDetail from "@/pages/class-detail";
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/wilma/:studentId" component={WilmaRouter} />
       
       {/* Admin/Teacher routes - Use Firebase ID */}
+      <Route path="/wilma-admin/landing" component={WilmaLanding} />
       <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktopEnhanced} />
       <Route path="/wilma-admin/:adminId/desktop-manager" component={WilmaDesktopManager} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />
