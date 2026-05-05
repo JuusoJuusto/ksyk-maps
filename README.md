@@ -7,10 +7,23 @@
   <p>Built by <strong>SL Studio</strong></p>
   
   [![Version](https://img.shields.io/badge/version-3.1.2-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
-  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
 </div>
+
+---
+
+## ⚠️ PROPRIETARY SOFTWARE
+
+**This software is proprietary and confidential. All rights reserved by SL Studio.**
+
+- ❌ **NO COPYING** - You may not copy, reproduce, or distribute this software
+- ❌ **NO MODIFICATION** - You may not modify or create derivative works
+- ❌ **NO COMMERCIAL USE** - You may not use this software for commercial purposes
+- ❌ **NO REVERSE ENGINEERING** - You may not decompile or reverse engineer
+
+See [LICENSE](LICENSE) for full legal terms.
 
 ---
 
@@ -61,50 +74,11 @@
 
 ---
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ 
-- PostgreSQL 14+
-- Firebase account (for authentication)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/JuusoJuusto/ksyk-maps.git
-cd ksyk-maps
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Run database migrations
-npm run db:push
-
-# Start development server
-npm run dev
-```
-
-The app will be available at `http://localhost:5000`
-
----
-
-## 📱 Deployment
-
-### Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
-```
+## 🚀 Live Demo
 
 Visit: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
+
+**Note:** This is a production application for Kulosaaren Yhteiskoulu. Unauthorized access or use is prohibited.
 
 ---
 
@@ -190,21 +164,6 @@ ksyk-maps/
 
 ---
 
-## 🔧 Configuration
-
-### Environment Variables
-```env
-DATABASE_URL=postgresql://...
-FIREBASE_API_KEY=...
-GEMINI_API_KEY=...
-VITE_FIREBASE_API_KEY=...
-VITE_GEMINI_API_KEY=...
-```
-
-See `.env.example` for full configuration options.
-
----
-
 ## 📖 Documentation
 
 - [Finnish README](README-FI.md)
@@ -213,23 +172,13 @@ See `.env.example` for full configuration options.
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**PROPRIETARY LICENSE - ALL RIGHTS RESERVED**
 
-Copyright © 2026 SL Studio. All rights reserved.
+This software is the exclusive property of SL Studio. No license is granted for use, copying, modification, or distribution. See [LICENSE](LICENSE) for full legal terms.
+
+Copyright © 2024-2026 SL Studio. All rights reserved.
 
 ---
 
@@ -237,16 +186,16 @@ Copyright © 2026 SL Studio. All rights reserved.
 
 **Built by SL Studio**
 
-- Lead Developer: [Juuso Kaikula](https://github.com/JuusoJuusto)
+- Lead Developer: Juuso Kaikula
 - Organization: Kulosaaren Yhteiskoulu
-- Email: juuso.kaikula@ksyk.fi
+- Email: juusojuusto112@gmail.com
 - Discord: https://discord.gg/5ERZp9gUpr
 
 ---
 
 ## 📞 Support
 
-- 📧 Email: juuso.kaikula@ksyk.fi
+- 📧 Email: juusojuusto112@gmail.com
 - 💬 Discord: https://discord.gg/5ERZp9gUpr
 - 🎫 Ticket System: Use the blue button in the app
 - ⏱️ Response time: Usually within 24 hours
@@ -264,7 +213,6 @@ Copyright © 2026 SL Studio. All rights reserved.
 - OpenStreetMap contributors
 - Google Gemini AI team
 - React and TypeScript communities
-- All open-source libraries used in this project
 
 ---
 
@@ -280,5 +228,6 @@ Copyright © 2026 SL Studio. All rights reserved.
 
 <div align="center">
   <p>Made with ❤️ by <strong>SL Studio</strong></p>
-  <p>© 2026 KSYK Maps by SL Studio. All rights reserved.</p>
+  <p>© 2024-2026 KSYK Maps by SL Studio. All rights reserved.</p>
+  <p><strong>PROPRIETARY SOFTWARE - NO UNAUTHORIZED USE</strong></p>
 </div>
