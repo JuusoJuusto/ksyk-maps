@@ -1,348 +1,97 @@
-/**
- * Seed default desktop apps for Wilma Desktop Environment
- */
+import { firebaseStorage } from './firebaseStorage.js';
 
-import { storage } from "./storage";
-
-const defaultApps = [
-  {
-    appId: "calculator",
-    name: "Calculator",
-    nameFi: "Laskin",
-    icon: "calculator",
-    description: "Simple calculator for basic math operations",
-    descriptionFi: "Yksinkertainen laskin peruslaskutoimituksiin",
-    category: "utility",
-    appType: "iframe",
-    appUrl: "https://www.calculator.net/",
-    width: 400,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 1,
-  },
-  {
-    appId: "notepad",
-    name: "Notepad",
-    nameFi: "Muistio",
-    icon: "notepad",
-    description: "Simple text editor for quick notes",
-    descriptionFi: "Yksinkertainen tekstieditori muistiinpanoille",
-    category: "productivity",
-    appType: "iframe",
-    appUrl: "https://notepad.js.org/",
-    width: 800,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 2,
-  },
-  {
-    appId: "calendar",
-    name: "Calendar",
-    nameFi: "Kalenteri",
-    icon: "calendar",
-    description: "View and manage your schedule",
-    descriptionFi: "Katso ja hallinnoi aikatauluasi",
-    category: "productivity",
-    appType: "component",
-    componentName: "CalendarApp",
-    width: 900,
-    height: 700,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 3,
-  },
-  {
-    appId: "music",
-    name: "Music Player",
-    nameFi: "Musiikkisoitin",
-    icon: "music",
-    description: "Listen to music while studying",
-    descriptionFi: "Kuuntele musiikkia opiskelun aikana",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/",
-    width: 1000,
-    height: 700,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4,
-  },
-  {
-    appId: "calm-music",
-    name: "Calm Music",
-    nameFi: "Rauhallinen Musiikki",
-    icon: "music",
-    description: "Relaxing music for studying and focus",
-    descriptionFi: "Rentouttavaa musiikkia opiskeluun ja keskittymiseen",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/lTRiuFIWV54?autoplay=1&loop=1&playlist=lTRiuFIWV54",
-    width: 800,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.1,
-  },
-  {
-    appId: "lofi-music",
-    name: "Lo-Fi Beats",
-    nameFi: "Lo-Fi Biitit",
-    icon: "music",
-    description: "Lo-fi hip hop beats to study/relax to",
-    descriptionFi: "Lo-fi hip hop biittejä opiskeluun ja rentoutumiseen",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1&loop=1&playlist=jfKfPfyJRdk",
-    width: 800,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.2,
-  },
-  {
-    appId: "white-noise",
-    name: "White Noise",
-    nameFi: "Valkoinen Kohina",
-    icon: "music",
-    description: "White noise for concentration and sleep",
-    descriptionFi: "Valkoista kohinaa keskittymiseen ja nukkumiseen",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/nMfPqeZjc2c?autoplay=1&loop=1&playlist=nMfPqeZjc2c",
-    width: 600,
-    height: 400,
-    resizable: true,
-    minimizable: true,
-    maximizable: false,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.3,
-  },
-  {
-    appId: "nature-sounds",
-    name: "Nature Sounds",
-    nameFi: "Luontoäänet",
-    icon: "music",
-    description: "Relaxing nature sounds - rain, forest, ocean",
-    descriptionFi: "Rentouttavia luontoääniä - sade, metsä, meri",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/eKFTSSKCzWA?autoplay=1&loop=1&playlist=eKFTSSKCzWA",
-    width: 600,
-    height: 400,
-    resizable: true,
-    minimizable: true,
-    maximizable: false,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.4,
-  },
-  {
-    appId: "classical-music",
-    name: "Classical Music",
-    nameFi: "Klassinen Musiikki",
-    icon: "music",
-    description: "Classical music for studying",
-    descriptionFi: "Klassista musiikkia opiskeluun",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/jgpJVI3tDbY?autoplay=1&loop=1&playlist=jgpJVI3tDbY",
-    width: 800,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.5,
-  },
-  {
-    appId: "jazz-music",
-    name: "Jazz Music",
-    nameFi: "Jazz-musiikki",
-    icon: "music",
-    description: "Smooth jazz for relaxation",
-    descriptionFi: "Pehmeää jazzia rentoutumiseen",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.youtube.com/embed/Dx5qFachd3A?autoplay=1&loop=1&playlist=Dx5qFachd3A",
-    width: 800,
-    height: 600,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 4.6,
-  },
-  {
-    appId: "games",
-    name: "Games",
-    nameFi: "Pelit",
-    icon: "games",
-    description: "Play educational games",
-    descriptionFi: "Pelaa opettavaisia pelejä",
-    category: "entertainment",
-    appType: "iframe",
-    appUrl: "https://www.coolmathgames.com/",
-    width: 1000,
-    height: 700,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student"],
-    isActive: true,
-    sortOrder: 5,
-  },
-  {
-    appId: "code",
-    name: "Code Editor",
-    nameFi: "Koodieditori",
-    icon: "code",
-    description: "Write and test code online",
-    descriptionFi: "Kirjoita ja testaa koodia verkossa",
-    category: "education",
-    appType: "iframe",
-    appUrl: "https://codesandbox.io/",
-    width: 1200,
-    height: 800,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher"],
-    isActive: true,
-    sortOrder: 6,
-  },
-  {
-    appId: "books",
-    name: "Library",
-    nameFi: "Kirjasto",
-    icon: "books",
-    description: "Access digital library resources",
-    descriptionFi: "Käytä digitaalisia kirjastoresursseja",
-    category: "education",
-    appType: "iframe",
-    appUrl: "https://openlibrary.org/",
-    width: 1000,
-    height: 700,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 7,
-  },
-  {
-    appId: "mail",
-    name: "Mail",
-    nameFi: "Sähköposti",
-    icon: "mail",
-    description: "Check your school email",
-    descriptionFi: "Tarkista koulun sähköpostisi",
-    category: "productivity",
-    appType: "component",
-    componentName: "MailApp",
-    width: 1000,
-    height: 700,
-    resizable: true,
-    minimizable: true,
-    maximizable: true,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 8,
-  },
-  {
-    appId: "settings",
-    name: "Settings",
-    nameFi: "Asetukset",
-    icon: "settings",
-    description: "Customize your desktop",
-    descriptionFi: "Mukauta työpöytääsi",
-    category: "utility",
-    appType: "component",
-    componentName: "DesktopSettings",
-    width: 600,
-    height: 500,
-    resizable: false,
-    minimizable: true,
-    maximizable: false,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 9,
-  },
-  {
-    appId: "clock",
-    name: "Clock",
-    nameFi: "Kello",
-    icon: "clock",
-    description: "World clock and timer",
-    descriptionFi: "Maailmankello ja ajastin",
-    category: "utility",
-    appType: "iframe",
-    appUrl: "https://time.is/",
-    width: 400,
-    height: 500,
-    resizable: true,
-    minimizable: true,
-    maximizable: false,
-    allowedRoles: ["student", "teacher", "parent", "admin"],
-    isActive: true,
-    sortOrder: 10,
-  },
+const desktopApps = [
+  // Educational Apps
+  { name: 'WilmaApp', icon: 'GraduationCap', category: 'education', isActive: true, order: 1 },
+  { name: 'Coursera', icon: 'BookOpen', category: 'education', isActive: true, order: 2 },
+  { name: 'Udemy', icon: 'Video', category: 'education', isActive: true, order: 3 },
+  { name: 'Khan Academy', icon: 'School', category: 'education', isActive: true, order: 4 },
+  { name: 'Quizlet', icon: 'Brain', category: 'education', isActive: true, order: 5 },
+  { name: 'Duolingo', icon: 'Languages', category: 'education', isActive: true, order: 6 },
+  
+  // Productivity Apps
+  { name: 'Notion', icon: 'FileText', category: 'productivity', isActive: true, order: 7 },
+  { name: 'Trello', icon: 'Trello', category: 'productivity', isActive: true, order: 8 },
+  { name: 'OneDrive', icon: 'Cloud', category: 'productivity', isActive: true, order: 9 },
+  { name: 'Google Drive', icon: 'HardDrive', category: 'productivity', isActive: true, order: 10 },
+  { name: 'Dropbox', icon: 'Dropbox', category: 'productivity', isActive: true, order: 11 },
+  
+  // Communication Apps
+  { name: 'Microsoft Teams', icon: 'Users', category: 'communication', isActive: true, order: 12 },
+  { name: 'Slack', icon: 'MessageSquare', category: 'communication', isActive: true, order: 13 },
+  { name: 'Discord', icon: 'MessageCircle', category: 'communication', isActive: true, order: 14 },
+  { name: 'Messenger', icon: 'Send', category: 'communication', isActive: true, order: 15 },
+  { name: 'Zoom', icon: 'Video', category: 'communication', isActive: true, order: 16 },
+  { name: 'Google Meet', icon: 'VideoIcon', category: 'communication', isActive: true, order: 17 },
+  
+  // Development Tools
+  { name: 'GitHub', icon: 'Github', category: 'development', isActive: true, order: 18 },
+  { name: 'VS Code', icon: 'Code', category: 'development', isActive: true, order: 19 },
+  { name: 'Terminal', icon: 'Terminal', category: 'development', isActive: true, order: 20 },
+  
+  // Design Tools
+  { name: 'Figma', icon: 'Figma', category: 'design', isActive: true, order: 21 },
+  { name: 'Canva', icon: 'Palette', category: 'design', isActive: true, order: 22 },
+  { name: 'Paint', icon: 'Paintbrush', category: 'design', isActive: true, order: 23 },
+  
+  // Office Suite
+  { name: 'Word', icon: 'FileText', category: 'office', isActive: true, order: 24 },
+  { name: 'Excel', icon: 'Table', category: 'office', isActive: true, order: 25 },
+  { name: 'PowerPoint', icon: 'Presentation', category: 'office', isActive: true, order: 26 },
+  { name: 'Outlook', icon: 'Mail', category: 'office', isActive: true, order: 27 },
+  
+  // Entertainment
+  { name: 'Spotify', icon: 'Music', category: 'entertainment', isActive: true, order: 28 },
+  { name: 'YouTube', icon: 'Youtube', category: 'entertainment', isActive: true, order: 29 },
+  
+  // Utilities
+  { name: 'Calculator', icon: 'Calculator', category: 'utilities', isActive: true, order: 30 },
+  { name: 'Clock', icon: 'Clock', category: 'utilities', isActive: true, order: 31 },
+  { name: 'Calendar', icon: 'Calendar', category: 'utilities', isActive: true, order: 32 },
+  { name: 'Settings', icon: 'Settings', category: 'utilities', isActive: true, order: 33 },
+  { name: 'File Explorer', icon: 'Folder', category: 'utilities', isActive: true, order: 34 },
+  { name: 'Photos', icon: 'Image', category: 'utilities', isActive: true, order: 35 },
+  { name: 'Notes', icon: 'StickyNote', category: 'utilities', isActive: true, order: 36 },
+  { name: 'Weather', icon: 'Cloud', category: 'utilities', isActive: true, order: 37 },
+  { name: 'Maps', icon: 'Map', category: 'utilities', isActive: true, order: 38 },
+  { name: 'Camera', icon: 'Camera', category: 'utilities', isActive: true, order: 39 },
+  { name: 'Voice Recorder', icon: 'Mic', category: 'utilities', isActive: true, order: 40 },
+  { name: 'Task Manager', icon: 'Activity', category: 'utilities', isActive: true, order: 41 },
+  { name: 'Control Panel', icon: 'Sliders', category: 'utilities', isActive: true, order: 42 },
+  { name: 'Store', icon: 'ShoppingBag', category: 'utilities', isActive: true, order: 43 },
+  { name: 'Browser', icon: 'Globe', category: 'utilities', isActive: true, order: 44 },
 ];
 
-export async function seedDesktopApps() {
-  console.log("🌱 Seeding desktop apps...");
-
+async function seedDesktopApps() {
+  console.log('🚀 Starting desktop apps seeding...');
+  
   try {
-    // Create default desktop settings
-    const settings = await storage.getWilmaDesktopSettings();
-    if (!settings) {
-      await storage.updateWilmaDesktopSettings({
-        enabled: true,
-        defaultWallpaper: "/wilma-bg.jpg",
-        defaultTheme: "light",
-        allowCustomWallpaper: true,
-        allowCustomTheme: true,
-        availableApps: defaultApps.map(app => app.appId),
-        defaultApps: ["calculator", "notepad", "calendar", "mail", "settings", "lofi-music", "white-noise"],
-      });
-      console.log("✅ Desktop settings created");
-    }
-
-    // Create apps
-    for (const app of defaultApps) {
+    let created = 0;
+    let skipped = 0;
+    
+    for (const app of desktopApps) {
       try {
-        await storage.createWilmaDesktopApp(app);
-        console.log(`✅ Created app: ${app.nameFi}`);
-      } catch (error) {
-        console.log(`⚠️  App ${app.nameFi} might already exist, skipping...`);
+        await firebaseStorage.createWilmaDesktopApp(app);
+        console.log(`✅ Created app: ${app.name}`);
+        created++;
+      } catch (error: any) {
+        if (error.message.includes('already exists')) {
+          console.log(`⏭️  Skipped (exists): ${app.name}`);
+          skipped++;
+        } else {
+          console.error(`❌ Error creating ${app.name}:`, error.message);
+        }
       }
     }
-
-    console.log("🎉 Desktop apps seeded successfully!");
+    
+    console.log('\n📊 Seeding Summary:');
+    console.log(`   ✅ Created: ${created} apps`);
+    console.log(`   ⏭️  Skipped: ${skipped} apps`);
+    console.log(`   📦 Total: ${desktopApps.length} apps`);
+    console.log('\n🎉 Desktop apps seeding complete!');
+    
   } catch (error) {
-    console.error("❌ Error seeding desktop apps:", error);
+    console.error('❌ Fatal error during seeding:', error);
     throw error;
   }
 }
@@ -350,12 +99,11 @@ export async function seedDesktopApps() {
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   seedDesktopApps()
-    .then(() => {
-      console.log("✅ Seeding complete");
-      process.exit(0);
-    })
+    .then(() => process.exit(0))
     .catch((error) => {
-      console.error("❌ Seeding failed:", error);
+      console.error('Seeding failed:', error);
       process.exit(1);
     });
 }
+
+export { seedDesktopApps };
