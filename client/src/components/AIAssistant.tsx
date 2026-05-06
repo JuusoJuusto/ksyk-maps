@@ -121,12 +121,29 @@ export default function AIAssistant() {
   const sendMessage = async () => {
     if (!input.trim() || !chatInstance) return;
 
-    const userMessage = input;
+    const userMessage = input.trim();
     setInput("");
     setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
 
     try {
+      // INTENT DETECTION - Recognize common patterns
+      const lowerMessage = userMessage.toLowerCase();
+      
+      // Greeting detection
+      const greetings = ['hei', 'moi', 'terve', 'moikka', 'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'];
+      const isGreeting = greetings.some(g => lowerMessage === g || lowerMessage.startsWith(g + ' ') || lowerMessage.startsWith(g + ','));
+      
+      // Help request detection
+      const helpKeywords = ['help', 'apua', 'auta', 'how', 'miten', 'kuinka', 'what', 'mitä', 'mikä'];
+      const isHelpRequest = helpKeywords.some(k => lowerMessage.includes(k));
+      
+      // Question detection
+      const isQuestion = lowerMessage.includes('?') || lowerMessage.startsWith('onko') || lowerMessage.startsWith('voitko') || lowerMessage.startsWith('can you') || lowerMessage.startsWith('do you');
+      
+      console.log('🤖 Intent Detection:', { isGreeting, isHelpRequest, isQuestion, message: userMessage });
+      
+      // Generate contextual response
       let response = "";
       for await (const chunk of chatInstance.streamMessage(userMessage)) {
         response += chunk;
@@ -141,11 +158,33 @@ export default function AIAssistant() {
           return newMessages;
         });
       }
+      
+      // If response is too short or generic, add fallback
+      if (response.length < 20 && (isGreeting || isHelpRequest)) {
+        const fallbackResponse = isGreeting 
+          ? "\n\nMiten voin auttaa sinua tänään? 😊"
+          : "\n\nKerro lisää, niin voin auttaa paremmin! 🦉";
+        
+        response += fallbackResponse;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          if (newMessages[newMessages.length - 1]?.role === "assistant") {
+            newMessages[newMessages.length - 1].content = response;
+          }
+          return newMessages;
+        });
+      }
+      
     } catch (error) {
       console.error("Error sending message:", error);
+      
+      // Fallback response on error
+      const fallbackMessage = "Anteeksi, kohtasin teknisen ongelman. 😔 Yritä uudelleen tai kysy jotain muuta! 🦉";
+      setMessages(prev => [...prev, { role: "assistant", content: fallbackMessage }]);
+      
       toast({
-        title: "Error",
-        description: "Failed to get AI response. Please try again.",
+        title: "Virhe",
+        description: "AI-vastauksen hakeminen epäonnistui. Yritä uudelleen.",
         variant: "destructive",
       });
     } finally {

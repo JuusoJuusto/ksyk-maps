@@ -355,8 +355,10 @@ export default function WilmaDesktop() {
 
   const wallpaper = userConfig?.wallpaper || "/KSYK-logo-desktop.png";
   
+  // ✅ DESKTOP IS GLOBAL - All users see the same apps
+  // Apps are fetched from /api/wilma/desktop/apps (global)
+  // Only user config (wallpaper, theme) is per-user
   // Show ALL active apps from the system, not just user's installed apps
-  // This ensures apps toggled ON in desktop manager show for everyone
   const installedApps = availableApps.filter(app => app.isActive);
 
   return (
@@ -364,7 +366,7 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "auto 8%",
+        backgroundSize: "auto 3%", // ✅ MUCH SMALLER - was auto 8%
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",

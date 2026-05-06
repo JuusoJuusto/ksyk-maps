@@ -30,15 +30,21 @@ export default function WilmaAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(params?.section || 'home');
 
+  // Update active tab when section changes (NO auth check)
   useEffect(() => {
     if (params?.section) {
+      console.log('📍 Section changed to:', params.section);
       setActiveTab(params.section);
     }
   }, [params?.section]);
 
+  // Auth check - ONLY on mount and adminId change (NOT on section change)
   useEffect(() => {
+    console.log('🔐 Auth check triggered - adminId:', params?.adminId);
+    
     const checkAuth = () => {
       const storedUser = localStorage.getItem('wilma_user');
+      console.log('👤 Stored user:', storedUser ? 'EXISTS' : 'NONE');
       
       if (storedUser) {
         try {
@@ -48,37 +54,40 @@ export default function WilmaAdmin() {
             ['admin', 'teacher', 'principal', 'vice_principal'].includes(r)
           );
           
+          console.log('✅ User has access:', hasAccess, '- Roles:', roles);
+          
           if (hasAccess) {
             // SECURITY: Validate admin ID matches logged-in user
             if (params?.adminId && params.adminId !== user.id) {
-              // Redirect to correct URL with return path
+              console.log('⚠️ Admin ID mismatch - redirecting to correct URL');
               const returnPath = params.section || 'home';
               setLocation(`/wilma-admin/${user.id}/${returnPath}`);
               return;
             }
             
             setCurrentUser(user);
+            console.log('✅ User authenticated:', user.firstName, user.lastName);
             
-            // If no adminId in URL, redirect to include it with return path
+            // If no adminId in URL, redirect to include it
             if (!params?.adminId) {
+              console.log('⚠️ No adminId in URL - adding it');
               const returnPath = params?.section || 'home';
               setLocation(`/wilma-admin/${user.id}/${returnPath}`);
             }
           } else {
-            // Store return path before redirecting
+            console.log('❌ User does not have access - redirecting to /wilma');
             const returnPath = params?.section || 'home';
             localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
             setLocation('/wilma');
           }
         } catch (err) {
-          console.error('Auth check failed:', err);
-          // Store return path on error
+          console.error('❌ Auth check failed:', err);
           const returnPath = params?.section || 'home';
           localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
           setLocation('/wilma');
         }
       } else {
-        // Store return path when not logged in
+        console.log('❌ No stored user - redirecting to /wilma');
         const returnPath = params?.section || 'home';
         localStorage.setItem('wilma_return_path', `/wilma-admin/${params?.adminId || 'unknown'}/${returnPath}`);
         setLocation('/wilma');
@@ -87,7 +96,7 @@ export default function WilmaAdmin() {
     };
 
     checkAuth();
-  }, [params?.adminId, params?.section]);
+  }, [params?.adminId]); // ✅ ONLY run on adminId change, NOT section change
 
   const handleLogout = async () => {
     try {
