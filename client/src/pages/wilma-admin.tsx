@@ -10,6 +10,7 @@ import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
 import ScheduleManager from "@/components/ScheduleManager";
 import ScheduleSettingsManager from "@/components/ScheduleSettingsManager";
 import WilmaSettingsManager from "@/components/WilmaSettingsManager";
+import WilmaDesktopManager from "@/components/WilmaDesktopManager";
 import TeacherDirectory from "@/components/TeacherDirectory";
 import ClassesManager from "@/components/ClassesManager";
 import WilmaStyleAttendance from "@/components/WilmaStyleAttendance";
@@ -185,6 +186,7 @@ export default function WilmaAdmin() {
                 {activeTab === 'announcements' && 'Ilmoitukset'}
                 {activeTab === 'analytics' && 'Analytiikka'}
                 {activeTab === 'settings' && 'Asetukset'}
+                {activeTab === 'desktop-manager' && 'Työpöytä'}
               </span>
             </span>
             <span className={`transform transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -208,7 +210,8 @@ export default function WilmaAdmin() {
               { key: 'rooms', label: 'Tilat', icon: Building },
               { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
               { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
-              { key: 'settings', label: 'Asetukset', icon: Settings }
+              { key: 'settings', label: 'Asetukset', icon: Settings },
+              { key: 'desktop-manager', label: 'Työpöytä', icon: Settings }
             ].map(({ key, label, icon: Icon }) => (
               <Button
                 key={key}
@@ -248,7 +251,8 @@ export default function WilmaAdmin() {
             { key: 'rooms', label: 'Tilat', icon: Building },
             { key: 'announcements', label: 'Ilmoitukset', icon: Bell },
             { key: 'analytics', label: 'Analytiikka', icon: BarChart3 },
-            { key: 'settings', label: 'Asetukset', icon: Settings }
+            { key: 'settings', label: 'Asetukset', icon: Settings },
+            { key: 'desktop-manager', label: 'Työpöytä', icon: Settings }
           ].map(({ key, label, icon: Icon }) => (
             <Button
               key={key}
@@ -599,6 +603,10 @@ export default function WilmaAdmin() {
 
           <TabsContent value="settings">
             <WilmaSettingsManager />
+          </TabsContent>
+
+          <TabsContent value="desktop-manager">
+            <WilmaDesktopManager />
           </TabsContent>
         </Tabs>
         </div>

@@ -334,6 +334,30 @@ export default function WilmaSettingsManager() {
       </Card>
 
       {/* System Info */}
+      <Card className="border-2 border-purple-200">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-purple-600" />
+            Työpöytä-asetukset
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Hallinnoi työpöytäsovelluksia, määritä käytettävissä olevat sovellukset ja muokkaa työpöytäasetuksia.
+            </p>
+            <Button
+              onClick={() => window.location.href = '/wilma-admin/desktop-manager'}
+              className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Avaa työpöytähallinta
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* System Info */}
       <Card className="border-2 border-gray-200">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
           <CardTitle className="flex items-center gap-2">

@@ -366,30 +366,42 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "auto 3%", // ✅ MUCH SMALLER - was auto 8%
+        backgroundSize: "contain", // ✅ SMALLEST POSSIBLE - fits entire logo
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",
-        backgroundBlendMode: "overlay",
+        opacity: 0.15, // ✅ VERY FAINT background
       }}
     >
+      {/* Overlay to make background even more subtle */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-800/20" />
+      
       {/* Desktop Icons - Windows 11 Style - Show ALL apps with scrolling */}
-      <div className="absolute inset-0 p-4 overflow-y-auto grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-14 gap-3 content-start pointer-events-none">
-        {installedApps.map((app, index) => (
+      <div className="absolute inset-0 p-4 pb-20 overflow-y-auto grid grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14 2xl:grid-cols-16 gap-2 content-start z-10">
+        {installedApps.length === 0 ? (
+          <div className="col-span-full flex items-center justify-center h-full">
+            <div className="text-center text-white bg-black/50 p-8 rounded-xl backdrop-blur-sm">
+              <p className="text-xl font-bold mb-2">Ei sovelluksia</p>
+              <p className="text-sm opacity-80">Pyydä järjestelmänvalvojaa lisäämään sovelluksia</p>
+            </div>
+          </div>
+        ) : (
+          installedApps.map((app, index) => (
           <button
             key={app.appId}
             onClick={() => openApp(app)}
-            className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-all group pointer-events-auto backdrop-blur-sm"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/20 active:bg-white/30 transition-all group cursor-pointer"
             title={app.nameFi || app.name}
           >
-            <div className="w-12 h-12 md:w-14 md:h-14 bg-white/90 rounded-xl shadow-xl flex items-center justify-center text-blue-600 group-hover:scale-110 group-active:scale-95 transition-transform border border-white/50">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-white/95 rounded-xl shadow-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 group-active:scale-95 transition-transform border-2 border-white/70">
               {getIconComponent(app.icon)}
             </div>
-            <span className="text-white text-[9px] md:text-[10px] font-medium text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[60px] md:max-w-[70px] line-clamp-2 px-1 py-0.5 rounded bg-black/30 backdrop-blur-sm">
+            <span className="text-white text-[10px] md:text-xs font-semibold text-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] max-w-[70px] md:max-w-[80px] line-clamp-2 px-2 py-1 rounded-md bg-black/40 backdrop-blur-md">
               {app.nameFi || app.name}
             </span>
           </button>
-        ))}
+        ))
+        )}
       </div>
 
       {/* Open Windows */}
