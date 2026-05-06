@@ -364,24 +364,26 @@ export default function WilmaDesktop() {
       className="fixed inset-0 overflow-hidden"
       style={{
         backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "5%",
+        backgroundSize: "auto 8%",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0078d4",
+        backgroundBlendMode: "overlay",
       }}
     >
-      {/* Desktop Icons - Windows 11 Style */}
-      <div className="absolute inset-0 p-4 grid grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4 content-start pointer-events-none">
-        {installedApps.slice(0, 48).map((app, index) => (
+      {/* Desktop Icons - Windows 11 Style - Show ALL apps with scrolling */}
+      <div className="absolute inset-0 p-4 overflow-y-auto grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-14 gap-3 content-start pointer-events-none">
+        {installedApps.map((app, index) => (
           <button
             key={app.appId}
             onClick={() => openApp(app)}
             className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-all group pointer-events-auto backdrop-blur-sm"
+            title={app.nameFi || app.name}
           >
-            <div className="w-14 h-14 bg-white/90 rounded-xl shadow-xl flex items-center justify-center text-blue-600 group-hover:scale-110 group-active:scale-95 transition-transform border border-white/50">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-white/90 rounded-xl shadow-xl flex items-center justify-center text-blue-600 group-hover:scale-110 group-active:scale-95 transition-transform border border-white/50">
               {getIconComponent(app.icon)}
             </div>
-            <span className="text-white text-[10px] font-medium text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[70px] line-clamp-2 px-1 py-0.5 rounded bg-black/20 backdrop-blur-sm">
+            <span className="text-white text-[9px] md:text-[10px] font-medium text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[60px] md:max-w-[70px] line-clamp-2 px-1 py-0.5 rounded bg-black/30 backdrop-blur-sm">
               {app.nameFi || app.name}
             </span>
           </button>

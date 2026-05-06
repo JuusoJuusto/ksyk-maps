@@ -390,9 +390,26 @@ Kun opiskelija sanoo vain "hei" tai "moi", vastaa lämpimästi: "Hei! 😊 Olen 
   return new GeminiChat(MODELS.FLASH, systemInstruction);
 }
 
-// AI campus assistant - ENHANCED FOR FINNISH
-export function createCampusAssistant(): GeminiChat {
+// AI campus assistant - ENHANCED FOR FINNISH WITH CONTEXT AWARENESS
+export function createCampusAssistant(currentPage?: string, userRole?: string): GeminiChat {
+  // Detect context from current page
+  const contextInfo = currentPage ? `
+
+🎯 KONTEKSTI - KÄYTTÄJÄ ON NYT SIVULLA: ${currentPage}
+${currentPage.includes('admin') ? '👨‍💼 Käyttäjä on ADMIN-paneelissa - tarjoa apua hallintotehtävissä' : ''}
+${currentPage.includes('desktop') ? '🖥️ Käyttäjä on TYÖPÖYDÄLLÄ - auta sovelluksien käytössä' : ''}
+${currentPage.includes('students') ? '👨‍🎓 Käyttäjä katsoo OPISKELIJOITA - auta opiskelijahallinnassa' : ''}
+${currentPage.includes('schedule') ? '📅 Käyttäjä katsoo LUKUJÄRJESTYSTÄ - auta aikatauluissa' : ''}
+${currentPage.includes('messages') ? '✉️ Käyttäjä katsoo VIESTEJÄ - auta viestinnässä' : ''}
+${currentPage.includes('grades') ? '📊 Käyttäjä katsoo ARVOSANOJA - auta arvioinnissa' : ''}
+${currentPage.includes('attendance') ? '✅ Käyttäjä katsoo LÄSNÄOLOJA - auta poissaoloissa' : ''}
+${currentPage.includes('homework') ? '📝 Käyttäjä katsoo KOTITEHTÄVIÄ - auta tehtävissä' : ''}
+
+ANNA KONTEKSTUAALISIA EHDOTUKSIA NYKYISEN SIVUN PERUSTEELLA!
+` : '';
+
   const systemInstruction = `Olet Tuki-Pöllö 🦉, ERITTÄIN älykäs tekoälykampusavustaja KSYK Mapsille Kulosaaren yhteiskoulussa Helsingissä, Suomessa!
+${contextInfo}
 
 PERSOONALLISUUS:
 - Ystävällinen, avulias ja asiantunteva kuin viisas pöllö 🦉

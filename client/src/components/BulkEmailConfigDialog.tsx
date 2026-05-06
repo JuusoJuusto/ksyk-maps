@@ -45,6 +45,10 @@ export default function BulkEmailConfigDialog({
     students.map(s => s.studentClass).filter(Boolean)
   )).sort();
 
+  // Debug logging FIRST
+  console.log('📊 Bulk Email Config:', config);
+  console.log('📊 Total students:', students.length);
+
   // Filter students based on config
   const filteredStudents = students.filter(student => {
     if (config.gradeLevel && !student.studentClass?.startsWith(config.gradeLevel)) {
@@ -63,19 +67,6 @@ export default function BulkEmailConfigDialog({
     return true;
   });
 
-  // Debug logging
-  console.log('📊 Bulk Email Config:', config);
-  console.log('📊 Total students:', students.length);
-  console.log('📊 Filtered students:', filteredStudents.length);
-  console.log('📊 Student emails:', studentCount);
-  console.log('📊 Parent 1 emails:', parent1Count);
-  console.log('📊 Parent 2 emails:', parent2Count);
-  console.log('📊 Total emails to send:', totalEmails);
-  if (config.newStudentsOnly) {
-    const tempPasswordStudents = students.filter(s => s.isTemporaryPassword);
-    console.log('📊 Students with temporary passwords:', tempPasswordStudents.length);
-  }
-
   // Count recipients - FIXED to count actual emails, not students with parents
   const studentCount = filteredStudents.length;
   const parent1Count = config.includeParents 
@@ -85,6 +76,17 @@ export default function BulkEmailConfigDialog({
     ? filteredStudents.filter(s => s.parent2Email).length 
     : 0;
   const totalEmails = studentCount + parent1Count + parent2Count;
+
+  // Debug logging AFTER variables are defined
+  console.log('📊 Filtered students:', filteredStudents.length);
+  console.log('📊 Student emails:', studentCount);
+  console.log('📊 Parent 1 emails:', parent1Count);
+  console.log('📊 Parent 2 emails:', parent2Count);
+  console.log('📊 Total emails to send:', totalEmails);
+  if (config.newStudentsOnly) {
+    const tempPasswordStudents = students.filter(s => s.isTemporaryPassword);
+    console.log('📊 Students with temporary passwords:', tempPasswordStudents.length);
+  }
 
   const handleSend = () => {
     onSend(config);

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export default function AIAssistant() {
+  const [location] = useLocation();
   const [activeTab, setActiveTab] = useState("chat");
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
@@ -85,15 +87,34 @@ export default function AIAssistant() {
   }, [messages]);
 
   const initializeChat = (type: "study" | "campus") => {
+    // Detect current page context
+    const currentPage = location;
+    const userRole = currentPage.includes('admin') ? 'admin' : 'student';
+    
     const chat = type === "study" 
       ? createStudyBuddyChat() 
-      : createCampusAssistant();
+      : createCampusAssistant(currentPage, userRole);
     setChatInstance(chat);
+    
+    // Context-aware welcome message
+    let welcomeMessage = "";
+    if (type === "study") {
+      welcomeMessage = "Hei! 😊 Olen tekoälyopinto-ohjaajasi! Miten voin auttaa sinua tänään? 📚✨";
+    } else {
+      if (currentPage.includes('admin')) {
+        welcomeMessage = "Hei! 🦉 Olen Tuki-Pöllö! Näen että olet admin-paneelissa. Voin auttaa opiskelijahallinnassa, viestien lähetyksessä, lukujärjestysten hallinnassa ja muissa hallintotehtävissä! 👨‍💼✨";
+      } else if (currentPage.includes('desktop')) {
+        welcomeMessage = "Hei! 🦉 Olen Tuki-Pöllö! Näen että olet työpöydällä. Voin auttaa sinua avaamaan sovelluksia, navigoimaan järjestelmässä ja käyttämään eri työkaluja! 🖥️✨";
+      } else if (currentPage.includes('students')) {
+        welcomeMessage = "Hei! 🦉 Olen Tuki-Pöllö! Näen että katsot opiskelijoita. Voin auttaa opiskelijoiden lisäämisessä, muokkaamisessa, sähköpostien lähetyksessä ja huoltajien linkittämisessä! 👨‍🎓✨";
+      } else {
+        welcomeMessage = "Hei! 🦉 Olen Tuki-Pöllö, kampusavustajasi! Miten voin auttaa sinua navigoimaan KSYK:ssa tänään? 🗺️✨";
+      }
+    }
+    
     setMessages([{
       role: "assistant",
-      content: type === "study" 
-        ? "Hi! I'm your AI study buddy 📚 How can I help you learn today?"
-        : "Hello! I'm your campus assistant 🗺️ How can I help you navigate KSYK today?"
+      content: welcomeMessage
     }]);
   };
 
