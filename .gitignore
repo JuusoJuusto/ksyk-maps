@@ -26,6 +26,7 @@ serviceAccountKey.json
 !WILMA-FIXES-PLAN.md
 !IMMEDIATE-ACTION-REQUIRED.md
 !WILMA-OVERHAUL-COMPLETE.md
+!CODING-PLATFORM-*.md
 
 # IDE
 .vscode/*
