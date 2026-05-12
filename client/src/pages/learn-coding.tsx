@@ -86,26 +86,57 @@ export default function LearnCodingNew() {
       
       // Load courses
       const coursesRes = await fetch('/api/coding/courses');
-      const coursesData = await coursesRes.json();
-      setCourses(coursesData);
+      if (coursesRes.ok) {
+        const coursesData = await coursesRes.json();
+        setCourses(Array.isArray(coursesData) ? coursesData : []);
+      } else {
+        console.error('Failed to load courses:', coursesRes.status);
+        setCourses([]);
+      }
       
       // Load user stats
       const statsRes = await fetch(`/api/coding/stats/${userId}`);
-      const statsData = await statsRes.json();
-      setUserStats(statsData);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setUserStats(statsData || {
+          totalXp: 0,
+          level: 1,
+          streak: 0,
+          coursesCompleted: 0,
+          lessonsCompleted: 0,
+          exercisesCompleted: 0,
+          rank: null
+        });
+      } else {
+        console.error('Failed to load stats:', statsRes.status);
+      }
       
       // Load user progress
       const progressRes = await fetch(`/api/coding/progress/${userId}`);
-      const progressData = await progressRes.json();
-      setUserProgress(progressData);
+      if (progressRes.ok) {
+        const progressData = await progressRes.json();
+        setUserProgress(Array.isArray(progressData) ? progressData : []);
+      } else {
+        console.error('Failed to load progress:', progressRes.status);
+        setUserProgress([]);
+      }
       
       // Load leaderboard
       const leaderboardRes = await fetch('/api/coding/leaderboard?type=alltime&limit=10');
-      const leaderboardData = await leaderboardRes.json();
-      setLeaderboard(leaderboardData);
+      if (leaderboardRes.ok) {
+        const leaderboardData = await leaderboardRes.json();
+        setLeaderboard(Array.isArray(leaderboardData) ? leaderboardData : []);
+      } else {
+        console.error('Failed to load leaderboard:', leaderboardRes.status);
+        setLeaderboard([]);
+      }
       
     } catch (error) {
       console.error('Error loading user data:', error);
+      // Set default values on error
+      setCourses([]);
+      setUserProgress([]);
+      setLeaderboard([]);
     } finally {
       setLoading(false);
     }
@@ -278,6 +309,12 @@ export default function LearnCodingNew() {
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                   <span className="ml-3 text-gray-600">{t('Ladataan kursseja...', 'Loading courses...')}</span>
+                </div>
+              ) : courses.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-semibold mb-2">{t('Ei kursseja saatavilla', 'No courses available')}</h3>
+                  <p className="text-gray-600">{t('Kursseja lisätään pian!', 'Courses coming soon!')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
