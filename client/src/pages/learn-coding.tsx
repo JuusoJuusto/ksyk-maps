@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import CodeEditor from "@/components/CodeEditor";
 import ClassroomPage from "@/components/ClassroomPage";
-import { allCourses, getCourseById } from "@/shared/realCourseData";
+import { allCourses, getCourseById } from "../../../shared/realCourseData";
 import { 
   Code, 
   BookOpen, 
