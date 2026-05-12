@@ -293,16 +293,30 @@ export default function LearnCodingNew() {
             />
           </TabsContent>
 
-          {/* Courses Tab - Real Data from API */}
+          {/* Courses Tab - Real Data from API with Enhanced UI */}
           <TabsContent value="courses">
             <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">
-                  {t('Kurssit', 'Courses')}
-                </h2>
-                <p className="text-gray-600">
-                  {t('Valitse kurssi ja aloita oppiminen', 'Choose a course and start learning')}
-                </p>
+              {/* Header with Filter */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">
+                    {t('Kurssit', 'Courses')}
+                  </h2>
+                  <p className="text-gray-600">
+                    {t('Valitse kurssi ja aloita oppiminen', 'Choose a course and start learning')}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                    {t('Kaikki', 'All')} ({courses.length})
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                    {t('Aloittelija', 'Beginner')}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                    {t('Keskitaso', 'Intermediate')}
+                  </Badge>
+                </div>
               </div>
 
               {loading ? (
@@ -322,10 +336,25 @@ export default function LearnCodingNew() {
                     const progress = userProgress.find(p => p.courseId === course.id);
                     const progressPercent = progress?.progressPercentage || 0;
                     
+                    // Course-specific colors and icons
+                    const courseColors = {
+                      python: { bg: 'bg-blue-600', icon: '🐍' },
+                      javascript: { bg: 'bg-yellow-500', icon: '⚡' },
+                      html: { bg: 'bg-orange-500', icon: '🎨' },
+                      default: { bg: 'bg-purple-600', icon: '🚀' }
+                    };
+                    
+                    const courseStyle = courseColors[course.language as keyof typeof courseColors] || courseColors.default;
+                    
                     return (
-                      <Card key={course.id} className="hover:shadow-lg transition-shadow border-2">
-                        <div className="h-32 bg-blue-600 flex items-center justify-center">
-                          <Code className="w-16 h-16 text-white" />
+                      <Card key={course.id} className="hover:shadow-xl transition-all hover:-translate-y-1 border-2 overflow-hidden">
+                        <div className={`h-32 ${courseStyle.bg} flex items-center justify-center relative`}>
+                          <div className="text-6xl">{courseStyle.icon}</div>
+                          {progressPercent > 0 && (
+                            <div className="absolute top-2 right-2 bg-white rounded-full px-3 py-1 text-sm font-bold text-gray-900">
+                              {progressPercent}%
+                            </div>
+                          )}
                         </div>
 
                         <CardHeader>
@@ -352,11 +381,13 @@ export default function LearnCodingNew() {
                               )}
                             </Badge>
                             {course.isFree && (
-                              <Badge variant="outline">{t('Ilmainen', 'Free')}</Badge>
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                {t('Ilmainen', 'Free')}
+                              </Badge>
                             )}
-                            {progressPercent > 0 && (
-                              <Badge className="bg-blue-100 text-blue-800">
-                                {progressPercent}% {t('valmis', 'complete')}
+                            {progressPercent === 100 && (
+                              <Badge className="bg-amber-100 text-amber-800">
+                                ✅ {t('Valmis', 'Completed')}
                               </Badge>
                             )}
                           </div>
@@ -373,15 +404,21 @@ export default function LearnCodingNew() {
                           </div>
 
                           {progressPercent > 0 && (
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                style={{ width: `${progressPercent}%` }}
-                              />
+                            <div>
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="text-gray-600">{t('Edistyminen', 'Progress')}</span>
+                                <span className="font-semibold text-blue-600">{progressPercent}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                <div 
+                                  className="bg-blue-600 h-2.5 rounded-full transition-all"
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
                             </div>
                           )}
 
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                          <Button className={`w-full ${courseStyle.bg} hover:opacity-90 transition-opacity`}>
                             {progressPercent > 0 ? (
                               <>
                                 <Play className="w-4 h-4 mr-2" />
@@ -399,6 +436,38 @@ export default function LearnCodingNew() {
                     );
                   })}
                 </div>
+              )}
+
+              {/* Course Stats */}
+              {courses.length > 0 && (
+                <Card className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div className="text-3xl font-bold text-blue-600">{courses.length}</div>
+                        <div className="text-sm text-gray-600">{t('Kursseja', 'Courses')}</div>
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold text-green-600">
+                          {courses.filter(c => c.difficulty === 'beginner').length}
+                        </div>
+                        <div className="text-sm text-gray-600">{t('Aloittelijoille', 'For Beginners')}</div>
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold text-purple-600">
+                          {courses.reduce((sum, c) => sum + (c.estimatedHours || 0), 0)}h
+                        </div>
+                        <div className="text-sm text-gray-600">{t('Oppimista', 'Learning')}</div>
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold text-amber-600">
+                          {userProgress.filter(p => p.progressPercentage === 100).length}
+                        </div>
+                        <div className="text-sm text-gray-600">{t('Suoritettu', 'Completed')}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </TabsContent>
