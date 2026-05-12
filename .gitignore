@@ -27,6 +27,7 @@ serviceAccountKey.json
 !IMMEDIATE-ACTION-REQUIRED.md
 !WILMA-OVERHAUL-COMPLETE.md
 !CODING-PLATFORM-*.md
+!TASK-COMPLETE-*.md
 
 # IDE
 .vscode/*
