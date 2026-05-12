@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import CodeEditor from "@/components/CodeEditor";
 import ClassroomPage from "@/components/ClassroomPage";
+import CodingDashboard from "@/components/CodingDashboard";
+import CodePlayground from "@/components/CodePlayground";
 import { 
   Code, 
   BookOpen, 
@@ -118,10 +120,16 @@ export default function LearnCodingNew() {
     setLocation(basePath);
   };
 
-  const navigateToSection = (section: string) => {
+  const navigateToSection = (section: string, data?: any) => {
     setActiveSection(section);
     const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
     setLocation(`${basePath}/learn-coding/${section}`);
+    
+    // Handle additional navigation data (e.g., courseId)
+    if (data?.courseId) {
+      // Could be used to open a specific course
+      console.log('Navigate to course:', data.courseId);
+    }
   };
 
   if (!currentUser) {
@@ -244,188 +252,14 @@ export default function LearnCodingNew() {
 
           {/* Dashboard */}
           <TabsContent value="dashboard">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Welcome Card - Clean Design */}
-                <Card className="border-2 border-blue-600">
-                  <CardContent className="p-6">
-                    <h2 className="text-2xl font-bold mb-2 text-gray-900">
-                      {t(`Tervetuloa takaisin, ${currentUser.firstName}!`, `Welcome back, ${currentUser.firstName}!`)}
-                    </h2>
-                    <p className="text-gray-600 mb-4">
-                      {t('Jatka oppimista siitä mihin jäit', 'Continue learning where you left off')}
-                    </p>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Play className="w-4 h-4 mr-2" />
-                      {t('Jatka oppimista', 'Continue Learning')}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Daily Challenge */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-yellow-600" />
-                      {t('Päivän haaste', 'Daily Challenge')}
-                    </CardTitle>
-                    <CardDescription>
-                      {t('Ratkaise päivän koodaushaaste ja ansaitse bonusta XP!', 'Solve today\'s coding challenge and earn bonus XP!')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          {t('Listan käsittely', 'List Manipulation')}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {t('Keskitaso • 50 XP', 'Medium • 50 XP')}
-                        </p>
-                      </div>
-                      <Button className="bg-yellow-600 hover:bg-yellow-700">
-                        <Target className="w-4 h-4 mr-2" />
-                        {t('Aloita', 'Start')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Continue Learning */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-blue-600" />
-                      {t('Jatka oppimista', 'Continue Learning')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-colors cursor-pointer">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                          <Code className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">
-                            {t('Python perusteet', 'Python Basics')}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {t('Oppitunti 5: Silmukat', 'Lesson 5: Loops')}
-                          </p>
-                          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '60%' }} />
-                          </div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Column - Stats */}
-              <div className="space-y-6">
-                {/* Stats Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-green-600" />
-                      {t('Tilastot', 'Statistics')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{t('Taso', 'Level')}</span>
-                      <span className="font-bold text-lg">{userStats.level || 1}</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">XP</span>
-                        <span className="text-sm font-semibold">{userStats.totalXp || 0} / {nextLevelXP}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-blue-600 h-3 rounded-full transition-all"
-                          style={{ width: `${((userStats.totalXp || 0) / nextLevelXP) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{t('Putki', 'Streak')}</span>
-                      <div className="flex items-center gap-1">
-                        <Flame className="w-5 h-5 text-orange-500" />
-                        <span className="font-bold text-lg">{userStats.streak || 0} {t('päivää', 'days')}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{t('Sijoitus', 'Rank')}</span>
-                      <span className="font-bold text-lg">#{userStats.rank || '-'}</span>
-                    </div>
-                    <div className="pt-4 border-t space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{t('Kurssit suoritettu', 'Courses completed')}</span>
-                        <span className="font-semibold">{userStats.coursesCompleted || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{t('Oppitunnit', 'Lessons')}</span>
-                        <span className="font-semibold">{userStats.lessonsCompleted || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{t('Harjoitukset', 'Exercises')}</span>
-                        <span className="font-semibold">{userStats.exercisesCompleted || 0}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Achievements */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-amber-600" />
-                      {t('Saavutukset', 'Achievements')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="aspect-square bg-amber-100 border-2 border-amber-300 rounded-lg flex items-center justify-center">
-                          <Trophy className="w-6 h-6 text-amber-600" />
-                        </div>
-                      ))}
-                    </div>
-                    <Button variant="outline" className="w-full mt-4">
-                      {t('Näytä kaikki', 'View All')}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Quick Actions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-blue-600" />
-                      {t('Pika-toiminnot', 'Quick Actions')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Brain className="w-4 h-4 mr-2" />
-                      {t('AI-avustaja', 'AI Assistant')}
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Users className="w-4 h-4 mr-2" />
-                      {t('Liity luokkaan', 'Join Classroom')}
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Code className="w-4 h-4 mr-2" />
-                      {t('Uusi projekti', 'New Project')}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            <CodingDashboard
+              userStats={userStats}
+              userProgress={userProgress}
+              courses={courses}
+              language={language}
+              currentUser={currentUser}
+              onNavigate={navigateToSection}
+            />
           </TabsContent>
 
           {/* Courses Tab - Real Data from API */}
@@ -534,21 +368,13 @@ export default function LearnCodingNew() {
 
           {/* Other tabs remain similar but with clean design */}
           <TabsContent value="practice">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Harjoittele', 'Practice')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeEditor
-                  language={language}
-                  initialCode={`# ${t('Kirjoita koodisi tähän', 'Write your code here')}\nprint("${t('Hei, maailma!', 'Hello, World!')}")`}
-                  testCases={[
-                    { input: '', expectedOutput: t('Hei, maailma!', 'Hello, World!'), hidden: false }
-                  ]}
-                  showTests={true}
-                />
-              </CardContent>
-            </Card>
+            <CodePlayground
+              language={language}
+              initialCode={`# ${t('Kirjoita koodisi tähän', 'Write your code here')}\nprint("${t('Hei, maailma!', 'Hello, World!')}")`}
+              testCases={[
+                { input: '', expectedOutput: t('Hei, maailma!', 'Hello, World!'), hidden: false }
+              ]}
+            />
           </TabsContent>
 
           <TabsContent value="classroom">
