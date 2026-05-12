@@ -3,6 +3,9 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CodeEditor from "@/components/CodeEditor";
+import CoursesPage from "@/components/CoursesPage";
+import ClassroomPage from "@/components/ClassroomPage";
 import { 
   Code, 
   BookOpen, 
@@ -24,7 +27,9 @@ import {
   GraduationCap,
   Home,
   Settings,
-  LogOut
+  LogOut,
+  Medal,
+  Gift
 } from "lucide-react";
 
 export default function LearnCoding() {
@@ -377,77 +382,206 @@ export default function LearnCoding() {
 
           {/* Courses Tab */}
           <TabsContent value="courses">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Kurssit', 'Courses')}</CardTitle>
-                <CardDescription>
-                  {t('Selaa saatavilla olevia kursseja', 'Browse available courses')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{t('Kurssit tulossa pian...', 'Courses coming soon...')}</p>
-              </CardContent>
-            </Card>
+            <CoursesPage 
+              language={language}
+              onStartCourse={(courseId) => {
+                console.log('Starting course:', courseId);
+                // TODO: Navigate to course page
+              }}
+            />
           </TabsContent>
 
           {/* Practice Tab */}
           <TabsContent value="practice">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Harjoittele', 'Practice')}</CardTitle>
-                <CardDescription>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">
+                  {t('Harjoittele', 'Practice')}
+                </h2>
+                <p className="text-gray-600">
                   {t('Harjoittele koodausta interaktiivisilla tehtävillä', 'Practice coding with interactive exercises')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{t('Harjoitukset tulossa pian...', 'Exercises coming soon...')}</p>
-              </CardContent>
-            </Card>
+                </p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('Python-harjoitus: Tervehdys', 'Python Exercise: Greeting')}</CardTitle>
+                  <CardDescription>
+                    {t('Kirjoita ohjelma, joka tulostaa "Hei, maailma!"', 'Write a program that prints "Hello, World!"')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CodeEditor
+                    language={language}
+                    initialCode={`# ${t('Kirjoita koodisi tähän', 'Write your code here')}\nprint("${t('Hei, maailma!', 'Hello, World!')}")`}
+                    testCases={[
+                      { input: '', expectedOutput: t('Hei, maailma!', 'Hello, World!') }
+                    ]}
+                    showTests={true}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Classroom Tab */}
           <TabsContent value="classroom">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Luokkahuone', 'Classroom')}</CardTitle>
-                <CardDescription>
-                  {t('Liity luokkaan tai luo oma', 'Join a classroom or create your own')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{t('Luokkahuone tulossa pian...', 'Classroom coming soon...')}</p>
-              </CardContent>
-            </Card>
+            <ClassroomPage 
+              language={language}
+              userRole={currentUser?.role || 'student'}
+            />
           </TabsContent>
 
           {/* Compete Tab */}
           <TabsContent value="compete">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Kilpailut', 'Competitions')}</CardTitle>
-                <CardDescription>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">
+                  {t('Kilpailut', 'Competitions')}
+                </h2>
+                <p className="text-gray-600">
                   {t('Osallistu viikottaisiin koodaushaasteisiin', 'Participate in weekly coding challenges')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{t('Kilpailut tulossa pian...', 'Competitions coming soon...')}</p>
-              </CardContent>
-            </Card>
+                </p>
+              </div>
+
+              {/* Weekly Competition */}
+              <Card className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Trophy className="w-8 h-8" />
+                    <div>
+                      <h3 className="text-2xl font-bold">
+                        {t('Viikon kilpailu', 'Weekly Competition')}
+                      </h3>
+                      <p className="text-white/90">
+                        {t('Päättyy 3 päivän kuluttua', 'Ends in 3 days')}
+                      </p>
+                    </div>
+                  </div>
+                  <Button className="bg-white text-orange-600 hover:bg-white/90">
+                    <Play className="w-4 h-4 mr-2" />
+                    {t('Osallistu nyt', 'Participate Now')}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Leaderboard */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Medal className="w-5 h-5 text-amber-500" />
+                    {t('Tulostaulukko', 'Leaderboard')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[
+                      { rank: 1, name: 'Mikko V.', xp: 2450, avatar: '🥇' },
+                      { rank: 2, name: 'Emma K.', xp: 2380, avatar: '🥈' },
+                      { rank: 3, name: 'Ville M.', xp: 2210, avatar: '🥉' },
+                      { rank: 4, name: 'Sofia N.', xp: 2100, avatar: '👤' },
+                      { rank: 5, name: 'Joonas L.', xp: 2050, avatar: '👤' },
+                    ].map((user) => (
+                      <div key={user.rank} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{user.avatar}</span>
+                          <div>
+                            <p className="font-semibold">{user.name}</p>
+                            <p className="text-sm text-gray-600">{user.xp} XP</p>
+                          </div>
+                        </div>
+                        <span className="text-2xl font-bold text-gray-400">#{user.rank}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('Profiili', 'Profile')}</CardTitle>
-                <CardDescription>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">
+                  {t('Profiili', 'Profile')}
+                </h2>
+                <p className="text-gray-600">
                   {t('Hallinnoi profiiliasi ja asetuksiasi', 'Manage your profile and settings')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{t('Profiili tulossa pian...', 'Profile coming soon...')}</p>
-              </CardContent>
-            </Card>
+                </p>
+              </div>
+
+              {/* Profile Card */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                      {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">{currentUser?.firstName} {currentUser?.lastName}</h3>
+                      <p className="text-gray-600">{currentUser?.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-3xl font-bold text-purple-600">{userStats.level}</p>
+                      <p className="text-sm text-gray-600">{t('Taso', 'Level')}</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-3xl font-bold text-blue-600">{userStats.xp}</p>
+                      <p className="text-sm text-gray-600">XP</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <p className="text-3xl font-bold text-orange-600">{userStats.streak}</p>
+                      <p className="text-sm text-gray-600">{t('Putki', 'Streak')}</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-3xl font-bold text-green-600">#{userStats.rank}</p>
+                      <p className="text-sm text-gray-600">{t('Sijoitus', 'Rank')}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Achievements */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-amber-500" />
+                    {t('Saavutukset', 'Achievements')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                    {[
+                      { icon: '🏆', name: t('Ensimmäinen kurssi', 'First Course'), unlocked: true },
+                      { icon: '🔥', name: t('7 päivän putki', '7 Day Streak'), unlocked: true },
+                      { icon: '⭐', name: t('100 XP', '100 XP'), unlocked: true },
+                      { icon: '💯', name: t('Täydelliset pisteet', 'Perfect Score'), unlocked: true },
+                      { icon: '🎯', name: t('10 tehtävää', '10 Exercises'), unlocked: true },
+                      { icon: '🚀', name: t('Taso 5', 'Level 5'), unlocked: true },
+                      { icon: '👥', name: t('Liittyi luokkaan', 'Joined Class'), unlocked: false },
+                      { icon: '📚', name: t('Kurssi suoritettu', 'Course Complete'), unlocked: false },
+                      { icon: '🏅', name: t('Kilpailun voitto', 'Competition Win'), unlocked: false },
+                    ].map((achievement, index) => (
+                      <div
+                        key={index}
+                        className={`aspect-square rounded-lg flex flex-col items-center justify-center p-3 ${
+                          achievement.unlocked
+                            ? 'bg-gradient-to-br from-amber-100 to-amber-200'
+                            : 'bg-gray-100 opacity-50'
+                        }`}
+                      >
+                        <span className="text-3xl mb-1">{achievement.icon}</span>
+                        <span className="text-xs text-center font-semibold">{achievement.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
