@@ -4223,6 +4223,305 @@ https://ksykmaps.vercel.app
   });
 
   // ============================================
+  // CODING PLATFORM ROUTES
+  // ============================================
+  console.log('🎓 Registering Coding Platform Routes...');
+  
+  // Get all courses
+  app.get('/api/coding/courses', async (req, res) => {
+    try {
+      const courses = await storage.getCodingCourses();
+      res.json(courses);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/courses');
+      res.status(500).json({ message: 'Failed to fetch courses' });
+    }
+  });
+  
+  // Get single course
+  app.get('/api/coding/courses/:id', async (req, res) => {
+    try {
+      const course = await storage.getCodingCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+      res.json(course);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/courses/:id', { courseId: req.params.id });
+      res.status(500).json({ message: 'Failed to fetch course' });
+    }
+  });
+  
+  // Get modules for a course
+  app.get('/api/coding/courses/:courseId/modules', async (req, res) => {
+    try {
+      const modules = await storage.getCodingModules(req.params.courseId);
+      res.json(modules);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/courses/:courseId/modules', { courseId: req.params.courseId });
+      res.status(500).json({ message: 'Failed to fetch modules' });
+    }
+  });
+  
+  // Get lessons for a module
+  app.get('/api/coding/modules/:moduleId/lessons', async (req, res) => {
+    try {
+      const lessons = await storage.getCodingLessons(req.params.moduleId);
+      res.json(lessons);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/modules/:moduleId/lessons', { moduleId: req.params.moduleId });
+      res.status(500).json({ message: 'Failed to fetch lessons' });
+    }
+  });
+  
+  // Get exercises for a lesson
+  app.get('/api/coding/lessons/:lessonId/exercises', async (req, res) => {
+    try {
+      const exercises = await storage.getCodingExercises(req.params.lessonId);
+      res.json(exercises);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/lessons/:lessonId/exercises', { lessonId: req.params.lessonId });
+      res.status(500).json({ message: 'Failed to fetch exercises' });
+    }
+  });
+  
+  // Get user progress
+  app.get('/api/coding/progress/:userId', async (req, res) => {
+    try {
+      const courseId = req.query.courseId as string | undefined;
+      const progress = await storage.getCodingUserProgress(req.params.userId, courseId);
+      res.json(progress);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/progress/:userId', { userId: req.params.userId });
+      res.status(500).json({ message: 'Failed to fetch progress' });
+    }
+  });
+  
+  // Update user progress
+  app.post('/api/coding/progress', async (req, res) => {
+    try {
+      const { userId, courseId, ...progressData } = req.body;
+      
+      // Check if progress exists
+      const existing = await storage.getCodingUserProgressByCourse(userId, courseId);
+      
+      let result;
+      if (existing) {
+        result = await storage.updateCodingUserProgress(existing.id, progressData);
+      } else {
+        result = await storage.createCodingUserProgress({ userId, courseId, ...progressData });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      await logError(error, 'POST /api/coding/progress', { body: req.body });
+      res.status(500).json({ message: 'Failed to update progress' });
+    }
+  });
+  
+  // Submit code exercise
+  app.post('/api/coding/submit', async (req, res) => {
+    try {
+      const { userId, exerciseId, code, language, passed, testResults, executionTime, xpEarned } = req.body;
+      
+      const submission = await storage.createCodingSubmission({
+        userId,
+        exerciseId,
+        code,
+        language,
+        passed,
+        testResults,
+        executionTime,
+        xpEarned
+      });
+      
+      // Update user stats if passed
+      if (passed && xpEarned) {
+        const stats = await storage.getCodingUserStats(userId);
+        if (stats) {
+          await storage.updateCodingUserStats(userId, {
+            totalXp: (stats.totalXp || 0) + xpEarned,
+            exercisesCompleted: (stats.exercisesCompleted || 0) + 1,
+            level: Math.floor(((stats.totalXp || 0) + xpEarned) / 500) + 1
+          });
+        } else {
+          await storage.createCodingUserStats({
+            userId,
+            totalXp: xpEarned,
+            exercisesCompleted: 1,
+            level: 1,
+            streak: 0
+          });
+        }
+      }
+      
+      res.json(submission);
+    } catch (error) {
+      await logError(error, 'POST /api/coding/submit', { body: req.body });
+      res.status(500).json({ message: 'Failed to submit code' });
+    }
+  });
+  
+  // Get user submissions
+  app.get('/api/coding/submissions/:userId', async (req, res) => {
+    try {
+      const exerciseId = req.query.exerciseId as string | undefined;
+      const submissions = await storage.getCodingSubmissions(req.params.userId, exerciseId);
+      res.json(submissions);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/submissions/:userId', { userId: req.params.userId });
+      res.status(500).json({ message: 'Failed to fetch submissions' });
+    }
+  });
+  
+  // Create classroom
+  app.post('/api/coding/classroom/create', async (req, res) => {
+    try {
+      const { name, description, teacherId, teacherName } = req.body;
+      
+      // Generate unique 6-character join code
+      const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const classroom = await storage.createCodingClassroom({
+        name,
+        description,
+        teacherId,
+        teacherName,
+        joinCode,
+        students: [],
+        assignedCourses: [],
+        isActive: true
+      });
+      
+      res.json(classroom);
+    } catch (error) {
+      await logError(error, 'POST /api/coding/classroom/create', { body: req.body });
+      res.status(500).json({ message: 'Failed to create classroom' });
+    }
+  });
+  
+  // Join classroom
+  app.post('/api/coding/classroom/join', async (req, res) => {
+    try {
+      const { joinCode, studentId } = req.body;
+      
+      const classroom = await storage.getCodingClassroomByJoinCode(joinCode);
+      if (!classroom) {
+        return res.status(404).json({ message: 'Classroom not found' });
+      }
+      
+      await storage.joinCodingClassroom(classroom.id, studentId);
+      
+      res.json({ success: true, classroom });
+    } catch (error) {
+      await logError(error, 'POST /api/coding/classroom/join', { body: req.body });
+      res.status(500).json({ message: 'Failed to join classroom' });
+    }
+  });
+  
+  // Get classrooms (for teacher or student)
+  app.get('/api/coding/classrooms', async (req, res) => {
+    try {
+      const teacherId = req.query.teacherId as string | undefined;
+      const classrooms = await storage.getCodingClassrooms(teacherId);
+      res.json(classrooms);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/classrooms');
+      res.status(500).json({ message: 'Failed to fetch classrooms' });
+    }
+  });
+  
+  // Get classroom assignments
+  app.get('/api/coding/classroom/:classroomId/assignments', async (req, res) => {
+    try {
+      const assignments = await storage.getCodingClassroomAssignments(req.params.classroomId);
+      res.json(assignments);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/classroom/:classroomId/assignments', { classroomId: req.params.classroomId });
+      res.status(500).json({ message: 'Failed to fetch assignments' });
+    }
+  });
+  
+  // Get leaderboard
+  app.get('/api/coding/leaderboard', async (req, res) => {
+    try {
+      const type = (req.query.type as string) || 'alltime';
+      const period = req.query.period as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      
+      const leaderboard = await storage.getCodingLeaderboard(type, period, limit);
+      res.json(leaderboard);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/leaderboard');
+      res.status(500).json({ message: 'Failed to fetch leaderboard' });
+    }
+  });
+  
+  // Get user stats
+  app.get('/api/coding/stats/:userId', async (req, res) => {
+    try {
+      let stats = await storage.getCodingUserStats(req.params.userId);
+      
+      // Create default stats if none exist
+      if (!stats) {
+        stats = await storage.createCodingUserStats({
+          userId: req.params.userId,
+          totalXp: 0,
+          level: 1,
+          streak: 0,
+          coursesCompleted: 0,
+          lessonsCompleted: 0,
+          exercisesCompleted: 0,
+          badges: [],
+          rank: null
+        });
+      }
+      
+      res.json(stats);
+    } catch (error) {
+      await logError(error, 'GET /api/coding/stats/:userId', { userId: req.params.userId });
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+  
+  // AI Coding Help endpoint
+  app.post('/api/ai/coding-help', async (req, res) => {
+    try {
+      const { question, code, language, context } = req.body;
+      
+      // Import Gemini AI
+      const { generateAIResponse } = await import('./lib/geminiAI.js');
+      
+      // Build prompt for coding help
+      let prompt = `You are a helpful coding tutor. Answer this question clearly and concisely:\n\n${question}`;
+      
+      if (code) {
+        prompt += `\n\nHere's the code:\n\`\`\`${language || 'python'}\n${code}\n\`\`\``;
+      }
+      
+      if (context) {
+        prompt += `\n\nContext: ${context}`;
+      }
+      
+      prompt += '\n\nProvide a clear, beginner-friendly explanation. If suggesting code, use proper formatting.';
+      
+      const answer = await generateAIResponse(prompt);
+      
+      res.json({
+        success: true,
+        answer,
+        suggestions: [] // Can be enhanced later
+      });
+    } catch (error) {
+      await logError(error, 'POST /api/ai/coding-help', { body: req.body });
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to get AI response. Please try again later.' 
+      });
+    }
+  });
+
+  // ============================================
   // REGISTER WILMA EXTENDED ROUTES
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');

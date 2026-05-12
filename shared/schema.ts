@@ -1302,3 +1302,244 @@ export const insertWilmaUserDesktopConfigSchema = createInsertSchema(wilmaUserDe
   createdAt: true,
   updatedAt: true,
 });
+
+// ============================================
+// CODING PLATFORM TABLES
+// ============================================
+
+// Coding Courses - Programming courses available on the platform
+export const codingCourses = pgTable("coding_courses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").notNull().unique(),
+  title: jsonb("title").notNull(), // {fi: string, en: string}
+  description: jsonb("description").notNull(), // {fi: string, en: string}
+  language: varchar("language").notNull(), // python, javascript, html-css, csharp
+  difficulty: varchar("difficulty").notNull(), // beginner, intermediate, advanced
+  estimatedHours: integer("estimated_hours").notNull(),
+  prerequisites: text("prerequisites").array().default([]),
+  isPublished: boolean("is_published").default(true),
+  isFree: boolean("is_free").default(true),
+  tags: text("tags").array().default([]),
+  thumbnailUrl: varchar("thumbnail_url"),
+  createdBy: varchar("created_by"), // Teacher/admin ID
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Coding Modules - Modules within courses
+export const codingModules = pgTable("coding_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => codingCourses.id, { onDelete: 'cascade' }),
+  order: integer("order").notNull(),
+  title: jsonb("title").notNull(), // {fi: string, en: string}
+  description: jsonb("description").notNull(), // {fi: string, en: string}
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Coding Lessons - Individual lessons within modules
+export const codingLessons = pgTable("coding_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  moduleId: varchar("module_id").notNull().references(() => codingModules.id, { onDelete: 'cascade' }),
+  order: integer("order").notNull(),
+  title: jsonb("title").notNull(), // {fi: string, en: string}
+  type: varchar("type").notNull(), // tutorial, exercise, quiz, project
+  content: jsonb("content").notNull(), // {fi: string, en: string}
+  starterCode: text("starter_code"),
+  solutionCode: text("solution_code"),
+  codeLanguage: varchar("code_language"), // python, javascript, etc.
+  xpReward: integer("xp_reward").default(10),
+  estimatedMinutes: integer("estimated_minutes").default(15),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Coding Exercises - Exercises within lessons
+export const codingExercises = pgTable("coding_exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lessonId: varchar("lesson_id").notNull().references(() => codingLessons.id, { onDelete: 'cascade' }),
+  title: jsonb("title").notNull(), // {fi: string, en: string}
+  description: jsonb("description").notNull(), // {fi: string, en: string}
+  starterCode: text("starter_code").notNull(),
+  solutionCode: text("solution_code").notNull(),
+  testCases: jsonb("test_cases").notNull(), // [{input, expectedOutput, hidden}]
+  hints: jsonb("hints").notNull(), // {fi: string[], en: string[]}
+  difficulty: varchar("difficulty").default("medium"),
+  xpReward: integer("xp_reward").default(20),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Progress - Track user progress through courses
+export const codingUserProgress = pgTable("coding_user_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // Wilma user ID
+  courseId: varchar("course_id").notNull().references(() => codingCourses.id, { onDelete: 'cascade' }),
+  completedLessons: text("completed_lessons").array().default([]), // Array of lesson IDs
+  completedExercises: text("completed_exercises").array().default([]), // Array of exercise IDs
+  currentModuleId: varchar("current_module_id"),
+  currentLessonId: varchar("current_lesson_id"),
+  progressPercentage: integer("progress_percentage").default(0),
+  totalXpEarned: integer("total_xp_earned").default(0),
+  startedAt: timestamp("started_at").defaultNow(),
+  lastAccessedAt: timestamp("last_accessed_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Code Submissions - User code submissions for exercises
+export const codingSubmissions = pgTable("coding_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  exerciseId: varchar("exercise_id").notNull().references(() => codingExercises.id, { onDelete: 'cascade' }),
+  code: text("code").notNull(),
+  language: varchar("language").notNull(),
+  passed: boolean("passed").default(false),
+  testResults: jsonb("test_results"), // Results of test cases
+  executionTime: integer("execution_time"), // Milliseconds
+  xpEarned: integer("xp_earned").default(0),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+
+// Coding Classrooms - Teacher-managed coding classrooms
+export const codingClassrooms = pgTable("coding_classrooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  teacherId: varchar("teacher_id").notNull(), // Wilma user ID
+  teacherName: varchar("teacher_name").notNull(),
+  joinCode: varchar("join_code").notNull().unique(), // 6-character code
+  students: text("students").array().default([]), // Array of student IDs
+  assignedCourses: text("assigned_courses").array().default([]), // Array of course IDs
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Classroom Assignments - Assignments given by teachers
+export const codingClassroomAssignments = pgTable("coding_classroom_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classroomId: varchar("classroom_id").notNull().references(() => codingClassrooms.id, { onDelete: 'cascade' }),
+  courseId: varchar("course_id").references(() => codingCourses.id),
+  lessonId: varchar("lesson_id").references(() => codingLessons.id),
+  exerciseId: varchar("exercise_id").references(() => codingExercises.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  dueDate: varchar("due_date"), // YYYY-MM-DD
+  assignedBy: varchar("assigned_by").notNull(), // Teacher ID
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Stats - Overall user statistics
+export const codingUserStats = pgTable("coding_user_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  totalXp: integer("total_xp").default(0),
+  level: integer("level").default(1),
+  streak: integer("streak").default(0), // Days
+  lastActiveDate: varchar("last_active_date"), // YYYY-MM-DD
+  coursesCompleted: integer("courses_completed").default(0),
+  lessonsCompleted: integer("lessons_completed").default(0),
+  exercisesCompleted: integer("exercises_completed").default(0),
+  badges: text("badges").array().default([]), // Array of badge IDs
+  rank: integer("rank"), // Global rank
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leaderboard - Competition leaderboard
+export const codingLeaderboard = pgTable("coding_leaderboard", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  userName: varchar("user_name").notNull(),
+  type: varchar("type").notNull(), // weekly, monthly, alltime
+  score: integer("score").notNull(),
+  rank: integer("rank").notNull(),
+  period: varchar("period").notNull(), // e.g., "2026-W20" for week 20 of 2026
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for coding platform
+export const insertCodingCourseSchema = createInsertSchema(codingCourses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingModuleSchema = createInsertSchema(codingModules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingLessonSchema = createInsertSchema(codingLessons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingExerciseSchema = createInsertSchema(codingExercises).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingUserProgressSchema = createInsertSchema(codingUserProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingSubmissionSchema = createInsertSchema(codingSubmissions).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export const insertCodingClassroomSchema = createInsertSchema(codingClassrooms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingClassroomAssignmentSchema = createInsertSchema(codingClassroomAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingUserStatsSchema = createInsertSchema(codingUserStats).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodingLeaderboardSchema = createInsertSchema(codingLeaderboard).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for coding platform
+export type CodingCourse = typeof codingCourses.$inferSelect;
+export type InsertCodingCourse = z.infer<typeof insertCodingCourseSchema>;
+export type CodingModule = typeof codingModules.$inferSelect;
+export type InsertCodingModule = z.infer<typeof insertCodingModuleSchema>;
+export type CodingLesson = typeof codingLessons.$inferSelect;
+export type InsertCodingLesson = z.infer<typeof insertCodingLessonSchema>;
+export type CodingExercise = typeof codingExercises.$inferSelect;
+export type InsertCodingExercise = z.infer<typeof insertCodingExerciseSchema>;
+export type CodingUserProgress = typeof codingUserProgress.$inferSelect;
+export type InsertCodingUserProgress = z.infer<typeof insertCodingUserProgressSchema>;
+export type CodingSubmission = typeof codingSubmissions.$inferSelect;
+export type InsertCodingSubmission = z.infer<typeof insertCodingSubmissionSchema>;
+export type CodingClassroom = typeof codingClassrooms.$inferSelect;
+export type InsertCodingClassroom = z.infer<typeof insertCodingClassroomSchema>;
+export type CodingClassroomAssignment = typeof codingClassroomAssignments.$inferSelect;
+export type InsertCodingClassroomAssignment = z.infer<typeof insertCodingClassroomAssignmentSchema>;
+export type CodingUserStats = typeof codingUserStats.$inferSelect;
+export type InsertCodingUserStats = z.infer<typeof insertCodingUserStatsSchema>;
+export type CodingLeaderboard = typeof codingLeaderboard.$inferSelect;
+export type InsertCodingLeaderboard = z.infer<typeof insertCodingLeaderboardSchema>;

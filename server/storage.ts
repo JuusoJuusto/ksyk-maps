@@ -325,6 +325,73 @@ export interface IStorage {
   getLiveAnalytics(): Promise<any>;
   getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]>;
   getPerformanceMetrics(timeRange: string): Promise<any>;
+  
+  // ============================================
+  // CODING PLATFORM OPERATIONS
+  // ============================================
+  
+  // Coding Courses
+  getCodingCourses(): Promise<any[]>;
+  getCodingCourse(id: string): Promise<any | undefined>;
+  createCodingCourse(courseData: any): Promise<any>;
+  updateCodingCourse(id: string, courseData: any): Promise<any>;
+  deleteCodingCourse(id: string): Promise<void>;
+  
+  // Coding Modules
+  getCodingModules(courseId: string): Promise<any[]>;
+  getCodingModule(id: string): Promise<any | undefined>;
+  createCodingModule(moduleData: any): Promise<any>;
+  updateCodingModule(id: string, moduleData: any): Promise<any>;
+  deleteCodingModule(id: string): Promise<void>;
+  
+  // Coding Lessons
+  getCodingLessons(moduleId: string): Promise<any[]>;
+  getCodingLesson(id: string): Promise<any | undefined>;
+  createCodingLesson(lessonData: any): Promise<any>;
+  updateCodingLesson(id: string, lessonData: any): Promise<any>;
+  deleteCodingLesson(id: string): Promise<void>;
+  
+  // Coding Exercises
+  getCodingExercises(lessonId: string): Promise<any[]>;
+  getCodingExercise(id: string): Promise<any | undefined>;
+  createCodingExercise(exerciseData: any): Promise<any>;
+  updateCodingExercise(id: string, exerciseData: any): Promise<any>;
+  deleteCodingExercise(id: string): Promise<void>;
+  
+  // User Progress
+  getCodingUserProgress(userId: string, courseId?: string): Promise<any[]>;
+  getCodingUserProgressByCourse(userId: string, courseId: string): Promise<any | undefined>;
+  createCodingUserProgress(progressData: any): Promise<any>;
+  updateCodingUserProgress(id: string, progressData: any): Promise<any>;
+  
+  // Code Submissions
+  getCodingSubmissions(userId: string, exerciseId?: string): Promise<any[]>;
+  createCodingSubmission(submissionData: any): Promise<any>;
+  
+  // Coding Classrooms
+  getCodingClassrooms(teacherId?: string): Promise<any[]>;
+  getCodingClassroom(id: string): Promise<any | undefined>;
+  getCodingClassroomByJoinCode(joinCode: string): Promise<any | undefined>;
+  createCodingClassroom(classroomData: any): Promise<any>;
+  updateCodingClassroom(id: string, classroomData: any): Promise<any>;
+  deleteCodingClassroom(id: string): Promise<void>;
+  joinCodingClassroom(classroomId: string, studentId: string): Promise<void>;
+  leaveCodingClassroom(classroomId: string, studentId: string): Promise<void>;
+  
+  // Classroom Assignments
+  getCodingClassroomAssignments(classroomId: string): Promise<any[]>;
+  createCodingClassroomAssignment(assignmentData: any): Promise<any>;
+  updateCodingClassroomAssignment(id: string, assignmentData: any): Promise<any>;
+  deleteCodingClassroomAssignment(id: string): Promise<void>;
+  
+  // User Stats
+  getCodingUserStats(userId: string): Promise<any | undefined>;
+  createCodingUserStats(statsData: any): Promise<any>;
+  updateCodingUserStats(userId: string, statsData: any): Promise<any>;
+  
+  // Leaderboard
+  getCodingLeaderboard(type: string, period?: string, limit?: number): Promise<any[]>;
+  updateCodingLeaderboard(leaderboardData: any): Promise<void>;
 }
 
 
@@ -981,6 +1048,63 @@ class MemStorage implements IStorage {
   async getLiveAnalytics(): Promise<any> { return {}; }
   async getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]> { return []; }
   async getPerformanceMetrics(timeRange: string): Promise<any> { return {}; }
+  
+  // ============================================
+  // CODING PLATFORM OPERATIONS (STUBS)
+  // ============================================
+  
+  async getCodingCourses(): Promise<any[]> { return []; }
+  async getCodingCourse(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingCourse(courseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingCourse(id: string, courseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingCourse(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingModules(courseId: string): Promise<any[]> { return []; }
+  async getCodingModule(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingModule(moduleData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingModule(id: string, moduleData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingModule(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingLessons(moduleId: string): Promise<any[]> { return []; }
+  async getCodingLesson(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingLesson(lessonData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingLesson(id: string, lessonData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingLesson(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingExercises(lessonId: string): Promise<any[]> { return []; }
+  async getCodingExercise(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingExercise(exerciseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingExercise(id: string, exerciseData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingExercise(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingUserProgress(userId: string, courseId?: string): Promise<any[]> { return []; }
+  async getCodingUserProgressByCourse(userId: string, courseId: string): Promise<any | undefined> { return undefined; }
+  async createCodingUserProgress(progressData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingUserProgress(id: string, progressData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingSubmissions(userId: string, exerciseId?: string): Promise<any[]> { return []; }
+  async createCodingSubmission(submissionData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingClassrooms(teacherId?: string): Promise<any[]> { return []; }
+  async getCodingClassroom(id: string): Promise<any | undefined> { return undefined; }
+  async getCodingClassroomByJoinCode(joinCode: string): Promise<any | undefined> { return undefined; }
+  async createCodingClassroom(classroomData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingClassroom(id: string, classroomData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingClassroom(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async joinCodingClassroom(classroomId: string, studentId: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  async leaveCodingClassroom(classroomId: string, studentId: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingClassroomAssignments(classroomId: string): Promise<any[]> { return []; }
+  async createCodingClassroomAssignment(assignmentData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingClassroomAssignment(id: string, assignmentData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async deleteCodingClassroomAssignment(id: string): Promise<void> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingUserStats(userId: string): Promise<any | undefined> { return undefined; }
+  async createCodingUserStats(statsData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  async updateCodingUserStats(userId: string, statsData: any): Promise<any> { throw new Error("Not implemented in MemStorage"); }
+  
+  async getCodingLeaderboard(type: string, period?: string, limit?: number): Promise<any[]> { return []; }
+  async updateCodingLeaderboard(leaderboardData: any): Promise<void> { /* no-op */ }
 }
 
 // Create storage factory function

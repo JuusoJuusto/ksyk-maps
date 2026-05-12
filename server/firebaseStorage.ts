@@ -3592,6 +3592,638 @@ export class FirebaseStorage implements IStorage {
       console.error('Error creating analytics event:', error);
     }
   }
+  
+  // ============================================
+  // CODING PLATFORM METHODS
+  // ============================================
+  
+  // Coding Courses
+  async getCodingCourses(): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('codingCourses')
+        .where('isPublished', '==', true)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting coding courses:', error);
+      return [];
+    }
+  }
+  
+  async getCodingCourse(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('codingCourses').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting coding course:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingCourse(courseData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingCourses').doc();
+      const data = {
+        ...courseData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating coding course:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingCourse(id: string, courseData: any): Promise<any> {
+    try {
+      const data = {
+        ...courseData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingCourses').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating coding course:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingCourse(id: string): Promise<void> {
+    try {
+      await db.collection('codingCourses').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting coding course:', error);
+      throw error;
+    }
+  }
+  
+  // Coding Modules
+  async getCodingModules(courseId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('codingModules')
+        .where('courseId', '==', courseId)
+        .orderBy('order', 'asc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting coding modules:', error);
+      return [];
+    }
+  }
+  
+  async getCodingModule(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('codingModules').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting coding module:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingModule(moduleData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingModules').doc();
+      const data = {
+        ...moduleData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating coding module:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingModule(id: string, moduleData: any): Promise<any> {
+    try {
+      const data = {
+        ...moduleData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingModules').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating coding module:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingModule(id: string): Promise<void> {
+    try {
+      await db.collection('codingModules').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting coding module:', error);
+      throw error;
+    }
+  }
+  
+  // Coding Lessons
+  async getCodingLessons(moduleId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('codingLessons')
+        .where('moduleId', '==', moduleId)
+        .orderBy('order', 'asc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting coding lessons:', error);
+      return [];
+    }
+  }
+  
+  async getCodingLesson(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('codingLessons').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting coding lesson:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingLesson(lessonData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingLessons').doc();
+      const data = {
+        ...lessonData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating coding lesson:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingLesson(id: string, lessonData: any): Promise<any> {
+    try {
+      const data = {
+        ...lessonData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingLessons').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating coding lesson:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingLesson(id: string): Promise<void> {
+    try {
+      await db.collection('codingLessons').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting coding lesson:', error);
+      throw error;
+    }
+  }
+  
+  // Coding Exercises
+  async getCodingExercises(lessonId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('codingExercises')
+        .where('lessonId', '==', lessonId)
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting coding exercises:', error);
+      return [];
+    }
+  }
+  
+  async getCodingExercise(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('codingExercises').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting coding exercise:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingExercise(exerciseData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingExercises').doc();
+      const data = {
+        ...exerciseData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating coding exercise:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingExercise(id: string, exerciseData: any): Promise<any> {
+    try {
+      const data = {
+        ...exerciseData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingExercises').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating coding exercise:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingExercise(id: string): Promise<void> {
+    try {
+      await db.collection('codingExercises').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting coding exercise:', error);
+      throw error;
+    }
+  }
+  
+  // User Progress
+  async getCodingUserProgress(userId: string, courseId?: string): Promise<any[]> {
+    try {
+      let query = db.collection('codingUserProgress').where('userId', '==', userId);
+      if (courseId) {
+        query = query.where('courseId', '==', courseId);
+      }
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting user progress:', error);
+      return [];
+    }
+  }
+  
+  async getCodingUserProgressByCourse(userId: string, courseId: string): Promise<any | undefined> {
+    try {
+      const snapshot = await db.collection('codingUserProgress')
+        .where('userId', '==', userId)
+        .where('courseId', '==', courseId)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return undefined;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('Error getting user progress by course:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingUserProgress(progressData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingUserProgress').doc();
+      const data = {
+        ...progressData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating user progress:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingUserProgress(id: string, progressData: any): Promise<any> {
+    try {
+      const data = {
+        ...progressData,
+        updatedAt: new Date(),
+        lastAccessedAt: new Date(),
+      };
+      await db.collection('codingUserProgress').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating user progress:', error);
+      throw error;
+    }
+  }
+  
+  // Code Submissions
+  async getCodingSubmissions(userId: string, exerciseId?: string): Promise<any[]> {
+    try {
+      let query = db.collection('codingSubmissions').where('userId', '==', userId);
+      if (exerciseId) {
+        query = query.where('exerciseId', '==', exerciseId);
+      }
+      const snapshot = await query.orderBy('submittedAt', 'desc').get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting submissions:', error);
+      return [];
+    }
+  }
+  
+  async createCodingSubmission(submissionData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingSubmissions').doc();
+      const data = {
+        ...submissionData,
+        id: docRef.id,
+        submittedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating submission:', error);
+      throw error;
+    }
+  }
+  
+  // Coding Classrooms
+  async getCodingClassrooms(teacherId?: string): Promise<any[]> {
+    try {
+      let query = db.collection('codingClassrooms').where('isActive', '==', true);
+      if (teacherId) {
+        query = query.where('teacherId', '==', teacherId);
+      }
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting classrooms:', error);
+      return [];
+    }
+  }
+  
+  async getCodingClassroom(id: string): Promise<any | undefined> {
+    try {
+      const doc = await db.collection('codingClassrooms').doc(id).get();
+      if (!doc.exists) return undefined;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting classroom:', error);
+      return undefined;
+    }
+  }
+  
+  async getCodingClassroomByJoinCode(joinCode: string): Promise<any | undefined> {
+    try {
+      const snapshot = await db.collection('codingClassrooms')
+        .where('joinCode', '==', joinCode)
+        .where('isActive', '==', true)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return undefined;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('Error getting classroom by join code:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingClassroom(classroomData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingClassrooms').doc();
+      const data = {
+        ...classroomData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating classroom:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingClassroom(id: string, classroomData: any): Promise<any> {
+    try {
+      const data = {
+        ...classroomData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingClassrooms').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating classroom:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingClassroom(id: string): Promise<void> {
+    try {
+      await db.collection('codingClassrooms').doc(id).update({ isActive: false });
+    } catch (error) {
+      console.error('Error deleting classroom:', error);
+      throw error;
+    }
+  }
+  
+  async joinCodingClassroom(classroomId: string, studentId: string): Promise<void> {
+    try {
+      const classroom = await this.getCodingClassroom(classroomId);
+      if (!classroom) throw new Error('Classroom not found');
+      
+      const students = classroom.students || [];
+      if (!students.includes(studentId)) {
+        students.push(studentId);
+        await this.updateCodingClassroom(classroomId, { students });
+      }
+    } catch (error) {
+      console.error('Error joining classroom:', error);
+      throw error;
+    }
+  }
+  
+  async leaveCodingClassroom(classroomId: string, studentId: string): Promise<void> {
+    try {
+      const classroom = await this.getCodingClassroom(classroomId);
+      if (!classroom) throw new Error('Classroom not found');
+      
+      const students = (classroom.students || []).filter((id: string) => id !== studentId);
+      await this.updateCodingClassroom(classroomId, { students });
+    } catch (error) {
+      console.error('Error leaving classroom:', error);
+      throw error;
+    }
+  }
+  
+  // Classroom Assignments
+  async getCodingClassroomAssignments(classroomId: string): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('codingClassroomAssignments')
+        .where('classroomId', '==', classroomId)
+        .orderBy('createdAt', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting classroom assignments:', error);
+      return [];
+    }
+  }
+  
+  async createCodingClassroomAssignment(assignmentData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingClassroomAssignments').doc();
+      const data = {
+        ...assignmentData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating classroom assignment:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingClassroomAssignment(id: string, assignmentData: any): Promise<any> {
+    try {
+      const data = {
+        ...assignmentData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingClassroomAssignments').doc(id).update(data);
+      return { id, ...data };
+    } catch (error) {
+      console.error('Error updating classroom assignment:', error);
+      throw error;
+    }
+  }
+  
+  async deleteCodingClassroomAssignment(id: string): Promise<void> {
+    try {
+      await db.collection('codingClassroomAssignments').doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting classroom assignment:', error);
+      throw error;
+    }
+  }
+  
+  // User Stats
+  async getCodingUserStats(userId: string): Promise<any | undefined> {
+    try {
+      const snapshot = await db.collection('codingUserStats')
+        .where('userId', '==', userId)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return undefined;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+      return undefined;
+    }
+  }
+  
+  async createCodingUserStats(statsData: any): Promise<any> {
+    try {
+      const docRef = db.collection('codingUserStats').doc();
+      const data = {
+        ...statsData,
+        id: docRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating user stats:', error);
+      throw error;
+    }
+  }
+  
+  async updateCodingUserStats(userId: string, statsData: any): Promise<any> {
+    try {
+      const existing = await this.getCodingUserStats(userId);
+      if (!existing) {
+        return this.createCodingUserStats({ userId, ...statsData });
+      }
+      
+      const data = {
+        ...statsData,
+        updatedAt: new Date(),
+      };
+      await db.collection('codingUserStats').doc(existing.id).update(data);
+      return { id: existing.id, userId, ...data };
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+      throw error;
+    }
+  }
+  
+  // Leaderboard
+  async getCodingLeaderboard(type: string, period?: string, limit: number = 100): Promise<any[]> {
+    try {
+      let query = db.collection('codingLeaderboard')
+        .where('type', '==', type);
+      
+      if (period) {
+        query = query.where('period', '==', period);
+      }
+      
+      const snapshot = await query
+        .orderBy('rank', 'asc')
+        .limit(limit)
+        .get();
+      
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting leaderboard:', error);
+      return [];
+    }
+  }
+  
+  async updateCodingLeaderboard(leaderboardData: any): Promise<void> {
+    try {
+      const { userId, type, period, score, rank, userName } = leaderboardData;
+      
+      // Check if entry exists
+      const snapshot = await db.collection('codingLeaderboard')
+        .where('userId', '==', userId)
+        .where('type', '==', type)
+        .where('period', '==', period)
+        .limit(1)
+        .get();
+      
+      const data = {
+        userId,
+        userName,
+        type,
+        score,
+        rank,
+        period,
+        updatedAt: new Date(),
+      };
+      
+      if (snapshot.empty) {
+        // Create new entry
+        const docRef = db.collection('codingLeaderboard').doc();
+        await docRef.set({
+          ...data,
+          id: docRef.id,
+          createdAt: new Date(),
+        });
+      } else {
+        // Update existing entry
+        await snapshot.docs[0].ref.update(data);
+      }
+    } catch (error) {
+      console.error('Error updating leaderboard:', error);
+      throw error;
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

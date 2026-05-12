@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import CodeEditor from "@/components/CodeEditor";
 import ClassroomPage from "@/components/ClassroomPage";
-import { allCourses, getCourseById } from "../../../shared/realCourseData";
 import { 
   Code, 
   BookOpen, 
@@ -31,7 +30,8 @@ import {
   Clock,
   CheckCircle,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 
 export default function LearnCodingNew() {
@@ -45,12 +45,29 @@ export default function LearnCodingNew() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
   const [activeSection, setActiveSection] = useState(params?.section || paramsAdmin?.section || 'dashboard');
+  
+  // API Data States
+  const [courses, setCourses] = useState<any[]>([]);
+  const [userStats, setUserStats] = useState<any>({
+    totalXp: 0,
+    level: 1,
+    streak: 0,
+    coursesCompleted: 0,
+    lessonsCompleted: 0,
+    exercisesCompleted: 0,
+    rank: null
+  });
+  const [userProgress, setUserProgress] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const wilmaUser = localStorage.getItem('wilma_user');
     if (wilmaUser) {
       const user = JSON.parse(wilmaUser);
       setCurrentUser(user);
+      // Load user data
+      loadUserData(user.id);
     }
   }, []);
 
@@ -61,18 +78,40 @@ export default function LearnCodingNew() {
     }
   }, [params?.section, paramsAdmin?.section]);
 
+  const loadUserData = async (userId: string) => {
+    try {
+      setLoading(true);
+      
+      // Load courses
+      const coursesRes = await fetch('/api/coding/courses');
+      const coursesData = await coursesRes.json();
+      setCourses(coursesData);
+      
+      // Load user stats
+      const statsRes = await fetch(`/api/coding/stats/${userId}`);
+      const statsData = await statsRes.json();
+      setUserStats(statsData);
+      
+      // Load user progress
+      const progressRes = await fetch(`/api/coding/progress/${userId}`);
+      const progressData = await progressRes.json();
+      setUserProgress(progressData);
+      
+      // Load leaderboard
+      const leaderboardRes = await fetch('/api/coding/leaderboard?type=alltime&limit=10');
+      const leaderboardData = await leaderboardRes.json();
+      setLeaderboard(leaderboardData);
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const t = (fi: string, en: string) => language === 'fi' ? fi : en;
 
-  const userStats = {
-    xp: 1250,
-    level: 5,
-    streak: 7,
-    coursesCompleted: 2,
-    lessonsCompleted: 24,
-    exercisesCompleted: 156,
-    rank: 42,
-    nextLevelXP: 1500
-  };
+  const nextLevelXP = (userStats.level || 1) * 500;
 
   const handleLogout = () => {
     const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
@@ -155,17 +194,17 @@ export default function LearnCodingNew() {
               <div className="hidden md:flex items-center gap-3 border rounded-lg px-3 py-2">
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm font-semibold">{userStats.streak}</span>
+                  <span className="text-sm font-semibold">{userStats.streak || 0}</span>
                 </div>
                 <div className="w-px h-4 bg-gray-300" />
                 <div className="flex items-center gap-1.5">
                   <Star className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm font-semibold">{userStats.xp} XP</span>
+                  <span className="text-sm font-semibold">{userStats.totalXp || 0} XP</span>
                 </div>
                 <div className="w-px h-4 bg-gray-300" />
                 <div className="flex items-center gap-1.5">
                   <Trophy className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-semibold">{t('Taso', 'Level')} {userStats.level}</span>
+                  <span className="text-sm font-semibold">{t('Taso', 'Level')} {userStats.level || 1}</span>
                 </div>
               </div>
             </div>
@@ -298,17 +337,17 @@ export default function LearnCodingNew() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">{t('Taso', 'Level')}</span>
-                      <span className="font-bold text-lg">{userStats.level}</span>
+                      <span className="font-bold text-lg">{userStats.level || 1}</span>
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-600">XP</span>
-                        <span className="text-sm font-semibold">{userStats.xp} / {userStats.nextLevelXP}</span>
+                        <span className="text-sm font-semibold">{userStats.totalXp || 0} / {nextLevelXP}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
                           className="bg-blue-600 h-3 rounded-full transition-all"
-                          style={{ width: `${(userStats.xp / userStats.nextLevelXP) * 100}%` }}
+                          style={{ width: `${((userStats.totalXp || 0) / nextLevelXP) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -316,25 +355,25 @@ export default function LearnCodingNew() {
                       <span className="text-sm text-gray-600">{t('Putki', 'Streak')}</span>
                       <div className="flex items-center gap-1">
                         <Flame className="w-5 h-5 text-orange-500" />
-                        <span className="font-bold text-lg">{userStats.streak} {t('päivää', 'days')}</span>
+                        <span className="font-bold text-lg">{userStats.streak || 0} {t('päivää', 'days')}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">{t('Sijoitus', 'Rank')}</span>
-                      <span className="font-bold text-lg">#{userStats.rank}</span>
+                      <span className="font-bold text-lg">#{userStats.rank || '-'}</span>
                     </div>
                     <div className="pt-4 border-t space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">{t('Kurssit suoritettu', 'Courses completed')}</span>
-                        <span className="font-semibold">{userStats.coursesCompleted}</span>
+                        <span className="font-semibold">{userStats.coursesCompleted || 0}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">{t('Oppitunnit', 'Lessons')}</span>
-                        <span className="font-semibold">{userStats.lessonsCompleted}</span>
+                        <span className="font-semibold">{userStats.lessonsCompleted || 0}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">{t('Harjoitukset', 'Exercises')}</span>
-                        <span className="font-semibold">{userStats.exercisesCompleted}</span>
+                        <span className="font-semibold">{userStats.exercisesCompleted || 0}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -389,7 +428,7 @@ export default function LearnCodingNew() {
             </div>
           </TabsContent>
 
-          {/* Courses Tab - Real Data */}
+          {/* Courses Tab - Real Data from API */}
           <TabsContent value="courses">
             <div className="space-y-6">
               <div>
@@ -401,61 +440,95 @@ export default function LearnCodingNew() {
                 </p>
               </div>
 
-              {/* Real Courses Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allCourses.map((course) => (
-                  <Card key={course.id} className="hover:shadow-lg transition-shadow border-2">
-                    <div className="h-32 bg-blue-600 flex items-center justify-center">
-                      <Code className="w-16 h-16 text-white" />
-                    </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="ml-3 text-gray-600">{t('Ladataan kursseja...', 'Loading courses...')}</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {courses.map((course) => {
+                    const progress = userProgress.find(p => p.courseId === course.id);
+                    const progressPercent = progress?.progressPercentage || 0;
+                    
+                    return (
+                      <Card key={course.id} className="hover:shadow-lg transition-shadow border-2">
+                        <div className="h-32 bg-blue-600 flex items-center justify-center">
+                          <Code className="w-16 h-16 text-white" />
+                        </div>
 
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-xl">
-                          {course.title[language]}
-                        </CardTitle>
-                      </div>
-                      <CardDescription className="line-clamp-2">
-                        {course.description[language]}
-                      </CardDescription>
-                    </CardHeader>
+                        <CardHeader>
+                          <div className="flex items-start justify-between gap-2">
+                            <CardTitle className="text-xl">
+                              {course.title?.[language] || course.title?.fi || course.title}
+                            </CardTitle>
+                          </div>
+                          <CardDescription className="line-clamp-2">
+                            {course.description?.[language] || course.description?.fi || course.description}
+                          </CardDescription>
+                        </CardHeader>
 
-                    <CardContent className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={
-                          course.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
-                          course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }>
-                          {t(
-                            course.difficulty === 'beginner' ? 'Aloittelija' : course.difficulty === 'intermediate' ? 'Keskitaso' : 'Edistynyt',
-                            course.difficulty === 'beginner' ? 'Beginner' : course.difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'
+                        <CardContent className="space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge className={
+                              course.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                              course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }>
+                              {t(
+                                course.difficulty === 'beginner' ? 'Aloittelija' : course.difficulty === 'intermediate' ? 'Keskitaso' : 'Edistynyt',
+                                course.difficulty === 'beginner' ? 'Beginner' : course.difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'
+                              )}
+                            </Badge>
+                            {course.isFree && (
+                              <Badge variant="outline">{t('Ilmainen', 'Free')}</Badge>
+                            )}
+                            {progressPercent > 0 && (
+                              <Badge className="bg-blue-100 text-blue-800">
+                                {progressPercent}% {t('valmis', 'complete')}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-gray-500" />
+                              <span>{course.estimatedHours}h</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-4 h-4 text-gray-500" />
+                              <span>{course.modules?.length || 0} {t('moduulia', 'modules')}</span>
+                            </div>
+                          </div>
+
+                          {progressPercent > 0 && (
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all"
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
                           )}
-                        </Badge>
-                        {course.isFree && (
-                          <Badge variant="outline">{t('Ilmainen', 'Free')}</Badge>
-                        )}
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-500" />
-                          <span>{course.estimatedHours}h</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-4 h-4 text-gray-500" />
-                          <span>{course.modules.length} {t('moduulia', 'modules')}</span>
-                        </div>
-                      </div>
-
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        {t('Aloita kurssi', 'Start Course')}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                            {progressPercent > 0 ? (
+                              <>
+                                <Play className="w-4 h-4 mr-2" />
+                                {t('Jatka', 'Continue')}
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                {t('Aloita kurssi', 'Start Course')}
+                              </>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </TabsContent>
 
