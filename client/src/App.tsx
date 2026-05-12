@@ -87,11 +87,9 @@ function Router() {
       <Route path="/wilma/forgot-password" component={ForgotPassword} />
       <Route path="/wilma/reset-password" component={ResetPassword} />
       
-      {/* Coding Learning Platform */}
-      <Route path="/learn-coding/:section?" component={LearnCoding} />
-      <Route path="/learn-coding" component={LearnCoding} />
-      
       {/* Student/Parent routes - Use studentId (6-digit) */}
+      <Route path="/wilma/:studentId/learn-coding/:section?" component={LearnCoding} />
+      <Route path="/wilma/:studentId/learn-coding" component={LearnCoding} />
       <Route path="/wilma/:studentId/desktop" component={WilmaDesktopEnhanced} />
       <Route path="/wilma/:studentId/chess" component={ChessPage} />
       <Route path="/wilma/:studentId/:section" component={WilmaRouter} />
@@ -99,6 +97,8 @@ function Router() {
       
       {/* Admin/Teacher routes - Use Firebase ID */}
       <Route path="/wilma-admin/landing" component={WilmaLanding} />
+      <Route path="/wilma-admin/:adminId/learn-coding/:section?" component={LearnCoding} />
+      <Route path="/wilma-admin/:adminId/learn-coding" component={LearnCoding} />
       <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktopEnhanced} />
       <Route path="/wilma-admin/:adminId/desktop-manager" component={WilmaDesktopManager} />
       <Route path="/wilma-admin/:adminId/class/:classId" component={ClassDetail} />

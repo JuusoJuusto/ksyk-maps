@@ -3,9 +3,11 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import CodeEditor from "@/components/CodeEditor";
-import CoursesPage from "@/components/CoursesPage";
 import ClassroomPage from "@/components/ClassroomPage";
+import { allCourses, getCourseById } from "@/shared/realCourseData";
 import { 
   Code, 
   BookOpen, 
@@ -17,30 +19,34 @@ import {
   Star,
   Award,
   TrendingUp,
-  Calendar,
   Play,
   ChevronRight,
   Globe,
-  Sparkles,
-  Rocket,
   Brain,
   GraduationCap,
   Home,
-  Settings,
   LogOut,
   Medal,
-  Gift
+  Gift,
+  Clock,
+  CheckCircle,
+  Lock,
+  ArrowLeft
 } from "lucide-react";
 
-export default function LearnCoding() {
+export default function LearnCodingNew() {
   const [location, setLocation] = useLocation();
-  const [match, params] = useRoute('/learn-coding/:section?');
+  const [match, params] = useRoute('/wilma/:userId/learn-coding/:section?');
+  const [matchAdmin, paramsAdmin] = useRoute('/wilma-admin/:adminId/learn-coding/:section?');
+  
+  const userId = params?.userId || paramsAdmin?.adminId;
+  const isAdmin = !!matchAdmin;
+  
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
-  const [activeSection, setActiveSection] = useState(params?.section || 'dashboard');
+  const [activeSection, setActiveSection] = useState(params?.section || paramsAdmin?.section || 'dashboard');
 
   useEffect(() => {
-    // Check if user is logged in (from Wilma)
     const wilmaUser = localStorage.getItem('wilma_user');
     if (wilmaUser) {
       const user = JSON.parse(wilmaUser);
@@ -49,14 +55,14 @@ export default function LearnCoding() {
   }, []);
 
   useEffect(() => {
-    if (params?.section) {
-      setActiveSection(params.section);
+    const section = params?.section || paramsAdmin?.section;
+    if (section) {
+      setActiveSection(section);
     }
-  }, [params?.section]);
+  }, [params?.section, paramsAdmin?.section]);
 
   const t = (fi: string, en: string) => language === 'fi' ? fi : en;
 
-  // Mock user stats (will be fetched from API)
   const userStats = {
     xp: 1250,
     level: 5,
@@ -69,16 +75,23 @@ export default function LearnCoding() {
   };
 
   const handleLogout = () => {
-    setLocation('/wilma');
+    const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
+    setLocation(basePath);
+  };
+
+  const navigateToSection = (section: string) => {
+    setActiveSection(section);
+    const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
+    setLocation(`${basePath}/learn-coding/${section}`);
   };
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
-              <Code className="w-8 h-8 text-purple-600" />
+              <Code className="w-8 h-8 text-blue-600" />
               {t('Koodausplatformi', 'Coding Platform')}
             </CardTitle>
             <CardDescription>
@@ -88,7 +101,7 @@ export default function LearnCoding() {
           <CardContent>
             <Button 
               onClick={() => setLocation('/wilma')}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {t('Siirry Wilmaan', 'Go to Wilma')}
             </Button>
@@ -99,21 +112,30 @@ export default function LearnCoding() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white shadow-lg">
+    <div className="min-h-screen bg-gray-50">
+      {/* Clean Header - No Gradients */}
+      <div className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t('Takaisin Wilmaan', 'Back to Wilma')}
+              </Button>
+              
+              <div className="h-8 w-px bg-gray-300" />
+              
               <div className="flex items-center gap-2">
-                <Code className="w-8 h-8" />
+                <Code className="w-6 h-6 text-blue-600" />
                 <div>
-                  <h1 className="text-xl font-bold">
+                  <h1 className="text-lg font-bold text-gray-900">
                     {t('Koodausplatformi', 'Coding Platform')}
                   </h1>
-                  <p className="text-sm text-white/80">
-                    {t('Opi koodaamaan interaktiivisesti', 'Learn to code interactively')}
-                  </p>
                 </div>
               </div>
             </div>
@@ -121,39 +143,31 @@ export default function LearnCoding() {
             <div className="flex items-center gap-3">
               {/* Language Toggle */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
-                className="text-white hover:bg-white/20"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 {language === 'fi' ? 'EN' : 'FI'}
               </Button>
 
-              {/* User Stats */}
-              <div className="hidden md:flex items-center gap-4 bg-white/10 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-orange-300" />
-                  <span className="font-bold">{userStats.streak}</span>
+              {/* User Stats - Clean Design */}
+              <div className="hidden md:flex items-center gap-3 border rounded-lg px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm font-semibold">{userStats.streak}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-300" />
-                  <span className="font-bold">{userStats.xp} XP</span>
+                <div className="w-px h-4 bg-gray-300" />
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-semibold">{userStats.xp} XP</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-300" />
-                  <span className="font-bold">{t('Taso', 'Level')} {userStats.level}</span>
+                <div className="w-px h-4 bg-gray-300" />
+                <div className="flex items-center gap-1.5">
+                  <Trophy className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold">{t('Taso', 'Level')} {userStats.level}</span>
                 </div>
               </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-white hover:bg-white/20"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>
@@ -161,32 +175,29 @@ export default function LearnCoding() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        <Tabs value={activeSection} onValueChange={(value) => {
-          setActiveSection(value);
-          setLocation(`/learn-coding/${value}`);
-        }}>
-          <TabsList className="grid grid-cols-2 md:grid-cols-6 gap-2 bg-white/50 backdrop-blur-sm p-2 rounded-xl mb-6">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+        <Tabs value={activeSection} onValueChange={navigateToSection}>
+          <TabsList className="grid grid-cols-2 md:grid-cols-6 gap-2 bg-white border p-1 rounded-lg mb-6">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Etusivu', 'Dashboard')}</span>
             </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
+            <TabsTrigger value="courses" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <BookOpen className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Kurssit', 'Courses')}</span>
             </TabsTrigger>
-            <TabsTrigger value="practice" className="flex items-center gap-2">
+            <TabsTrigger value="practice" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Code className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Harjoittele', 'Practice')}</span>
             </TabsTrigger>
-            <TabsTrigger value="classroom" className="flex items-center gap-2">
+            <TabsTrigger value="classroom" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Luokka', 'Classroom')}</span>
             </TabsTrigger>
-            <TabsTrigger value="compete" className="flex items-center gap-2">
+            <TabsTrigger value="compete" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Kilpaile', 'Compete')}</span>
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+            <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <GraduationCap className="w-4 h-4" />
               <span className="hidden sm:inline">{t('Profiili', 'Profile')}</span>
             </TabsTrigger>
@@ -195,18 +206,18 @@ export default function LearnCoding() {
           {/* Dashboard */}
           <TabsContent value="dashboard">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Main Content */}
+              {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Welcome Card */}
-                <Card className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-0">
+                {/* Welcome Card - Clean Design */}
+                <Card className="border-2 border-blue-600">
                   <CardContent className="p-6">
-                    <h2 className="text-2xl font-bold mb-2">
+                    <h2 className="text-2xl font-bold mb-2 text-gray-900">
                       {t(`Tervetuloa takaisin, ${currentUser.firstName}!`, `Welcome back, ${currentUser.firstName}!`)}
                     </h2>
-                    <p className="text-white/90 mb-4">
+                    <p className="text-gray-600 mb-4">
                       {t('Jatka oppimista siitä mihin jäit', 'Continue learning where you left off')}
                     </p>
-                    <Button className="bg-white text-purple-600 hover:bg-white/90">
+                    <Button className="bg-blue-600 hover:bg-blue-700">
                       <Play className="w-4 h-4 mr-2" />
                       {t('Jatka oppimista', 'Continue Learning')}
                     </Button>
@@ -217,7 +228,7 @@ export default function LearnCoding() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-yellow-500" />
+                      <Zap className="w-5 h-5 text-yellow-600" />
                       {t('Päivän haaste', 'Daily Challenge')}
                     </CardTitle>
                     <CardDescription>
@@ -225,21 +236,19 @@ export default function LearnCoding() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {t('Listan käsittely', 'List Manipulation')}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {t('Keskitaso • 50 XP', 'Medium • 50 XP')}
-                          </p>
-                        </div>
-                        <Button className="bg-yellow-500 hover:bg-yellow-600">
-                          <Target className="w-4 h-4 mr-2" />
-                          {t('Aloita', 'Start')}
-                        </Button>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {t('Listan käsittely', 'List Manipulation')}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {t('Keskitaso • 50 XP', 'Medium • 50 XP')}
+                        </p>
                       </div>
+                      <Button className="bg-yellow-600 hover:bg-yellow-700">
+                        <Target className="w-4 h-4 mr-2" />
+                        {t('Aloita', 'Start')}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -248,14 +257,14 @@ export default function LearnCoding() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-blue-500" />
+                      <BookOpen className="w-5 h-5 text-blue-600" />
                       {t('Jatka oppimista', 'Continue Learning')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer">
-                        <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <div className="flex items-center gap-4 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-colors cursor-pointer">
+                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                           <Code className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1">
@@ -266,7 +275,7 @@ export default function LearnCoding() {
                             {t('Oppitunti 5: Silmukat', 'Lesson 5: Loops')}
                           </p>
                           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: '60%' }} />
+                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '60%' }} />
                           </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -276,13 +285,13 @@ export default function LearnCoding() {
                 </Card>
               </div>
 
-              {/* Right Column - Stats & Info */}
+              {/* Right Column - Stats */}
               <div className="space-y-6">
                 {/* Stats Card */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
+                      <TrendingUp className="w-5 h-5 text-green-600" />
                       {t('Tilastot', 'Statistics')}
                     </CardTitle>
                   </CardHeader>
@@ -298,7 +307,7 @@ export default function LearnCoding() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
-                          className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all"
+                          className="bg-blue-600 h-3 rounded-full transition-all"
                           style={{ width: `${(userStats.xp / userStats.nextLevelXP) * 100}%` }}
                         />
                       </div>
@@ -335,14 +344,14 @@ export default function LearnCoding() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-amber-500" />
+                      <Award className="w-5 h-5 text-amber-600" />
                       {t('Saavutukset', 'Achievements')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-3">
                       {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="aspect-square bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg flex items-center justify-center">
+                        <div key={i} className="aspect-square bg-amber-100 border-2 border-amber-300 rounded-lg flex items-center justify-center">
                           <Trophy className="w-6 h-6 text-amber-600" />
                         </div>
                       ))}
@@ -357,7 +366,7 @@ export default function LearnCoding() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Rocket className="w-5 h-5 text-purple-500" />
+                      <Zap className="w-5 h-5 text-blue-600" />
                       {t('Pika-toiminnot', 'Quick Actions')}
                     </CardTitle>
                   </CardHeader>
@@ -371,7 +380,7 @@ export default function LearnCoding() {
                       {t('Liity luokkaan', 'Join Classroom')}
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <Code className="w-4 h-4 mr-2" />
                       {t('Uusi projekti', 'New Project')}
                     </Button>
                   </CardContent>
@@ -380,51 +389,95 @@ export default function LearnCoding() {
             </div>
           </TabsContent>
 
-          {/* Courses Tab */}
+          {/* Courses Tab - Real Data */}
           <TabsContent value="courses">
-            <CoursesPage 
-              language={language}
-              onStartCourse={(courseId) => {
-                console.log('Starting course:', courseId);
-                // TODO: Navigate to course page
-              }}
-            />
-          </TabsContent>
-
-          {/* Practice Tab */}
-          <TabsContent value="practice">
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-bold mb-2">
-                  {t('Harjoittele', 'Practice')}
+                  {t('Kurssit', 'Courses')}
                 </h2>
                 <p className="text-gray-600">
-                  {t('Harjoittele koodausta interaktiivisilla tehtävillä', 'Practice coding with interactive exercises')}
+                  {t('Valitse kurssi ja aloita oppiminen', 'Choose a course and start learning')}
                 </p>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('Python-harjoitus: Tervehdys', 'Python Exercise: Greeting')}</CardTitle>
-                  <CardDescription>
-                    {t('Kirjoita ohjelma, joka tulostaa "Hei, maailma!"', 'Write a program that prints "Hello, World!"')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CodeEditor
-                    language={language}
-                    initialCode={`# ${t('Kirjoita koodisi tähän', 'Write your code here')}\nprint("${t('Hei, maailma!', 'Hello, World!')}")`}
-                    testCases={[
-                      { input: '', expectedOutput: t('Hei, maailma!', 'Hello, World!') }
-                    ]}
-                    showTests={true}
-                  />
-                </CardContent>
-              </Card>
+              {/* Real Courses Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {allCourses.map((course) => (
+                  <Card key={course.id} className="hover:shadow-lg transition-shadow border-2">
+                    <div className="h-32 bg-blue-600 flex items-center justify-center">
+                      <Code className="w-16 h-16 text-white" />
+                    </div>
+
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-xl">
+                          {course.title[language]}
+                        </CardTitle>
+                      </div>
+                      <CardDescription className="line-clamp-2">
+                        {course.description[language]}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={
+                          course.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                          course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }>
+                          {t(
+                            course.difficulty === 'beginner' ? 'Aloittelija' : course.difficulty === 'intermediate' ? 'Keskitaso' : 'Edistynyt',
+                            course.difficulty === 'beginner' ? 'Beginner' : course.difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'
+                          )}
+                        </Badge>
+                        {course.isFree && (
+                          <Badge variant="outline">{t('Ilmainen', 'Free')}</Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span>{course.estimatedHours}h</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-gray-500" />
+                          <span>{course.modules.length} {t('moduulia', 'modules')}</span>
+                        </div>
+                      </div>
+
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {t('Aloita kurssi', 'Start Course')}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
-          {/* Classroom Tab */}
+          {/* Other tabs remain similar but with clean design */}
+          <TabsContent value="practice">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('Harjoittele', 'Practice')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CodeEditor
+                  language={language}
+                  initialCode={`# ${t('Kirjoita koodisi tähän', 'Write your code here')}\nprint("${t('Hei, maailma!', 'Hello, World!')}")`}
+                  testCases={[
+                    { input: '', expectedOutput: t('Hei, maailma!', 'Hello, World!'), hidden: false }
+                  ]}
+                  showTests={true}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="classroom">
             <ClassroomPage 
               language={language}
@@ -432,156 +485,47 @@ export default function LearnCoding() {
             />
           </TabsContent>
 
-          {/* Compete Tab */}
           <TabsContent value="compete">
             <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">
-                  {t('Kilpailut', 'Competitions')}
-                </h2>
-                <p className="text-gray-600">
-                  {t('Osallistu viikottaisiin koodaushaasteisiin', 'Participate in weekly coding challenges')}
-                </p>
-              </div>
-
-              {/* Weekly Competition */}
-              <Card className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+              <Card className="border-2 border-amber-600">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <Trophy className="w-8 h-8" />
+                    <Trophy className="w-8 h-8 text-amber-600" />
                     <div>
                       <h3 className="text-2xl font-bold">
                         {t('Viikon kilpailu', 'Weekly Competition')}
                       </h3>
-                      <p className="text-white/90">
+                      <p className="text-gray-600">
                         {t('Päättyy 3 päivän kuluttua', 'Ends in 3 days')}
                       </p>
                     </div>
                   </div>
-                  <Button className="bg-white text-orange-600 hover:bg-white/90">
+                  <Button className="bg-amber-600 hover:bg-amber-700">
                     <Play className="w-4 h-4 mr-2" />
                     {t('Osallistu nyt', 'Participate Now')}
                   </Button>
                 </CardContent>
               </Card>
-
-              {/* Leaderboard */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Medal className="w-5 h-5 text-amber-500" />
-                    {t('Tulostaulukko', 'Leaderboard')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { rank: 1, name: 'Mikko V.', xp: 2450, avatar: '🥇' },
-                      { rank: 2, name: 'Emma K.', xp: 2380, avatar: '🥈' },
-                      { rank: 3, name: 'Ville M.', xp: 2210, avatar: '🥉' },
-                      { rank: 4, name: 'Sofia N.', xp: 2100, avatar: '👤' },
-                      { rank: 5, name: 'Joonas L.', xp: 2050, avatar: '👤' },
-                    ].map((user) => (
-                      <div key={user.rank} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{user.avatar}</span>
-                          <div>
-                            <p className="font-semibold">{user.name}</p>
-                            <p className="text-sm text-gray-600">{user.xp} XP</p>
-                          </div>
-                        </div>
-                        <span className="text-2xl font-bold text-gray-400">#{user.rank}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
-          {/* Profile Tab */}
           <TabsContent value="profile">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">
-                  {t('Profiili', 'Profile')}
-                </h2>
-                <p className="text-gray-600">
-                  {t('Hallinnoi profiiliasi ja asetuksiasi', 'Manage your profile and settings')}
-                </p>
-              </div>
-
-              {/* Profile Card */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-                      {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold">{currentUser?.firstName} {currentUser?.lastName}</h3>
-                      <p className="text-gray-600">{currentUser?.email}</p>
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('Profiili', 'Profile')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                    {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
                   </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-3xl font-bold text-purple-600">{userStats.level}</p>
-                      <p className="text-sm text-gray-600">{t('Taso', 'Level')}</p>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-3xl font-bold text-blue-600">{userStats.xp}</p>
-                      <p className="text-sm text-gray-600">XP</p>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <p className="text-3xl font-bold text-orange-600">{userStats.streak}</p>
-                      <p className="text-sm text-gray-600">{t('Putki', 'Streak')}</p>
-                    </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-3xl font-bold text-green-600">#{userStats.rank}</p>
-                      <p className="text-sm text-gray-600">{t('Sijoitus', 'Rank')}</p>
-                    </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{currentUser?.firstName} {currentUser?.lastName}</h3>
+                    <p className="text-gray-600">{currentUser?.email}</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Achievements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gift className="w-5 h-5 text-amber-500" />
-                    {t('Saavutukset', 'Achievements')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                    {[
-                      { icon: '🏆', name: t('Ensimmäinen kurssi', 'First Course'), unlocked: true },
-                      { icon: '🔥', name: t('7 päivän putki', '7 Day Streak'), unlocked: true },
-                      { icon: '⭐', name: t('100 XP', '100 XP'), unlocked: true },
-                      { icon: '💯', name: t('Täydelliset pisteet', 'Perfect Score'), unlocked: true },
-                      { icon: '🎯', name: t('10 tehtävää', '10 Exercises'), unlocked: true },
-                      { icon: '🚀', name: t('Taso 5', 'Level 5'), unlocked: true },
-                      { icon: '👥', name: t('Liittyi luokkaan', 'Joined Class'), unlocked: false },
-                      { icon: '📚', name: t('Kurssi suoritettu', 'Course Complete'), unlocked: false },
-                      { icon: '🏅', name: t('Kilpailun voitto', 'Competition Win'), unlocked: false },
-                    ].map((achievement, index) => (
-                      <div
-                        key={index}
-                        className={`aspect-square rounded-lg flex flex-col items-center justify-center p-3 ${
-                          achievement.unlocked
-                            ? 'bg-gradient-to-br from-amber-100 to-amber-200'
-                            : 'bg-gray-100 opacity-50'
-                        }`}
-                      >
-                        <span className="text-3xl mb-1">{achievement.icon}</span>
-                        <span className="text-xs text-center font-semibold">{achievement.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
