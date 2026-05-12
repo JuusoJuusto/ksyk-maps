@@ -46,6 +46,7 @@ import ClassDetail from "@/pages/class-detail";
 import ChessPage from "@/pages/chess";
 import ResetPassword from "@/pages/reset-password";
 import ForgotPassword from "@/pages/forgot-password";
+import LearnCoding from "@/pages/learn-coding";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -85,6 +86,10 @@ function Router() {
       <Route path="/wilma" component={Wilma} />
       <Route path="/wilma/forgot-password" component={ForgotPassword} />
       <Route path="/wilma/reset-password" component={ResetPassword} />
+      
+      {/* Coding Learning Platform */}
+      <Route path="/learn-coding/:section?" component={LearnCoding} />
+      <Route path="/learn-coding" component={LearnCoding} />
       
       {/* Student/Parent routes - Use studentId (6-digit) */}
       <Route path="/wilma/:studentId/desktop" component={WilmaDesktopEnhanced} />
