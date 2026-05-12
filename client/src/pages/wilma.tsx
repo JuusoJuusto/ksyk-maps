@@ -747,5 +747,18 @@ export default function Wilma() {
   }
 
   // If logged in, redirect to appropriate page
+  if (isLoggedIn && currentUser) {
+    const roles = currentUser.roles || [currentUser.role];
+    
+    // Check if user has admin, teacher, principal, or vice_principal role
+    if (roles.includes('admin') || roles.includes('teacher') || roles.includes('principal') || roles.includes('vice_principal')) {
+      setLocation(`/wilma-admin/${currentUser.id}`);
+    } else {
+      // Student, parent use /wilma/:studentId
+      const studentId = currentUser.studentId || currentUser.id;
+      setLocation(`/wilma/${studentId}`);
+    }
+  }
+  
   return null;
 }

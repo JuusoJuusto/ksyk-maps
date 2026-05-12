@@ -1,277 +1,268 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { useLocation, useRoute } from 'wouter';
 import { Button } from "@/components/ui/button";
-import WilmaHomeTabEnhanced from "@/components/WilmaHomeTabEnhanced";
-import WilmaTimetable from "@/components/WilmaTimetable";
-import WilmaGrades from "@/components/WilmaGrades";
-import WilmaHomework from "@/components/WilmaHomework";
-import WilmaAttendanceTracker from "@/components/WilmaAttendanceTracker";
-import WilmaAttendanceCalendar from "@/components/WilmaAttendanceCalendar";
-import EnhancedMessageSystem from "@/components/EnhancedMessageSystem";
-import WilmaSupportTab from "@/components/WilmaSupportTab";
-import WilmaLunchMenu from "@/components/WilmaLunchMenu";
-import WilmaSettingsTab from "@/components/WilmaSettingsTab";
-import WilmaExams from "@/components/WilmaExams";
-import WilmaAnnouncements from "@/components/WilmaAnnouncements";
-import NotificationCenter from "@/components/NotificationCenter";
+import ModernWilmaDashboard from "@/components/ModernWilmaDashboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  LogOut, Home, Calendar, Award, FileText, 
-  MessageSquare, UserCheck, BookOpen, Settings, Menu, User, UtensilsCrossed, ClipboardCheck, Megaphone
-} from "lucide-react";
+  Home, BookOpen, Award, MessageSquare, Calendar, 
+  FileText, Users, Settings, LogOut, Bell, Menu, X
+} from 'lucide-react';
 
 export default function WilmaStudent() {
   const [, setLocation] = useLocation();
+  const [match, params] = useRoute('/wilma/:studentId/:section?');
+  
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState('home');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeSection, setActiveSection] = useState('frontpage');
+  const [language, setLanguage] = useState<'fi' | 'en'>('fi');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication
     const storedUser = localStorage.getItem('wilma_user');
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        if (user.role === 'student') {
-          setCurrentUser(user);
-          setIsLoading(false);
-        } else {
-          setLocation('/wilma');
-        }
-      } catch (err) {
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user:', error);
         setLocation('/wilma');
       }
     } else {
       setLocation('/wilma');
     }
-  }, [setLocation]);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (match && params?.section) {
+      setActiveSection(params.section);
+    } else if (match) {
+      setActiveSection('frontpage');
+    }
+  }, [match, params]);
 
   const handleLogout = () => {
-    // Save current location as return path
-    const currentPath = window.location.pathname;
-    localStorage.setItem('wilma_return_path', currentPath);
     localStorage.removeItem('wilma_user');
-    setLocation('/wilma?session=expired');
+    setLocation('/wilma');
   };
 
-  const navigationItems = [
-    { id: 'home', label: 'Etusivu', icon: Home },
-    { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
-    { id: 'grades', label: 'Arvosanat', icon: Award },
-    { id: 'homework', label: 'Tehtävät', icon: FileText },
-    { id: 'exams', label: 'Kokeet', icon: ClipboardCheck },
-    { id: 'attendance', label: 'Tuntimerkinnät', icon: UserCheck },
-    { id: 'messages', label: 'Viestit', icon: MessageSquare },
-    { id: 'announcements', label: 'Ilmoitukset', icon: Megaphone },
-    { id: 'courses', label: 'Kurssit', icon: BookOpen },
-    { id: 'lunch', label: 'Lounas', icon: UtensilsCrossed },
-    { id: 'support', label: 'Tuki', icon: MessageSquare },
-    { id: 'settings', label: 'Asetukset', icon: Settings },
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    if (currentUser?.studentId) {
+      setLocation(`/wilma/${currentUser.studentId}/${section === 'frontpage' ? '' : section}`);
+    }
+    setMobileMenuOpen(false);
+  };
+
+  const t = (fi: string, en: string) => language === 'fi' ? fi : en;
+
+  const menuItems = [
+    { id: 'frontpage', icon: Home, label: t('Etusivu', 'Dashboard') },
+    { id: 'schedule', icon: Calendar, label: t('Lukujärjestys', 'Schedule') },
+    { id: 'grades', icon: Award, label: t('Arvosanat', 'Grades') },
+    { id: 'assignments', icon: FileText, label: t('Tehtävät', 'Assignments') },
+    { id: 'messages', icon: MessageSquare, label: t('Viestit', 'Messages') },
+    { id: 'learn-coding', icon: BookOpen, label: t('Koodaus', 'Coding') },
   ];
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#003d82] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Ladataan...</p>
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('Ladataan...', 'Loading...')}</p>
         </div>
       </div>
     );
   }
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f5f5] to-[#e8e8e8] overflow-x-hidden pb-20 md:pb-0">
-      {/* Sidebar - Hidden on mobile, shown on desktop */}
-      <aside className={`hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-[#dddddd] transition-all duration-300 z-30 flex-col shadow-lg ${
-        sidebarOpen ? 'w-64' : 'w-16'
-      }`}>
-        {/* Logo & Brand */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-r from-[#0066CC] to-[#6B4FBB]">
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <User className="w-4 h-4 text-[#0066CC]" />
-                </div>
-                <span className="font-bold text-base text-white tracking-wide">Wilma</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-[#003d82] text-white shadow-lg">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo & Title */}
+            <div className="flex items-center gap-3">
+              <img 
+                src="/kulosaaren_yhteiskoulu_logo.jpeg" 
+                alt="Wilma" 
+                className="h-10 w-10 rounded-full bg-white p-1"
+              />
+              <div>
+                <h1 className="text-xl font-bold">Wilma</h1>
+                <p className="text-xs text-blue-200">{t('Kulosaaren yhteiskoulu', 'Kulosaari High School')}</p>
               </div>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSectionChange(item.id)}
+                    className={`text-white hover:bg-blue-700 ${isActive ? 'bg-blue-700' : ''}`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </nav>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2">
               <Button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1.5 hover:bg-white/20 rounded-md transition-all duration-200"
                 variant="ghost"
                 size="sm"
+                className="text-white hover:bg-blue-700"
               >
-                <Menu className="w-4 h-4 text-white" />
+                <Bell className="w-5 h-5" />
               </Button>
-            </>
-          ) : (
-            <Button
-              onClick={() => setSidebarOpen(true)}
-              className="p-1.5 hover:bg-white/20 rounded-md mx-auto transition-all duration-200"
-              variant="ghost"
-              size="sm"
-            >
-              <Menu className="w-4 h-4 text-white" />
-            </Button>
-          )}
-        </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="hidden md:flex text-white hover:bg-blue-700"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {t('Kirjaudu ulos', 'Logout')}
+              </Button>
 
-        {/* User Info */}
-        <div className={`px-3 py-3 border-b border-[#dddddd] flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 ${!sidebarOpen && 'hidden'}`}>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-[#0066CC] to-[#6B4FBB] rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
-              {currentUser.firstName[0]}{currentUser.lastName[0]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900 truncate">
-                {currentUser.firstName} {currentUser.lastName}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                Opiskelija • {currentUser.studentClass || 'Ei luokkaa'}
-              </p>
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden text-white hover:bg-blue-700"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
             </div>
           </div>
-        </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 scrollbar-thin">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 mb-1 group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#0066CC] to-[#6B4FBB] text-white shadow-md scale-105'
-                    : 'text-gray-700 hover:bg-gray-100 hover:scale-102'
-                }`}
-              >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#0066CC]'}`} />
-                {sidebarOpen && (
-                  <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-700'}`}>
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden pb-4 space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSectionChange(item.id)}
+                    className={`w-full justify-start text-white hover:bg-blue-700 ${isActive ? 'bg-blue-700' : ''}`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
                     {item.label}
-                  </span>
-                )}
-                {isActive && sidebarOpen && (
-                  <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-3 border-t border-[#dddddd] flex-shrink-0">
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className={`w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all ${
-              !sidebarOpen && 'justify-center'
-            }`}
-          >
-            <LogOut className="w-4 h-4" />
-            {sidebarOpen && <span className="text-sm font-medium">Kirjaudu ulos</span>}
-          </Button>
+                  </Button>
+                );
+              })}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="w-full justify-start text-white hover:bg-blue-700"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {t('Kirjaudu ulos', 'Logout')}
+              </Button>
+            </div>
+          )}
         </div>
-      </aside>
+      </div>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
-        {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-[#0066CC] to-[#6B4FBB] text-white shadow-lg">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <User className="w-5 h-5 text-[#0066CC]" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">Wilma</p>
-                <p className="text-xs text-blue-100">{currentUser.firstName}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <NotificationCenter userId={currentUser.id} />
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </div>
+      <div className="container mx-auto px-4 py-6">
+        {activeSection === 'frontpage' && (
+          <ModernWilmaDashboard
+            user={currentUser}
+            language={language}
+            onNavigate={handleSectionChange}
+          />
+        )}
+
+        {activeSection === 'schedule' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-6 h-6 text-blue-600" />
+                {t('Lukujärjestys', 'Schedule')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">{t('Lukujärjestys tulossa pian...', 'Schedule coming soon...')}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeSection === 'grades' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="w-6 h-6 text-green-600" />
+                {t('Arvosanat', 'Grades')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">{t('Arvosanat tulossa pian...', 'Grades coming soon...')}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeSection === 'assignments' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-6 h-6 text-orange-600" />
+                {t('Tehtävät', 'Assignments')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">{t('Tehtävät tulossa pian...', 'Assignments coming soon...')}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeSection === 'messages' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-purple-600" />
+                {t('Viestit', 'Messages')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">{t('Viestit tulossa pian...', 'Messages coming soon...')}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeSection === 'learn-coding' && (
+          <div>
+            <Button
+              onClick={() => setLocation(`/wilma/${currentUser.studentId}/learn-coding`)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              {t('Avaa koodausplatformi', 'Open Coding Platform')}
+            </Button>
           </div>
-        </div>
-
-        <div className="p-3 md:p-4 lg:p-6 max-w-full overflow-x-hidden animate-fadeIn">
-          {activeSection === 'home' && <WilmaHomeTabEnhanced userRole="student" userRoles={['student']} userId={currentUser.id} userName={`${currentUser.firstName} ${currentUser.lastName}`} />}
-          {activeSection === 'schedule' && <WilmaTimetable />}
-          {activeSection === 'grades' && <WilmaGrades />}
-          {activeSection === 'homework' && <WilmaHomework />}
-          {activeSection === 'exams' && <WilmaExams />}
-          {activeSection === 'attendance' && <WilmaAttendanceCalendar userRole="student" />}
-          {activeSection === 'messages' && <EnhancedMessageSystem />}
-          {activeSection === 'announcements' && <WilmaAnnouncements />}
-          {activeSection === 'lunch' && <WilmaLunchMenu />}
-          {activeSection === 'support' && <WilmaSupportTab />}
-          {activeSection === 'courses' && (
-            <Card className="shadow-lg border-[#dddddd]">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-[#dddddd]">
-                <CardTitle className="flex items-center gap-2 text-[#003d82]">
-                  <BookOpen className="w-6 h-6" />
-                  Kurssit
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-gray-600">Kurssit-osio tulossa pian...</p>
-              </CardContent>
-            </Card>
-          )}
-          {activeSection === 'settings' && <WilmaSettingsTab userRole="student" />}
-        </div>
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#dddddd] shadow-2xl z-40">
-        <div className="grid grid-cols-5 gap-1 px-2 py-2">
-          {[
-            { id: 'home', label: 'Koti', icon: Home },
-            { id: 'schedule', label: 'Lukujärjestys', icon: Calendar },
-            { id: 'grades', label: 'Arvosanat', icon: Award },
-            { id: 'messages', label: 'Viestit', icon: MessageSquare },
-            { id: 'attendance', label: 'Poissaolot', icon: UserCheck },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-br from-[#0066CC] to-[#6B4FBB] text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'text-white' : 'text-gray-600'}`} />
-                <span className={`text-[10px] font-medium truncate w-full text-center ${
-                  isActive ? 'text-white' : 'text-gray-600'
-                }`}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+        )}
+      </div>
     </div>
   );
 }

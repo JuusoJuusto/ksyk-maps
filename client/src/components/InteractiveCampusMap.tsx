@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import OptimizedCampusMap from "@/components/OptimizedCampusMap";
 import { 
   MapPin, 
   Building, 
@@ -51,11 +52,7 @@ export default function InteractiveCampusMap({
   rooms: propRooms 
 }: InteractiveCampusMapProps) {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 5000, height: 3000 });
 
   // Use props or fetch data as fallback
   const buildings = propBuildings.length > 0 ? propBuildings : [];
@@ -74,238 +71,44 @@ export default function InteractiveCampusMap({
     ).slice(0, 6);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+  // Convert buildings to OptimizedCampusMap format
+  const optimizedBuildings = buildings.map((building: Building) => ({
+    id: building.id,
+    name: building.name,
+    x: building.mapPositionX || 0,
+    y: building.mapPositionY || 0,
+    width: 150,
+    height: 100,
+    color: building.colorCode,
+    type: 'Academic',
+    floors: building.floors
+  }));
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDragging) return;
-    
-    const dx = (e.clientX - dragStart.x) * (viewBox.width / 1000);
-    const dy = (e.clientY - dragStart.y) * (viewBox.height / 600);
-    
-    setViewBox(prev => ({
-      ...prev,
-      x: prev.x - dx,
-      y: prev.y - dy
-    }));
-    
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
-    
-    setViewBox(prev => ({
-      x: prev.x,
-      y: prev.y,
-      width: Math.max(500, Math.min(2000, prev.width * zoomFactor)),
-      height: Math.max(300, Math.min(1200, prev.height * zoomFactor))
-    }));
+  const handleBuildingClick = (building: any) => {
+    const originalBuilding = buildings.find((b: Building) => b.id === building.id);
+    if (originalBuilding) {
+      setSelectedBuilding(originalBuilding);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Interactive Map Container */}
+      {/* Optimized High-Performance Map */}
       <Card className="shadow-2xl border-0 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
           <CardTitle className="text-3xl flex items-center">
             <MapPin className="mr-3 h-8 w-8" />
-            KSYK Campus Map
+            KSYK Campus Map - Optimized
           </CardTitle>
-          <p className="text-blue-100 text-lg">Drag to pan • Scroll to zoom • Click buildings to explore</p>
+          <p className="text-blue-100 text-lg">60fps rendering • Smooth zoom & pan • Search buildings</p>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Map Grid */}
-          <div className="relative bg-white min-h-[600px] overflow-hidden">
-            {/* Grid Background */}
-            <div className="absolute inset-0" style={{
-              backgroundImage: `
-                linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-                linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px'
-            }}></div>
-            
-            {/* Buildings Grid */}
-            <svg 
-              viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-              className={`w-full h-[600px] relative z-10 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
-            >
-              <defs>
-                <pattern id="homeSmallGrid" width="50" height="50" patternUnits="userSpaceOnUse">
-                  <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
-                </pattern>
-                <pattern id="homeLargeGrid" width="250" height="250" patternUnits="userSpaceOnUse">
-                  <rect width="250" height="250" fill="url(#homeSmallGrid)"/>
-                  <path d="M 250 0 L 0 0 0 250" fill="none" stroke="#d1d5db" strokeWidth="2"/>
-                </pattern>
-              </defs>
-              
-              {/* Grid background covering entire viewBox */}
-              <rect x="0" y="0" width="5000" height="3000" fill="white" />
-              <rect x="0" y="0" width="5000" height="3000" fill="url(#homeLargeGrid)" opacity="0.5" />
-              
-              {/* Center crosshair guides */}
-              <line x1="2500" y1="0" x2="2500" y2="3000" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.2" />
-              <line x1="0" y1="1500" x2="5000" y2="1500" stroke="#94a3b8" strokeWidth="2" strokeDasharray="10,10" opacity="0.2" />
-
-              {/* Buildings as Grid-Aligned Elements */}
-              {buildings.map((building: Building, index: number) => {
-                // Use actual positions or default to grid layout
-                const gridX = building.mapPositionX || (200 + (index % 8) * 400);
-                const gridY = building.mapPositionY || (200 + Math.floor(index / 8) * 350);
-                const isHovered = hoveredBuilding === building.id;
-                const isSelected = selectedBuilding?.id === building.id;
-                const buildingRooms = rooms.filter(room => room.buildingId === building.id && room.floor === selectedFloor);
-                
-                // Building dimensions
-                const buildingWidth = 160;
-                const buildingHeight = 120;
-                
-                return (
-                  <g key={building.id}>
-                    {/* Building Shadow */}
-                    <rect
-                      x={gridX + 3}
-                      y={gridY + 3}
-                      width={buildingWidth}
-                      height={buildingHeight}
-                      fill="rgba(0,0,0,0.15)"
-                      rx="4"
-                    />
-                    
-                    {/* Building */}
-                    <rect
-                      x={gridX}
-                      y={gridY}
-                      width={buildingWidth}
-                      height={buildingHeight}
-                      fill={building.colorCode}
-                      stroke={isSelected ? "#fbbf24" : isHovered ? "#60a5fa" : "#94a3b8"}
-                      strokeWidth={isSelected ? "3" : "2"}
-                      rx="4"
-                      className="cursor-pointer transition-all duration-200"
-                      onMouseEnter={() => setHoveredBuilding(building.id)}
-                      onMouseLeave={() => setHoveredBuilding(null)}
-                      onClick={() => setSelectedBuilding(building)}
-                    />
-                    
-                    {/* Building Grid Pattern */}
-                    {Array.from({ length: building.floors }).map((_, floorIdx) => (
-                      <line
-                        key={`floor-${floorIdx}`}
-                        x1={gridX}
-                        y1={gridY + (floorIdx + 1) * (buildingHeight / (building.floors + 1))}
-                        x2={gridX + buildingWidth}
-                        y2={gridY + (floorIdx + 1) * (buildingHeight / (building.floors + 1))}
-                        stroke="rgba(255,255,255,0.3)"
-                        strokeWidth="1"
-                        className="pointer-events-none"
-                      />
-                    ))}
-                    
-                    {/* Building Label */}
-                    <text
-                      x={gridX + buildingWidth / 2}
-                      y={gridY + buildingHeight / 2 - 10}
-                      textAnchor="middle"
-                      className="fill-white font-bold pointer-events-none"
-                      style={{ fontSize: '48px', textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
-                    >
-                      {building.name}
-                    </text>
-                    
-                    {/* Building Name */}
-                    <text
-                      x={gridX + buildingWidth / 2}
-                      y={gridY + buildingHeight / 2 + 20}
-                      textAnchor="middle"
-                      className="fill-white pointer-events-none"
-                      style={{ fontSize: '20px', textShadow: "1px 1px 2px rgba(0,0,0,0.7)" }}
-                    >
-                      {building.nameEn || building.name}
-                    </text>
-                    
-                    {/* Floor indicator */}
-                    <text
-                      x={gridX + buildingWidth / 2}
-                      y={gridY + buildingHeight / 2 + 40}
-                      textAnchor="middle"
-                      className="fill-white pointer-events-none opacity-90"
-                      style={{ fontSize: '16px' }}
-                    >
-                      {building.floors} Floor{building.floors > 1 ? 's' : ''} • {buildingRooms.length} Rooms
-                    </text>
-                    
-                    {/* Selection indicator */}
-                    {isSelected && (
-                      <>
-                        <circle
-                          cx={gridX + buildingWidth / 2}
-                          cy={gridY - 15}
-                          r="6"
-                          fill="#fbbf24"
-                          className="animate-pulse"
-                        />
-                        <rect
-                          x={gridX - 2}
-                          y={gridY - 2}
-                          width={buildingWidth + 4}
-                          height={buildingHeight + 4}
-                          fill="none"
-                          stroke="#fbbf24"
-                          strokeWidth="2"
-                          strokeDasharray="8,4"
-                          rx="4"
-                          className="pointer-events-none animate-pulse"
-                        />
-                      </>
-                    )}
-                  </g>
-                );
-              })}
-            </svg>
-            
-            {/* Legend */}
-            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-lg p-4 shadow-xl border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                <Info className="h-4 w-4 mr-2 text-blue-600" />
-                Map Guide
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-blue-500 rounded mr-2 border border-gray-300"></div>
-                  <span className="text-gray-700">Academic Buildings</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-green-500 rounded mr-2 border border-gray-300"></div>
-                  <span className="text-gray-700">Sports & Recreation</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-purple-500 rounded mr-2 border border-gray-300"></div>
-                  <span className="text-gray-700">Administration</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-orange-500 rounded mr-2 border border-gray-300"></div>
-                  <span className="text-gray-700">Special Facilities</span>
-                </div>
-                <div className="pt-2 mt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">Click buildings to explore rooms</p>
-                </div>
-              </div>
-            </div>
+          <div className="h-[600px] w-full">
+            <OptimizedCampusMap
+              buildings={optimizedBuildings}
+              onBuildingClick={handleBuildingClick}
+              language="fi"
+            />
           </div>
         </CardContent>
       </Card>

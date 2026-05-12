@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
-import WilmaHome from './wilma-home';
+import WilmaStudent from './wilma-student';
 import WilmaParent from './wilma-parent';
 
 /**
  * Wilma Router - Routes users to correct view based on role
  * 
  * Routing Rules:
- * - Students: /wilma/:studentId (6-digit ID)
+ * - Students: /wilma/:studentId (6-digit ID) → WilmaStudent (with ModernWilmaDashboard)
  * - Parents: /wilma/:studentId (can switch children)
  * - Admin/Teacher: /wilma-admin/:id (Firebase ID)
  * 
@@ -83,7 +83,7 @@ export default function WilmaRouter() {
     if (user.role === 'parent') {
       return <WilmaParent />;
     } else if (user.role === 'student') {
-      return <WilmaHome />;
+      return <WilmaStudent />;
     } else {
       // Admin/Teacher should not reach here (redirected in useEffect)
       return null;

@@ -28,6 +28,8 @@ serviceAccountKey.json
 !WILMA-OVERHAUL-COMPLETE.md
 !CODING-PLATFORM-*.md
 !TASK-COMPLETE-*.md
+!WILMA-KSYKMAPS-*.md
+!SYSTEM-OVERHAUL-*.md
 
 # IDE
 .vscode/*
