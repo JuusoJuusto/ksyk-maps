@@ -1168,6 +1168,11 @@ body {
     animation: fadeIn 0.3s ease-out;
   }
 
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
   .animate-slideUp {
     animation: slideUp 0.4s ease-out;
   }

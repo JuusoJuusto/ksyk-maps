@@ -297,24 +297,27 @@ export default function LearnCodingNew() {
           <TabsContent value="courses">
             <div className="space-y-6">
               {/* Header with Filter */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">
+                  <h2 className="text-4xl font-black mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {t('Kurssit', 'Courses')}
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 text-lg">
                     {t('Valitse kurssi ja aloita oppiminen', 'Choose a course and start learning')}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-blue-100 hover:border-blue-500 transition-all">
                     {t('Kaikki', 'All')} ({courses.length})
                   </Badge>
-                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-green-100 hover:border-green-500 transition-all">
                     {t('Aloittelija', 'Beginner')}
                   </Badge>
-                  <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-yellow-100 hover:border-yellow-500 transition-all">
                     {t('Keskitaso', 'Intermediate')}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer hover:bg-red-100 hover:border-red-500 transition-all">
+                    {t('Edistynyt', 'Advanced')}
                   </Badge>
                 </div>
               </div>
@@ -332,27 +335,38 @@ export default function LearnCodingNew() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {courses.map((course) => {
+                  {courses.map((course, index) => {
                     const progress = userProgress.find(p => p.courseId === course.id);
                     const progressPercent = progress?.progressPercentage || 0;
                     
                     // Course-specific colors and icons
                     const courseColors = {
-                      python: { bg: 'bg-blue-600', icon: '🐍' },
-                      javascript: { bg: 'bg-yellow-500', icon: '⚡' },
-                      html: { bg: 'bg-orange-500', icon: '🎨' },
-                      default: { bg: 'bg-purple-600', icon: '🚀' }
+                      python: { bg: 'bg-blue-600', gradient: 'from-blue-500 to-blue-700', icon: '🐍', ring: 'ring-blue-500' },
+                      javascript: { bg: 'bg-yellow-500', gradient: 'from-yellow-400 to-yellow-600', icon: '⚡', ring: 'ring-yellow-500' },
+                      typescript: { bg: 'bg-blue-500', gradient: 'from-blue-400 to-blue-600', icon: '📘', ring: 'ring-blue-400' },
+                      html: { bg: 'bg-orange-500', gradient: 'from-orange-400 to-orange-600', icon: '🎨', ring: 'ring-orange-500' },
+                      default: { bg: 'bg-purple-600', gradient: 'from-purple-500 to-purple-700', icon: '🚀', ring: 'ring-purple-500' }
                     };
                     
                     const courseStyle = courseColors[course.language as keyof typeof courseColors] || courseColors.default;
                     
                     return (
-                      <Card key={course.id} className="hover:shadow-xl transition-all hover:-translate-y-1 border-2 overflow-hidden">
-                        <div className={`h-32 ${courseStyle.bg} flex items-center justify-center relative`}>
-                          <div className="text-6xl">{courseStyle.icon}</div>
+                      <Card 
+                        key={course.id} 
+                        className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 overflow-hidden cursor-pointer animate-fade-in"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className={`h-36 bg-gradient-to-br ${courseStyle.gradient} flex items-center justify-center relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity" />
+                          <div className="text-7xl transform group-hover:scale-110 transition-transform duration-300">{courseStyle.icon}</div>
                           {progressPercent > 0 && (
-                            <div className="absolute top-2 right-2 bg-white rounded-full px-3 py-1 text-sm font-bold text-gray-900">
+                            <div className="absolute top-3 right-3 bg-white rounded-full px-3 py-1.5 text-sm font-bold text-gray-900 shadow-lg">
                               {progressPercent}%
+                            </div>
+                          )}
+                          {progressPercent === 0 && (
+                            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-bold text-gray-900">
+                              NEW
                             </div>
                           )}
                         </div>
