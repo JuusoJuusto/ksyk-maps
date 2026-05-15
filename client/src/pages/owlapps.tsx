@@ -312,39 +312,21 @@ export default function Windows11Desktop() {
               </h2>
               
               <div className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-600/50 border-blue-500' : 'bg-blue-50 border-blue-300'}`}>
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-600 rounded-xl">
-                  <Globe className="h-8 w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    KSYK Maps
-                  </h3>
-                  <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Interactive campus navigation system for Kulosaaren Yhteiskoulu. Features include:
-                  </p>
-                  <ul className={`space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    <li className="flex items-center gap-2">
-                      <span className="text-blue-600">•</span>
-                      Google Maps-style navigation with A* pathfinding
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-blue-600">•</span>
-                      3D building visualization with real-time updates
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-blue-600">•</span>
-                      Staff directory and room booking system
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-blue-600">•</span>
-                      Multilingual support (English & Finnish)
-                    </li>
-                  </ul>
-                  <div className="mt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-600 rounded-xl">
+                    <Globe className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      KSYK Maps
+                    </h3>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Interactive campus navigation system
+                    </p>
                     <Button
                       onClick={() => setLocation("/")}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 mt-2 text-xs h-8"
+                      size="sm"
                     >
                       Visit KSYK Maps
                     </Button>
@@ -352,8 +334,6 @@ export default function Windows11Desktop() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
             {/* Contact Section */}
             <div className={`mb-6 p-6 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
