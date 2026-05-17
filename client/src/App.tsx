@@ -47,6 +47,8 @@ import ChessPage from "@/pages/chess";
 import ResetPassword from "@/pages/reset-password";
 import ForgotPassword from "@/pages/forgot-password";
 import LearnCoding from "@/pages/learn-coding";
+import CourseDetail from "@/pages/course-detail";
+import LessonDetail from "@/pages/lesson-detail";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
 
@@ -88,6 +90,8 @@ function Router() {
       <Route path="/wilma/reset-password" component={ResetPassword} />
       
       {/* Student/Parent routes - Use studentId (6-digit) */}
+      <Route path="/wilma/:studentId/learn-coding/courses/:courseId/lessons/:lessonId" component={LessonDetail} />
+      <Route path="/wilma/:studentId/learn-coding/courses/:courseId" component={CourseDetail} />
       <Route path="/wilma/:studentId/learn-coding/:section?" component={LearnCoding} />
       <Route path="/wilma/:studentId/learn-coding" component={LearnCoding} />
       <Route path="/wilma/:studentId/desktop" component={WilmaDesktopEnhanced} />
@@ -97,6 +101,8 @@ function Router() {
       
       {/* Admin/Teacher routes - Use Firebase ID */}
       <Route path="/wilma-admin/landing" component={WilmaLanding} />
+      <Route path="/wilma-admin/:adminId/learn-coding/courses/:courseId/lessons/:lessonId" component={LessonDetail} />
+      <Route path="/wilma-admin/:adminId/learn-coding/courses/:courseId" component={CourseDetail} />
       <Route path="/wilma-admin/:adminId/learn-coding/:section?" component={LearnCoding} />
       <Route path="/wilma-admin/:adminId/learn-coding" component={LearnCoding} />
       <Route path="/wilma-admin/:adminId/desktop" component={WilmaDesktopEnhanced} />

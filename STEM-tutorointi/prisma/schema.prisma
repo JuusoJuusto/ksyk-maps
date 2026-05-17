@@ -1,0 +1,553 @@
+// STEM Genius - Database Schema
+// AI-Powered STEM Learning Platform
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  SCHOOL
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String
+  avatar        String?
+  role          UserRole @default(STUDENT)
+  
+  // OAuth
+  googleId      String?  @unique
+  microsoftId   String?  @unique
+  
+  // Subscription
+  subscriptionTier SubscriptionTier @default(FREE)
+  subscriptionEndsAt DateTime?
+  
+  // Metadata
+  emailVerified Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  profile       UserProfile?
+  tasks         UserTask[]
+  conversations Conversation[]
+  xp            UserXP?
+  achievements  UserAchievement[]
+  streaks       UserStreak?
+  sessions      Session[]
+  events        Event[]
+  studyPlans    StudyPlan[]
+  classrooms    ClassroomMember[]
+  
+  @@index([email])
+  @@index([role])
+  @@index([subscriptionTier])
+}
+
+model UserProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Demographics
+  gradeLevel      Int?     // 7-12 for Finnish system
+  school          String?
+  country         String   @default("FI")
+  language        String   @default("fi")
+  timezone        String   @default("Europe/Helsinki")
+  
+  // Learning preferences
+  learningStyle   String?  // visual, auditory, kinesthetic
+  studyGoals      Json?    // Array of goals
+  weakTopics      Json?    // Array of weak topics
+  strongTopics    Json?    // Array of strong topics
+  
+  // AI personalization
+  difficultyLevel Float    @default(5.0) // 1-10 scale
+  learningSpeed   Float    @default(1.0) // Multiplier
+  confidenceLevel Float    @default(0.5) // 0-1 scale
+  
+  // Predictions
+  predictedGrade  Float?   // Predicted exam grade
+  burnoutRisk     Float    @default(0.0) // 0-1 scale
+  
+  // Settings
+  darkMode        Boolean  @default(true)
+  notifications   Boolean  @default(true)
+  soundEffects    Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================
+// TASK SYSTEM
+// ============================================
+
+enum Subject {
+  MATHEMATICS
+  PHYSICS
+  CHEMISTRY
+  ASTRONOMY
+}
+
+enum TaskType {
+  MULTIPLE_CHOICE
+  OPEN_ENDED
+  GRAPHING
+  DERIVATION
+  CALCULATION
+  SIMULATION
+  APPLICATION
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Task {
+  id          String         @id @default(uuid())
+  
+  // Classification
+  subject     Subject
+  topic       String         // e.g., "Quadratic Equations"
+  subtopic    String?        // e.g., "Completing the Square"
+  difficulty  Float          // 1-10 scale
+  type        TaskType
+  level       DifficultyLevel
+  
+  // Content (JSON for flexibility)
+  question    Json           // Question text, images, equations
+  answer      Json           // Correct answer(s)
+  solution    Json           // Step-by-step solution
+  hints       Json?          // Progressive hints
+  
+  // Metadata
+  estimatedTime Int          // Seconds
+  xpReward    Int            @default(10)
+  tags        String[]       // For search/filtering
+  
+  // AI generation
+  generatedBy String?        // AI model used
+  prompt      String?        // Prompt used for generation
+  
+  // Quality
+  rating      Float?         // User ratings
+  reportCount Int            @default(0)
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  // Relations
+  userTasks   UserTask[]
+  
+  @@index([subject, difficulty])
+  @@index([topic])
+  @@index([level])
+}
+
+model UserTask {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Attempt data
+  answerSubmitted Json
+  isCorrect       Boolean
+  timeSpent       Int      // Seconds
+  hintsUsed       Int      @default(0)
+  attempts        Int      @default(1)
+  
+  // Performance metrics
+  confidence      Float?   // Self-reported 0-1
+  difficulty      Float?   // Perceived difficulty 1-10
+  
+  // XP earned
+  xpEarned        Int      @default(0)
+  
+  completedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([taskId])
+  @@index([isCorrect])
+}
+
+// ============================================
+// AI TUTOR SYSTEM
+// ============================================
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title     String    @default("New Conversation")
+  subject   Subject?
+  topic     String?
+  
+  // Metadata
+  messageCount Int    @default(0)
+  isActive  Boolean   @default(true)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Relations
+  messages  Message[]
+  
+  @@index([userId, createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  role           MessageRole
+  content        String       @db.Text
+  
+  // Attachments
+  images         String[]     // URLs to uploaded images
+  equations      Json?        // Parsed equations
+  
+  // AI metadata
+  model          String?      // AI model used
+  tokens         Int?         // Tokens used
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([conversationId, createdAt])
+}
+
+// ============================================
+// GAMIFICATION SYSTEM
+// ============================================
+
+model UserXP {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalXP       Int      @default(0)
+  level         Int      @default(1)
+  
+  // Subject-specific XP
+  mathXP        Int      @default(0)
+  physicsXP     Int      @default(0)
+  chemistryXP   Int      @default(0)
+  astronomyXP   Int      @default(0)
+  
+  // Multipliers
+  xpMultiplier  Float    @default(1.0)
+  
+  updatedAt     DateTime @updatedAt
+  
+  @@index([totalXP])
+  @@index([level])
+}
+
+model UserStreak {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActivityDate DateTime @default(now())
+  
+  // Streak freeze (premium feature)
+  freezesAvailable Int     @default(0)
+  freezesUsed     Int      @default(0)
+  
+  updatedAt       DateTime @updatedAt
+  
+  @@index([currentStreak])
+}
+
+enum AchievementCategory {
+  TASKS_COMPLETED
+  STREAK
+  MASTERY
+  SPEED
+  ACCURACY
+  SOCIAL
+  SPECIAL
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model Achievement {
+  id          String              @id @default(uuid())
+  
+  name        String
+  description String
+  icon        String              // Emoji or icon name
+  category    AchievementCategory
+  rarity      AchievementRarity
+  
+  // Unlock criteria (JSON for flexibility)
+  criteria    Json
+  
+  // Rewards
+  xpReward    Int                 @default(0)
+  
+  createdAt   DateTime            @default(now())
+  
+  // Relations
+  users       UserAchievement[]
+  
+  @@index([category])
+  @@index([rarity])
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  unlockedAt    DateTime    @default(now())
+  
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ============================================
+// LEARNING ANALYTICS
+// ============================================
+
+model StudyPlan {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?
+  
+  // Plan details
+  subject     Subject
+  topics      Json     // Array of topics to cover
+  startDate   DateTime
+  endDate     DateTime
+  
+  // Progress
+  completed   Boolean  @default(false)
+  progress    Float    @default(0.0) // 0-1
+  
+  // AI-generated
+  isAIGenerated Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([subject])
+}
+
+enum EventType {
+  // User events
+  USER_REGISTERED
+  USER_LOGIN
+  USER_LOGOUT
+  
+  // Task events
+  TASK_GENERATED
+  TASK_STARTED
+  TASK_COMPLETED
+  TASK_ABANDONED
+  
+  // Tutor events
+  TUTOR_MESSAGE_SENT
+  TUTOR_HINT_REQUESTED
+  
+  // Gamification events
+  XP_EARNED
+  LEVEL_UP
+  ACHIEVEMENT_UNLOCKED
+  STREAK_MAINTAINED
+  STREAK_BROKEN
+  
+  // Subscription events
+  SUBSCRIPTION_STARTED
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_CANCELLED
+}
+
+model Event {
+  id         String    @id @default(uuid())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  eventType  EventType
+  eventData  Json?     // Additional event data
+  
+  // Context
+  device     String?
+  browser    String?
+  location   String?
+  
+  createdAt  DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+// ============================================
+// CLASSROOM SYSTEM (B2B)
+// ============================================
+
+model Classroom {
+  id          String   @id @default(uuid())
+  
+  name        String
+  description String?
+  code        String   @unique // Join code
+  
+  // School info
+  schoolName  String
+  gradeLevel  Int?
+  
+  // Settings
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  members     ClassroomMember[]
+  assignments Assignment[]
+  
+  @@index([code])
+}
+
+enum ClassroomRole {
+  TEACHER
+  STUDENT
+}
+
+model ClassroomMember {
+  id          String        @id @default(uuid())
+  classroomId String
+  classroom   Classroom     @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role        ClassroomRole
+  
+  joinedAt    DateTime      @default(now())
+  
+  @@unique([classroomId, userId])
+  @@index([classroomId])
+  @@index([userId])
+}
+
+model Assignment {
+  id          String    @id @default(uuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?
+  
+  // Assignment details
+  subject     Subject
+  topics      String[]
+  difficulty  Float
+  
+  // Tasks (JSON array of task IDs)
+  taskIds     String[]
+  
+  // Deadlines
+  dueDate     DateTime
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([classroomId])
+  @@index([dueDate])
+}
+
+// ============================================
+// LEADERBOARDS
+// ============================================
+
+model LeaderboardEntry {
+  id        String   @id @default(uuid())
+  userId    String
+  
+  // Leaderboard type
+  type      String   // global, weekly, monthly, subject-specific
+  subject   Subject?
+  
+  // Ranking
+  rank      Int
+  score     Int      // XP or other metric
+  
+  // Time period
+  periodStart DateTime
+  periodEnd   DateTime
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, type, periodStart])
+  @@index([type, rank])
+  @@index([periodStart, periodEnd])
+}

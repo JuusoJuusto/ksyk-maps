@@ -355,6 +355,10 @@ export default function LearnCodingNew() {
                         key={course.id} 
                         className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 overflow-hidden cursor-pointer animate-fade-in"
                         style={{ animationDelay: `${index * 100}ms` }}
+                        onClick={() => {
+                          const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
+                          setLocation(`${basePath}/learn-coding/courses/${course.id}`);
+                        }}
                       >
                         <div className={`h-36 bg-gradient-to-br ${courseStyle.gradient} flex items-center justify-center relative overflow-hidden`}>
                           <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity" />
@@ -432,7 +436,13 @@ export default function LearnCodingNew() {
                             </div>
                           )}
 
-                          <Button className={`w-full ${courseStyle.bg} hover:opacity-90 transition-opacity`}>
+                          <Button className={`w-full ${courseStyle.bg} hover:opacity-90 transition-opacity`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const basePath = isAdmin ? `/wilma-admin/${userId}` : `/wilma/${userId}`;
+                              setLocation(`${basePath}/learn-coding/courses/${course.id}`);
+                            }}
+                          >
                             {progressPercent > 0 ? (
                               <>
                                 <Play className="w-4 h-4 mr-2" />
