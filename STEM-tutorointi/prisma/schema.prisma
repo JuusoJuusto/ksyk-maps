@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  passwordHash String
+  name      String?
+  role      String     @default("user") // user, admin
+  isActive  Boolean    @default(true)
+  emailVerified Boolean @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  lastLoginAt DateTime?
+  
+  // Profile
+  avatarUrl String?
+  bio       String?
+  
+  // Gamification
+  xpPoints  Int        @default(0)
+  streak    Int        @default(0)
+  lastActivityAt DateTime?
+  
+  // Premium
+  isPremium Boolean    @default(false)
+  premiumExpiresAt DateTime?
+  
+  // Relations
+  sessions  Session[]
+  tasks     UserTask[]
+  conversations Conversation[]
+  achievements Achievement[]
+  userStreaks UserStreak[]
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  // Device tracking
+  userAgent String?
+  ipAddress String?
+
+  @@map("sessions")
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  subject   String
+  difficulty String // easy, medium, hard
+  content   String   @db.Text
+  solution  String?  @db.Text
+  xpReward  Int      @default(10)
+  createdAt DateTime @default(now())
+
+  userTasks UserTask[]
+
+  @@map("tasks")
+}
+
+model UserTask {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  status    String   @default("pending") // pending, in_progress, completed
+  score     Int?
+  startedAt DateTime?
+  completedAt DateTime?
+
+  @@map("user_tasks")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role      String   // user, assistant
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Achievement {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  description String?
+  icon      String?
+  unlockedAt DateTime @default(now())
+
+  @@map("achievements")
+}
+
+model UserStreak {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak Int   @default(0)
+  longestStreak Int   @default(0)
+  lastActivityAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@map("user_streaks")
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String   @default("free") // free, pro, enterprise
+  status    String   @default("active") // active, canceled, expired
+  startDate DateTime @default(now())
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
