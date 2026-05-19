@@ -78,7 +78,7 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={AaltoHome} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/hsl" component={HSL} />
@@ -140,7 +140,7 @@ function Router() {
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
       <Route path="/debug-buildings" component={DebugBuildings} />
       <Route path="/builder-3d" component={KSYKBuilder3D} />
-      <Route path="/aalto" component={AaltoHome} />
+      <Route path="/classic" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );

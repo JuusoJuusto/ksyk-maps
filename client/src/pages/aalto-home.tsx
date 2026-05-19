@@ -11,6 +11,7 @@ import AaltoMapView from "@/components/AaltoMapView";
 import AaltoBottomNav from "@/components/AaltoBottomNav";
 import RoomBooking from "@/components/RoomBooking";
 import CampusServicesAalto from "@/components/CampusServicesAalto";
+import KSYKBuilder3D from "@/components/KSYKBuilder3D";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,13 +24,17 @@ import {
   Calendar,
   Coffee,
   Dumbbell,
-  BookOpen
+  BookOpen,
+  Box,
+  Map as MapIcon,
+  Layers
 } from "lucide-react";
 
 export default function AaltoHome() {
   const { t } = useTranslation();
   const { darkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState("map");
+  const [mapMode, setMapMode] = useState<"2d" | "3d">("2d"); // Toggle between 2D and 3D map
 
   return (
     <div className={`h-screen flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -39,8 +44,35 @@ export default function AaltoHome() {
       <div className="flex-1 overflow-hidden relative">
         {/* Map Tab */}
         {activeTab === "map" && (
-          <div className="h-full">
-            <AaltoMapView />
+          <div className="h-full relative">
+            {/* Map Mode Toggle - Floating Button */}
+            <div className="absolute top-4 right-4 z-30 flex gap-2">
+              <Button
+                onClick={() => setMapMode("2d")}
+                variant={mapMode === "2d" ? "default" : "outline"}
+                size="sm"
+                className={`shadow-lg ${mapMode === "2d" ? 'bg-blue-600 text-white' : ''}`}
+              >
+                <MapIcon className="h-4 w-4 mr-2" />
+                2D Map
+              </Button>
+              <Button
+                onClick={() => setMapMode("3d")}
+                variant={mapMode === "3d" ? "default" : "outline"}
+                size="sm"
+                className={`shadow-lg ${mapMode === "3d" ? 'bg-blue-600 text-white' : ''}`}
+              >
+                <Box className="h-4 w-4 mr-2" />
+                3D Builder
+              </Button>
+            </div>
+
+            {/* Render 2D or 3D Map */}
+            {mapMode === "2d" ? (
+              <AaltoMapView />
+            ) : (
+              <KSYKBuilder3D />
+            )}
           </div>
         )}
 
