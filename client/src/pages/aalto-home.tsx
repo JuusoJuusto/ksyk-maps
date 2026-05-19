@@ -11,7 +11,7 @@ import AaltoMapView from "@/components/AaltoMapView";
 import AaltoBottomNav from "@/components/AaltoBottomNav";
 import RoomBooking from "@/components/RoomBooking";
 import CampusServicesAalto from "@/components/CampusServicesAalto";
-import KSYKBuilder3D from "@/components/KSYKBuilder3D";
+import Working3DBuilder from "@/components/Working3DBuilder";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -63,7 +63,7 @@ export default function AaltoHome() {
                 className={`shadow-lg ${mapMode === "3d" ? 'bg-blue-600 text-white' : ''}`}
               >
                 <Box className="h-4 w-4 mr-2" />
-                3D Builder
+                3D View
               </Button>
             </div>
 
@@ -71,7 +71,7 @@ export default function AaltoHome() {
             {mapMode === "2d" ? (
               <AaltoMapView />
             ) : (
-              <KSYKBuilder3D />
+              <Working3DBuilder />
             )}
           </div>
         )}
