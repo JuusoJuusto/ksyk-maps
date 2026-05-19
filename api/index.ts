@@ -1728,7 +1728,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       </div>
     </div>
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>Tämä on automaattinen viesti. / This is an automated message.</p>
     </div>
   </div>
@@ -1835,7 +1835,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
       </div>
     </div>
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>Tämä on automaattinen viesti. / This is an automated message.</p>
     </div>
   </div>

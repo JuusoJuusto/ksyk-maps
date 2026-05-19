@@ -4,7 +4,7 @@
   <img src="client/public/KSYK-logo-desktop.png" alt="KSYK Logo" width="200"/>
   
   <h3>Modern School Navigation & Management Platform</h3>
-  <p>Built by <strong>SL Studio</strong></p>
+  <p>Built by <strong>Nordbyte Studio</strong></p>
   
   [![Version](https://img.shields.io/badge/version-3.1.2-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
   [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
@@ -16,7 +16,7 @@
 
 ## ⚠️ PROPRIETARY SOFTWARE
 
-**This software is proprietary and confidential. All rights reserved by SL Studio.**
+**This software is proprietary and confidential. All rights reserved by Nordbyte Studio.**
 
 - ❌ **NO COPYING** - You may not copy, reproduce, or distribute this software
 - ❌ **NO MODIFICATION** - You may not modify or create derivative works
@@ -176,15 +176,15 @@ ksyk-maps/
 
 **PROPRIETARY LICENSE - ALL RIGHTS RESERVED**
 
-This software is the exclusive property of SL Studio. No license is granted for use, copying, modification, or distribution. See [LICENSE](LICENSE) for full legal terms.
+This software is the exclusive property of Nordbyte Studio. No license is granted for use, copying, modification, or distribution. See [LICENSE](LICENSE) for full legal terms.
 
-Copyright © 2024-2026 SL Studio. All rights reserved.
+Copyright © 2024-2026 Nordbyte Studio. All rights reserved.
 
 ---
 
 ## 👥 Team
 
-**Built by SL Studio**
+**Built by Nordbyte Studio**
 
 - Lead Developer: Juuso Kaikula
 - Organization: Kulosaaren Yhteiskoulu
@@ -227,7 +227,7 @@ Copyright © 2024-2026 SL Studio. All rights reserved.
 ---
 
 <div align="center">
-  <p>Made with ❤️ by <strong>SL Studio</strong></p>
-  <p>© 2024-2026 KSYK Maps by SL Studio. All rights reserved.</p>
+  <p>Made with ❤️ by <strong>Nordbyte Studio</strong></p>
+  <p>© 2024-2026 KSYK Maps by Nordbyte Studio. All rights reserved.</p>
   <p><strong>PROPRIETARY SOFTWARE - NO UNAUTHORIZED USE</strong></p>
 </div>

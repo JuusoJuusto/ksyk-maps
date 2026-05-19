@@ -151,7 +151,7 @@ export default function WilmaLanding() {
           
           <p className="text-lg text-white/80 mb-12 flex items-center justify-center gap-2 drop-shadow-md">
             <span>Powered by</span>
-            <span className="font-black text-2xl">SL Studio</span>
+            <span className="font-black text-2xl">Nordbyte Studio</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
@@ -321,7 +321,7 @@ export default function WilmaLanding() {
             Ei luottokorttia tarvita • Peruuta milloin tahansa • 24/7 tuki
           </p>
           <p className="mt-4 text-sm text-gray-400">
-            Powered by <span className="font-bold" style={{ color: wilmaBlue }}>SL Studio</span>
+            Powered by <span className="font-bold" style={{ color: wilmaBlue }}>Nordbyte Studio</span>
           </p>
         </div>
       </section>
@@ -339,7 +339,7 @@ export default function WilmaLanding() {
                 Suomen johtava oppilashallintojärjestelmä
               </p>
               <p className="text-sm text-gray-500">
-                by <span className="font-bold" style={{ color: wilmaAccent }}>SL Studio</span>
+                by <span className="font-bold" style={{ color: wilmaAccent }}>Nordbyte Studio</span>
               </p>
             </div>
             <div>
@@ -368,7 +368,7 @@ export default function WilmaLanding() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>© 2026 Wilma by SL Studio. Kaikki oikeudet pidätetään.</p>
+            <p>© 2026 Wilma by Nordbyte Studio. Kaikki oikeudet pidätetään.</p>
           </div>
         </div>
       </footer>

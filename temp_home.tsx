@@ -1631,7 +1631,7 @@ export default function Home() {
                       </div>
                       <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         <p><strong>School:</strong> Kulosaaren Yhteiskoulu (KSYK)</p>
-                        <p><strong>Developer:</strong> SL Studio</p>
+                        <p><strong>Developer:</strong> Nordbyte Studio</p>
                       </div>
                     </div>
                   </CardContent>
@@ -1647,14 +1647,14 @@ export default function Home() {
                         <p>Version 2.10.0</p>
                         <p>Latest Update: February 9, 2026</p>
                         <p>Originally Released: August 20, 2025</p>
-                        <p>┬⌐ 2026 SL Studio</p>
+                        <p>┬⌐ 2026 Nordbyte Studio</p>
                       </div>
                       
                       <Button
-                        onClick={() => window.open('https://SL Studio.vercel.app', '_blank')}
+                        onClick={() => window.open('https://Nordbyte Studio.vercel.app', '_blank')}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
-                        Learn More About SL Studio
+                        Learn More About Nordbyte Studio
                       </Button>
                     </div>
                   </CardContent>

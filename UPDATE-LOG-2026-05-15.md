@@ -31,7 +31,7 @@
   - Responsive design
 
 - **Window Management**
-  - SL Studio opens in a window
+  - Nordbyte Studio opens in a window
   - Window controls (minimize, maximize, close)
   - Draggable windows (future enhancement)
   - Modern window styling
@@ -48,7 +48,7 @@
 9. Documents
 10. Downloads
 11. KSYK Maps
-12. SL Studio
+12. Nordbyte Studio
 
 ---
 
@@ -260,4 +260,4 @@ This update brings a complete Windows 11-style desktop experience to KSYK Maps a
 
 ---
 
-*Built with ❤️ by SL Studio*
+*Built with ❤️ by Nordbyte Studio*

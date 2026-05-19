@@ -205,7 +205,7 @@
   - Backdrop blur
 
 - **Window Management**
-  - SL Studio window
+  - Nordbyte Studio window
   - Window controls (minimize, maximize, close)
   - Modern styling
   - Smooth animations
@@ -378,5 +378,5 @@ The platform is now a **comprehensive coding education system** that rivals comm
 
 ---
 
-*Built with ❤️ by SL Studio*
+*Built with ❤️ by Nordbyte Studio*
 *May 15, 2026*

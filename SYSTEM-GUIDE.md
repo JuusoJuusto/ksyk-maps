@@ -1,4 +1,4 @@
-﻿# KSYK Maps - Complete System Guide
+# KSYK Maps - Complete System Guide
 
 **Last Updated**: April 27, 2026
 **Version**: 3.1.2
@@ -58,24 +58,24 @@ KSYK Maps is a comprehensive school management and campus navigation system with
 ### Project Structure:
 \\\
 ksyk-maps/
-├── client/               # Frontend React app
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Page components
-│   │   ├── contexts/    # React contexts
-│   │   ├── hooks/       # Custom hooks
-│   │   ├── lib/         # Utilities
-│   │   └── styles/      # CSS files
-│   └── public/          # Static assets
-├── server/              # Backend logic
-│   ├── firebaseStorage.ts
-│   ├── storage.ts
-│   └── routes.ts
-├── api/                 # API endpoints
-│   └── index.ts
-├── shared/              # Shared types
-│   └── schema.ts
-└── scripts/             # Utility scripts
++-- client/               # Frontend React app
+�   +-- src/
+�   �   +-- components/  # React components
+�   �   +-- pages/       # Page components
+�   �   +-- contexts/    # React contexts
+�   �   +-- hooks/       # Custom hooks
+�   �   +-- lib/         # Utilities
+�   �   +-- styles/      # CSS files
+�   +-- public/          # Static assets
++-- server/              # Backend logic
+�   +-- firebaseStorage.ts
+�   +-- storage.ts
+�   +-- routes.ts
++-- api/                 # API endpoints
+�   +-- index.ts
++-- shared/              # Shared types
+�   +-- schema.ts
++-- scripts/             # Utility scripts
 \\\
 
 ---
@@ -166,59 +166,59 @@ ksyk-maps/
 
 \\\
 client/src/
-├── pages/
-│   ├── home.tsx                    # Campus map page
-│   ├── wilma.tsx                   # Wilma login
-│   ├── wilma-student.tsx           # Student portal
-│   ├── wilma-teacher.tsx           # Teacher portal
-│   ├── wilma-admin-new.tsx         # Admin portal
-│   ├── wilma-parent.tsx            # Parent portal
-│   ├── wilma-support-staff.tsx     # Support staff portal
-│   ├── lunch.tsx                   # Lunch menu
-│   └── support.tsx                 # Support tickets
-│
-├── components/
-│   ├── WilmaHomeTabEnhanced.tsx    # Personalized dashboard
-│   ├── WilmaStyleAttendance.tsx    # Attendance calendar
-│   ├── WilmaTimetable.tsx          # Schedule view
-│   ├── WilmaLunchMenu.tsx          # Lunch menu widget
-│   ├── AdminHomeworkManager.tsx    # Homework grading
-│   ├── ScheduleBuilder.tsx         # Visual schedule editor
-│   ├── InteractiveCampusMap.tsx    # Map component
-│   ├── NavigationModal.tsx         # Pathfinding UI
-│   └── [100+ other components]
-│
-├── contexts/
-│   ├── DarkModeContext.tsx         # Dark mode state
-│   ├── ThemeContext.tsx            # Theme management
-│   └── HelpContext.tsx             # Help system
-│
-├── lib/
-│   ├── firebase.ts                 # Firebase config
-│   ├── analytics.ts                # Analytics tracking
-│   └── queryClient.ts              # React Query setup
-│
-└── hooks/
-    ├── useAuth.ts                  # Authentication hook
-    └── use-toast.ts                # Toast notifications
++-- pages/
+�   +-- home.tsx                    # Campus map page
+�   +-- wilma.tsx                   # Wilma login
+�   +-- wilma-student.tsx           # Student portal
+�   +-- wilma-teacher.tsx           # Teacher portal
+�   +-- wilma-admin-new.tsx         # Admin portal
+�   +-- wilma-parent.tsx            # Parent portal
+�   +-- wilma-support-staff.tsx     # Support staff portal
+�   +-- lunch.tsx                   # Lunch menu
+�   +-- support.tsx                 # Support tickets
+�
++-- components/
+�   +-- WilmaHomeTabEnhanced.tsx    # Personalized dashboard
+�   +-- WilmaStyleAttendance.tsx    # Attendance calendar
+�   +-- WilmaTimetable.tsx          # Schedule view
+�   +-- WilmaLunchMenu.tsx          # Lunch menu widget
+�   +-- AdminHomeworkManager.tsx    # Homework grading
+�   +-- ScheduleBuilder.tsx         # Visual schedule editor
+�   +-- InteractiveCampusMap.tsx    # Map component
+�   +-- NavigationModal.tsx         # Pathfinding UI
+�   +-- [100+ other components]
+�
++-- contexts/
+�   +-- DarkModeContext.tsx         # Dark mode state
+�   +-- ThemeContext.tsx            # Theme management
+�   +-- HelpContext.tsx             # Help system
+�
++-- lib/
+�   +-- firebase.ts                 # Firebase config
+�   +-- analytics.ts                # Analytics tracking
+�   +-- queryClient.ts              # React Query setup
+�
++-- hooks/
+    +-- useAuth.ts                  # Authentication hook
+    +-- use-toast.ts                # Toast notifications
 \\\
 
 ### Key Backend Files:
 
 \\\
 server/
-├── firebaseStorage.ts              # Firebase operations (3000+ lines)
-├── storage.ts                      # Storage interface
-├── routes.ts                       # Route handlers
-├── emailService.ts                 # Email sending
-├── twoFactorAuth.ts                # 2FA logic
-└── seedData.ts                     # Demo data generation
++-- firebaseStorage.ts              # Firebase operations (3000+ lines)
++-- storage.ts                      # Storage interface
++-- routes.ts                       # Route handlers
++-- emailService.ts                 # Email sending
++-- twoFactorAuth.ts                # 2FA logic
++-- seedData.ts                     # Demo data generation
 
 api/
-└── index.ts                        # API endpoint router (2000+ lines)
++-- index.ts                        # API endpoint router (2000+ lines)
 
 shared/
-└── schema.ts                       # TypeScript types
++-- schema.ts                       # TypeScript types
 \\\
 
 ---
@@ -605,7 +605,7 @@ const handleSave = () => {
 **Flow**:
 1. Teacher opens attendance page
 2. Selects week and period
-3. Grid shows all students × lessons
+3. Grid shows all students � lessons
 4. Teacher clicks cell to add mark
 5. Selects mark type (28 options)
 6. Adds reason (optional)

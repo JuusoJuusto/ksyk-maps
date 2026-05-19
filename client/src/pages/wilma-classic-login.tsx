@@ -164,7 +164,7 @@ export default function WilmaClassicLogin() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-600">
-          <p>© 2026 Wilma by SL Studio • Kaikki oikeudet pidätetään</p>
+          <p>© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
         </div>
       </div>
     </div>

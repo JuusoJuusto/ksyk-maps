@@ -131,7 +131,7 @@ export default function DevModeEasterEgg() {
               <p><span className="text-blue-400">Build Tool:</span> Vite</p>
               <p><span className="text-blue-400">Backend:</span> Express + Firebase</p>
               <p><span className="text-blue-400">Styling:</span> Tailwind CSS</p>
-              <p><span className="text-blue-400">Developer:</span> Juuso @ SL Studio</p>
+              <p><span className="text-blue-400">Developer:</span> Juuso @ Nordbyte Studio</p>
             </div>
           </motion.div>
 

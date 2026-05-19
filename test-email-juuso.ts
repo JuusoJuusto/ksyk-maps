@@ -55,7 +55,7 @@ async function testEmailForJuuso() {
       </ul>
     </div>
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>This is an automated test message.</p>
     </div>
   </div>

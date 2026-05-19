@@ -152,7 +152,7 @@ export function getWilmaInvitationEmail(data: {
             <strong>KSYK Maps - Wilma-järjestelmä</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. Kaikki oikeudet pidätetään.
+            © 2026 Nordbyte Studio. Kaikki oikeudet pidätetään.
           </p>
           <p style="margin: 0; font-size: 12px;">
             Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.
@@ -231,7 +231,7 @@ export function getTicketResponseEmail(data: {
             <strong>KSYK Maps Support Team</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. All rights reserved.
+            © 2026 Nordbyte Studio. All rights reserved.
           </p>
           <p style="margin: 0; font-size: 12px;">
             Support Email: support.slstudio@gmail.com
@@ -329,7 +329,7 @@ export function getUserInvitationEmail(data: {
             <strong>KSYK Maps Admin System</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. All rights reserved.
+            © 2026 Nordbyte Studio. All rights reserved.
           </p>
           <p style="margin: 0; font-size: 12px;">
             This is an automated email. Please do not reply directly to this message.
@@ -403,7 +403,7 @@ export function getPasswordResetEmail(data: {
             <strong>KSYK Maps Security Team</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. All rights reserved.
+            © 2026 Nordbyte Studio. All rights reserved.
           </p>
         </div>
       </div>
@@ -497,7 +497,7 @@ export function getWilmaPasswordResetEmail(data: {
             <strong>KSYK Maps - Wilma-järjestelmä</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. Kaikki oikeudet pidätetään.
+            © 2026 Nordbyte Studio. Kaikki oikeudet pidätetään.
           </p>
           <p style="margin: 0; font-size: 12px;">
             Tämä on automaattinen turvallisuusviesti. Älä vastaa tähän.
@@ -636,7 +636,7 @@ export function getWilmaParentInvitationEmail(data: {
             <strong>KSYK Maps - Wilma-järjestelmä</strong>
           </p>
           <p style="margin: 0 0 10px 0;">
-            © 2026 SL Studio. Kaikki oikeudet pidätetään.
+            © 2026 Nordbyte Studio. Kaikki oikeudet pidätetään.
           </p>
           <p style="margin: 0; font-size: 12px;">
             Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.

@@ -245,5 +245,5 @@ The Tuntimerkinnät tab is now:
 
 ---
 
-**Built with ❤️ by SL Studio**
+**Built with ❤️ by Nordbyte Studio**
 **Powered by Google Gemini AI**

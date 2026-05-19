@@ -99,7 +99,7 @@ export default function Header() {
                 >
                   KSYK Maps
                 </h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by SL Studio</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by Nordbyte Studio</p>
               </div>
             </Link>
           </div>

@@ -1534,9 +1534,9 @@ export default function Home() {
                       <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
                         <p>Version 3.1.2</p>
-                        <p>© 2026 SL Studio</p>
+                        <p>© 2026 Nordbyte Studio</p>
                         <Button
-                          onClick={() => window.open('https://SL Studio.vercel.app', '_blank')}
+                          onClick={() => window.open('https://Nordbyte Studio.vercel.app', '_blank')}
                           className="w-full mt-4"
                         >
                           {currentLang === 'fi' ? 'Lue lisää' : 'Learn More'}

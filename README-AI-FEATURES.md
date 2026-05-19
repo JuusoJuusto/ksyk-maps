@@ -153,7 +153,7 @@ KSYK Maps now includes comprehensive AI capabilities powered by **Google Gemini 
 
 ## 🏆 Built With
 
-- ❤️ by **SL Studio**
+- ❤️ by **Nordbyte Studio**
 - 🤖 Powered by **Google Gemini AI**
 - 🔥 Using **Firebase AI Logic**
 

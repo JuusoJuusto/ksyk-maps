@@ -29,7 +29,7 @@ export default function Windows11Desktop() {
     { name: "Documents", icon: FileText, color: "bg-blue-400", action: () => alert("Documents") },
     { name: "Downloads", icon: Download, color: "bg-green-500", action: () => alert("Downloads") },
     { name: "KSYK Maps", icon: Globe, color: "bg-indigo-600", action: () => setLocation("/") },
-    { name: "SL Studio", icon: Star, color: "bg-amber-500", action: () => setLocation("/owlapps") },
+    { name: "Nordbyte Studio", icon: Star, color: "bg-amber-500", action: () => setLocation("/owlapps") },
   ];
 
   const pinnedApps = apps.slice(0, 6);
@@ -226,7 +226,7 @@ export default function Windows11Desktop() {
         </button>
       </div>
 
-      {/* Center Content - SL Studio Window */}
+      {/* Center Content - Nordbyte Studio Window */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4">
         {/* Window Header */}
         <div className={`${darkMode ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-xl rounded-t-xl border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-3 flex items-center justify-between`}>
@@ -234,7 +234,7 @@ export default function Windows11Desktop() {
             <div className="inline-flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg">
               <span className="text-sm font-black text-white">OWL</span>
             </div>
-            <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>SL Studio</span>
+            <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Nordbyte Studio</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">_</Button>
@@ -252,7 +252,7 @@ export default function Windows11Desktop() {
                 <span className="text-3xl font-black text-white">OWL</span>
               </div>
               <h1 className={`text-4xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                SL Studio
+                Nordbyte Studio
               </h1>
               <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Building innovative solutions for education
@@ -299,7 +299,7 @@ export default function Windows11Desktop() {
                 About Us
               </h2>
               <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                SL Studio is a software development team dedicated to creating innovative solutions for educational institutions. 
+                Nordbyte Studio is a software development team dedicated to creating innovative solutions for educational institutions. 
                 We specialize in building intuitive, user-friendly applications that enhance the learning experience and streamline 
                 campus operations.
               </p>
@@ -402,10 +402,10 @@ export default function Windows11Desktop() {
             {/* Footer */}
             <div className="text-center py-4">
               <p className={`flex items-center justify-center gap-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Made with <Heart className="h-3 w-3 text-red-500 fill-current" /> by SL Studio
+                Made with <Heart className="h-3 w-3 text-red-500 fill-current" /> by Nordbyte Studio
               </p>
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                © 2026 SL Studio. All rights reserved.
+                © 2026 Nordbyte Studio. All rights reserved.
               </p>
             </div>
           </div>

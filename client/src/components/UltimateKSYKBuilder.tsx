@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -87,11 +87,11 @@ export default function UltimateKSYKBuilder() {
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
-      console.log('🔄 Fetching rooms from API...');
+      console.log('?? Fetching rooms from API...');
       const response = await fetch("/api/rooms");
       if (!response.ok) throw new Error("Failed to fetch rooms");
       const data = await response.json();
-      console.log('✅ Received rooms:', data.length, data);
+      console.log('? Received rooms:', data.length, data);
       return data;
     },
     staleTime: 30000, // Cache for 30 seconds
@@ -101,11 +101,11 @@ export default function UltimateKSYKBuilder() {
   const { data: hallways = [], isLoading: hallwaysLoading } = useQuery({
     queryKey: ["hallways"],
     queryFn: async () => {
-      console.log('🔄 Fetching hallways from API...');
+      console.log('?? Fetching hallways from API...');
       const response = await fetch("/api/hallways");
       if (!response.ok) throw new Error("Failed to fetch hallways");
       const data = await response.json();
-      console.log('✅ Received hallways:', data.length, data);
+      console.log('? Received hallways:', data.length, data);
       return data;
     },
     staleTime: 30000,
@@ -188,7 +188,7 @@ export default function UltimateKSYKBuilder() {
       await detectWallsFromImage(imageUrl);
       
       setIsProcessingImage(false);
-      alert('Γ£à Floor plan loaded! AI detected walls are highlighted. Adjust settings in the panel.');
+      alert('G�� Floor plan loaded! AI detected walls are highlighted. Adjust settings in the panel.');
     };
     reader.readAsDataURL(file);
   };
@@ -198,7 +198,7 @@ export default function UltimateKSYKBuilder() {
   // Enhanced AI processing with detailed progress tracking
   const detectWallsFromImage = async (imageUrl: string) => {
     try {
-      setAiProcessingStep('🚀 Initializing quantum AI systems...');
+      setAiProcessingStep('?? Initializing quantum AI systems...');
       const img = new Image();
       img.src = imageUrl;
       
@@ -206,7 +206,7 @@ export default function UltimateKSYKBuilder() {
         img.onload = resolve;
       });
       
-      setAiProcessingStep('🧠 Loading neural networks & deep learning models...');
+      setAiProcessingStep('?? Loading neural networks & deep learning models...');
       await new Promise(resolve => setTimeout(resolve, 800)); // Visual feedback delay
       
       // Create high-resolution canvas for better processing
@@ -225,20 +225,20 @@ export default function UltimateKSYKBuilder() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      setAiProcessingStep('🏗️ Analyzing architectural structure with computer vision...');
+      setAiProcessingStep('??? Analyzing architectural structure with computer vision...');
       await new Promise(resolve => setTimeout(resolve, 600));
       
       // Enhanced preprocessing pipeline
       const grayscale = preprocessImage(data, canvas.width, canvas.height);
       
-      setAiProcessingStep('🔍 Applying advanced edge detection algorithms...');
+      setAiProcessingStep('?? Applying advanced edge detection algorithms...');
       await new Promise(resolve => setTimeout(resolve, 700));
       
       // Multi-algorithm edge detection
       const cannyEdges = cannyEdgeDetection(grayscale, canvas.width, canvas.height);
       const sobelEdges = sobelEdgeDetection(grayscale, canvas.width, canvas.height);
       
-      setAiProcessingStep('🧱 Detecting walls & architectural features...');
+      setAiProcessingStep('?? Detecting walls & architectural features...');
       await new Promise(resolve => setTimeout(resolve, 800));
       
       // Combine edge detection results
@@ -247,13 +247,13 @@ export default function UltimateKSYKBuilder() {
       // Enhanced line detection using Hough Transform
       const lines = houghLineTransform(combinedEdges, canvas.width, canvas.height);
       
-      setAiProcessingStep('🏠 Identifying room boundaries with contour analysis...');
+      setAiProcessingStep('?? Identifying room boundaries with contour analysis...');
       await new Promise(resolve => setTimeout(resolve, 900));
       
       // Advanced room detection with contour analysis
       const roomContours = detectRoomContours(combinedEdges, canvas.width, canvas.height);
       
-      setAiProcessingStep('⚡ Optimizing results with machine learning...');
+      setAiProcessingStep('? Optimizing results with machine learning...');
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Scale results back to canvas coordinates
@@ -288,10 +288,10 @@ export default function UltimateKSYKBuilder() {
       setDetectedWalls(scaledWalls);
       setDetectedRooms(scaledRooms);
       
-      setAiProcessingStep('✅ AI analysis complete! Ready for building.');
+      setAiProcessingStep('? AI analysis complete! Ready for building.');
       setTimeout(() => setAiProcessingStep(''), 4000);
       
-      console.log(`🤖 ULTRA AI Analysis Complete v3.1:
+      console.log(`?? ULTRA AI Analysis Complete v3.1:
         - ${scaledWalls.length} wall segments detected
         - ${scaledRooms.length} rooms identified
         - Average confidence: ${(scaledWalls.reduce((sum, w) => sum + w.confidence, 0) / scaledWalls.length * 100).toFixed(1)}%
@@ -299,7 +299,7 @@ export default function UltimateKSYKBuilder() {
         
     } catch (error) {
       console.error('Error in AI processing:', error);
-      setAiProcessingStep('❌ AI processing failed - Please try again');
+      setAiProcessingStep('? AI processing failed - Please try again');
       setTimeout(() => setAiProcessingStep(''), 4000);
     }
   };
@@ -1720,7 +1720,7 @@ export default function UltimateKSYKBuilder() {
                       </div>
                       <div>
                         <Label className="text-xs font-bold">Finnish Name</Label>
-                        <Input value={hallwayData.nameFi} onChange={(e) => setHallwayData({ ...hallwayData, nameFi: e.target.value })} placeholder="P├ñ├ñk├ñyt├ñv├ñ" className="mt-1 h-9" />
+                        <Input value={hallwayData.nameFi} onChange={(e) => setHallwayData({ ...hallwayData, nameFi: e.target.value })} placeholder="P+�+�k+�yt+�v+�" className="mt-1 h-9" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -1734,7 +1734,7 @@ export default function UltimateKSYKBuilder() {
                       </div>
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
-                      ≡ƒÆí Tip: Wider hallways (5-10m) for main corridors, narrower (2-3m) for side passages
+                      =��� Tip: Wider hallways (5-10m) for main corridors, narrower (2-3m) for side passages
                     </div>
                   </motion.div>
                 )}
@@ -1764,12 +1764,12 @@ export default function UltimateKSYKBuilder() {
                         <option value="">No connection</option>
                         <optgroup label="Buildings">
                           {buildings.filter((b: any) => b.id !== roomData.buildingId).map((building: any) => (
-                            <option key={`building-${building.id}`} value={`building-${building.id}`}>🏢 {building.name} - {building.nameEn}</option>
+                            <option key={`building-${building.id}`} value={`building-${building.id}`}>?? {building.name} - {building.nameEn}</option>
                           ))}
                         </optgroup>
                         <optgroup label="Rooms">
                           {rooms.filter((r: any) => r.buildingId === roomData.buildingId && r.floor === roomData.floor).map((room: any) => (
-                            <option key={room.id} value={room.id}>≡ƒÜ¬ {room.roomNumber} - {room.type}</option>
+                            <option key={room.id} value={room.id}>=�ܬ {room.roomNumber} - {room.type}</option>
                           ))}
                         </optgroup>
                       </select>
@@ -1833,7 +1833,7 @@ export default function UltimateKSYKBuilder() {
                               </div>
                             </div>
                             <div className="text-center space-y-2">
-                              <p className="text-lg font-bold text-purple-700">🤖 AI Processing v3.1</p>
+                              <p className="text-lg font-bold text-purple-700">?? AI Processing v3.1</p>
                               <p className="text-sm text-purple-600 font-medium">{aiProcessingStep}</p>
                             </div>
                             <div className="bg-purple-100 rounded-lg p-3 space-y-2">
@@ -1895,12 +1895,12 @@ export default function UltimateKSYKBuilder() {
                       </motion.div>
                     </label>
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-purple-200 rounded-lg p-3 text-xs mt-2">
-                      <div className="font-bold text-purple-800 mb-1">🤖 AI Features:</div>
+                      <div className="font-bold text-purple-800 mb-1">?? AI Features:</div>
                       <ul className="text-purple-700 space-y-1 ml-3">
-                        <li>• Automatic wall detection</li>
-                        <li>• Room boundary recognition</li>
-                        <li>• Smart snap-to-wall</li>
-                        <li>• One-click room creation</li>
+                        <li>� Automatic wall detection</li>
+                        <li>� Room boundary recognition</li>
+                        <li>� Smart snap-to-wall</li>
+                        <li>� One-click room creation</li>
                       </ul>
                     </div>
                   </div>
@@ -2078,7 +2078,7 @@ export default function UltimateKSYKBuilder() {
                     
                     {autoTraceMode && (
                       <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-2 text-xs text-yellow-800">
-                        <div className="font-bold mb-1">≡ƒÄ» Auto-Trace Mode Active</div>
+                        <div className="font-bold mb-1">=�Ļ Auto-Trace Mode Active</div>
                         <p>Click near walls to snap automatically!</p>
                       </div>
                     )}
@@ -2178,11 +2178,11 @@ export default function UltimateKSYKBuilder() {
                     <div className="h-8 w-px bg-white/30"></div>
                     <div className="text-sm text-white/90 space-y-1">
                       <div className="flex items-center gap-2 font-semibold">
-                        <span>⌨️</span>
+                        <span>??</span>
                         <span>Shift + Drag to Pan</span>
                       </div>
                       <div className="flex items-center gap-2 font-semibold">
-                        <span>🖱️</span>
+                        <span>???</span>
                         <span>Ctrl + Scroll to Zoom</span>
                       </div>
                     </div>
@@ -2336,7 +2336,7 @@ export default function UltimateKSYKBuilder() {
                         fontWeight="bold"
                         className="pointer-events-none"
                       >
-                        🏠 Room {idx + 1}
+                        ?? Room {idx + 1}
                       </text>
                       <text
                         x={room.center.x}
@@ -3061,7 +3061,7 @@ export default function UltimateKSYKBuilder() {
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1 text-gray-500">
-                                  <span>({hallway.startX}, {hallway.startY}) → ({hallway.endX}, {hallway.endY})</span>n>
+                                  <span>({hallway.startX}, {hallway.startY}) ? ({hallway.endX}, {hallway.endY})</span>n>
                                 </div>
                               </div>
                             </motion.div>

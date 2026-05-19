@@ -228,7 +228,7 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
     </div>
     
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>This is an automated message. Please do not reply to this email.</p>
     </div>
   </div>
@@ -241,7 +241,7 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
     to: email,
     subject: '🗺️ Welcome to KSYK Maps - Admin Account Created',
     html: htmlContent,
-    text: `Welcome to KSYK Maps!\n\nHello ${firstName}!\n\nYour administrator account has been created.\n\nTemporary Password: ${tempPassword}\n\nPlease login at: https://ksykmaps.vercel.app/admin-login\n\nRemember to change your password after first login.\n\n© 2026 KSYK Maps by SL Studio`
+    text: `Welcome to KSYK Maps!\n\nHello ${firstName}!\n\nYour administrator account has been created.\n\nTemporary Password: ${tempPassword}\n\nPlease login at: https://ksykmaps.vercel.app/admin-login\n\nRemember to change your password after first login.\n\n© 2026 KSYK Maps by Nordbyte Studio`
   };
 
   try {
@@ -474,7 +474,7 @@ export async function sendTicketEmail(email: string, subject: string, body: stri
     </div>
     
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>Need help? Contact us at <a href="mailto:juusojuusto112@gmail.com">juusojuusto112@gmail.com</a></p>
       <p>This is an automated message. Please do not reply to this email.</p>
     </div>
@@ -583,7 +583,7 @@ export async function sendWilmaStudentWelcomeEmail(
       </div>
     </div>
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>Tämä on automaattinen viesti. Älä vastaa tähän sähköpostiin.</p>
       <p>This is an automated message. Please do not reply.</p>
     </div>
@@ -673,7 +673,7 @@ export async function sendWilmaStudentWelcomeEmail(
       </div>
     </div>
     <div class="footer">
-      <p><strong>© 2026 KSYK Maps by SL Studio</strong></p>
+      <p><strong>© 2026 KSYK Maps by Nordbyte Studio</strong></p>
       <p>Tämä on automaattinen viesti. Älä vastaa tähän sähköpostiin.</p>
       <p>This is an automated message. Please do not reply.</p>
     </div>

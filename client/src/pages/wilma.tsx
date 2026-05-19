@@ -505,7 +505,7 @@ export default function Wilma() {
             <h1 className="text-6xl font-bold mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Wilma</h1>
             <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintojärjestelmä</p>
             <p className="text-sm opacity-90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              © 2026 Wilma by SL Studio • Kaikki oikeudet pidätetään
+              © 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-ï»¿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,17 +40,17 @@ export default function Wilma() {
     { 
       time: '08:00-09:30', 
       mon: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
-      tue: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mâ”œÃ±kinen' },
+      tue: { subject: 'Englanti', room: 'Luokka 205', teacher: 'M+ñkinen' },
       wed: { subject: 'Fysiikka', room: 'Luokka 401', teacher: 'Laine' },
       thu: { subject: 'Historia', room: 'Luokka 102', teacher: 'Nieminen' },
       fri: { subject: 'Liikunta', room: 'Sali', teacher: 'Koskinen' }
     },
     { 
       time: '09:45-11:15', 
-      mon: { subject: 'â”œÃ¤idinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      mon: { subject: '+äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
       tue: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
       wed: { subject: 'Kemia', room: 'Luokka 402', teacher: 'Salo' },
-      thu: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mâ”œÃ±kinen' },
+      thu: { subject: 'Englanti', room: 'Luokka 205', teacher: 'M+ñkinen' },
       fri: { subject: 'Musiikki', room: 'Musiikkiluokka', teacher: 'Laakso' }
     },
     { 
@@ -58,14 +58,14 @@ export default function Wilma() {
       mon: { subject: 'Biologia', room: 'Luokka 403', teacher: 'Rantanen' },
       tue: { subject: 'Historia', room: 'Luokka 102', teacher: 'Nieminen' },
       wed: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
-      thu: { subject: 'â”œÃ¤idinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      thu: { subject: '+äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
       fri: { subject: 'Kuvataide', room: 'Taideluokka', teacher: 'Heikkinen' }
     },
     { 
       time: '13:15-14:45', 
-      mon: { subject: 'Englanti', room: 'Luokka 205', teacher: 'Mâ”œÃ±kinen' },
+      mon: { subject: 'Englanti', room: 'Luokka 205', teacher: 'M+ñkinen' },
       tue: { subject: 'Fysiikka', room: 'Luokka 401', teacher: 'Laine' },
-      wed: { subject: 'â”œÃ¤idinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
+      wed: { subject: '+äidinkieli', room: 'Luokka 201', teacher: 'Korhonen' },
       thu: { subject: 'Matematiikka', room: 'Luokka 301', teacher: 'Virtanen' },
       fri: null
     },
@@ -81,22 +81,22 @@ export default function Wilma() {
 
   const mockGrades = [
     { subject: 'Matematiikka', grade: '9', teacher: 'Virtanen', trend: 'up' },
-    { subject: 'â”œÃ¤idinkieli', grade: '8', teacher: 'Korhonen', trend: 'stable' },
-    { subject: 'Englanti', grade: '10', teacher: 'Mâ”œÃ±kinen', trend: 'up' },
+    { subject: '+äidinkieli', grade: '8', teacher: 'Korhonen', trend: 'stable' },
+    { subject: 'Englanti', grade: '10', teacher: 'M+ñkinen', trend: 'up' },
     { subject: 'Historia', grade: '7', teacher: 'Nieminen', trend: 'down' },
     { subject: 'Fysiikka', grade: '9', teacher: 'Laine', trend: 'up' },
     { subject: 'Kemia', grade: '8', teacher: 'Salo', trend: 'stable' },
   ];
 
   const mockAssignments = [
-    { title: 'Matematiikan kotitehtâ”œÃ±vâ”œÃ±t', subject: 'Matematiikka', due: '2026-04-15', status: 'pending' },
+    { title: 'Matematiikan kotiteht+ñv+ñt', subject: 'Matematiikka', due: '2026-04-15', status: 'pending' },
     { title: 'Englannin essee', subject: 'Englanti', due: '2026-04-18', status: 'pending' },
     { title: 'Historian tutkielma', subject: 'Historia', due: '2026-04-20', status: 'submitted' },
   ];
 
   const mockMessages = [
     { id: '1', from: 'Opettaja Virtanen', subject: 'Kokeen tulokset', date: '2026-04-08', unread: true },
-    { id: '2', from: 'Rehtori Korhonen', subject: 'Kevâ”œÃ±tjuhla', date: '2026-04-05', unread: false },
+    { id: '2', from: 'Rehtori Korhonen', subject: 'Kev+ñtjuhla', date: '2026-04-05', unread: false },
   ];
 
   const mockAttendance = [
@@ -115,8 +115,8 @@ export default function Wilma() {
 
   const mockTeachers = [
     { name: 'Virtanen Matti', subject: 'Matematiikka', email: 'matti.virtanen@school.fi', phone: '040-1234567', room: 'Luokka 301' },
-    { name: 'Korhonen Anna', subject: 'â”œÃ¤idinkieli', email: 'anna.korhonen@school.fi', phone: '040-2345678', room: 'Luokka 201' },
-    { name: 'Mâ”œÃ±kinen Pekka', subject: 'Englanti', email: 'pekka.makinen@school.fi', phone: '040-3456789', room: 'Luokka 205' },
+    { name: 'Korhonen Anna', subject: '+äidinkieli', email: 'anna.korhonen@school.fi', phone: '040-2345678', room: 'Luokka 201' },
+    { name: 'M+ñkinen Pekka', subject: 'Englanti', email: 'pekka.makinen@school.fi', phone: '040-3456789', room: 'Luokka 205' },
     { name: 'Nieminen Laura', subject: 'Historia', email: 'laura.nieminen@school.fi', phone: '040-4567890', room: 'Luokka 102' },
   ];
 
@@ -135,7 +135,7 @@ export default function Wilma() {
     
     if (invalidSession || sessionParam === 'expired') {
       setSessionExpiredMessage(language === 'fi' 
-        ? 'Istuntosi on vanhentunut. Kirjaudu uudelleen sisâ”œÃ±â”œÃ±n.' 
+        ? 'Istuntosi on vanhentunut. Kirjaudu uudelleen sis+ñ+ñn.' 
         : 'Your session has expired. Please log in again.');
       
       // Check for return path
@@ -144,7 +144,7 @@ export default function Wilma() {
         setReturnPath(returnPath);
         setTimeout(() => {
           setSessionExpiredMessage(prev => prev + (language === 'fi'
-            ? ' Sinut ohjataan takaisin edelliselle sivulle kirjautumisen jâ”œÃ±lkeen.'
+            ? ' Sinut ohjataan takaisin edelliselle sivulle kirjautumisen j+ñlkeen.'
             : ' You will be redirected to your previous page after login.'));
         }, 1000);
       }
@@ -186,7 +186,7 @@ export default function Wilma() {
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
-      alert(language === 'fi' ? 'Syâ”œâ•¢tâ”œÃ± sâ”œÃ±hkâ”œâ•¢postiosoite' : 'Enter email address');
+      alert(language === 'fi' ? 'Sy+¦t+ñ s+ñhk+¦postiosoite' : 'Enter email address');
       return;
     }
     
@@ -209,7 +209,7 @@ export default function Wilma() {
           setIsLoading(false);
         }, 3000);
       } else {
-        alert(data.message || (language === 'fi' ? 'Salasanan palautus epâ”œÃ±onnistui' : 'Password reset failed'));
+        alert(data.message || (language === 'fi' ? 'Salasanan palautus ep+ñonnistui' : 'Password reset failed'));
         setIsLoading(false);
       }
     } catch (error) {
@@ -240,22 +240,22 @@ export default function Wilma() {
 
   const t = {
     fi: {
-      school: 'Kulosaaren yhteiskoulu', login: 'Kirjaudu sisâ”œÃ±â”œÃ±n', username: 'Kâ”œÃ±yttâ”œÃ±jâ”œÃ±tunnus', password: 'Salasana',
+      school: 'Kulosaaren yhteiskoulu', login: 'Kirjaudu sis+ñ+ñn', username: 'K+ñytt+ñj+ñtunnus', password: 'Salasana',
       loginButton: 'Kirjaudu', loggingIn: 'Kirjaudutaan...', welcome: 'Tervetuloa Wilmaan',
-      loginInstructions: 'Kirjaudu sisâ”œÃ±â”œÃ±n kâ”œÃ±yttâ”œÃ±jâ”œÃ±tunnuksellasi ja salasanallasi',
-      noAccount: 'Eikâ”œâ•¢ sinulla ole tunnuksia? Ota yhteyttâ”œÃ± yllâ”œÃ±pitâ”œÃ±jâ”œÃ±â”œÃ±n.',
-      notifications: 'Ilmoitukset', frontpage: 'Etusivu', schedule: 'Lukujâ”œÃ±rjestys',
-      grades: 'Arvosanat', assignments: 'Tehtâ”œÃ±vâ”œÃ±t', messages: 'Viestit', attendance: 'Tuntimerkinnâ”œÃ±t',
+      loginInstructions: 'Kirjaudu sis+ñ+ñn k+ñytt+ñj+ñtunnuksellasi ja salasanallasi',
+      noAccount: 'Eik+¦ sinulla ole tunnuksia? Ota yhteytt+ñ yll+ñpit+ñj+ñ+ñn.',
+      notifications: 'Ilmoitukset', frontpage: 'Etusivu', schedule: 'Lukuj+ñrjestys',
+      grades: 'Arvosanat', assignments: 'Teht+ñv+ñt', messages: 'Viestit', attendance: 'Tuntimerkinn+ñt',
       exams: 'Kokeet', students: 'Oppilaat', teachers: 'Opettajat', rooms: 'Huoneet',
       courses: 'Kurssit', reports: 'Raportit', logout: 'Kirjaudu ulos', gradeAverage: 'Keskiarvo',
-      role: 'Rooli', teacher: 'Opettaja', student: 'Oppilas', parent: 'Huoltaja', admin: 'Yllâ”œÃ±pitâ”œÃ±jâ”œÃ±',
+      role: 'Rooli', teacher: 'Opettaja', student: 'Oppilas', parent: 'Huoltaja', admin: 'Yll+ñpit+ñj+ñ',
       studyMaterials: 'Oppimateriaalit', settings: 'Asetukset', profile: 'Profiili',
       changePassword: 'Vaihda salasana', currentPassword: 'Nykyinen salasana',
       newPassword: 'Uusi salasana', confirmPassword: 'Vahvista salasana',
       save: 'Tallenna', cancel: 'Peruuta', edit: 'Muokkaa', delete: 'Poista',
-      todaysSchedule: 'Tâ”œÃ±mâ”œÃ±n pâ”œÃ±ivâ”œÃ±n tunnit', upcomingEvents: 'Tulevat tapahtumat',
-      recentGrades: 'Viimeisimmâ”œÃ±t arvosanat', quickActions: 'Pikatoiminnot',
-      viewAll: 'Nâ”œÃ±ytâ”œÃ± kaikki', noClasses: 'Ei tunteja',
+      todaysSchedule: 'T+ñm+ñn p+ñiv+ñn tunnit', upcomingEvents: 'Tulevat tapahtumat',
+      recentGrades: 'Viimeisimm+ñt arvosanat', quickActions: 'Pikatoiminnot',
+      viewAll: 'N+ñyt+ñ kaikki', noClasses: 'Ei tunteja',
     },
     en: {
       school: 'Kulosaari High School', login: 'Login', username: 'Username', password: 'Password',
@@ -283,7 +283,7 @@ export default function Wilma() {
     setIsLoading(true);
 
     if (!username || !password) {
-      setLoginError(language === 'fi' ? 'Syâ”œâ•¢tâ”œÃ± kâ”œÃ±yttâ”œÃ±jâ”œÃ±tunnus ja salasana' : 'Please enter username and password');
+      setLoginError(language === 'fi' ? 'Sy+¦t+ñ k+ñytt+ñj+ñtunnus ja salasana' : 'Please enter username and password');
       setIsLoading(false);
       return;
     }
@@ -298,7 +298,7 @@ export default function Wilma() {
 
       const data = await response.json();
       if (!response.ok) {
-        setLoginError(data.message || (language === 'fi' ? 'Virheellinen kâ”œÃ±yttâ”œÃ±jâ”œÃ±tunnus tai salasana' : 'Invalid username or password'));
+        setLoginError(data.message || (language === 'fi' ? 'Virheellinen k+ñytt+ñj+ñtunnus tai salasana' : 'Invalid username or password'));
         setIsLoading(false);
         return;
       }
@@ -351,12 +351,12 @@ export default function Wilma() {
     setPasswordChangeError('');
 
     if (!newPassword || newPassword.length < 6) {
-      setPasswordChangeError(language === 'fi' ? 'Salasanan on oltava vâ”œÃ±hintâ”œÃ±â”œÃ±n 6 merkkiâ”œÃ±' : 'Password must be at least 6 characters');
+      setPasswordChangeError(language === 'fi' ? 'Salasanan on oltava v+ñhint+ñ+ñn 6 merkki+ñ' : 'Password must be at least 6 characters');
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setPasswordChangeError(language === 'fi' ? 'Salasanat eivâ”œÃ±t tâ”œÃ±smâ”œÃ±â”œÃ±' : 'Passwords do not match');
+      setPasswordChangeError(language === 'fi' ? 'Salasanat eiv+ñt t+ñsm+ñ+ñ' : 'Passwords do not match');
       return;
     }
 
@@ -403,7 +403,7 @@ export default function Wilma() {
         }
       }
     } catch (error) {
-      setPasswordChangeError(language === 'fi' ? 'Salasanan vaihto epâ”œÃ±onnistui' : 'Failed to change password');
+      setPasswordChangeError(language === 'fi' ? 'Salasanan vaihto ep+ñonnistui' : 'Failed to change password');
     }
   };
 
@@ -425,9 +425,9 @@ export default function Wilma() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
           <div className="absolute bottom-8 left-8 text-white z-10">
             <h1 className="text-6xl font-bold mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Wilma</h1>
-            <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintojâ”œÃ±rjestelmâ”œÃ±</p>
+            <p className="text-2xl mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Oppilashallintoj+ñrjestelm+ñ</p>
             <p className="text-sm opacity-90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              â”¬âŒ 2026 Wilma by SL Studio Î“Ã‡Ã³ Kaikki oikeudet pidâ”œÃ±tetâ”œÃ±â”œÃ±n
+              -¬ 2026 Wilma by Nordbyte Studio GÇó Kaikki oikeudet pid+ñtet+ñ+ñn
             </p>
           </div>
         </div>
@@ -455,7 +455,7 @@ export default function Wilma() {
                       type="text" 
                       value={username} 
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder={language === 'fi' ? 'Kâ”œÃ±yttâ”œÃ±jâ”œÃ±tunnus' : 'Username'} 
+                      placeholder={language === 'fi' ? 'K+ñytt+ñj+ñtunnus' : 'Username'} 
                       required 
                       disabled={isLoading} 
                       className="w-full h-10 border-gray-300 focus:border-[#003d82] focus:ring-[#003d82]" 
@@ -537,7 +537,7 @@ export default function Wilma() {
                       onClick={() => setLanguage(language === 'fi' ? 'en' : 'fi')}
                       className="text-xs text-gray-600 hover:text-[#003d82] font-medium flex items-center gap-2 mx-auto"
                     >
-                      <span className="text-base">{language === 'fi' ? 'â‰¡Æ’Ã§Â¼â‰¡Æ’Ã§Âº' : 'â‰¡Æ’Ã§Â½â‰¡Æ’Ã§Â«'}</span>
+                      <span className="text-base">{language === 'fi' ? '=ƒç¼=ƒçº' : '=ƒç½=ƒç«'}</span>
                       {language === 'fi' ? 'English' : 'Suomi'}
                     </button>
                   </div>
@@ -555,7 +555,7 @@ export default function Wilma() {
                   onClick={() => setShowForgotPassword(false)}
                   className="text-[#003d82] hover:text-[#0052a3] font-semibold flex items-center gap-2 mb-4"
                 >
-                  Î“Ã¥Ã‰ {language === 'fi' ? 'Takaisin kirjautumiseen' : 'Back to login'}
+                  GåÉ {language === 'fi' ? 'Takaisin kirjautumiseen' : 'Back to login'}
                 </button>
                 
                 <div className="text-center mb-6">
@@ -567,7 +567,7 @@ export default function Wilma() {
                   </h3>
                   <p className="text-sm text-gray-600">
                     {language === 'fi' 
-                      ? 'Syâ”œâ•¢tâ”œÃ± sâ”œÃ±hkâ”œâ•¢postiosoitteesi, niin lâ”œÃ±hetâ”œÃ±mme sinulle linkin salasanan palauttamiseen.'
+                      ? 'Sy+¦t+ñ s+ñhk+¦postiosoitteesi, niin l+ñhet+ñmme sinulle linkin salasanan palauttamiseen.'
                       : 'Enter your email address and we\'ll send you a link to reset your password.'}
                   </p>
                 </div>
@@ -576,7 +576,7 @@ export default function Wilma() {
                   <>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        {language === 'fi' ? 'Sâ”œÃ±hkâ”œâ•¢postiosoite' : 'Email Address'}
+                        {language === 'fi' ? 'S+ñhk+¦postiosoite' : 'Email Address'}
                       </label>
                       <Input
                         type="email"
@@ -594,10 +594,10 @@ export default function Wilma() {
                       {isLoading ? (
                         <span className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          {language === 'fi' ? 'Lâ”œÃ±hetetâ”œÃ±â”œÃ±n...' : 'Sending...'}
+                          {language === 'fi' ? 'L+ñhetet+ñ+ñn...' : 'Sending...'}
                         </span>
                       ) : (
-                        language === 'fi' ? 'Lâ”œÃ±hetâ”œÃ± palautuslinkki' : 'Send Reset Link'
+                        language === 'fi' ? 'L+ñhet+ñ palautuslinkki' : 'Send Reset Link'
                       )}
                     </Button>
                   </>
@@ -607,11 +607,11 @@ export default function Wilma() {
                       <CheckCircle className="w-10 h-10 text-[#28a745]" />
                     </div>
                     <p className="text-green-800 font-semibold">
-                      {language === 'fi' ? 'Palautuslinkki lâ”œÃ±hetetty!' : 'Reset link sent!'}
+                      {language === 'fi' ? 'Palautuslinkki l+ñhetetty!' : 'Reset link sent!'}
                     </p>
                     <p className="text-sm text-green-700 mt-2">
                       {language === 'fi' 
-                        ? 'Tarkista sâ”œÃ±hkâ”œâ•¢postisi ja seuraa ohjeita.'
+                        ? 'Tarkista s+ñhk+¦postisi ja seuraa ohjeita.'
                         : 'Check your email and follow the instructions.'}
                     </p>
                   </div>
@@ -632,7 +632,7 @@ export default function Wilma() {
                 </CardTitle>
                 <p className="text-blue-100 text-sm mt-2">
                   {language === 'fi' 
-                    ? 'Sinun on vaihdettava vâ”œÃ±liaikainen salasanasi jatkaaksesi.'
+                    ? 'Sinun on vaihdettava v+ñliaikainen salasanasi jatkaaksesi.'
                     : 'You must change your temporary password to continue.'}
                 </p>
               </CardHeader>
@@ -646,7 +646,7 @@ export default function Wilma() {
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder={language === 'fi' ? 'Vâ”œÃ±hintâ”œÃ±â”œÃ±n 6 merkkiâ”œÃ±' : 'Minimum 6 characters'}
+                      placeholder={language === 'fi' ? 'V+ñhint+ñ+ñn 6 merkki+ñ' : 'Minimum 6 characters'}
                       required
                       className="mt-2 h-12"
                     />

@@ -80,7 +80,7 @@ export default function ForgotPassword() {
         </Card>
 
         <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-          <p className="opacity-80">© 2026 Wilma by SL Studio • Kaikki oikeudet pidätetään</p>
+          <p className="opacity-80">© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
         </div>
       </div>
     );
@@ -172,7 +172,7 @@ export default function ForgotPassword() {
       </Card>
 
       <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-        <p className="opacity-80">© 2026 Wilma by SL Studio • Kaikki oikeudet pidätetään</p>
+        <p className="opacity-80">© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
       </div>
     </div>
   );
