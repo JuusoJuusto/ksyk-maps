@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import {
   Box,
-  Cube,
   Layers,
   Move,
   RotateCw,
@@ -395,7 +394,7 @@ export default function KSYKBuilder3D() {
       {/* Top Toolbar */}
       <div className="bg-white border-b shadow-sm p-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Cube className="w-6 h-6 text-blue-600" />
+          <Box className="w-6 h-6 text-blue-600" />
           <h1 className="text-xl font-bold">KSYK Builder 3D</h1>
         </div>
 
@@ -467,7 +466,7 @@ export default function KSYKBuilder3D() {
             onClick={() => setEditMode('draw')}
             title="Draw"
           >
-            <Cube className="w-4 h-4" />
+            <Box className="w-4 h-4" />
           </Button>
         </div>
 
