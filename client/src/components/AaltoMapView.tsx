@@ -23,6 +23,7 @@ import {
   Users,
   Clock,
   Accessibility,
+  Calendar,
 } from "lucide-react";
 
 interface Building {
@@ -373,63 +374,77 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
       >
         <svg className="w-full h-full">
           {/* Render Buildings */}
-          {buildings.map((building: Building) => (
-            <g key={building.id}>
-              <rect
-                x={building.mapPositionX || 0}
-                y={building.mapPositionY || 0}
-                width={200}
-                height={150}
-                fill={building.colorCode || "#3B82F6"}
-                stroke={darkMode ? "#374151" : "#E5E7EB"}
-                strokeWidth="2"
-                opacity="0.8"
-                className="cursor-pointer hover:opacity-100 transition-opacity"
-                onClick={() => setSelectedBuilding(building)}
-              />
-              <text
-                x={(building.mapPositionX || 0) + 100}
-                y={(building.mapPositionY || 0) + 75}
-                textAnchor="middle"
-                fill="white"
-                fontSize="16"
-                fontWeight="bold"
-                className="pointer-events-none"
-              >
-                {i18n.language === "fi" ? building.nameFi : building.nameEn || building.name}
-              </text>
-            </g>
-          ))}
-
-          {/* Render Rooms (if layer enabled) */}
-          {layerSettings.rooms &&
-            floorRooms.map((room: Room) => (
-              <g key={room.id}>
+          {buildings.map((building: Building) => {
+            const isSelected = selectedBuilding?.id === building.id;
+            return (
+              <g key={building.id}>
                 <rect
-                  x={room.mapPositionX || 0}
-                  y={room.mapPositionY || 0}
-                  width={room.width || 60}
-                  height={room.height || 40}
-                  fill={getStatusColor(room.currentStatus)}
-                  stroke={darkMode ? "#374151" : "#E5E7EB"}
-                  strokeWidth="1"
-                  opacity="0.7"
-                  className="cursor-pointer hover:opacity-100 transition-opacity"
-                  onClick={() => setSelectedRoom(room)}
+                  x={building.mapPositionX || 0}
+                  y={building.mapPositionY || 0}
+                  width={200}
+                  height={150}
+                  fill={building.colorCode || "#3B82F6"}
+                  stroke={isSelected ? "#FBBF24" : (darkMode ? "#374151" : "#E5E7EB")}
+                  strokeWidth={isSelected ? "4" : "2"}
+                  opacity={isSelected ? "1" : "0.8"}
+                  className="cursor-pointer hover:opacity-100 transition-all"
+                  onClick={() => {
+                    setSelectedBuilding(building);
+                    setSelectedRoom(null);
+                  }}
+                  style={{ filter: isSelected ? "drop-shadow(0 0 10px rgba(251, 191, 36, 0.5))" : "none" }}
                 />
                 <text
-                  x={(room.mapPositionX || 0) + (room.width || 60) / 2}
-                  y={(room.mapPositionY || 0) + (room.height || 40) / 2}
+                  x={(building.mapPositionX || 0) + 100}
+                  y={(building.mapPositionY || 0) + 75}
                   textAnchor="middle"
                   fill="white"
-                  fontSize="10"
+                  fontSize="16"
                   fontWeight="bold"
                   className="pointer-events-none"
                 >
-                  {room.roomNumber}
+                  {i18n.language === "fi" ? building.nameFi : building.nameEn || building.name}
                 </text>
               </g>
-            ))}
+            );
+          })}
+
+          {/* Render Rooms (if layer enabled) */}
+          {layerSettings.rooms &&
+            floorRooms.map((room: Room) => {
+              const isSelected = selectedRoom?.id === room.id;
+              return (
+                <g key={room.id}>
+                  <rect
+                    x={room.mapPositionX || 0}
+                    y={room.mapPositionY || 0}
+                    width={room.width || 60}
+                    height={room.height || 40}
+                    fill={getStatusColor(room.currentStatus)}
+                    stroke={isSelected ? "#FBBF24" : (darkMode ? "#374151" : "#E5E7EB")}
+                    strokeWidth={isSelected ? "3" : "1"}
+                    opacity={isSelected ? "1" : "0.7"}
+                    className="cursor-pointer hover:opacity-100 transition-all"
+                    onClick={() => {
+                      setSelectedRoom(room);
+                      setSelectedBuilding(null);
+                    }}
+                    style={{ filter: isSelected ? "drop-shadow(0 0 8px rgba(251, 191, 36, 0.5))" : "none" }}
+                  />
+                  <text
+                    x={(room.mapPositionX || 0) + (room.width || 60) / 2}
+                    y={(room.mapPositionY || 0) + (room.height || 40) / 2}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="10"
+                    fontWeight="bold"
+                    className="pointer-events-none"
+                  >
+                    {room.roomNumber}
+                  </text>
+                </g>
+              );
+            })}
         </svg>
       </div>
 

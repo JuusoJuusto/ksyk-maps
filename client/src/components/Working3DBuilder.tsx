@@ -69,6 +69,33 @@ export default function Working3DBuilder() {
   const [showGrid, setShowGrid] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building3D | null>(null);
+  const [showAddBuilding, setShowAddBuilding] = useState(false);
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [showEditBuilding, setShowEditBuilding] = useState(false);
+  
+  // Form states
+  const [newBuilding, setNewBuilding] = useState({
+    name: "",
+    nameEn: "",
+    nameFi: "",
+    floors: 3,
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 100,
+    height: 120,
+    depth: 80,
+    color: "#3B82F6",
+  });
+
+  const [newRoom, setNewRoom] = useState({
+    buildingId: "",
+    roomNumber: "",
+    name: "",
+    floor: 1,
+    capacity: 30,
+    type: "classroom",
+  });
   
   // Fetch buildings from API
   const { data: buildings = [] } = useQuery({
@@ -296,6 +323,140 @@ export default function Working3DBuilder() {
     } : null;
   };
 
+  // Handle add building
+  const handleAddBuilding = async () => {
+    try {
+      const response = await fetch("/api/buildings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newBuilding.name,
+          nameEn: newBuilding.nameEn,
+          nameFi: newBuilding.nameFi,
+          floors: newBuilding.floors,
+          mapPositionX: newBuilding.x + 200,
+          mapPositionY: newBuilding.z + 200,
+          colorCode: newBuilding.color,
+          isActive: true,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to create building");
+
+      // Reset form and close modal
+      setNewBuilding({
+        name: "",
+        nameEn: "",
+        nameFi: "",
+        floors: 3,
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 100,
+        height: 120,
+        depth: 80,
+        color: "#3B82F6",
+      });
+      setShowAddBuilding(false);
+
+      // Refresh buildings list
+      window.location.reload();
+    } catch (error) {
+      console.error("Error adding building:", error);
+      alert("Failed to add building");
+    }
+  };
+
+  // Handle update building
+  const handleUpdateBuilding = async () => {
+    if (!selectedBuilding) return;
+
+    try {
+      const response = await fetch(`/api/buildings/${selectedBuilding.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: selectedBuilding.name,
+          mapPositionX: selectedBuilding.x + 200,
+          mapPositionY: selectedBuilding.z + 200,
+          colorCode: selectedBuilding.color,
+          floors: Math.floor(selectedBuilding.height / 40),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update building");
+
+      setShowEditBuilding(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error updating building:", error);
+      alert("Failed to update building");
+    }
+  };
+
+  // Handle delete building
+  const handleDeleteBuilding = async () => {
+    if (!selectedBuilding) return;
+    
+    if (!confirm(`Delete building "${selectedBuilding.name}"? This will also delete all rooms in this building.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/buildings/${selectedBuilding.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete building");
+
+      setSelectedBuilding(null);
+      setShowEditBuilding(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error deleting building:", error);
+      alert("Failed to delete building");
+    }
+  };
+
+  // Handle add room
+  const handleAddRoom = async () => {
+    try {
+      const response = await fetch("/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buildingId: newRoom.buildingId,
+          roomNumber: newRoom.roomNumber,
+          name: newRoom.name,
+          floor: newRoom.floor,
+          capacity: newRoom.capacity,
+          type: newRoom.type,
+          isActive: true,
+          isPublic: true,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to create room");
+
+      // Reset form and close modal
+      setNewRoom({
+        buildingId: "",
+        roomNumber: "",
+        name: "",
+        floor: 1,
+        capacity: 30,
+        type: "classroom",
+      });
+      setShowAddRoom(false);
+
+      // Refresh rooms list
+      window.location.reload();
+    } catch (error) {
+      console.error("Error adding room:", error);
+      alert("Failed to add room");
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Top Toolbar */}
@@ -327,6 +488,14 @@ export default function Working3DBuilder() {
 
         {/* Controls */}
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowAddBuilding(true)}>
+            <Building2 className="w-4 h-4 mr-2" />
+            Add Building
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowAddRoom(true)}>
+            <Layers className="w-4 h-4 mr-2" />
+            Add Room
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.min(3, z + 0.2))}>
             <ZoomIn className="w-4 h-4" />
           </Button>
@@ -440,6 +609,10 @@ export default function Working3DBuilder() {
                   selectedBuilding?.id === building.id ? "ring-2 ring-blue-500" : ""
                 }`}
                 onClick={() => setSelectedBuilding(building)}
+                onDoubleClick={() => {
+                  setSelectedBuilding(building);
+                  setShowEditBuilding(true);
+                }}
               >
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2">
@@ -458,8 +631,301 @@ export default function Working3DBuilder() {
               </Card>
             ))}
           </div>
+          
+          {selectedBuilding && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-semibold mb-2">Selected Building</h4>
+              <p className="text-sm mb-2">{selectedBuilding.name}</p>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowEditBuilding(true)}
+                >
+                  Edit Properties
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleDeleteBuilding}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Add Building Modal */}
+      {showAddBuilding && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-4">Add New Building</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label>Building Name</Label>
+                  <Input
+                    value={newBuilding.name}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
+                    placeholder="e.g., Main Building"
+                  />
+                </div>
+                <div>
+                  <Label>English Name</Label>
+                  <Input
+                    value={newBuilding.nameEn}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, nameEn: e.target.value })}
+                    placeholder="e.g., Main Building"
+                  />
+                </div>
+                <div>
+                  <Label>Finnish Name</Label>
+                  <Input
+                    value={newBuilding.nameFi}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, nameFi: e.target.value })}
+                    placeholder="e.g., Päärakennus"
+                  />
+                </div>
+                <div>
+                  <Label>Number of Floors</Label>
+                  <Input
+                    type="number"
+                    value={newBuilding.floors}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, floors: parseInt(e.target.value) || 1 })}
+                    min="1"
+                    max="10"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>X Position</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.x}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, x: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Y Position</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.y}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, y: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Z Position</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.z}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, z: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Width</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.width}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, width: parseInt(e.target.value) || 100 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Height</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.height}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, height: parseInt(e.target.value) || 120 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Depth</Label>
+                    <Input
+                      type="number"
+                      value={newBuilding.depth}
+                      onChange={(e) => setNewBuilding({ ...newBuilding, depth: parseInt(e.target.value) || 80 })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Color</Label>
+                  <Input
+                    type="color"
+                    value={newBuilding.color}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, color: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleAddBuilding} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Building
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddBuilding(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Building Modal */}
+      {showEditBuilding && selectedBuilding && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-4">Edit Building</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label>Building Name</Label>
+                  <Input
+                    value={selectedBuilding.name}
+                    onChange={(e) => setSelectedBuilding({ ...selectedBuilding, name: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>X Position</Label>
+                    <Input
+                      type="number"
+                      value={selectedBuilding.x}
+                      onChange={(e) => setSelectedBuilding({ ...selectedBuilding, x: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Y Position</Label>
+                    <Input
+                      type="number"
+                      value={selectedBuilding.y}
+                      onChange={(e) => setSelectedBuilding({ ...selectedBuilding, y: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Z Position</Label>
+                    <Input
+                      type="number"
+                      value={selectedBuilding.z}
+                      onChange={(e) => setSelectedBuilding({ ...selectedBuilding, z: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Color</Label>
+                  <Input
+                    type="color"
+                    value={selectedBuilding.color}
+                    onChange={(e) => setSelectedBuilding({ ...selectedBuilding, color: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleUpdateBuilding} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowEditBuilding(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Room Modal */}
+      {showAddRoom && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-4">Add New Room</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label>Building</Label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={newRoom.buildingId}
+                    onChange={(e) => setNewRoom({ ...newRoom, buildingId: e.target.value })}
+                  >
+                    <option value="">Select Building</option>
+                    {buildings.map((b: any) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name || b.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Room Number</Label>
+                  <Input
+                    value={newRoom.roomNumber}
+                    onChange={(e) => setNewRoom({ ...newRoom, roomNumber: e.target.value })}
+                    placeholder="e.g., A101"
+                  />
+                </div>
+                <div>
+                  <Label>Room Name</Label>
+                  <Input
+                    value={newRoom.name}
+                    onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                    placeholder="e.g., Computer Lab"
+                  />
+                </div>
+                <div>
+                  <Label>Floor</Label>
+                  <Input
+                    type="number"
+                    value={newRoom.floor}
+                    onChange={(e) => setNewRoom({ ...newRoom, floor: parseInt(e.target.value) || 1 })}
+                    min="0"
+                    max="10"
+                  />
+                </div>
+                <div>
+                  <Label>Capacity</Label>
+                  <Input
+                    type="number"
+                    value={newRoom.capacity}
+                    onChange={(e) => setNewRoom({ ...newRoom, capacity: parseInt(e.target.value) || 1 })}
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <Label>Room Type</Label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={newRoom.type}
+                    onChange={(e) => setNewRoom({ ...newRoom, type: e.target.value })}
+                  >
+                    <option value="classroom">Classroom</option>
+                    <option value="lab">Laboratory</option>
+                    <option value="office">Office</option>
+                    <option value="meeting">Meeting Room</option>
+                    <option value="studio">Studio</option>
+                    <option value="gymnasium">Gymnasium</option>
+                    <option value="library">Library</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleAddRoom} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Room
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddRoom(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

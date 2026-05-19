@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
+import Working3DBuilder from "@/components/Working3DBuilder";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
@@ -35,7 +36,8 @@ import {
   Sparkles,
   Brain,
   Zap,
-  Shield
+  Shield,
+  Box
 } from "lucide-react";
 
 interface Building {
@@ -846,6 +848,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
+          <TabsTrigger value="map-builder" className="text-xs sm:text-sm flex items-center gap-1">
+            <Box className="h-3 w-3" />
+            3D Map
+          </TabsTrigger>
           <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
           <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
@@ -1354,6 +1360,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="ksyk-builder" className="h-full flex-1 overflow-hidden">
           <ImprovedKSYKBuilder />
+        </TabsContent>
+
+        <TabsContent value="map-builder" className="h-full flex-1 overflow-hidden">
+          <Working3DBuilder />
         </TabsContent>
 
         <TabsContent value="builder" className="space-y-6">
