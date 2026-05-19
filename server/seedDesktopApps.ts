@@ -1,109 +1,569 @@
-import { firebaseStorage } from './firebaseStorage.js';
+/**
+ * COMPREHENSIVE DESKTOP APPS SEEDING SCRIPT
+ * Seeds professional desktop applications for Wilma Desktop environment
+ */
 
-const desktopApps = [
-  // Educational Apps
-  { name: 'WilmaApp', icon: 'GraduationCap', category: 'education', isActive: true, order: 1 },
-  { name: 'Coursera', icon: 'BookOpen', category: 'education', isActive: true, order: 2 },
-  { name: 'Udemy', icon: 'Video', category: 'education', isActive: true, order: 3 },
-  { name: 'Khan Academy', icon: 'School', category: 'education', isActive: true, order: 4 },
-  { name: 'Quizlet', icon: 'Brain', category: 'education', isActive: true, order: 5 },
-  { name: 'Duolingo', icon: 'Languages', category: 'education', isActive: true, order: 6 },
-  
-  // Productivity Apps
-  { name: 'Notion', icon: 'FileText', category: 'productivity', isActive: true, order: 7 },
-  { name: 'Trello', icon: 'Trello', category: 'productivity', isActive: true, order: 8 },
-  { name: 'OneDrive', icon: 'Cloud', category: 'productivity', isActive: true, order: 9 },
-  { name: 'Google Drive', icon: 'HardDrive', category: 'productivity', isActive: true, order: 10 },
-  { name: 'Dropbox', icon: 'Dropbox', category: 'productivity', isActive: true, order: 11 },
-  
-  // Communication Apps
-  { name: 'Microsoft Teams', icon: 'Users', category: 'communication', isActive: true, order: 12 },
-  { name: 'Slack', icon: 'MessageSquare', category: 'communication', isActive: true, order: 13 },
-  { name: 'Discord', icon: 'MessageCircle', category: 'communication', isActive: true, order: 14 },
-  { name: 'Messenger', icon: 'Send', category: 'communication', isActive: true, order: 15 },
-  { name: 'Zoom', icon: 'Video', category: 'communication', isActive: true, order: 16 },
-  { name: 'Google Meet', icon: 'VideoIcon', category: 'communication', isActive: true, order: 17 },
-  
-  // Development Tools
-  { name: 'GitHub', icon: 'Github', category: 'development', isActive: true, order: 18 },
-  { name: 'VS Code', icon: 'Code', category: 'development', isActive: true, order: 19 },
-  { name: 'Terminal', icon: 'Terminal', category: 'development', isActive: true, order: 20 },
-  
-  // Design Tools
-  { name: 'Figma', icon: 'Figma', category: 'design', isActive: true, order: 21 },
-  { name: 'Canva', icon: 'Palette', category: 'design', isActive: true, order: 22 },
-  { name: 'Paint', icon: 'Paintbrush', category: 'design', isActive: true, order: 23 },
-  
-  // Office Suite
-  { name: 'Word', icon: 'FileText', category: 'office', isActive: true, order: 24 },
-  { name: 'Excel', icon: 'Table', category: 'office', isActive: true, order: 25 },
-  { name: 'PowerPoint', icon: 'Presentation', category: 'office', isActive: true, order: 26 },
-  { name: 'Outlook', icon: 'Mail', category: 'office', isActive: true, order: 27 },
-  
-  // Entertainment
-  { name: 'Spotify', icon: 'Music', category: 'entertainment', isActive: true, order: 28 },
-  { name: 'YouTube', icon: 'Youtube', category: 'entertainment', isActive: true, order: 29 },
-  
-  // Utilities
-  { name: 'Calculator', icon: 'Calculator', category: 'utilities', isActive: true, order: 30 },
-  { name: 'Clock', icon: 'Clock', category: 'utilities', isActive: true, order: 31 },
-  { name: 'Calendar', icon: 'Calendar', category: 'utilities', isActive: true, order: 32 },
-  { name: 'Settings', icon: 'Settings', category: 'utilities', isActive: true, order: 33 },
-  { name: 'File Explorer', icon: 'Folder', category: 'utilities', isActive: true, order: 34 },
-  { name: 'Photos', icon: 'Image', category: 'utilities', isActive: true, order: 35 },
-  { name: 'Notes', icon: 'StickyNote', category: 'utilities', isActive: true, order: 36 },
-  { name: 'Weather', icon: 'Cloud', category: 'utilities', isActive: true, order: 37 },
-  { name: 'Maps', icon: 'Map', category: 'utilities', isActive: true, order: 38 },
-  { name: 'Camera', icon: 'Camera', category: 'utilities', isActive: true, order: 39 },
-  { name: 'Voice Recorder', icon: 'Mic', category: 'utilities', isActive: true, order: 40 },
-  { name: 'Task Manager', icon: 'Activity', category: 'utilities', isActive: true, order: 41 },
-  { name: 'Control Panel', icon: 'Sliders', category: 'utilities', isActive: true, order: 42 },
-  { name: 'Store', icon: 'ShoppingBag', category: 'utilities', isActive: true, order: 43 },
-  { name: 'Browser', icon: 'Globe', category: 'utilities', isActive: true, order: 44 },
-];
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-async function seedDesktopApps() {
-  console.log('🚀 Starting desktop apps seeding...');
-  
-  try {
-    let created = 0;
-    let skipped = 0;
-    
-    for (const app of desktopApps) {
-      try {
-        await firebaseStorage.createWilmaDesktopApp(app);
-        console.log(`✅ Created app: ${app.name}`);
-        created++;
-      } catch (error: any) {
-        if (error.message.includes('already exists')) {
-          console.log(`⏭️  Skipped (exists): ${app.name}`);
-          skipped++;
-        } else {
-          console.error(`❌ Error creating ${app.name}:`, error.message);
-        }
-      }
-    }
-    
-    console.log('\n📊 Seeding Summary:');
-    console.log(`   ✅ Created: ${created} apps`);
-    console.log(`   ⏭️  Skipped: ${skipped} apps`);
-    console.log(`   📦 Total: ${desktopApps.length} apps`);
-    console.log('\n🎉 Desktop apps seeding complete!');
-    
-  } catch (error) {
-    console.error('❌ Fatal error during seeding:', error);
-    throw error;
+// Initialize Firebase Admin
+const serviceAccount = JSON.parse(
+  readFileSync(join(process.cwd(), 'serviceAccountKey.json'), 'utf8')
+);
+
+initializeApp({
+  credential: cert(serviceAccount)
+});
+
+const db = getFirestore();
+
+export async function seedDesktopApps() {
+  console.log('🖥️ ========== SEEDING DESKTOP APPS ==========');
+
+  const apps = [
+    // ============================================
+    // PRODUCTIVITY APPS
+    // ============================================
+    {
+      appId: 'notepad',
+      name: 'Notepad',
+      nameFi: 'Muistio',
+      icon: 'notepad',
+      description: 'Simple text editor for quick notes',
+      descriptionFi: 'Yksinkertainen tekstieditori nopeisiin muistiinpanoihin',
+      category: 'productivity',
+      appType: 'component',
+      componentName: 'NotepadApp',
+      width: 600,
+      height: 400,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 1,
+    },
+    {
+      appId: 'calculator',
+      name: 'Calculator',
+      nameFi: 'Laskin',
+      icon: 'calculator',
+      description: 'Scientific calculator',
+      descriptionFi: 'Tieteellinen laskin',
+      category: 'productivity',
+      appType: 'component',
+      componentName: 'CalculatorApp',
+      width: 350,
+      height: 500,
+      resizable: false,
+      minimizable: true,
+      maximizable: false,
+      isActive: true,
+      isPinned: true,
+      order: 2,
+    },
+    {
+      appId: 'calendar',
+      name: 'Calendar',
+      nameFi: 'Kalenteri',
+      icon: 'calendar',
+      description: 'Manage your schedule and events',
+      descriptionFi: 'Hallitse aikatauluasi ja tapahtumia',
+      category: 'productivity',
+      appType: 'component',
+      componentName: 'CalendarApp',
+      width: 800,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 3,
+    },
+    {
+      appId: 'clock',
+      name: 'Clock',
+      nameFi: 'Kello',
+      icon: 'clock',
+      description: 'World clock and timer',
+      descriptionFi: 'Maailmankello ja ajastin',
+      category: 'productivity',
+      appType: 'component',
+      componentName: 'ClockApp',
+      width: 400,
+      height: 300,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      isActive: true,
+      isPinned: false,
+      order: 4,
+    },
+    {
+      appId: 'todo-list',
+      name: 'Todo List',
+      nameFi: 'Tehtävälista',
+      icon: 'notepad',
+      description: 'Manage your tasks and todos',
+      descriptionFi: 'Hallitse tehtäviäsi ja listojasi',
+      category: 'productivity',
+      appType: 'component',
+      componentName: 'TodoListApp',
+      width: 500,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 5,
+    },
+
+    // ============================================
+    // CREATIVE APPS
+    // ============================================
+    {
+      appId: 'paint',
+      name: 'Paint',
+      nameFi: 'Piirto-ohjelma',
+      icon: 'image',
+      description: 'Simple drawing application',
+      descriptionFi: 'Yksinkertainen piirto-ohjelma',
+      category: 'creative',
+      appType: 'component',
+      componentName: 'PaintApp',
+      width: 800,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 6,
+    },
+    {
+      appId: 'music-player',
+      name: 'Music Player',
+      nameFi: 'Musiikkisoitin',
+      icon: 'music',
+      description: 'Play your favorite music',
+      descriptionFi: 'Soita suosikkimusiikkiasi',
+      category: 'creative',
+      appType: 'component',
+      componentName: 'MusicPlayerApp',
+      width: 400,
+      height: 500,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      isActive: true,
+      isPinned: false,
+      order: 7,
+    },
+    {
+      appId: 'photo-viewer',
+      name: 'Photo Viewer',
+      nameFi: 'Kuvakatselin',
+      icon: 'photos',
+      description: 'View and organize your photos',
+      descriptionFi: 'Katso ja järjestä kuvia',
+      category: 'creative',
+      appType: 'component',
+      componentName: 'PhotoViewerApp',
+      width: 900,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 8,
+    },
+
+    // ============================================
+    // DEVELOPMENT APPS
+    // ============================================
+    {
+      appId: 'code-editor',
+      name: 'Code Editor',
+      nameFi: 'Koodieditori',
+      icon: 'code',
+      description: 'Write and edit code',
+      descriptionFi: 'Kirjoita ja muokkaa koodia',
+      category: 'development',
+      appType: 'component',
+      componentName: 'CodeEditorApp',
+      width: 1000,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 9,
+    },
+    {
+      appId: 'terminal',
+      name: 'Terminal',
+      nameFi: 'Terminaali',
+      icon: 'terminal',
+      description: 'Command line interface',
+      descriptionFi: 'Komentorivi',
+      category: 'development',
+      appType: 'component',
+      componentName: 'TerminalApp',
+      width: 800,
+      height: 500,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 10,
+    },
+    {
+      appId: 'git-client',
+      name: 'Git Client',
+      nameFi: 'Git-asiakasohjelma',
+      icon: 'code',
+      description: 'Version control with Git',
+      descriptionFi: 'Versionhallinta Gitillä',
+      category: 'development',
+      appType: 'component',
+      componentName: 'GitClientApp',
+      width: 900,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 11,
+    },
+
+    // ============================================
+    // COMMUNICATION APPS
+    // ============================================
+    {
+      appId: 'mail',
+      name: 'Mail',
+      nameFi: 'Sähköposti',
+      icon: 'mail',
+      description: 'Email client',
+      descriptionFi: 'Sähköpostiohjelma',
+      category: 'communication',
+      appType: 'component',
+      componentName: 'MailApp',
+      width: 1000,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 12,
+    },
+    {
+      appId: 'chat',
+      name: 'Chat',
+      nameFi: 'Chat',
+      icon: 'mail',
+      description: 'Instant messaging',
+      descriptionFi: 'Pikaviestintä',
+      category: 'communication',
+      appType: 'component',
+      componentName: 'ChatApp',
+      width: 600,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 13,
+    },
+
+    // ============================================
+    // EDUCATION APPS
+    // ============================================
+    {
+      appId: 'learn-coding',
+      name: 'Learn Coding',
+      nameFi: 'Opi koodaamaan',
+      icon: 'code',
+      description: 'Interactive coding courses',
+      descriptionFi: 'Interaktiiviset koodauskurssit',
+      category: 'education',
+      appType: 'iframe',
+      appUrl: '/wilma/:userId/learn-coding',
+      width: 1200,
+      height: 800,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 14,
+    },
+    {
+      appId: 'library',
+      name: 'Library',
+      nameFi: 'Kirjasto',
+      icon: 'books',
+      description: 'Digital library and resources',
+      descriptionFi: 'Digitaalinen kirjasto ja resurssit',
+      category: 'education',
+      appType: 'component',
+      componentName: 'LibraryApp',
+      width: 1000,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 15,
+    },
+    {
+      appId: 'quiz-maker',
+      name: 'Quiz Maker',
+      nameFi: 'Tietovisatyökalu',
+      icon: 'books',
+      description: 'Create and take quizzes',
+      descriptionFi: 'Luo ja tee tietovisoja',
+      category: 'education',
+      appType: 'component',
+      componentName: 'QuizMakerApp',
+      width: 800,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 16,
+    },
+
+    // ============================================
+    // ENTERTAINMENT APPS
+    // ============================================
+    {
+      appId: 'games',
+      name: 'Games',
+      nameFi: 'Pelit',
+      icon: 'games',
+      description: 'Educational games',
+      descriptionFi: 'Opetuspelit',
+      category: 'entertainment',
+      appType: 'component',
+      componentName: 'GamesApp',
+      width: 800,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 17,
+    },
+    {
+      appId: 'video-player',
+      name: 'Video Player',
+      nameFi: 'Videosoitin',
+      icon: 'video',
+      description: 'Watch educational videos',
+      descriptionFi: 'Katso opetusvideoita',
+      category: 'entertainment',
+      appType: 'component',
+      componentName: 'VideoPlayerApp',
+      width: 900,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 18,
+    },
+
+    // ============================================
+    // UTILITY APPS
+    // ============================================
+    {
+      appId: 'file-manager',
+      name: 'File Manager',
+      nameFi: 'Tiedostonhallinta',
+      icon: 'notepad',
+      description: 'Browse and manage files',
+      descriptionFi: 'Selaa ja hallitse tiedostoja',
+      category: 'utility',
+      appType: 'component',
+      componentName: 'FileManagerApp',
+      width: 900,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 19,
+    },
+    {
+      appId: 'settings',
+      name: 'Settings',
+      nameFi: 'Asetukset',
+      icon: 'settings',
+      description: 'Configure desktop settings',
+      descriptionFi: 'Muokkaa työpöydän asetuksia',
+      category: 'utility',
+      appType: 'component',
+      componentName: 'SettingsApp',
+      width: 700,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      isActive: true,
+      isPinned: false,
+      order: 20,
+    },
+    {
+      appId: 'browser',
+      name: 'Browser',
+      nameFi: 'Selain',
+      icon: 'globe',
+      description: 'Web browser',
+      descriptionFi: 'Verkkoselain',
+      category: 'utility',
+      appType: 'component',
+      componentName: 'BrowserApp',
+      width: 1200,
+      height: 800,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 21,
+    },
+    {
+      appId: 'weather',
+      name: 'Weather',
+      nameFi: 'Sää',
+      icon: 'globe',
+      description: 'Weather forecast',
+      descriptionFi: 'Sääennuste',
+      category: 'utility',
+      appType: 'component',
+      componentName: 'WeatherApp',
+      width: 400,
+      height: 500,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      isActive: true,
+      isPinned: false,
+      order: 22,
+    },
+
+    // ============================================
+    // WILMA INTEGRATION APPS
+    // ============================================
+    {
+      appId: 'wilma-grades',
+      name: 'Grades',
+      nameFi: 'Arvosanat',
+      icon: 'books',
+      description: 'View your grades',
+      descriptionFi: 'Katso arvosanasi',
+      category: 'wilma',
+      appType: 'iframe',
+      appUrl: '/wilma/:userId?tab=grades',
+      width: 900,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 23,
+    },
+    {
+      appId: 'wilma-schedule',
+      name: 'Schedule',
+      nameFi: 'Lukujärjestys',
+      icon: 'calendar',
+      description: 'View your schedule',
+      descriptionFi: 'Katso lukujärjestyksesi',
+      category: 'wilma',
+      appType: 'iframe',
+      appUrl: '/wilma/:userId?tab=schedule',
+      width: 1000,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: true,
+      order: 24,
+    },
+    {
+      appId: 'wilma-assignments',
+      name: 'Assignments',
+      nameFi: 'Tehtävät',
+      icon: 'notepad',
+      description: 'View your assignments',
+      descriptionFi: 'Katso tehtäväsi',
+      category: 'wilma',
+      appType: 'iframe',
+      appUrl: '/wilma/:userId?tab=assignments',
+      width: 900,
+      height: 700,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      isActive: true,
+      isPinned: false,
+      order: 25,
+    },
+  ];
+
+  console.log(`📱 Creating ${apps.length} desktop apps...`);
+
+  const batch = db.batch();
+  let count = 0;
+
+  for (const app of apps) {
+    const docRef = db.collection('desktopApps').doc(app.appId);
+    batch.set(docRef, {
+      ...app,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    count++;
+    console.log(`✅ ${count}/${apps.length} - ${app.nameFi} (${app.appId})`);
   }
+
+  await batch.commit();
+
+  console.log('✅ ========== DESKTOP APPS SEEDED SUCCESSFULLY ==========');
+  console.log(`📊 Total apps created: ${apps.length}`);
+  console.log(`📂 Categories: ${[...new Set(apps.map(a => a.category))].join(', ')}`);
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`;
+if (isMainModule || process.argv[1].includes('seedDesktopApps')) {
   seedDesktopApps()
-    .then(() => process.exit(0))
+    .then(() => {
+      console.log('✅ Seeding complete!');
+      process.exit(0);
+    })
     .catch((error) => {
-      console.error('Seeding failed:', error);
+      console.error('❌ Seeding failed:', error);
       process.exit(1);
     });
 }
-
-export { seedDesktopApps };

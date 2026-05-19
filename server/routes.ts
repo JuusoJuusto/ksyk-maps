@@ -7,6 +7,7 @@ import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from ".
 import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
+import { registerAaltoSpaceRoutes } from "./aaltoSpaceRoutes";
 
 const db = getFirestore();
 
@@ -4526,6 +4527,12 @@ https://ksykmaps.vercel.app
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');
   registerWilmaExtendedRoutes(app);
+
+  // ============================================
+  // REGISTER AALTO SPACE ROUTES
+  // ============================================
+  console.log('🏫 Registering Aalto Space Routes...');
+  registerAaltoSpaceRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

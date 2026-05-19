@@ -64,6 +64,16 @@ export const buildings = pgTable("buildings", {
   mapPositionY: integer("map_position_y"),
   colorCode: varchar("color_code").default("#3B82F6"),
   isActive: boolean("is_active").default(true),
+  // AALTO SPACE: Building Enhancement Fields
+  openingHours: jsonb("opening_hours"), // { monday: { open: "07:00", close: "22:00" }, ... }
+  lobbyServices: text("lobby_services").array(), // reception, security, info_desk, etc.
+  entrances: jsonb("entrances"), // [{ type: "main", accessible: true, x: 100, y: 200 }, ...]
+  parkingInfo: jsonb("parking_info"), // { bike: 50, car: 20, accessible: 5 }
+  photos: text("photos").array(), // Building photos
+  address: varchar("address"),
+  postalCode: varchar("postal_code"),
+  city: varchar("city").default("Helsinki"),
+  coordinates: jsonb("coordinates"), // { lat: 60.1699, lng: 24.9384 }
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -94,6 +104,17 @@ export const rooms = pgTable("rooms", {
   isPublic: boolean("is_public").default(true), // Whether to show on public maps
   isAccessible: boolean("is_accessible").default(true),
   isActive: boolean("is_active").default(true),
+  // AALTO SPACE: Room Booking Fields
+  isBookable: boolean("is_bookable").default(false),
+  bookingDuration: integer("booking_duration").default(60), // minutes
+  maxOccupancy: integer("max_occupancy"),
+  amenities: text("amenities").array(), // projector, whiteboard, tv, computers, outlets, wifi, etc.
+  currentStatus: varchar("current_status").default("unknown"), // free, occupied, reserved, maintenance, unknown
+  nextAvailableAt: timestamp("next_available_at"),
+  photos: text("photos").array(), // URLs to room photos
+  virtualTourUrl: varchar("virtual_tour_url"), // 360° tour link
+  bookingRules: text("booking_rules"), // Special rules or requirements
+  requiresApproval: boolean("requires_approval").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -748,6 +769,201 @@ export const appSettings = pgTable("app_settings", {
   enableBackups: boolean("enable_backups").default(true),
   backupFrequencyHours: integer("backup_frequency_hours").default(24),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ============================================
+// AALTO SPACE TRANSFORMATION - ROOM BOOKING
+// ============================================
+
+// Room Bookings table
+export const roomBookings = pgTable("room_bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").references(() => rooms.id).notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  purpose: varchar("purpose"), // study, meeting, group_work, lecture, exam
+  attendees: integer("attendees"),
+  status: varchar("status").default("confirmed"), // pending, confirmed, cancelled, completed
+  notes: text("notes"),
+  checkInTime: timestamp("check_in_time"),
+  checkOutTime: timestamp("check_out_time"),
+  qrCode: varchar("qr_code").unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Room Availability Schedule
+export const roomAvailability = pgTable("room_availability", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").references(() => rooms.id).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 0=Sunday, 6=Saturday
+  startTime: varchar("start_time").notNull(), // HH:MM format
+  endTime: varchar("end_time").notNull(), // HH:MM format
+  isAvailable: boolean("is_available").default(true),
+  recurringType: varchar("recurring_type").default("weekly"), // weekly, daily, once
+  exceptionDate: varchar("exception_date"), // YYYY-MM-DD for one-time exceptions
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Campus Services (restaurants, cafes, gyms, etc.)
+export const campusServices = pgTable("campus_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  nameEn: varchar("name_en"),
+  nameFi: varchar("name_fi"),
+  type: varchar("type").notNull(), // restaurant, cafe, gym, library, charging, recycling, atm, printer, health, counseling
+  buildingId: varchar("building_id").references(() => buildings.id),
+  roomId: varchar("room_id").references(() => rooms.id),
+  floor: integer("floor"),
+  description: text("description"),
+  descriptionEn: text("description_en"),
+  descriptionFi: text("description_fi"),
+  openingHours: jsonb("opening_hours"), // { monday: { open: "08:00", close: "16:00" }, ... }
+  currentlyOpen: boolean("currently_open").default(false),
+  amenities: text("amenities").array(), // wifi, outlets, quiet, group_space, etc.
+  dietaryOptions: text("dietary_options").array(), // vegetarian, vegan, gluten_free, halal, etc.
+  paymentMethods: text("payment_methods").array(), // cash, card, mobile, student_card
+  icon: varchar("icon").default("map-pin"),
+  colorCode: varchar("color_code").default("#10B981"),
+  website: varchar("website"),
+  phone: varchar("phone"),
+  email: varchar("email"),
+  mapPositionX: integer("map_position_x"),
+  mapPositionY: integer("map_position_y"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Room Sensors (for real-time occupancy)
+export const roomSensors = pgTable("room_sensors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").references(() => rooms.id).notNull(),
+  sensorType: varchar("sensor_type").notNull(), // motion, door, booking, manual
+  lastActivity: timestamp("last_activity").defaultNow(),
+  occupancyStatus: varchar("occupancy_status").default("unknown"), // free, occupied, reserved, unknown
+  confidence: numeric("confidence").default("0.0"), // 0.0 to 1.0
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Favorites
+export const userFavorites = pgTable("user_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  roomId: varchar("room_id").references(() => rooms.id),
+  serviceId: varchar("service_id").references(() => campusServices.id),
+  type: varchar("type").notNull(), // room, service, building
+  nickname: varchar("nickname"), // Custom name for favorite
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Navigation History
+export const userHistory = pgTable("user_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  sessionId: varchar("session_id"),
+  roomId: varchar("room_id").references(() => rooms.id),
+  serviceId: varchar("service_id").references(() => campusServices.id),
+  action: varchar("action").notNull(), // visited, booked, searched, navigated
+  searchQuery: text("search_query"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Push Notifications
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  type: varchar("type").notNull(), // booking_reminder, announcement, service_update, maintenance
+  title: varchar("title").notNull(),
+  titleEn: varchar("title_en"),
+  titleFi: varchar("title_fi"),
+  message: text("message").notNull(),
+  messageEn: text("message_en"),
+  messageFi: text("message_fi"),
+  priority: varchar("priority").default("normal"), // low, normal, high, urgent
+  actionUrl: varchar("action_url"),
+  actionLabel: varchar("action_label"),
+  read: boolean("read").default(false),
+  readAt: timestamp("read_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for new tables
+export const roomBookingsRelations = relations(roomBookings, ({ one }) => ({
+  room: one(rooms, {
+    fields: [roomBookings.roomId],
+    references: [rooms.id],
+  }),
+  user: one(users, {
+    fields: [roomBookings.userId],
+    references: [users.id],
+  }),
+}));
+
+export const campusServicesRelations = relations(campusServices, ({ one }) => ({
+  building: one(buildings, {
+    fields: [campusServices.buildingId],
+    references: [buildings.id],
+  }),
+  room: one(rooms, {
+    fields: [campusServices.roomId],
+    references: [rooms.id],
+  }),
+}));
+
+export const userFavoritesRelations = relations(userFavorites, ({ one }) => ({
+  user: one(users, {
+    fields: [userFavorites.userId],
+    references: [users.id],
+  }),
+  room: one(rooms, {
+    fields: [userFavorites.roomId],
+    references: [rooms.id],
+  }),
+  service: one(campusServices, {
+    fields: [userFavorites.serviceId],
+    references: [campusServices.id],
+  }),
+}));
+
+// Insert schemas for new tables
+export const insertRoomBookingSchema = createInsertSchema(roomBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRoomAvailabilitySchema = createInsertSchema(roomAvailability).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCampusServiceSchema = createInsertSchema(campusServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRoomSensorSchema = createInsertSchema(roomSensors).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertUserFavoriteSchema = createInsertSchema(userFavorites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserHistorySchema = createInsertSchema(userHistory).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({

@@ -29,7 +29,10 @@
     "clean:rooms": "tsx server/cleanRoomsAndHallways.ts",
     "add:rebrand-announcement": "tsx server/addRebrandAnnouncement.ts",
     "init:desktop": "tsx scripts/init-desktop.ts",
-    "notify:discord": "node scripts/notify-discord.js"
+    "notify:discord": "node scripts/notify-discord.js",
+    "seed:courses": "tsx server/seedCodingCourses.ts",
+    "seed:desktop": "tsx server/seedDesktopApps.ts",
+    "seed:aalto": "tsx server/seedAaltoData.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
