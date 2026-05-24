@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,17 @@ export default function ImprovedKSYKBuilder() {
     y: 0,
     width: 100,
     height: 80
+  });
+
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  const { data: existingRooms = [] } = useQuery({
+    queryKey: ["rooms"],
+    queryFn: async () => {
+      const res = await fetch("/api/rooms", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   // Snap point to grid
@@ -139,6 +150,39 @@ export default function ImprovedKSYKBuilder() {
   };
 
   // Validate room number format (A32, M1, U205 - letter followed by numbers, no dash)
+  useEffect(() => {
+    if (dataLoaded || existingRooms.length === 0) return;
+    const loaded = existingRooms.map((r: {
+      id: string;
+      roomNumber: string;
+      name?: string;
+      nameEn?: string;
+      floor?: number;
+      capacity?: number;
+      type?: string;
+      mapPositionX?: number;
+      mapPositionY?: number;
+      width?: number;
+      height?: number;
+    }) => ({
+      id: r.id,
+      roomNumber: r.roomNumber,
+      name: r.name || r.nameEn || "",
+      floor: r.floor || 1,
+      capacity: r.capacity || 30,
+      type: r.type || "classroom",
+      x: r.mapPositionX ?? 100,
+      y: r.mapPositionY ?? 100,
+      width: r.width || 100,
+      height: r.height || 80,
+      building: extractBuilding(r.roomNumber),
+      mapPositionX: r.mapPositionX ?? 100,
+      mapPositionY: r.mapPositionY ?? 100,
+    }));
+    setRooms(loaded);
+    setDataLoaded(true);
+  }, [existingRooms, dataLoaded]);
+
   const validateRoomNumber = (roomNumber: string): boolean => {
     // Allow specific formats: A32, A21, M1, M2, U205, K15, L10, R5
     const validBuildings = ['A', 'M', 'U', 'K', 'L', 'R'];

@@ -50,7 +50,6 @@ import LearnCoding from "@/pages/learn-coding";
 import NotFound from "@/pages/not-found";
 import KSYKBuilder3D from "@/components/KSYKBuilder3D";
 import AaltoHome from "@/pages/aalto-home";
-import AdminAaltoSpaceMap from "@/pages/admin-aalto-space-map";
 import "./lib/i18n";
 
 function Router() {
@@ -82,7 +81,6 @@ function Router() {
       <Route path="/" component={AaltoHome} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
-      <Route path="/admin-ksyk-management-portal/aalto-space-map" component={AdminAaltoSpaceMap} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
       

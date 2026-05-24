@@ -3,7 +3,15 @@
  * Redesigned map interface matching Aalto Space design principles
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import {
+  parseBuildingShape,
+  getShapeBounds,
+  pointsToSvgPath,
+  computeCampusViewBox,
+  getBuildingLabel,
+  type BuildingMapData,
+} from "@/lib/mapGeometry";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -26,17 +34,9 @@ import {
   Calendar,
 } from "lucide-react";
 
-interface Building {
-  id: string;
-  name: string;
-  nameEn: string;
-  nameFi: string;
-  floors: number;
-  colorCode: string;
-  mapPositionX: number;
-  mapPositionY: number;
-  openingHours: any;
-  facilities: string[];
+interface Building extends BuildingMapData {
+  openingHours?: unknown;
+  facilities?: string[];
 }
 
 interface Room {
@@ -68,8 +68,10 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
   const [showLayers, setShowLayers] = useState(false);
   const [layerSettings, setLayerSettings] = useState({
     rooms: true,
@@ -122,16 +124,71 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
     }
   }, [searchQuery, buildings, rooms, i18n.language]);
 
-  const floorRooms = rooms.filter((r: Room) => r.floor === selectedFloor);
+  const maxFloor = useMemo(() => {
+    const fromBuildings = buildings.length
+      ? Math.max(...buildings.map((b: Building) => b.floors || 1))
+      : 3;
+    const fromRooms = rooms.length
+      ? Math.max(...rooms.map((r: Room) => r.floor || 0))
+      : 0;
+    return Math.max(fromBuildings, fromRooms, 1);
+  }, [buildings, rooms]);
 
-  const handleZoomIn = () => setZoom(Math.min(zoom + 0.2, 3));
-  const handleZoomOut = () => setZoom(Math.max(zoom - 0.2, 0.5));
+  const viewBox = useMemo(
+    () => computeCampusViewBox(buildings as BuildingMapData[]),
+    [buildings]
+  );
+
+  const floorRooms = rooms.filter((r: Room) => {
+    if (r.floor !== selectedFloor) return false;
+    if (selectedBuilding) return r.buildingId === selectedBuilding.id;
+    return true;
+  });
+
+  const handleZoomIn = () => setZoom(Math.min(zoom + 0.15, 2.5));
+  const handleZoomOut = () => setZoom(Math.max(zoom - 0.15, 0.4));
   const handleResetView = () => {
     setZoom(1);
-    setPanX(0);
-    setPanY(0);
+    setPanOffset({ x: 0, y: 0 });
     setSelectedFloor(1);
+    setSelectedBuilding(null);
+    setSelectedRoom(null);
   };
+
+  const handlePanStart = useCallback(
+    (clientX: number, clientY: number) => {
+      setIsPanning(true);
+      panStart.current = {
+        x: clientX,
+        y: clientY,
+        panX: panOffset.x,
+        panY: panOffset.y,
+      };
+    },
+    [panOffset]
+  );
+
+  const handlePanMove = useCallback((clientX: number, clientY: number) => {
+    if (!isPanning) return;
+    setPanOffset({
+      x: panStart.current.panX + (clientX - panStart.current.x),
+      y: panStart.current.panY + (clientY - panStart.current.y),
+    });
+  }, [isPanning]);
+
+  const handlePanEnd = useCallback(() => setIsPanning(false), []);
+
+  useEffect(() => {
+    if (!isPanning) return;
+    const onMove = (e: MouseEvent) => handlePanMove(e.clientX, e.clientY);
+    const onUp = () => handlePanEnd();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [isPanning, handlePanMove, handlePanEnd]);
 
   const toggleLayer = (layer: keyof typeof layerSettings) => {
     setLayerSettings((prev) => ({ ...prev, [layer]: !prev[layer] }));
@@ -244,8 +301,8 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedFloor(Math.min(selectedFloor + 1, 3))}
-            disabled={selectedFloor >= 3}
+            onClick={() => setSelectedFloor(Math.min(selectedFloor + 1, maxFloor))}
+            disabled={selectedFloor >= maxFloor}
             className="w-12 h-12 p-0 rounded-none"
           >
             <Plus className="h-5 w-5" />
@@ -365,87 +422,142 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
 
       {/* Map Canvas */}
       <div
-        className={`h-full w-full ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}
-        style={{
-          transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
-          transformOrigin: "center center",
-          transition: "transform 0.2s ease-out",
+        className={`h-full w-full overflow-hidden ${darkMode ? "bg-[#e8eaed]" : "bg-[#eef1f4]"}`}
+        style={{ cursor: isPanning ? "grabbing" : "grab" }}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
+          handlePanStart(e.clientX, e.clientY);
         }}
       >
-        <svg className="w-full h-full">
-          {/* Render Buildings */}
-          {buildings.map((building: Building) => {
-            const isSelected = selectedBuilding?.id === building.id;
-            return (
-              <g key={building.id}>
-                <rect
-                  x={building.mapPositionX || 0}
-                  y={building.mapPositionY || 0}
-                  width={200}
-                  height={150}
-                  fill={building.colorCode || "#3B82F6"}
-                  stroke={isSelected ? "#FBBF24" : (darkMode ? "#374151" : "#E5E7EB")}
-                  strokeWidth={isSelected ? "4" : "2"}
-                  opacity={isSelected ? "1" : "0.8"}
-                  className="cursor-pointer hover:opacity-100 transition-all"
-                  onClick={() => {
-                    setSelectedBuilding(building);
-                    setSelectedRoom(null);
-                  }}
-                  style={{ filter: isSelected ? "drop-shadow(0 0 10px rgba(251, 191, 36, 0.5))" : "none" }}
+        {buildings.length === 0 ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <div
+              className={`max-w-md rounded-2xl border p-8 text-center shadow-lg ${
+                darkMode ? "border-gray-700 bg-gray-800 text-white" : "border-gray-200 bg-white text-gray-900"
+              }`}
+            >
+              <Building2 className={`mx-auto mb-4 h-14 w-14 ${darkMode ? "text-gray-400" : "text-gray-400"}`} />
+              <h3 className="text-xl font-bold mb-2">
+                {i18n.language === "fi" ? "Ei rakennuksia kartalla" : "No buildings on the map yet"}
+              </h3>
+              <p className={`text-sm mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                {i18n.language === "fi"
+                  ? "Luo rakennuksia ja huoneita Admin-paneelin Builder- tai 3D Map -välilehdellä."
+                  : "Create buildings and rooms in the Admin panel Builder or 3D Map tab."}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <svg
+            ref={svgRef}
+            className="h-full w-full touch-none"
+            viewBox={viewBox}
+            preserveAspectRatio="xMidYMid meet"
+            style={{
+              transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+              transformOrigin: "center center",
+              transition: isPanning ? "none" : "transform 0.15s ease-out",
+            }}
+          >
+            <defs>
+              <pattern id="campusGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path
+                  d="M 40 0 L 0 0 0 40"
+                  fill="none"
+                  stroke={darkMode ? "#cbd5e1" : "#d1d5db"}
+                  strokeWidth="0.5"
                 />
-                <text
-                  x={(building.mapPositionX || 0) + 100}
-                  y={(building.mapPositionY || 0) + 75}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize="16"
-                  fontWeight="bold"
-                  className="pointer-events-none"
-                >
-                  {i18n.language === "fi" ? building.nameFi : building.nameEn || building.name}
-                </text>
-              </g>
-            );
-          })}
+              </pattern>
+              <filter id="buildingShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.25" />
+              </filter>
+            </defs>
+            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
 
-          {/* Render Rooms (if layer enabled) */}
-          {layerSettings.rooms &&
-            floorRooms.map((room: Room) => {
-              const isSelected = selectedRoom?.id === room.id;
+            {buildings.map((building: Building) => {
+              const shape = parseBuildingShape(building);
+              const bounds = getShapeBounds(shape);
+              const isSelected = selectedBuilding?.id === building.id;
+              const fill = building.colorCode || "#2563eb";
+              const label = getBuildingLabel(building, i18n.language);
+
               return (
-                <g key={room.id}>
-                  <rect
-                    x={room.mapPositionX || 0}
-                    y={room.mapPositionY || 0}
-                    width={room.width || 60}
-                    height={room.height || 40}
-                    fill={getStatusColor(room.currentStatus)}
-                    stroke={isSelected ? "#FBBF24" : (darkMode ? "#374151" : "#E5E7EB")}
-                    strokeWidth={isSelected ? "3" : "1"}
-                    opacity={isSelected ? "1" : "0.7"}
-                    className="cursor-pointer hover:opacity-100 transition-all"
-                    onClick={() => {
-                      setSelectedRoom(room);
-                      setSelectedBuilding(null);
+                <g key={building.id} data-map-feature="building">
+                  <path
+                    d={pointsToSvgPath(shape)}
+                    fill={fill}
+                    stroke={isSelected ? "#fbbf24" : darkMode ? "#1f2937" : "#ffffff"}
+                    strokeWidth={isSelected ? 4 : 2}
+                    opacity={isSelected ? 1 : 0.92}
+                    filter="url(#buildingShadow)"
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBuilding(building);
+                      setSelectedRoom(null);
+                      setSelectedFloor(1);
                     }}
-                    style={{ filter: isSelected ? "drop-shadow(0 0 8px rgba(251, 191, 36, 0.5))" : "none" }}
                   />
                   <text
-                    x={(room.mapPositionX || 0) + (room.width || 60) / 2}
-                    y={(room.mapPositionY || 0) + (room.height || 40) / 2}
+                    x={bounds.centerX}
+                    y={bounds.centerY}
                     textAnchor="middle"
-                    fill="white"
-                    fontSize="10"
-                    fontWeight="bold"
-                    className="pointer-events-none"
+                    dominantBaseline="middle"
+                    fill="#ffffff"
+                    fontSize={Math.min(22, Math.max(12, bounds.width / 8))}
+                    fontWeight="700"
+                    className="pointer-events-none select-none"
+                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)" }}
                   >
-                    {room.roomNumber}
+                    {label}
                   </text>
                 </g>
               );
             })}
-        </svg>
+
+            {layerSettings.rooms &&
+              floorRooms.map((room: Room) => {
+                const isSelected = selectedRoom?.id === room.id;
+                const w = room.width || 60;
+                const h = room.height || 40;
+                return (
+                  <g key={room.id} data-map-feature="room">
+                    <rect
+                      x={room.mapPositionX || 0}
+                      y={room.mapPositionY || 0}
+                      width={w}
+                      height={h}
+                      rx={4}
+                      fill={getStatusColor(room.currentStatus)}
+                      stroke={isSelected ? "#fbbf24" : darkMode ? "#374151" : "#fff"}
+                      strokeWidth={isSelected ? 3 : 1.5}
+                      opacity={isSelected ? 1 : 0.85}
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRoom(room);
+                        const parent = buildings.find((b: Building) => b.id === room.buildingId);
+                        if (parent) setSelectedBuilding(parent);
+                      }}
+                    />
+                    <text
+                      x={(room.mapPositionX || 0) + w / 2}
+                      y={(room.mapPositionY || 0) + h / 2}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#fff"
+                      fontSize={Math.min(11, h / 3)}
+                      fontWeight="600"
+                      className="pointer-events-none"
+                    >
+                      {room.roomNumber}
+                    </text>
+                  </g>
+                );
+              })}
+          </svg>
+        )}
       </div>
 
       {/* Building Card (Bottom Sheet) */}
@@ -471,7 +583,7 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
                 </Button>
               </div>
 
-              {selectedBuilding.facilities && selectedBuilding.facilities.length > 0 && (
+              {selectedBuilding.facilities?.length ? (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {selectedBuilding.facilities.map((facility, idx) => (
                     <span
@@ -484,17 +596,14 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
                     </span>
                   ))}
                 </div>
-              )}
+              ) : null}
 
               <Button
-                onClick={() => {
-                  // Navigate to building
-                  setSelectedBuilding(null);
-                }}
-                className="w-full"
+                onClick={() => setSelectedBuilding(null)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Navigation className="h-4 w-4 mr-2" />
-                {i18n.language === "fi" ? "Navigoi tänne" : "Navigate Here"}
+                {i18n.language === "fi" ? "Sulje" : "Close"}
               </Button>
             </CardContent>
           </Card>

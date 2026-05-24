@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import Working3DBuilder from "@/components/Working3DBuilder";
+import AaltoMapView from "@/components/AaltoMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
@@ -847,6 +848,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
+          <TabsTrigger value="campus-map" className="text-xs sm:text-sm flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            Map
+          </TabsTrigger>
           <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
           <TabsTrigger value="map-builder" className="text-xs sm:text-sm flex items-center gap-1">
             <Box className="h-3 w-3" />
@@ -1358,11 +1363,15 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="h-full flex-1 overflow-hidden">
+        <TabsContent value="campus-map" className="min-h-[70vh] h-[75vh] overflow-hidden rounded-lg border border-gray-200">
+          <AaltoMapView />
+        </TabsContent>
+
+        <TabsContent value="ksyk-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">
           <ImprovedKSYKBuilder />
         </TabsContent>
 
-        <TabsContent value="map-builder" className="h-full flex-1 overflow-hidden">
+        <TabsContent value="map-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">
           <Working3DBuilder />
         </TabsContent>
 

@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { parseBuildingShape, getShapeBounds } from "@/lib/mapGeometry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -58,6 +59,7 @@ interface Room3D {
 }
 
 export default function Working3DBuilder() {
+  const queryClient = useQueryClient();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewMode, setViewMode] = useState<"3d" | "2d" | "split">("3d");
   const [editMode, setEditMode] = useState<"select" | "move" | "rotate" | "scale">("select");
@@ -98,38 +100,47 @@ export default function Working3DBuilder() {
   });
   
   // Fetch buildings from API
+  const refreshMapData = () => {
+    queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+  };
+
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
-      const response = await fetch("/api/buildings");
+      const response = await fetch("/api/buildings", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch buildings");
       return response.json();
     },
   });
 
-  // Fetch rooms from API
   const { data: rooms = [] } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
-      const response = await fetch("/api/rooms");
+      const response = await fetch("/api/rooms", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch rooms");
       return response.json();
     },
   });
 
-  // Convert buildings to 3D objects
-  const buildings3D: Building3D[] = buildings.map((b: any, i: number) => ({
-    id: b.id,
-    name: b.name || b.nameEn || `Building ${i + 1}`,
-    x: (b.mapPositionX || i * 150) - 200,
-    y: 0,
-    z: (b.mapPositionY || 0) - 200,
-    width: 100,
-    height: (b.floors || 3) * 40,
-    depth: 80,
-    color: b.colorCode || `hsl(${i * 60}, 70%, 50%)`,
-    rotation: 0,
-  }));
+  const buildings3D: Building3D[] = buildings.map((b: any, i: number) => {
+    const shape = parseBuildingShape(b);
+    const bounds = getShapeBounds(shape);
+    const mapX = b.mapPositionX ?? bounds.minX;
+    const mapY = b.mapPositionY ?? bounds.minY;
+    return {
+      id: b.id,
+      name: b.name || b.nameEn || `Building ${i + 1}`,
+      x: mapX - 200,
+      y: 0,
+      z: mapY - 200,
+      width: Math.max(bounds.width, 80),
+      height: Math.max((b.floors || 3) * 40, 60),
+      depth: Math.max(bounds.height, 60),
+      color: b.colorCode?.startsWith("#") ? b.colorCode : "#2563eb",
+      rotation: 0,
+    };
+  });
 
   // Animation loop
   useEffect(() => {
@@ -314,13 +325,16 @@ export default function Working3DBuilder() {
   }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode]);
 
   // Helper function
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
+  const hexToRgb = (color: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
+    if (result) {
+      return {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      };
+    }
+    return { r: 37, g: 99, b: 235 };
   };
 
   // Handle add building
@@ -329,6 +343,7 @@ export default function Working3DBuilder() {
       const response = await fetch("/api/buildings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: newBuilding.name,
           nameEn: newBuilding.nameEn,
@@ -358,9 +373,7 @@ export default function Working3DBuilder() {
         color: "#3B82F6",
       });
       setShowAddBuilding(false);
-
-      // Refresh buildings list
-      window.location.reload();
+      refreshMapData();
     } catch (error) {
       console.error("Error adding building:", error);
       alert("Failed to add building");
@@ -375,6 +388,7 @@ export default function Working3DBuilder() {
       const response = await fetch(`/api/buildings/${selectedBuilding.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: selectedBuilding.name,
           mapPositionX: selectedBuilding.x + 200,
@@ -387,7 +401,7 @@ export default function Working3DBuilder() {
       if (!response.ok) throw new Error("Failed to update building");
 
       setShowEditBuilding(false);
-      window.location.reload();
+      refreshMapData();
     } catch (error) {
       console.error("Error updating building:", error);
       alert("Failed to update building");
@@ -405,13 +419,14 @@ export default function Working3DBuilder() {
     try {
       const response = await fetch(`/api/buildings/${selectedBuilding.id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!response.ok) throw new Error("Failed to delete building");
 
       setSelectedBuilding(null);
       setShowEditBuilding(false);
-      window.location.reload();
+      refreshMapData();
     } catch (error) {
       console.error("Error deleting building:", error);
       alert("Failed to delete building");
@@ -424,6 +439,7 @@ export default function Working3DBuilder() {
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           buildingId: newRoom.buildingId,
           roomNumber: newRoom.roomNumber,
@@ -448,9 +464,7 @@ export default function Working3DBuilder() {
         type: "classroom",
       });
       setShowAddRoom(false);
-
-      // Refresh rooms list
-      window.location.reload();
+      refreshMapData();
     } catch (error) {
       console.error("Error adding room:", error);
       alert("Failed to add room");

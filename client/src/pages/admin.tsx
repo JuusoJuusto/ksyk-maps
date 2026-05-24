@@ -88,7 +88,7 @@ export default function Admin() {
 
   if (showPasswordChange) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-blue-700 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl border-2 border-blue-300 p-8 max-w-md w-full">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-blue-900 mb-2">Change Your Password</h2>
@@ -153,7 +153,7 @@ export default function Admin() {
   // Show access denied if not admin
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
+      <div className="min-h-screen bg-gray-100">
         <Header />
         <div className="max-w-md mx-auto mt-20 p-6">
           <div className="bg-white rounded-xl shadow-2xl border-2 border-red-200 p-8 text-center">
@@ -176,13 +176,13 @@ export default function Admin() {
 
   // Render admin dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Top Announcement Banner */}
       <AnnouncementBanner />
       <Header />
       <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full">
         {/* Enhanced Welcome Header */}
-        <div className="mb-4 sm:mb-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-6 sm:p-8 text-white">
+        <div className="mb-4 sm:mb-8 bg-blue-600 rounded-2xl shadow-lg p-6 sm:p-8 text-white border border-blue-700">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
@@ -213,12 +213,6 @@ export default function Admin() {
                 </p>
               </div>
               <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => setLocation('/admin-ksyk-management-portal/aalto-space-map')}
-                  className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg transition-all font-semibold text-sm"
-                >
-                  Aalto Space Map (admin)
-                </button>
               <div className="flex gap-2">
                 <button
                   onClick={() => setLocation('/')}
