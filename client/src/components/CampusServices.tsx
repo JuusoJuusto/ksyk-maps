@@ -1,5 +1,5 @@
 /**
- * AALTO SPACE - Campus Services Component
+ * KSYK Maps - Campus Services Component
  * Displays restaurants, cafes, gyms, libraries, and other campus services
  */
 
@@ -72,7 +72,7 @@ const DIETARY_ICONS: Record<string, string> = {
   lactose_free: "🥛",
 };
 
-export default function CampusServicesAalto() {
+export default function CampusServices() {
   const { t, i18n } = useTranslation();
   const { darkMode } = useDarkMode();
   

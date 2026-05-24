@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import {
   Box,
   Move,
@@ -338,6 +339,39 @@ export default function Working3DBuilder() {
   };
 
   // Handle add building
+  const quickAddWing = async (letter: string, nameEn: string, nameFi: string, color: string, floors: number) => {
+    const offset = buildings3D.length * 140;
+    try {
+      const response = await fetch("/api/buildings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: letter,
+          nameEn,
+          nameFi,
+          floors,
+          mapPositionX: 200 + offset,
+          mapPositionY: 200 + (offset % 3) * 80,
+          colorCode: color,
+          isActive: true,
+          description: JSON.stringify({
+            customShape: [
+              { x: 200 + offset, y: 200 },
+              { x: 320 + offset, y: 200 },
+              { x: 320 + offset, y: 320 },
+              { x: 200 + offset, y: 320 },
+            ],
+          }),
+        }),
+      });
+      if (!response.ok) throw new Error("Failed");
+      refreshMapData();
+    } catch {
+      alert(`Could not add wing ${letter}`);
+    }
+  };
+
   const handleAddBuilding = async () => {
     try {
       const response = await fetch("/api/buildings", {
@@ -477,7 +511,10 @@ export default function Working3DBuilder() {
       <div className="bg-white dark:bg-gray-800 border-b shadow-sm p-3 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <Box className="w-6 h-6 text-blue-600" />
-          <h1 className="text-xl font-bold">Working 3D Builder</h1>
+          <h1 className="text-xl font-bold">KSYK 3D Campus Builder</h1>
+          <span className="text-xs text-gray-500 hidden sm:inline">
+            {buildings.length} wings · {rooms.length} rooms
+          </span>
         </div>
 
         {/* View Mode */}
@@ -538,6 +575,23 @@ export default function Working3DBuilder() {
             <Grid3x3 className="w-4 h-4" />
           </Button>
         </div>
+      </div>
+
+      <div className="bg-blue-50 dark:bg-gray-800 border-b px-3 py-2 flex flex-wrap gap-2 items-center">
+        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 mr-1">Quick add wing:</span>
+        {KSYK_WING_PRESETS.map((w) => (
+          <Button
+            key={w.letter}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs font-bold"
+            style={{ borderColor: w.color, color: w.color }}
+            onClick={() => quickAddWing(w.letter, w.nameEn, w.nameFi, w.color, w.floors)}
+          >
+            {w.letter}
+          </Button>
+        ))}
       </div>
 
       {/* Main Content */}

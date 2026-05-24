@@ -1,17 +1,19 @@
 /**
- * AALTO SPACE - Map View Component
- * Redesigned map interface matching Aalto Space design principles
+ * KSYK Maps — Interactive campus map view
  */
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   parseBuildingShape,
   getShapeBounds,
   pointsToSvgPath,
   computeCampusViewBox,
   getBuildingLabel,
+  parseViewBox,
+  formatViewBox,
   type BuildingMapData,
 } from "@/lib/mapGeometry";
+import { KSYK_ENTRANCES } from "@/lib/ksykCampusData";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -54,11 +56,11 @@ interface Room {
   height: number;
 }
 
-interface AaltoMapViewProps {
+interface KSYKMapViewProps {
   onNavigate?: (from: string, to: string) => void;
 }
 
-export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
+export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
   const { t, i18n } = useTranslation();
   const { darkMode } = useDarkMode();
 
@@ -67,10 +69,10 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [viewState, setViewState] = useState({ x: 0, y: 0, w: 1600, h: 900 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const panStart = useRef({ clientX: 0, clientY: 0, view: { x: 0, y: 0, w: 1600, h: 900 } });
+  const mapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [showLayers, setShowLayers] = useState(false);
   const [layerSettings, setLayerSettings] = useState({
@@ -134,10 +136,16 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
     return Math.max(fromBuildings, fromRooms, 1);
   }, [buildings, rooms]);
 
-  const viewBox = useMemo(
-    () => computeCampusViewBox(buildings as BuildingMapData[]),
+  const baseViewBox = useMemo(
+    () => parseViewBox(computeCampusViewBox(buildings as BuildingMapData[])),
     [buildings]
   );
+
+  useEffect(() => {
+    if (buildings.length > 0) {
+      setViewState(parseViewBox(computeCampusViewBox(buildings as BuildingMapData[])));
+    }
+  }, [buildings]);
 
   const floorRooms = rooms.filter((r: Room) => {
     if (r.floor !== selectedFloor) return false;
@@ -145,50 +153,71 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
     return true;
   });
 
-  const handleZoomIn = () => setZoom(Math.min(zoom + 0.15, 2.5));
-  const handleZoomOut = () => setZoom(Math.max(zoom - 0.15, 0.4));
+  const zoomView = (factor: number) => {
+    setViewState((v) => {
+      const cx = v.x + v.w / 2;
+      const cy = v.y + v.h / 2;
+      const nw = Math.min(Math.max(v.w * factor, 300), 5000);
+      const nh = Math.min(Math.max(v.h * factor, 200), 3500);
+      return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+    });
+  };
+
+  const handleZoomIn = () => zoomView(0.85);
+  const handleZoomOut = () => zoomView(1.15);
   const handleResetView = () => {
-    setZoom(1);
-    setPanOffset({ x: 0, y: 0 });
+    setViewState(baseViewBox);
     setSelectedFloor(1);
     setSelectedBuilding(null);
     setSelectedRoom(null);
   };
 
-  const handlePanStart = useCallback(
-    (clientX: number, clientY: number) => {
-      setIsPanning(true);
-      panStart.current = {
-        x: clientX,
-        y: clientY,
-        panX: panOffset.x,
-        panY: panOffset.y,
-      };
-    },
-    [panOffset]
-  );
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.08 : 0.92;
+      setViewState((v) => {
+        const cx = v.x + v.w / 2;
+        const cy = v.y + v.h / 2;
+        const nw = Math.min(Math.max(v.w * factor, 300), 5000);
+        const nh = Math.min(Math.max(v.h * factor, 200), 3500);
+        return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [buildings.length]);
 
-  const handlePanMove = useCallback((clientX: number, clientY: number) => {
-    if (!isPanning) return;
-    setPanOffset({
-      x: panStart.current.panX + (clientX - panStart.current.x),
-      y: panStart.current.panY + (clientY - panStart.current.y),
-    });
-  }, [isPanning]);
-
-  const handlePanEnd = useCallback(() => setIsPanning(false), []);
+  const handlePanStart = (clientX: number, clientY: number) => {
+    setIsPanning(true);
+    panStart.current = { clientX, clientY, view: { ...viewState } };
+  };
 
   useEffect(() => {
     if (!isPanning) return;
-    const onMove = (e: MouseEvent) => handlePanMove(e.clientX, e.clientY);
-    const onUp = () => handlePanEnd();
+    const onMove = (e: MouseEvent) => {
+      const rect = mapRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const scaleX = panStart.current.view.w / rect.width;
+      const scaleY = panStart.current.view.h / rect.height;
+      setViewState({
+        ...panStart.current.view,
+        x: panStart.current.view.x - (e.clientX - panStart.current.clientX) * scaleX,
+        y: panStart.current.view.y - (e.clientY - panStart.current.clientY) * scaleY,
+        w: panStart.current.view.w,
+        h: panStart.current.view.h,
+      });
+    };
+    const onUp = () => setIsPanning(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [isPanning, handlePanMove, handlePanEnd]);
+  }, [isPanning]);
 
   const toggleLayer = (layer: keyof typeof layerSettings) => {
     setLayerSettings((prev) => ({ ...prev, [layer]: !prev[layer] }));
@@ -420,10 +449,11 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
         )}
       </div>
 
-      {/* Map Canvas */}
+      {/* Map Canvas — drag to pan, scroll to zoom */}
       <div
-        className={`h-full w-full overflow-hidden ${darkMode ? "bg-[#e8eaed]" : "bg-[#eef1f4]"}`}
-        style={{ cursor: isPanning ? "grabbing" : "grab" }}
+        ref={mapRef}
+        className={`h-full w-full overflow-hidden select-none ${darkMode ? "bg-[#e8eaed]" : "bg-[#eef1f4]"}`}
+        style={{ cursor: isPanning ? "grabbing" : "grab", touchAction: "none" }}
         onMouseDown={(e) => {
           if (e.button !== 0) return;
           if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
@@ -451,14 +481,9 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
         ) : (
           <svg
             ref={svgRef}
-            className="h-full w-full touch-none"
-            viewBox={viewBox}
+            className="h-full w-full"
+            viewBox={formatViewBox(viewState)}
             preserveAspectRatio="xMidYMid meet"
-            style={{
-              transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-              transformOrigin: "center center",
-              transition: isPanning ? "none" : "transform 0.15s ease-out",
-            }}
           >
             <defs>
               <pattern id="campusGrid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -474,6 +499,19 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
               </filter>
             </defs>
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
+
+            <text x={baseViewBox.x + 40} y={baseViewBox.y + 50} fill={darkMode ? "#94a3b8" : "#64748b"} fontSize="28" fontWeight="700" opacity="0.5">
+              Kulosaaren yhteiskoulu
+            </text>
+
+            {KSYK_ENTRANCES.map((ent) => (
+              <g key={ent.id} className="pointer-events-none">
+                <circle cx={ent.x} cy={ent.y} r={14} fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+                <text x={ent.x} y={ent.y + 5} textAnchor="middle" fill="#2563eb" fontSize="12" fontWeight="800">
+                  {ent.label}
+                </text>
+              </g>
+            ))}
 
             {buildings.map((building: Building) => {
               const shape = parseBuildingShape(building);
@@ -501,16 +539,39 @@ export default function AaltoMapView({ onNavigate }: AaltoMapViewProps) {
                   />
                   <text
                     x={bounds.centerX}
-                    y={bounds.centerY}
+                    y={bounds.centerY - 8}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fill="#ffffff"
-                    fontSize={Math.min(22, Math.max(12, bounds.width / 8))}
-                    fontWeight="700"
+                    fontSize={Math.min(20, Math.max(11, bounds.width / 9))}
+                    fontWeight="800"
                     className="pointer-events-none select-none"
-                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)" }}
+                  >
+                    {building.name}
+                  </text>
+                  <text
+                    x={bounds.centerX}
+                    y={bounds.centerY + 14}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="#ffffff"
+                    fontSize={Math.min(12, Math.max(9, bounds.width / 14))}
+                    fontWeight="500"
+                    opacity={0.95}
+                    className="pointer-events-none select-none"
                   >
                     {label}
+                  </text>
+                  <text
+                    x={bounds.centerX}
+                    y={bounds.maxY - 12}
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="10"
+                    opacity={0.85}
+                    className="pointer-events-none"
+                  >
+                    {building.floors} {i18n.language === "fi" ? "kr" : "fl"}
                   </text>
                 </g>
               );

@@ -4,7 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import Working3DBuilder from "@/components/Working3DBuilder";
-import AaltoMapView from "@/components/AaltoMapView";
+import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
@@ -1364,7 +1364,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="campus-map" className="min-h-[70vh] h-[75vh] overflow-hidden rounded-lg border border-gray-200">
-          <AaltoMapView />
+          <KSYKMapView />
         </TabsContent>
 
         <TabsContent value="ksyk-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">

@@ -49,7 +49,7 @@ import ForgotPassword from "@/pages/forgot-password";
 import LearnCoding from "@/pages/learn-coding";
 import NotFound from "@/pages/not-found";
 import KSYKBuilder3D from "@/components/KSYKBuilder3D";
-import AaltoHome from "@/pages/aalto-home";
+import KSYKMapsHome from "@/pages/ksykmaps-home";
 import "./lib/i18n";
 
 function Router() {
@@ -78,7 +78,7 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={AaltoHome} />
+      <Route path="/" component={KSYKMapsHome} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/hsl" component={HSL} />

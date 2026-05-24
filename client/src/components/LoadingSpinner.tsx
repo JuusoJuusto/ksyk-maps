@@ -1,4 +1,5 @@
 import { MapPin, Building, Layers, Navigation } from "lucide-react";
+import { KSYK_MAPS_LOGO } from "@/lib/branding";
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -40,14 +41,14 @@ export default function LoadingSpinner({
           {/* Center icon with pulse */}
           <div className="relative h-32 w-32 flex items-center justify-center mb-8">
             <div className="absolute inset-0 rounded-full animate-ping bg-blue-200"></div>
-            <div className="relative rounded-full p-6 shadow-2xl bg-gradient-to-br from-blue-600 to-indigo-600">
-              <MapPin className="h-12 w-12 animate-pulse text-white" />
+            <div className="relative rounded-2xl p-2 shadow-2xl bg-white border-2 border-blue-100">
+              <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-24 w-24 object-contain animate-pulse" />
             </div>
           </div>
 
           {/* Loading text */}
           <div className="text-center space-y-4">
-            <h2 className="text-4xl font-bold drop-shadow-lg animate-pulse bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold drop-shadow-lg animate-pulse text-blue-600">
               KSYK Maps
             </h2>
             <p className="text-xl font-medium text-gray-700">

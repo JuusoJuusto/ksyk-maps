@@ -64,7 +64,7 @@ export const buildings = pgTable("buildings", {
   mapPositionY: integer("map_position_y"),
   colorCode: varchar("color_code").default("#3B82F6"),
   isActive: boolean("is_active").default(true),
-  // AALTO SPACE: Building Enhancement Fields
+  // KSYK Maps: Building enhancement fields
   openingHours: jsonb("opening_hours"), // { monday: { open: "07:00", close: "22:00" }, ... }
   lobbyServices: text("lobby_services").array(), // reception, security, info_desk, etc.
   entrances: jsonb("entrances"), // [{ type: "main", accessible: true, x: 100, y: 200 }, ...]
@@ -104,7 +104,7 @@ export const rooms = pgTable("rooms", {
   isPublic: boolean("is_public").default(true), // Whether to show on public maps
   isAccessible: boolean("is_accessible").default(true),
   isActive: boolean("is_active").default(true),
-  // AALTO SPACE: Room Booking Fields
+  // KSYK Maps: Room booking fields
   isBookable: boolean("is_bookable").default(false),
   bookingDuration: integer("booking_duration").default(60), // minutes
   maxOccupancy: integer("max_occupancy"),

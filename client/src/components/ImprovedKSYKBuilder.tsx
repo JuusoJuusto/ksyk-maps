@@ -9,6 +9,8 @@ import {
   Building, Plus, Trash2, MousePointer, X, Undo, Square, 
   Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers
 } from "lucide-react";
+import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
+import { KSYK_MAPS_LOGO } from "@/lib/branding";
 
 interface Point { x: number; y: number; }
 
@@ -342,15 +344,17 @@ export default function ImprovedKSYKBuilder() {
 
   // Get color for building
   const getColorForBuilding = (letter: string): string => {
-    const colors: Record<string, string> = {
-      'A': '#3B82F6', // Blue
-      'M': '#10B981', // Green
-      'U': '#F59E0B', // Orange
-      'K': '#8B5CF6', // Purple
-      'L': '#EF4444', // Red
-      'R': '#EC4899', // Pink
-    };
-    return colors[letter] || '#6B7280';
+    return KSYK_WING_PRESETS.find((w) => w.letter === letter)?.color || "#6B7280";
+  };
+
+  const addRoomFromPreset = (letter: string) => {
+    setRoomData({
+      ...roomData,
+      roomNumber: `${letter}${roomData.floor}1`,
+      x: 100 + rooms.length * 30,
+      y: 100 + rooms.length * 20,
+    });
+    setActiveTool("room");
   };
 
   // Room type colors
@@ -384,9 +388,25 @@ export default function ImprovedKSYKBuilder() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Building className="h-6 w-6" />
-            KSYK Builder
+            <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-8 w-8 rounded-lg" />
+            KSYK Map Builder
           </h1>
+          <div className="hidden md:flex gap-1">
+            {KSYK_WING_PRESETS.map((w) => (
+              <Button
+                key={w.letter}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs font-bold"
+                style={{ borderColor: w.color }}
+                onClick={() => addRoomFromPreset(w.letter)}
+                title={`Add room in ${w.nameEn}`}
+              >
+                {w.letter}
+              </Button>
+            ))}
+          </div>
           
           <div className="flex gap-2">
             <Button

@@ -1,5 +1,5 @@
 /**
- * AALTO SPACE API ROUTES
+ * KSYK Maps campus API routes
  * Room booking, campus services, favorites, and notifications
  */
 
@@ -7,7 +7,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { isAuthenticated } from "./simpleAuth";
 
-export function registerAaltoSpaceRoutes(app: Express) {
+export function registerCampusRoutes(app: Express) {
   // ============================================
   // ROOM BOOKING ROUTES
   // ============================================
@@ -408,5 +408,5 @@ export function registerAaltoSpaceRoutes(app: Express) {
     }
   });
 
-  console.log('✅ Aalto Space routes registered');
+  console.log('✅ KSYK Maps campus routes registered');
 }

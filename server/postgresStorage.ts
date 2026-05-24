@@ -360,7 +360,7 @@ export class DatabaseStorage implements IStorage {
       appName: 'KSYK Map',
       appNameEn: 'KSYK Map',
       appNameFi: 'KSYK Kartta',
-      logoUrl: '/ksykmaps_logo.png',
+      logoUrl: '/ksykmaps_logo_new.png',
       primaryColor: '#000000',
       secondaryColor: '#FF0066',
       successColor: '#10B981',

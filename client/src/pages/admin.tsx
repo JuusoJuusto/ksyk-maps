@@ -196,7 +196,7 @@ export default function Admin() {
                   </p>
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 inline-block">
+              <div className="bg-white/15 rounded-lg p-3 inline-block border border-white/20">
                 <p className="text-sm text-blue-100">Logged in as</p>
                 <p className="text-lg font-semibold">{(user as any)?.firstName || (user as any)?.email}</p>
                 <p className="text-xs text-blue-200 mt-1">
@@ -205,7 +205,7 @@ export default function Admin() {
               </div>
             </div>
             <div className="flex flex-col gap-3 w-full sm:w-auto">
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="bg-white/15 rounded-xl p-4 text-center border border-white/20">
                 <p className="text-xs text-blue-100">System Status</p>
                 <p className="text-2xl font-bold flex items-center justify-center gap-2">
                   <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>

@@ -94,3 +94,12 @@ export function getBuildingLabel(building: BuildingMapData, lang: string): strin
   if (building.nameEn) return building.nameEn;
   return building.name;
 }
+
+export function parseViewBox(viewBox: string) {
+  const [x, y, w, h] = viewBox.split(" ").map(Number);
+  return { x, y, w, h };
+}
+
+export function formatViewBox(v: { x: number; y: number; w: number; h: number }) {
+  return `${v.x} ${v.y} ${v.w} ${v.h}`;
+}
