@@ -1,6 +1,7 @@
 /**
- * ADMIN AALTO SPACE MAP - Full version with bottom navigation
+ * ADMIN AALTO SPACE MAP - Full version with top navigation
  * Accessible only from admin panel at /admin-ksyk-management-portal/aalto-space-map
+ * Bottom navigation removed - moved to top tabs
  */
 
 import { useState } from "react";
@@ -8,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import Header from "@/components/Header";
 import AaltoMapView from "@/components/AaltoMapView";
-import AaltoBottomNav from "@/components/AaltoBottomNav";
 import RoomBooking from "@/components/RoomBooking";
 import CampusServicesAalto from "@/components/CampusServicesAalto";
 import Working3DBuilder from "@/components/Working3DBuilder";
@@ -38,6 +38,41 @@ export default function AdminAaltoSpaceMap() {
   return (
     <div className={`h-screen flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Header />
+      
+      {/* Top Navigation Tabs */}
+      <div className={`border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className="flex items-center justify-center gap-1 p-2 overflow-x-auto">
+          {[
+            { id: "map", icon: MapPin, label: "Map" },
+            { id: "search", icon: MapIcon, label: "Search" },
+            { id: "book", icon: Calendar, label: "Book" },
+            { id: "services", icon: Coffee, label: "Services" },
+            { id: "profile", icon: User, label: "Profile" },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                variant={activeTab === item.id ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab(item.id)}
+                className={`flex-shrink-0 ${
+                  activeTab === item.id
+                    ? darkMode
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-600 text-white"
+                    : darkMode
+                    ? "text-gray-300 hover:text-white"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <Icon className="h-4 w-4 mr-2" />
+                {item.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
       
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative">
@@ -196,9 +231,6 @@ export default function AdminAaltoSpaceMap() {
           </div>
         )}
       </div>
-
-      {/* Bottom Navigation (Mobile-First) */}
-      <AaltoBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

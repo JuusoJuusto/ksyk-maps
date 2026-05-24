@@ -1,5 +1,5 @@
 {
-  "appId": "com.slstudio.ksykmaps.admin",
+  "appId": "com.nordbytestudio.ksykmaps.admin",
   "productName": "KSYK Maps Admin",
   "directories": {
     "output": "dist/admin"

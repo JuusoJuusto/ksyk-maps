@@ -17,7 +17,7 @@
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.slstudio.ksykmaps",
+    "appId": "com.nordbytestudio.ksykmaps",
     "productName": "KSYK Maps",
     "directories": {
       "output": "dist"

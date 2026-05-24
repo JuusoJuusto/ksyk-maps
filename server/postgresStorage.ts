@@ -437,4 +437,353 @@ export class DatabaseStorage implements IStorage {
       console.log('  Details:', log.details);
     }
   }
+
+  // ============================================
+  // MISSING METHODS IMPLEMENTATIONS
+  // ============================================
+
+  // Analytics operations
+  async createPageView(view: any): Promise<void> {
+    console.log('📊 Page View:', view);
+  }
+
+  async createSearchAnalytic(search: any): Promise<void> {
+    console.log('🔍 Search Analytic:', search);
+  }
+
+  async createNavigationAnalytic(navigation: any): Promise<void> {
+    console.log('🧭 Navigation Analytic:', navigation);
+  }
+
+  async createUserSession(session: any): Promise<void> {
+    console.log('👤 User Session:', session);
+  }
+
+  async updateUserSession(sessionId: string, updates: any): Promise<void> {
+    console.log('🔄 Update Session:', sessionId, updates);
+  }
+
+  async getAnalyticsSummary(days?: number): Promise<any> {
+    return { totalViews: 0, totalUsers: 0, avgSessionDuration: 0 };
+  }
+
+  async getLiveAnalytics(): Promise<any> {
+    return { activeUsers: 0, pageViews: 0 };
+  }
+
+  async getAnalyticsEvents(timeRange: string, limit: number): Promise<any[]> {
+    return [];
+  }
+
+  async getPerformanceMetrics(timeRange: string): Promise<any> {
+    return { avgLoadTime: 0, errorRate: 0 };
+  }
+
+  async getTopSearches(limit?: number): Promise<any[]> {
+    return [];
+  }
+
+  async getPopularRooms(limit?: number): Promise<any[]> {
+    return [];
+  }
+
+  async getVisitorStats(days?: number): Promise<any> {
+    return { totalVisitors: 0, uniqueVisitors: 0 };
+  }
+
+  async createAnalyticsEvent(event: any): Promise<void> {
+    console.log('📊 Analytics Event:', event);
+  }
+
+  // Wilma User operations
+  async getWilmaUsers(role?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaUser(id: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createWilmaUser(wilmaUser: any): Promise<any> {
+    return wilmaUser;
+  }
+
+  async updateWilmaUser(id: string, wilmaUser: any): Promise<any> {
+    return wilmaUser;
+  }
+
+  async deleteWilmaUser(id: string): Promise<void> {
+    // No-op
+  }
+
+  async getWilmaUserByStudentId(studentId: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async getWilmaUserByUsername(username: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  // Wilma Schedule operations
+  async getWilmaSchedules(studentId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaSchedulesAll(): Promise<any[]> {
+    return [];
+  }
+
+  async createWilmaSchedule(scheduleData: any): Promise<any> {
+    return scheduleData;
+  }
+
+  async updateWilmaSchedule(id: string, scheduleData: any): Promise<any> {
+    return scheduleData;
+  }
+
+  async deleteWilmaSchedule(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Wilma Attendance operations
+  async getWilmaAttendance(studentId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaAttendanceByClass(classId: string): Promise<any[]> {
+    return [];
+  }
+
+  async createWilmaAttendance(attendanceData: any): Promise<any> {
+    return attendanceData;
+  }
+
+  async updateWilmaAttendance(id: string, attendanceData: any): Promise<any> {
+    return attendanceData;
+  }
+
+  async deleteWilmaAttendance(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Wilma Grades operations
+  async getWilmaGrades(studentId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async createWilmaGrade(gradeData: any): Promise<any> {
+    return gradeData;
+  }
+
+  async updateWilmaGrade(id: string, gradeData: any): Promise<any> {
+    return gradeData;
+  }
+
+  async deleteWilmaGrade(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Wilma Assignments operations
+  async getWilmaAssignments(studentId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaAssignmentsByClass(classId: string): Promise<any[]> {
+    return [];
+  }
+
+  async createWilmaAssignment(assignmentData: any): Promise<any> {
+    return assignmentData;
+  }
+
+  async updateWilmaAssignment(id: string, assignmentData: any): Promise<any> {
+    return assignmentData;
+  }
+
+  async deleteWilmaAssignment(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Wilma Messages operations
+  async getWilmaMessagesAll(userId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async createWilmaMessage(messageData: any): Promise<any> {
+    return messageData;
+  }
+
+  async deleteWilmaMessage(id: string): Promise<void> {
+    // No-op
+  }
+
+  async markWilmaMessageAsRead(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Wilma Settings operations
+  async getWilmaSettings(): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async updateWilmaSettings(settings: any): Promise<any> {
+    return settings;
+  }
+
+  // Parent-Child linking operations
+  async linkParentToChild(parentId: string, childId: string): Promise<void> {
+    console.log('🔗 Link Parent to Child:', parentId, childId);
+  }
+
+  async unlinkParentFromChild(parentId: string, childId: string): Promise<void> {
+    console.log('🔗 Unlink Parent from Child:', parentId, childId);
+  }
+
+  async getChildrenForParent(parentId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getParentsForChild(childId: string): Promise<any[]> {
+    return [];
+  }
+
+  // Wilma Extended operations
+  async getWilmaClasses(year?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaClass(id: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createWilmaClass(classData: any): Promise<any> {
+    return classData;
+  }
+
+  async updateWilmaClass(id: string, classData: any): Promise<any> {
+    return classData;
+  }
+
+  async deleteWilmaClass(id: string): Promise<void> {
+    // No-op
+  }
+
+  async getWilmaCourses(teacherId?: string, classId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaCourse(id: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createWilmaCourse(courseData: any): Promise<any> {
+    return courseData;
+  }
+
+  async updateWilmaCourse(id: string, courseData: any): Promise<any> {
+    return courseData;
+  }
+
+  async deleteWilmaCourse(id: string): Promise<void> {
+    // No-op
+  }
+
+  // Desktop operations
+  async getWilmaDesktopSettings(): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async updateWilmaDesktopSettings(settings: any): Promise<any> {
+    return settings;
+  }
+
+  async getWilmaDesktopApps(): Promise<any[]> {
+    return [];
+  }
+
+  async getWilmaDesktopApp(id: number): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createWilmaDesktopApp(appData: any): Promise<any> {
+    return appData;
+  }
+
+  async updateWilmaDesktopApp(id: number, appData: any): Promise<any> {
+    return appData;
+  }
+
+  async deleteWilmaDesktopApp(id: number): Promise<void> {
+    // No-op
+  }
+
+  async getWilmaUserDesktopConfig(userId: number): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async createWilmaUserDesktopConfig(configData: any): Promise<any> {
+    return configData;
+  }
+
+  async updateWilmaUserDesktopConfig(userId: number, configData: any): Promise<any> {
+    return configData;
+  }
+
+  // Additional missing methods
+  async deleteStaff(id: string): Promise<void> {
+    await this.deleteStaffMember(id);
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await this.getAllUsers();
+  }
+
+  async getWilmaHomeworkExtendedAll(): Promise<any[]> {
+    return [];
+  }
+
+  // Coding platform operations (stubs)
+  async getCodingCourses(): Promise<any[]> { return []; }
+  async getCodingCourse(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingCourse(courseData: any): Promise<any> { return courseData; }
+  async updateCodingCourse(id: string, courseData: any): Promise<any> { return courseData; }
+  async deleteCodingCourse(id: string): Promise<void> {}
+  async getCodingModules(courseId: string): Promise<any[]> { return []; }
+  async getCodingModule(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingModule(moduleData: any): Promise<any> { return moduleData; }
+  async updateCodingModule(id: string, moduleData: any): Promise<any> { return moduleData; }
+  async deleteCodingModule(id: string): Promise<void> {}
+  async getCodingLessons(moduleId: string): Promise<any[]> { return []; }
+  async getCodingLesson(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingLesson(lessonData: any): Promise<any> { return lessonData; }
+  async updateCodingLesson(id: string, lessonData: any): Promise<any> { return lessonData; }
+  async deleteCodingLesson(id: string): Promise<void> {}
+  async getCodingExercises(lessonId: string): Promise<any[]> { return []; }
+  async getCodingExercise(id: string): Promise<any | undefined> { return undefined; }
+  async createCodingExercise(exerciseData: any): Promise<any> { return exerciseData; }
+  async updateCodingExercise(id: string, exerciseData: any): Promise<any> { return exerciseData; }
+  async deleteCodingExercise(id: string): Promise<void> {}
+  async getCodingUserProgress(userId: string, courseId?: string): Promise<any[]> { return []; }
+  async getCodingUserProgressByCourse(userId: string, courseId: string): Promise<any | undefined> { return undefined; }
+  async createCodingUserProgress(progressData: any): Promise<any> { return progressData; }
+  async updateCodingUserProgress(id: string, progressData: any): Promise<any> { return progressData; }
+  async getCodingSubmissions(userId: string, exerciseId?: string): Promise<any[]> { return []; }
+  async createCodingSubmission(submissionData: any): Promise<any> { return submissionData; }
+  async getCodingClassrooms(teacherId?: string): Promise<any[]> { return []; }
+  async getCodingClassroom(id: string): Promise<any | undefined> { return undefined; }
+  async getCodingClassroomByJoinCode(joinCode: string): Promise<any | undefined> { return undefined; }
+  async createCodingClassroom(classroomData: any): Promise<any> { return classroomData; }
+  async updateCodingClassroom(id: string, classroomData: any): Promise<any> { return classroomData; }
+  async deleteCodingClassroom(id: string): Promise<void> {}
+  async joinCodingClassroom(classroomId: string, studentId: string): Promise<void> {}
+  async leaveCodingClassroom(classroomId: string, studentId: string): Promise<void> {}
+  async getCodingClassroomAssignments(classroomId: string): Promise<any[]> { return []; }
+  async createCodingClassroomAssignment(assignmentData: any): Promise<any> { return assignmentData; }
+  async updateCodingClassroomAssignment(id: string, assignmentData: any): Promise<any> { return assignmentData; }
+  async deleteCodingClassroomAssignment(id: string): Promise<void> {}
+  async getCodingUserStats(userId: string): Promise<any | undefined> { return undefined; }
+  async createCodingUserStats(statsData: any): Promise<any> { return statsData; }
+  async updateCodingUserStats(userId: string, statsData: any): Promise<any> { return statsData; }
+  async getCodingLeaderboard(type: string, period?: string, limit?: number): Promise<any[]> { return []; }
+  async updateCodingLeaderboard(leaderboardData: any): Promise<void> {}
 }

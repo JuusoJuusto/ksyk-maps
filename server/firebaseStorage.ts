@@ -4224,6 +4224,296 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // ============================================
+  // AALTO SPACE OPERATIONS
+  // ============================================
+
+  // Room Booking operations
+  async createRoomBooking(booking: any): Promise<any> {
+    try {
+      console.log('📅 Creating room booking:', booking);
+      const docRef = db.collection('roomBookings').doc();
+      const bookingData = {
+        ...booking,
+        id: docRef.id,
+        status: booking.status || 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(bookingData);
+      console.log('✅ Room booking created:', docRef.id);
+      return bookingData;
+    } catch (error) {
+      console.error('❌ Error creating room booking:', error);
+      throw error;
+    }
+  }
+
+  async getUserBookings(userId: string): Promise<any[]> {
+    try {
+      console.log('📋 Getting bookings for user:', userId);
+      const snapshot = await db.collection('roomBookings')
+        .where('userId', '==', userId)
+        .orderBy('startTime', 'desc')
+        .get();
+      const bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${bookings.length} bookings`);
+      return bookings;
+    } catch (error) {
+      console.error('❌ Error getting user bookings:', error);
+      // Fallback without orderBy if index doesn't exist
+      try {
+        const snapshot = await db.collection('roomBookings')
+          .where('userId', '==', userId)
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (fallbackError) {
+        return [];
+      }
+    }
+  }
+
+  async updateRoomBooking(id: string, updates: any): Promise<any> {
+    try {
+      console.log('🔄 Updating room booking:', id);
+      const updateData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+      await db.collection('roomBookings').doc(id).update(updateData);
+      const doc = await db.collection('roomBookings').doc(id).get();
+      console.log('✅ Room booking updated');
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('❌ Error updating room booking:', error);
+      throw error;
+    }
+  }
+
+  async deleteRoomBooking(id: string): Promise<void> {
+    try {
+      console.log('🗑️ Deleting room booking:', id);
+      await db.collection('roomBookings').doc(id).delete();
+      console.log('✅ Room booking deleted');
+    } catch (error) {
+      console.error('❌ Error deleting room booking:', error);
+      throw error;
+    }
+  }
+
+  // Campus Services operations
+  async getCampusServices(): Promise<any[]> {
+    try {
+      console.log('🏢 Getting campus services');
+      const snapshot = await db.collection('campusServices')
+        .where('isActive', '==', true)
+        .get();
+      const services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${services.length} campus services`);
+      return services;
+    } catch (error) {
+      console.error('❌ Error getting campus services:', error);
+      return [];
+    }
+  }
+
+  async createCampusService(service: any): Promise<any> {
+    try {
+      console.log('🏢 Creating campus service:', service);
+      const docRef = db.collection('campusServices').doc();
+      const serviceData = {
+        ...service,
+        id: docRef.id,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(serviceData);
+      console.log('✅ Campus service created:', docRef.id);
+      return serviceData;
+    } catch (error) {
+      console.error('❌ Error creating campus service:', error);
+      throw error;
+    }
+  }
+
+  async updateCampusService(id: string, updates: any): Promise<any> {
+    try {
+      console.log('🔄 Updating campus service:', id);
+      const updateData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+      await db.collection('campusServices').doc(id).update(updateData);
+      const doc = await db.collection('campusServices').doc(id).get();
+      console.log('✅ Campus service updated');
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('❌ Error updating campus service:', error);
+      throw error;
+    }
+  }
+
+  async deleteCampusService(id: string): Promise<void> {
+    try {
+      console.log('🗑️ Deleting campus service:', id);
+      await db.collection('campusServices').doc(id).update({ isActive: false });
+      console.log('✅ Campus service deleted');
+    } catch (error) {
+      console.error('❌ Error deleting campus service:', error);
+      throw error;
+    }
+  }
+
+  // User Favorites operations
+  async getUserFavorites(userId: string): Promise<any[]> {
+    try {
+      console.log('⭐ Getting favorites for user:', userId);
+      const snapshot = await db.collection('userFavorites')
+        .where('userId', '==', userId)
+        .get();
+      const favorites = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${favorites.length} favorites`);
+      return favorites;
+    } catch (error) {
+      console.error('❌ Error getting user favorites:', error);
+      return [];
+    }
+  }
+
+  async createUserFavorite(favorite: any): Promise<any> {
+    try {
+      console.log('⭐ Creating user favorite:', favorite);
+      const docRef = db.collection('userFavorites').doc();
+      const favoriteData = {
+        ...favorite,
+        id: docRef.id,
+        createdAt: new Date(),
+      };
+      await docRef.set(favoriteData);
+      console.log('✅ User favorite created:', docRef.id);
+      return favoriteData;
+    } catch (error) {
+      console.error('❌ Error creating user favorite:', error);
+      throw error;
+    }
+  }
+
+  async deleteUserFavorite(id: string): Promise<void> {
+    try {
+      console.log('🗑️ Deleting user favorite:', id);
+      await db.collection('userFavorites').doc(id).delete();
+      console.log('✅ User favorite deleted');
+    } catch (error) {
+      console.error('❌ Error deleting user favorite:', error);
+      throw error;
+    }
+  }
+
+  // User Notifications operations
+  async getUserNotifications(userId: string): Promise<any[]> {
+    try {
+      console.log('🔔 Getting notifications for user:', userId);
+      const snapshot = await db.collection('notifications')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get();
+      const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${notifications.length} notifications`);
+      return notifications;
+    } catch (error) {
+      console.error('❌ Error getting user notifications:', error);
+      // Fallback without orderBy if index doesn't exist
+      try {
+        const snapshot = await db.collection('notifications')
+          .where('userId', '==', userId)
+          .limit(50)
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (fallbackError) {
+        return [];
+      }
+    }
+  }
+
+  async createNotification(notification: any): Promise<any> {
+    try {
+      console.log('🔔 Creating notification:', notification);
+      const docRef = db.collection('notifications').doc();
+      const notificationData = {
+        ...notification,
+        id: docRef.id,
+        read: false,
+        createdAt: new Date(),
+      };
+      await docRef.set(notificationData);
+      console.log('✅ Notification created:', docRef.id);
+      return notificationData;
+    } catch (error) {
+      console.error('❌ Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  async updateNotification(id: string, updates: any): Promise<any> {
+    try {
+      console.log('🔄 Updating notification:', id);
+      await db.collection('notifications').doc(id).update(updates);
+      const doc = await db.collection('notifications').doc(id).get();
+      console.log('✅ Notification updated');
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('❌ Error updating notification:', error);
+      throw error;
+    }
+  }
+
+  // User History operations
+  async getUserHistory(userId: string, limit: number = 50): Promise<any[]> {
+    try {
+      console.log('📜 Getting history for user:', userId);
+      const snapshot = await db.collection('userHistory')
+        .where('userId', '==', userId)
+        .orderBy('timestamp', 'desc')
+        .limit(limit)
+        .get();
+      const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${history.length} history entries`);
+      return history;
+    } catch (error) {
+      console.error('❌ Error getting user history:', error);
+      // Fallback without orderBy if index doesn't exist
+      try {
+        const snapshot = await db.collection('userHistory')
+          .where('userId', '==', userId)
+          .limit(limit)
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (fallbackError) {
+        return [];
+      }
+    }
+  }
+
+  async createUserHistory(history: any): Promise<any> {
+    try {
+      console.log('📜 Creating user history entry:', history);
+      const docRef = db.collection('userHistory').doc();
+      const historyData = {
+        ...history,
+        id: docRef.id,
+        timestamp: new Date(),
+      };
+      await docRef.set(historyData);
+      console.log('✅ User history entry created:', docRef.id);
+      return historyData;
+    } catch (error) {
+      console.error('❌ Error creating user history:', error);
+      throw error;
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

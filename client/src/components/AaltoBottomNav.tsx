@@ -33,9 +33,9 @@ export default function AaltoBottomNav({ activeTab, onTabChange }: AaltoBottomNa
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 border-t ${
+      className={`hidden bottom-0 left-0 right-0 z-50 border-t ${
         darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
-      } md:hidden`}
+      }`}
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
       }}

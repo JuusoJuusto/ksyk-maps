@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { 
   MessageCircle, Send, HelpCircle, Book, Calendar, 
   Mail, User, Settings, ExternalLink, ChevronRight,
-  Clock, CheckCircle, AlertCircle, FileText
+  Clock, CheckCircle, AlertCircle, FileText, Sparkles, Loader2
 } from "lucide-react";
+import { generateText, GeminiChat } from "@/lib/geminiAI";
 
 interface Message {
   id: string;
@@ -25,7 +26,7 @@ interface QuickAction {
 
 /**
  * Smart Support Owl (Tuki Pöllö)
- * Rule-based intelligent support system - NO AI
+ * Hybrid intelligent support system - Rule-based + Gemini AI
  * Finnish language support with quick actions
  */
 export default function SmartSupportOwl() {
@@ -45,6 +46,8 @@ export default function SmartSupportOwl() {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [useAI, setUseAI] = useState(true);
+  const [aiChat, setAiChat] = useState<GeminiChat | null>(null);
 
   // Knowledge base - Rule-based responses (NO AI) - 1000+ PHRASES
   const knowledgeBase = {
@@ -831,13 +834,15 @@ export default function SmartSupportOwl() {
   };
 
   // Handle sending message
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputText.trim()) return;
 
+    const userText = inputText;
+    
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: userText,
       sender: 'user',
       timestamp: new Date()
     };
@@ -845,9 +850,35 @@ export default function SmartSupportOwl() {
     setInputText('');
     setIsTyping(true);
 
-    // Simulate typing delay (rule-based response generation)
+    // Try AI first if enabled
+    if (useAI && aiChat) {
+      try {
+        const aiResponse = await aiChat.sendMessage(userText);
+        
+        const owlMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: aiResponse,
+          sender: 'owl',
+          timestamp: new Date(),
+          quickActions: [
+            { label: 'Salasana', action: 'password', icon: <Settings className="w-4 h-4" /> },
+            { label: 'Lukujärjestys', action: 'schedule', icon: <Calendar className="w-4 h-4" /> },
+            { label: 'Arvosanat', action: 'grades', icon: <FileText className="w-4 h-4" /> },
+          ]
+        };
+        
+        setMessages(prev => [...prev, owlMessage]);
+        setIsTyping(false);
+        return;
+      } catch (error) {
+        console.error('AI response failed, falling back to rule-based:', error);
+        // Continue to rule-based fallback
+      }
+    }
+
+    // Fallback to rule-based response
     setTimeout(() => {
-      const { response, quickActions } = findBestResponse(inputText);
+      const { response, quickActions } = findBestResponse(userText);
       
       const owlMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -859,7 +890,7 @@ export default function SmartSupportOwl() {
       
       setMessages(prev => [...prev, owlMessage]);
       setIsTyping(false);
-    }, 800);
+    }, 500);
   };
 
   // Handle quick action
@@ -901,10 +932,22 @@ export default function SmartSupportOwl() {
             <CardTitle className="text-base truncate">Tuki Pöllö</CardTitle>
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate">Älykäs tukijärjestelmä</p>
           </div>
-          <Badge variant="outline" className="ml-auto flex-shrink-0 text-xs">
-            <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
-            Online
-          </Badge>
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            <Badge variant="outline" className="text-xs">
+              <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+              Online
+            </Badge>
+            <Button
+              size="sm"
+              variant={useAI ? "default" : "outline"}
+              onClick={() => setUseAI(!useAI)}
+              className="text-xs h-7 px-2"
+              title={useAI ? "AI aktiivinen" : "AI pois päältä"}
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              {useAI ? "AI" : "Säännöt"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -954,10 +997,23 @@ export default function SmartSupportOwl() {
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className="flex items-center gap-2">
+                {useAI ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      {aiChat ? "Tuki Pöllö miettii..." : "Alustetaan tekoälyä..."}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -978,7 +1034,16 @@ export default function SmartSupportOwl() {
           </Button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center truncate">
-          Tuki Pöllö käyttää sääntöpohjaista logiikkaa - ei tekoälyä
+          {useAI ? (
+            <>
+              <Sparkles className="w-3 h-3 inline mr-1 text-blue-600" />
+              Tuki Pöllö käyttää Gemini AI -tekoälyä
+            </>
+          ) : (
+            <>
+              Tuki Pöllö käyttää sääntöpohjaista logiikkaa
+            </>
+          )}
         </p>
       </div>
     </Card>

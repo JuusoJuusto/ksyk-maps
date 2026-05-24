@@ -136,7 +136,7 @@ function Router() {
       
       <Route path="/features" component={Features} />
       <Route path="/landing" component={Landing} />
-      <Route path="/owlapps" component={SLStudio} />
+      <Route path="/owlapps" component={NordbyteStudio} />
       <Route path="/secret-easter-egg" component={EasterEgg} />
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
