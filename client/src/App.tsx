@@ -27,7 +27,7 @@ import EasterEgg from "@/pages/easter-egg";
 import KonamiEasterEgg from "@/pages/konami";
 import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
-import SLStudio from "@/pages/owlapps";
+import NordbyteStudio from "@/pages/owlapps";
 import Wilma from "@/pages/wilma";
 import WilmaStudent from "@/pages/wilma-student";
 import WilmaTeacher from "@/pages/wilma-teacher";

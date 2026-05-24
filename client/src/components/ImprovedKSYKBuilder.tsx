@@ -215,6 +215,9 @@ export default function ImprovedKSYKBuilder() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       // Create buildings from grouped rooms
+      const existingBuildingsRes = await fetch('/api/buildings', { credentials: 'include' });
+      const existingBuildings = existingBuildingsRes.ok ? await existingBuildingsRes.json() : [];
+
       const buildingPromises = Object.entries(groupedRooms).map(async ([buildingLetter, buildingRooms]) => {
         // Calculate building bounds from rooms
         const minX = Math.min(...buildingRooms.map(r => r.mapPositionX));
@@ -222,32 +225,38 @@ export default function ImprovedKSYKBuilder() {
         const maxX = Math.max(...buildingRooms.map(r => r.mapPositionX + r.width));
         const maxY = Math.max(...buildingRooms.map(r => r.mapPositionY + r.height));
         
-        // Create building
-        const buildingResponse = await fetch('/api/buildings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            name: buildingLetter,
-            nameEn: `${buildingLetter} Building`,
-            nameFi: `${buildingLetter}-rakennus`,
-            floors: Math.max(...buildingRooms.map(r => r.floor)),
-            colorCode: getColorForBuilding(buildingLetter),
-            mapPositionX: minX,
-            mapPositionY: minY,
-            description: JSON.stringify({
-              customShape: [
-                { x: minX, y: minY },
-                { x: maxX, y: minY },
-                { x: maxX, y: maxY },
-                { x: minX, y: maxY }
-              ]
+        const existing = existingBuildings.find(
+          (b: { name?: string }) => b.name?.toUpperCase() === buildingLetter.toUpperCase()
+        );
+
+        let building = existing;
+        if (!building) {
+          const buildingResponse = await fetch('/api/buildings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              name: buildingLetter,
+              nameEn: `${buildingLetter} Building`,
+              nameFi: `${buildingLetter}-rakennus`,
+              floors: Math.max(...buildingRooms.map(r => r.floor)),
+              colorCode: getColorForBuilding(buildingLetter),
+              mapPositionX: minX,
+              mapPositionY: minY,
+              description: JSON.stringify({
+                customShape: [
+                  { x: minX, y: minY },
+                  { x: maxX, y: minY },
+                  { x: maxX, y: maxY },
+                  { x: minX, y: maxY }
+                ]
+              })
             })
-          })
-        });
-        
-        if (!buildingResponse.ok) throw new Error('Failed to create building');
-        const building = await buildingResponse.json();
+          });
+          
+          if (!buildingResponse.ok) throw new Error('Failed to create building');
+          building = await buildingResponse.json();
+        }
         
         // Create rooms for this building
         const roomPromises = buildingRooms.map(room => 

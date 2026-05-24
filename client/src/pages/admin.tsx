@@ -212,6 +212,13 @@ export default function Admin() {
                   Online
                 </p>
               </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setLocation('/admin-ksyk-management-portal/aalto-space-map')}
+                  className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg transition-all font-semibold text-sm"
+                >
+                  Aalto Space Map (admin)
+                </button>
               <div className="flex gap-2">
                 <button
                   onClick={() => setLocation('/')}
@@ -227,6 +234,7 @@ export default function Admin() {
                   <LogOut className="w-4 h-4" />
                   Logout
                 </button>
+              </div>
               </div>
             </div>
           </div>

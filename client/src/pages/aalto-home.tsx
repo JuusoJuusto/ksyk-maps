@@ -20,7 +20,7 @@ export default function AaltoHome() {
   const [mapMode, setMapMode] = useState<"2d" | "3d">("2d");
 
   return (
-    <div className={`h-screen flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`aalto-app h-screen flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Header />
       
       {/* Main Content Area - Just the Map */}
@@ -32,7 +32,7 @@ export default function AaltoHome() {
               onClick={() => setMapMode("2d")}
               variant={mapMode === "2d" ? "default" : "outline"}
               size="sm"
-              className={`shadow-lg ${mapMode === "2d" ? 'bg-blue-600 text-white' : ''}`}
+              className={`shadow-lg ${mapMode === "2d" ? 'bg-black text-white hover:bg-gray-900' : ''}`}
             >
               <MapIcon className="h-4 w-4 mr-2" />
               2D Map
@@ -41,7 +41,7 @@ export default function AaltoHome() {
               onClick={() => setMapMode("3d")}
               variant={mapMode === "3d" ? "default" : "outline"}
               size="sm"
-              className={`shadow-lg ${mapMode === "3d" ? 'bg-blue-600 text-white' : ''}`}
+              className={`shadow-lg ${mapMode === "3d" ? 'bg-black text-white hover:bg-gray-900' : ''}`}
             >
               <Box className="h-4 w-4 mr-2" />
               3D View

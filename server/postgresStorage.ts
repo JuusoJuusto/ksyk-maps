@@ -7,6 +7,10 @@ import {
   staff,
   events,
   announcements,
+  tickets,
+  appLogs,
+  adminLoginLogs,
+  appSettings,
   type User,
   type UpsertUser,
   type Building,
@@ -23,6 +27,8 @@ import {
   type InsertEvent,
   type Announcement,
   type InsertAnnouncement,
+  type AppSettings,
+  type InsertAppSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
@@ -348,16 +354,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // App Settings operations
-  async getAppSettings(): Promise<any> {
-    // Return default settings since PostgreSQL doesn't have app settings table
+  private defaultAppSettings(): AppSettings {
     return {
       id: 'default',
       appName: 'KSYK Map',
       appNameEn: 'KSYK Map',
       appNameFi: 'KSYK Kartta',
       logoUrl: '/ksykmaps_logo.png',
-      primaryColor: '#3B82F6',
-      secondaryColor: '#2563EB',
+      primaryColor: '#000000',
+      secondaryColor: '#FF0066',
+      successColor: '#10B981',
+      warningColor: '#EF4444',
+      theme: 'light',
       headerTitle: 'Campus Map',
       headerTitleEn: 'Campus Map',
       headerTitleFi: 'Kampuskartta',
@@ -369,39 +377,80 @@ export class DatabaseStorage implements IStorage {
       showStats: true,
       showAnnouncements: true,
       enableSearch: true,
+      enableAnimations: true,
+      enableAutoSave: true,
+      compactMode: false,
       defaultLanguage: 'en',
-      updatedAt: new Date()
-    };
+      aiSensitivity: '0.7',
+      enableSmartSnap: true,
+      enableRoomAutoCreation: false,
+      cacheMinutes: 30,
+      maxImageSizeMB: 10,
+      enablePreloadImages: true,
+      enableLazyLoading: true,
+      defaultZoomLevel: '1.0',
+      enableEasterEgg: true,
+      enableEvents: true,
+      enableTicketSystem: true,
+      enableVersionInfo: true,
+      maintenanceMode: false,
+      maintenanceMessage: null,
+      enableDarkModeToggle: true,
+      enableNotifications: true,
+      enableOfflineMode: true,
+      enableAnalytics: false,
+      updatedAt: new Date(),
+    } as AppSettings;
   }
 
-  async updateAppSettings(settings: any): Promise<any> {
-    // Return the settings as-is since PostgreSQL doesn't have app settings table
-    return {
-      ...await this.getAppSettings(),
-      ...settings,
-      updatedAt: new Date()
-    };
+  async getAppSettings(): Promise<AppSettings> {
+    try {
+      const [settings] = await db.select().from(appSettings).where(eq(appSettings.id, 'default'));
+      return settings ?? this.defaultAppSettings();
+    } catch {
+      return this.defaultAppSettings();
+    }
   }
 
-  // Ticket operations (stub implementations)
+  async updateAppSettings(settings: Partial<InsertAppSettings>): Promise<AppSettings> {
+    const [updated] = await db
+      .insert(appSettings)
+      .values({ id: 'default', ...settings })
+      .onConflictDoUpdate({
+        target: appSettings.id,
+        set: { ...settings, updatedAt: new Date() },
+      })
+      .returning();
+    return updated;
+  }
+
+  // Ticket operations
   async getTickets(): Promise<any[]> {
-    return [];
+    return await db.select().from(tickets).orderBy(desc(tickets.createdAt));
   }
 
   async getTicket(id: string): Promise<any | undefined> {
-    return undefined;
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
   }
 
   async createTicket(ticket: any): Promise<any> {
-    return ticket;
+    const [created] = await db.insert(tickets).values(ticket).returning();
+    return created;
   }
 
   async updateTicket(id: string, ticket: any): Promise<any> {
-    return ticket;
+    const [updated] = await db
+      .update(tickets)
+      .set({ ...ticket, updatedAt: new Date() })
+      .where(eq(tickets.id, id))
+      .returning();
+    if (!updated) throw new Error('Ticket not found');
+    return updated;
   }
 
   async deleteTicket(id: string): Promise<void> {
-    // No-op
+    await db.delete(tickets).where(eq(tickets.id, id));
   }
 
   // Admin Login Log operations
@@ -415,27 +464,40 @@ export class DatabaseStorage implements IStorage {
     failureReason?: string | null;
     sessionId?: string | null;
   }): Promise<void> {
-    console.log('📝 Admin Login Log:', {
-      ...log,
-      timestamp: new Date().toISOString()
-    });
+    await db.insert(adminLoginLogs).values(log);
   }
 
-  async getAdminLoginLogs(limit?: number): Promise<any[]> {
-    return [];
+  async getAdminLoginLogs(limit = 100): Promise<any[]> {
+    return await db.select().from(adminLoginLogs).orderBy(desc(adminLoginLogs.createdAt)).limit(limit);
   }
 
   // App Log operations
   async createAppLog(log: {
-    type: string;
+    level: string;
     message: string;
-    details?: string | null;
-    timestamp: Date;
+    errorReferenceId?: string | null;
+    errorStack?: string | null;
+    errorInfo?: any;
+    userAgent?: string | null;
+    url?: string | null;
+    userId?: string | null;
+    ipAddress?: string | null;
   }): Promise<void> {
-    console.log(`📝 App Log [${log.type.toUpperCase()}]:`, log.message);
-    if (log.details) {
-      console.log('  Details:', log.details);
-    }
+    await db.insert(appLogs).values({
+      level: log.level,
+      message: log.message,
+      errorReferenceId: log.errorReferenceId ?? null,
+      errorStack: log.errorStack ?? null,
+      errorInfo: log.errorInfo ?? null,
+      userAgent: log.userAgent ?? null,
+      url: log.url ?? null,
+      userId: log.userId ?? null,
+      ipAddress: log.ipAddress ?? null,
+    });
+  }
+
+  async getAppLogs(limit = 100): Promise<any[]> {
+    return await db.select().from(appLogs).orderBy(desc(appLogs.createdAt)).limit(limit);
   }
 
   // ============================================

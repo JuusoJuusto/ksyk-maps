@@ -44,10 +44,10 @@ Vieraile: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
 ## 📄 Lisenssi
 
-Copyright © 2026 OWL Apps. Kaikki oikeudet pidätetään.
+Copyright © 2026 Nordbyte Studio. Kaikki oikeudet pidätetään.
 
 Tämä ohjelmisto on omistusoikeudellinen ja luottamuksellinen. Luvaton kopiointi, jakelu tai käyttö on ehdottomasti kielletty.
 
 ---
 
-Tehty ❤️:lla OWL Apps KSYK:lle
+Tehty ❤️:lla Nordbyte Studio KSYK:lle

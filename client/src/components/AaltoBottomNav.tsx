@@ -32,10 +32,11 @@ export default function AaltoBottomNav({ activeTab, onTabChange }: AaltoBottomNa
   const { darkMode } = useDarkMode();
 
   return (
-    <div
-      className={`hidden bottom-0 left-0 right-0 z-50 border-t ${
+    <nav
+      className={`fixed bottom-0 left-0 right-0 z-50 flex border-t ${
         darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
       }`}
+      aria-label="Campus navigation"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
@@ -53,8 +54,8 @@ export default function AaltoBottomNav({ activeTab, onTabChange }: AaltoBottomNa
               className={`flex flex-col items-center justify-center flex-1 h-full transition-all ${
                 isActive
                   ? darkMode
-                    ? "text-blue-400"
-                    : "text-blue-600"
+                    ? "text-white"
+                    : "text-black"
                   : darkMode
                   ? "text-gray-400 hover:text-gray-300"
                   : "text-gray-600 hover:text-gray-900"
@@ -69,7 +70,7 @@ export default function AaltoBottomNav({ activeTab, onTabChange }: AaltoBottomNa
                 {isActive && (
                   <div
                     className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full ${
-                      darkMode ? "bg-blue-400" : "bg-blue-600"
+                      darkMode ? "bg-white" : "bg-black"
                     }`}
                   />
                 )}
@@ -85,6 +86,6 @@ export default function AaltoBottomNav({ activeTab, onTabChange }: AaltoBottomNa
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

@@ -234,7 +234,7 @@ export function getTicketResponseEmail(data: {
             © 2026 Nordbyte Studio. All rights reserved.
           </p>
           <p style="margin: 0; font-size: 12px;">
-            Support Email: support.slstudio@gmail.com
+            Support Email: support@nordbytestudio.fi
           </p>
         </div>
       </div>
@@ -319,7 +319,7 @@ export function getUserInvitationEmail(data: {
           </div>
 
           <p style="font-size: 14px; margin: 25px 0 0 0; color: rgba(255, 255, 255, 0.8);">
-            Need help? Contact us at support.slstudio@gmail.com
+            Need help? Contact us at support@nordbytestudio.fi
           </p>
         </div>
 
