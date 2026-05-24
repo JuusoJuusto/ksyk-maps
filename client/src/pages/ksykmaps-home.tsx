@@ -11,15 +11,16 @@ import KSYKMapView from "@/components/KSYKMapView";
 import Working3DBuilder from "@/components/Working3DBuilder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
-import { Button } from "@/components/ui/button";
-import { Box, Map as MapIcon, MapPin, Settings } from "lucide-react";
+import MapToolbar from "@/components/MapToolbar";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 export default function KSYKMapsHome() {
   const { darkMode } = useDarkMode();
   const { t } = useTranslation();
   const [mapMode, setMapMode] = useState<"2d" | "3d">("2d");
-  const [pageTab, setPageTab] = useState<"map" | "settings">("map");
+  const [view, setView] = useState<"map" | "settings">("map");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { isLoading: buildingsLoading } = useQuery({
     queryKey: ["buildings"],
@@ -53,74 +54,36 @@ export default function KSYKMapsHome() {
     );
   }
 
+  if (view === "settings") {
+    return (
+      <div className={cn("h-screen flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
+        <AnnouncementBanner />
+        <Header largeLogo homeMinimal />
+        <CampusSettingsPanel onBack={() => setView("map")} />
+      </div>
+    );
+  }
+
   return (
-    <div className={`ksykmaps-app h-screen flex flex-col overflow-hidden ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
+    <div className={cn("ksykmaps-app h-screen flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
       <AnnouncementBanner />
-      <Header largeLogo />
+      <Header largeLogo homeMinimal />
 
-      <div className="flex-1 overflow-hidden relative">
-        {/* Map / Settings tabs — like /classic */}
-        <div
-          className={`absolute top-3 left-3 z-30 flex gap-1 p-1 rounded-xl shadow-lg border ${
-            darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setPageTab("map")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-              pageTab === "map" ? "bg-blue-600 text-white" : darkMode ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
-            <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">Map</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPageTab("settings")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-              pageTab === "settings" ? "bg-blue-600 text-white" : darkMode ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </button>
-        </div>
+      <MapToolbar
+        mapMode={mapMode}
+        onMapModeChange={setMapMode}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onOpenSettings={() => setView("settings")}
+      />
 
-        {pageTab === "map" && (
-          <>
-            <div className="absolute top-3 right-3 z-20 flex gap-2">
-              <Button
-                onClick={() => setMapMode("2d")}
-                variant={mapMode === "2d" ? "default" : "outline"}
-                size="sm"
-                className={`shadow-lg ${mapMode === "2d" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
-              >
-                <MapIcon className="h-4 w-4 mr-1" />
-                2D
-              </Button>
-              <Button
-                onClick={() => setMapMode("3d")}
-                variant={mapMode === "3d" ? "default" : "outline"}
-                size="sm"
-                className={`shadow-lg ${mapMode === "3d" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
-              >
-                <Box className="h-4 w-4 mr-1" />
-                3D
-              </Button>
-            </div>
-            {mapMode === "2d" ? <KSYKMapView /> : <Working3DBuilder />}
-          </>
-        )}
-
-        {pageTab === "settings" && (
-          <div className={`h-full overflow-auto ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-            <div className="h-14" />
-            <CampusSettingsPanel />
-          </div>
+      <div className="flex-1 overflow-hidden relative min-h-0">
+        {mapMode === "2d" ? (
+          <KSYKMapView searchQuery={searchQuery} />
+        ) : (
+          <Working3DBuilder embedded />
         )}
       </div>
-
     </div>
   );
 }

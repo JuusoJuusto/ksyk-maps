@@ -9,9 +9,9 @@ import NavigationModal from "@/components/NavigationModal";
 import { Sun, Moon, Menu, X, ChevronDown } from "lucide-react";
 import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
 
-type HeaderProps = { largeLogo?: boolean };
+type HeaderProps = { largeLogo?: boolean; homeMinimal?: boolean };
 
-export default function Header({ largeLogo = false }: HeaderProps) {
+export default function Header({ largeLogo = false, homeMinimal = false }: HeaderProps) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
@@ -92,9 +92,10 @@ export default function Header({ largeLogo = false }: HeaderProps) {
               <img
                 src={KSYK_MAPS_LOGO}
                 alt={KSYK_MAPS_LOGO_ALT}
-                className={`object-contain rounded-xl shadow-sm group-hover:shadow-md transition-shadow ${
-                  largeLogo ? "h-14 w-14 sm:h-16 sm:w-16" : "h-10 w-10 sm:h-12 sm:w-12"
+                className={`object-contain rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-lg transition-all duration-200 group-hover:scale-[1.02] ${
+                  largeLogo ? "h-14 w-14 sm:h-[4.5rem] sm:w-[4.5rem]" : "h-11 w-11 sm:h-12 sm:w-12"
                 }`}
+                style={{ imageRendering: "auto" }}
               />
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors tracking-tight" 
@@ -127,7 +128,7 @@ export default function Header({ largeLogo = false }: HeaderProps) {
           )}
 
           {/* Desktop Controls */}
-          <div className="hidden lg:flex items-center space-x-2 lg:space-x-4">
+          <div className={homeMinimal ? "hidden" : "hidden lg:flex items-center space-x-2 lg:space-x-4"}>
             {!isInAdminPanel ? (
               <>
                 {/* Theme Toggle */}
@@ -255,7 +256,7 @@ export default function Header({ largeLogo = false }: HeaderProps) {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="lg:hidden">
+          <div className={homeMinimal ? "hidden" : "lg:hidden"}>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"

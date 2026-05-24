@@ -1,17 +1,66 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sun, Moon, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sun,
+  Moon,
+  Monitor,
+  ExternalLink,
+  Palette,
+  Map,
+  Box,
+  Gauge,
+  Accessibility,
+  Code2,
+  Info,
+  ChevronLeft,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "wouter";
+import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
+import { cn } from "@/lib/utils";
 
-export default function CampusSettingsPanel() {
+type SettingsTab =
+  | "appearance"
+  | "map"
+  | "3d"
+  | "performance"
+  | "accessibility"
+  | "developer"
+  | "about";
+
+const TABS: { id: SettingsTab; icon: typeof Palette; labelEn: string; labelFi: string }[] = [
+  { id: "appearance", icon: Palette, labelEn: "Appearance", labelFi: "Ulkoasu" },
+  { id: "map", icon: Map, labelEn: "Map Controls", labelFi: "Kartta" },
+  { id: "3d", icon: Box, labelEn: "3D Settings", labelFi: "3D" },
+  { id: "performance", icon: Gauge, labelEn: "Performance", labelFi: "Suorituskyky" },
+  { id: "accessibility", icon: Accessibility, labelEn: "Accessibility", labelFi: "Saavutettavuus" },
+  { id: "developer", icon: Code2, labelEn: "Developer", labelFi: "Kehittäjä" },
+  { id: "about", icon: Info, labelEn: "About", labelFi: "Tietoja" },
+];
+
+type CampusSettingsPanelProps = {
+  onBack?: () => void;
+};
+
+export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps) {
   const { i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const [currentLang, setCurrentLang] = useState(() => {
-    return localStorage.getItem("ksyk_language") || i18n.language;
-  });
+  const { darkMode } = useDarkMode();
+  const { settings, update, reset } = useAppSettings();
+  const [tab, setTab] = useState<SettingsTab>("appearance");
+  const [currentLang, setCurrentLang] = useState(
+    () => localStorage.getItem("ksyk_language") || i18n.language
+  );
   const britishUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
   const isFi = currentLang === "fi";
 
@@ -21,108 +70,328 @@ export default function CampusSettingsPanel() {
     i18n.changeLanguage(lang).then(() => window.location.reload());
   };
 
+  const SettingRow = ({
+    label,
+    description,
+    children,
+  }: {
+    label: string;
+    description?: string;
+    children: React.ReactNode;
+  }) => (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="min-w-0 flex-1">
+        <Label className="text-sm font-semibold">{label}</Label>
+        {description && (
+          <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-400" : "text-gray-500")}>{description}</p>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+
   return (
-    <div className="max-w-lg mx-auto space-y-4 p-4 pb-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <span>🌐</span>
-            {isFi ? "Kieli" : "Language"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            variant={currentLang === "en" ? "default" : "outline"}
-            onClick={() => handleLanguageChange("en")}
-            className="flex-1 min-w-[120px]"
-          >
-            🇬🇧 English
-          </Button>
-          <Button
-            variant={currentLang === "fi" ? "default" : "outline"}
-            onClick={() => handleLanguageChange("fi")}
-            className="flex-1 min-w-[120px]"
-          >
-            🇫🇮 Suomi
-          </Button>
-          {britishUnlocked && (
+    <div
+      className={cn(
+        "min-h-full animate-in fade-in duration-300",
+        darkMode ? "bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950" : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30"
+      )}
+    >
+      <div className="max-w-5xl mx-auto px-4 py-6 pb-16">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          {onBack && (
             <Button
-              variant={currentLang === "en-GB" ? "default" : "outline"}
-              onClick={() => handleLanguageChange("en-GB")}
-              className="w-full"
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="rounded-xl shrink-0 hover:scale-105 transition-transform"
             >
-              🇬🇧 British English
+              <ChevronLeft className="h-5 w-5" />
             </Button>
           )}
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-4 min-w-0">
+            <img
+              src={KSYK_MAPS_LOGO}
+              alt={KSYK_MAPS_LOGO_ALT}
+              className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl shadow-lg ring-2 ring-blue-500/20 object-contain bg-white/90 dark:bg-gray-800"
+              style={{ imageRendering: "auto" }}
+            />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                {isFi ? "Asetukset" : "Settings"}
+              </h1>
+              <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-600")}>
+                KSYK Maps · Nordbyte Studio
+              </p>
+            </div>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <span>🎨</span>
-            {isFi ? "Teema" : "Theme"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setTheme("light")}
-            className={`p-3 rounded-lg border-2 text-center transition-all ${
-              theme === "light" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
-            }`}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar nav */}
+          <nav
+            className={cn(
+              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0",
+              "scrollbar-none"
+            )}
           >
-            <Sun className="h-6 w-6 mx-auto mb-1" />
-            <div className="text-sm font-semibold">Light</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTheme("dark")}
-            className={`p-3 rounded-lg border-2 text-center transition-all ${
-              theme === "dark" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30" : "border-gray-200 hover:border-blue-300"
-            }`}
-          >
-            <Moon className="h-6 w-6 mx-auto mb-1" />
-            <div className="text-sm font-semibold">Dark</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTheme("system")}
-            className={`p-3 rounded-lg border-2 text-center transition-all ${
-              theme === "system" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
-            }`}
-          >
-            <span className="text-2xl block mb-1">💻</span>
-            <div className="text-sm font-semibold">System</div>
-          </button>
-        </CardContent>
-      </Card>
+            {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200",
+                  tab === id
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                    : darkMode
+                    ? "text-gray-300 hover:bg-gray-800"
+                    : "text-gray-700 hover:bg-white hover:shadow-sm"
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {isFi ? labelFi : labelEn}
+              </button>
+            ))}
+          </nav>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{isFi ? "Pikalinkit" : "Quick links"}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Link href="/classic">
-            <Button variant="outline" className="w-full justify-between">
-              {isFi ? "Klassinen karttanäkymä" : "Classic map view"}
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/lunch">
-            <Button variant="outline" className="w-full justify-between">
-              {isFi ? "Ruokalista" : "Lunch menu"}
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/hsl">
-            <Button variant="outline" className="w-full justify-between">
-              HSL
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+          {/* Content */}
+          <div className="flex-1 min-w-0 space-y-4">
+            {tab === "appearance" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-500" />
+                    {isFi ? "Ulkoasu ja kieli" : "Appearance & language"}
+                  </CardTitle>
+                  <CardDescription>
+                    {isFi ? "Teema, kieli ja visuaalinen tyyli" : "Theme, language, and visual style"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label className="mb-3 block">{isFi ? "Kieli" : "Language"}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: "en", label: "English" },
+                        { id: "fi", label: "Suomi" },
+                        ...(britishUnlocked ? [{ id: "en-GB", label: "British English" }] : []),
+                      ].map((lang) => (
+                        <Button
+                          key={lang.id}
+                          variant={currentLang === lang.id ? "default" : "outline"}
+                          onClick={() => handleLanguageChange(lang.id)}
+                          className="rounded-xl transition-all hover:scale-[1.02]"
+                        >
+                          {lang.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <Label className="mb-3 block">{isFi ? "Teema" : "Theme"}</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: "light" as const, icon: Sun, label: "Light" },
+                        { id: "dark" as const, icon: Moon, label: "Dark" },
+                        { id: "system" as const, icon: Monitor, label: "System" },
+                      ].map(({ id, icon: Icon, label }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setTheme(id)}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md",
+                            theme === id
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 shadow-md"
+                              : darkMode
+                              ? "border-gray-700 hover:border-gray-600"
+                              : "border-gray-200 hover:border-blue-300"
+                          )}
+                        >
+                          <Icon className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                          <span className="text-sm font-semibold">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "map" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle>{isFi ? "Kartta-asetukset" : "Map controls"}</CardTitle>
+                </CardHeader>
+                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <SettingRow label={isFi ? "Ruudukko" : "Show grid"} description={isFi ? "Taustaruudukko kartalla" : "Background grid on map"}>
+                    <Switch checked={settings.showGrid} onCheckedChange={(v) => update("showGrid", v)} />
+                  </SettingRow>
+                  <SettingRow label={isFi ? "Siipikirjaimet" : "Wing labels"} description={isFi ? "A, U, K, M, R, B" : "Building letter labels"}>
+                    <Switch checked={settings.showWingLabels} onCheckedChange={(v) => update("showWingLabels", v)} />
+                  </SettingRow>
+                  <SettingRow label={isFi ? "Pehmeä panorointi" : "Smooth panning"}>
+                    <Switch checked={settings.smoothPan} onCheckedChange={(v) => update("smoothPan", v)} />
+                  </SettingRow>
+                  <div className="py-4">
+                    <Label className="mb-3 block">{isFi ? "Zoom-nopeus" : "Zoom speed"}</Label>
+                    <Slider
+                      value={[settings.mapZoomSpeed === 2 ? 2 : settings.mapZoomSpeed === 0.5 ? 0 : 1]}
+                      min={0}
+                      max={2}
+                      step={1}
+                      onValueChange={([v]) =>
+                        update("mapZoomSpeed", v === 2 ? 2 : v === 0 ? 0.5 : 1)
+                      }
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                      <span>{isFi ? "Hidas" : "Slow"}</span>
+                      <span>{isFi ? "Normaali" : "Normal"}</span>
+                      <span>{isFi ? "Nopea" : "Fast"}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "3d" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle>{isFi ? "3D-kartta" : "3D map settings"}</CardTitle>
+                </CardHeader>
+                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div className="py-4">
+                    <Label className="mb-3 block">{isFi ? "Renderöintilaatu" : "Render quality"}</Label>
+                    <div className="flex gap-2">
+                      {(["low", "medium", "high"] as const).map((q) => (
+                        <Button
+                          key={q}
+                          variant={settings.threeDQuality === q ? "default" : "outline"}
+                          size="sm"
+                          className="rounded-xl capitalize flex-1"
+                          onClick={() => update("threeDQuality", q)}
+                        >
+                          {q}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <SettingRow label={isFi ? "Varjot" : "Shadows"}>
+                    <Switch checked={settings.threeDShadows} onCheckedChange={(v) => update("threeDShadows", v)} />
+                  </SettingRow>
+                  <SettingRow label={isFi ? "Automaattinen pyörintä" : "Auto-rotate preview"}>
+                    <Switch checked={settings.threeDAutoRotate} onCheckedChange={(v) => update("threeDAutoRotate", v)} />
+                  </SettingRow>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "performance" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle>{isFi ? "Suorituskyky" : "Performance"}</CardTitle>
+                  <CardDescription>
+                    {isFi ? "Optimoi lataus ja animaatiot" : "Optimize loading and animations"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SettingRow
+                    label={isFi ? "Vähennä animaatioita" : "Reduce motion"}
+                    description={isFi ? "Poistaa turhat siirtymät" : "Minimizes transitions"}
+                  >
+                    <Switch checked={settings.reduceMotion} onCheckedChange={(v) => update("reduceMotion", v)} />
+                  </SettingRow>
+                  <Button variant="outline" className="mt-4 rounded-xl w-full" onClick={reset}>
+                    {isFi ? "Palauta oletukset" : "Reset all settings"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "accessibility" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle>{isFi ? "Saavutettavuus" : "Accessibility"}</CardTitle>
+                </CardHeader>
+                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <SettingRow label={isFi ? "Korkea kontrasti" : "High contrast map"}>
+                    <Switch checked={settings.highContrast} onCheckedChange={(v) => update("highContrast", v)} />
+                  </SettingRow>
+                  <SettingRow label={isFi ? "Suurempi teksti" : "Larger UI text"}>
+                    <Switch checked={settings.largeText} onCheckedChange={(v) => update("largeText", v)} />
+                  </SettingRow>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "developer" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {isFi ? "Kehittäjäasetukset" : "Developer options"}
+                    <Badge variant="secondary">Dev</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <SettingRow label="Debug overlay">
+                    <Switch checked={settings.devShowDebug} onCheckedChange={(v) => update("devShowDebug", v)} />
+                  </SettingRow>
+                  <SettingRow label={isFi ? "Näytä koordinaatit" : "Show coordinates"}>
+                    <Switch checked={settings.devShowCoords} onCheckedChange={(v) => update("devShowCoords", v)} />
+                  </SettingRow>
+                  <Link href="/admin-ksyk-management-portal">
+                    <Button variant="outline" className="w-full mt-4 rounded-xl justify-between">
+                      Admin panel
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "about" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <CardHeader>
+                  <CardTitle>{isFi ? "Tietoja" : "About"}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-300" : "text-gray-600")}>
+                    KSYK Maps is an interactive campus map for Kulosaaren yhteiskoulu, built by Nordbyte Studio.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge>v3.1</Badge>
+                    <Badge variant="outline">KSYK</Badge>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Link href="/classic">
+                      <Button variant="outline" className="w-full rounded-xl justify-between">
+                        {isFi ? "Klassinen näkymä" : "Classic view"}
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/lunch">
+                      <Button variant="outline" className="w-full rounded-xl justify-between">
+                        {isFi ? "Ruokalista" : "Lunch menu"}
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/hsl">
+                      <Button variant="outline" className="w-full rounded-xl justify-between">
+                        HSL
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Building, Plus, Trash2, MousePointer, X, Undo, Square, 
-  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers
+  Building, Plus, Trash2, MousePointer, X, Undo, Redo, Square, 
+  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import { KSYK_MAPS_LOGO } from "@/lib/branding";
@@ -15,7 +15,7 @@ import { KSYK_BUILDING_OUTLINES, outlineToPath } from "@/lib/ksykCampusOutlines"
 
 interface Point { x: number; y: number; }
 
-type Tool = "outline" | "wall" | "room" | "select";
+type Tool = "outline" | "wall" | "room" | "select" | "pan";
 
 export default function ImprovedKSYKBuilder() {
   const queryClient = useQueryClient();
@@ -36,6 +36,10 @@ export default function ImprovedKSYKBuilder() {
   const [showGrid, setShowGrid] = useState(true);
   const [showReferenceOutlines, setShowReferenceOutlines] = useState(true);
   const [activeWingLetter, setActiveWingLetter] = useState<string>("K");
+  const [history, setHistory] = useState<Point[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isPanningCanvas, setIsPanningCanvas] = useState(false);
+  const panDragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   
   const [roomData, setRoomData] = useState({
     roomNumber: "",
@@ -92,8 +96,12 @@ export default function ImprovedKSYKBuilder() {
     return snapToGrid({ x, y });
   };
 
-  // Handle mouse down on SVG
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (activeTool === "pan") {
+      setIsPanningCanvas(true);
+      panDragStart.current = { x: e.clientX, y: e.clientY, panX, panY };
+      return;
+    }
     const point = getSVGPoint(e);
     
     if (activeTool === "outline") {
@@ -107,21 +115,22 @@ export default function ImprovedKSYKBuilder() {
     }
   };
 
-  // Handle mouse move on SVG
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing) return;
-    // Preview line while drawing
-  };
-
-  // Handle mouse up
-  const handleMouseUp = () => {
-    if (isDrawing && (activeTool === "wall" || activeTool === "outline")) {
-      // Continue drawing
+    if (isPanningCanvas && activeTool === "pan") {
+      const dx = (e.clientX - panDragStart.current.x) * (1 / zoom);
+      const dy = (e.clientY - panDragStart.current.y) * (1 / zoom);
+      setPanX(panDragStart.current.panX - dx);
+      setPanY(panDragStart.current.panY - dy);
+      return;
     }
   };
 
-  // Finish drawing current outline
+  const handleMouseUp = () => {
+    setIsPanningCanvas(false);
+  };
+
   const finishOutline = () => {
+    if (campusOutline.length >= 3) pushHistory(campusOutline);
     if (campusOutline.length > 2) {
       // Close the outline by connecting to first point
       setCampusOutline([...campusOutline, campusOutline[0]]);
@@ -360,11 +369,36 @@ export default function ImprovedKSYKBuilder() {
     setActiveTool("room");
   };
 
+  const pushHistory = useCallback((outline: Point[]) => {
+    setHistory((h) => {
+      const trimmed = h.slice(0, historyIndex + 1);
+      trimmed.push(outline.map((p) => ({ ...p })));
+      return trimmed.slice(-40);
+    });
+    setHistoryIndex((i) => Math.min(i + 1, 39));
+  }, [historyIndex]);
+
+  const undo = () => {
+    if (historyIndex <= 0) return;
+    const next = historyIndex - 1;
+    setHistoryIndex(next);
+    setCampusOutline(history[next] ? [...history[next]] : []);
+  };
+
+  const redo = () => {
+    if (historyIndex >= history.length - 1) return;
+    const next = historyIndex + 1;
+    setHistoryIndex(next);
+    setCampusOutline(history[next] ? [...history[next]] : []);
+  };
+
   const loadWingOutline = (letter: string) => {
     const preset = KSYK_BUILDING_OUTLINES[letter];
     if (!preset) return;
     setActiveWingLetter(letter);
-    setCampusOutline([...preset.shape]);
+    const next = [...preset.shape];
+    setCampusOutline(next);
+    pushHistory(next);
     setActiveTool("outline");
     setIsDrawing(false);
   };
@@ -394,13 +428,15 @@ export default function ImprovedKSYKBuilder() {
     return colors[type] || '#9CA3AF';
   };
 
+  const vbW = 10000 / zoom;
+  const vbH = 6000 / zoom;
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Top Toolbar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-gray-950">
+      <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-8 w-8 rounded-lg" />
+            <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-10 w-10 rounded-xl shadow ring-1 ring-black/5" />
             KSYK Map Builder
           </h1>
           <div className="hidden md:flex gap-1">
@@ -453,10 +489,24 @@ export default function ImprovedKSYKBuilder() {
               <MousePointer className="h-4 w-4 mr-2" />
               Select
             </Button>
+            <Button
+              variant={activeTool === "pan" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTool("pan")}
+            >
+              <Hand className="h-4 w-4 mr-2" />
+              Pan
+            </Button>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo">
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
+            <Redo className="h-4 w-4" />
+          </Button>
           <Button
             variant={showReferenceOutlines ? "default" : "outline"}
             size="sm"
@@ -660,11 +710,11 @@ export default function ImprovedKSYKBuilder() {
         <div className="flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-950">
           <svg
             ref={svgRef}
-            className="w-full h-full cursor-crosshair"
-            viewBox={`0 0 10000 6000`}
+            viewBox={`${panX} ${panY} ${vbW} ${vbH}`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            className={`w-full h-full ${activeTool === "pan" ? "cursor-grab" : "cursor-crosshair"}`}
           >
             {/* Grid */}
             {showGrid && (

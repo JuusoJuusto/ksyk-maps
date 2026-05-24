@@ -12,6 +12,9 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { KSYK_BUILDING_OUTLINES } from "@/lib/ksykCampusOutlines";
+import { cn } from "@/lib/utils";
 import {
   Box,
   Move,
@@ -59,8 +62,11 @@ interface Room3D {
   floor: number;
 }
 
-export default function Working3DBuilder() {
+type Working3DBuilderProps = { embedded?: boolean };
+
+export default function Working3DBuilder({ embedded = false }: Working3DBuilderProps) {
   const queryClient = useQueryClient();
+  const { settings } = useAppSettings();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewMode, setViewMode] = useState<"3d" | "2d" | "split">("3d");
   const [editMode, setEditMode] = useState<"select" | "move" | "rotate" | "scale">("select");
@@ -143,19 +149,19 @@ export default function Working3DBuilder() {
     };
   });
 
+  useEffect(() => {
+    if (settings.threeDAutoRotate) setIsAnimating(true);
+  }, [settings.threeDAutoRotate]);
+
   // Animation loop
   useEffect(() => {
     if (!isAnimating) return;
-    
+    const speed = settings.threeDQuality === "low" ? 80 : settings.threeDQuality === "medium" ? 60 : 40;
     const interval = setInterval(() => {
-      setRotation(prev => ({
-        ...prev,
-        y: (prev.y + 1) % 360
-      }));
-    }, 50);
-
+      setRotation((prev) => ({ ...prev, y: (prev.y + 1) % 360 }));
+    }, speed);
     return () => clearInterval(interval);
-  }, [isAnimating]);
+  }, [isAnimating, settings.threeDQuality]);
 
   // Render 3D scene
   useEffect(() => {
@@ -169,14 +175,40 @@ export default function Working3DBuilder() {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    // Clear canvas
-    const bgColor = lightMode === "day" ? "#f0f4f8" : "#1a202c";
-    ctx.fillStyle = bgColor;
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    if (lightMode === "day") {
+      grad.addColorStop(0, "#e0f2fe");
+      grad.addColorStop(0.5, "#f8fafc");
+      grad.addColorStop(1, "#e2e8f0");
+    } else {
+      grad.addColorStop(0, "#0f172a");
+      grad.addColorStop(0.5, "#1e293b");
+      grad.addColorStop(1, "#0f1419");
+    }
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Center point
     const centerX = canvas.width / 2 + pan.x;
     const centerY = canvas.height / 2 + pan.y;
+
+    if (embedded) {
+      Object.values(KSYK_BUILDING_OUTLINES).forEach((preset) => {
+        const pts = preset.shape.map((p) => ({
+          x: centerX + (p.x - 800) * 0.35 * zoom,
+          y: centerY + (p.y - 400) * 0.35 * zoom,
+        }));
+        if (pts.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.strokeStyle = preset.stroke;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.85;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+    }
 
     // Draw grid
     if (showGrid) {
@@ -274,8 +306,22 @@ export default function Working3DBuilder() {
         [4, 5], [5, 6], [6, 7], [7, 4],
         [0, 4], [1, 5], [2, 6], [3, 7],
       ];
+      if (settings.threeDShadows && settings.threeDQuality !== "low") {
+        const base = [
+          corners[0], corners[1], corners[2], corners[3],
+        ];
+        ctx.beginPath();
+        ctx.moveTo(base[0].x + 6, base[0].y + 6);
+        base.forEach((c, i) => {
+          if (i > 0) ctx.lineTo(c.x + 6, c.y + 6);
+        });
+        ctx.closePath();
+        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        ctx.fill();
+      }
+
       ctx.strokeStyle = building.color || "#2563eb";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = settings.threeDQuality === "high" ? 2.5 : 2;
       edgePairs.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(corners[a].x, corners[a].y);
@@ -303,7 +349,34 @@ export default function Working3DBuilder() {
     ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 20, 55);
     ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
 
-  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode]);
+  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality]);
+
+  const embeddedControls = (
+    <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
+      <div className="pointer-events-auto flex gap-1.5 p-1 rounded-2xl bg-white/90 dark:bg-gray-900/90 border shadow-lg backdrop-blur-md">
+        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setZoom((z) => Math.min(3, z + 0.15))}>
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setZoom((z) => Math.max(0.5, z - 0.15))}>
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setRotation({ x: 30, y: 45, z: 0 })}>
+          <Home className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setIsAnimating((a) => !a)}>
+          {isAnimating ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </Button>
+        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setLightMode(lightMode === "day" ? "night" : "day")}>
+          {lightMode === "day" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </Button>
+      </div>
+      {settings.devShowDebug && (
+        <span className="pointer-events-none text-xs font-mono px-2 py-1 rounded-lg bg-black/50 text-white">
+          {buildings3D.length} wings · zoom {(zoom * 100).toFixed(0)}%
+        </span>
+      )}
+    </div>
+  );
 
   // Helper function
   const hexToRgb = (color: string) => {
@@ -484,6 +557,36 @@ export default function Working3DBuilder() {
       alert("Failed to add room");
     }
   };
+
+  if (embedded) {
+    return (
+      <div className="h-full relative bg-slate-100 dark:bg-gray-950">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full cursor-grab active:cursor-grabbing"
+          onMouseDown={(e) => {
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startPan = { ...pan };
+            const handleMouseMove = (ev: MouseEvent) => {
+              setPan({ x: startPan.x + (ev.clientX - startX), y: startPan.y + (ev.clientY - startY) });
+            };
+            const handleMouseUp = () => {
+              document.removeEventListener("mousemove", handleMouseMove);
+              document.removeEventListener("mouseup", handleMouseUp);
+            };
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+          }}
+          onWheel={(e) => {
+            e.preventDefault();
+            setZoom((z) => Math.min(3, Math.max(0.4, z + (e.deltaY > 0 ? -0.08 : 0.08))));
+          }}
+        />
+        {embeddedControls}
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-gray-100 dark:bg-gray-900">
