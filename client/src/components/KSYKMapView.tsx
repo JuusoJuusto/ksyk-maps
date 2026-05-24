@@ -6,14 +6,18 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   parseBuildingShape,
   getShapeBounds,
-  pointsToSvgPath,
   computeCampusViewBox,
-  getBuildingLabel,
   parseViewBox,
   formatViewBox,
   type BuildingMapData,
 } from "@/lib/mapGeometry";
-import { KSYK_ENTRANCES } from "@/lib/ksykCampusData";
+import {
+  KSYK_BUILDING_LETTERS,
+  KSYK_BUILDING_OUTLINES,
+  getBuildingLetter,
+  outlineToPath,
+  outlinesAsMapBuildings,
+} from "@/lib/ksykCampusOutlines";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -76,8 +80,8 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [showLayers, setShowLayers] = useState(false);
   const [layerSettings, setLayerSettings] = useState({
-    rooms: true,
-    services: true,
+    rooms: false,
+    services: false,
     accessibility: false,
   });
 
@@ -126,6 +130,30 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
     }
   }, [searchQuery, buildings, rooms, i18n.language]);
 
+  /** A, U, K, M, R, B — outline footprints only */
+  const campusBuildings = useMemo(() => {
+    const apiByLetter = new Map<string, Building>();
+    for (const b of buildings as Building[]) {
+      const letter = getBuildingLetter(b.name);
+      if (letter) apiByLetter.set(letter, b);
+    }
+    return KSYK_BUILDING_LETTERS.map((letter) => {
+      const preset = KSYK_BUILDING_OUTLINES[letter];
+      const api = apiByLetter.get(letter);
+      const shapeJson = JSON.stringify({ customShape: preset.shape });
+      return {
+        ...api,
+        id: api?.id ?? `wing-${letter}`,
+        name: letter,
+        nameEn: preset.nameEn,
+        nameFi: preset.nameFi,
+        floors: api?.floors ?? preset.floors,
+        colorCode: preset.stroke,
+        description: shapeJson,
+      } as Building;
+    });
+  }, [buildings]);
+
   const maxFloor = useMemo(() => {
     const fromBuildings = buildings.length
       ? Math.max(...buildings.map((b: Building) => b.floors || 1))
@@ -137,15 +165,13 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
   }, [buildings, rooms]);
 
   const baseViewBox = useMemo(
-    () => parseViewBox(computeCampusViewBox(buildings as BuildingMapData[])),
-    [buildings]
+    () => parseViewBox(computeCampusViewBox(outlinesAsMapBuildings() as BuildingMapData[])),
+    []
   );
 
   useEffect(() => {
-    if (buildings.length > 0) {
-      setViewState(parseViewBox(computeCampusViewBox(buildings as BuildingMapData[])));
-    }
-  }, [buildings]);
+    setViewState(parseViewBox(computeCampusViewBox(outlinesAsMapBuildings() as BuildingMapData[])));
+  }, []);
 
   const floorRooms = rooms.filter((r: Room) => {
     if (r.floor !== selectedFloor) return false;
@@ -460,26 +486,7 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
           handlePanStart(e.clientX, e.clientY);
         }}
       >
-        {buildings.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-8">
-            <div
-              className={`max-w-md rounded-2xl border p-8 text-center shadow-lg ${
-                darkMode ? "border-gray-700 bg-gray-800 text-white" : "border-gray-200 bg-white text-gray-900"
-              }`}
-            >
-              <Building2 className={`mx-auto mb-4 h-14 w-14 ${darkMode ? "text-gray-400" : "text-gray-400"}`} />
-              <h3 className="text-xl font-bold mb-2">
-                {i18n.language === "fi" ? "Ei rakennuksia kartalla" : "No buildings on the map yet"}
-              </h3>
-              <p className={`text-sm mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                {i18n.language === "fi"
-                  ? "Luo rakennuksia ja huoneita Admin-paneelin Builder- tai 3D Map -välilehdellä."
-                  : "Create buildings and rooms in the Admin panel Builder or 3D Map tab."}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <svg
+        <svg
             ref={svgRef}
             className="h-full w-full"
             viewBox={formatViewBox(viewState)}
@@ -494,9 +501,6 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
                   strokeWidth="0.5"
                 />
               </pattern>
-              <filter id="buildingShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.25" />
-              </filter>
             </defs>
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
 
@@ -504,31 +508,23 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
               Kulosaaren yhteiskoulu
             </text>
 
-            {KSYK_ENTRANCES.map((ent) => (
-              <g key={ent.id} className="pointer-events-none">
-                <circle cx={ent.x} cy={ent.y} r={14} fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-                <text x={ent.x} y={ent.y + 5} textAnchor="middle" fill="#2563eb" fontSize="12" fontWeight="800">
-                  {ent.label}
-                </text>
-              </g>
-            ))}
-
-            {buildings.map((building: Building) => {
-              const shape = parseBuildingShape(building);
+            {campusBuildings.map((building: Building) => {
+              const letter = building.name;
+              const preset = KSYK_BUILDING_OUTLINES[letter];
+              const shape = preset?.shape ?? parseBuildingShape(building);
               const bounds = getShapeBounds(shape);
               const isSelected = selectedBuilding?.id === building.id;
-              const fill = building.colorCode || "#2563eb";
-              const label = getBuildingLabel(building, i18n.language);
+              const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
 
               return (
                 <g key={building.id} data-map-feature="building">
                   <path
-                    d={pointsToSvgPath(shape)}
-                    fill={fill}
-                    stroke={isSelected ? "#fbbf24" : darkMode ? "#1f2937" : "#ffffff"}
-                    strokeWidth={isSelected ? 4 : 2}
-                    opacity={isSelected ? 1 : 0.92}
-                    filter="url(#buildingShadow)"
+                    d={outlineToPath(shape)}
+                    fill="none"
+                    stroke={isSelected ? "#fbbf24" : stroke}
+                    strokeWidth={isSelected ? 4 : 3}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
                     className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -539,39 +535,15 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
                   />
                   <text
                     x={bounds.centerX}
-                    y={bounds.centerY - 8}
+                    y={bounds.centerY + 6}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="#ffffff"
-                    fontSize={Math.min(20, Math.max(11, bounds.width / 9))}
-                    fontWeight="800"
+                    fill={darkMode ? "#0f172a" : "#1e293b"}
+                    fontSize={Math.min(48, Math.max(22, bounds.width / 5))}
+                    fontWeight="900"
                     className="pointer-events-none select-none"
                   >
-                    {building.name}
-                  </text>
-                  <text
-                    x={bounds.centerX}
-                    y={bounds.centerY + 14}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#ffffff"
-                    fontSize={Math.min(12, Math.max(9, bounds.width / 14))}
-                    fontWeight="500"
-                    opacity={0.95}
-                    className="pointer-events-none select-none"
-                  >
-                    {label}
-                  </text>
-                  <text
-                    x={bounds.centerX}
-                    y={bounds.maxY - 12}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="10"
-                    opacity={0.85}
-                    className="pointer-events-none"
-                  >
-                    {building.floors} {i18n.language === "fi" ? "kr" : "fl"}
+                    {letter}
                   </text>
                 </g>
               );
@@ -598,7 +570,7 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedRoom(room);
-                        const parent = buildings.find((b: Building) => b.id === room.buildingId);
+                        const parent = campusBuildings.find((b: Building) => b.id === room.buildingId);
                         if (parent) setSelectedBuilding(parent);
                       }}
                     />
@@ -618,7 +590,6 @@ export default function KSYKMapView({ onNavigate }: KSYKMapViewProps) {
                 );
               })}
           </svg>
-        )}
       </div>
 
       {/* Building Card (Bottom Sheet) */}

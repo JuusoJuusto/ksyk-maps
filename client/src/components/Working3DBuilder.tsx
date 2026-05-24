@@ -269,37 +269,17 @@ export default function Working3DBuilder() {
         project(building.x, building.y + building.height, building.z + building.depth),
       ];
 
-      // Draw faces with depth sorting
-      const faces = [
-        { points: [0, 1, 5, 4], color: building.color, brightness: 1.0 }, // Front
-        { points: [1, 2, 6, 5], color: building.color, brightness: 0.8 }, // Right
-        { points: [2, 3, 7, 6], color: building.color, brightness: 0.6 }, // Back
-        { points: [3, 0, 4, 7], color: building.color, brightness: 0.7 }, // Left
-        { points: [4, 5, 6, 7], color: building.color, brightness: 1.2 }, // Top
+      const edgePairs: [number, number][] = [
+        [0, 1], [1, 2], [2, 3], [3, 0],
+        [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7],
       ];
-
-      faces.forEach((face) => {
+      ctx.strokeStyle = building.color || "#2563eb";
+      ctx.lineWidth = 2.5;
+      edgePairs.forEach(([a, b]) => {
         ctx.beginPath();
-        ctx.moveTo(corners[face.points[0]].x, corners[face.points[0]].y);
-        face.points.forEach((pointIndex) => {
-          ctx.lineTo(corners[pointIndex].x, corners[pointIndex].y);
-        });
-        ctx.closePath();
-
-        // Apply brightness
-        const rgb = hexToRgb(face.color);
-        if (rgb) {
-          const r = Math.min(255, rgb.r * face.brightness);
-          const g = Math.min(255, rgb.g * face.brightness);
-          const b = Math.min(255, rgb.b * face.brightness);
-          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        } else {
-          ctx.fillStyle = face.color;
-        }
-        
-        ctx.fill();
-        ctx.strokeStyle = lightMode === "day" ? "#2d3748" : "#4a5568";
-        ctx.lineWidth = 2;
+        ctx.moveTo(corners[a].x, corners[a].y);
+        ctx.lineTo(corners[b].x, corners[b].y);
         ctx.stroke();
       });
 

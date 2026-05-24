@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import { KSYK_MAPS_LOGO } from "@/lib/branding";
+import { KSYK_BUILDING_OUTLINES, outlineToPath } from "@/lib/ksykCampusOutlines";
 
 interface Point { x: number; y: number; }
 
@@ -33,6 +34,8 @@ export default function ImprovedKSYKBuilder() {
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [showGrid, setShowGrid] = useState(true);
+  const [showReferenceOutlines, setShowReferenceOutlines] = useState(true);
+  const [activeWingLetter, setActiveWingLetter] = useState<string>("K");
   
   const [roomData, setRoomData] = useState({
     roomNumber: "",
@@ -357,6 +360,15 @@ export default function ImprovedKSYKBuilder() {
     setActiveTool("room");
   };
 
+  const loadWingOutline = (letter: string) => {
+    const preset = KSYK_BUILDING_OUTLINES[letter];
+    if (!preset) return;
+    setActiveWingLetter(letter);
+    setCampusOutline([...preset.shape]);
+    setActiveTool("outline");
+    setIsDrawing(false);
+  };
+
   // Room type colors
   const getRoomColor = (type: string): string => {
     const colors: Record<string, string> = {
@@ -396,12 +408,12 @@ export default function ImprovedKSYKBuilder() {
               <Button
                 key={w.letter}
                 type="button"
-                variant="outline"
+                variant={activeWingLetter === w.letter ? "default" : "outline"}
                 size="sm"
                 className="h-7 px-2 text-xs font-bold"
                 style={{ borderColor: w.color }}
-                onClick={() => addRoomFromPreset(w.letter)}
-                title={`Add room in ${w.nameEn}`}
+                onClick={() => loadWingOutline(w.letter)}
+                title={`Load ${w.nameEn} outline`}
               >
                 {w.letter}
               </Button>
@@ -445,6 +457,14 @@ export default function ImprovedKSYKBuilder() {
         </div>
         
         <div className="flex items-center gap-2">
+          <Button
+            variant={showReferenceOutlines ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowReferenceOutlines(!showReferenceOutlines)}
+            title="Floor-plan reference outlines"
+          >
+            <Layers className="h-4 w-4" />
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -660,17 +680,30 @@ export default function ImprovedKSYKBuilder() {
               </defs>
             )}
             {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
-            
-            {/* Campus Outline */}
+
+            {showReferenceOutlines &&
+              Object.values(KSYK_BUILDING_OUTLINES).map((preset) => (
+                <path
+                  key={`ref-${preset.letter}`}
+                  d={outlineToPath(preset.shape)}
+                  fill="none"
+                  stroke={preset.stroke}
+                  strokeWidth="2"
+                  strokeDasharray="8 6"
+                  opacity="0.45"
+                  pointerEvents="none"
+                />
+              ))}
+
+            {/* Wing outline being edited */}
             {campusOutline.length > 0 && (
-              <polygon
-                points={campusOutline.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="rgba(59, 130, 246, 0.1)"
-                stroke="#3B82F6"
-                strokeWidth="6"
+              <path
+                d={outlineToPath(campusOutline)}
+                fill="none"
+                stroke={KSYK_BUILDING_OUTLINES[activeWingLetter]?.stroke ?? "#3B82F6"}
+                strokeWidth="5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeDasharray="15,10"
               />
             )}
             

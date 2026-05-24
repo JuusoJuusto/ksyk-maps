@@ -9,7 +9,9 @@ import NavigationModal from "@/components/NavigationModal";
 import { Sun, Moon, Menu, X, ChevronDown } from "lucide-react";
 import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
 
-export default function Header() {
+type HeaderProps = { largeLogo?: boolean };
+
+export default function Header({ largeLogo = false }: HeaderProps) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
@@ -87,7 +89,13 @@ export default function Header() {
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
-              <img src={KSYK_MAPS_LOGO} alt={KSYK_MAPS_LOGO_ALT} className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-lg shadow-sm group-hover:shadow-md transition-shadow" />
+              <img
+                src={KSYK_MAPS_LOGO}
+                alt={KSYK_MAPS_LOGO_ALT}
+                className={`object-contain rounded-xl shadow-sm group-hover:shadow-md transition-shadow ${
+                  largeLogo ? "h-14 w-14 sm:h-16 sm:w-16" : "h-10 w-10 sm:h-12 sm:w-12"
+                }`}
+              />
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors tracking-tight" 
                   onClick={(e) => {
