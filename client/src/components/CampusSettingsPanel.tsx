@@ -24,9 +24,17 @@ import {
   Info,
   ChevronLeft,
   Sparkles,
+  ScrollText,
 } from "lucide-react";
-import { Link } from "wouter";
-import { KSYK_MAPS_LOGO_HD, KSYK_MAPS_LOGO_PATH, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
+import CampusChangelog from "@/components/CampusChangelog";
+import {
+  KSYK_MAPS_LOGO,
+  KSYK_MAPS_LOGO_ALT,
+  KSYK_MAPS_LOGO_SRCSET,
+  KSYK_MAPS_LOGO_ULTRA,
+  KSYK_GITHUB_CHANGELOG,
+} from "@/lib/branding";
+import { APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -35,17 +43,19 @@ type SettingsTab =
   | "3d"
   | "performance"
   | "accessibility"
+  | "changelog"
   | "developer"
   | "about";
 
 const TABS: { id: SettingsTab; icon: typeof Palette; labelEn: string; labelFi: string }[] = [
   { id: "appearance", icon: Palette, labelEn: "Appearance", labelFi: "Ulkoasu" },
-  { id: "map", icon: Map, labelEn: "Map Controls", labelFi: "Kartta" },
-  { id: "3d", icon: Box, labelEn: "3D Settings", labelFi: "3D" },
-  { id: "performance", icon: Gauge, labelEn: "Performance", labelFi: "Suorituskyky" },
+  { id: "map", icon: Map, labelEn: "Map", labelFi: "Kartta" },
+  { id: "3d", icon: Box, labelEn: "3D", labelFi: "3D" },
   { id: "accessibility", icon: Accessibility, labelEn: "Accessibility", labelFi: "Saavutettavuus" },
-  { id: "developer", icon: Code2, labelEn: "Developer", labelFi: "Kehittäjä" },
+  { id: "performance", icon: Gauge, labelEn: "Performance", labelFi: "Suorituskyky" },
+  { id: "changelog", icon: ScrollText, labelEn: "Changelog", labelFi: "Muutosloki" },
   { id: "about", icon: Info, labelEn: "About", labelFi: "Tietoja" },
+  { id: "developer", icon: Code2, labelEn: "Developer", labelFi: "Dev" },
 ];
 
 type CampusSettingsPanelProps = {
@@ -112,13 +122,13 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
           )}
           <div className="flex items-center gap-4 min-w-0">
             <img
-              src={KSYK_MAPS_LOGO_HD}
-              srcSet={`${KSYK_MAPS_LOGO_PATH} 192w, ${KSYK_MAPS_LOGO_HD} 512w`}
-              sizes="64px"
+              src={KSYK_MAPS_LOGO_ULTRA}
+              srcSet={KSYK_MAPS_LOGO_SRCSET}
+              sizes="72px"
               alt={KSYK_MAPS_LOGO_ALT}
-              width={64}
-              height={64}
-              className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl shadow-lg ring-2 ring-blue-500/20 object-contain bg-white/90 dark:bg-gray-800"
+              width={72}
+              height={72}
+              className="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl shadow-xl ring-2 ring-blue-500/25 object-contain bg-white dark:bg-gray-800"
               decoding="async"
             />
             <div>
@@ -350,80 +360,88 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               </Card>
             )}
 
-            {tab === "about" && (
-              <Card className={cn("border-0 shadow-xl overflow-hidden", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
-                <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400" />
+            {tab === "changelog" && (
+              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/90" : "bg-white")}>
                 <CardHeader>
-                  <CardTitle className="text-xl">{isFi ? "Tietoja sovelluksesta" : "About KSYK Maps"}</CardTitle>
+                  <CardTitle>{isFi ? "Versiohistoria" : "Version history"}</CardTitle>
                   <CardDescription>
                     {isFi
-                      ? "Interaktiivinen kampuskartta Kulosaaren yhteiskoululle"
-                      : "Interactive campus navigation for Kulosaaren yhteiskoulu (KSYK)"}
+                      ? "Sovelluksen päivitykset — myös GitHubissa ja Firebase-tiedotteissa"
+                      : "App updates — also on GitHub and in Firebase announcements"}
                   </CardDescription>
                 </CardHeader>
+                <CardContent>
+                  <CampusChangelog isFi={isFi} />
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "about" && (
+              <Card className={cn("border-0 shadow-xl overflow-hidden", darkMode ? "bg-gray-800/90" : "bg-white")}>
+                <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+                <CardHeader className="text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
+                    <img
+                      src={KSYK_MAPS_LOGO}
+                      alt={KSYK_MAPS_LOGO_ALT}
+                      className="h-20 w-20 rounded-2xl shadow-lg object-contain"
+                    />
+                    <div>
+                      <CardTitle className="text-2xl">KSYK Maps</CardTitle>
+                      <CardDescription className="text-base mt-1">
+                        {isFi ? "Kampuskartta" : "Campus navigation"} · v{APP_VERSION}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
                 <CardContent className="space-y-5">
-                  <div className={cn("rounded-2xl p-4 border", darkMode ? "bg-gray-900/50 border-gray-700" : "bg-blue-50/50 border-blue-100")}>
-                    <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-200" : "text-gray-700")}>
-                      <strong className="text-blue-600 dark:text-blue-400">KSYK Maps</strong>{" "}
-                      {isFi
-                        ? "auttaa löytämään rakennukset ja siivet kampuksella. Kartta näyttää siipien A, U, K, M, R ja B ääriviivat selkeästi ja nopeasti."
-                        : "helps you explore the KSYK campus with clear wing outlines (A, U, K, M, R, B), 2D and 3D views, and fast search."}
-                    </p>
-                  </div>
+                  <p className={cn("text-sm leading-relaxed text-center sm:text-left", darkMode ? "text-gray-300" : "text-gray-600")}>
+                    {isFi
+                      ? "Interaktiivinen karttasovellus Kulosaaren yhteiskoululle. Löydä siivet A, U, K, M, R ja B nopeasti 2D- tai 3D-näkymässä."
+                      : "Interactive map for Kulosaaren yhteiskoulu. Find wings A, U, K, M, R, and B quickly in 2D or 3D."}
+                  </p>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700" : "border-gray-200")}>
-                      <p className="text-muted-foreground text-xs">{isFi ? "Versio" : "Version"}</p>
-                      <p className="font-bold text-lg">3.1.2</p>
-                    </div>
-                    <div className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700" : "border-gray-200")}>
-                      <p className="text-muted-foreground text-xs">{isFi ? "Kehittäjä" : "Developer"}</p>
-                      <p className="font-bold">Nordbyte Studio</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Badge className="rounded-lg">KSYK</Badge>
-                    <Badge variant="outline" className="rounded-lg">
-                      {isFi ? "Kartta" : "Campus map"}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-lg">
-                      2D / 3D
-                    </Badge>
+                  <div className="grid sm:grid-cols-3 gap-3 text-center text-sm">
+                    {[
+                      { label: isFi ? "Versio" : "Version", value: APP_VERSION },
+                      { label: isFi ? "Kehittäjä" : "Built by", value: "Nordbyte Studio" },
+                      { label: isFi ? "Koulu" : "School", value: "KSYK" },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700 bg-gray-900/50" : "border-gray-100 bg-slate-50")}
+                      >
+                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                        <p className="font-bold mt-0.5">{item.value}</p>
+                      </div>
+                    ))}
                   </div>
 
                   <Separator />
 
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                      {isFi ? "Ominaisuudet" : "Features"}
-                    </p>
-                    <ul className={cn("text-sm space-y-1.5 list-disc list-inside", darkMode ? "text-gray-300" : "text-gray-600")}>
-                      <li>{isFi ? "Siipikartta (A, U, K, M, R, B)" : "Wing map (A, U, K, M, R, B)"}</li>
-                      <li>{isFi ? "2D- ja 3D-näkymä" : "2D and 3D campus views"}</li>
-                      <li>{isFi ? "HSL-liikennetiedot yläpalkista" : "HSL transit from the top bar"}</li>
-                      <li>{isFi ? "Teema ja saavutettavuusasetukset" : "Theme and accessibility settings"}</li>
-                    </ul>
+                  <CampusChangelog isFi={isFi} compact />
+
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      className="w-full rounded-xl"
+                      onClick={() => window.open("https://nordbyte-studio.vercel.app", "_blank")}
+                    >
+                      Nordbyte Studio
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl"
+                      onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
+                    >
+                      {isFi ? "Muutosloki GitHubissa" : "Changelog on GitHub"}
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </Button>
                   </div>
 
-                  <p className={cn("text-xs text-center pt-2", darkMode ? "text-gray-500" : "text-gray-500")}>
-                    © {new Date().getFullYear()} Nordbyte Studio
+                  <p className="text-xs text-center text-muted-foreground pt-2">
+                    © {new Date().getFullYear()} Nordbyte Studio · KSYK Maps
                   </p>
-
-                  <Button
-                    className="w-full rounded-xl bg-blue-600 hover:bg-blue-700"
-                    onClick={() => window.open("https://nordbyte-studio.vercel.app", "_blank")}
-                  >
-                    {isFi ? "Lue lisää Nordbyte Studio" : "Learn more about Nordbyte Studio"}
-                    <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
-
-                  <Link href="/lunch">
-                    <Button variant="outline" className="w-full rounded-xl justify-between">
-                      🍽️ {isFi ? "Ruokalista" : "Lunch menu"}
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </Link>
                 </CardContent>
               </Card>
             )}

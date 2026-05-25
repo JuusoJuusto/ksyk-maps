@@ -7,7 +7,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Box, Map as MapIcon, Search, Settings, X } from "lucide-react";
-import { KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_HD, KSYK_MAPS_LOGO_PATH } from "@/lib/branding";
+import { KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_SRCSET, KSYK_MAPS_LOGO_ULTRA } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type HomeTopBarProps = {
@@ -44,12 +44,12 @@ export default function HomeTopBar({
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0 group">
           <div className="relative shrink-0">
             <img
-              src={KSYK_MAPS_LOGO_HD}
-              srcSet={`${KSYK_MAPS_LOGO_PATH} 192w, ${KSYK_MAPS_LOGO_HD} 512w`}
-              sizes="(max-width: 640px) 52px, 68px"
+              src={KSYK_MAPS_LOGO_ULTRA}
+              srcSet={KSYK_MAPS_LOGO_SRCSET}
+              sizes="(max-width: 640px) 56px, 72px"
               alt={KSYK_MAPS_LOGO_ALT}
-              width={68}
-              height={68}
+              width={72}
+              height={72}
               className="h-12 w-12 sm:h-[4.25rem] sm:w-[4.25rem] object-contain rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/15 transition-transform duration-200 group-hover:scale-[1.03]"
               decoding="async"
               fetchPriority="high"
@@ -62,6 +62,22 @@ export default function HomeTopBar({
         </Link>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link href="/lunch">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200",
+                "hover:scale-[1.03] active:scale-[0.98]",
+                "bg-orange-50 border-orange-500 text-orange-800 hover:bg-orange-100",
+                "dark:bg-orange-950/40 dark:border-orange-600 dark:text-orange-200 dark:hover:bg-orange-900/50"
+              )}
+              data-testid="button-lunch"
+            >
+              <span className="sm:hidden">🍽️</span>
+              <span className="hidden sm:inline">🍽️ {isFi ? "Ruoka" : "Lunch"}</span>
+            </Button>
+          </Link>
           <Link href="/hsl">
             <Button
               variant="outline"

@@ -48,7 +48,7 @@ export default function KSYKMapsHome() {
       <LoadingSpinner
         fullScreen
         variant="white"
-        message={t("loading") === "loading" ? "Loading KSYK Maps..." : t("loading")}
+        message={t("loading") === "loading" ? (darkMode ? "Ladataan…" : "Loading…") : t("loading")}
       />
     );
   }
