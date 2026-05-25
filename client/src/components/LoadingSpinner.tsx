@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import KSYKLogo from "@/components/KSYKLogo";
 import { KSYK_BUILDING_LETTERS } from "@/lib/ksykCampusOutlines";
 import { cn } from "@/lib/utils";
@@ -9,11 +10,18 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
 }
 
-const LOAD_STAGES = [
+const LOAD_STAGES_EN = [
   "Preparing campus outlines…",
   "Loading wing geometry…",
   "Syncing map layers…",
   "Almost ready…",
+];
+
+const LOAD_STAGES_FI = [
+  "Valmistellaan kampuksen ääriviivat…",
+  "Ladataan siipien geometriaa…",
+  "Synkronoidaan karttatasoja…",
+  "Melkein valmis…",
 ];
 
 export default function LoadingSpinner({
@@ -21,6 +29,9 @@ export default function LoadingSpinner({
   size = "md",
   fullScreen = false,
 }: LoadingSpinnerProps) {
+  const { i18n } = useTranslation();
+  const isFi = i18n.language === "fi";
+  const loadStages = isFi ? LOAD_STAGES_FI : LOAD_STAGES_EN;
   const [progress, setProgress] = useState(8);
   const [stageIndex, setStageIndex] = useState(0);
 
@@ -32,7 +43,7 @@ export default function LoadingSpinner({
       });
     }, 240);
     const stageId = setInterval(() => {
-      setStageIndex((i) => (i + 1) % LOAD_STAGES.length);
+      setStageIndex((i) => (i + 1) % loadStages.length);
     }, 2200);
     return () => {
       clearInterval(progressId);
@@ -41,7 +52,7 @@ export default function LoadingSpinner({
   }, []);
 
   const logoSize = size === "sm" ? "md" : size === "lg" ? "hero" : "xl";
-  const stageText = message || LOAD_STAGES[stageIndex];
+  const stageText = message || loadStages[stageIndex];
 
   const content = (
     <div className="flex flex-col items-center gap-10 w-full max-w-sm px-6">

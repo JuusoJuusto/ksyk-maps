@@ -116,7 +116,6 @@ export function getBuildingLetter(name: string): string | null {
   return null;
 }
 
-/** Six wings as map data (outline shapes from floor plans) */
 /** 3D viewer footprint boxes from outline presets */
 export function outlinesAs3DBuildings(): Array<{
   id: string;

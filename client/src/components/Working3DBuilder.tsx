@@ -164,6 +164,10 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     if (settings.threeDAutoRotate) setIsAnimating(true);
   }, [settings.threeDAutoRotate]);
 
+  useEffect(() => {
+    if (embedded) setZoom(1.12);
+  }, [embedded]);
+
   // Animation loop
   useEffect(() => {
     if (!isAnimating) return;
@@ -619,25 +623,51 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     }
   };
 
+  const startCanvasPan = (clientX: number, clientY: number) => {
+    const startPan = { ...pan };
+    const startX = clientX;
+    const startY = clientY;
+    const handleMove = (ev: MouseEvent | Touch) => {
+      setPan({
+        x: startPan.x + (ev.clientX - startX),
+        y: startPan.y + (ev.clientY - startY),
+      });
+    };
+    const handleMouseMove = (ev: MouseEvent) => handleMove(ev);
+    const handleTouchMove = (ev: TouchEvent) => {
+      if (ev.touches.length === 1) {
+        ev.preventDefault();
+        handleMove(ev.touches[0]);
+      }
+    };
+    const end = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", end);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", end);
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", end);
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", end);
+  };
+
   if (embedded) {
     return (
-      <div className="h-full relative bg-slate-100 dark:bg-gray-950">
+      <div
+        className={cn(
+          "h-full relative overflow-hidden",
+          lightMode === "day"
+            ? "bg-gradient-to-br from-slate-100 via-blue-50/30 to-slate-200"
+            : "bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950"
+        )}
+      >
         <canvas
           ref={canvasRef}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
-          onMouseDown={(e) => {
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const startPan = { ...pan };
-            const handleMouseMove = (ev: MouseEvent) => {
-              setPan({ x: startPan.x + (ev.clientX - startX), y: startPan.y + (ev.clientY - startY) });
-            };
-            const handleMouseUp = () => {
-              document.removeEventListener("mousemove", handleMouseMove);
-              document.removeEventListener("mouseup", handleMouseUp);
-            };
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
+          className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
+          onMouseDown={(e) => startCanvasPan(e.clientX, e.clientY)}
+          onTouchStart={(e) => {
+            if (e.touches.length === 1) startCanvasPan(e.touches[0].clientX, e.touches[0].clientY);
           }}
           onWheel={(e) => {
             e.preventDefault();

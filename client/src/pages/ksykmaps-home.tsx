@@ -47,8 +47,7 @@ export default function KSYKMapsHome() {
     return (
       <LoadingSpinner
         fullScreen
-        variant="white"
-        message={t("loading") === "loading" ? (darkMode ? "Ladataan…" : "Loading…") : t("loading")}
+        message={t("loading") === "loading" ? (darkMode ? "Ladataan kampuskarttaa…" : "Loading campus map…") : t("loading")}
       />
     );
   }

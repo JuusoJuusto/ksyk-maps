@@ -324,7 +324,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <CardHeader>
                   <CardTitle>{isFi ? "Saavutettavuus" : "Accessibility"}</CardTitle>
                 </CardHeader>
-                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                <CardContent className="space-y-2">
                   <SettingRow label={isFi ? "Korkea kontrasti" : "High contrast map"}>
                     <Switch checked={settings.highContrast} onCheckedChange={(v) => update("highContrast", v)} />
                   </SettingRow>

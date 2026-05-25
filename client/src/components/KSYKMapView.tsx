@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
-import { MapPin, Plus, Minus } from "lucide-react";
+import { MapPin, Plus, Minus, X, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Building extends BuildingMapData {
@@ -90,7 +90,16 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     );
   }, [campusBuildings, searchQuery]);
 
-  const activeHighlight = highlightLetter ?? selectedLetter;
+  const searchLetter = useMemo(() => {
+    const q = searchQuery.trim().toUpperCase();
+    if (q.length === 1 && (KSYK_BUILDING_LETTERS as readonly string[]).includes(q)) return q;
+    return null;
+  }, [searchQuery]);
+
+  const activeHighlight = highlightLetter ?? selectedLetter ?? searchLetter;
+
+  const selectedPreset = activeHighlight ? KSYK_BUILDING_OUTLINES[activeHighlight] : null;
+  const isFi = i18n.language === "fi";
 
   const baseViewBox = useMemo(
     () => parseViewBox(computeCampusViewBox(outlinesAsMapBuildings() as BuildingMapData[])),
@@ -134,22 +143,23 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     panStart.current = { clientX, clientY, view: { ...viewState } };
   };
 
+  const applyPan = (clientX: number, clientY: number) => {
+    const rect = mapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const scaleX = panStart.current.view.w / rect.width;
+    const scaleY = panStart.current.view.h / rect.height;
+    const dx = (clientX - panStart.current.clientX) * scaleX;
+    const dy = (clientY - panStart.current.clientY) * scaleY;
+    setViewState({
+      ...panStart.current.view,
+      x: panStart.current.view.x - dx,
+      y: panStart.current.view.y - dy,
+    });
+  };
+
   useEffect(() => {
     if (!isPanning) return;
-    const onMove = (e: MouseEvent) => {
-      const rect = mapRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const scaleX = panStart.current.view.w / rect.width;
-      const scaleY = panStart.current.view.h / rect.height;
-      const dx = (e.clientX - panStart.current.clientX) * scaleX;
-      const dy = (e.clientY - panStart.current.clientY) * scaleY;
-      const smooth = settings.smoothPan ? 1 : 1;
-      setViewState({
-        ...panStart.current.view,
-        x: panStart.current.view.x - dx * smooth,
-        y: panStart.current.view.y - dy * smooth,
-      });
-    };
+    const onMove = (e: MouseEvent) => applyPan(e.clientX, e.clientY);
     const onUp = () => setIsPanning(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -157,7 +167,22 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [isPanning, settings.smoothPan]);
+  }, [isPanning]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
+    const t = e.touches[0];
+    handlePanStart(t.clientX, t.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPanning || e.touches.length !== 1) return;
+    e.preventDefault();
+    applyPan(e.touches[0].clientX, e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = () => setIsPanning(false);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -176,6 +201,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
           handlePanStart(e.clientX, e.clientY);
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         <svg className="h-full w-full" viewBox={formatViewBox(viewState)} preserveAspectRatio="xMidYMid meet">
           <defs>
@@ -268,6 +297,48 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           })}
         </svg>
       </div>
+
+      {selectedPreset && activeHighlight && (
+        <div
+          className={cn(
+            "absolute left-3 sm:left-4 z-20 max-w-[min(100%,18rem)]",
+            "bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] sm:bottom-4",
+            "rounded-2xl shadow-2xl backdrop-blur-xl p-4 animate-in slide-in-from-bottom-4 fade-in duration-300",
+            darkMode ? "bg-gray-900/90 text-white" : "bg-white/92 text-gray-900"
+          )}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="h-12 w-12 rounded-xl flex items-center justify-center text-xl font-black text-white shrink-0 shadow-lg"
+                style={{ backgroundColor: selectedPreset.stroke }}
+              >
+                {activeHighlight}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-base truncate">
+                  {isFi ? selectedPreset.nameFi : selectedPreset.nameEn}
+                </p>
+                <p className={cn("text-xs mt-0.5 flex items-center gap-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  <Layers className="h-3 w-3 shrink-0" />
+                  {selectedPreset.floors} {isFi ? "kerrosta" : "floors"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedLetter(null)}
+              className={cn(
+                "p-1.5 rounded-lg shrink-0 transition-colors",
+                darkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"
+              )}
+              aria-label={isFi ? "Sulje" : "Close"}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Zoom controls — raised on mobile so they are not clipped */}
       <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 sm:right-4 z-20">

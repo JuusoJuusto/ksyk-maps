@@ -113,8 +113,8 @@ export default function HomeTopBar({
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <div
               className={cn(
-                "flex p-0.5 rounded-xl border shrink-0 self-start sm:self-center",
-                darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200 shadow-sm"
+                "flex p-0.5 rounded-xl shrink-0 self-start sm:self-center shadow-md backdrop-blur-md",
+                darkMode ? "bg-gray-800/90" : "bg-white/90"
               )}
             >
               {(["2d", "3d"] as const).map((mode) => (
