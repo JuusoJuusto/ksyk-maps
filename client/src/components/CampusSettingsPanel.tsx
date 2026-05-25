@@ -26,7 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "wouter";
-import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
+import { KSYK_MAPS_LOGO_HD, KSYK_MAPS_LOGO_PATH, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -93,11 +93,11 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   return (
     <div
       className={cn(
-        "min-h-full animate-in fade-in duration-300",
+        "min-h-full pb-24 animate-in fade-in duration-300",
         darkMode ? "bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950" : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30"
       )}
     >
-      <div className="max-w-5xl mx-auto px-4 py-6 pb-16">
+      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           {onBack && (
@@ -112,10 +112,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
           )}
           <div className="flex items-center gap-4 min-w-0">
             <img
-              src={KSYK_MAPS_LOGO}
+              src={KSYK_MAPS_LOGO_HD}
+              srcSet={`${KSYK_MAPS_LOGO_PATH} 192w, ${KSYK_MAPS_LOGO_HD} 512w`}
+              sizes="64px"
               alt={KSYK_MAPS_LOGO_ALT}
+              width={64}
+              height={64}
               className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl shadow-lg ring-2 ring-blue-500/20 object-contain bg-white/90 dark:bg-gray-800"
-              style={{ imageRendering: "auto" }}
+              decoding="async"
             />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -128,12 +132,12 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar nav */}
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <nav
             className={cn(
-              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0",
-              "scrollbar-none"
+              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0",
+              "sticky top-0 lg:top-4 z-10 lg:self-start",
+              "scrollbar-none -mx-1 px-1"
             )}
           >
             {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
@@ -342,50 +346,84 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                   <SettingRow label={isFi ? "Näytä koordinaatit" : "Show coordinates"}>
                     <Switch checked={settings.devShowCoords} onCheckedChange={(v) => update("devShowCoords", v)} />
                   </SettingRow>
-                  <Link href="/admin-ksyk-management-portal">
-                    <Button variant="outline" className="w-full mt-4 rounded-xl justify-between">
-                      Admin panel
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </Link>
                 </CardContent>
               </Card>
             )}
 
             {tab === "about" && (
-              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+              <Card className={cn("border-0 shadow-xl overflow-hidden", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
+                <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400" />
                 <CardHeader>
-                  <CardTitle>{isFi ? "Tietoja" : "About"}</CardTitle>
+                  <CardTitle className="text-xl">{isFi ? "Tietoja sovelluksesta" : "About KSYK Maps"}</CardTitle>
+                  <CardDescription>
+                    {isFi
+                      ? "Interaktiivinen kampuskartta Kulosaaren yhteiskoululle"
+                      : "Interactive campus navigation for Kulosaaren yhteiskoulu (KSYK)"}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-300" : "text-gray-600")}>
-                    KSYK Maps is an interactive campus map for Kulosaaren yhteiskoulu, built by Nordbyte Studio.
-                  </p>
+                <CardContent className="space-y-5">
+                  <div className={cn("rounded-2xl p-4 border", darkMode ? "bg-gray-900/50 border-gray-700" : "bg-blue-50/50 border-blue-100")}>
+                    <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-200" : "text-gray-700")}>
+                      <strong className="text-blue-600 dark:text-blue-400">KSYK Maps</strong>{" "}
+                      {isFi
+                        ? "auttaa löytämään rakennukset ja siivet kampuksella. Kartta näyttää siipien A, U, K, M, R ja B ääriviivat selkeästi ja nopeasti."
+                        : "helps you explore the KSYK campus with clear wing outlines (A, U, K, M, R, B), 2D and 3D views, and fast search."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700" : "border-gray-200")}>
+                      <p className="text-muted-foreground text-xs">{isFi ? "Versio" : "Version"}</p>
+                      <p className="font-bold text-lg">3.1.2</p>
+                    </div>
+                    <div className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700" : "border-gray-200")}>
+                      <p className="text-muted-foreground text-xs">{isFi ? "Kehittäjä" : "Developer"}</p>
+                      <p className="font-bold">Nordbyte Studio</p>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
-                    <Badge>v3.1</Badge>
-                    <Badge variant="outline">KSYK</Badge>
+                    <Badge className="rounded-lg">KSYK</Badge>
+                    <Badge variant="outline" className="rounded-lg">
+                      {isFi ? "Kartta" : "Campus map"}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-lg">
+                      2D / 3D
+                    </Badge>
                   </div>
+
                   <Separator />
-                  <div className="space-y-2">
-                    <Link href="/classic">
-                      <Button variant="outline" className="w-full rounded-xl justify-between">
-                        {isFi ? "Klassinen näkymä" : "Classic view"}
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href="/lunch">
-                      <Button variant="outline" className="w-full rounded-xl justify-between">
-                        {isFi ? "Ruokalista" : "Lunch menu"}
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href="/hsl">
-                      <Button variant="outline" className="w-full rounded-xl justify-between">
-                        HSL
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </Link>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      {isFi ? "Ominaisuudet" : "Features"}
+                    </p>
+                    <ul className={cn("text-sm space-y-1.5 list-disc list-inside", darkMode ? "text-gray-300" : "text-gray-600")}>
+                      <li>{isFi ? "Siipikartta (A, U, K, M, R, B)" : "Wing map (A, U, K, M, R, B)"}</li>
+                      <li>{isFi ? "2D- ja 3D-näkymä" : "2D and 3D campus views"}</li>
+                      <li>{isFi ? "HSL-liikennetiedot yläpalkista" : "HSL transit from the top bar"}</li>
+                      <li>{isFi ? "Teema ja saavutettavuusasetukset" : "Theme and accessibility settings"}</li>
+                    </ul>
                   </div>
+
+                  <p className={cn("text-xs text-center pt-2", darkMode ? "text-gray-500" : "text-gray-500")}>
+                    © {new Date().getFullYear()} Nordbyte Studio
+                  </p>
+
+                  <Button
+                    className="w-full rounded-xl bg-blue-600 hover:bg-blue-700"
+                    onClick={() => window.open("https://nordbyte-studio.vercel.app", "_blank")}
+                  >
+                    {isFi ? "Lue lisää Nordbyte Studio" : "Learn more about Nordbyte Studio"}
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Button>
+
+                  <Link href="/lunch">
+                    <Button variant="outline" className="w-full rounded-xl justify-between">
+                      🍽️ {isFi ? "Ruokalista" : "Lunch menu"}
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             )}

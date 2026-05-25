@@ -23,6 +23,10 @@
     --accent: #ff0066;
   }
 
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
   .ksykmaps-app header .text-blue-600 {
     color: #2563eb;
   }

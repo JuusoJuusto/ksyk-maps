@@ -163,6 +163,22 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     return () => clearInterval(interval);
   }, [isAnimating, settings.threeDQuality]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, settings.threeDQuality === "high" ? 2 : 1.5);
+      canvas.width = Math.floor(canvas.offsetWidth * dpr);
+      canvas.height = Math.floor(canvas.offsetHeight * dpr);
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+    return () => ro.disconnect();
+  }, [settings.threeDQuality, embedded]);
+
   // Render 3D scene
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -171,11 +187,18 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, settings.threeDQuality === "high" ? 2 : 1.5);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const drawW = w;
+    const drawH = h;
 
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const grad = ctx.createLinearGradient(0, 0, 0, drawH);
     if (lightMode === "day") {
       grad.addColorStop(0, "#e0f2fe");
       grad.addColorStop(0.5, "#f8fafc");
@@ -186,10 +209,10 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       grad.addColorStop(1, "#0f1419");
     }
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, drawW, drawH);
 
-    const centerX = canvas.width / 2 + pan.x;
-    const centerY = canvas.height / 2 + pan.y;
+    const centerX = drawW / 2 + pan.x;
+    const centerY = drawH / 2 + pan.y;
 
     if (embedded) {
       Object.values(KSYK_BUILDING_OUTLINES).forEach((preset) => {
@@ -349,10 +372,10 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 20, 55);
     ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
 
-  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality]);
+  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded]);
 
   const embeddedControls = (
-    <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
+    <div className="absolute bottom-[max(5rem,calc(0.75rem+env(safe-area-inset-bottom)))] sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
       <div className="pointer-events-auto flex gap-1.5 p-1 rounded-2xl bg-white/90 dark:bg-gray-900/90 border shadow-lg backdrop-blur-md">
         <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setZoom((z) => Math.min(3, z + 0.15))}>
           <ZoomIn className="h-4 w-4" />

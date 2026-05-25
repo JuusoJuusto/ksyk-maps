@@ -165,7 +165,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ref={mapRef}
         className={cn(
           "h-full w-full overflow-hidden select-none transition-colors duration-300",
-          darkMode ? "bg-[#0f1419]" : "bg-[#f1f5f9]",
+          darkMode
+            ? "bg-gradient-to-br from-[#0c1220] via-[#0f1419] to-[#111827]"
+            : "bg-gradient-to-br from-slate-100 via-[#f1f5f9] to-blue-50/40",
           settings.highContrast && (darkMode ? "bg-black" : "bg-white")
         )}
         style={{ cursor: isPanning ? "grabbing" : "grab", touchAction: "none" }}
@@ -210,7 +212,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                   strokeWidth={isSelected ? 5 : settings.highContrast ? 4 : 3}
                   strokeLinejoin="round"
                   strokeLinecap="round"
-                  className="cursor-pointer transition-all duration-200"
+                  vectorEffect="non-scaling-stroke"
+                  className="cursor-pointer transition-all duration-300 hover:opacity-90"
+                  style={isSelected ? { filter: "drop-shadow(0 0 8px rgba(251,191,36,0.6))" } : undefined}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedLetter(letter);
@@ -236,8 +240,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </svg>
       </div>
 
-      {/* Zoom controls */}
-      <div className="absolute bottom-4 right-4 z-20">
+      {/* Zoom controls — raised on mobile so they are not clipped */}
+      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 sm:right-4 z-20">
         <div
           className={cn(
             "rounded-2xl shadow-xl border overflow-hidden flex flex-col",

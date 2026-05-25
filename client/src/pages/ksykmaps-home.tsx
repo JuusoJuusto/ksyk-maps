@@ -6,12 +6,11 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import Header from "@/components/Header";
+import HomeTopBar from "@/components/HomeTopBar";
 import KSYKMapView from "@/components/KSYKMapView";
 import Working3DBuilder from "@/components/Working3DBuilder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
-import MapToolbar from "@/components/MapToolbar";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -56,28 +55,36 @@ export default function KSYKMapsHome() {
 
   if (view === "settings") {
     return (
-      <div className={cn("h-screen flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
+      <div className={cn("h-[100dvh] flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
         <AnnouncementBanner />
-        <Header largeLogo homeMinimal />
-        <CampusSettingsPanel onBack={() => setView("map")} />
+        <HomeTopBar
+          mapMode={mapMode}
+          onMapModeChange={setMapMode}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onOpenSettings={() => setView("map")}
+          showMapTools={false}
+        />
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <CampusSettingsPanel onBack={() => setView("map")} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("ksykmaps-app h-screen flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
+    <div className={cn("ksykmaps-app h-[100dvh] flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
       <AnnouncementBanner />
-      <Header largeLogo homeMinimal />
-
-      <MapToolbar
+      <HomeTopBar
         mapMode={mapMode}
         onMapModeChange={setMapMode}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenSettings={() => setView("settings")}
+        showMapTools
       />
 
-      <div className="flex-1 overflow-hidden relative min-h-0">
+      <div className="flex-1 overflow-hidden relative min-h-0 pb-[env(safe-area-inset-bottom)]">
         {mapMode === "2d" ? (
           <KSYKMapView searchQuery={searchQuery} />
         ) : (

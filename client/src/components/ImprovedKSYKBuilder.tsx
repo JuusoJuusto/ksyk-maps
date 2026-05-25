@@ -10,7 +10,7 @@ import {
   Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
-import { KSYK_MAPS_LOGO } from "@/lib/branding";
+import { KSYK_MAPS_LOGO_HD, KSYK_MAPS_LOGO_PATH, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
 import { KSYK_BUILDING_OUTLINES, outlineToPath } from "@/lib/ksykCampusOutlines";
 
 interface Point { x: number; y: number; }
@@ -436,7 +436,13 @@ export default function ImprovedKSYKBuilder() {
       <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-10 w-10 rounded-xl shadow ring-1 ring-black/5" />
+            <img
+              src={KSYK_MAPS_LOGO_HD}
+              srcSet={`${KSYK_MAPS_LOGO_PATH} 192w, ${KSYK_MAPS_LOGO_HD} 512w`}
+              sizes="40px"
+              alt={KSYK_MAPS_LOGO_ALT}
+              className="h-10 w-10 rounded-xl shadow-md ring-1 ring-black/5 object-contain"
+            />
             KSYK Map Builder
           </h1>
           <div className="hidden md:flex gap-1">
@@ -714,7 +720,12 @@ export default function ImprovedKSYKBuilder() {
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            className={`w-full h-full ${activeTool === "pan" ? "cursor-grab" : "cursor-crosshair"}`}
+            onWheel={(e) => {
+              e.preventDefault();
+              const factor = e.deltaY > 0 ? 1.12 : 0.9;
+              setZoom((z) => Math.min(4, Math.max(0.25, z * factor)));
+            }}
+            className={`w-full h-full touch-none ${activeTool === "pan" ? "cursor-grab" : "cursor-crosshair"}`}
           >
             {/* Grid */}
             {showGrid && (
