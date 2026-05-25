@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.1.2";
+export const APP_VERSION = "3.1.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.1.3",
+    date: "May 2026",
+    title: "New owl logo & map polish",
+    titleFi: "Uusi pöllölogo ja karttaselkeys",
+    latest: true,
+    highlights: [
+      "New owl map icon across the app, favicons, and PWA manifest",
+      "Larger borderless logo on the home screen with soft glow",
+      "Wing info cards, touch pan, and pinch-to-zoom on the 2D map",
+      "Richer 3D campus view with wing quick-select chips",
+      "Premium loader with Finnish and English status messages",
+    ],
+    highlightsFi: [
+      "Uusi pöllö-karttakuvake koko sovelluksessa ja kuvakkeissa",
+      "Suurempi reunaton logo etusivulla",
+      "Siipitiedot, kosketuspanorointi ja nipistyszoomaus 2D-kartalla",
+      "Parannettu 3D-näkymä siipivalitsimilla",
+      "Uudistettu latausnäkymä suomeksi ja englanniksi",
+    ],
+  },
   {
     version: "3.1.2",
     date: "May 2026",
     title: "Campus map refresh",
     titleFi: "Karttapäivitys",
-    latest: true,
     highlights: [
       "New KSYK Maps logo and sharper icons across the app",
       "Unified top bar with Lunch, HSL, and Settings",

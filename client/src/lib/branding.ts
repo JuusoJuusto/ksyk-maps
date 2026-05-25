@@ -2,7 +2,8 @@
  * KSYK Maps branding — do not use in /wilma routes
  *
  * Master asset: /ksykmaps_logo_new_new.png (1024×1024 PNG)
- * Regenerate favicons: python scripts/generate-brand-icons.py
+ * Source artwork: public/ksykmaps_logo_NEW (2).png
+ * Regenerate favicons: npm run icons:generate
  */
 
 /** Primary logo — always the master file (best quality) */

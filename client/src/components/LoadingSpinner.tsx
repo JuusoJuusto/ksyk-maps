@@ -70,7 +70,8 @@ export default function LoadingSpinner({
           aria-hidden
         />
         <div className="relative animate-[float_3.2s_ease-in-out_infinite]">
-          <KSYKLogo size={logoSize} priority className="drop-shadow-2xl" />
+          <div className="absolute inset-0 bg-indigo-500/25 blur-3xl rounded-full scale-150" aria-hidden />
+          <KSYKLogo size={logoSize} priority className="relative drop-shadow-2xl" />
         </div>
       </div>
 

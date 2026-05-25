@@ -30,6 +30,7 @@ import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION } from "@/lib/changelog";
+import { KSYK_BUILDING_LETTERS, KSYK_BUILDING_OUTLINES } from "@/lib/ksykCampusOutlines";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -259,6 +260,31 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                       <span>{isFi ? "Hidas" : "Slow"}</span>
                       <span>{isFi ? "Normaali" : "Normal"}</span>
                       <span>{isFi ? "Nopea" : "Fast"}</span>
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50">
+                    <Label className="mb-3 block">{isFi ? "Siivet" : "Campus wings"}</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {KSYK_BUILDING_LETTERS.map((letter) => {
+                        const p = KSYK_BUILDING_OUTLINES[letter];
+                        return (
+                          <div
+                            key={letter}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-xl text-sm",
+                              darkMode ? "bg-gray-800/80" : "bg-white"
+                            )}
+                          >
+                            <span
+                              className="h-8 w-8 rounded-lg flex items-center justify-center font-black text-white text-xs shrink-0"
+                              style={{ backgroundColor: p.stroke }}
+                            >
+                              {letter}
+                            </span>
+                            <span className="truncate font-medium">{isFi ? p.nameFi : p.nameEn}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </CardContent>

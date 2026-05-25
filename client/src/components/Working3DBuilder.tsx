@@ -13,7 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { KSYK_BUILDING_OUTLINES, outlinesAs3DBuildings } from "@/lib/ksykCampusOutlines";
+import {
+  KSYK_BUILDING_LETTERS,
+  KSYK_BUILDING_OUTLINES,
+  outlinesAs3DBuildings,
+} from "@/lib/ksykCampusOutlines";
 import { cn } from "@/lib/utils";
 import {
   Box,
@@ -81,6 +85,7 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
   const [showAddBuilding, setShowAddBuilding] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showEditBuilding, setShowEditBuilding] = useState(false);
+  const [embeddedWing, setEmbeddedWing] = useState<string | null>(null);
   
   // Form states
   const [newBuilding, setNewBuilding] = useState({
@@ -296,7 +301,7 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
 
     // Draw buildings in 3D
     buildings3D.forEach((building) => {
-      // Apply transformations
+      const isFocused = embedded && embeddedWing === building.name;
       const radY = (rotation.y * Math.PI) / 180;
       const radX = (rotation.x * Math.PI) / 180;
 
@@ -356,7 +361,8 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         ctx.moveTo(corners[indices[0]].x, corners[indices[0]].y);
         indices.slice(1).forEach((i) => ctx.lineTo(corners[i].x, corners[i].y));
         ctx.closePath();
-        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${embedded ? 0.22 * shade : 0.18 * shade})`;
+        const fillAlpha = isFocused ? 0.38 * shade : embedded ? 0.22 * shade : 0.18 * shade;
+        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${fillAlpha})`;
         ctx.fill();
       });
 
@@ -378,7 +384,7 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       }
 
       ctx.strokeStyle = building.color || "#2563eb";
-      ctx.lineWidth = embedded ? 2.5 : settings.threeDQuality === "high" ? 2.5 : 2;
+      ctx.lineWidth = isFocused ? 3.5 : embedded ? 2.5 : settings.threeDQuality === "high" ? 2.5 : 2;
       edgePairs.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(corners[a].x, corners[a].y);
@@ -414,7 +420,9 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
     }
 
-  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded]);
+  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded, embeddedWing, settings.showWingLabels]);
+
+  const embeddedWingPreset = embeddedWing ? KSYK_BUILDING_OUTLINES[embeddedWing] : null;
 
   const embeddedControls = (
     <div className="absolute bottom-[max(5rem,calc(0.75rem+env(safe-area-inset-bottom)))] sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
@@ -662,6 +670,39 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
             : "bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950"
         )}
       >
+        <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap gap-1.5 justify-center pointer-events-auto px-1">
+          {KSYK_BUILDING_LETTERS.map((letter) => {
+            const preset = KSYK_BUILDING_OUTLINES[letter];
+            const active = embeddedWing === letter;
+            return (
+              <button
+                key={letter}
+                type="button"
+                onClick={() => setEmbeddedWing(active ? null : letter)}
+                className={cn(
+                  "h-9 min-w-[2.25rem] px-2.5 rounded-xl text-sm font-black shadow-md transition-all",
+                  active ? "text-white scale-105" : "text-white/95 hover:scale-105"
+                )}
+                style={{
+                  backgroundColor: preset.stroke,
+                  boxShadow: active ? `0 0 0 2px white, 0 0 0 4px ${preset.stroke}` : undefined,
+                }}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
+
+        {embeddedWingPreset && embeddedWing && (
+          <div className="absolute top-14 left-3 z-10 max-w-[14rem] rounded-2xl shadow-2xl backdrop-blur-xl p-3 pointer-events-auto bg-white/92 dark:bg-gray-900/92">
+            <p className="font-bold text-sm" style={{ color: embeddedWingPreset.stroke }}>
+              {embeddedWing} · {embeddedWingPreset.nameEn}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{embeddedWingPreset.floors} floors</p>
+          </div>
+        )}
+
         <canvas
           ref={canvasRef}
           className="w-full h-full cursor-grab active:cursor-grabbing touch-none"

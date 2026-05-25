@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate crisp favicons from public/ksykmaps_logo_new_new.png (1024x1024 master)."""
+"""Generate crisp favicons from the KSYK Maps master logo (1024x1024)."""
 from pathlib import Path
 from shutil import copy2
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "public" / "ksykmaps_logo_NEW (2).png"
 MASTER = ROOT / "public" / "ksykmaps_logo_new_new.png"
 OUT_DIRS = [ROOT / "public", ROOT / "client" / "public"]
 
@@ -22,10 +23,11 @@ SIZES = [
 
 
 def main() -> None:
-    if not MASTER.exists():
-        raise SystemExit(f"Missing master logo: {MASTER}")
+    logo_path = SOURCE if SOURCE.exists() else MASTER
+    if not logo_path.exists():
+        raise SystemExit(f"Missing logo: {SOURCE} or {MASTER}")
 
-    src = Image.open(MASTER).convert("RGBA")
+    src = Image.open(logo_path).convert("RGBA")
     if src.size != (1024, 1024):
         src = src.resize((1024, 1024), Image.Resampling.LANCZOS)
 
@@ -39,10 +41,9 @@ def main() -> None:
                 resized = src.resize((size, size), Image.Resampling.LANCZOS)
             resized.save(out, format="PNG", optimize=False)
         # Full master as 1024 icon (no re-encode loss)
-        copy2(MASTER, out_dir / "icon-1024.png")
         master_copy = out_dir / "ksykmaps_logo_new_new.png"
-        if master_copy.resolve() != MASTER.resolve():
-            copy2(MASTER, master_copy)
+        src.save(master_copy, format="PNG")
+        copy2(master_copy, out_dir / "icon-1024.png")
 
     print("Generated brand icons in public/ and client/public/")
 

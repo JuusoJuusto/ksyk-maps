@@ -72,7 +72,14 @@ export default function KSYKMapsHome() {
   }
 
   return (
-    <div className={cn("ksykmaps-app h-[100dvh] flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
+    <div
+      className={cn(
+        "ksykmaps-app h-[100dvh] flex flex-col overflow-hidden",
+        darkMode
+          ? "bg-gradient-to-b from-gray-950 via-gray-900 to-slate-900"
+          : "bg-gradient-to-b from-slate-50 via-white to-blue-50/40"
+      )}
+    >
       <AnnouncementBanner />
       <HomeTopBar
         mapMode={mapMode}

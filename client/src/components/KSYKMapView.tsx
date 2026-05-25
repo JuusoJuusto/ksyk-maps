@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
-import { MapPin, Plus, Minus, X, Layers } from "lucide-react";
+import { Plus, Minus, X, Layers, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Building extends BuildingMapData {
@@ -45,7 +45,15 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [isPanning, setIsPanning] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const panStart = useRef({ clientX: 0, clientY: 0, view: { x: 0, y: 0, w: 1600, h: 900 } });
+  const pinchStart = useRef<{ distance: number; view: typeof viewState } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+
+  const touchDistance = (touches: React.TouchList | TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  };
 
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
@@ -170,6 +178,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   }, [isPanning]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      setIsPanning(false);
+      pinchStart.current = { distance: touchDistance(e.touches), view: { ...viewState } };
+      return;
+    }
     if (e.touches.length !== 1) return;
     if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
     const t = e.touches[0];
@@ -177,12 +190,27 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStart.current) {
+      e.preventDefault();
+      const dist = touchDistance(e.touches);
+      const scale = dist / pinchStart.current.distance;
+      const v = pinchStart.current.view;
+      const nw = Math.min(Math.max(v.w / scale, 300), 5000);
+      const nh = Math.min(Math.max(v.h / scale, 200), 3500);
+      const cx = v.x + v.w / 2;
+      const cy = v.y + v.h / 2;
+      setViewState({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
+      return;
+    }
     if (!isPanning || e.touches.length !== 1) return;
     e.preventDefault();
     applyPan(e.touches[0].clientX, e.touches[0].clientY);
   };
 
-  const handleTouchEnd = () => setIsPanning(false);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchStart.current = null;
+    if (e.touches.length === 0) setIsPanning(false);
+  };
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -356,9 +384,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             size="sm"
             onClick={handleResetView}
             className="w-11 h-11 rounded-none hover:bg-blue-50/80 dark:hover:bg-gray-800"
-            title={i18n.language === "fi" ? "Nollaa" : "Reset"}
+            title={isFi ? "Näytä koko kampus" : "Fit campus"}
           >
-            <MapPin className="h-5 w-5" />
+            <Maximize2 className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="sm" onClick={handleZoomOut} className="w-11 h-11 rounded-none hover:bg-blue-50 dark:hover:bg-gray-800">
             <Minus className="h-5 w-5" />
