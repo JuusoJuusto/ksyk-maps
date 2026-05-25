@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useTranslation } from "react-i18next";
 import {
   KSYK_BUILDING_LETTERS,
   KSYK_BUILDING_OUTLINES,
@@ -71,6 +72,8 @@ type Working3DBuilderProps = { embedded?: boolean };
 export default function Working3DBuilder({ embedded = false }: Working3DBuilderProps) {
   const queryClient = useQueryClient();
   const { settings } = useAppSettings();
+  const { i18n } = useTranslation();
+  const isFi = i18n.language === "fi";
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewMode, setViewMode] = useState<"3d" | "2d" | "split">("3d");
   const [editMode, setEditMode] = useState<"select" | "move" | "rotate" | "scale">("select");
@@ -172,6 +175,15 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
   useEffect(() => {
     if (embedded) setZoom(1.12);
   }, [embedded]);
+
+  useEffect(() => {
+    if (!embedded || !embeddedWing) return;
+    const idx = (KSYK_BUILDING_LETTERS as readonly string[]).indexOf(embeddedWing);
+    if (idx >= 0) {
+      setRotation((r) => ({ ...r, y: 20 + idx * 30 }));
+      setZoom((z) => Math.min(2.4, Math.max(1.2, z)));
+    }
+  }, [embeddedWing, embedded]);
 
   // Animation loop
   useEffect(() => {
@@ -679,14 +691,12 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
                 key={letter}
                 type="button"
                 onClick={() => setEmbeddedWing(active ? null : letter)}
+                title={isFi ? preset.nameFi : preset.nameEn}
                 className={cn(
                   "h-9 min-w-[2.25rem] px-2.5 rounded-xl text-sm font-black shadow-md transition-all",
-                  active ? "text-white scale-105" : "text-white/95 hover:scale-105"
+                  active ? "text-white scale-105 ring-2 ring-white/90" : "text-white/95 hover:scale-105"
                 )}
-                style={{
-                  backgroundColor: preset.stroke,
-                  boxShadow: active ? `0 0 0 2px white, 0 0 0 4px ${preset.stroke}` : undefined,
-                }}
+                style={{ backgroundColor: preset.stroke }}
               >
                 {letter}
               </button>
@@ -697,9 +707,11 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         {embeddedWingPreset && embeddedWing && (
           <div className="absolute top-14 left-3 z-10 max-w-[14rem] rounded-2xl shadow-2xl backdrop-blur-xl p-3 pointer-events-auto bg-white/92 dark:bg-gray-900/92">
             <p className="font-bold text-sm" style={{ color: embeddedWingPreset.stroke }}>
-              {embeddedWing} · {embeddedWingPreset.nameEn}
+              {embeddedWing} · {isFi ? embeddedWingPreset.nameFi : embeddedWingPreset.nameEn}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{embeddedWingPreset.floors} floors</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {embeddedWingPreset.floors} {isFi ? "kerrosta" : "floors"}
+            </p>
           </div>
         )}
 

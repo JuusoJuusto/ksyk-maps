@@ -17,7 +17,7 @@ const SIZE_CLASS = {
 
 const SIZE_PX = { sm: 44, md: 64, lg: 80, xl: 96, hero: 144 } as const;
 
-/** Official owl map icon — no borders or rings on the image */
+/** ksykmaps_logo_NEW (2).png — no borders or rings on the image */
 export default function KSYKLogo({ className, size = "lg", priority = false }: KSYKLogoProps) {
   const px = SIZE_PX[size];
   return (

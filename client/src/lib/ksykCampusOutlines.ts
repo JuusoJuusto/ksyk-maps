@@ -102,6 +102,22 @@ export const KSYK_BUILDING_OUTLINES: Record<string, BuildingOutlinePreset> = {
 
 export const KSYK_BUILDING_LETTERS = ["B", "R", "K", "M", "U", "A"] as const;
 
+/** View box framing a wing outline with padding */
+export function viewBoxForOutline(points: OutlinePoint[], padding = 120) {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    x: minX - padding,
+    y: minY - padding,
+    w: maxX - minX + padding * 2,
+    h: maxY - minY + padding * 2,
+  };
+}
+
 export function outlineToPath(points: OutlinePoint[]): string {
   if (points.length < 2) return "";
   const [first, ...rest] = points;

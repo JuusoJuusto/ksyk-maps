@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate crisp favicons from the KSYK Maps master logo (1024x1024)."""
+"""Generate favicons and PWA icons from public/ksykmaps_logo_NEW (2).png."""
 from pathlib import Path
 from shutil import copy2
 
@@ -7,7 +7,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "public" / "ksykmaps_logo_NEW (2).png"
-MASTER = ROOT / "public" / "ksykmaps_logo_new_new.png"
+LOGO_NAME = "ksykmaps_logo_NEW (2).png"
 OUT_DIRS = [ROOT / "public", ROOT / "client" / "public"]
 
 SIZES = [
@@ -23,16 +23,21 @@ SIZES = [
 
 
 def main() -> None:
-    logo_path = SOURCE if SOURCE.exists() else MASTER
-    if not logo_path.exists():
-        raise SystemExit(f"Missing logo: {SOURCE} or {MASTER}")
+    if not SOURCE.exists():
+        raise SystemExit(f"Missing logo: {SOURCE}")
 
-    src = Image.open(logo_path).convert("RGBA")
+    src = Image.open(SOURCE).convert("RGBA")
     if src.size != (1024, 1024):
         src = src.resize((1024, 1024), Image.Resampling.LANCZOS)
+        src.save(SOURCE, format="PNG")
+        print(f"Normalized master to 1024x1024: {SOURCE}")
 
     for out_dir in OUT_DIRS:
         out_dir.mkdir(parents=True, exist_ok=True)
+        logo_dest = out_dir / LOGO_NAME
+        if logo_dest.resolve() != SOURCE.resolve():
+            copy2(SOURCE, logo_dest)
+
         for size, name in SIZES:
             out = out_dir / name
             if size >= 512:
@@ -40,12 +45,11 @@ def main() -> None:
             else:
                 resized = src.resize((size, size), Image.Resampling.LANCZOS)
             resized.save(out, format="PNG", optimize=False)
-        # Full master as 1024 icon (no re-encode loss)
-        master_copy = out_dir / "ksykmaps_logo_new_new.png"
-        src.save(master_copy, format="PNG")
-        copy2(master_copy, out_dir / "icon-1024.png")
 
-    print("Generated brand icons in public/ and client/public/")
+        src.save(out_dir / "icon-1024.png", format="PNG")
+        print(f"  -> {out_dir.relative_to(ROOT)}/")
+
+    print("Done. App logo:", f"/{LOGO_NAME.replace(' ', '%20').replace('(', '%28').replace(')', '%29')}")
 
 
 if __name__ == "__main__":

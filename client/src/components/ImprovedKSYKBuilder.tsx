@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import KSYKLogo from "@/components/KSYKLogo";
-import { KSYK_BUILDING_OUTLINES, outlineToPath } from "@/lib/ksykCampusOutlines";
+import { getShapeBounds } from "@/lib/mapGeometry";
+import {
+  KSYK_BUILDING_LETTERS,
+  KSYK_BUILDING_OUTLINES,
+  outlineToPath,
+} from "@/lib/ksykCampusOutlines";
 
 interface Point { x: number; y: number; }
 
@@ -433,27 +438,35 @@ export default function ImprovedKSYKBuilder() {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-gray-950">
-      <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <KSYKLogo size="md" className="drop-shadow-md" />
             KSYK Map Builder
           </h1>
-          <div className="hidden md:flex gap-1">
-            {KSYK_WING_PRESETS.map((w) => (
-              <Button
-                key={w.letter}
-                type="button"
-                variant={activeWingLetter === w.letter ? "default" : "outline"}
-                size="sm"
-                className="h-7 px-2 text-xs font-bold"
-                style={{ borderColor: w.color }}
-                onClick={() => loadWingOutline(w.letter)}
-                title={`Load ${w.nameEn} outline`}
-              >
-                {w.letter}
-              </Button>
-            ))}
+          <div className="hidden md:flex gap-1.5">
+            {KSYK_BUILDING_LETTERS.map((letter) => {
+              const preset = KSYK_BUILDING_OUTLINES[letter];
+              const active = activeWingLetter === letter;
+              return (
+                <Button
+                  key={letter}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 px-2.5 text-xs font-black min-w-[2rem]"
+                  style={{
+                    borderColor: preset.stroke,
+                    backgroundColor: active ? preset.stroke : undefined,
+                    color: active ? "#fff" : preset.stroke,
+                  }}
+                  onClick={() => loadWingOutline(letter)}
+                  title={preset.nameEn}
+                >
+                  {letter}
+                </Button>
+              );
+            })}
           </div>
           
           <div className="flex gap-2">
@@ -737,20 +750,34 @@ export default function ImprovedKSYKBuilder() {
             {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
 
             {showReferenceOutlines &&
-              Object.values(KSYK_BUILDING_OUTLINES).map((preset) => (
-                <path
-                  key={`ref-${preset.letter}`}
-                  d={outlineToPath(preset.shape)}
-                  fill={preset.stroke}
-                  fillOpacity={0.06}
-                  stroke={preset.stroke}
-                  strokeWidth="3"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  opacity="0.65"
-                  pointerEvents="none"
-                />
-              ))}
+              Object.values(KSYK_BUILDING_OUTLINES).map((preset) => {
+                const bounds = getShapeBounds(preset.shape);
+                return (
+                  <g key={`ref-${preset.letter}`} pointerEvents="none" opacity={0.7}>
+                    <path
+                      d={outlineToPath(preset.shape)}
+                      fill={preset.stroke}
+                      fillOpacity={0.08}
+                      stroke={preset.stroke}
+                      strokeWidth="3"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                    <text
+                      x={bounds.centerX}
+                      y={bounds.centerY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={preset.stroke}
+                      fontSize="28"
+                      fontWeight="800"
+                      opacity={0.5}
+                    >
+                      {preset.letter}
+                    </text>
+                  </g>
+                );
+              })}
 
             {/* Wing outline being edited */}
             {campusOutline.length > 0 && (

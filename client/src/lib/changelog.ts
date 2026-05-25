@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.1.3";
+export const APP_VERSION = "3.1.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.1.4",
+    date: "May 2026",
+    title: "Official owl logo file & map builders",
+    titleFi: "Virallinen pöllölogo ja rakentajat",
+    latest: true,
+    highlights: [
+      "App loads ksykmaps_logo_NEW (2).png directly; favicons regenerated from it",
+      "2D map wing chips with fly-to-wing zoom and drop shadows",
+      "3D view rotates toward selected wing with Finnish labels",
+      "Map builder uses campus outline colors and reference labels",
+    ],
+    highlightsFi: [
+      "Sovellus käyttää suoraan ksykmaps_logo_NEW (2).png -tiedostoa",
+      "2D-kartta: siipinapit ja zoomaus valittuun siipeen",
+      "3D-näkymä kääntyy valitun siiven suuntaan",
+      "Karttarakentajan referenssipiirrokset ja värit",
+    ],
+  },
   {
     version: "3.1.3",
     date: "May 2026",
     title: "New owl logo & map polish",
     titleFi: "Uusi pöllölogo ja karttaselkeys",
-    latest: true,
     highlights: [
       "New owl map icon across the app, favicons, and PWA manifest",
       "Larger borderless logo on the home screen with soft glow",

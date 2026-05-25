@@ -17,6 +17,7 @@ import {
   getBuildingLetter,
   outlineToPath,
   outlinesAsMapBuildings,
+  viewBoxForOutline,
 } from "@/lib/ksykCampusOutlines";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -134,6 +135,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const handleZoomOut = () => zoomView(2 - zoomFactor);
   const handleResetView = () => setViewState(baseViewBox);
 
+  const focusWing = (letter: string) => {
+    const preset = KSYK_BUILDING_OUTLINES[letter];
+    if (!preset) return;
+    setSelectedLetter(letter);
+    setViewState(viewBoxForOutline(preset.shape, 140));
+  };
+
   useEffect(() => {
     const el = mapRef.current;
     if (!el) return;
@@ -214,6 +222,28 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
   return (
     <div className="relative h-full w-full overflow-hidden">
+      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap gap-1.5 justify-center pointer-events-auto px-1">
+        {KSYK_BUILDING_LETTERS.map((letter) => {
+          const preset = KSYK_BUILDING_OUTLINES[letter];
+          const active = activeHighlight === letter;
+          return (
+            <button
+              key={letter}
+              type="button"
+              onClick={() => focusWing(letter)}
+              className={cn(
+                "h-9 min-w-[2.25rem] px-2.5 rounded-xl text-sm font-black text-white shadow-md transition-all",
+                active ? "scale-105 ring-2 ring-white/90" : "hover:scale-105 opacity-90 hover:opacity-100"
+              )}
+              style={{ backgroundColor: preset.stroke }}
+              title={isFi ? preset.nameFi : preset.nameEn}
+            >
+              {letter}
+            </button>
+          );
+        })}
+      </div>
+
       <div
         ref={mapRef}
         className={cn(
@@ -253,6 +283,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <filter id="wingShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
+            </filter>
           </defs>
           {settings.showGrid && (
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
@@ -278,21 +311,22 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 <path
                   d={pathD}
                   fill={stroke}
-                  fillOpacity={isSelected ? 0.14 : darkMode ? 0.06 : 0.08}
+                  fillOpacity={isSelected ? 0.2 : darkMode ? 0.08 : 0.1}
                   stroke="none"
+                  filter="url(#wingShadow)"
                 />
                 <path
                   d={pathD}
                   fill="none"
                   stroke={isSelected ? "#fbbf24" : stroke}
-                  strokeWidth={isSelected ? 5 : settings.highContrast ? 4 : 3.5}
+                  strokeWidth={isSelected ? 5.5 : settings.highContrast ? 4 : 3.5}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   filter={isSelected ? "url(#wingGlow)" : undefined}
                   className="cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedLetter(letter);
+                    focusWing(letter);
                   }}
                 />
                 {settings.showWingLabels && (
