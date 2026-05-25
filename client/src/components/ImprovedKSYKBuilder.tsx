@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import KSYKLogo from "@/components/KSYKLogo";
-import { getShapeBounds } from "@/lib/mapGeometry";
 import {
   KSYK_BUILDING_LETTERS,
   KSYK_BUILDING_OUTLINES,
@@ -436,150 +435,64 @@ export default function ImprovedKSYKBuilder() {
   const vbW = 10000 / zoom;
   const vbH = 6000 / zoom;
 
+  const toolBtn = (tool: Tool, icon: React.ReactNode, label: string) => (
+    <Button
+      type="button"
+      variant={activeTool === tool ? "default" : "ghost"}
+      size="sm"
+      className="w-full justify-start gap-2 h-9"
+      onClick={() => setActiveTool(tool)}
+      title={label}
+    >
+      {icon}
+      <span className="text-xs">{label}</span>
+    </Button>
+  );
+
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-gray-950">
-      <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <KSYKLogo size="md" className="drop-shadow-md" />
-            KSYK Map Builder
-          </h1>
-          <div className="hidden md:flex gap-1.5">
-            {KSYK_BUILDING_LETTERS.map((letter) => {
-              const preset = KSYK_BUILDING_OUTLINES[letter];
-              const active = activeWingLetter === letter;
-              return (
-                <Button
-                  key={letter}
-                  type="button"
-                  variant={active ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 px-2.5 text-xs font-black min-w-[2rem]"
-                  style={{
-                    borderColor: preset.stroke,
-                    backgroundColor: active ? preset.stroke : undefined,
-                    color: active ? "#fff" : preset.stroke,
-                  }}
-                  onClick={() => loadWingOutline(letter)}
-                  title={preset.nameEn}
-                >
-                  {letter}
-                </Button>
-              );
-            })}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant={activeTool === "outline" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("outline")}
-            >
-              <Layers className="h-4 w-4 mr-2" />
-              Campus Outline
-            </Button>
-            <Button
-              variant={activeTool === "wall" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("wall")}
-            >
-              <Square className="h-4 w-4 mr-2" />
-              Draw Walls
-            </Button>
-            <Button
-              variant={activeTool === "room" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("room")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Room
-            </Button>
-            <Button
-              variant={activeTool === "select" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("select")}
-            >
-              <MousePointer className="h-4 w-4 mr-2" />
-              Select
-            </Button>
-            <Button
-              variant={activeTool === "pan" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("pan")}
-            >
-              <Hand className="h-4 w-4 mr-2" />
-              Pan
-            </Button>
-          </div>
+    <div className="h-screen flex flex-col bg-[#f4f5f7] dark:bg-gray-950">
+      <header className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md">
+        <div className="flex items-center gap-2 min-w-0">
+          <KSYKLogo size="sm" />
+          <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">Campus Builder</span>
         </div>
-        
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo">
+          <Select value={activeWingLetter} onValueChange={loadWingOutline}>
+            <SelectTrigger className="h-8 w-[10rem] text-xs">
+              <SelectValue placeholder="Wing template" />
+            </SelectTrigger>
+            <SelectContent>
+              {KSYK_BUILDING_LETTERS.map((letter) => (
+                <SelectItem key={letter} value={letter}>
+                  {KSYK_BUILDING_OUTLINES[letter].nameEn}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="h-8" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        <aside className="w-14 sm:w-44 shrink-0 flex flex-col gap-1 p-2 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          {toolBtn("pan", <Hand className="h-4 w-4 shrink-0" />, "Pan")}
+          {toolBtn("outline", <Layers className="h-4 w-4 shrink-0" />, "Outline")}
+          {toolBtn("wall", <Square className="h-4 w-4 shrink-0" />, "Walls")}
+          {toolBtn("room", <Plus className="h-4 w-4 shrink-0" />, "Room")}
+          {toolBtn("select", <MousePointer className="h-4 w-4 shrink-0" />, "Select")}
+          <div className="flex-1" />
+          <Button variant="ghost" size="sm" className="w-full h-8" onClick={undo} disabled={historyIndex <= 0} title="Undo">
             <Undo className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
+          <Button variant="ghost" size="sm" className="w-full h-8" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
             <Redo className="h-4 w-4" />
           </Button>
-          <Button
-            variant={showReferenceOutlines ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowReferenceOutlines(!showReferenceOutlines)}
-            title="Floor-plan reference outlines"
-          >
-            <Layers className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowGrid(!showGrid)}
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { setZoom(1); setPanX(0); setPanY(0); }}
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => saveMutation.mutate()}
-            disabled={rooms.length === 0 || saveMutation.isPending}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {saveMutation.isPending ? 'Saving...' : 'Save All'}
-          </Button>
-          {campusOutline.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCampusOutline([])}
-            >
-              Clear Outline
-            </Button>
-          )}
-        </div>
-      </div>
+        </aside>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Room Form */}
-        <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className="w-64 sm:w-72 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto max-lg:max-w-[45vw]">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Add Room</CardTitle>
@@ -719,8 +632,24 @@ export default function ImprovedKSYKBuilder() {
           </Card>
         </div>
 
-        {/* Main Canvas */}
-        <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-slate-100 via-blue-50/40 to-slate-200 dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
+        <div className="flex-1 relative overflow-hidden min-w-0 bg-[#e8ecf1] dark:bg-gray-950">
+          <div className="absolute top-2 left-2 z-10 flex gap-1 p-1 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-md border border-gray-200/80 dark:border-gray-700">
+            <Button variant={showGrid ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setShowGrid(!showGrid)} title="Grid">
+              <Grid3x3 className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant={showReferenceOutlines ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setShowReferenceOutlines(!showReferenceOutlines)} title="Reference">
+              <Layers className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.min(zoom + 0.2, 3))}>
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}>
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setZoom(1); setPanX(0); setPanY(0); }}>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           <svg
             ref={svgRef}
             viewBox={`${panX} ${panY} ${vbW} ${vbH}`}
@@ -750,34 +679,20 @@ export default function ImprovedKSYKBuilder() {
             {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
 
             {showReferenceOutlines &&
-              Object.values(KSYK_BUILDING_OUTLINES).map((preset) => {
-                const bounds = getShapeBounds(preset.shape);
-                return (
-                  <g key={`ref-${preset.letter}`} pointerEvents="none" opacity={0.7}>
-                    <path
-                      d={outlineToPath(preset.shape)}
-                      fill={preset.stroke}
-                      fillOpacity={0.08}
-                      stroke={preset.stroke}
-                      strokeWidth="3"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
-                    <text
-                      x={bounds.centerX}
-                      y={bounds.centerY}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill={preset.stroke}
-                      fontSize="28"
-                      fontWeight="800"
-                      opacity={0.5}
-                    >
-                      {preset.letter}
-                    </text>
-                  </g>
-                );
-              })}
+              Object.values(KSYK_BUILDING_OUTLINES).map((preset) => (
+                  <path
+                    key={`ref-${preset.letter}`}
+                    d={outlineToPath(preset.shape)}
+                    fill={preset.stroke}
+                    fillOpacity={0.07}
+                    stroke={preset.stroke}
+                    strokeWidth="2.5"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity={0.6}
+                    pointerEvents="none"
+                  />
+              ))}
 
             {/* Wing outline being edited */}
             {campusOutline.length > 0 && (

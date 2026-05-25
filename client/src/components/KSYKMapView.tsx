@@ -222,28 +222,6 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap gap-1.5 justify-center pointer-events-auto px-1">
-        {KSYK_BUILDING_LETTERS.map((letter) => {
-          const preset = KSYK_BUILDING_OUTLINES[letter];
-          const active = activeHighlight === letter;
-          return (
-            <button
-              key={letter}
-              type="button"
-              onClick={() => focusWing(letter)}
-              className={cn(
-                "h-9 min-w-[2.25rem] px-2.5 rounded-xl text-sm font-black text-white shadow-md transition-all",
-                active ? "scale-105 ring-2 ring-white/90" : "hover:scale-105 opacity-90 hover:opacity-100"
-              )}
-              style={{ backgroundColor: preset.stroke }}
-              title={isFi ? preset.nameFi : preset.nameEn}
-            >
-              {letter}
-            </button>
-          );
-        })}
-      </div>
-
       <div
         ref={mapRef}
         className={cn(
@@ -283,10 +261,28 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            <filter id="wingShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
+            <filter id="wingShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.35" />
             </filter>
+            {filteredBuildings.map((building) => {
+              const letter = building.name;
+              const stroke = KSYK_BUILDING_OUTLINES[letter]?.stroke ?? "#2563eb";
+              return (
+                <linearGradient key={`grad-${letter}`} id={`wingGrad-${letter}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor={stroke} stopOpacity={darkMode ? 0.22 : 0.28} />
+                  <stop offset="100%" stopColor={stroke} stopOpacity={darkMode ? 0.06 : 0.1} />
+                </linearGradient>
+              );
+            })}
           </defs>
+          <rect
+            x={baseViewBox.x - 200}
+            y={baseViewBox.y - 200}
+            width={baseViewBox.w + 400}
+            height={baseViewBox.h + 400}
+            fill={darkMode ? "#0f1419" : "#e8eef4"}
+            rx="24"
+          />
           {settings.showGrid && (
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
           )}
@@ -310,8 +306,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               >
                 <path
                   d={pathD}
-                  fill={stroke}
-                  fillOpacity={isSelected ? 0.2 : darkMode ? 0.08 : 0.1}
+                  fill={`url(#wingGrad-${letter})`}
                   stroke="none"
                   filter="url(#wingShadow)"
                 />
@@ -319,7 +314,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                   d={pathD}
                   fill="none"
                   stroke={isSelected ? "#fbbf24" : stroke}
-                  strokeWidth={isSelected ? 5.5 : settings.highContrast ? 4 : 3.5}
+                  strokeWidth={isSelected ? 6 : settings.highContrast ? 4.5 : 4}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   filter={isSelected ? "url(#wingGlow)" : undefined}
@@ -370,22 +365,14 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           )}
         >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="h-12 w-12 rounded-xl flex items-center justify-center text-xl font-black text-white shrink-0 shadow-lg"
-                style={{ backgroundColor: selectedPreset.stroke }}
-              >
-                {activeHighlight}
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-base truncate">
-                  {isFi ? selectedPreset.nameFi : selectedPreset.nameEn}
-                </p>
-                <p className={cn("text-xs mt-0.5 flex items-center gap-1", darkMode ? "text-gray-400" : "text-gray-500")}>
-                  <Layers className="h-3 w-3 shrink-0" />
-                  {selectedPreset.floors} {isFi ? "kerrosta" : "floors"}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <p className="font-bold text-base" style={{ color: selectedPreset.stroke }}>
+                {isFi ? selectedPreset.nameFi : selectedPreset.nameEn}
+              </p>
+              <p className={cn("text-xs mt-1 flex items-center gap-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+                <Layers className="h-3 w-3 shrink-0" />
+                {selectedPreset.floors} {isFi ? "kerrosta" : "floors"}
+              </p>
             </div>
             <button
               type="button"
