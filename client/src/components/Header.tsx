@@ -90,22 +90,12 @@ export default function Header({ largeLogo = false, homeMinimal = false }: Heade
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
               <KSYKLogo
-                size={largeLogo ? "hero" : "md"}
+                size={largeLogo ? "lg" : "md"}
                 priority={largeLogo}
-                className="group-hover:scale-[1.03] transition-transform duration-200"
+                className="group-hover:scale-[1.02] transition-transform duration-200"
               />
               <div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors tracking-tight" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = '/secret-easter-egg';
-                  }}
-                  title="Click for a surprise! ??"
-                  style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: '-0.02em' }}
-                >
-                  KSYK Maps
-                </h2>
+                <h2 className="text-lg sm:text-xl font-bold text-blue-600 tracking-tight">KSYK Maps</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by Nordbyte Studio</p>
               </div>
             </Link>
