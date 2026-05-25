@@ -84,11 +84,18 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
     description?: string;
     children: React.ReactNode;
   }) => (
-    <div className="flex items-center justify-between gap-4 py-3">
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 py-3.5 px-4 rounded-2xl transition-colors",
+        darkMode ? "bg-gray-800/50 hover:bg-gray-800/70" : "bg-slate-50/90 hover:bg-white"
+      )}
+    >
       <div className="min-w-0 flex-1">
         <Label className="text-sm font-semibold">{label}</Label>
         {description && (
-          <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-400" : "text-gray-500")}>{description}</p>
+          <p className={cn("text-xs mt-0.5 leading-relaxed", darkMode ? "text-gray-400" : "text-gray-500")}>
+            {description}
+          </p>
         )}
       </div>
       <div className="shrink-0">{children}</div>
@@ -116,7 +123,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             </Button>
           )}
           <div className="flex items-center gap-4 min-w-0">
-            <KSYKLogo size="xl" className="shadow-xl ring-2 ring-blue-500/25 bg-white dark:bg-gray-800" />
+            <KSYKLogo size="xl" className="drop-shadow-lg" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 {isFi ? "Asetukset" : "Settings"}
@@ -133,7 +140,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             className={cn(
               "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0",
               "sticky top-0 lg:top-4 z-10 lg:self-start",
-              "scrollbar-none -mx-1 px-1"
+              "scrollbar-none -mx-1 px-1 p-1.5 rounded-2xl backdrop-blur-xl",
+              darkMode ? "bg-gray-800/60 lg:bg-gray-800/40" : "bg-white/70 lg:bg-white/50 shadow-sm"
             )}
           >
             {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
@@ -226,7 +234,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <CardHeader>
                   <CardTitle>{isFi ? "Kartta-asetukset" : "Map controls"}</CardTitle>
                 </CardHeader>
-                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
+                <CardContent className="space-y-2">
                   <SettingRow label={isFi ? "Ruudukko" : "Show grid"} description={isFi ? "Taustaruudukko kartalla" : "Background grid on map"}>
                     <Switch checked={settings.showGrid} onCheckedChange={(v) => update("showGrid", v)} />
                   </SettingRow>
@@ -262,8 +270,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <CardHeader>
                   <CardTitle>{isFi ? "3D-kartta" : "3D map settings"}</CardTitle>
                 </CardHeader>
-                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
-                  <div className="py-4">
+                <CardContent className="space-y-2">
+                  <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50">
                     <Label className="mb-3 block">{isFi ? "Renderöintilaatu" : "Render quality"}</Label>
                     <div className="flex gap-2">
                       {(["low", "medium", "high"] as const).map((q) => (
@@ -367,7 +375,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
                 <CardHeader className="text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
-                    <KSYKLogo size="xl" className="shadow-lg" />
+                    <KSYKLogo size="xl" className="drop-shadow-lg" />
                     <div>
                       <CardTitle className="text-2xl">KSYK Maps</CardTitle>
                       <CardDescription className="text-base mt-1">

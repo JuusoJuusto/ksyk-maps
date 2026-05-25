@@ -436,7 +436,7 @@ export default function ImprovedKSYKBuilder() {
       <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <KSYKLogo size="md" className="rounded-xl shadow-md ring-1 ring-black/5" />
+            <KSYKLogo size="md" className="drop-shadow-md" />
             KSYK Map Builder
           </h1>
           <div className="hidden md:flex gap-1">
@@ -707,7 +707,7 @@ export default function ImprovedKSYKBuilder() {
         </div>
 
         {/* Main Canvas */}
-        <div className="flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-950">
+        <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-slate-100 via-blue-50/40 to-slate-200 dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
           <svg
             ref={svgRef}
             viewBox={`${panX} ${panY} ${vbW} ${vbH}`}
@@ -741,11 +741,13 @@ export default function ImprovedKSYKBuilder() {
                 <path
                   key={`ref-${preset.letter}`}
                   d={outlineToPath(preset.shape)}
-                  fill="none"
+                  fill={preset.stroke}
+                  fillOpacity={0.06}
                   stroke={preset.stroke}
-                  strokeWidth="2"
-                  strokeDasharray="8 6"
-                  opacity="0.45"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  opacity="0.65"
                   pointerEvents="none"
                 />
               ))}
@@ -754,7 +756,8 @@ export default function ImprovedKSYKBuilder() {
             {campusOutline.length > 0 && (
               <path
                 d={outlineToPath(campusOutline)}
-                fill="none"
+                fill={KSYK_BUILDING_OUTLINES[activeWingLetter]?.stroke ?? "#3B82F6"}
+                fillOpacity={0.12}
                 stroke={KSYK_BUILDING_OUTLINES[activeWingLetter]?.stroke ?? "#3B82F6"}
                 strokeWidth="5"
                 strokeLinecap="round"

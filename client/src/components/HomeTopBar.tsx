@@ -40,14 +40,10 @@ export default function HomeTopBar({
       )}
     >
       {/* Brand row */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between gap-2 h-14 sm:h-[4.25rem]">
-        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0 group">
-          <div className="relative shrink-0 transition-transform duration-200 group-hover:scale-[1.03]">
-            <KSYKLogo
-              size="lg"
-              priority
-              className="shadow-lg ring-1 ring-black/5 dark:ring-white/15"
-            />
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between gap-2 h-[4.75rem] sm:h-[6.75rem]">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-4 min-w-0 group">
+          <div className="relative shrink-0 transition-transform duration-200 group-hover:scale-[1.04]">
+            <KSYKLogo size="hero" priority />
           </div>
           <div className="min-w-0">
             <h1 className="text-lg sm:text-2xl font-bold text-blue-600 truncate leading-tight">KSYK Maps</h1>

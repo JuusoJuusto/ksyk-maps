@@ -117,6 +117,42 @@ export function getBuildingLetter(name: string): string | null {
 }
 
 /** Six wings as map data (outline shapes from floor plans) */
+/** 3D viewer footprint boxes from outline presets */
+export function outlinesAs3DBuildings(): Array<{
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
+  color: string;
+}> {
+  return KSYK_BUILDING_LETTERS.map((letter) => {
+    const preset = KSYK_BUILDING_OUTLINES[letter];
+    const xs = preset.shape.map((p) => p.x);
+    const ys = preset.shape.map((p) => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    return {
+      id: `wing-${letter}`,
+      name: letter,
+      x: cx - 800,
+      y: 0,
+      z: cy - 400,
+      width: maxX - minX,
+      height: Math.max(preset.floors * 32, 48),
+      depth: maxY - minY,
+      color: preset.stroke,
+    };
+  });
+}
+
 export function outlinesAsMapBuildings(): Array<{
   id: string;
   name: string;

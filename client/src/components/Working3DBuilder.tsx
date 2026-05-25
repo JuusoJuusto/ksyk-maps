@@ -3,7 +3,7 @@
  * Real 3D visualization with working controls
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseBuildingShape, getShapeBounds } from "@/lib/mapGeometry";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { KSYK_BUILDING_OUTLINES } from "@/lib/ksykCampusOutlines";
+import { KSYK_BUILDING_OUTLINES, outlinesAs3DBuildings } from "@/lib/ksykCampusOutlines";
 import { cn } from "@/lib/utils";
 import {
   Box,
@@ -130,7 +130,16 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     },
   });
 
-  const buildings3D: Building3D[] = buildings.map((b: any, i: number) => {
+  const campusWings3D = useMemo(
+    () =>
+      outlinesAs3DBuildings().map((b) => ({
+        ...b,
+        rotation: 0,
+      })),
+    []
+  );
+
+  const apiBuildings3D: Building3D[] = buildings.map((b: any, i: number) => {
     const shape = parseBuildingShape(b);
     const bounds = getShapeBounds(shape);
     const mapX = b.mapPositionX ?? bounds.minX;
@@ -148,6 +157,8 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       rotation: 0,
     };
   });
+
+  const buildings3D = embedded ? campusWings3D : apiBuildings3D;
 
   useEffect(() => {
     if (settings.threeDAutoRotate) setIsAnimating(true);
@@ -198,8 +209,18 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
     const drawW = w;
     const drawH = h;
 
-    const grad = ctx.createLinearGradient(0, 0, 0, drawH);
-    if (lightMode === "day") {
+    const grad = ctx.createLinearGradient(0, 0, drawW, drawH);
+    if (embedded) {
+      if (lightMode === "day") {
+        grad.addColorStop(0, "#dbeafe");
+        grad.addColorStop(0.45, "#f0f9ff");
+        grad.addColorStop(1, "#e2e8f0");
+      } else {
+        grad.addColorStop(0, "#0c1222");
+        grad.addColorStop(0.5, "#111827");
+        grad.addColorStop(1, "#0f172a");
+      }
+    } else if (lightMode === "day") {
       grad.addColorStop(0, "#e0f2fe");
       grad.addColorStop(0.5, "#f8fafc");
       grad.addColorStop(1, "#e2e8f0");
@@ -213,28 +234,10 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
 
     const centerX = drawW / 2 + pan.x;
     const centerY = drawH / 2 + pan.y;
-
-    if (embedded) {
-      Object.values(KSYK_BUILDING_OUTLINES).forEach((preset) => {
-        const pts = preset.shape.map((p) => ({
-          x: centerX + (p.x - 800) * 0.35 * zoom,
-          y: centerY + (p.y - 400) * 0.35 * zoom,
-        }));
-        if (pts.length < 2) return;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.strokeStyle = preset.stroke;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.85;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      });
-    }
+    const scale = embedded ? 0.42 : 1;
 
     // Draw grid
-    if (showGrid) {
+    if (showGrid && (!embedded || settings.devShowDebug)) {
       ctx.strokeStyle = lightMode === "day" ? "#cbd5e0" : "#2d3748";
       ctx.lineWidth = 1;
       
@@ -256,38 +259,36 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       }
     }
 
-    // Draw axis indicators
-    const axisLength = 100;
-    // X axis (red)
-    ctx.strokeStyle = "#ef4444";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + axisLength, centerY);
-    ctx.stroke();
-    ctx.fillStyle = "#ef4444";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText("X", centerX + axisLength + 10, centerY);
+    if (!embedded) {
+      const axisLength = 100;
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX + axisLength, centerY);
+      ctx.stroke();
+      ctx.fillStyle = "#ef4444";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("X", centerX + axisLength + 10, centerY);
 
-    // Y axis (green)
-    ctx.strokeStyle = "#10b981";
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX, centerY - axisLength);
-    ctx.stroke();
-    ctx.fillStyle = "#10b981";
-    ctx.fillText("Y", centerX, centerY - axisLength - 10);
+      ctx.strokeStyle = "#10b981";
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX, centerY - axisLength);
+      ctx.stroke();
+      ctx.fillStyle = "#10b981";
+      ctx.fillText("Y", centerX, centerY - axisLength - 10);
 
-    // Z axis (blue)
-    ctx.strokeStyle = "#3b82f6";
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    const zX = centerX - axisLength * 0.7;
-    const zY = centerY + axisLength * 0.7;
-    ctx.lineTo(zX, zY);
-    ctx.stroke();
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillText("Z", zX - 20, zY + 10);
+      ctx.strokeStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      const zX = centerX - axisLength * 0.7;
+      const zY = centerY + axisLength * 0.7;
+      ctx.lineTo(zX, zY);
+      ctx.stroke();
+      ctx.fillStyle = "#3b82f6";
+      ctx.fillText("Z", zX - 20, zY + 10);
+    }
 
     // Draw buildings in 3D
     buildings3D.forEach((building) => {
@@ -305,24 +306,55 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         const rotatedY = y * Math.cos(radX) - rotatedZ * Math.sin(radX);
         const finalZ = y * Math.sin(radX) + rotatedZ * Math.cos(radX);
 
-        // Isometric projection
-        const screenX = centerX + (rotatedX - finalZ * 0.5) * zoom;
-        const screenY = centerY - rotatedY * zoom + finalZ * 0.25 * zoom;
+        const screenX = centerX + (rotatedX - finalZ * 0.5) * zoom * scale;
+        const screenY = centerY - rotatedY * zoom * scale + finalZ * 0.25 * zoom * scale;
 
         return { x: screenX, y: screenY, z: finalZ };
       };
 
-      // Building corners
+      const bx = building.x * scale;
+      const by = building.y;
+      const bz = building.z * scale;
+      const bw = building.width * scale;
+      const bh = building.height * (embedded ? 1.1 : 1);
+      const bd = building.depth * scale;
+
       const corners = [
-        project(building.x, building.y, building.z),
-        project(building.x + building.width, building.y, building.z),
-        project(building.x + building.width, building.y, building.z + building.depth),
-        project(building.x, building.y, building.z + building.depth),
-        project(building.x, building.y + building.height, building.z),
-        project(building.x + building.width, building.y + building.height, building.z),
-        project(building.x + building.width, building.y + building.height, building.z + building.depth),
-        project(building.x, building.y + building.height, building.z + building.depth),
+        project(bx, by, bz),
+        project(bx + bw, by, bz),
+        project(bx + bw, by, bz + bd),
+        project(bx, by, bz + bd),
+        project(bx, by + bh, bz),
+        project(bx + bw, by + bh, bz),
+        project(bx + bw, by + bh, bz + bd),
+        project(bx, by + bh, bz + bd),
       ];
+
+      const rgb = hexToRgb(building.color || "#2563eb");
+      const faces: { indices: number[]; shade: number }[] = [
+        { indices: [0, 1, 2, 3], shade: 0.35 },
+        { indices: [4, 5, 6, 7], shade: 1 },
+        { indices: [0, 1, 5, 4], shade: 0.72 },
+        { indices: [1, 2, 6, 5], shade: 0.58 },
+        { indices: [2, 3, 7, 6], shade: 0.48 },
+        { indices: [3, 0, 4, 7], shade: 0.65 },
+      ];
+      const sortedFaces = [...faces].sort((a, b) => {
+        const az =
+          a.indices.reduce((s, i) => s + corners[i].z, 0) / a.indices.length;
+        const bz =
+          b.indices.reduce((s, i) => s + corners[i].z, 0) / b.indices.length;
+        return az - bz;
+      });
+
+      sortedFaces.forEach(({ indices, shade }) => {
+        ctx.beginPath();
+        ctx.moveTo(corners[indices[0]].x, corners[indices[0]].y);
+        indices.slice(1).forEach((i) => ctx.lineTo(corners[i].x, corners[i].y));
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${embedded ? 0.22 * shade : 0.18 * shade})`;
+        ctx.fill();
+      });
 
       const edgePairs: [number, number][] = [
         [0, 1], [1, 2], [2, 3], [3, 0],
@@ -330,21 +362,19 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         [0, 4], [1, 5], [2, 6], [3, 7],
       ];
       if (settings.threeDShadows && settings.threeDQuality !== "low") {
-        const base = [
-          corners[0], corners[1], corners[2], corners[3],
-        ];
+        const base = [corners[0], corners[1], corners[2], corners[3]];
         ctx.beginPath();
-        ctx.moveTo(base[0].x + 6, base[0].y + 6);
+        ctx.moveTo(base[0].x + 8, base[0].y + 8);
         base.forEach((c, i) => {
-          if (i > 0) ctx.lineTo(c.x + 6, c.y + 6);
+          if (i > 0) ctx.lineTo(c.x + 8, c.y + 8);
         });
         ctx.closePath();
-        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        ctx.fillStyle = embedded ? "rgba(0,0,0,0.08)" : "rgba(0,0,0,0.12)";
         ctx.fill();
       }
 
       ctx.strokeStyle = building.color || "#2563eb";
-      ctx.lineWidth = settings.threeDQuality === "high" ? 2.5 : 2;
+      ctx.lineWidth = embedded ? 2.5 : settings.threeDQuality === "high" ? 2.5 : 2;
       edgePairs.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(corners[a].x, corners[a].y);
@@ -352,31 +382,39 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         ctx.stroke();
       });
 
-      // Draw building label
       const labelPos = project(
-        building.x + building.width / 2,
-        building.y + building.height + 20,
-        building.z + building.depth / 2
+        bx + bw / 2,
+        by + bh + (embedded ? 8 : 20),
+        bz + bd / 2
       );
-      ctx.fillStyle = lightMode === "day" ? "#1a202c" : "#f7fafc";
-      ctx.font = "bold 12px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(building.name, labelPos.x, labelPos.y);
+      if (embedded || settings.showWingLabels) {
+        const labelSize = embedded ? 15 : 12;
+        ctx.fillStyle = lightMode === "day" ? "#0f172a" : "#f8fafc";
+        ctx.font = `bold ${labelSize}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        if (embedded) {
+          ctx.strokeStyle = lightMode === "day" ? "#fff" : "#0f172a";
+          ctx.lineWidth = 4;
+          ctx.strokeText(building.name, labelPos.x, labelPos.y);
+        }
+        ctx.fillText(building.name, labelPos.x, labelPos.y);
+      }
     });
 
-    // Draw floor indicator
-    ctx.fillStyle = lightMode === "day" ? "#2d3748" : "#f7fafc";
-    ctx.font = "bold 16px sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText(`Floor: ${selectedFloor}`, 20, 30);
-    ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 20, 55);
-    ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
+    if (!embedded) {
+      ctx.fillStyle = lightMode === "day" ? "#2d3748" : "#f7fafc";
+      ctx.font = "bold 16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`Floor: ${selectedFloor}`, 20, 30);
+      ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 20, 55);
+      ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
+    }
 
   }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded]);
 
   const embeddedControls = (
     <div className="absolute bottom-[max(5rem,calc(0.75rem+env(safe-area-inset-bottom)))] sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
-      <div className="pointer-events-auto flex gap-1.5 p-1 rounded-2xl bg-white/90 dark:bg-gray-900/90 border shadow-lg backdrop-blur-md">
+      <div className="pointer-events-auto flex gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-gray-900/90 shadow-2xl backdrop-blur-xl">
         <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setZoom((z) => Math.min(3, z + 0.15))}>
           <ZoomIn className="h-4 w-4" />
         </Button>

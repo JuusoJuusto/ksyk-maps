@@ -178,18 +178,25 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         }}
       >
         <svg className="h-full w-full" viewBox={formatViewBox(viewState)} preserveAspectRatio="xMidYMid meet">
-          {settings.showGrid && (
-            <defs>
-              <pattern id="campusGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <defs>
+            {settings.showGrid && (
+              <pattern id="campusGrid" width="48" height="48" patternUnits="userSpaceOnUse">
                 <path
-                  d="M 40 0 L 0 0 0 40"
+                  d="M 48 0 L 0 0 0 48"
                   fill="none"
-                  stroke={darkMode ? "#334155" : "#e2e8f0"}
-                  strokeWidth="0.6"
+                  stroke={darkMode ? "#1e293b" : "#e2e8f0"}
+                  strokeWidth="0.75"
                 />
               </pattern>
-            </defs>
-          )}
+            )}
+            <filter id="wingGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
           {settings.showGrid && (
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
           )}
@@ -202,37 +209,59 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             const isSelected = activeHighlight === letter;
             const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
             const dimmed = searchQuery && !isSelected && activeHighlight !== letter;
+            const pathD = outlineToPath(shape);
 
             return (
-              <g key={building.id} data-map-feature="building" opacity={dimmed ? 0.35 : 1}>
+              <g
+                key={building.id}
+                data-map-feature="building"
+                opacity={dimmed ? 0.3 : 1}
+                style={{ transition: "opacity 0.25s ease" }}
+              >
                 <path
-                  d={outlineToPath(shape)}
+                  d={pathD}
+                  fill={stroke}
+                  fillOpacity={isSelected ? 0.14 : darkMode ? 0.06 : 0.08}
+                  stroke="none"
+                />
+                <path
+                  d={pathD}
                   fill="none"
                   stroke={isSelected ? "#fbbf24" : stroke}
-                  strokeWidth={isSelected ? 5 : settings.highContrast ? 4 : 3}
+                  strokeWidth={isSelected ? 5 : settings.highContrast ? 4 : 3.5}
                   strokeLinejoin="round"
                   strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                  className="cursor-pointer transition-all duration-300 hover:opacity-90"
-                  style={isSelected ? { filter: "drop-shadow(0 0 8px rgba(251,191,36,0.6))" } : undefined}
+                  filter={isSelected ? "url(#wingGlow)" : undefined}
+                  className="cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedLetter(letter);
                   }}
                 />
                 {settings.showWingLabels && (
-                  <text
-                    x={bounds.centerX}
-                    y={bounds.centerY + 6}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill={darkMode ? "#f8fafc" : "#0f172a"}
-                    fontSize={Math.min(48, Math.max(22, bounds.width / 5))}
-                    fontWeight="900"
-                    className="pointer-events-none select-none"
-                  >
-                    {letter}
-                  </text>
+                  <>
+                    <ellipse
+                      cx={bounds.centerX}
+                      cy={bounds.centerY + 4}
+                      rx={Math.min(bounds.width / 2.8, 42)}
+                      ry={Math.min(bounds.height / 4, 28)}
+                      fill={darkMode ? "rgba(15,23,42,0.55)" : "rgba(255,255,255,0.75)"}
+                      className="pointer-events-none"
+                    />
+                    <text
+                      x={bounds.centerX}
+                      y={bounds.centerY + 8}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={isSelected ? "#fbbf24" : darkMode ? "#f1f5f9" : stroke}
+                      fontSize={Math.min(52, Math.max(24, bounds.width / 4.5))}
+                      fontWeight="900"
+                      className="pointer-events-none select-none"
+                      style={{ paintOrder: "stroke", stroke: darkMode ? "#0f172a" : "#fff", strokeWidth: 3 }}
+                    >
+                      {letter}
+                    </text>
+                  </>
                 )}
               </g>
             );
@@ -244,8 +273,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 sm:right-4 z-20">
         <div
           className={cn(
-            "rounded-2xl shadow-xl border overflow-hidden flex flex-col",
-            darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"
+            "rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col",
+            darkMode ? "bg-gray-900/80" : "bg-white/85"
           )}
         >
           <Button variant="ghost" size="sm" onClick={handleZoomIn} className="w-11 h-11 rounded-none hover:bg-blue-50 dark:hover:bg-gray-800">
@@ -255,7 +284,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             variant="ghost"
             size="sm"
             onClick={handleResetView}
-            className="w-11 h-11 rounded-none border-y border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800"
+            className="w-11 h-11 rounded-none hover:bg-blue-50/80 dark:hover:bg-gray-800"
             title={i18n.language === "fi" ? "Nollaa" : "Reset"}
           >
             <MapPin className="h-5 w-5" />
