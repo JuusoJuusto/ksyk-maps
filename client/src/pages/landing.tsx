@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { KSYK_MAPS_LOGO } from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 
@@ -17,7 +17,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <img src={KSYK_MAPS_LOGO} alt="KSYK Maps" className="h-10 w-10 rounded-lg object-contain" />
+              <KSYKLogo size="sm" className="rounded-lg" />
               <div className="flex-shrink-0">
                 <h1 className="text-xl font-bold text-blue-600">KSYK Maps</h1>
                 <p className="text-xs text-muted-foreground">by Nordbyte Studio</p>

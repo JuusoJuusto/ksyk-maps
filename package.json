@@ -35,6 +35,7 @@
     "notify:discord": "node scripts/notify-discord.js",
     "seed:courses": "tsx server/seedCodingCourses.ts",
     "seed:desktop": "tsx server/seedDesktopApps.ts",
+    "icons:generate": "python scripts/generate-brand-icons.py",
     "seed:campus": "tsx server/seedKSYKCampus.ts",
     "seed:campus:full": "tsx server/seedFirebase.ts && tsx server/seedKSYKCampus.ts && tsx server/seedRooms.ts"
   },

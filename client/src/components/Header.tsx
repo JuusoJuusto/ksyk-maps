@@ -7,7 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import NavigationModal from "@/components/NavigationModal";
 import { Sun, Moon, Menu, X, ChevronDown } from "lucide-react";
-import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_SRCSET, KSYK_MAPS_LOGO_ULTRA } from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
 
 type HeaderProps = { largeLogo?: boolean; homeMinimal?: boolean };
 
@@ -89,15 +89,10 @@ export default function Header({ largeLogo = false, homeMinimal = false }: Heade
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
-              <img
-                src={largeLogo ? KSYK_MAPS_LOGO_ULTRA : KSYK_MAPS_LOGO}
-                srcSet={KSYK_MAPS_LOGO_SRCSET}
-                sizes={largeLogo ? "72px" : "48px"}
-                alt={KSYK_MAPS_LOGO_ALT}
-                className={`object-contain rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-lg transition-all duration-200 group-hover:scale-[1.02] ${
-                  largeLogo ? "h-14 w-14 sm:h-[4.5rem] sm:w-[4.5rem]" : "h-11 w-11 sm:h-12 sm:w-12"
-                }`}
-                decoding="async"
+              <KSYKLogo
+                size={largeLogo ? "lg" : "md"}
+                priority={largeLogo}
+                className="shadow-md ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-lg transition-all duration-200 group-hover:scale-[1.02] rounded-xl"
               />
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors tracking-tight" 

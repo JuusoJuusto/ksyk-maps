@@ -27,13 +27,8 @@ import {
   ScrollText,
 } from "lucide-react";
 import CampusChangelog from "@/components/CampusChangelog";
-import {
-  KSYK_MAPS_LOGO,
-  KSYK_MAPS_LOGO_ALT,
-  KSYK_MAPS_LOGO_SRCSET,
-  KSYK_MAPS_LOGO_ULTRA,
-  KSYK_GITHUB_CHANGELOG,
-} from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
+import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
 
@@ -121,16 +116,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             </Button>
           )}
           <div className="flex items-center gap-4 min-w-0">
-            <img
-              src={KSYK_MAPS_LOGO_ULTRA}
-              srcSet={KSYK_MAPS_LOGO_SRCSET}
-              sizes="72px"
-              alt={KSYK_MAPS_LOGO_ALT}
-              width={72}
-              height={72}
-              className="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl shadow-xl ring-2 ring-blue-500/25 object-contain bg-white dark:bg-gray-800"
-              decoding="async"
-            />
+            <KSYKLogo size="xl" className="shadow-xl ring-2 ring-blue-500/25 bg-white dark:bg-gray-800" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 {isFi ? "Asetukset" : "Settings"}
@@ -381,11 +367,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
                 <CardHeader className="text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
-                    <img
-                      src={KSYK_MAPS_LOGO}
-                      alt={KSYK_MAPS_LOGO_ALT}
-                      className="h-20 w-20 rounded-2xl shadow-lg object-contain"
-                    />
+                    <KSYKLogo size="xl" className="shadow-lg" />
                     <div>
                       <CardTitle className="text-2xl">KSYK Maps</CardTitle>
                       <CardDescription className="text-base mt-1">

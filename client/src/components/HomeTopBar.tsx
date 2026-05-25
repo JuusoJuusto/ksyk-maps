@@ -7,7 +7,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Box, Map as MapIcon, Search, Settings, X } from "lucide-react";
-import { KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_SRCSET, KSYK_MAPS_LOGO_ULTRA } from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 
 type HomeTopBarProps = {
@@ -42,17 +42,11 @@ export default function HomeTopBar({
       {/* Brand row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between gap-2 h-14 sm:h-[4.25rem]">
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0 group">
-          <div className="relative shrink-0">
-            <img
-              src={KSYK_MAPS_LOGO_ULTRA}
-              srcSet={KSYK_MAPS_LOGO_SRCSET}
-              sizes="(max-width: 640px) 56px, 72px"
-              alt={KSYK_MAPS_LOGO_ALT}
-              width={72}
-              height={72}
-              className="h-12 w-12 sm:h-[4.25rem] sm:w-[4.25rem] object-contain rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/15 transition-transform duration-200 group-hover:scale-[1.03]"
-              decoding="async"
-              fetchPriority="high"
+          <div className="relative shrink-0 transition-transform duration-200 group-hover:scale-[1.03]">
+            <KSYKLogo
+              size="lg"
+              priority
+              className="shadow-lg ring-1 ring-black/5 dark:ring-white/15"
             />
           </div>
           <div className="min-w-0">

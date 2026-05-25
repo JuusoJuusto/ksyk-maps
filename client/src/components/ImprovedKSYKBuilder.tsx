@@ -10,7 +10,7 @@ import {
   Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand
 } from "lucide-react";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
-import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_SRCSET, KSYK_MAPS_LOGO_ULTRA } from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
 import { KSYK_BUILDING_OUTLINES, outlineToPath } from "@/lib/ksykCampusOutlines";
 
 interface Point { x: number; y: number; }
@@ -436,13 +436,7 @@ export default function ImprovedKSYKBuilder() {
       <div className="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <img
-              src={KSYK_MAPS_LOGO_ULTRA}
-              srcSet={KSYK_MAPS_LOGO_SRCSET}
-              sizes="48px"
-              alt={KSYK_MAPS_LOGO_ALT}
-              className="h-11 w-11 rounded-xl shadow-md ring-1 ring-black/5 object-contain"
-            />
+            <KSYKLogo size="md" className="rounded-xl shadow-md ring-1 ring-black/5" />
             KSYK Map Builder
           </h1>
           <div className="hidden md:flex gap-1">

@@ -1,4 +1,4 @@
-import { KSYK_MAPS_LOGO, KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
+import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 
 interface LoadingSpinnerProps {
@@ -13,24 +13,10 @@ export default function LoadingSpinner({
   size = "md",
   fullScreen = false,
 }: LoadingSpinnerProps) {
-  const logoSize = { sm: "h-10 w-10", md: "h-14 w-14", lg: "h-20 w-20" }[size];
-
   const content = (
     <div className="flex flex-col items-center gap-5">
       <div className="relative">
-        <div
-          className={cn("rounded-2xl object-contain", logoSize)}
-          style={{
-            background: "transparent",
-          }}
-        >
-          <img
-            src={KSYK_MAPS_LOGO}
-            alt={KSYK_MAPS_LOGO_ALT}
-            className={cn(logoSize, "object-contain rounded-2xl")}
-            decoding="async"
-          />
-        </div>
+        <KSYKLogo size={size === "sm" ? "sm" : size === "lg" ? "xl" : "md"} priority />
         <div
           className="absolute -inset-2 rounded-3xl border-2 border-blue-500/30 border-t-blue-600 animate-spin"
           aria-hidden
