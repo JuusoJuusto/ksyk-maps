@@ -1,5 +1,6 @@
 /**
- * KSYK Maps — Clean campus outline map (no rooms/services)
+ * KSYK Maps — Aalto Space–style campus map
+ * Wing outlines + floor-based rooms + floating controls + bottom sheets
  */
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -12,19 +13,31 @@ import {
   type BuildingMapData,
 } from "@/lib/mapGeometry";
 import {
-  KSYK_BUILDING_LETTERS,
   KSYK_BUILDING_OUTLINES,
   getBuildingLetter,
   outlineToPath,
   outlinesAsMapBuildings,
   viewBoxForOutline,
 } from "@/lib/ksykCampusOutlines";
+import { getRoomFillColor, getRoomStatusColor, roomStatusLabel, ROOM_STATUS_COLORS } from "@/lib/campusSpace";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus, X, Layers, Maximize2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Search,
+  Plus,
+  Minus,
+  X,
+  Layers,
+  MapPin,
+  Building2,
+  ChevronRight,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Building extends BuildingMapData {
@@ -32,36 +45,70 @@ interface Building extends BuildingMapData {
   facilities?: string[];
 }
 
+interface Room {
+  id: string;
+  roomNumber: string;
+  name?: string;
+  nameEn?: string;
+  nameFi?: string;
+  floor: number;
+  buildingId?: string;
+  capacity?: number;
+  currentStatus?: string;
+  type?: string;
+  mapPositionX?: number;
+  mapPositionY?: number;
+  width?: number;
+  height?: number;
+}
+
 interface KSYKMapViewProps {
   searchQuery?: string;
   highlightLetter?: string | null;
 }
 
-export default function KSYKMapView({ searchQuery = "", highlightLetter = null }: KSYKMapViewProps) {
+type SearchHit =
+  | { type: "building"; id: string; label: string; sub: string; letter: string }
+  | { type: "room"; id: string; label: string; sub: string; room: Room };
+
+export default function KSYKMapView({ searchQuery: externalSearch = "", highlightLetter = null }: KSYKMapViewProps) {
   const { i18n } = useTranslation();
   const { darkMode } = useDarkMode();
   const { settings } = useAppSettings();
+  const isFi = i18n.language === "fi";
+
+  const [localSearch, setLocalSearch] = useState("");
+  const searchQuery = externalSearch || localSearch;
+  const [selectedFloor, setSelectedFloor] = useState(1);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [showLayers, setShowLayers] = useState(false);
+  const [layers, setLayers] = useState({ rooms: true, wings: true, labels: true });
+  const [hoveredWing, setHoveredWing] = useState<string | null>(null);
+  const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
 
   const [viewState, setViewState] = useState({ x: 0, y: 0, w: 1600, h: 900 });
   const [isPanning, setIsPanning] = useState(false);
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const panStart = useRef({ clientX: 0, clientY: 0, view: { x: 0, y: 0, w: 1600, h: 900 } });
   const pinchStart = useRef<{ distance: number; view: typeof viewState } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
 
-  const touchDistance = (touches: React.TouchList | TouchList) => {
-    if (touches.length < 2) return 0;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.hypot(dx, dy);
-  };
-
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
-      const response = await fetch("/api/buildings");
-      if (!response.ok) throw new Error("Failed to fetch buildings");
-      return response.json();
+      const r = await fetch("/api/buildings");
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+    staleTime: 60000,
+  });
+
+  const { data: rooms = [] } = useQuery<Room[]>({
+    queryKey: ["rooms"],
+    queryFn: async () => {
+      const r = await fetch("/api/rooms");
+      if (!r.ok) return [];
+      return r.json();
     },
     staleTime: 60000,
   });
@@ -72,52 +119,114 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       const letter = getBuildingLetter(b.name);
       if (letter) apiByLetter.set(letter, b);
     }
-    return KSYK_BUILDING_LETTERS.map((letter) => {
-      const preset = KSYK_BUILDING_OUTLINES[letter];
+    return outlinesAsMapBuildings().map((preset) => {
+      const letter = preset.name;
       const api = apiByLetter.get(letter);
+      const outline = KSYK_BUILDING_OUTLINES[letter];
       return {
         ...api,
-        id: api?.id ?? `wing-${letter}`,
+        id: api?.id ?? preset.id,
         name: letter,
-        nameEn: preset.nameEn,
-        nameFi: preset.nameFi,
-        floors: api?.floors ?? preset.floors,
-        colorCode: preset.stroke,
-        description: JSON.stringify({ customShape: preset.shape }),
+        nameEn: outline.nameEn,
+        nameFi: outline.nameFi,
+        floors: api?.floors ?? outline.floors,
+        colorCode: outline.stroke,
+        description: JSON.stringify({ customShape: outline.shape }),
       } as Building;
     });
   }, [buildings]);
 
-  const filteredBuildings = useMemo(() => {
-    const q = searchQuery.trim().toUpperCase();
-    if (!q) return campusBuildings;
-    return campusBuildings.filter(
-      (b) =>
-        b.name.includes(q) ||
-        b.nameEn?.toUpperCase().includes(q) ||
-        b.nameFi?.toUpperCase().includes(q)
-    );
-  }, [campusBuildings, searchQuery]);
+  const maxFloor = useMemo(() => {
+    const fromRooms = rooms.map((r) => r.floor ?? 0);
+    const fromWings = campusBuildings.map((b) => b.floors ?? 1);
+    return Math.max(1, ...fromRooms, ...fromWings, 3);
+  }, [rooms, campusBuildings]);
 
-  const searchLetter = useMemo(() => {
-    const q = searchQuery.trim().toUpperCase();
-    if (q.length === 1 && (KSYK_BUILDING_LETTERS as readonly string[]).includes(q)) return q;
-    return null;
-  }, [searchQuery]);
+  const floorRooms = useMemo(
+    () =>
+      rooms.filter(
+        (r) =>
+          r.floor === selectedFloor &&
+          r.mapPositionX != null &&
+          r.mapPositionY != null
+      ),
+    [rooms, selectedFloor]
+  );
 
-  const activeHighlight = highlightLetter ?? selectedLetter ?? searchLetter;
-
-  const selectedPreset = activeHighlight ? KSYK_BUILDING_OUTLINES[activeHighlight] : null;
-  const isFi = i18n.language === "fi";
+  const searchHits = useMemo((): SearchHit[] => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const hits: SearchHit[] = [];
+    for (const b of campusBuildings) {
+      const label = isFi ? b.nameFi : b.nameEn;
+      if (
+        b.name.toLowerCase().includes(q) ||
+        label?.toLowerCase().includes(q) ||
+        b.nameEn?.toLowerCase().includes(q) ||
+        b.nameFi?.toLowerCase().includes(q)
+      ) {
+        hits.push({
+          type: "building",
+          id: b.id,
+          letter: b.name,
+          label: label || b.name,
+          sub: `${b.floors} ${isFi ? "kerrosta" : "floors"}`,
+        });
+      }
+    }
+    for (const r of rooms) {
+      if (
+        r.roomNumber.toLowerCase().includes(q) ||
+        r.name?.toLowerCase().includes(q) ||
+        r.nameEn?.toLowerCase().includes(q)
+      ) {
+        hits.push({
+          type: "room",
+          id: r.id,
+          label: r.roomNumber,
+          sub: r.name || r.nameEn || "",
+          room: r,
+        });
+      }
+    }
+    return hits.slice(0, 8);
+  }, [searchQuery, campusBuildings, rooms, isFi]);
 
   const baseViewBox = useMemo(
     () => parseViewBox(computeCampusViewBox(outlinesAsMapBuildings() as BuildingMapData[])),
     []
   );
 
+  const campusPlate = useMemo(
+    () => ({
+      x: baseViewBox.x - 48,
+      y: baseViewBox.y - 48,
+      w: baseViewBox.width + 96,
+      h: baseViewBox.height + 96,
+    }),
+    [baseViewBox]
+  );
+
   useEffect(() => {
-    setViewState(parseViewBox(computeCampusViewBox(outlinesAsMapBuildings() as BuildingMapData[])));
-  }, []);
+    setViewState(baseViewBox);
+  }, [baseViewBox]);
+
+  const focusRoom = (room: Room) => {
+    setSelectedRoom(room);
+    setSelectedBuilding(null);
+    setSelectedFloor(room.floor ?? 1);
+    const x = room.mapPositionX ?? 0;
+    const y = room.mapPositionY ?? 0;
+    const w = room.width ?? 80;
+    const h = room.height ?? 60;
+    const pad = 120;
+    setViewState({
+      x: x - pad,
+      y: y - pad,
+      w: w + pad * 2,
+      h: h + pad * 2,
+    });
+  };
 
   const zoomFactor = settings.mapZoomSpeed === 2 ? 0.88 : settings.mapZoomSpeed === 0.5 ? 0.96 : 0.92;
 
@@ -125,21 +234,25 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     setViewState((v) => {
       const cx = v.x + v.w / 2;
       const cy = v.y + v.h / 2;
-      const nw = Math.min(Math.max(v.w * factor, 300), 5000);
+      const nw = Math.min(Math.max(v.w * factor, 280), 5000);
       const nh = Math.min(Math.max(v.h * factor, 200), 3500);
       return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
     });
   };
 
-  const handleZoomIn = () => zoomView(zoomFactor);
-  const handleZoomOut = () => zoomView(2 - zoomFactor);
-  const handleResetView = () => setViewState(baseViewBox);
-
-  const focusWing = (letter: string) => {
+  const focusBuilding = (letter: string) => {
     const preset = KSYK_BUILDING_OUTLINES[letter];
-    if (!preset) return;
-    setSelectedLetter(letter);
-    setViewState(viewBoxForOutline(preset.shape, 140));
+    const b = campusBuildings.find((x) => x.name === letter);
+    if (preset) setViewState(viewBoxForOutline(preset.shape, 160));
+    if (b) setSelectedBuilding(b);
+    setSelectedRoom(null);
+  };
+
+  const touchDistance = (touches: React.TouchList | TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
   };
 
   useEffect(() => {
@@ -147,8 +260,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const factor = e.deltaY > 0 ? 2 - zoomFactor : zoomFactor;
-      zoomView(factor);
+      zoomView(e.deltaY > 0 ? 2 - zoomFactor : zoomFactor);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -164,12 +276,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     if (!rect) return;
     const scaleX = panStart.current.view.w / rect.width;
     const scaleY = panStart.current.view.h / rect.height;
-    const dx = (clientX - panStart.current.clientX) * scaleX;
-    const dy = (clientY - panStart.current.clientY) * scaleY;
     setViewState({
       ...panStart.current.view,
-      x: panStart.current.view.x - dx,
-      y: panStart.current.view.y - dy,
+      x: panStart.current.view.x - (clientX - panStart.current.clientX) * scaleX,
+      y: panStart.current.view.y - (clientY - panStart.current.clientY) * scaleY,
     });
   };
 
@@ -185,51 +295,183 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     };
   }, [isPanning]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      setIsPanning(false);
-      pinchStart.current = { distance: touchDistance(e.touches), view: { ...viewState } };
-      return;
-    }
-    if (e.touches.length !== 1) return;
-    if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
-    const t = e.touches[0];
-    handlePanStart(t.clientX, t.clientY);
-  };
+  const panel = cn(
+    "rounded-2xl shadow-xl border backdrop-blur-md",
+    darkMode ? "bg-gray-900/92 border-gray-700/80" : "bg-white/92 border-gray-200/90"
+  );
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchStart.current) {
-      e.preventDefault();
-      const dist = touchDistance(e.touches);
-      const scale = dist / pinchStart.current.distance;
-      const v = pinchStart.current.view;
-      const nw = Math.min(Math.max(v.w / scale, 300), 5000);
-      const nh = Math.min(Math.max(v.h / scale, 200), 3500);
-      const cx = v.x + v.w / 2;
-      const cy = v.y + v.h / 2;
-      setViewState({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
-      return;
+  const onPickSearchHit = (hit: SearchHit) => {
+    if (hit.type === "building") {
+      focusBuilding(hit.letter);
+    } else {
+      focusRoom(hit.room);
     }
-    if (!isPanning || e.touches.length !== 1) return;
-    e.preventDefault();
-    applyPan(e.touches[0].clientX, e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) pinchStart.current = null;
-    if (e.touches.length === 0) setIsPanning(false);
+    setLocalSearch("");
   };
 
   return (
     <div className="relative h-full w-full overflow-hidden">
+      {/* Search results (top bar or local search) */}
+      {searchQuery.trim() && searchHits.length > 0 && (
+        <div className="absolute top-2 left-2 right-14 sm:right-16 z-30 max-w-lg mx-auto sm:mx-0">
+          <div className={cn(panel, "max-h-56 overflow-y-auto shadow-2xl")}>
+            {searchHits.map((hit) => (
+              <button
+                key={`${hit.type}-${hit.id}`}
+                type="button"
+                className={cn(
+                  "w-full px-4 py-3 text-left border-b last:border-0 flex items-center justify-between gap-2 transition-colors",
+                  darkMode ? "border-gray-700/80 hover:bg-blue-950/40" : "border-gray-100 hover:bg-blue-50/80"
+                )}
+                onClick={() => onPickSearchHit(hit)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {hit.type === "building" ? (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+                      <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </span>
+                  ) : (
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold"
+                      style={{ backgroundColor: getRoomFillColor(hit.room.type, hit.room.currentStatus) }}
+                    >
+                      {hit.room.roomNumber.slice(0, 3)}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{hit.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{hit.sub}</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Local search when not using top bar */}
+      {!externalSearch && (
+        <div className="absolute top-3 left-3 right-14 z-30 max-w-md hidden sm:block">
+          <div className={panel}>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              placeholder={isFi ? "Etsi tiloja, rakennuksia…" : "Search rooms, buildings…"}
+              className={cn(
+                "pl-10 pr-10 h-11 border-0 rounded-2xl text-sm bg-transparent",
+                darkMode ? "text-white" : ""
+              )}
+            />
+            {localSearch && (
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                onClick={() => setLocalSearch("")}
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Floor + room count */}
+      <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-2">
+        <div className={cn(panel, "px-3 py-1.5 text-xs font-medium text-muted-foreground hidden sm:block")}>
+          {isFi ? "Kerros" : "Floor"} · {floorRooms.length} {isFi ? "tilaa" : "rooms"}
+        </div>
+        <div className={panel}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-11 h-9 rounded-none"
+            onClick={() => setSelectedFloor((f) => Math.min(f + 1, maxFloor))}
+            disabled={selectedFloor >= maxFloor}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <div
+            className={cn(
+              "w-11 h-10 flex items-center justify-center font-bold text-sm border-y",
+              darkMode ? "border-gray-700 bg-blue-600 text-white" : "border-gray-200 bg-blue-600 text-white"
+            )}
+          >
+            {selectedFloor}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-11 h-9 rounded-none"
+            onClick={() => setSelectedFloor((f) => Math.max(f - 1, 0))}
+            disabled={selectedFloor <= 0}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Status legend */}
+      {layers.rooms && floorRooms.length > 0 && (
+        <div
+          className={cn(
+            "absolute left-3 z-20 hidden sm:flex flex-wrap gap-1.5 max-w-[14rem]",
+            "bottom-[max(6.5rem,calc(4.5rem+env(safe-area-inset-bottom)))] sm:bottom-16"
+          )}
+        >
+          {(["free", "occupied", "reserved"] as const).map((s) => (
+            <span
+              key={s}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold shadow-sm border",
+                darkMode ? "bg-gray-900/90 border-gray-700" : "bg-white/90 border-gray-200"
+              )}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ROOM_STATUS_COLORS[s] }} />
+              {roomStatusLabel(s, isFi)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Layers */}
+      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-3 z-30 sm:bottom-4">
+        <Button variant="outline" className={cn(panel, "h-10 px-3 gap-2")} onClick={() => setShowLayers(!showLayers)}>
+          <Layers className="h-4 w-4" />
+          <span className="text-sm font-medium">{isFi ? "Tasot" : "Layers"}</span>
+        </Button>
+        {showLayers && (
+          <div className={cn(panel, "absolute bottom-12 left-0 p-3 space-y-2 min-w-[10rem]")}>
+            {(
+              [
+                ["wings", isFi ? "Siipipiirteet" : "Wing outlines"],
+                ["rooms", isFi ? "Tilat (0–" + maxFloor + ")" : `Rooms (floor ${selectedFloor})`],
+                ["labels", isFi ? "Nimiöt" : "Labels"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={layers[key]}
+                  onChange={() => setLayers((l) => ({ ...l, [key]: !l[key] }))}
+                  className="rounded"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Map canvas */}
       <div
         ref={mapRef}
         className={cn(
-          "h-full w-full overflow-hidden select-none transition-colors duration-300",
+          "h-full w-full select-none",
           darkMode
-            ? "bg-gradient-to-br from-[#0c1220] via-[#0f1419] to-[#111827]"
-            : "bg-gradient-to-br from-slate-100 via-[#f1f5f9] to-blue-50/40",
-          settings.highContrast && (darkMode ? "bg-black" : "bg-white")
+            ? "bg-[radial-gradient(ellipse_at_50%_30%,#1e3a5f_0%,#0f172a_45%,#030712_100%)]"
+            : "bg-[radial-gradient(ellipse_at_50%_25%,#dbeafe_0%,#f1f5f9_40%,#e2e8f0_100%)]"
         )}
         style={{ cursor: isPanning ? "grabbing" : "grab", touchAction: "none" }}
         onMouseDown={(e) => {
@@ -237,183 +479,289 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
           handlePanStart(e.clientX, e.clientY);
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
+        onTouchStart={(e) => {
+          if (e.touches.length === 2) {
+            setIsPanning(false);
+            pinchStart.current = { distance: touchDistance(e.touches), view: { ...viewState } };
+            return;
+          }
+          if (e.touches.length !== 1) return;
+          if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
+          handlePanStart(e.touches[0].clientX, e.touches[0].clientY);
+        }}
+        onTouchMove={(e) => {
+          if (e.touches.length === 2 && pinchStart.current) {
+            e.preventDefault();
+            const scale = touchDistance(e.touches) / pinchStart.current.distance;
+            const v = pinchStart.current.view;
+            const nw = Math.min(Math.max(v.w / scale, 280), 5000);
+            const nh = Math.min(Math.max(v.h / scale, 200), 3500);
+            const cx = v.x + v.w / 2;
+            const cy = v.y + v.h / 2;
+            setViewState({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
+            return;
+          }
+          if (!isPanning || e.touches.length !== 1) return;
+          e.preventDefault();
+          applyPan(e.touches[0].clientX, e.touches[0].clientY);
+        }}
+        onTouchEnd={(e) => {
+          if (e.touches.length < 2) pinchStart.current = null;
+          if (e.touches.length === 0) setIsPanning(false);
+        }}
       >
         <svg className="h-full w-full" viewBox={formatViewBox(viewState)} preserveAspectRatio="xMidYMid meet">
           <defs>
+            <filter id="wingShadow" x="-15%" y="-15%" width="130%" height="130%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#0f172a" floodOpacity={darkMode ? 0.45 : 0.18} />
+            </filter>
+            <filter id="roomGlow">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.35" />
+            </filter>
             {settings.showGrid && (
-              <pattern id="campusGrid" width="48" height="48" patternUnits="userSpaceOnUse">
-                <path
-                  d="M 48 0 L 0 0 0 48"
-                  fill="none"
-                  stroke={darkMode ? "#1e293b" : "#e2e8f0"}
-                  strokeWidth="0.75"
-                />
+              <pattern id="spaceGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? "#334155" : "#e2e8f0"} strokeWidth="0.6" />
               </pattern>
             )}
-            <filter id="wingGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <filter id="wingShadow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.35" />
-            </filter>
-            {filteredBuildings.map((building) => {
-              const letter = building.name;
-              const stroke = KSYK_BUILDING_OUTLINES[letter]?.stroke ?? "#2563eb";
-              return (
-                <linearGradient key={`grad-${letter}`} id={`wingGrad-${letter}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={stroke} stopOpacity={darkMode ? 0.22 : 0.28} />
-                  <stop offset="100%" stopColor={stroke} stopOpacity={darkMode ? 0.06 : 0.1} />
-                </linearGradient>
-              );
-            })}
           </defs>
-          <rect
-            x={baseViewBox.x - 200}
-            y={baseViewBox.y - 200}
-            width={baseViewBox.w + 400}
-            height={baseViewBox.h + 400}
-            fill={darkMode ? "#0f1419" : "#e8eef4"}
-            rx="24"
-          />
           {settings.showGrid && (
-            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#campusGrid)" />
+            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#spaceGrid)" />
           )}
 
-          {filteredBuildings.map((building: Building) => {
-            const letter = building.name;
-            const preset = KSYK_BUILDING_OUTLINES[letter];
-            const shape = preset?.shape ?? parseBuildingShape(building);
-            const bounds = getShapeBounds(shape);
-            const isSelected = activeHighlight === letter;
-            const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
-            const dimmed = searchQuery && !isSelected && activeHighlight !== letter;
-            const pathD = outlineToPath(shape);
+          {/* Campus plate */}
+          <rect
+            x={campusPlate.x}
+            y={campusPlate.y}
+            width={campusPlate.w}
+            height={campusPlate.h}
+            rx={28}
+            fill={darkMode ? "#1e293b" : "#ffffff"}
+            stroke={darkMode ? "#475569" : "#cbd5e1"}
+            strokeWidth={2}
+            opacity={darkMode ? 0.92 : 0.97}
+          />
 
-            return (
-              <g
-                key={building.id}
-                data-map-feature="building"
-                opacity={dimmed ? 0.3 : 1}
-                style={{ transition: "opacity 0.25s ease" }}
-              >
-                <path
-                  d={pathD}
-                  fill={`url(#wingGrad-${letter})`}
-                  stroke="none"
-                  filter="url(#wingShadow)"
-                />
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={isSelected ? "#fbbf24" : stroke}
-                  strokeWidth={isSelected ? 6 : settings.highContrast ? 4.5 : 4}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  filter={isSelected ? "url(#wingGlow)" : undefined}
+          {layers.wings &&
+            campusBuildings.map((building) => {
+              const letter = building.name;
+              const preset = KSYK_BUILDING_OUTLINES[letter];
+              const shape = preset?.shape ?? parseBuildingShape(building);
+              const pathD = outlineToPath(shape);
+              const isSel = selectedBuilding?.name === letter || highlightLetter === letter;
+              const isHover = hoveredWing === letter;
+              const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
+              const bounds = getShapeBounds(shape);
+
+              return (
+                <g
+                  key={building.id}
+                  data-map-feature="building"
                   className="cursor-pointer"
+                  filter="url(#wingShadow)"
+                  onMouseEnter={() => setHoveredWing(letter)}
+                  onMouseLeave={() => setHoveredWing(null)}
                   onClick={(e) => {
                     e.stopPropagation();
-                    focusWing(letter);
+                    setSelectedBuilding(building);
+                    setSelectedRoom(null);
+                    focusBuilding(letter);
                   }}
-                />
-                {settings.showWingLabels && (
-                  <>
-                    <ellipse
-                      cx={bounds.centerX}
-                      cy={bounds.centerY + 4}
-                      rx={Math.min(bounds.width / 2.8, 42)}
-                      ry={Math.min(bounds.height / 4, 28)}
-                      fill={darkMode ? "rgba(15,23,42,0.55)" : "rgba(255,255,255,0.75)"}
-                      className="pointer-events-none"
-                    />
-                    <text
-                      x={bounds.centerX}
-                      y={bounds.centerY + 8}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill={isSelected ? "#fbbf24" : darkMode ? "#f1f5f9" : stroke}
-                      fontSize={Math.min(52, Math.max(24, bounds.width / 4.5))}
-                      fontWeight="900"
-                      className="pointer-events-none select-none"
-                      style={{ paintOrder: "stroke", stroke: darkMode ? "#0f172a" : "#fff", strokeWidth: 3 }}
-                    >
-                      {letter}
-                    </text>
-                  </>
-                )}
-              </g>
-            );
-          })}
+                >
+                  <path
+                    d={pathD}
+                    fill={stroke}
+                    fillOpacity={isSel ? 0.42 : isHover ? 0.28 : darkMode ? 0.14 : 0.22}
+                    stroke="none"
+                  />
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={isSel ? "#fbbf24" : isHover ? "#93c5fd" : stroke}
+                    strokeWidth={isSel ? 4.5 : isHover ? 3.5 : 2.5}
+                    strokeLinejoin="round"
+                  />
+                  {layers.labels && preset && (
+                    <>
+                      <rect
+                        x={bounds.centerX - 72}
+                        y={bounds.centerY - 14}
+                        width={144}
+                        height={28}
+                        rx={14}
+                        fill={darkMode ? "rgba(15,23,42,0.75)" : "rgba(255,255,255,0.88)"}
+                        className="pointer-events-none"
+                      />
+                      <text
+                        x={bounds.centerX}
+                        y={bounds.centerY + 1}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill={darkMode ? "#f8fafc" : "#0f172a"}
+                        fontSize="13"
+                        fontWeight="600"
+                        className="pointer-events-none"
+                      >
+                        {isFi ? preset.nameFi : preset.nameEn}
+                      </text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+          {layers.rooms &&
+            floorRooms.map((room) => {
+              const x = room.mapPositionX ?? 0;
+              const y = room.mapPositionY ?? 0;
+              const w = room.width ?? 56;
+              const h = room.height ?? 40;
+              const fill = getRoomFillColor(room.type, room.currentStatus);
+              const isSel = selectedRoom?.id === room.id;
+              const isHover = hoveredRoomId === room.id;
+
+              return (
+                <g
+                  key={room.id}
+                  data-map-feature="room"
+                  className="cursor-pointer"
+                  filter={isSel || isHover ? "url(#roomGlow)" : undefined}
+                  onMouseEnter={() => setHoveredRoomId(room.id)}
+                  onMouseLeave={() => setHoveredRoomId(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    focusRoom(room);
+                  }}
+                >
+                  <rect
+                    x={x}
+                    y={y}
+                    width={w}
+                    height={h}
+                    rx={5}
+                    fill={fill}
+                    stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "#475569" : "#fff"}
+                    strokeWidth={isSel ? 3 : isHover ? 2 : 1.5}
+                    opacity={isHover || isSel ? 1 : 0.9}
+                  />
+                  <text
+                    x={x + w / 2}
+                    y={y + h / 2}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="#fff"
+                    fontSize={Math.min(11, w / 4)}
+                    fontWeight="700"
+                    className="pointer-events-none"
+                  >
+                    {room.roomNumber}
+                  </text>
+                </g>
+              );
+            })}
         </svg>
       </div>
 
-      {selectedPreset && activeHighlight && (
-        <div
-          className={cn(
-            "absolute left-3 sm:left-4 z-20 max-w-[min(100%,18rem)]",
-            "bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] sm:bottom-4",
-            "rounded-2xl shadow-2xl backdrop-blur-xl p-4 animate-in slide-in-from-bottom-4 fade-in duration-300",
-            darkMode ? "bg-gray-900/90 text-white" : "bg-white/92 text-gray-900"
-          )}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="font-bold text-base" style={{ color: selectedPreset.stroke }}>
-                {isFi ? selectedPreset.nameFi : selectedPreset.nameEn}
-              </p>
-              <p className={cn("text-xs mt-1 flex items-center gap-1", darkMode ? "text-gray-400" : "text-gray-500")}>
-                <Layers className="h-3 w-3 shrink-0" />
-                {selectedPreset.floors} {isFi ? "kerrosta" : "floors"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedLetter(null)}
-              className={cn(
-                "p-1.5 rounded-lg shrink-0 transition-colors",
-                darkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"
-              )}
-              aria-label={isFi ? "Sulje" : "Close"}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Zoom controls — raised on mobile so they are not clipped */}
-      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 sm:right-4 z-20">
-        <div
-          className={cn(
-            "rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col",
-            darkMode ? "bg-gray-900/80" : "bg-white/85"
-          )}
-        >
-          <Button variant="ghost" size="sm" onClick={handleZoomIn} className="w-11 h-11 rounded-none hover:bg-blue-50 dark:hover:bg-gray-800">
-            <Plus className="h-5 w-5" />
+      {/* Zoom */}
+      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 z-20">
+        <div className={cn(panel, "flex flex-col")}>
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(zoomFactor)}>
+            <Plus className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetView}
-            className="w-11 h-11 rounded-none hover:bg-blue-50/80 dark:hover:bg-gray-800"
-            title={isFi ? "Näytä koko kampus" : "Fit campus"}
-          >
-            <Maximize2 className="h-5 w-5" />
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none border-y" onClick={() => setViewState(baseViewBox)}>
+            <MapPin className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleZoomOut} className="w-11 h-11 rounded-none hover:bg-blue-50 dark:hover:bg-gray-800">
-            <Minus className="h-5 w-5" />
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(2 - zoomFactor)}>
+            <Minus className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {/* Building bottom sheet */}
+      {selectedBuilding && (
+        <div className="absolute bottom-0 left-0 right-0 z-40 sm:bottom-auto sm:top-20 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none">
+          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl")}>
+            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
+            <CardContent className="p-5 pt-3 sm:pt-5">
+              <div className="flex justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {isFi ? selectedBuilding.nameFi : selectedBuilding.nameEn}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBuilding.floors} {isFi ? "kerrosta" : "floors"}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedBuilding(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button className="w-full" onClick={() => focusBuilding(selectedBuilding.name)}>
+                <MapPin className="h-4 w-4 mr-2" />
+                {isFi ? "Keskitä kartta" : "Center on map"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Room bottom sheet */}
+      {selectedRoom && (
+        <div className="absolute bottom-0 left-0 right-0 z-40 sm:bottom-auto sm:top-20 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none">
+          <Card
+            className={cn(
+              panel,
+              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl",
+              selectedRoom.currentStatus === "free"
+                ? "border-emerald-500"
+                : selectedRoom.currentStatus === "occupied"
+                ? "border-red-500"
+                : "border-amber-500"
+            )}
+          >
+            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
+            <CardContent className="p-5 pt-3 sm:pt-5">
+              <div className="flex justify-between gap-2 mb-3">
+                <div className="flex gap-3 min-w-0">
+                  <span
+                    className="shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl text-white font-bold text-sm shadow-md"
+                    style={{ backgroundColor: getRoomStatusColor(selectedRoom.currentStatus) }}
+                  >
+                    {selectedRoom.roomNumber}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold truncate">{selectedRoom.name || selectedRoom.nameEn || selectedRoom.roomNumber}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isFi ? "Kerros" : "Floor"} {selectedRoom.floor}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedRoom(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-2 text-sm mb-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{isFi ? "Tila" : "Status"}</span>
+                  <span className="font-medium px-2 py-0.5 rounded-full bg-muted">
+                    {roomStatusLabel(selectedRoom.currentStatus, isFi)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {isFi ? "Kapasiteetti" : "Capacity"}
+                  </span>
+                  <span className="font-medium">{selectedRoom.capacity ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{isFi ? "Kerros" : "Floor"}</span>
+                  <span className="font-medium">{selectedRoom.floor}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

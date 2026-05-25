@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Building, Plus, Trash2, MousePointer, X, Undo, Redo, Square, 
-  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand
+  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand, Minus
 } from "lucide-react";
+import { getRoomFillColor } from "@/lib/campusSpace";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import KSYKLogo from "@/components/KSYKLogo";
 import {
@@ -58,6 +59,7 @@ export default function ImprovedKSYKBuilder() {
   });
 
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [builderFloor, setBuilderFloor] = useState(1);
 
   const { data: existingRooms = [] } = useQuery({
     queryKey: ["rooms"],
@@ -265,6 +267,11 @@ export default function ImprovedKSYKBuilder() {
     });
   };
 
+  const deleteRoom = (id: string) => {
+    setRooms((prev) => prev.filter((r) => r.id !== id));
+    setSelectedRoom(null);
+  };
+
   // Group rooms by building
   const groupedRooms = rooms.reduce((acc, room) => {
     const building = room.building;
@@ -432,8 +439,12 @@ export default function ImprovedKSYKBuilder() {
     return colors[type] || '#9CA3AF';
   };
 
-  const vbW = 10000 / zoom;
-  const vbH = 6000 / zoom;
+  const CAMPUS_W = 1600;
+  const CAMPUS_H = 900;
+  const vbW = CAMPUS_W / zoom;
+  const vbH = CAMPUS_H / zoom;
+  const floorRooms = rooms.filter((r) => (r.floor ?? 1) === builderFloor);
+  const maxBuilderFloor = Math.max(1, ...rooms.map((r) => r.floor ?? 1), 3);
 
   const toolBtn = (tool: Tool, icon: React.ReactNode, label: string) => (
     <Button
@@ -450,8 +461,8 @@ export default function ImprovedKSYKBuilder() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-[#f4f5f7] dark:bg-gray-950">
-      <header className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md">
+    <div className="h-screen flex flex-col bg-[#eef1f6] dark:bg-gray-950">
+      <header className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
           <KSYKLogo size="sm" />
           <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">Campus Builder</span>
@@ -529,7 +540,11 @@ export default function ImprovedKSYKBuilder() {
                   min="0"
                   max="5"
                   value={roomData.floor}
-                  onChange={(e) => setRoomData({ ...roomData, floor: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const f = parseInt(e.target.value) || 0;
+                    setRoomData({ ...roomData, floor: f });
+                    setBuilderFloor(f);
+                  }}
                 />
               </div>
               
@@ -632,7 +647,20 @@ export default function ImprovedKSYKBuilder() {
           </Card>
         </div>
 
-        <div className="flex-1 relative overflow-hidden min-w-0 bg-[#e8ecf1] dark:bg-gray-950">
+        <div className="flex-1 relative overflow-hidden min-w-0 bg-[radial-gradient(ellipse_at_center,#e8ecf1_0%,#d4dae4_100%)] dark:bg-[radial-gradient(ellipse_at_center,#111827_0%,#030712_100%)]">
+          {/* Floor selector — Aalto Space style */}
+          <div className="absolute top-3 right-3 z-20 flex flex-col rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95">
+            <Button variant="ghost" size="sm" className="w-11 h-9 rounded-none" onClick={() => setBuilderFloor((f) => Math.min(f + 1, maxBuilderFloor))} disabled={builderFloor >= maxBuilderFloor}>
+              <Plus className="h-4 w-4" />
+            </Button>
+            <div className="w-11 h-10 flex items-center justify-center font-bold text-sm bg-blue-600 text-white border-y border-blue-700">
+              {builderFloor}
+            </div>
+            <Button variant="ghost" size="sm" className="w-11 h-9 rounded-none" onClick={() => setBuilderFloor((f) => Math.max(f - 1, 0))} disabled={builderFloor <= 0}>
+              <Minus className="h-4 w-4" />
+            </Button>
+          </div>
+
           <div className="absolute top-2 left-2 z-10 flex gap-1 p-1 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-md border border-gray-200/80 dark:border-gray-700">
             <Button variant={showGrid ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setShowGrid(!showGrid)} title="Grid">
               <Grid3x3 className="h-3.5 w-3.5" />
@@ -676,7 +704,7 @@ export default function ImprovedKSYKBuilder() {
                 </pattern>
               </defs>
             )}
-            {showGrid && <rect width="10000" height="6000" fill="url(#grid)" />}
+            {showGrid && <rect width={CAMPUS_W} height={CAMPUS_H} fill="url(#grid)" />}
 
             {showReferenceOutlines &&
               Object.values(KSYK_BUILDING_OUTLINES).map((preset) => (
@@ -733,21 +761,36 @@ export default function ImprovedKSYKBuilder() {
               />
             )}
             
-            {/* Rooms */}
-            {rooms.map((room) => (
+            {/* Rooms (current floor) */}
+            {floorRooms.map((room) => (
               <g key={room.id}>
                 <rect
                   x={room.mapPositionX}
                   y={room.mapPositionY}
                   width={room.width}
                   height={room.height}
-                  fill={getRoomColor(room.type)}
-                  stroke="white"
-                  strokeWidth="3"
-                  rx="5"
-                  opacity="0.9"
+                  fill={getRoomFillColor(room.type, room.currentStatus)}
+                  stroke={selectedRoom?.id === room.id ? "#fbbf24" : "white"}
+                  strokeWidth={selectedRoom?.id === room.id ? 3 : 2}
+                  rx="4"
+                  opacity="0.92"
                   className="cursor-pointer hover:opacity-100"
-                  onClick={() => setSelectedRoom(room)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRoom(room);
+                    setRoomData({
+                      roomNumber: room.roomNumber,
+                      name: room.name || "",
+                      floor: room.floor ?? 1,
+                      capacity: room.capacity ?? 30,
+                      type: room.type || "classroom",
+                      x: room.mapPositionX,
+                      y: room.mapPositionY,
+                      width: room.width,
+                      height: room.height,
+                    });
+                    setBuilderFloor(room.floor ?? 1);
+                  }}
                 />
                 <text
                   x={room.mapPositionX + room.width / 2}
@@ -765,6 +808,39 @@ export default function ImprovedKSYKBuilder() {
             ))}
           </svg>
           
+          {/* Selected room bottom sheet */}
+          {selectedRoom && (
+            <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-sm">
+              <Card className="rounded-t-2xl sm:rounded-2xl shadow-2xl border-t-4 border-blue-500 bg-white/98 dark:bg-gray-900/98">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-lg">{selectedRoom.roomNumber}</p>
+                      <p className="text-sm text-muted-foreground">{selectedRoom.name || "Room"}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedRoom(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-muted-foreground">Floor</span>
+                    <span className="font-medium">{selectedRoom.floor}</span>
+                    <span className="text-muted-foreground">Type</span>
+                    <span className="font-medium">{selectedRoom.type}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setActiveTool("room"); setRoomData({ ...roomData, x: selectedRoom.mapPositionX, y: selectedRoom.mapPositionY }); }}>
+                      Move
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => deleteRoom(selectedRoom.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Drawing Instructions */}
           {isDrawing && (activeTool === "wall" || activeTool === "outline") && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">

@@ -10,15 +10,47 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.1.4";
+export const APP_VERSION = "3.1.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.1.6",
+    date: "May 2026",
+    title: "2D-only map polish",
+    titleFi: "2D-kartan viimeistely",
+    latest: true,
+    highlights: [
+      "Removed 2D/3D toggle — home is 2D campus map only for now",
+      "Richer map visuals: campus plate, shadows, search results, status legend",
+      "Improved builder canvas and room editing panels",
+    ],
+    highlightsFi: [
+      "2D/3D-valitsin poistettu — vain 2D-kartta etusivulla",
+      "Kartta: kampusalusta, varjot, haku ja tilalegenda",
+      "Rakentajan ulkoasu ja tilamuokkaus parannettu",
+    ],
+  },
+  {
+    version: "3.1.5",
+    date: "May 2026",
+    title: "Aalto Space–style campus map",
+    titleFi: "Aalto Space -tyylinen kampuskartta",
+    highlights: [
+      "2D map: floating search, floor selector, room status colors, layer toggles, bottom sheets",
+      "Campus builder: floor-based room editing with Aalto-style controls",
+      "3D home view: room blocks per floor on wing footprints",
+    ],
+    highlightsFi: [
+      "2D-kartta: haku, kerrosvalitsin, tilavärit, tasot ja alapaneelit",
+      "Rakentaja: kerroskohtaiset tilat Aalto-tyylisillä ohjaimilla",
+      "3D-näkymä: tilakuutiot kerroksittain siipien päällä",
+    ],
+  },
   {
     version: "3.1.4",
     date: "May 2026",
     title: "Official owl logo file & map builders",
     titleFi: "Virallinen pöllölogo ja rakentajat",
-    latest: true,
     highlights: [
       "App loads ksykmaps_logo_NEW (2).png directly; favicons regenerated from it",
       "2D map wing chips with fly-to-wing zoom and drop shadows",

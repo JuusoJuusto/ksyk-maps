@@ -19,6 +19,7 @@ import {
   outlinesAs3DBuildings,
 } from "@/lib/ksykCampusOutlines";
 import { cn } from "@/lib/utils";
+import { getRoomFillColor } from "@/lib/campusSpace";
 import {
   Box,
   Move,
@@ -37,6 +38,8 @@ import {
   Layers,
   Play,
   Pause,
+  Plus,
+  Minus,
 } from "lucide-react";
 
 interface Building3D {
@@ -384,6 +387,61 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
         const preset = KSYK_BUILDING_OUTLINES[letter];
         drawExtrudedWing(letter, preset.shape, preset.stroke, preset.floors);
       });
+
+      const floorRooms = (rooms as Array<{
+        id: string;
+        floor?: number;
+        mapPositionX?: number;
+        mapPositionY?: number;
+        width?: number;
+        height?: number;
+        type?: string;
+        currentStatus?: string;
+        roomNumber?: string;
+      }>).filter(
+        (r) =>
+          (r.floor ?? 0) === selectedFloor &&
+          r.mapPositionX != null &&
+          r.mapPositionY != null
+      );
+
+      floorRooms.forEach((room) => {
+        const bx = ((room.mapPositionX ?? 0) - originX) * mapScale;
+        const bz = ((room.mapPositionY ?? 0) - originY) * mapScale;
+        const bw = (room.width ?? 48) * mapScale;
+        const bd = (room.height ?? 36) * mapScale;
+        const bh = 10 + selectedFloor * 6;
+        const by = selectedFloor * 8;
+
+        const corners = [
+          projectPoint(bx, by, bz),
+          projectPoint(bx + bw, by, bz),
+          projectPoint(bx + bw, by, bz + bd),
+          projectPoint(bx, by, bz + bd),
+          projectPoint(bx, by + bh, bz),
+          projectPoint(bx + bw, by + bh, bz),
+          projectPoint(bx + bw, by + bh, bz + bd),
+          projectPoint(bx, by + bh, bz + bd),
+        ];
+
+        const fill = getRoomFillColor(room.type, room.currentStatus);
+        const rgb = hexToRgb(fill);
+        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.75)`;
+        const top = [4, 5, 6, 7];
+        ctx.beginPath();
+        ctx.moveTo(corners[top[0]].x, corners[top[0]].y);
+        top.slice(1).forEach((i) => ctx.lineTo(corners[i].x, corners[i].y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = fill;
+        ctx.lineWidth = 1.5;
+        [[0, 1], [1, 2], [2, 3], [3, 0], [0, 4], [1, 5], [2, 6], [3, 7], [4, 5], [5, 6], [6, 7], [7, 4]].forEach(([a, b]) => {
+          ctx.beginPath();
+          ctx.moveTo(corners[a].x, corners[a].y);
+          ctx.lineTo(corners[b].x, corners[b].y);
+          ctx.stroke();
+        });
+      });
     } else {
       buildings3D.forEach((building) => {
         const bx = building.x * mapScale;
@@ -461,10 +519,19 @@ export default function Working3DBuilder({ embedded = false }: Working3DBuilderP
       ctx.fillText(`Rotation: ${rotation.y.toFixed(0)}°`, 20, 80);
     }
 
-  }, [buildings3D, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded, settings.showWingLabels]);
+  }, [buildings3D, rooms, zoom, rotation, pan, lightMode, showGrid, selectedFloor, viewMode, settings.threeDShadows, settings.threeDQuality, embedded, settings.showWingLabels]);
 
   const embeddedControls = (
     <div className="absolute bottom-[max(5rem,calc(0.75rem+env(safe-area-inset-bottom)))] sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
+      <div className="pointer-events-auto flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-gray-200/80 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90">
+        <Button variant="ghost" size="sm" className="h-8 w-10 rounded-none" onClick={() => setSelectedFloor((f) => f + 1)}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+        <span className="h-8 w-10 flex items-center justify-center text-xs font-bold bg-blue-600 text-white">{selectedFloor}</span>
+        <Button variant="ghost" size="sm" className="h-8 w-10 rounded-none" onClick={() => setSelectedFloor((f) => Math.max(0, f - 1))}>
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
       <div className="pointer-events-auto flex gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-gray-900/90 shadow-2xl backdrop-blur-xl">
         <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setZoom((z) => Math.min(3, z + 0.15))}>
           <ZoomIn className="h-4 w-4" />

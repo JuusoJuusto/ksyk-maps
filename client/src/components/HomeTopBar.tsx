@@ -1,18 +1,16 @@
 /**
- * Unified home top bar: logo, 2D/3D, search, HSL, Settings
+ * Unified home top bar: logo, search, Lunch, HSL, Settings
  */
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Box, Map as MapIcon, Search, Settings, X } from "lucide-react";
+import { Search, Settings, X } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 
 type HomeTopBarProps = {
-  mapMode: "2d" | "3d";
-  onMapModeChange: (mode: "2d" | "3d") => void;
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onOpenSettings: () => void;
@@ -20,8 +18,6 @@ type HomeTopBarProps = {
 };
 
 export default function HomeTopBar({
-  mapMode,
-  onMapModeChange,
   searchQuery,
   onSearchChange,
   onOpenSettings,
@@ -101,66 +97,38 @@ export default function HomeTopBar({
       {showMapTools && (
         <div
           className={cn(
-            "border-t px-3 py-1.5 sm:px-4 sm:py-2",
+            "border-t px-3 py-2 sm:px-4",
             darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80"
           )}
         >
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div
+          <div className="max-w-7xl mx-auto relative">
+            <Search
               className={cn(
-                "flex p-0.5 rounded-lg shrink-0 self-start sm:self-center",
-                darkMode ? "bg-gray-800/90" : "bg-white/90 shadow-sm"
+                "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10",
+                darkMode ? "text-gray-500" : "text-gray-400"
               )}
-            >
-              {(["2d", "3d"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => onMapModeChange(mode)}
-                  className={cn(
-                    "flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold min-w-[3rem] transition-colors",
-                    mapMode === mode
-                      ? "bg-blue-600 text-white"
-                      : darkMode
-                      ? "text-gray-300 hover:bg-gray-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  )}
-                >
-                  {mode === "2d" ? <MapIcon className="h-3.5 w-3.5" /> : <Box className="h-3.5 w-3.5" />}
-                  {mode.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative flex-1 min-w-0 w-full">
-              <Search
-                className={cn(
-                  "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none",
-                  darkMode ? "text-gray-500" : "text-gray-400"
-                )}
-              />
-              <Input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder={isFi ? "Etsi siipiä (A, U, K…)" : "Search wings (A, U, K…)"}
-                className={cn(
-                  "h-9 w-full pl-9 pr-9 text-sm rounded-lg border",
-                  darkMode
-                    ? "bg-gray-800 border-gray-700 text-white"
-                    : "bg-white border-gray-200"
-                )}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <X className="h-4 w-4 text-gray-400" />
-                </button>
+            />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={isFi ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…"}
+              className={cn(
+                "h-10 w-full pl-10 pr-10 text-sm rounded-xl border shadow-sm",
+                darkMode
+                  ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500"
+                  : "bg-white border-gray-200"
               )}
-            </div>
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            )}
           </div>
         </div>
       )}
