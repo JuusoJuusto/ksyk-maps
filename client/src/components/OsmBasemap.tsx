@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 import { OSM_TILE_PROVIDERS } from "@/lib/appSettings";
 
 interface OsmBasemapProps {
@@ -40,7 +41,14 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
   const overlaySvgRef = useRef<SVGSVGElement | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const { settings } = useAppSettings();
+  const { darkMode } = useDarkMode();
   const [, setReady] = useState(false);
+
+  // Pick the right tile provider based on the active theme.
+  const activeProvider = useMemo(() => {
+    const key = darkMode ? settings.osmTileProviderDark : settings.osmTileProvider;
+    return OSM_TILE_PROVIDERS[key] ?? OSM_TILE_PROVIDERS["carto-voyager"];
+  }, [darkMode, settings.osmTileProvider, settings.osmTileProviderDark]);
 
   // Build SVG element once
   if (!overlaySvgRef.current) {
@@ -84,8 +92,7 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
   useEffect(() => {
     if (!containerRef.current) return;
     if (mapRef.current) return;
-    const provider =
-      OSM_TILE_PROVIDERS[settings.osmTileProvider] ?? OSM_TILE_PROVIDERS["carto-voyager"];
+    const provider = activeProvider;
 
     const map = L.map(containerRef.current, {
       center: [settings.osmCenterLat, settings.osmCenterLng],
@@ -149,21 +156,41 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tile provider / max-zoom changes
+  // Tile provider / max-zoom / dark-mode changes — swap the tile layer
+  // smoothly: add the new layer first, fade out the old one, then remove it.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !tileLayerRef.current) return;
-    map.removeLayer(tileLayerRef.current);
-    const provider =
-      OSM_TILE_PROVIDERS[settings.osmTileProvider] ?? OSM_TILE_PROVIDERS["carto-voyager"];
-    tileLayerRef.current = L.tileLayer(provider.url, {
+    const provider = activeProvider;
+    const newLayer = L.tileLayer(provider.url, {
       maxZoom: settings.osmMaxZoom,
       maxNativeZoom: provider.maxNativeZoom,
       attribution: provider.attribution,
       subdomains: "abcd",
       detectRetina: true,
+      crossOrigin: true,
+      opacity: 0,
     }).addTo(map);
-  }, [settings.osmTileProvider, settings.osmMaxZoom]);
+
+    const oldLayer = tileLayerRef.current;
+    tileLayerRef.current = newLayer;
+
+    // Fade in once tiles are ready, then fade out + remove the old layer.
+    const fadeIn = () => {
+      newLayer.setOpacity(1);
+      setTimeout(() => {
+        oldLayer.setOpacity(0);
+        setTimeout(() => map.removeLayer(oldLayer), 260);
+      }, 180);
+    };
+    if ((newLayer as unknown as { _loading?: boolean })._loading) {
+      newLayer.once("load", fadeIn);
+      // Failsafe in case load never fires (e.g. provider returns errors)
+      setTimeout(fadeIn, 1200);
+    } else {
+      fadeIn();
+    }
+  }, [activeProvider, settings.osmMaxZoom]);
 
   // Center / zoom updates
   useEffect(() => {

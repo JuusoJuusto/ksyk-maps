@@ -289,21 +289,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                       <Badge variant="secondary" className="text-[10px]">v3.5</Badge>
                     </div>
 
-                    <SettingRow
-                      label={isFi ? "Käytä OSM-taustakartta" : "Use OSM basemap"}
-                      description={
-                        isFi
-                          ? "Korvaa muokattu kampuslevy aidoilla OpenStreetMap-laatoilla"
-                          : "Replace the custom campus plate with real OpenStreetMap tiles"
-                      }
-                    >
-                      <Switch
-                        checked={settings.useOsmBasemap}
-                        onCheckedChange={(v) => update("useOsmBasemap", v)}
-                      />
-                    </SettingRow>
-
-                    {settings.useOsmBasemap && (
+                    {true && (
                       <>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -327,68 +313,72 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                         </div>
 
                         <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
-                          <div>
-                            <Label className="mb-2 block text-xs">
-                              {isFi ? "Laattatyyli" : "Tile style"}
-                            </Label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {(Object.entries(OSM_TILE_PROVIDERS) as [OsmTileProvider, typeof OSM_TILE_PROVIDERS[OsmTileProvider]][]).map(([id, p]) => {
-                                // Render a sample tile near KSYK at zoom 14 as thumbnail
-                                const z = 14;
-                                const lat = settings.osmCenterLat;
-                                const lng = settings.osmCenterLng;
-                                const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
-                                const tileY = Math.floor(
-                                  ((1 -
-                                    Math.log(
-                                      Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
-                                    ) /
-                                      Math.PI) /
-                                    2) *
-                                    Math.pow(2, z)
-                                );
-                                const thumbUrl = p.url
-                                  .replace("{z}", String(z))
-                                  .replace("{x}", String(tileX))
-                                  .replace("{y}", String(tileY))
-                                  .replace("{r}", "")
-                                  .replace("{s}", "a");
-                                const selected = settings.osmTileProvider === id;
-                                return (
-                                  <button
-                                    key={id}
-                                    type="button"
-                                    onClick={() => update("osmTileProvider", id)}
-                                    className={cn(
-                                      "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
-                                      selected
-                                        ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
-                                        : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
-                                    )}
-                                    aria-pressed={selected}
-                                    title={p.name}
-                                  >
-                                    <img
-                                      src={thumbUrl}
-                                      alt=""
-                                      loading="lazy"
-                                      crossOrigin="anonymous"
-                                      className="block w-full aspect-[4/3] object-cover"
-                                      onError={(e) => {
-                                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                                      }}
-                                    />
-                                    <div className="px-2 py-1.5 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100">
-                                      {p.name}
-                                    </div>
-                                    {selected && (
-                                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+                          {(["light", "dark"] as const).map((mode) => {
+                            const current = mode === "dark" ? settings.osmTileProviderDark : settings.osmTileProvider;
+                            const key: "osmTileProvider" | "osmTileProviderDark" =
+                              mode === "dark" ? "osmTileProviderDark" : "osmTileProvider";
+                            return (
+                              <div key={mode}>
+                                <Label className="mb-2 block text-xs flex items-center gap-1.5">
+                                  <span>{mode === "dark" ? (isFi ? "Tumma teema" : "Dark theme") : (isFi ? "Vaalea teema" : "Light theme")}</span>
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0">{mode}</Badge>
+                                </Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {(Object.entries(OSM_TILE_PROVIDERS) as [OsmTileProvider, typeof OSM_TILE_PROVIDERS[OsmTileProvider]][]).map(([id, p]) => {
+                                    const z = 14;
+                                    const lat = settings.osmCenterLat;
+                                    const lng = settings.osmCenterLng;
+                                    const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
+                                    const tileY = Math.floor(
+                                      ((1 -
+                                        Math.log(
+                                          Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
+                                        ) / Math.PI) / 2) * Math.pow(2, z)
+                                    );
+                                    const thumbUrl = p.url
+                                      .replace("{z}", String(z))
+                                      .replace("{x}", String(tileX))
+                                      .replace("{y}", String(tileY))
+                                      .replace("{r}", "")
+                                      .replace("{s}", "a");
+                                    const selected = current === id;
+                                    return (
+                                      <button
+                                        key={`${mode}-${id}`}
+                                        type="button"
+                                        onClick={() => update(key, id)}
+                                        className={cn(
+                                          "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
+                                          selected
+                                            ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
+                                            : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
+                                        )}
+                                        aria-pressed={selected}
+                                        title={p.name}
+                                      >
+                                        <img
+                                          src={thumbUrl}
+                                          alt=""
+                                          loading="lazy"
+                                          crossOrigin="anonymous"
+                                          className="block w-full aspect-[4/3] object-cover"
+                                          onError={(e) => {
+                                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                                          }}
+                                        />
+                                        <div className="px-2 py-1 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100 truncate">
+                                          {p.name}
+                                        </div>
+                                        {selected && (
+                                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -556,6 +546,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                               update("osmPitchDeg", DEFAULT_APP_SETTINGS.osmPitchDeg);
                               update("osmCampusSpanMeters", DEFAULT_APP_SETTINGS.osmCampusSpanMeters);
                               update("osmTileProvider", DEFAULT_APP_SETTINGS.osmTileProvider);
+                              update("osmTileProviderDark", DEFAULT_APP_SETTINGS.osmTileProviderDark);
                             }}
                           >
                             {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}

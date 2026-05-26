@@ -50,6 +50,37 @@ export default function Header({
     }
   }, []);
 
+  // Close mobile menu on route change.
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [location]);
+
+  // Close mobile menu on Esc + outside click.
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMobileMenu(false);
+    };
+    const onClick = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest("[data-mobile-menu]") || target.closest("[data-mobile-menu-trigger]")) return;
+      setShowMobileMenu(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("touchstart", onClick, { passive: true });
+    // Lock body scroll while the menu is open
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("touchstart", onClick);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showMobileMenu]);
+
   const isActive = (path: string) => location === path;
   const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
   const isInAdminPanel = location === '/admin-ksyk-management-portal';
@@ -277,8 +308,11 @@ export default function Header({
           <div className={homeMinimal ? "hidden" : "lg:hidden"}>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              aria-label="Toggle mobile menu"
+              data-mobile-menu-trigger
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={showMobileMenu ? "Close menu" : "Open menu"}
+              aria-expanded={showMobileMenu}
+              aria-controls="mobile-menu"
             >
               {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -287,9 +321,12 @@ export default function Header({
 
         {/* Mobile Dropdown Menu */}
         {showMobileMenu && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50" style={{
-            animation: 'slideDownFromTop 0.3s ease-out'
-          }}>
+          <div
+            id="mobile-menu"
+            data-mobile-menu
+            role="menu"
+            className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200"
+          >
             <div className="px-4 py-3 space-y-3">
               {!isInAdminPanel ? (
                 <>
