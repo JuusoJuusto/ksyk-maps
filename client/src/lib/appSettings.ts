@@ -77,6 +77,13 @@ export type AppSettings = {
   // 1 world-unit = ~0.1m, so 1600 units = ~160m. We anchor the SVG centre to the
   // (lat, lng) above and scale by the bbox span below.
   osmCampusSpanMeters: number;
+  /** When enabled, Leaflet restricts panning to a bounding box. The four
+   * values define the corners. If disabled, users can pan freely. */
+  osmMaxBoundsEnabled: boolean;
+  osmMaxBoundsNorth: number;
+  osmMaxBoundsEast: number;
+  osmMaxBoundsSouth: number;
+  osmMaxBoundsWest: number;
 };
 
 const STORAGE_KEY = "ksyk_app_settings_v2";
@@ -107,6 +114,13 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   osmTileProviderDark: "carto-dark-matter",
   osmTileTheme: "default",
   osmCampusSpanMeters: 220,
+  // Default bounds ≈ ±400 m around the KSYK centre so users can't pan to
+  // another country, but still have headroom for exploring the neighbourhood.
+  osmMaxBoundsEnabled: true,
+  osmMaxBoundsNorth: 60.1906,
+  osmMaxBoundsEast: 25.0125,
+  osmMaxBoundsSouth: 60.1834,
+  osmMaxBoundsWest: 24.9995,
 };
 
 export const OSM_TILE_PROVIDERS: Record<OsmTileProvider, { name: string; url: string; attribution: string; maxNativeZoom: number }> = {

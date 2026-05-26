@@ -909,6 +909,58 @@ export default function AdminDashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          {/* Quick stats — at-a-glance KPI cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {[
+              {
+                label: "Buildings",
+                value: (buildings as any[])?.length ?? 0,
+                accent: "from-blue-500 to-indigo-500",
+                icon: Building,
+              },
+              {
+                label: "Rooms",
+                value: (rooms as any[])?.length ?? 0,
+                accent: "from-emerald-500 to-teal-500",
+                icon: MapPin,
+              },
+              {
+                label: "Floors",
+                value: Math.max(
+                  1,
+                  ...(((rooms as any[]) ?? []).map((r) => r?.floor ?? 1)),
+                  ...(((buildings as any[]) ?? []).map((b) => b?.floors ?? 1))
+                ),
+                accent: "from-amber-500 to-orange-500",
+                icon: Layers,
+              },
+              {
+                label: "Announcements",
+                value: (announcements as any[])?.length ?? 0,
+                accent: "from-rose-500 to-pink-500",
+                icon: AlertTriangle,
+              },
+            ].map(({ label, value, accent, icon: Icon }) => (
+              <Card
+                key={label}
+                className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow"
+              >
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+                <CardContent className="p-4 md:p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+                      <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+                    </div>
+                    <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>System Overview</CardTitle>

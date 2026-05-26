@@ -44,6 +44,7 @@ import {
   LocateFixed,
   Maximize,
   Minimize,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Room-to-room navigation
   const [navFrom, setNavFrom] = useState<RoomPt | null>(null);
@@ -393,19 +395,25 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         e.preventDefault();
         resetView();
       } else if (e.key === "Escape") {
-        setSelectedBuilding(null);
-        setSelectedRoom(null);
+        if (showShortcuts) setShowShortcuts(false);
+        else {
+          setSelectedBuilding(null);
+          setSelectedRoom(null);
+        }
       } else if (/^[1-9]$/.test(e.key)) {
         const n = parseInt(e.key, 10);
         if (n <= maxFloor) setSelectedFloor(n);
       } else if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         toggleFullscreen();
+      } else if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts((s) => !s);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [maxFloor, resetView, toggleFullscreen]);
+  }, [maxFloor, resetView, toggleFullscreen, showShortcuts]);
 
   // ─── Auto-focus single search hit ──────────────────────────────────────
   useEffect(() => {
@@ -540,6 +548,26 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     else focusRoom(hit.room);
   };
 
+  // Highlight the matched substring in a label so users see WHY a result
+  // came back. Plain string match, case-insensitive — no regex risk.
+  const highlight = (label: string, query: string): React.ReactNode => {
+    const q = query.trim();
+    if (!q) return label;
+    const lower = label.toLowerCase();
+    const lq = q.toLowerCase();
+    const i = lower.indexOf(lq);
+    if (i < 0) return label;
+    return (
+      <>
+        {label.slice(0, i)}
+        <mark className="bg-yellow-200/80 dark:bg-yellow-500/30 text-current rounded-sm px-0.5">
+          {label.slice(i, i + q.length)}
+        </mark>
+        {label.slice(i + q.length)}
+      </>
+    );
+  };
+
   return (
     <div
       ref={wrapRef}
@@ -592,7 +620,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold truncate">{hit.label}</p>
+                    <p className="text-sm font-bold truncate">{highlight(hit.label, searchQuery)}</p>
                     <p className="text-xs text-muted-foreground truncate">{hit.sub}</p>
                   </div>
                 </button>
@@ -692,7 +720,73 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         >
           <MapPin className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={isFi ? "Pikanäppäimet" : "Keyboard shortcuts"}
+          className={cn(panel, "w-11 h-11 p-0")}
+          onClick={() => setShowShortcuts(true)}
+          title={isFi ? "Pikanäppäimet (?)" : "Keyboard shortcuts (?)"}
+        >
+          <Keyboard className="h-4 w-4" />
+        </Button>
       </div>
+
+      {/* ── Keyboard shortcut overlay ──────────────────────────────── */}
+      {showShortcuts && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4"
+          onClick={() => setShowShortcuts(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="kbd-title"
+        >
+          <div
+            className="max-w-md w-full rounded-2xl shadow-2xl border bg-white dark:bg-gray-900 dark:border-gray-700 overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <Keyboard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <h2 id="kbd-title" className="font-bold text-lg">
+                  {isFi ? "Pikanäppäimet" : "Keyboard shortcuts"}
+                </h2>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowShortcuts(false)} aria-label="Close">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="px-5 py-4 space-y-3 text-sm">
+              {[
+                { keys: ["+", "="], label: isFi ? "Suurenna" : "Zoom in" },
+                { keys: ["−", "_"], label: isFi ? "Pienennä" : "Zoom out" },
+                { keys: ["0"], label: isFi ? "Palauta näkymä" : "Reset view" },
+                { keys: ["1", "2", "…", "9"], label: isFi ? "Vaihda kerros" : "Jump to floor" },
+                { keys: ["F"], label: isFi ? "Koko näyttö" : "Toggle fullscreen" },
+                { keys: ["?"], label: isFi ? "Avaa tämä" : "Open this help" },
+                { keys: ["Esc"], label: isFi ? "Sulje" : "Close panels" },
+                { keys: [isFi ? "Klikkaus" : "Click"], label: isFi ? "Valitse tila" : "Select room" },
+                { keys: [isFi ? "Shift+klikkaus" : "Shift+click"], label: isFi ? "Aseta määränpää" : "Set destination" },
+                { keys: [isFi ? "Alt+klikkaus" : "Alt+click"], label: isFi ? "Aseta lähtöpiste" : "Set start point" },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">{row.label}</span>
+                  <div className="flex gap-1">
+                    {row.keys.map((k) => (
+                      <kbd
+                        key={k}
+                        className="px-2 py-0.5 text-[11px] font-mono font-semibold rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm"
+                      >
+                        {k}
+                      </kbd>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Locate error toast ─────────────────────────────────────── */}
       {locateError && (

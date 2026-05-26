@@ -195,6 +195,31 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     }
   }, [activeProvider, settings.osmMaxZoom]);
 
+  // maxBounds (pan restriction) — applied separately so the values can be
+  // changed live without rebuilding the map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (settings.osmMaxBoundsEnabled) {
+      const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];
+      const ne: L.LatLngTuple = [settings.osmMaxBoundsNorth, settings.osmMaxBoundsEast];
+      // Skip if the box is degenerate (e.g. unedited zeros).
+      if (sw[0] < ne[0] && sw[1] < ne[1]) {
+        map.setMaxBounds(L.latLngBounds(sw, ne));
+        map.options.maxBoundsViscosity = 0.8;
+      }
+    } else {
+      // setMaxBounds(null) is the official "remove restriction" call.
+      map.setMaxBounds(null as unknown as L.LatLngBoundsExpression);
+    }
+  }, [
+    settings.osmMaxBoundsEnabled,
+    settings.osmMaxBoundsNorth,
+    settings.osmMaxBoundsEast,
+    settings.osmMaxBoundsSouth,
+    settings.osmMaxBoundsWest,
+  ]);
+
   // Center / zoom updates
   useEffect(() => {
     const map = mapRef.current;

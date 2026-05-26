@@ -67,6 +67,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   const { darkMode } = useDarkMode();
   const { settings, update, reset } = useAppSettings();
   const [tab, setTab] = useState<SettingsTab>("appearance");
+  const [previewMode, setPreviewMode] = useState<"center" | "bounds">("center");
   const [currentLang, setCurrentLang] = useState(
     () => localStorage.getItem("ksyk_language") || i18n.language
   );
@@ -296,20 +297,92 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                             <Label className="text-xs font-semibold">
                               {isFi ? "Esikatselu" : "Live preview"}
                             </Label>
-                            <span className="text-[10px] text-muted-foreground">
-                              {isFi ? "Napauta asettaaksesi" : "Click to set center"}
-                            </span>
+                            <div className="flex gap-1 rounded-lg bg-gray-200/60 dark:bg-gray-800/60 p-0.5">
+                              {(["center", "bounds"] as const).map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setPreviewMode(m)}
+                                  className={cn(
+                                    "px-2.5 py-1 text-[10px] font-semibold rounded-md transition-colors",
+                                    previewMode === m
+                                      ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300"
+                                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                  )}
+                                  aria-pressed={previewMode === m}
+                                >
+                                  {m === "center"
+                                    ? isFi ? "Keskipiste" : "Center"
+                                    : isFi ? "Rajat" : "Bounds"}
+                                </button>
+                              ))}
+                            </div>
                           </div>
+                          <p className="text-[10px] text-muted-foreground px-1 leading-relaxed">
+                            {previewMode === "center"
+                              ? isFi
+                                ? "Napauta karttaa asettaaksesi keskipisteen."
+                                : "Click the map to set the centre."
+                              : isFi
+                              ? "Vedä karttaa rajataksesi alueen, johon käyttäjät voivat panoroida."
+                              : "Drag a rectangle to define where users are allowed to pan."}
+                          </p>
                           <OsmPreviewMap
-                            height={220}
+                            height={240}
+                            mode={previewMode}
                             onPick={(lat, lng) => {
                               update("osmCenterLat", lat);
                               update("osmCenterLng", lng);
+                            }}
+                            onBounds={(b) => {
+                              update("osmMaxBoundsNorth", b.north);
+                              update("osmMaxBoundsEast", b.east);
+                              update("osmMaxBoundsSouth", b.south);
+                              update("osmMaxBoundsWest", b.west);
+                              update("osmMaxBoundsEnabled", true);
                             }}
                           />
                           <div className="text-[10px] font-mono text-muted-foreground px-1">
                             {settings.osmCenterLat.toFixed(5)}, {settings.osmCenterLng.toFixed(5)}
                           </div>
+
+                          <SettingRow
+                            label={isFi ? "Rajoita panorointi" : "Restrict panning"}
+                            description={
+                              isFi
+                                ? "Estä käyttäjiä panoroimasta määritettyjen rajojen ulkopuolelle"
+                                : "Stop users from panning outside the defined bounds"
+                            }
+                          >
+                            <Switch
+                              checked={settings.osmMaxBoundsEnabled}
+                              onCheckedChange={(v) => update("osmMaxBoundsEnabled", v)}
+                            />
+                          </SettingRow>
+                          {settings.osmMaxBoundsEnabled && (
+                            <div className="grid grid-cols-2 gap-2 px-1">
+                              {([
+                                ["osmMaxBoundsNorth", "N"],
+                                ["osmMaxBoundsEast", "E"],
+                                ["osmMaxBoundsSouth", "S"],
+                                ["osmMaxBoundsWest", "W"],
+                              ] as const).map(([k, lbl]) => (
+                                <div key={k}>
+                                  <Label className="mb-1 block text-[10px] font-mono">{lbl}</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.0001"
+                                    value={settings[k]}
+                                    onChange={(e) => {
+                                      const v = parseFloat(e.target.value);
+                                      if (Number.isFinite(v)) update(k, v);
+                                    }}
+                                    className="h-8 text-xs font-mono"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
@@ -557,6 +630,11 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                               update("osmTileTheme", DEFAULT_APP_SETTINGS.osmTileTheme);
                               update("osmTileProvider", DEFAULT_APP_SETTINGS.osmTileProvider);
                               update("osmTileProviderDark", DEFAULT_APP_SETTINGS.osmTileProviderDark);
+                              update("osmMaxBoundsEnabled", DEFAULT_APP_SETTINGS.osmMaxBoundsEnabled);
+                              update("osmMaxBoundsNorth", DEFAULT_APP_SETTINGS.osmMaxBoundsNorth);
+                              update("osmMaxBoundsEast", DEFAULT_APP_SETTINGS.osmMaxBoundsEast);
+                              update("osmMaxBoundsSouth", DEFAULT_APP_SETTINGS.osmMaxBoundsSouth);
+                              update("osmMaxBoundsWest", DEFAULT_APP_SETTINGS.osmMaxBoundsWest);
                             }}
                           >
                             {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}

@@ -1,8 +1,14 @@
 /**
  * Lightweight live-preview Leaflet map for the admin OSM config panel.
- * Reflects current osmCenter/zoom/rotation/pitch/tile-provider settings
- * and supports click-to-set lat/lng + drag-to-pan (which also updates
- * the saved center on release, so the panel's inputs stay in sync).
+ * Reflects current osmCenter/zoom/rotation/pitch/tile-provider settings.
+ *
+ * Two interaction modes:
+ *   - "center" (default): click sets osmCenter to clicked lat/lng.
+ *   - "bounds": shift-drag (or pointer-drag in bounds mode) defines a
+ *     rectangle that becomes the new osmMaxBounds*.
+ *
+ * Renders the saved maxBounds as a translucent blue rectangle so admins
+ * always see the active restriction.
  */
 
 import { useEffect, useRef } from "react";
@@ -13,16 +19,28 @@ import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES } from "@/lib/appSettings";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 
 interface OsmPreviewMapProps {
-  /** Click handler — receives lat/lng and updates the saved center. */
+  /** Click handler when in "center" mode. */
   onPick?: (lat: number, lng: number) => void;
+  /** Drag handler when in "bounds" mode. Receives N/E/S/W. */
+  onBounds?: (b: { north: number; east: number; south: number; west: number }) => void;
+  /** Which interaction mode is active. */
+  mode?: "center" | "bounds";
   height?: number;
 }
 
-export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapProps) {
+export default function OsmPreviewMap({
+  onPick,
+  onBounds,
+  mode = "center",
+  height = 220,
+}: OsmPreviewMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const centerMarkerRef = useRef<L.CircleMarker | null>(null);
+  const boundsRectRef = useRef<L.Rectangle | null>(null);
+  const dragRectRef = useRef<L.Rectangle | null>(null);
+  const dragStartRef = useRef<L.LatLng | null>(null);
   const { settings } = useAppSettings();
   const { darkMode } = useDarkMode();
 
@@ -64,10 +82,6 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
       weight: 3,
     }).addTo(map);
 
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      onPick?.(+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6));
-    });
-
     mapRef.current = map;
 
     return () => {
@@ -75,9 +89,70 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
       mapRef.current = null;
       tileLayerRef.current = null;
       centerMarkerRef.current = null;
+      boundsRectRef.current = null;
+      dragRectRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Click + drag handlers depend on `mode`, so re-bind when it changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const onClick = (e: L.LeafletMouseEvent) => {
+      if (mode !== "center") return;
+      onPick?.(+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6));
+    };
+
+    const onMouseDown = (e: L.LeafletMouseEvent) => {
+      if (mode !== "bounds") return;
+      map.dragging.disable();
+      dragStartRef.current = e.latlng;
+      dragRectRef.current = L.rectangle(L.latLngBounds(e.latlng, e.latlng), {
+        color: "#10b981",
+        weight: 2,
+        fillColor: "#10b981",
+        fillOpacity: 0.15,
+        dashArray: "6 4",
+      }).addTo(map);
+    };
+
+    const onMouseMove = (e: L.LeafletMouseEvent) => {
+      if (mode !== "bounds" || !dragStartRef.current || !dragRectRef.current) return;
+      dragRectRef.current.setBounds(L.latLngBounds(dragStartRef.current, e.latlng));
+    };
+
+    const onMouseUp = (e: L.LeafletMouseEvent) => {
+      if (mode !== "bounds" || !dragStartRef.current) return;
+      map.dragging.enable();
+      const b = L.latLngBounds(dragStartRef.current, e.latlng);
+      const ne = b.getNorthEast();
+      const sw = b.getSouthWest();
+      if (Math.abs(ne.lat - sw.lat) > 1e-4 && Math.abs(ne.lng - sw.lng) > 1e-4) {
+        onBounds?.({
+          north: +ne.lat.toFixed(6),
+          east: +ne.lng.toFixed(6),
+          south: +sw.lat.toFixed(6),
+          west: +sw.lng.toFixed(6),
+        });
+      }
+      dragRectRef.current?.remove();
+      dragRectRef.current = null;
+      dragStartRef.current = null;
+    };
+
+    map.on("click", onClick);
+    map.on("mousedown", onMouseDown);
+    map.on("mousemove", onMouseMove);
+    map.on("mouseup", onMouseUp);
+    return () => {
+      map.off("click", onClick);
+      map.off("mousedown", onMouseDown);
+      map.off("mousemove", onMouseMove);
+      map.off("mouseup", onMouseUp);
+    };
+  }, [mode, onPick, onBounds]);
 
   // Tile provider / theme changes (light↔dark, pack swap)
   useEffect(() => {
@@ -113,6 +188,32 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
     settings.osmMaxZoom,
   ]);
 
+  // Live bounds rectangle — shows the saved maxBounds when enabled
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    boundsRectRef.current?.remove();
+    boundsRectRef.current = null;
+    if (!settings.osmMaxBoundsEnabled) return;
+    const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];
+    const ne: L.LatLngTuple = [settings.osmMaxBoundsNorth, settings.osmMaxBoundsEast];
+    if (sw[0] >= ne[0] || sw[1] >= ne[1]) return;
+    boundsRectRef.current = L.rectangle(L.latLngBounds(sw, ne), {
+      color: "#2563eb",
+      weight: 2,
+      fillColor: "#3b82f6",
+      fillOpacity: 0.08,
+      dashArray: "6 4",
+      interactive: false,
+    }).addTo(map);
+  }, [
+    settings.osmMaxBoundsEnabled,
+    settings.osmMaxBoundsNorth,
+    settings.osmMaxBoundsEast,
+    settings.osmMaxBoundsSouth,
+    settings.osmMaxBoundsWest,
+  ]);
+
   // Rotation + pitch (CSS, same as main map)
   useEffect(() => {
     const map = mapRef.current;
@@ -134,7 +235,7 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
       role="application"
       aria-label="Live preview of OSM settings"
       className="rounded-2xl overflow-hidden border border-gray-200/70 dark:border-gray-700/60 shadow-inner"
-      style={{ width: "100%", height }}
+      style={{ width: "100%", height, cursor: mode === "bounds" ? "crosshair" : undefined }}
     />
   );
 }
