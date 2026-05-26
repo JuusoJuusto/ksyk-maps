@@ -9,7 +9,8 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { OSM_TILE_PROVIDERS } from "@/lib/appSettings";
+import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES } from "@/lib/appSettings";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 interface OsmPreviewMapProps {
   /** Click handler — receives lat/lng and updates the saved center. */
@@ -23,12 +24,18 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const centerMarkerRef = useRef<L.CircleMarker | null>(null);
   const { settings } = useAppSettings();
+  const { darkMode } = useDarkMode();
+
+  const pickProvider = () => {
+    const pack = OSM_TILE_THEMES[settings.osmTileTheme] ?? OSM_TILE_THEMES.default;
+    const key = darkMode ? pack.dark : pack.light;
+    return OSM_TILE_PROVIDERS[key] ?? OSM_TILE_PROVIDERS["carto-voyager"];
+  };
 
   // Mount once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const provider =
-      OSM_TILE_PROVIDERS[settings.osmTileProvider] ?? OSM_TILE_PROVIDERS["carto-voyager"];
+    const provider = pickProvider();
 
     const map = L.map(containerRef.current, {
       center: [settings.osmCenterLat, settings.osmCenterLng],
@@ -72,13 +79,12 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tile provider changes
+  // Tile provider / theme changes (light↔dark, pack swap)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !tileLayerRef.current) return;
     map.removeLayer(tileLayerRef.current);
-    const provider =
-      OSM_TILE_PROVIDERS[settings.osmTileProvider] ?? OSM_TILE_PROVIDERS["carto-voyager"];
+    const provider = pickProvider();
     tileLayerRef.current = L.tileLayer(provider.url, {
       maxZoom: settings.osmMaxZoom,
       maxNativeZoom: provider.maxNativeZoom,
@@ -86,7 +92,8 @@ export default function OsmPreviewMap({ onPick, height = 220 }: OsmPreviewMapPro
       detectRetina: true,
       crossOrigin: true,
     }).addTo(map);
-  }, [settings.osmTileProvider, settings.osmMaxZoom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.osmTileTheme, settings.osmMaxZoom, darkMode]);
 
   // Center / zoom updates
   useEffect(() => {

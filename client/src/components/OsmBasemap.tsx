@@ -15,7 +15,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useDarkMode } from "@/contexts/DarkModeContext";
-import { OSM_TILE_PROVIDERS } from "@/lib/appSettings";
+import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES } from "@/lib/appSettings";
 
 interface OsmBasemapProps {
   /** The viewBox the overlay SVG paints into (caller's SVG world coords). */
@@ -44,11 +44,14 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
   const { darkMode } = useDarkMode();
   const [, setReady] = useState(false);
 
-  // Pick the right tile provider based on the active theme.
+  // Pick the right tile provider based on the active theme. The tile-theme
+  // pack is the source of truth; the legacy per-mode providers are kept as a
+  // fallback for old settings.
   const activeProvider = useMemo(() => {
-    const key = darkMode ? settings.osmTileProviderDark : settings.osmTileProvider;
+    const pack = OSM_TILE_THEMES[settings.osmTileTheme] ?? OSM_TILE_THEMES.default;
+    const key = darkMode ? pack.dark : pack.light;
     return OSM_TILE_PROVIDERS[key] ?? OSM_TILE_PROVIDERS["carto-voyager"];
-  }, [darkMode, settings.osmTileProvider, settings.osmTileProviderDark]);
+  }, [darkMode, settings.osmTileTheme]);
 
   // Build SVG element once
   if (!overlaySvgRef.current) {

@@ -1317,10 +1317,42 @@ body {
 .leaflet-container {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #dde6ef;
+  /* Leaflet creates its own stacking context. Without this anchor, its
+   * .leaflet-top / .leaflet-bottom panes (z-index 1000) sit above our
+   * navbar (z-50), announcement banner (z-40), and Radix Dialog overlay
+   * (z-50). Pin the container's own z-index low so nothing inside
+   * Leaflet can ever break above our app chrome. */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 
 .dark .leaflet-container {
   background: #0f172a;
+}
+
+/* Leaflet's own panes/controls still get their default 1000+ z-indices,
+ * but because the container is isolated they are capped to the container's
+ * stacking context. Belt-and-braces: explicitly clamp the floating panes. */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: auto !important;
+}
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+  z-index: auto !important;
+}
+.leaflet-top.leaflet-left,
+.leaflet-top.leaflet-right,
+.leaflet-bottom.leaflet-left,
+.leaflet-bottom.leaflet-right {
+  z-index: 5 !important;
 }
 
 /* Zoom + scale controls — pill-shaped, soft shadow, matching panel look */

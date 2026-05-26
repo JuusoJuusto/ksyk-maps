@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { OSM_TILE_PROVIDERS, DEFAULT_APP_SETTINGS } from "@/lib/appSettings";
-import type { OsmTileProvider } from "@/lib/appSettings";
+import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES, DEFAULT_APP_SETTINGS } from "@/lib/appSettings";
+import type { OsmTileTheme } from "@/lib/appSettings";
 import {
   Sun,
   Moon,
@@ -313,72 +313,81 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                         </div>
 
                         <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
-                          {(["light", "dark"] as const).map((mode) => {
-                            const current = mode === "dark" ? settings.osmTileProviderDark : settings.osmTileProvider;
-                            const key: "osmTileProvider" | "osmTileProviderDark" =
-                              mode === "dark" ? "osmTileProviderDark" : "osmTileProvider";
-                            return (
-                              <div key={mode}>
-                                <Label className="mb-2 block text-xs flex items-center gap-1.5">
-                                  <span>{mode === "dark" ? (isFi ? "Tumma teema" : "Dark theme") : (isFi ? "Vaalea teema" : "Light theme")}</span>
-                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0">{mode}</Badge>
-                                </Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {(Object.entries(OSM_TILE_PROVIDERS) as [OsmTileProvider, typeof OSM_TILE_PROVIDERS[OsmTileProvider]][]).map(([id, p]) => {
-                                    const z = 14;
-                                    const lat = settings.osmCenterLat;
-                                    const lng = settings.osmCenterLng;
-                                    const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
-                                    const tileY = Math.floor(
-                                      ((1 -
-                                        Math.log(
-                                          Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
-                                        ) / Math.PI) / 2) * Math.pow(2, z)
-                                    );
-                                    const thumbUrl = p.url
-                                      .replace("{z}", String(z))
-                                      .replace("{x}", String(tileX))
-                                      .replace("{y}", String(tileY))
-                                      .replace("{r}", "")
-                                      .replace("{s}", "a");
-                                    const selected = current === id;
-                                    return (
-                                      <button
-                                        key={`${mode}-${id}`}
-                                        type="button"
-                                        onClick={() => update(key, id)}
-                                        className={cn(
-                                          "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
-                                          selected
-                                            ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
-                                            : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
-                                        )}
-                                        aria-pressed={selected}
-                                        title={p.name}
-                                      >
-                                        <img
-                                          src={thumbUrl}
-                                          alt=""
-                                          loading="lazy"
-                                          crossOrigin="anonymous"
-                                          className="block w-full aspect-[4/3] object-cover"
-                                          onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).style.display = "none";
-                                          }}
-                                        />
-                                        <div className="px-2 py-1 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100 truncate">
-                                          {p.name}
-                                        </div>
-                                        {selected && (
-                                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
+                          <div>
+                            <Label className="mb-2 block text-xs flex items-center gap-1.5">
+                              <span>{isFi ? "Karttatyyli" : "Tile theme"}</span>
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                {isFi ? "Vaihtuu teeman mukaan" : "Auto light/dark"}
+                              </Badge>
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(Object.entries(OSM_TILE_THEMES) as [OsmTileTheme, typeof OSM_TILE_THEMES[OsmTileTheme]][]).map(([id, pack]) => {
+                                const z = 14;
+                                const lat = settings.osmCenterLat;
+                                const lng = settings.osmCenterLng;
+                                const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
+                                const tileY = Math.floor(
+                                  ((1 -
+                                    Math.log(
+                                      Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
+                                    ) / Math.PI) / 2) * Math.pow(2, z)
+                                );
+                                const thumb = (key: typeof pack.light) =>
+                                  OSM_TILE_PROVIDERS[key].url
+                                    .replace("{z}", String(z))
+                                    .replace("{x}", String(tileX))
+                                    .replace("{y}", String(tileY))
+                                    .replace("{r}", "")
+                                    .replace("{s}", "a");
+                                const selected = settings.osmTileTheme === id;
+                                return (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => update("osmTileTheme", id)}
+                                    className={cn(
+                                      "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
+                                      selected
+                                        ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
+                                        : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
+                                    )}
+                                    aria-pressed={selected}
+                                    title={pack.description}
+                                  >
+                                    <div className="grid grid-cols-2 aspect-[4/3]">
+                                      <img
+                                        src={thumb(pack.light)}
+                                        alt=""
+                                        loading="lazy"
+                                        crossOrigin="anonymous"
+                                        className="block w-full h-full object-cover"
+                                        onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                                      />
+                                      <img
+                                        src={thumb(pack.dark)}
+                                        alt=""
+                                        loading="lazy"
+                                        crossOrigin="anonymous"
+                                        className="block w-full h-full object-cover"
+                                        onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                                      />
+                                    </div>
+                                    <div className="px-2 py-1 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100 truncate">
+                                      {isFi ? pack.nameFi : pack.name}
+                                    </div>
+                                    {selected && (
+                                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed px-1">
+                              {isFi
+                                ? "Vasen puoli näyttää vaalean tilan, oikea tumman. Sovellus vaihtaa automaattisesti."
+                                : "Left half is the light variant, right is the dark. The app swaps based on theme."}
+                            </p>
+                          </div>
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -545,6 +554,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                               update("osmRotationDeg", DEFAULT_APP_SETTINGS.osmRotationDeg);
                               update("osmPitchDeg", DEFAULT_APP_SETTINGS.osmPitchDeg);
                               update("osmCampusSpanMeters", DEFAULT_APP_SETTINGS.osmCampusSpanMeters);
+                              update("osmTileTheme", DEFAULT_APP_SETTINGS.osmTileTheme);
                               update("osmTileProvider", DEFAULT_APP_SETTINGS.osmTileProvider);
                               update("osmTileProviderDark", DEFAULT_APP_SETTINGS.osmTileProviderDark);
                             }}

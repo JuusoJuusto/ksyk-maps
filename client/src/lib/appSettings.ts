@@ -6,6 +6,45 @@ export type OsmTileProvider =
   | "stadia-toner-lite"
   | "stadia-alidade-dark";
 
+/** A theme-aware tile pack — light and dark are picked automatically by the
+ * current app theme. Admins choose a pack (e.g. "Carto") rather than two
+ * separate providers. */
+export type OsmTileTheme = "default" | "minimal" | "high-contrast" | "osm-standard";
+
+export const OSM_TILE_THEMES: Record<
+  OsmTileTheme,
+  { name: string; nameFi: string; light: OsmTileProvider; dark: OsmTileProvider; description: string }
+> = {
+  default: {
+    name: "Default (Carto)",
+    nameFi: "Oletus (Carto)",
+    light: "carto-voyager",
+    dark: "carto-dark-matter",
+    description: "Carto Voyager (light) + Dark Matter (dark) — best all-round readability.",
+  },
+  minimal: {
+    name: "Minimal",
+    nameFi: "Minimaalinen",
+    light: "carto-positron",
+    dark: "carto-dark-matter",
+    description: "Muted, low-detail tiles that let overlays breathe.",
+  },
+  "high-contrast": {
+    name: "High Contrast",
+    nameFi: "Korkea kontrasti",
+    light: "stadia-toner-lite",
+    dark: "stadia-alidade-dark",
+    description: "Stark monochrome tiles for accessibility.",
+  },
+  "osm-standard": {
+    name: "OpenStreetMap Standard",
+    nameFi: "OpenStreetMap",
+    light: "osm",
+    dark: "carto-dark-matter",
+    description: "Classic OSM tiles (no dark variant; falls back to Dark Matter).",
+  },
+};
+
 export type AppSettings = {
   showGrid: boolean;
   showWingLabels: boolean;
@@ -31,6 +70,9 @@ export type AppSettings = {
   osmTileProvider: OsmTileProvider;
   /** Tile provider used when dark mode is active. Falls back to osmTileProvider if unset. */
   osmTileProviderDark: OsmTileProvider;
+  /** Preferred way to pick tiles — a theme-aware pack. When this is set the
+   * raw providers above are derived from it on every render. */
+  osmTileTheme: OsmTileTheme;
   // Where the SVG campus (1600x900 world) maps onto the real world (degrees of arc).
   // 1 world-unit = ~0.1m, so 1600 units = ~160m. We anchor the SVG centre to the
   // (lat, lng) above and scale by the bbox span below.
@@ -63,6 +105,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   osmPitchDeg: 0,
   osmTileProvider: "carto-voyager",
   osmTileProviderDark: "carto-dark-matter",
+  osmTileTheme: "default",
   osmCampusSpanMeters: 220,
 };
 

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
-import Working3DBuilder from "@/components/Working3DBuilder";
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
@@ -879,7 +878,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-12 gap-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-11 gap-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
@@ -887,10 +886,9 @@ export default function AdminDashboard() {
             <MapPin className="h-3 w-3" />
             Map
           </TabsTrigger>
-          <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm">Builder</TabsTrigger>
-          <TabsTrigger value="map-builder" className="text-xs sm:text-sm flex items-center gap-1">
+          <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm flex items-center gap-1">
             <Box className="h-3 w-3" />
-            3D Map
+            Builder
           </TabsTrigger>
           <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
           <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
@@ -1404,10 +1402,6 @@ export default function AdminDashboard() {
 
         <TabsContent value="ksyk-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">
           <ImprovedKSYKBuilder />
-        </TabsContent>
-
-        <TabsContent value="map-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">
-          <Working3DBuilder />
         </TabsContent>
 
         <TabsContent value="builder" className="space-y-6">
