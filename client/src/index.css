@@ -1303,3 +1303,143 @@ body {
 .compact-view .rounded-lg {
   border-radius: 0.375rem !important;
 }
+
+/* ============================================================
+ * Leaflet polish — make native controls match the rest of the app
+ * ============================================================ */
+
+/* Disable our universal transition on Leaflet panes — they have hundreds of
+ * tiles and overlay nodes and the global selector murders FPS while zooming. */
+.leaflet-container * {
+  transition: none !important;
+}
+
+.leaflet-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #dde6ef;
+}
+
+.dark .leaflet-container {
+  background: #0f172a;
+}
+
+/* Zoom + scale controls — pill-shaped, soft shadow, matching panel look */
+.leaflet-bar {
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 24px -8px rgba(15, 23, 42, 0.25), 0 2px 4px rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dark .leaflet-bar {
+  background: rgba(17, 24, 39, 0.92);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 16px !important;
+  color: #1f2937 !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+  transition: background-color 120ms ease;
+}
+
+.dark .leaflet-bar a,
+.dark .leaflet-bar a:hover {
+  color: #e5e7eb !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-bar a:hover {
+  background: rgba(59, 130, 246, 0.10) !important;
+  color: #1d4ed8 !important;
+}
+
+.dark .leaflet-bar a:hover {
+  background: rgba(96, 165, 250, 0.15) !important;
+  color: #93c5fd !important;
+}
+
+/* Disabled state */
+.leaflet-disabled,
+.leaflet-disabled:hover {
+  opacity: 0.4 !important;
+  cursor: default !important;
+  background: transparent !important;
+}
+
+/* Scale control */
+.leaflet-control-scale-line {
+  border: 2px solid #1f2937 !important;
+  border-top: none !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(8px);
+  font-weight: 600 !important;
+  color: #111827 !important;
+  padding: 1px 6px !important;
+  font-size: 11px !important;
+  border-radius: 0 0 6px 6px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.dark .leaflet-control-scale-line {
+  border-color: #e5e7eb !important;
+  background: rgba(17, 24, 39, 0.85) !important;
+  color: #f3f4f6 !important;
+}
+
+/* Attribution — subtle pill */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(6px);
+  border-radius: 10px 0 0 0 !important;
+  padding: 2px 8px !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  box-shadow: 0 -1px 6px rgba(15, 23, 42, 0.06);
+}
+
+.dark .leaflet-control-attribution {
+  background: rgba(17, 24, 39, 0.78) !important;
+  color: #9ca3af !important;
+}
+
+.leaflet-control-attribution a {
+  color: #2563eb !important;
+}
+
+.dark .leaflet-control-attribution a {
+  color: #60a5fa !important;
+}
+
+/* Tile fade-in animation when loading new tiles — smoother than default */
+.leaflet-tile {
+  will-change: opacity, transform;
+}
+
+.leaflet-fade-anim .leaflet-tile {
+  transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* Our custom SVG overlay — disable Leaflet's default pointer-events behaviour */
+.ksyk-campus-svg-overlay {
+  pointer-events: auto;
+}
+
+/* Reduced-motion users — strip animations */
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-fade-anim .leaflet-tile,
+  .leaflet-zoom-anim .leaflet-zoom-animated {
+    transition: none !important;
+    animation: none !important;
+  }
+}

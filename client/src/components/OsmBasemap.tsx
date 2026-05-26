@@ -100,7 +100,12 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
       zoomAnimation: true,
       fadeAnimation: true,
       markerZoomAnimation: true,
+      preferCanvas: true,
     });
+
+    // Native Leaflet zoom + scale controls (styled in index.css to match the app).
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.control.scale({ position: "bottomleft", imperial: false, maxWidth: 140 }).addTo(map);
 
     tileLayerRef.current = L.tileLayer(provider.url, {
       maxZoom: settings.osmMaxZoom,
@@ -108,6 +113,7 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
       attribution: provider.attribution,
       subdomains: "abcd",
       detectRetina: true,
+      crossOrigin: true,
     }).addTo(map);
 
     if (overlaySvgRef.current) {
@@ -176,22 +182,29 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     overlayRef.current?.setBounds(L.latLngBounds(campusBounds));
   }, [campusBounds]);
 
-  // CSS rotation
+  // CSS rotation + optional pitch (tilt) — pitch is purely visual, Leaflet hit-testing
+  // stays in 2D so values above ~30° will start to mis-align overlays.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const pane = map.getPane("mapPane");
     if (!pane) return;
     pane.style.transformOrigin = "50% 50%";
-    pane.style.transform = `rotate(${settings.osmRotationDeg}deg)`;
+    pane.style.transition = "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)";
+    const pitch = Math.max(0, Math.min(45, settings.osmPitchDeg ?? 0));
+    pane.style.transform = pitch > 0
+      ? `perspective(1600px) rotateX(${pitch}deg) rotate(${settings.osmRotationDeg}deg)`
+      : `rotate(${settings.osmRotationDeg}deg)`;
     map.invalidateSize();
-  }, [settings.osmRotationDeg]);
+  }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 
   return (
     <div
       ref={containerRef}
       className={className}
-      style={{ width: "100%", height: "100%", background: "#dde6ef" }}
+      role="application"
+      aria-label="OpenStreetMap campus view"
+      style={{ width: "100%", height: "100%" }}
     />
   );
 }

@@ -705,7 +705,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         />
       )}
 
-      {layers.wings &&
+      {layers.wings && !settings.useOsmBasemap &&
         campusBuildings.map((building) => {
           const letter = building.name;
           const preset = KSYK_BUILDING_OUTLINES[letter];
@@ -1079,65 +1079,67 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           pan/zoom/rotate with the basemap tiles. */}
       {settings.useOsmBasemap && overlayEl && createPortal(campusBody, overlayEl)}
 
-      {/* Zoom + compass */}
-      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 z-20 flex flex-col items-end gap-2">
+      {/* Floating controls — compass + reset always; zoom buttons only in SVG mode
+         (OSM mode uses Leaflet's native zoom buttons rendered at bottom-right by Leaflet). */}
+      <div
+        className={cn(
+          "absolute right-3 z-20 flex flex-col items-end gap-2",
+          // Lift above Leaflet's native zoom (~80px tall + scale margin) in OSM mode
+          settings.useOsmBasemap
+            ? "bottom-[max(8.5rem,calc(4rem+env(safe-area-inset-bottom)))] sm:bottom-28"
+            : "bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] sm:bottom-4"
+        )}
+      >
         <div
           className={cn(panel, "w-11 h-11 flex items-center justify-center")}
           title={isFi ? "Pohjoinen ylös" : "North up"}
         >
           <Compass className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
-        <div className={cn(panel, "flex flex-col")}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-11 h-10 rounded-none"
-            onClick={() => {
-              if (settings.useOsmBasemap && leafletMapRef.current) {
-                leafletMapRef.current.zoomIn(0.5);
-              } else {
-                zoomView(zoomFactor);
-              }
-            }}
-            title="Zoom in (+)"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-11 h-10 rounded-none border-y"
-            onClick={() => {
-              if (settings.useOsmBasemap && leafletMapRef.current) {
-                leafletMapRef.current.flyTo(
-                  [settings.osmCenterLat, settings.osmCenterLng],
-                  settings.osmDefaultZoom,
-                  { duration: 0.4 }
-                );
-              } else {
-                tweenView(baseViewBox);
-              }
-            }}
-            title="Reset view (0)"
-          >
-            <MapPin className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-11 h-10 rounded-none"
-            onClick={() => {
-              if (settings.useOsmBasemap && leafletMapRef.current) {
-                leafletMapRef.current.zoomOut(0.5);
-              } else {
-                zoomView(2 - zoomFactor);
-              }
-            }}
-            title="Zoom out (-)"
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={isFi ? "Palauta näkymä" : "Reset view"}
+          className={cn(panel, "w-11 h-11 p-0")}
+          onClick={() => {
+            if (settings.useOsmBasemap && leafletMapRef.current) {
+              leafletMapRef.current.flyTo(
+                [settings.osmCenterLat, settings.osmCenterLng],
+                settings.osmDefaultZoom,
+                { duration: 0.4 }
+              );
+            } else {
+              tweenView(baseViewBox);
+            }
+          }}
+          title="Reset view (0)"
+        >
+          <MapPin className="h-4 w-4" />
+        </Button>
+        {!settings.useOsmBasemap && (
+          <div className={cn(panel, "flex flex-col")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={isFi ? "Suurenna" : "Zoom in"}
+              className="w-11 h-10 rounded-none"
+              onClick={() => zoomView(zoomFactor)}
+              title="Zoom in (+)"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={isFi ? "Pienennä" : "Zoom out"}
+              className="w-11 h-10 rounded-none border-t"
+              onClick={() => zoomView(2 - zoomFactor)}
+              title="Zoom out (-)"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Mini-map — SVG mode only, bottom-left */}
@@ -1180,7 +1182,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* Scale bar */}
+      {/* Scale bar — only in SVG mode; OSM mode uses Leaflet's native scale */}
+      {!settings.useOsmBasemap && (
       <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 sm:bottom-4 z-20 pointer-events-none hidden sm:flex flex-col items-center">
         <div
           className={cn(
@@ -1198,6 +1201,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           {scaleBarMeters.label}
         </span>
       </div>
+      )}
 
       {/* Keyboard shortcut hint */}
       <div

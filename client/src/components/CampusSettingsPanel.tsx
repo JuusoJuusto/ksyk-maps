@@ -335,26 +335,32 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <Label className="mb-1 block text-xs">Lat</Label>
+                              <Label className="mb-1 block text-xs">Lat (-90 … 90)</Label>
                               <Input
                                 type="number"
                                 step="0.0001"
+                                min={-90}
+                                max={90}
                                 value={settings.osmCenterLat}
-                                onChange={(e) =>
-                                  update("osmCenterLat", parseFloat(e.target.value) || 0)
-                                }
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value);
+                                  if (Number.isFinite(v)) update("osmCenterLat", Math.max(-90, Math.min(90, v)));
+                                }}
                                 className="h-9 text-sm font-mono"
                               />
                             </div>
                             <div>
-                              <Label className="mb-1 block text-xs">Lng</Label>
+                              <Label className="mb-1 block text-xs">Lng (-180 … 180)</Label>
                               <Input
                                 type="number"
                                 step="0.0001"
+                                min={-180}
+                                max={180}
                                 value={settings.osmCenterLng}
-                                onChange={(e) =>
-                                  update("osmCenterLng", parseFloat(e.target.value) || 0)
-                                }
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value);
+                                  if (Number.isFinite(v)) update("osmCenterLng", Math.max(-180, Math.min(180, v)));
+                                }}
                                 className="h-9 text-sm font-mono"
                               />
                             </div>
@@ -379,7 +385,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                           <div>
                             <div className="flex justify-between items-baseline mb-2">
                               <Label className="text-xs">
-                                {isFi ? "Kierto" : "Rotation"}
+                                {isFi ? "Kierto (bearing)" : "Rotation (bearing)"}
                               </Label>
                               <span className="text-xs font-mono">{settings.osmRotationDeg}°</span>
                             </div>
@@ -390,6 +396,27 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                               step={1}
                               onValueChange={([v]) => update("osmRotationDeg", v)}
                             />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                              <Label className="text-xs">
+                                {isFi ? "Kallistus (pitch)" : "Tilt / pitch"}
+                              </Label>
+                              <span className="text-xs font-mono">{settings.osmPitchDeg ?? 0}°</span>
+                            </div>
+                            <Slider
+                              value={[settings.osmPitchDeg ?? 0]}
+                              min={0}
+                              max={45}
+                              step={1}
+                              onValueChange={([v]) => update("osmPitchDeg", v)}
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+                              {isFi
+                                ? "Kokeellinen — yli 25° voi vääristää tarttumakohtia."
+                                : "Experimental — values above 25° may misalign hit-tests."}
+                            </p>
                           </div>
 
                           <div>
@@ -443,17 +470,33 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                             </div>
                           </div>
 
+                          {/* Live-applied indicator + status */}
+                          <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/40">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                              {isFi
+                                ? "Muutokset tallentuvat ja näkyvät kartalla heti."
+                                : "Changes save and apply to the map live."}
+                            </span>
+                          </div>
+
                           <Button
                             variant="outline"
                             size="sm"
                             className="w-full text-xs rounded-xl mt-1"
                             onClick={() => {
+                              if (typeof window !== "undefined" && !window.confirm(
+                                isFi
+                                  ? "Palauta KSYK-oletukset (lat/lng, zoom, rotation, pitch, span, tyyli)?"
+                                  : "Reset OSM defaults (lat/lng, zoom, rotation, pitch, span, style)?"
+                              )) return;
                               update("osmCenterLat", DEFAULT_APP_SETTINGS.osmCenterLat);
                               update("osmCenterLng", DEFAULT_APP_SETTINGS.osmCenterLng);
                               update("osmDefaultZoom", DEFAULT_APP_SETTINGS.osmDefaultZoom);
                               update("osmMinZoom", DEFAULT_APP_SETTINGS.osmMinZoom);
                               update("osmMaxZoom", DEFAULT_APP_SETTINGS.osmMaxZoom);
                               update("osmRotationDeg", DEFAULT_APP_SETTINGS.osmRotationDeg);
+                              update("osmPitchDeg", DEFAULT_APP_SETTINGS.osmPitchDeg);
                               update("osmCampusSpanMeters", DEFAULT_APP_SETTINGS.osmCampusSpanMeters);
                               update("osmTileProvider", DEFAULT_APP_SETTINGS.osmTileProvider);
                             }}

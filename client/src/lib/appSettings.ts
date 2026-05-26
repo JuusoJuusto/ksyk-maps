@@ -21,6 +21,7 @@ export type AppSettings = {
   osmMaxZoom: number;
   osmMinZoom: number;
   osmRotationDeg: number;
+  osmPitchDeg: number;
   osmTileProvider: OsmTileProvider;
   // Where the SVG campus (1600x900 world) maps onto the real world (degrees of arc).
   // 1 world-unit = ~0.1m, so 1600 units = ~160m. We anchor the SVG centre to the
@@ -51,6 +52,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   osmMaxZoom: 19,
   osmMinZoom: 14,
   osmRotationDeg: 0,
+  osmPitchDeg: 0,
   osmTileProvider: "carto-voyager",
   osmCampusSpanMeters: 220,
 };
