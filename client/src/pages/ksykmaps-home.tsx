@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import HomeTopBar from "@/components/HomeTopBar";
+import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
@@ -54,12 +54,7 @@ export default function KSYKMapsHome() {
     return (
       <div className={cn("h-[100dvh] flex flex-col overflow-hidden", darkMode ? "bg-gray-900" : "bg-gray-50")}>
         <AnnouncementBanner />
-        <HomeTopBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onOpenSettings={() => setView("map")}
-          showMapTools={false}
-        />
+        <Header onOpenSettings={() => setView("map")} />
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
           <CampusSettingsPanel onBack={() => setView("map")} />
         </div>
@@ -77,11 +72,10 @@ export default function KSYKMapsHome() {
       )}
     >
       <AnnouncementBanner />
-      <HomeTopBar
+      <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenSettings={() => setView("settings")}
-        showMapTools
       />
 
       <div className="flex-1 overflow-hidden relative min-h-0 pb-[env(safe-area-inset-bottom)]">

@@ -59,9 +59,7 @@ import ResetPassword from "@/pages/reset-password";
 import ForgotPassword from "@/pages/forgot-password";
 import LearnCoding from "@/pages/learn-coding";
 import NotFound from "@/pages/not-found";
-import KSYKBuilder3D from "@/components/KSYKBuilder3D";
 import KSYKMapsHome from "@/pages/ksykmaps-home";
-import Builder from "@/pages/builder";
 import "./lib/i18n";
 
 function Router() {
@@ -151,8 +149,6 @@ function Router() {
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
       <Route path="/debug-buildings" component={DebugBuildings} />
-      <Route path="/builder-3d" component={KSYKBuilder3D} />
-      <Route path="/builder" component={Builder} />
       <Route path="/classic" component={Home} />
       <Route component={NotFound} />
     </Switch>

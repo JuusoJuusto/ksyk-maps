@@ -94,13 +94,18 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
       minZoom: settings.osmMinZoom,
       zoomControl: false,
       attributionControl: true,
-      wheelPxPerZoomLevel: 80,
+      wheelPxPerZoomLevel: 60,
       zoomSnap: 0.25,
       zoomDelta: 0.5,
       zoomAnimation: true,
+      zoomAnimationThreshold: 6,
       fadeAnimation: true,
       markerZoomAnimation: true,
       preferCanvas: true,
+      inertia: true,
+      inertiaDeceleration: 2200,
+      inertiaMaxSpeed: 1500,
+      worldCopyJump: false,
     });
 
     // Native Leaflet zoom + scale controls (styled in index.css to match the app).

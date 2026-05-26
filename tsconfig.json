@@ -7,10 +7,8 @@
     "**/*.test.ts",
     "client/src/**/*backup*",
     "client/src/**/*_backup*",
-    "client/src/pages/lunch_clean.tsx",
     "client/src/components/UltimateKSYKBuilder.tsx",
     "client/src/components/StaffManager.tsx",
-    "client/src/components/KSYKBuilderPro.tsx",
     "client/src/components/ParentChildLinkManager.tsx"
   ],
   "compilerOptions": {

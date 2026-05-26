@@ -114,95 +114,104 @@ export default function AnnouncementBanner() {
     setCurrentIndex((prev) => (prev - 1 + activeAnnouncements.length) % activeAnnouncements.length);
   };
 
+  const priorityBg =
+    currentAnnouncement.priority === "urgent"
+      ? "bg-red-600 hover:bg-red-700"
+      : currentAnnouncement.priority === "high"
+      ? "bg-orange-500 hover:bg-orange-600"
+      : "bg-blue-600 hover:bg-blue-700";
+
   return (
     <>
       <div
-        className="relative z-50 bg-orange-500 hover:bg-orange-600 shadow-lg transition-colors duration-300 cursor-pointer"
+        role="region"
+        aria-label="Site announcement"
+        className={`relative z-40 ${priorityBg} shadow-sm transition-colors duration-300 cursor-pointer`}
         onClick={() => setIsDialogOpen(true)}
       >
-        <div className="max-w-7xl mx-auto px-3 md:px-6">
-          <div className="flex items-center justify-between py-2">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentAnnouncement.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.5 }}
-              className="flex items-center space-x-3 flex-1 min-w-0"
-            >
-              <div className="flex-shrink-0 bg-white/20 p-1.5 rounded-full">
-                {getPriorityIcon(currentAnnouncement.priority)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm truncate">
-                  {getLocalizedTitle(currentAnnouncement)}
-                </p>
-                <p className="text-orange-100 text-xs truncate">
-                  {getLocalizedContent(currentAnnouncement)}
-                </p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-          
-          <div className="flex items-center space-x-1.5 flex-shrink-0">
-            {activeAnnouncements.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsPaused(!isPaused);
-                  }}
-                  className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
-                  title={isPaused ? "Resume" : "Pause"}
-                >
-                  {isPaused ? (
-                    <Play className="h-3.5 w-3.5" />
-                  ) : (
-                    <Pause className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prevAnnouncement();
-                  }}
-                  className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                <div className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">
-                  {currentIndex + 1}/{activeAnnouncements.length}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentAnnouncement.id}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
+              >
+                <div className="flex-shrink-0 bg-white/20 p-1 sm:p-1.5 rounded-full">
+                  {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nextAnnouncement();
-                  }}
-                  className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsVisible(false);
-              }}
-              className="h-7 w-7 p-0 text-white hover:bg-red-500/50 transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+                <div className="flex-1 min-w-0 leading-tight">
+                  <p className="text-white font-bold text-xs sm:text-sm truncate">
+                    {getLocalizedTitle(currentAnnouncement)}
+                  </p>
+                  <p className="text-white/85 text-[10px] sm:text-xs truncate hidden sm:block">
+                    {getLocalizedContent(currentAnnouncement)}
+                  </p>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {activeAnnouncements.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPaused(!isPaused);
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors hidden sm:inline-flex"
+                    title={isPaused ? "Resume" : "Pause"}
+                    aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
+                  >
+                    {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevAnnouncement();
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    aria-label="Previous announcement"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <div className="px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded">
+                    {currentIndex + 1}/{activeAnnouncements.length}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextAnnouncement();
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    aria-label="Next announcement"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsVisible(false);
+                }}
+                className="h-7 w-7 p-0 text-white hover:bg-black/30 transition-colors"
+                aria-label="Dismiss announcement"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

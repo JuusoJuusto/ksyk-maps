@@ -48,8 +48,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // Kulosaaren Yhteiskoulu (KSYK), Helsinki — already referenced in fmiWeather.ts
   osmCenterLat: 60.187,
   osmCenterLng: 25.006,
-  osmDefaultZoom: 18,
-  osmMaxZoom: 19,
+  osmDefaultZoom: 19,
+  osmMaxZoom: 20,
   osmMinZoom: 14,
   osmRotationDeg: 0,
   osmPitchDeg: 0,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
@@ -537,6 +537,40 @@ export default function AdminDashboard() {
   const currentUser = getCurrentUser();
   const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
   const isAdmin = currentUser?.role === "admin" || isOwner; // Admin or owner
+
+  // Auto-redirect to /admin-login if no valid session is present, OR if the
+  // server says our session is gone. localStorage flag alone is trust-on-write;
+  // we additionally probe /api/auth/me on mount and on tab focus and bounce
+  // out on 401/403.
+  useEffect(() => {
+    const flagged = localStorage.getItem("ksyk_admin_logged_in") === "true";
+    if (!flagged || !currentUser) {
+      window.location.replace("/admin-login");
+      return;
+    }
+    let cancelled = false;
+    const verify = async () => {
+      try {
+        const r = await fetch("/api/auth/me", { credentials: "include" });
+        if (cancelled) return;
+        if (r.status === 401 || r.status === 403) {
+          localStorage.removeItem("ksyk_admin_logged_in");
+          localStorage.removeItem("ksyk_admin_user");
+          window.location.replace("/admin-login");
+        }
+      } catch {
+        // Network errors are non-fatal — keep the user in the panel.
+      }
+    };
+    verify();
+    const onFocus = () => verify();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Builder state
   const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');

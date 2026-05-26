@@ -1,17 +1,35 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import NavigationModal from "@/components/NavigationModal";
-import { Sun, Moon, Menu, X, ChevronDown } from "lucide-react";
+import { Sun, Moon, Menu, X, Settings, Search } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
+import { cn } from "@/lib/utils";
 
-type HeaderProps = { largeLogo?: boolean; homeMinimal?: boolean };
+type HeaderProps = {
+  largeLogo?: boolean;
+  homeMinimal?: boolean;
+  /** Optional search controls — when provided, renders a second row with a search input. */
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  /** Optional settings entry-point (used on the map page so user can open the campus settings panel). */
+  onOpenSettings?: () => void;
+};
 
-export default function Header({ largeLogo = false, homeMinimal = false }: HeaderProps) {
+export default function Header({
+  largeLogo = false,
+  homeMinimal = false,
+  searchQuery,
+  onSearchChange,
+  searchPlaceholder,
+  onOpenSettings,
+}: HeaderProps) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
@@ -176,7 +194,7 @@ export default function Header({ largeLogo = false, homeMinimal = false }: Heade
                 
                 {/* HSL Button */}
                 <Link href="/hsl">
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 font-semibold shadow-sm"
@@ -185,8 +203,21 @@ export default function Header({ largeLogo = false, homeMinimal = false }: Heade
                     HSL
                   </Button>
                 </Link>
-                
-                {/* AI Assistant Button - REMOVED per user request */}
+
+                {/* Settings (only when caller provides a handler — e.g. map page) */}
+                {onOpenSettings && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onOpenSettings}
+                    className="gap-1 font-semibold shadow-sm"
+                    data-testid="button-settings"
+                    aria-label={currentLang === "fi" ? "Asetukset" : "Settings"}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden xl:inline">{currentLang === "fi" ? "Asetukset" : "Settings"}</span>
+                  </Button>
+                )}
               </>
             ) : (
               <>
@@ -471,7 +502,49 @@ export default function Header({ largeLogo = false, homeMinimal = false }: Heade
         )}
       </div>
       
-      <NavigationModal 
+      {/* Optional second row — search input (e.g. map page) */}
+      {onSearchChange && (
+        <div
+          className={cn(
+            "border-t",
+            darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80"
+          )}
+        >
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
+            <Search
+              className={cn(
+                "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10",
+                darkMode ? "text-gray-500" : "text-gray-400"
+              )}
+            />
+            <Input
+              type="search"
+              value={searchQuery ?? ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
+              className={cn(
+                "h-10 w-full pl-10 pr-10 text-sm rounded-xl border shadow-sm",
+                darkMode
+                  ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500"
+                  : "bg-white border-gray-200"
+              )}
+              aria-label={currentLang === "fi" ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <NavigationModal
         isOpen={showNavigationModal}
         onClose={() => setShowNavigationModal(false)}
         onNavigate={handleNavigation}
