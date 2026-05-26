@@ -11,13 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { OSM_TILE_PROVIDERS, DEFAULT_APP_SETTINGS } from "@/lib/appSettings";
 import type { OsmTileProvider } from "@/lib/appSettings";
 import {
@@ -38,6 +31,7 @@ import {
 } from "lucide-react";
 import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
+import OsmPreviewMap from "@/components/OsmPreviewMap";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
@@ -311,26 +305,89 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                     {settings.useOsmBasemap && (
                       <>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold">
+                              {isFi ? "Esikatselu" : "Live preview"}
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground">
+                              {isFi ? "Napauta asettaaksesi" : "Click to set center"}
+                            </span>
+                          </div>
+                          <OsmPreviewMap
+                            height={220}
+                            onPick={(lat, lng) => {
+                              update("osmCenterLat", lat);
+                              update("osmCenterLng", lng);
+                            }}
+                          />
+                          <div className="text-[10px] font-mono text-muted-foreground px-1">
+                            {settings.osmCenterLat.toFixed(5)}, {settings.osmCenterLng.toFixed(5)}
+                          </div>
+                        </div>
+
                         <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
                           <div>
                             <Label className="mb-2 block text-xs">
                               {isFi ? "Laattatyyli" : "Tile style"}
                             </Label>
-                            <Select
-                              value={settings.osmTileProvider}
-                              onValueChange={(v) => update("osmTileProvider", v as OsmTileProvider)}
-                            >
-                              <SelectTrigger className="h-9 text-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(OSM_TILE_PROVIDERS).map(([id, p]) => (
-                                  <SelectItem key={id} value={id}>
-                                    {p.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(Object.entries(OSM_TILE_PROVIDERS) as [OsmTileProvider, typeof OSM_TILE_PROVIDERS[OsmTileProvider]][]).map(([id, p]) => {
+                                // Render a sample tile near KSYK at zoom 14 as thumbnail
+                                const z = 14;
+                                const lat = settings.osmCenterLat;
+                                const lng = settings.osmCenterLng;
+                                const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
+                                const tileY = Math.floor(
+                                  ((1 -
+                                    Math.log(
+                                      Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
+                                    ) /
+                                      Math.PI) /
+                                    2) *
+                                    Math.pow(2, z)
+                                );
+                                const thumbUrl = p.url
+                                  .replace("{z}", String(z))
+                                  .replace("{x}", String(tileX))
+                                  .replace("{y}", String(tileY))
+                                  .replace("{r}", "")
+                                  .replace("{s}", "a");
+                                const selected = settings.osmTileProvider === id;
+                                return (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => update("osmTileProvider", id)}
+                                    className={cn(
+                                      "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
+                                      selected
+                                        ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
+                                        : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
+                                    )}
+                                    aria-pressed={selected}
+                                    title={p.name}
+                                  >
+                                    <img
+                                      src={thumbUrl}
+                                      alt=""
+                                      loading="lazy"
+                                      crossOrigin="anonymous"
+                                      className="block w-full aspect-[4/3] object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                    <div className="px-2 py-1.5 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100">
+                                      {p.name}
+                                    </div>
+                                    {selected && (
+                                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">

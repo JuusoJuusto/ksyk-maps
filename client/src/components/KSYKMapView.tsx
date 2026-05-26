@@ -43,6 +43,9 @@ import {
   ChevronRight,
   Users,
   Compass,
+  LocateFixed,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -128,6 +131,101 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   type RoomPt = { id: string; x: number; y: number; floor: number; label: string };
   const [navFrom, setNavFrom] = useState<RoomPt | null>(null);
   const [navTo, setNavTo] = useState<RoomPt | null>(null);
+
+  // Geolocation + fullscreen state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenWrapRef = useRef<HTMLDivElement>(null);
+
+  // Listen for browser fullscreen exit (Esc key, etc.)
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement != null);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const el = fullscreenWrapRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      el.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+
+  // Draw / update the user's location dot on the Leaflet map
+  const userPinRef = useRef<L.LayerGroup | null>(null);
+  useEffect(() => {
+    if (!settings.useOsmBasemap) return;
+    const map = leafletMapRef.current;
+    if (!map) return;
+    if (!userLocation) {
+      userPinRef.current?.remove();
+      userPinRef.current = null;
+      return;
+    }
+    // Lazy-require Leaflet to keep the bundle out of the SVG-only path
+    import("leaflet").then((Lmod) => {
+      const Lreal = (Lmod as unknown as { default: typeof L }).default ?? (Lmod as unknown as typeof L);
+      userPinRef.current?.remove();
+      const grp = Lreal.layerGroup();
+      Lreal.circle([userLocation.lat, userLocation.lng], {
+        radius: Math.max(8, Math.min(40, userLocation.accuracy)),
+        color: "#2563eb",
+        weight: 1,
+        fillColor: "#3b82f6",
+        fillOpacity: 0.12,
+      }).addTo(grp);
+      Lreal.circleMarker([userLocation.lat, userLocation.lng], {
+        radius: 7,
+        color: "#fff",
+        weight: 2.5,
+        fillColor: "#2563eb",
+        fillOpacity: 1,
+      }).addTo(grp);
+      grp.addTo(map);
+      userPinRef.current = grp;
+    });
+    return () => {
+      userPinRef.current?.remove();
+      userPinRef.current = null;
+    };
+  }, [userLocation, settings.useOsmBasemap]);
+
+  const locateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocateError(isFi ? "Selain ei tue paikannusta" : "Geolocation not supported");
+      return;
+    }
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setUserLocation({ lat: latitude, lng: longitude, accuracy });
+        setLocating(false);
+        if (settings.useOsmBasemap && leafletMapRef.current) {
+          leafletMapRef.current.flyTo([latitude, longitude], 18, { duration: 0.6 });
+        }
+      },
+      (err) => {
+        setLocating(false);
+        const msg =
+          err.code === err.PERMISSION_DENIED
+            ? isFi ? "Paikannuslupa evätty" : "Location permission denied"
+            : err.code === err.POSITION_UNAVAILABLE
+            ? isFi ? "Sijaintia ei saatavilla" : "Position unavailable"
+            : isFi ? "Aikakatkaisu" : "Timed out";
+        setLocateError(msg);
+        // Auto-clear after a moment
+        setTimeout(() => setLocateError(null), 3500);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 }
+    );
+  }, [isFi, settings.useOsmBasemap]);
 
   // Smoothly tween viewBox towards a target — easeOutCubic over ~260ms
   const tweenView = (target: { x: number; y: number; w: number; h: number }, ms = 260) => {
@@ -793,12 +891,18 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           const isHover = hoveredRoomId === room.id;
           const status = room.currentStatus || "unknown";
           const statusColor = ROOM_STATUS_COLORS[status as keyof typeof ROOM_STATUS_COLORS] ?? ROOM_STATUS_COLORS.unknown;
-          const roomMinPx = Math.min(w, h) * pxPerUnit;
-          // In OSM mode always show labels (leaflet zoom handles visibility differently)
-          const showLabel = settings.useOsmBasemap || roomMinPx >= 28;
+          // Effective screen size of the room (px). In OSM mode this comes from
+          // Leaflet's current scale; in SVG mode from our own viewBox.
+          const metersPerSvgUnit = settings.osmCampusSpanMeters / baseViewBox.w;
+          const roomMinPx = settings.useOsmBasemap && leafletMetersPerPx
+            ? (Math.min(w, h) * metersPerSvgUnit) / leafletMetersPerPx
+            : Math.min(w, h) * pxPerUnit;
+          // Density-gated labels — only show when the room is large enough on screen.
+          // Selected/hovered rooms always show their label so the user can find what they clicked.
+          const showLabel = isSel || isHover || roomMinPx >= 28;
           const iconD = pathForRoomType(room.type);
-          const showIcon = !!iconD && (settings.useOsmBasemap || roomMinPx >= 60);
-          const showStatus = (settings.useOsmBasemap || roomMinPx >= 32) && status !== "unknown";
+          const showIcon = !!iconD && roomMinPx >= 60;
+          const showStatus = roomMinPx >= 32 && status !== "unknown";
           const iconSize = Math.max(12, Math.min(26, Math.min(w, h) * 0.4));
 
           return (
@@ -896,7 +1000,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   );
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div ref={fullscreenWrapRef} className="relative h-full w-full overflow-hidden bg-[#dde6ef] dark:bg-gray-900">
       {/* Search results — MazeMap-style dropdown anchored to top bar */}
       {searchQuery.trim() && (
         <div className="absolute top-2 left-2 right-14 sm:right-16 z-30 max-w-lg mx-auto sm:mx-0">
@@ -997,7 +1101,15 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* Layers */}
-      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-3 z-30 sm:bottom-4">
+      <div
+        className={cn(
+          "absolute left-3 z-30",
+          // In OSM mode, leave room for Leaflet's bottom-left scale control
+          settings.useOsmBasemap
+            ? "bottom-[max(7rem,calc(2.5rem+env(safe-area-inset-bottom)))] sm:bottom-12"
+            : "bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] sm:bottom-4"
+        )}
+      >
         <Button variant="outline" className={cn(panel, "h-10 px-3 gap-2")} onClick={() => setShowLayers(!showLayers)}>
           <Layers className="h-4 w-4" />
           <span className="text-sm font-medium">{isFi ? "Tasot" : "Layers"}</span>
@@ -1096,6 +1208,29 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         >
           <Compass className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
+        {settings.useOsmBasemap && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={isFi ? "Paikanna minut" : "Locate me"}
+            className={cn(panel, "w-11 h-11 p-0", locating && "animate-pulse")}
+            onClick={locateMe}
+            disabled={locating}
+            title={isFi ? "Paikanna minut" : "My location"}
+          >
+            <LocateFixed className={cn("h-4 w-4", userLocation && "text-blue-600 dark:text-blue-400")} />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={isFullscreen ? (isFi ? "Sulje koko näyttö" : "Exit fullscreen") : (isFi ? "Koko näyttö" : "Fullscreen")}
+          className={cn(panel, "w-11 h-11 p-0")}
+          onClick={toggleFullscreen}
+          title={isFullscreen ? (isFi ? "Esc poistuu" : "Esc to exit") : (isFi ? "Koko näyttö" : "Fullscreen")}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -1142,15 +1277,16 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         )}
       </div>
 
-      {/* Mini-map — SVG mode only, bottom-left */}
+      {/* Mini-map — SVG mode only, top-right under the floor selector */}
       {!settings.useOsmBasemap && (
         <div
           className={cn(
-            "absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-3 sm:bottom-4 z-20 pointer-events-none hidden sm:block",
+            "absolute top-3 right-3 z-10 pointer-events-none hidden sm:block",
             panel,
             "p-1 overflow-hidden"
           )}
-          style={{ width: 120, height: 80 }}
+          style={{ width: 140, height: 90, marginTop: "calc(7rem + 8px)" }}
+          aria-hidden="true"
           title={isFi ? "Karttakartta" : "Overview"}
         >
           <svg
@@ -1331,6 +1467,16 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Locate-me error toast */}
+      {locateError && (
+        <div
+          role="alert"
+          className="absolute top-16 right-3 z-40 max-w-xs px-3 py-2 rounded-xl bg-red-500/95 text-white text-xs font-medium shadow-lg animate-in fade-in slide-in-from-top-2"
+        >
+          {locateError}
         </div>
       )}
 
