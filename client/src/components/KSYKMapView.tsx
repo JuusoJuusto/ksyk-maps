@@ -88,11 +88,22 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
 
   const [viewState, setViewState] = useState({ x: 0, y: 0, w: 1600, h: 900 });
+  const viewStateRef = useRef(viewState);
+  useEffect(() => {
+    viewStateRef.current = viewState;
+  }, [viewState]);
   const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef({ clientX: 0, clientY: 0, view: { x: 0, y: 0, w: 1600, h: 900 } });
-  const pinchStart = useRef<{ distance: number; view: typeof viewState } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const tweenRef = useRef<number | null>(null);
+
+  // Pointer tracking for unified mouse+touch+pen handling
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const panStartRef = useRef<{ pointerId: number; clientX: number; clientY: number; view: typeof viewState } | null>(null);
+  const pinchStartRef = useRef<{ distance: number; midClient: { x: number; y: number }; midWorld: { x: number; y: number }; view: typeof viewState } | null>(null);
+  // Momentum/inertia
+  const velocityRef = useRef<{ vx: number; vy: number; lastT: number; lastX: number; lastY: number }>({ vx: 0, vy: 0, lastT: 0, lastX: 0, lastY: 0 });
+  const inertiaRef = useRef<number | null>(null);
 
   // Nav state (room-to-room routing)
   type RoomPt = { id: string; x: number; y: number; floor: number; label: string };
@@ -102,7 +113,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   // Smoothly tween viewBox towards a target — easeOutCubic over ~260ms
   const tweenView = (target: { x: number; y: number; w: number; h: number }, ms = 260) => {
     if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
-    const start = { ...viewState };
+    if (inertiaRef.current) {
+      cancelAnimationFrame(inertiaRef.current);
+      inertiaRef.current = null;
+    }
+    const start = { ...viewStateRef.current };
     const t0 = performance.now();
     const ease = (t: number) => 1 - Math.pow(1 - t, 3);
     const step = (now: number) => {
@@ -280,72 +295,226 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     tweenView({ x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2 });
   };
 
-  const zoomFactor = settings.mapZoomSpeed === 2 ? 0.88 : settings.mapZoomSpeed === 0.5 ? 0.96 : 0.92;
+  const zoomFactor = settings.mapZoomSpeed === 2 ? 0.85 : settings.mapZoomSpeed === 0.5 ? 0.96 : 0.9;
 
+  // Zoom bounds: world units. Smallest = ~tight on a single room. Largest = whole campus + slack.
+  const ZOOM_MIN_W = 240;
+  const ZOOM_MAX_W = 3600;
+  const ZOOM_MIN_H = ZOOM_MIN_W * (9 / 16);
+  const ZOOM_MAX_H = ZOOM_MAX_W * (9 / 16);
+
+  // Pan bounds: never let the user pan all wings off-screen. We allow ~30% slack outside the campus plate.
+  const clampView = (v: typeof viewState): typeof viewState => {
+    const nw = Math.min(Math.max(v.w, ZOOM_MIN_W), ZOOM_MAX_W);
+    const nh = Math.min(Math.max(v.h, ZOOM_MIN_H), ZOOM_MAX_H);
+    const slackX = nw * 0.3;
+    const slackY = nh * 0.3;
+    const minX = campusPlate.x - slackX;
+    const maxX = campusPlate.x + campusPlate.w + slackX - nw;
+    const minY = campusPlate.y - slackY;
+    const maxY = campusPlate.y + campusPlate.h + slackY - nh;
+    const nx = maxX > minX ? Math.min(Math.max(v.x, minX), maxX) : v.x;
+    const ny = maxY > minY ? Math.min(Math.max(v.y, minY), maxY) : v.y;
+    return { x: nx, y: ny, w: nw, h: nh };
+  };
+
+  // Convert client (screen) coords to SVG world coords using the SVG's own CTM —
+  // handles preserveAspectRatio="meet" automatically.
+  const clientToWorld = (clientX: number, clientY: number): { x: number; y: number } => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+
+  // Center-of-viewport zoom (used by + / − buttons & keyboard)
   const zoomView = (factor: number) => {
     setViewState((v) => {
-      const cx = v.x + v.w / 2;
-      const cy = v.y + v.h / 2;
-      const nw = Math.min(Math.max(v.w * factor, 280), 5000);
-      const nh = Math.min(Math.max(v.h * factor, 200), 3500);
-      return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+      const nw = v.w * factor;
+      const nh = v.h * factor;
+      return clampView({ x: v.x + (v.w - nw) / 2, y: v.y + (v.h - nh) / 2, w: nw, h: nh });
+    });
+  };
+
+  // Zoom while keeping the world point under (clientX, clientY) fixed — cursor-locked zoom
+  const zoomAtClient = (clientX: number, clientY: number, factor: number) => {
+    const world = clientToWorld(clientX, clientY);
+    setViewState((v) => {
+      const nw = Math.min(Math.max(v.w * factor, ZOOM_MIN_W), ZOOM_MAX_W);
+      const nh = Math.min(Math.max(v.h * factor, ZOOM_MIN_H), ZOOM_MAX_H);
+      const fx = (world.x - v.x) / v.w;
+      const fy = (world.y - v.y) / v.h;
+      return clampView({ x: world.x - fx * nw, y: world.y - fy * nh, w: nw, h: nh });
     });
   };
 
   const focusBuilding = (letter: string) => {
     const preset = KSYK_BUILDING_OUTLINES[letter];
     const b = campusBuildings.find((x) => x.name === letter);
-    if (preset) tweenView(viewBoxForOutline(preset.shape, 160));
+    if (preset) tweenView(clampView(viewBoxForOutline(preset.shape, 160)));
     if (b) setSelectedBuilding(b);
     setSelectedRoom(null);
   };
 
-  const touchDistance = (touches: React.TouchList | TouchList) => {
-    if (touches.length < 2) return 0;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.hypot(dx, dy);
-  };
-
+  // Wheel: cursor-locked zoom
   useEffect(() => {
     const el = mapRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      zoomView(e.deltaY > 0 ? 2 - zoomFactor : zoomFactor);
+      // Trackpads send small deltas; mouse wheels send large ones. Normalize.
+      const intensity = Math.min(2.5, Math.max(0.5, Math.abs(e.deltaY) / 100));
+      const dir = e.deltaY > 0 ? 1 : -1;
+      const factor = dir > 0 ? Math.pow(2 - zoomFactor, intensity) : Math.pow(zoomFactor, intensity);
+      // Cancel any in-flight tween or inertia when user is actively zooming
+      if (tweenRef.current) {
+        cancelAnimationFrame(tweenRef.current);
+        tweenRef.current = null;
+      }
+      if (inertiaRef.current) {
+        cancelAnimationFrame(inertiaRef.current);
+        inertiaRef.current = null;
+      }
+      zoomAtClient(e.clientX, e.clientY, factor);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [zoomFactor]);
 
-  const handlePanStart = (clientX: number, clientY: number) => {
-    setIsPanning(true);
-    panStart.current = { clientX, clientY, view: { ...viewState } };
+  // Unified pointer-based pan + pinch
+  const stopInertia = () => {
+    if (inertiaRef.current) {
+      cancelAnimationFrame(inertiaRef.current);
+      inertiaRef.current = null;
+    }
   };
 
-  const applyPan = (clientX: number, clientY: number) => {
+  const beginPan = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    stopInertia();
+    if (tweenRef.current) {
+      cancelAnimationFrame(tweenRef.current);
+      tweenRef.current = null;
+    }
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.current.size === 1) {
+      panStartRef.current = { pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, view: { ...viewStateRef.current } };
+      velocityRef.current = { vx: 0, vy: 0, lastT: performance.now(), lastX: e.clientX, lastY: e.clientY };
+      setIsPanning(true);
+    } else if (activePointers.current.size === 2) {
+      // Initialize pinch
+      const pts = Array.from(activePointers.current.values());
+      const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      const midClient = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      const midWorld = clientToWorld(midClient.x, midClient.y);
+      pinchStartRef.current = { distance, midClient, midWorld, view: { ...viewStateRef.current } };
+      panStartRef.current = null;
+      setIsPanning(false);
+    }
+  };
+
+  const updatePan = (e: React.PointerEvent) => {
+    if (!activePointers.current.has(e.pointerId)) return;
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Pinch in progress
+    if (pinchStartRef.current && activePointers.current.size >= 2) {
+      const pts = Array.from(activePointers.current.values());
+      const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      const scale = distance / pinchStartRef.current.distance;
+      const v = pinchStartRef.current.view;
+      const nw = Math.min(Math.max(v.w / scale, ZOOM_MIN_W), ZOOM_MAX_W);
+      const nh = Math.min(Math.max(v.h / scale, ZOOM_MIN_H), ZOOM_MAX_H);
+      // Anchor the original midpoint world coord at the (possibly drifted) current midpoint client coord
+      const midNow = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      // For the original view, midWorld was at midClient. After scale change, we want midWorld at midNow.
+      // Express: world.x = newX + fx * nw where fx = (midClient.x - rect.left) / rect.width — but
+      // we already have the world point. We need to know what fx is now (mid client position in CTM coords).
+      // Approximation: assume aspect ratio unchanged so the fractional position fx,fy doesn't change.
+      // That's correct for "meet" with constant container size: fraction (midX - vbX)/vbW only depends on midClient.
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // Recompute world coord under current midpoint with a fresh inverse CTM — but viewBox has changed.
+      // Use the trick: figure out fx,fy from container ratio of midNow in viewport.
+      const fx = (midNow.x - rect.left) / rect.width;
+      const fy = (midNow.y - rect.top) / rect.height;
+      // For meet, the viewBox is letterboxed into rect — but since we're using fractions of the same letterbox,
+      // applying f to the inner box is what we want. So we map: world = newViewboxOrigin + f * newViewbox.
+      const w = pinchStartRef.current.midWorld;
+      setViewState(clampView({ x: w.x - fx * nw, y: w.y - fy * nh, w: nw, h: nh }));
+      e.preventDefault?.();
+      return;
+    }
+
+    // Single-finger / mouse pan
+    if (!panStartRef.current || e.pointerId !== panStartRef.current.pointerId) return;
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const scaleX = panStart.current.view.w / rect.width;
-    const scaleY = panStart.current.view.h / rect.height;
-    setViewState({
-      ...panStart.current.view,
-      x: panStart.current.view.x - (clientX - panStart.current.clientX) * scaleX,
-      y: panStart.current.view.y - (clientY - panStart.current.clientY) * scaleY,
-    });
+    const view = panStartRef.current.view;
+
+    // Choose the scale that matches the rendered aspect ratio (preserveAspectRatio="meet")
+    // — pixels-per-world-unit is min(rect.w / view.w, rect.h / view.h) for "meet".
+    const pxPerUnit = Math.min(rect.width / view.w, rect.height / view.h);
+    const dxWorld = (e.clientX - panStartRef.current.clientX) / pxPerUnit;
+    const dyWorld = (e.clientY - panStartRef.current.clientY) / pxPerUnit;
+
+    setViewState(clampView({ ...view, x: view.x - dxWorld, y: view.y - dyWorld }));
+
+    // Track velocity (px/ms) for inertia
+    const now = performance.now();
+    const dt = Math.max(1, now - velocityRef.current.lastT);
+    velocityRef.current = {
+      vx: (e.clientX - velocityRef.current.lastX) / dt,
+      vy: (e.clientY - velocityRef.current.lastY) / dt,
+      lastT: now,
+      lastX: e.clientX,
+      lastY: e.clientY,
+    };
+    e.preventDefault?.();
   };
 
-  useEffect(() => {
-    if (!isPanning) return;
-    const onMove = (e: MouseEvent) => applyPan(e.clientX, e.clientY);
-    const onUp = () => setIsPanning(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [isPanning]);
+  const endPan = (e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId);
+    (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+
+    if (activePointers.current.size < 2) pinchStartRef.current = null;
+    if (activePointers.current.size === 0) {
+      setIsPanning(false);
+      // Start inertia if velocity is high enough
+      const { vx, vy } = velocityRef.current;
+      const speed = Math.hypot(vx, vy);
+      if (speed > 0.4 && !pinchStartRef.current && panStartRef.current) {
+        const rect = mapRef.current?.getBoundingClientRect();
+        const view = viewStateRef.current;
+        if (rect) {
+          const pxPerUnit = Math.min(rect.width / view.w, rect.height / view.h);
+          let curVx = vx;
+          let curVy = vy;
+          const friction = 0.94;
+          const stepInertia = () => {
+            curVx *= friction;
+            curVy *= friction;
+            if (Math.hypot(curVx, curVy) < 0.04) {
+              inertiaRef.current = null;
+              return;
+            }
+            setViewState((v) => clampView({ ...v, x: v.x - curVx * 16 / pxPerUnit, y: v.y - curVy * 16 / pxPerUnit }));
+            inertiaRef.current = requestAnimationFrame(stepInertia);
+          };
+          inertiaRef.current = requestAnimationFrame(stepInertia);
+        }
+      }
+      panStartRef.current = null;
+    }
+  };
 
   const panel = cn(
     "rounded-2xl shadow-xl border backdrop-blur-md",
@@ -464,38 +633,34 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* Floor + room count */}
+      {/* Floor selector — MazeMap-style vertical stack with per-floor buttons */}
       <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-2">
         <div className={cn(panel, "px-3 py-1.5 text-xs font-medium text-muted-foreground hidden sm:block")}>
           {isFi ? "Kerros" : "Floor"} · {floorRooms.length} {isFi ? "tilaa" : "rooms"}
         </div>
-        <div className={panel}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-11 h-9 rounded-none"
-            onClick={() => setSelectedFloor((f) => Math.min(f + 1, maxFloor))}
-            disabled={selectedFloor >= maxFloor}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-          <div
-            className={cn(
-              "w-11 h-10 flex items-center justify-center font-bold text-sm border-y",
-              darkMode ? "border-gray-700 bg-blue-600 text-white" : "border-gray-200 bg-blue-600 text-white"
-            )}
-          >
-            {selectedFloor}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-11 h-9 rounded-none"
-            onClick={() => setSelectedFloor((f) => Math.max(f - 1, 0))}
-            disabled={selectedFloor <= 0}
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
+        <div className={cn(panel, "flex flex-col overflow-hidden")}>
+          {Array.from({ length: maxFloor + 1 }, (_, i) => maxFloor - i).map((f) => {
+            const isActive = selectedFloor === f;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setSelectedFloor(f)}
+                className={cn(
+                  "w-11 h-9 flex items-center justify-center font-bold text-sm transition-colors border-b last:border-b-0",
+                  darkMode ? "border-gray-700" : "border-gray-200",
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-800"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+                title={`${isFi ? "Kerros" : "Floor"} ${f}`}
+              >
+                {f}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -561,43 +726,26 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             : "bg-[radial-gradient(ellipse_at_50%_25%,#dbeafe_0%,#f1f5f9_40%,#e2e8f0_100%)]"
         )}
         style={{ cursor: isPanning ? "grabbing" : "grab", touchAction: "none" }}
-        onMouseDown={(e) => {
-          if (e.button !== 0) return;
+        onPointerDown={beginPan}
+        onPointerMove={updatePan}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
+        onPointerLeave={(e) => {
+          // Don't end pan if pointer just left the element; pointer capture should keep it active.
+          if (!activePointers.current.has(e.pointerId)) return;
+        }}
+        onDoubleClick={(e) => {
           if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
-          handlePanStart(e.clientX, e.clientY);
-        }}
-        onTouchStart={(e) => {
-          if (e.touches.length === 2) {
-            setIsPanning(false);
-            pinchStart.current = { distance: touchDistance(e.touches), view: { ...viewState } };
-            return;
-          }
-          if (e.touches.length !== 1) return;
-          if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
-          handlePanStart(e.touches[0].clientX, e.touches[0].clientY);
-        }}
-        onTouchMove={(e) => {
-          if (e.touches.length === 2 && pinchStart.current) {
-            e.preventDefault();
-            const scale = touchDistance(e.touches) / pinchStart.current.distance;
-            const v = pinchStart.current.view;
-            const nw = Math.min(Math.max(v.w / scale, 280), 5000);
-            const nh = Math.min(Math.max(v.h / scale, 200), 3500);
-            const cx = v.x + v.w / 2;
-            const cy = v.y + v.h / 2;
-            setViewState({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
-            return;
-          }
-          if (!isPanning || e.touches.length !== 1) return;
-          e.preventDefault();
-          applyPan(e.touches[0].clientX, e.touches[0].clientY);
-        }}
-        onTouchEnd={(e) => {
-          if (e.touches.length < 2) pinchStart.current = null;
-          if (e.touches.length === 0) setIsPanning(false);
+          // Double-click to zoom in at cursor
+          zoomAtClient(e.clientX, e.clientY, zoomFactor * zoomFactor);
         }}
       >
-        <svg className="h-full w-full" viewBox={formatViewBox(viewState)} preserveAspectRatio="xMidYMid meet">
+        <svg
+          ref={svgRef}
+          className="h-full w-full"
+          viewBox={formatViewBox(viewState)}
+          preserveAspectRatio="xMidYMid meet"
+        >
           <defs>
             <filter id="wingShadow" x="-15%" y="-15%" width="130%" height="130%">
               <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#0f172a" floodOpacity={darkMode ? 0.55 : 0.22} />
@@ -1098,16 +1246,19 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* Mini-map */}
+      {/* Mini-map — bottom-right, above the zoom stack on desktop */}
       <div
         className={cn(
           panel,
           "absolute z-20 hidden md:block overflow-hidden pointer-events-auto",
-          "top-3 right-[5.5rem]"
+          "bottom-[12rem] right-3"
         )}
-        style={{ width: 168, height: 100 }}
-        title={isFi ? "Pienoiskartta" : "Mini-map"}
+        style={{ width: 176, height: 108 }}
+        title={isFi ? "Pienoiskartta — klikkaa keskittääksesi" : "Mini-map — click to recenter"}
       >
+        <div className="absolute top-1 left-2 z-10 text-[9px] font-bold uppercase tracking-wider text-muted-foreground pointer-events-none">
+          {isFi ? "Kampus" : "Campus"}
+        </div>
         <svg
           viewBox={`${campusPlate.x} ${campusPlate.y} ${campusPlate.w} ${campusPlate.h}`}
           preserveAspectRatio="xMidYMid meet"
@@ -1119,7 +1270,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             const py = (e.clientY - rect.top) / rect.height;
             const cx = campusPlate.x + campusPlate.w * px;
             const cy = campusPlate.y + campusPlate.h * py;
-            tweenView({ x: cx - viewState.w / 2, y: cy - viewState.h / 2, w: viewState.w, h: viewState.h });
+            tweenView(clampView({ x: cx - viewState.w / 2, y: cy - viewState.h / 2, w: viewState.w, h: viewState.h }));
           }}
         >
           <rect
@@ -1137,9 +1288,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 key={b.id}
                 d={outlineToPath(preset.shape)}
                 fill={preset.stroke}
-                fillOpacity={0.45}
+                fillOpacity={0.55}
                 stroke={preset.stroke}
-                strokeWidth={4}
+                strokeWidth={5}
               />
             );
           })}
@@ -1149,10 +1300,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             y={viewState.y}
             width={viewState.w}
             height={viewState.h}
-            fill="rgba(59,130,246,0.18)"
+            fill="rgba(59,130,246,0.2)"
             stroke="#2563eb"
-            strokeWidth={6}
-            strokeDasharray="14 8"
+            strokeWidth={7}
+            strokeDasharray="16 10"
           />
         </svg>
       </div>
