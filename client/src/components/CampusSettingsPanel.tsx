@@ -8,8 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OSM_TILE_PROVIDERS, DEFAULT_APP_SETTINGS } from "@/lib/appSettings";
+import type { OsmTileProvider } from "@/lib/appSettings";
 import {
   Sun,
   Moon,
@@ -266,6 +276,194 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                       ? "Siivet: A, U, K, M, R, B — napauta kartalla rakennusta tai käytä hakua."
                       : "Wings: A, U, K, M, R, B — tap a building on the map or use search."}
                   </p>
+
+                  <Separator className="my-4" />
+
+                  {/* OpenStreetMap basemap */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold">
+                          {isFi ? "OpenStreetMap-taustakartta" : "OpenStreetMap basemap"}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {isFi
+                            ? "Näytä KSYK aidolla maailmankartalla. Vie campus oikeisiin koordinaatteihin."
+                            : "Show KSYK on a real-world map. Anchor the campus to real coordinates."}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">v3.5</Badge>
+                    </div>
+
+                    <SettingRow
+                      label={isFi ? "Käytä OSM-taustakartta" : "Use OSM basemap"}
+                      description={
+                        isFi
+                          ? "Korvaa muokattu kampuslevy aidoilla OpenStreetMap-laatoilla"
+                          : "Replace the custom campus plate with real OpenStreetMap tiles"
+                      }
+                    >
+                      <Switch
+                        checked={settings.useOsmBasemap}
+                        onCheckedChange={(v) => update("useOsmBasemap", v)}
+                      />
+                    </SettingRow>
+
+                    {settings.useOsmBasemap && (
+                      <>
+                        <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
+                          <div>
+                            <Label className="mb-2 block text-xs">
+                              {isFi ? "Laattatyyli" : "Tile style"}
+                            </Label>
+                            <Select
+                              value={settings.osmTileProvider}
+                              onValueChange={(v) => update("osmTileProvider", v as OsmTileProvider)}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(OSM_TILE_PROVIDERS).map(([id, p]) => (
+                                  <SelectItem key={id} value={id}>
+                                    {p.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="mb-1 block text-xs">Lat</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                value={settings.osmCenterLat}
+                                onChange={(e) =>
+                                  update("osmCenterLat", parseFloat(e.target.value) || 0)
+                                }
+                                className="h-9 text-sm font-mono"
+                              />
+                            </div>
+                            <div>
+                              <Label className="mb-1 block text-xs">Lng</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                value={settings.osmCenterLng}
+                                onChange={(e) =>
+                                  update("osmCenterLng", parseFloat(e.target.value) || 0)
+                                }
+                                className="h-9 text-sm font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                              <Label className="text-xs">
+                                {isFi ? "Oletuszoomi" : "Default zoom"}
+                              </Label>
+                              <span className="text-xs font-mono">{settings.osmDefaultZoom}</span>
+                            </div>
+                            <Slider
+                              value={[settings.osmDefaultZoom]}
+                              min={settings.osmMinZoom}
+                              max={settings.osmMaxZoom}
+                              step={1}
+                              onValueChange={([v]) => update("osmDefaultZoom", v)}
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                              <Label className="text-xs">
+                                {isFi ? "Kierto" : "Rotation"}
+                              </Label>
+                              <span className="text-xs font-mono">{settings.osmRotationDeg}°</span>
+                            </div>
+                            <Slider
+                              value={[settings.osmRotationDeg]}
+                              min={-180}
+                              max={180}
+                              step={1}
+                              onValueChange={([v]) => update("osmRotationDeg", v)}
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                              <Label className="text-xs">
+                                {isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}
+                              </Label>
+                              <span className="text-xs font-mono">
+                                {settings.osmCampusSpanMeters} m
+                              </span>
+                            </div>
+                            <Slider
+                              value={[settings.osmCampusSpanMeters]}
+                              min={50}
+                              max={500}
+                              step={10}
+                              onValueChange={([v]) => update("osmCampusSpanMeters", v)}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="mb-1 block text-xs">
+                                {isFi ? "Min zoom" : "Min zoom"}
+                              </Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={19}
+                                value={settings.osmMinZoom}
+                                onChange={(e) =>
+                                  update("osmMinZoom", Math.max(1, Math.min(19, parseInt(e.target.value) || 1)))
+                                }
+                                className="h-9 text-sm font-mono"
+                              />
+                            </div>
+                            <div>
+                              <Label className="mb-1 block text-xs">
+                                {isFi ? "Max zoom" : "Max zoom"}
+                              </Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={19}
+                                value={settings.osmMaxZoom}
+                                onChange={(e) =>
+                                  update("osmMaxZoom", Math.max(1, Math.min(19, parseInt(e.target.value) || 19)))
+                                }
+                                className="h-9 text-sm font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-xs rounded-xl mt-1"
+                            onClick={() => {
+                              update("osmCenterLat", DEFAULT_APP_SETTINGS.osmCenterLat);
+                              update("osmCenterLng", DEFAULT_APP_SETTINGS.osmCenterLng);
+                              update("osmDefaultZoom", DEFAULT_APP_SETTINGS.osmDefaultZoom);
+                              update("osmMinZoom", DEFAULT_APP_SETTINGS.osmMinZoom);
+                              update("osmMaxZoom", DEFAULT_APP_SETTINGS.osmMaxZoom);
+                              update("osmRotationDeg", DEFAULT_APP_SETTINGS.osmRotationDeg);
+                              update("osmCampusSpanMeters", DEFAULT_APP_SETTINGS.osmCampusSpanMeters);
+                              update("osmTileProvider", DEFAULT_APP_SETTINGS.osmTileProvider);
+                            }}
+                          >
+                            {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}

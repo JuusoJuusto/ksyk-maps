@@ -6,6 +6,7 @@ import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import Working3DBuilder from "@/components/Working3DBuilder";
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
+import CampusSettingsPanel from "@/components/CampusSettingsPanel";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
@@ -2208,6 +2209,7 @@ export default function AdminDashboard() {
 
         {isOwner && (
           <TabsContent value="settings" className="space-y-6">
+            <CampusSettingsPanel />
             <AppSettingsManager />
           
           {/* Danger Zone - Complete Data Cleanup */}

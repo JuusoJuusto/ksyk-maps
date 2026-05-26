@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Plus, Trash2, MousePointer, X, Undo, Redo, Square,
   Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand, Minus,
-  Copy as CopyIcon, Move,
+  Copy as CopyIcon, Move, Maximize2,
 } from "lucide-react";
 import { getRoomFillColor } from "@/lib/campusSpace";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
@@ -58,6 +58,10 @@ export default function ImprovedKSYKBuilder() {
   // Room edits history for undo/redo
   const [roomHistory, setRoomHistory] = useState<any[][]>([]);
   const [roomHistoryIndex, setRoomHistoryIndex] = useState(-1);
+  // Rubber-band drag selection
+  type RubberBand = { x0: number; y0: number; x1: number; y1: number } | null;
+  const [rubberBand, setRubberBand] = useState<RubberBand>(null);
+  const rubberBandStartRef = useRef<{ x: number; y: number } | null>(null);
   const pushRoomHistory = useCallback((next: any[]) => {
     setRoomHistory((h) => {
       const trimmed = h.slice(0, roomHistoryIndex + 1);
@@ -100,31 +104,21 @@ export default function ImprovedKSYKBuilder() {
     };
   };
 
-  // Get SVG coordinates from mouse event
-  const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>): Point => {
-    if (!svgRef.current) return { x: 0, y: 0 };
-    
+  // Get SVG world coordinates from any mouse event using the CTM.
+  // This correctly accounts for viewBox pan/zoom — the old formula missed panX/panY.
+  const getSVGPoint = (e: { clientX: number; clientY: number }): Point => {
     const svg = svgRef.current;
-    const rect = svg.getBoundingClientRect();
-    
-    // Get the actual viewBox dimensions
-    const viewBox = svg.viewBox.baseVal;
-    const viewBoxWidth = viewBox.width;
-    const viewBoxHeight = viewBox.height;
-    
-    // Calculate the scale between screen pixels and SVG coordinates
-    const scaleX = viewBoxWidth / rect.width;
-    const scaleY = viewBoxHeight / rect.height;
-    
-    // Convert mouse position to SVG coordinates
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    
-    return snapToGrid({ x, y });
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const world = pt.matrixTransform(ctm.inverse());
+    return snapToGrid({ x: world.x, y: world.y });
   };
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    // Middle-click / space-modifier pans even when not in pan tool
     if (activeTool === "pan" || e.button === 1) {
       setIsPanningCanvas(true);
       panDragStart.current = { x: e.clientX, y: e.clientY, panX, panY };
@@ -139,12 +133,37 @@ export default function ImprovedKSYKBuilder() {
       setIsDrawing(true);
       setCurrentWall([...currentWall, point]);
     } else if (activeTool === "room") {
-      setRoomData({ ...roomData, x: point.x, y: point.y });
+      // Click-to-place: if room number filled, immediately add room at cursor
+      if (roomData.roomNumber && validateRoomNumber(roomData.roomNumber)) {
+        const building = extractBuilding(roomData.roomNumber);
+        const newRoom = {
+          ...roomData,
+          id: `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          x: point.x,
+          y: point.y,
+          building,
+          mapPositionX: point.x,
+          mapPositionY: point.y,
+          _isLocalNew: true,
+        };
+        const next = [...rooms, newRoom];
+        setRooms(next);
+        pushRoomHistory(next);
+        setRoomData((prev) => ({
+          ...prev,
+          x: point.x + (prev.width + 10),
+          y: point.y,
+          roomNumber: autoIncrementRoomNumber(prev.roomNumber),
+        }));
+      } else {
+        setRoomData({ ...roomData, x: point.x, y: point.y });
+      }
     } else if (activeTool === "select") {
-      // Empty-canvas click clears selection
       if (!(e.target as Element).closest("[data-room]")) {
         setSelectedRoom(null);
         setSelectedRoomIds(new Set());
+        rubberBandStartRef.current = point;
+        setRubberBand({ x0: point.x, y0: point.y, x1: point.x, y1: point.y });
       }
     }
   };
@@ -156,6 +175,12 @@ export default function ImprovedKSYKBuilder() {
       setPanX(panDragStart.current.panX - dx);
       setPanY(panDragStart.current.panY - dy);
       return;
+    }
+
+    // Update rubber-band
+    if (rubberBandStartRef.current) {
+      const pt = getSVGPoint(e);
+      setRubberBand({ x0: rubberBandStartRef.current.x, y0: rubberBandStartRef.current.y, x1: pt.x, y1: pt.y });
     }
 
     if (!drag) return;
@@ -214,6 +239,26 @@ export default function ImprovedKSYKBuilder() {
     if (drag) {
       pushRoomHistory(rooms);
       setDrag(null);
+    }
+    // Finish rubber-band selection
+    if (rubberBand && rubberBandStartRef.current) {
+      const minX = Math.min(rubberBand.x0, rubberBand.x1);
+      const maxX = Math.max(rubberBand.x0, rubberBand.x1);
+      const minY = Math.min(rubberBand.y0, rubberBand.y1);
+      const maxY = Math.max(rubberBand.y0, rubberBand.y1);
+      if (maxX - minX > 4 || maxY - minY > 4) {
+        const hit = floorRooms.filter(
+          (r) =>
+            r.mapPositionX < maxX &&
+            r.mapPositionX + r.width > minX &&
+            r.mapPositionY < maxY &&
+            r.mapPositionY + r.height > minY
+        );
+        setSelectedRoomIds(new Set(hit.map((r) => r.id)));
+        if (hit.length === 1) setSelectedRoom(hit[0]);
+      }
+      setRubberBand(null);
+      rubberBandStartRef.current = null;
     }
   };
 
@@ -299,6 +344,27 @@ export default function ImprovedKSYKBuilder() {
     setSelectedRoom(null);
   };
 
+  // Zoom to fit all/selected rooms on current floor
+  const zoomToFit = useCallback((mode: "selection" | "all" = "all") => {
+    const inView = rooms.filter((r) => (r.floor ?? 1) === builderFloor);
+    const target = mode === "selection" ? inView.filter((r) => selectedRoomIds.has(r.id)) : inView;
+    if (target.length === 0) return;
+    const pad = 80;
+    const minX = Math.min(...target.map((r) => r.mapPositionX)) - pad;
+    const minY = Math.min(...target.map((r) => r.mapPositionY)) - pad;
+    const maxX = Math.max(...target.map((r) => r.mapPositionX + r.width)) + pad;
+    const maxY = Math.max(...target.map((r) => r.mapPositionY + r.height)) + pad;
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    const W = 1600, H = 900;
+    const newZoom = Math.min(Math.max(0.25, Math.min(W / bw, H / bh)), 4);
+    const newVbW = W / newZoom;
+    const newVbH = H / newZoom;
+    setZoom(newZoom);
+    setPanX((minX + maxX) / 2 - newVbW / 2);
+    setPanY((minY + maxY) / 2 - newVbH / 2);
+  }, [rooms, builderFloor, selectedRoomIds]);
+
   // Keyboard shortcuts in builder
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -330,10 +396,26 @@ export default function ImprovedKSYKBuilder() {
       } else if (e.key === "v") setActiveTool("select");
       else if (e.key === "h") setActiveTool("pan");
       else if (e.key === "r") setActiveTool("room");
+      else if ((e.key === "f" || e.key === "F") && !e.ctrlKey) {
+        e.preventDefault();
+        zoomToFit(selectedRoomIds.size > 0 ? "selection" : "all");
+      } else if (e.key.startsWith("Arrow") && selectedRoomIds.size > 0) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+        setRooms((rs) =>
+          rs.map((r) =>
+            selectedRoomIds.has(r.id)
+              ? { ...r, mapPositionX: r.mapPositionX + dx, mapPositionY: r.mapPositionY + dy, x: r.mapPositionX + dx, y: r.mapPositionY + dy }
+              : r
+          )
+        );
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedRoomIds, rooms, roomHistory, roomHistoryIndex]);
+  }, [selectedRoomIds, rooms, roomHistory, roomHistoryIndex, zoomToFit]);
 
   const finishOutline = () => {
     if (campusOutline.length >= 3) pushHistory(campusOutline);
@@ -361,6 +443,13 @@ export default function ImprovedKSYKBuilder() {
       setCurrentWall([]);
     }
     setIsDrawing(false);
+  };
+
+  // Auto-increment room number: A32 -> A33, U205 -> U206
+  const autoIncrementRoomNumber = (num: string): string => {
+    const m = num.match(/^([A-Z]+)(\d+)$/);
+    if (!m) return num;
+    return `${m[1]}${parseInt(m[2]) + 1}`;
   };
 
   // Extract building letter from room number (A32 -> A, M1 -> M, U205 -> U)
@@ -524,7 +613,7 @@ export default function ImprovedKSYKBuilder() {
       // Build map of existing room ids (from the API load) so we can tell new from edited
       const existingIds = new Set<string>(existingRooms.map((r: any) => r.id));
 
-      const buildingPromises = Object.entries(groupedRooms).map(async ([buildingLetter, buildingRooms]) => {
+      const buildingPromises = (Object.entries(groupedRooms) as [string, any[]][]).map(async ([buildingLetter, buildingRooms]) => {
         const minX = Math.min(...buildingRooms.map(r => r.mapPositionX));
         const minY = Math.min(...buildingRooms.map(r => r.mapPositionY));
         const maxX = Math.max(...buildingRooms.map(r => r.mapPositionX + r.width));
@@ -713,6 +802,106 @@ export default function ImprovedKSYKBuilder() {
     return colors[type] || '#9CA3AF';
   };
 
+  // JSON export — download the current builder state to a file
+  const exportJson = () => {
+    const payload = {
+      meta: { app: "KSYK Maps Builder", exportedAt: new Date().toISOString(), version: 1 },
+      campusOutline,
+      walls,
+      rooms: rooms.map((r) => ({ ...r, _isLocalNew: undefined })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ksyk-campus-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // JSON import — replace local state with the file's content
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (Array.isArray(data.rooms)) {
+        // Mark imported rooms as new so save logic POSTs them
+        const next = data.rooms.map((r: any) => ({ ...r, _isLocalNew: true }));
+        setRooms(next);
+        pushRoomHistory(next);
+      }
+      if (Array.isArray(data.campusOutline)) setCampusOutline(data.campusOutline);
+      if (Array.isArray(data.walls)) setWalls(data.walls);
+      alert(`✅ Imported ${data.rooms?.length || 0} rooms`);
+    } catch (e) {
+      console.error(e);
+      alert("❌ Failed to import — invalid JSON file");
+    }
+  };
+
+  // Align / distribute selected rooms
+  type AlignDir = "left" | "right" | "top" | "bottom" | "centerX" | "centerY" | "distX" | "distY";
+  const alignSelected = (dir: AlignDir) => {
+    if (selectedRoomIds.size < 2) return;
+    const sel = rooms.filter((r) => selectedRoomIds.has(r.id));
+    let next = [...rooms];
+    if (dir === "left") {
+      const minX = Math.min(...sel.map((r) => r.mapPositionX));
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id) ? { ...r, mapPositionX: minX, x: minX } : r
+      );
+    } else if (dir === "right") {
+      const maxR = Math.max(...sel.map((r) => r.mapPositionX + r.width));
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id) ? { ...r, mapPositionX: maxR - r.width, x: maxR - r.width } : r
+      );
+    } else if (dir === "top") {
+      const minY = Math.min(...sel.map((r) => r.mapPositionY));
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id) ? { ...r, mapPositionY: minY, y: minY } : r
+      );
+    } else if (dir === "bottom") {
+      const maxB = Math.max(...sel.map((r) => r.mapPositionY + r.height));
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id) ? { ...r, mapPositionY: maxB - r.height, y: maxB - r.height } : r
+      );
+    } else if (dir === "centerX") {
+      const cx = sel.reduce((s, r) => s + r.mapPositionX + r.width / 2, 0) / sel.length;
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id)
+          ? { ...r, mapPositionX: cx - r.width / 2, x: cx - r.width / 2 }
+          : r
+      );
+    } else if (dir === "centerY") {
+      const cy = sel.reduce((s, r) => s + r.mapPositionY + r.height / 2, 0) / sel.length;
+      next = rooms.map((r) =>
+        selectedRoomIds.has(r.id)
+          ? { ...r, mapPositionY: cy - r.height / 2, y: cy - r.height / 2 }
+          : r
+      );
+    } else if (dir === "distX" && sel.length >= 3) {
+      const sorted = [...sel].sort((a, b) => a.mapPositionX - b.mapPositionX);
+      const minX = sorted[0].mapPositionX;
+      const maxX = sorted[sorted.length - 1].mapPositionX;
+      const step = (maxX - minX) / (sorted.length - 1);
+      const map: Record<string, number> = {};
+      sorted.forEach((r, i) => (map[r.id] = minX + i * step));
+      next = rooms.map((r) => (map[r.id] !== undefined ? { ...r, mapPositionX: map[r.id], x: map[r.id] } : r));
+    } else if (dir === "distY" && sel.length >= 3) {
+      const sorted = [...sel].sort((a, b) => a.mapPositionY - b.mapPositionY);
+      const minY = sorted[0].mapPositionY;
+      const maxY = sorted[sorted.length - 1].mapPositionY;
+      const step = (maxY - minY) / (sorted.length - 1);
+      const map: Record<string, number> = {};
+      sorted.forEach((r, i) => (map[r.id] = minY + i * step));
+      next = rooms.map((r) => (map[r.id] !== undefined ? { ...r, mapPositionY: map[r.id], y: map[r.id] } : r));
+    }
+    setRooms(next);
+    pushRoomHistory(next);
+  };
+
   const CAMPUS_W = 1600;
   const CAMPUS_H = 900;
   const vbW = CAMPUS_W / zoom;
@@ -754,6 +943,22 @@ export default function ImprovedKSYKBuilder() {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportJson} title="Export JSON">
+            ⤓ JSON
+          </Button>
+          <label className="inline-flex items-center h-8 text-xs px-3 rounded-md border bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 cursor-pointer">
+            ⤒ JSON
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importJson(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <Button size="sm" className="h-8" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             <Save className="h-4 w-4 mr-1" />
             Save
@@ -896,7 +1101,7 @@ export default function ImprovedKSYKBuilder() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {Object.entries(groupedRooms).map(([building, buildingRooms]) => (
+              {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, buildingRooms]) => (
                 <div key={building} className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-lg">{building} Building</span>
@@ -951,10 +1156,43 @@ export default function ImprovedKSYKBuilder() {
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}>
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => zoomToFit(selectedRoomIds.size > 0 ? "selection" : "all")} title="Zoom to fit (F)">
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setZoom(1); setPanX(0); setPanY(0); }}>
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>
           </div>
+
+          {/* Alignment toolbar — appears when 2+ rooms are selected */}
+          {selectedRoomIds.size >= 2 && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex gap-0.5 p-1 rounded-xl bg-white/95 dark:bg-gray-900/95 shadow-lg border border-gray-200/80 dark:border-gray-700">
+              <span className="px-2 text-xs font-bold flex items-center text-blue-600 dark:text-blue-400">
+                {selectedRoomIds.size}× align
+              </span>
+              {[
+                { dir: "left" as const, label: "⫷", title: "Align left" },
+                { dir: "centerX" as const, label: "⫵", title: "Align center X" },
+                { dir: "right" as const, label: "⫸", title: "Align right" },
+                { dir: "top" as const, label: "⫶", title: "Align top" },
+                { dir: "centerY" as const, label: "⫼", title: "Align center Y" },
+                { dir: "bottom" as const, label: "⫻", title: "Align bottom" },
+                { dir: "distX" as const, label: "↔", title: "Distribute X (≥3)" },
+                { dir: "distY" as const, label: "↕", title: "Distribute Y (≥3)" },
+              ].map(({ dir, label, title }) => (
+                <Button
+                  key={dir}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 font-mono text-base"
+                  onClick={() => alignSelected(dir)}
+                  title={title}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          )}
           <svg
             ref={svgRef}
             viewBox={`${panX} ${panY} ${vbW} ${vbH}`}
@@ -963,8 +1201,23 @@ export default function ImprovedKSYKBuilder() {
             onMouseUp={handleMouseUp}
             onWheel={(e) => {
               e.preventDefault();
+              const svg = svgRef.current;
+              if (!svg) return;
+              const pt = svg.createSVGPoint();
+              pt.x = e.clientX; pt.y = e.clientY;
+              const ctm = svg.getScreenCTM();
+              if (!ctm) return;
+              const world = pt.matrixTransform(ctm.inverse());
               const factor = e.deltaY > 0 ? 1.12 : 0.9;
-              setZoom((z) => Math.min(4, Math.max(0.25, z * factor)));
+              const newZoom = Math.min(4, Math.max(0.25, zoom * factor));
+              const W = 1600, H = 900;
+              const oldVbW = W / zoom, oldVbH = H / zoom;
+              const newVbW = W / newZoom, newVbH = H / newZoom;
+              const fx = (world.x - panX) / oldVbW;
+              const fy = (world.y - panY) / oldVbH;
+              setZoom(newZoom);
+              setPanX(world.x - fx * newVbW);
+              setPanY(world.y - fy * newVbH);
             }}
             className={`w-full h-full touch-none ${activeTool === "pan" ? "cursor-grab" : "cursor-crosshair"}`}
           >
@@ -1096,8 +1349,21 @@ export default function ImprovedKSYKBuilder() {
                 </g>
               );
             })}
+            {rubberBand && (
+              <rect
+                x={Math.min(rubberBand.x0, rubberBand.x1)}
+                y={Math.min(rubberBand.y0, rubberBand.y1)}
+                width={Math.abs(rubberBand.x1 - rubberBand.x0)}
+                height={Math.abs(rubberBand.y1 - rubberBand.y0)}
+                fill="rgba(59,130,246,0.08)"
+                stroke="#3b82f6"
+                strokeWidth={1.5 / zoom}
+                strokeDasharray={`${4 / zoom} ${4 / zoom}`}
+                pointerEvents="none"
+              />
+            )}
           </svg>
-          
+
           {/* Selected room bottom sheet */}
           {selectedRoom && (
             <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-sm">
@@ -1141,6 +1407,14 @@ export default function ImprovedKSYKBuilder() {
               </Card>
             </div>
           )}
+
+          {/* Status bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-6 z-10 flex items-center px-3 gap-4 text-xs text-gray-500 dark:text-gray-400 bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border-t border-gray-200/60 dark:border-gray-700/60 pointer-events-none select-none">
+            <span>{(zoom * 100).toFixed(0)}%</span>
+            <span>{floorRooms.length} rooms · floor {builderFloor}</span>
+            {selectedRoomIds.size > 0 && <span className="text-blue-600 dark:text-blue-400 font-medium">{selectedRoomIds.size} selected</span>}
+            <span className="ml-auto opacity-50 hidden sm:block">[F] Fit · [V] Select · [H] Pan · [R] Room · Del · Ctrl+Z Undo</span>
+          </div>
 
           {/* Drawing Instructions */}
           {isDrawing && (activeTool === "wall" || activeTool === "outline") && (

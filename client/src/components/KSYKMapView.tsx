@@ -5,7 +5,10 @@
  * - Scale bar, compass, keyboard shortcuts (+/-/0/Esc/1-9 floor jump)
  */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
+import type L from "leaflet";
+import OsmBasemap from "@/components/OsmBasemap";
 import {
   parseBuildingShape,
   getShapeBounds,
@@ -97,6 +100,21 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const mapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const tweenRef = useRef<number | null>(null);
+
+  // OSM mode state — the leaflet map instance and the overlay SVG element
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const [overlayEl, setOverlayEl] = useState<SVGSVGElement | null>(null);
+  // Meters-per-pixel at the current Leaflet viewport, updated on every move/zoom.
+  const [leafletMetersPerPx, setLeafletMetersPerPx] = useState<number | null>(null);
+
+  // Clear stale overlay ref when OSM mode is disabled so the portal doesn't briefly
+  // render into the old detached SVG element when the user re-enables OSM mode.
+  useEffect(() => {
+    if (!settings.useOsmBasemap) {
+      setOverlayEl(null);
+      leafletMapRef.current = null;
+    }
+  }, [settings.useOsmBasemap]);
 
   // Pointer tracking for unified mouse+touch+pen handling
   const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -274,8 +292,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     () => ({
       x: baseViewBox.x - 48,
       y: baseViewBox.y - 48,
-      w: baseViewBox.width + 96,
-      h: baseViewBox.height + 96,
+      w: baseViewBox.w + 96,
+      h: baseViewBox.h + 96,
     }),
     [baseViewBox]
   );
@@ -283,6 +301,23 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   useEffect(() => {
     setViewState(baseViewBox);
   }, [baseViewBox]);
+
+  // Convert SVG world coords to geographic lat/lng using the same bounds math as OsmBasemap.
+  // Bounds are guaranteed to match the SVG aspect ratio, so the mapping is perfectly linear.
+  const svgToLatLng = useCallback((svgX: number, svgY: number): [number, number] => {
+    const fx = (svgX - baseViewBox.x) / baseViewBox.w;
+    const fy = (svgY - baseViewBox.y) / baseViewBox.h;
+    const halfLatM = settings.osmCampusSpanMeters / 2;
+    const halfLatDeg = halfLatM / 111_320;
+    const halfLngDeg =
+      (halfLatM * (baseViewBox.w / baseViewBox.h)) /
+      (111_320 * Math.cos((settings.osmCenterLat * Math.PI) / 180));
+    // SVG y increases downward; latitude increases northward — hence the inversion.
+    return [
+      settings.osmCenterLat + halfLatDeg * (1 - 2 * fy),
+      settings.osmCenterLng - halfLngDeg + fx * 2 * halfLngDeg,
+    ];
+  }, [baseViewBox.x, baseViewBox.y, baseViewBox.w, baseViewBox.h, settings.osmCampusSpanMeters, settings.osmCenterLat, settings.osmCenterLng]);
 
   const focusRoom = (room: Room) => {
     setSelectedRoom(room);
@@ -292,8 +327,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     const y = room.mapPositionY ?? 0;
     const w = room.width ?? 80;
     const h = room.height ?? 60;
-    const pad = 120;
-    tweenView({ x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2 });
+    if (settings.useOsmBasemap && leafletMapRef.current) {
+      const [lat, lng] = svgToLatLng(x + w / 2, y + h / 2);
+      leafletMapRef.current.flyTo([lat, lng], Math.max(settings.osmDefaultZoom, 19), { duration: 0.5 });
+    } else {
+      const pad = 120;
+      tweenView({ x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2 });
+    }
   };
 
   const zoomFactor = settings.mapZoomSpeed === 2 ? 0.85 : settings.mapZoomSpeed === 0.5 ? 0.96 : 0.9;
@@ -357,7 +397,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const focusBuilding = (letter: string) => {
     const preset = KSYK_BUILDING_OUTLINES[letter];
     const b = campusBuildings.find((x) => x.name === letter);
-    if (preset) tweenView(clampView(viewBoxForOutline(preset.shape, 160)));
+    if (settings.useOsmBasemap && leafletMapRef.current && preset) {
+      const anchor = getLabelAnchor(preset.shape);
+      const [lat, lng] = svgToLatLng(anchor.x, anchor.y);
+      leafletMapRef.current.flyTo([lat, lng], Math.max(settings.osmDefaultZoom, 18), { duration: 0.5 });
+    } else if (preset) {
+      tweenView(clampView(viewBoxForOutline(preset.shape, 160)));
+    }
     if (b) setSelectedBuilding(b);
     setSelectedRoom(null);
   };
@@ -539,13 +585,23 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       }
       if (e.key === "+" || e.key === "=") {
         e.preventDefault();
-        zoomView(zoomFactor);
+        if (settings.useOsmBasemap && leafletMapRef.current) leafletMapRef.current.zoomIn(0.5);
+        else zoomView(zoomFactor);
       } else if (e.key === "-" || e.key === "_") {
         e.preventDefault();
-        zoomView(2 - zoomFactor);
+        if (settings.useOsmBasemap && leafletMapRef.current) leafletMapRef.current.zoomOut(0.5);
+        else zoomView(2 - zoomFactor);
       } else if (e.key === "0") {
         e.preventDefault();
-        tweenView(baseViewBox);
+        if (settings.useOsmBasemap && leafletMapRef.current) {
+          leafletMapRef.current.flyTo(
+            [settings.osmCenterLat, settings.osmCenterLng],
+            settings.osmDefaultZoom,
+            { duration: 0.4 }
+          );
+        } else {
+          tweenView(baseViewBox);
+        }
       } else if (e.key === "Escape") {
         setSelectedBuilding(null);
         setSelectedRoom(null);
@@ -556,7 +612,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [baseViewBox, zoomFactor, maxFloor]);
+  }, [baseViewBox, zoomFactor, maxFloor, settings.useOsmBasemap, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
   // Effective screen pixels per world unit — used for zoom-aware detail visibility
   const pxPerUnit = useMemo(() => {
@@ -582,19 +638,262 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     };
   }, []);
 
-  // Scale bar: compute the world-units length corresponding to ~120 screen px
+  // Scale bar: ~120 px wide, snapped to a nice metre value.
+  // In OSM mode, derive metres-per-pixel from Leaflet's zoom/centre;
+  // otherwise use the SVG viewBox scale (1 world-unit ≈ 0.1 m).
   const scaleBarMeters = useMemo(() => {
     if (!containerWidth) return { px: 100, label: "—" };
-    const unitsPerPx = viewState.w / containerWidth;
-    // 1 world-unit ≈ 0.1 m (calibrated to KSYK outline scale)
+    const metersPerPx =
+      settings.useOsmBasemap && leafletMetersPerPx !== null
+        ? leafletMetersPerPx
+        : (viewState.w / containerWidth) * 0.1;
     const targetPx = 120;
-    const worldUnits = targetPx * unitsPerPx;
-    const meters = worldUnits * 0.1;
+    const meters = targetPx * metersPerPx;
     const buckets = [1, 2, 5, 10, 20, 50, 100, 200, 500];
     const nice = buckets.reduce((p, c) => (Math.abs(c - meters) < Math.abs(p - meters) ? c : p), buckets[0]);
-    const px = (nice / 0.1) / unitsPerPx;
+    const px = nice / metersPerPx;
     return { px: Math.max(40, Math.min(220, px)), label: `${nice} m` };
-  }, [viewState, containerWidth]);
+  }, [viewState, containerWidth, settings.useOsmBasemap, leafletMetersPerPx]);
+
+  // The campus SVG body: wings, rooms, navigation route — shared between the
+  // standalone-SVG canvas and the OSM-overlay portal. References component state
+  // via closure so both branches stay in sync.
+  const campusBody = (
+    <>
+      <defs>
+        <filter id="wingShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#0f172a" floodOpacity={darkMode ? 0.45 : 0.16} />
+        </filter>
+        <filter id="roomGlow">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4" />
+        </filter>
+        {Object.values(KSYK_BUILDING_OUTLINES).map((p) => (
+          <linearGradient key={`grad-${p.letter}`} id={`wingGrad-${p.letter}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={p.stroke} stopOpacity={darkMode ? 0.22 : 0.18} />
+            <stop offset="100%" stopColor={p.stroke} stopOpacity={darkMode ? 0.1 : 0.1} />
+          </linearGradient>
+        ))}
+        {settings.showGrid && !settings.useOsmBasemap && (
+          <pattern id="spaceGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? "#334155" : "#e2e8f0"} strokeWidth="0.6" />
+          </pattern>
+        )}
+        <marker id="routeArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0 0 L8 4 L0 8 z" fill="#2563eb" />
+        </marker>
+        <radialGradient id="herePulse">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {settings.showGrid && !settings.useOsmBasemap && (
+        <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#spaceGrid)" />
+      )}
+
+      {/* Campus plate — hide in OSM mode (tiles replace it) */}
+      {!settings.useOsmBasemap && (
+        <rect
+          x={campusPlate.x}
+          y={campusPlate.y}
+          width={campusPlate.w}
+          height={campusPlate.h}
+          rx={28}
+          fill={darkMode ? "#1e293b" : "#ffffff"}
+          stroke={darkMode ? "#475569" : "#cbd5e1"}
+          strokeWidth={2}
+          opacity={darkMode ? 0.92 : 0.97}
+        />
+      )}
+
+      {layers.wings &&
+        campusBuildings.map((building) => {
+          const letter = building.name;
+          const preset = KSYK_BUILDING_OUTLINES[letter];
+          const shape = preset?.shape ?? parseBuildingShape(building);
+          const pathD = outlineToPath(shape);
+          const isSel = selectedBuilding?.name === letter || highlightLetter === letter;
+          const isHover = hoveredWing === letter;
+          const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
+          const anchor = getLabelAnchor(shape);
+          const bounds = getShapeBounds(shape);
+          // In OSM mode, always show labels (we can't reliably compute pxPerUnit relative to leaflet)
+          const showLabel = layers.labels && (settings.useOsmBasemap || Math.min(bounds.width, bounds.height) * pxPerUnit > 40);
+
+          return (
+            <g
+              key={building.id}
+              data-map-feature="building"
+              className="cursor-pointer"
+              filter="url(#wingShadow)"
+              onMouseEnter={() => setHoveredWing(letter)}
+              onMouseLeave={() => setHoveredWing(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedBuilding(building);
+                setSelectedRoom(null);
+                focusBuilding(letter);
+              }}
+            >
+              <path d={pathD} fill={`url(#wingGrad-${letter})`} stroke="none" />
+              <path
+                d={pathD}
+                fill="none"
+                stroke={isSel ? "#fbbf24" : isHover ? "#93c5fd" : stroke}
+                strokeWidth={isSel ? 4 : isHover ? 3 : 2.2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <path
+                d={pathD}
+                fill="none"
+                stroke={darkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.55)"}
+                strokeWidth={0.8}
+                strokeLinejoin="round"
+              />
+              {showLabel && preset && (
+                <>
+                  <rect
+                    x={anchor.x - 56}
+                    y={anchor.y - 12}
+                    width={112}
+                    height={24}
+                    rx={12}
+                    fill={darkMode ? "rgba(15,23,42,0.88)" : "rgba(255,255,255,0.96)"}
+                    stroke={darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}
+                    strokeWidth={1}
+                    className="pointer-events-none"
+                  />
+                  <text
+                    x={anchor.x}
+                    y={anchor.y + 1}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill={stroke}
+                    fontSize="11"
+                    fontWeight="700"
+                    letterSpacing="0.04em"
+                    className="pointer-events-none"
+                  >
+                    {(isFi ? preset.nameFi : preset.nameEn).toUpperCase()}
+                  </text>
+                </>
+              )}
+            </g>
+          );
+        })}
+
+      {layers.rooms &&
+        floorRooms.map((room) => {
+          const x = room.mapPositionX ?? 0;
+          const y = room.mapPositionY ?? 0;
+          const w = room.width ?? 56;
+          const h = room.height ?? 40;
+          const fill = getRoomFillColor(room.type, room.currentStatus);
+          const isSel = selectedRoom?.id === room.id;
+          const isHover = hoveredRoomId === room.id;
+          const status = room.currentStatus || "unknown";
+          const statusColor = ROOM_STATUS_COLORS[status as keyof typeof ROOM_STATUS_COLORS] ?? ROOM_STATUS_COLORS.unknown;
+          const roomMinPx = Math.min(w, h) * pxPerUnit;
+          // In OSM mode always show labels (leaflet zoom handles visibility differently)
+          const showLabel = settings.useOsmBasemap || roomMinPx >= 28;
+          const iconD = pathForRoomType(room.type);
+          const showIcon = !!iconD && (settings.useOsmBasemap || roomMinPx >= 60);
+          const showStatus = (settings.useOsmBasemap || roomMinPx >= 32) && status !== "unknown";
+          const iconSize = Math.max(12, Math.min(26, Math.min(w, h) * 0.4));
+
+          return (
+            <g
+              key={room.id}
+              data-map-feature="room"
+              className="cursor-pointer"
+              filter={isSel || isHover ? "url(#roomGlow)" : undefined}
+              onMouseEnter={() => setHoveredRoomId(room.id)}
+              onMouseLeave={() => setHoveredRoomId(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (e.shiftKey) {
+                  setNavTo({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
+                } else if (e.altKey) {
+                  setNavFrom({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
+                } else {
+                  focusRoom(room);
+                }
+              }}
+            >
+              <rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                rx={4}
+                fill={fill}
+                fillOpacity={isHover || isSel ? 1 : 0.88}
+                stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.95)"}
+                strokeWidth={isSel ? 2.5 : isHover ? 1.8 : 1}
+              />
+              {showIcon && (
+                <g
+                  transform={`translate(${x + w / 2 - iconSize / 2} ${y + (showLabel ? h / 2 - iconSize - 1 : h / 2 - iconSize / 2)}) scale(${iconSize / 24})`}
+                  className="pointer-events-none"
+                >
+                  <path d={iconD!} fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </g>
+              )}
+              {showLabel && (
+                <text
+                  x={x + w / 2}
+                  y={y + (showIcon ? h - 7 : h / 2)}
+                  textAnchor="middle"
+                  dominantBaseline={showIcon ? "auto" : "middle"}
+                  fill="#fff"
+                  fontSize={Math.min(12, Math.max(9, w / 6))}
+                  fontWeight="700"
+                  className="pointer-events-none"
+                  style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.7 }}
+                >
+                  {room.roomNumber}
+                </text>
+              )}
+              {showStatus && (
+                <circle
+                  cx={x + w - 5}
+                  cy={y + 5}
+                  r={2.8}
+                  fill={statusColor}
+                  stroke={darkMode ? "#1e293b" : "#fff"}
+                  strokeWidth={0.8}
+                  className="pointer-events-none"
+                />
+              )}
+            </g>
+          );
+        })}
+
+      {navFrom && navTo && (
+        <g className="pointer-events-none">
+          <line x1={navFrom.x} y1={navFrom.y} x2={navTo.x} y2={navTo.y} stroke="#3b82f6" strokeOpacity="0.25" strokeWidth="14" strokeLinecap="round" />
+          <line
+            x1={navFrom.x}
+            y1={navFrom.y}
+            x2={navTo.x}
+            y2={navTo.y}
+            stroke="#2563eb"
+            strokeWidth="4.5"
+            strokeLinecap="round"
+            strokeDasharray="10 8"
+            markerEnd="url(#routeArrow)"
+          >
+            <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.2s" repeatCount="indefinite" />
+          </line>
+          <circle cx={navFrom.x} cy={navFrom.y} r={9} fill="url(#herePulse)">
+            <animate attributeName="r" values="9;18;9" dur="2.2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={navFrom.x} cy={navFrom.y} r={6} fill="#3b82f6" stroke="#fff" strokeWidth={2} />
+          <circle cx={navTo.x} cy={navTo.y} r={8} fill="#ef4444" stroke="#fff" strokeWidth={2} />
+        </g>
+      )}
+    </>
+  );
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -726,8 +1025,25 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         )}
       </div>
 
-      {/* Map canvas */}
-      <div
+      {/* Map canvas — OSM basemap if enabled, otherwise the standalone SVG canvas */}
+      {settings.useOsmBasemap ? (
+        <div ref={mapRef} className="absolute inset-0">
+          <OsmBasemap
+            svgViewBox={{ x: baseViewBox.x, y: baseViewBox.y, w: baseViewBox.w, h: baseViewBox.h }}
+            onOverlayReady={setOverlayEl}
+            onReady={(m) => {
+              leafletMapRef.current = m;
+            }}
+            onView={(m) => {
+              const z = m.getZoom();
+              const lat = m.getCenter().lat;
+              const mpp = (156_543.034 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, z);
+              setLeafletMetersPerPx(mpp);
+            }}
+          />
+        </div>
+      ) : (
+        <div
         ref={mapRef}
         className={cn(
           "h-full w-full select-none",
@@ -741,12 +1057,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         onPointerUp={endPan}
         onPointerCancel={endPan}
         onPointerLeave={(e) => {
-          // Don't end pan if pointer just left the element; pointer capture should keep it active.
           if (!activePointers.current.has(e.pointerId)) return;
         }}
         onDoubleClick={(e) => {
           if ((e.target as HTMLElement).closest("[data-map-feature]")) return;
-          // Double-click to zoom in at cursor
           zoomAtClient(e.clientX, e.clientY, zoomFactor * zoomFactor);
         }}
       >
@@ -756,269 +1070,14 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           viewBox={formatViewBox(viewState)}
           preserveAspectRatio="xMidYMid meet"
         >
-          <defs>
-            <filter id="wingShadow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#0f172a" floodOpacity={darkMode ? 0.45 : 0.16} />
-            </filter>
-            <filter id="roomGlow">
-              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4" />
-            </filter>
-            {/* Per-wing gradients — flatter / less saturated than before for a calm MazeMap look */}
-            {Object.values(KSYK_BUILDING_OUTLINES).map((p) => (
-              <linearGradient
-                key={`grad-${p.letter}`}
-                id={`wingGrad-${p.letter}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor={p.stroke} stopOpacity={darkMode ? 0.22 : 0.18} />
-                <stop offset="100%" stopColor={p.stroke} stopOpacity={darkMode ? 0.1 : 0.1} />
-              </linearGradient>
-            ))}
-            {settings.showGrid && (
-              <pattern id="spaceGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? "#334155" : "#e2e8f0"} strokeWidth="0.6" />
-              </pattern>
-            )}
-            {/* Route arrow head */}
-            <marker id="routeArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0 0 L8 4 L0 8 z" fill="#2563eb" />
-            </marker>
-            {/* You-are-here ripple */}
-            <radialGradient id="herePulse">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {settings.showGrid && (
-            <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#spaceGrid)" />
-          )}
-
-          {/* Campus plate */}
-          <rect
-            x={campusPlate.x}
-            y={campusPlate.y}
-            width={campusPlate.w}
-            height={campusPlate.h}
-            rx={28}
-            fill={darkMode ? "#1e293b" : "#ffffff"}
-            stroke={darkMode ? "#475569" : "#cbd5e1"}
-            strokeWidth={2}
-            opacity={darkMode ? 0.92 : 0.97}
-          />
-
-          {layers.wings &&
-            campusBuildings.map((building) => {
-              const letter = building.name;
-              const preset = KSYK_BUILDING_OUTLINES[letter];
-              const shape = preset?.shape ?? parseBuildingShape(building);
-              const pathD = outlineToPath(shape);
-              const isSel = selectedBuilding?.name === letter || highlightLetter === letter;
-              const isHover = hoveredWing === letter;
-              const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
-              const anchor = getLabelAnchor(shape);
-              const bounds = getShapeBounds(shape);
-              const showLabel = layers.labels && Math.min(bounds.width, bounds.height) * pxPerUnit > 40;
-
-              return (
-                <g
-                  key={building.id}
-                  data-map-feature="building"
-                  className="cursor-pointer"
-                  filter="url(#wingShadow)"
-                  onMouseEnter={() => setHoveredWing(letter)}
-                  onMouseLeave={() => setHoveredWing(null)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedBuilding(building);
-                    setSelectedRoom(null);
-                    focusBuilding(letter);
-                  }}
-                >
-                  {/* Calm fill */}
-                  <path
-                    d={pathD}
-                    fill={`url(#wingGrad-${letter})`}
-                    stroke="none"
-                  />
-                  {/* Crisp architectural edge */}
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke={isSel ? "#fbbf24" : isHover ? "#93c5fd" : stroke}
-                    strokeWidth={isSel ? 4 : isHover ? 3 : 2.2}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                  {/* Subtle inner highlight */}
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke={darkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.55)"}
-                    strokeWidth={0.8}
-                    strokeLinejoin="round"
-                  />
-                  {showLabel && preset && (
-                    <>
-                      <rect
-                        x={anchor.x - 56}
-                        y={anchor.y - 12}
-                        width={112}
-                        height={24}
-                        rx={12}
-                        fill={darkMode ? "rgba(15,23,42,0.88)" : "rgba(255,255,255,0.96)"}
-                        stroke={darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}
-                        strokeWidth={1}
-                        className="pointer-events-none"
-                      />
-                      <text
-                        x={anchor.x}
-                        y={anchor.y + 1}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill={stroke}
-                        fontSize="11"
-                        fontWeight="700"
-                        letterSpacing="0.04em"
-                        className="pointer-events-none"
-                      >
-                        {(isFi ? preset.nameFi : preset.nameEn).toUpperCase()}
-                      </text>
-                    </>
-                  )}
-                </g>
-              );
-            })}
-
-          {layers.rooms &&
-            floorRooms.map((room) => {
-              const x = room.mapPositionX ?? 0;
-              const y = room.mapPositionY ?? 0;
-              const w = room.width ?? 56;
-              const h = room.height ?? 40;
-              const fill = getRoomFillColor(room.type, room.currentStatus);
-              const isSel = selectedRoom?.id === room.id;
-              const isHover = hoveredRoomId === room.id;
-              const status = room.currentStatus || "unknown";
-              const statusColor = ROOM_STATUS_COLORS[status as keyof typeof ROOM_STATUS_COLORS] ?? ROOM_STATUS_COLORS.unknown;
-
-              // Zoom-aware visibility: only show details when the room actually has screen real estate
-              const roomMinPx = Math.min(w, h) * pxPerUnit;
-              const showLabel = roomMinPx >= 28;
-              const iconD = pathForRoomType(room.type);
-              const showIcon = !!iconD && roomMinPx >= 60;
-              const showStatus = roomMinPx >= 32 && status !== "unknown";
-              const iconSize = Math.max(12, Math.min(26, Math.min(w, h) * 0.4));
-
-              return (
-                <g
-                  key={room.id}
-                  data-map-feature="room"
-                  className="cursor-pointer"
-                  filter={isSel || isHover ? "url(#roomGlow)" : undefined}
-                  onMouseEnter={() => setHoveredRoomId(room.id)}
-                  onMouseLeave={() => setHoveredRoomId(null)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (e.shiftKey) {
-                      setNavTo({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
-                    } else if (e.altKey) {
-                      setNavFrom({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
-                    } else {
-                      focusRoom(room);
-                    }
-                  }}
-                >
-                  <rect
-                    x={x}
-                    y={y}
-                    width={w}
-                    height={h}
-                    rx={4}
-                    fill={fill}
-                    fillOpacity={isHover || isSel ? 1 : 0.88}
-                    stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.95)"}
-                    strokeWidth={isSel ? 2.5 : isHover ? 1.8 : 1}
-                  />
-                  {showIcon && (
-                    <g
-                      transform={`translate(${x + w / 2 - iconSize / 2} ${y + (showLabel ? h / 2 - iconSize - 1 : h / 2 - iconSize / 2)}) scale(${iconSize / 24})`}
-                      className="pointer-events-none"
-                    >
-                      <path d={iconD!} fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </g>
-                  )}
-                  {showLabel && (
-                    <text
-                      x={x + w / 2}
-                      y={y + (showIcon ? h - 7 : h / 2)}
-                      textAnchor="middle"
-                      dominantBaseline={showIcon ? "auto" : "middle"}
-                      fill="#fff"
-                      fontSize={Math.min(12, Math.max(9, w / 6))}
-                      fontWeight="700"
-                      className="pointer-events-none"
-                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.7 }}
-                    >
-                      {room.roomNumber}
-                    </text>
-                  )}
-                  {showStatus && (
-                    <circle
-                      cx={x + w - 5}
-                      cy={y + 5}
-                      r={2.8}
-                      fill={statusColor}
-                      stroke={darkMode ? "#1e293b" : "#fff"}
-                      strokeWidth={0.8}
-                      className="pointer-events-none"
-                    />
-                  )}
-                </g>
-              );
-            })}
-
-          {/* Navigation route */}
-          {navFrom && navTo && (
-            <g className="pointer-events-none">
-              {/* Glow */}
-              <line
-                x1={navFrom.x}
-                y1={navFrom.y}
-                x2={navTo.x}
-                y2={navTo.y}
-                stroke="#3b82f6"
-                strokeOpacity="0.25"
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-              {/* Dashed route */}
-              <line
-                x1={navFrom.x}
-                y1={navFrom.y}
-                x2={navTo.x}
-                y2={navTo.y}
-                stroke="#2563eb"
-                strokeWidth="4.5"
-                strokeLinecap="round"
-                strokeDasharray="10 8"
-                markerEnd="url(#routeArrow)"
-              >
-                <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.2s" repeatCount="indefinite" />
-              </line>
-              {/* From marker */}
-              <circle cx={navFrom.x} cy={navFrom.y} r={9} fill="url(#herePulse)">
-                <animate attributeName="r" values="9;18;9" dur="2.2s" repeatCount="indefinite" />
-              </circle>
-              <circle cx={navFrom.x} cy={navFrom.y} r={6} fill="#3b82f6" stroke="#fff" strokeWidth={2} />
-              {/* To marker */}
-              <circle cx={navTo.x} cy={navTo.y} r={8} fill="#ef4444" stroke="#fff" strokeWidth={2} />
-            </g>
-          )}
+          {campusBody}
         </svg>
-      </div>
+        </div>
+      )}
+
+      {/* OSM mode — portal the campus visuals into the leaflet SVG overlay so they
+          pan/zoom/rotate with the basemap tiles. */}
+      {settings.useOsmBasemap && overlayEl && createPortal(campusBody, overlayEl)}
 
       {/* Zoom + compass */}
       <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 z-20 flex flex-col items-end gap-2">
@@ -1029,17 +1088,97 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           <Compass className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div className={cn(panel, "flex flex-col")}>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(zoomFactor)} title="Zoom in (+)">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-11 h-10 rounded-none"
+            onClick={() => {
+              if (settings.useOsmBasemap && leafletMapRef.current) {
+                leafletMapRef.current.zoomIn(0.5);
+              } else {
+                zoomView(zoomFactor);
+              }
+            }}
+            title="Zoom in (+)"
+          >
             <Plus className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none border-y" onClick={() => tweenView(baseViewBox)} title="Reset view (0)">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-11 h-10 rounded-none border-y"
+            onClick={() => {
+              if (settings.useOsmBasemap && leafletMapRef.current) {
+                leafletMapRef.current.flyTo(
+                  [settings.osmCenterLat, settings.osmCenterLng],
+                  settings.osmDefaultZoom,
+                  { duration: 0.4 }
+                );
+              } else {
+                tweenView(baseViewBox);
+              }
+            }}
+            title="Reset view (0)"
+          >
             <MapPin className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(2 - zoomFactor)} title="Zoom out (-)">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-11 h-10 rounded-none"
+            onClick={() => {
+              if (settings.useOsmBasemap && leafletMapRef.current) {
+                leafletMapRef.current.zoomOut(0.5);
+              } else {
+                zoomView(2 - zoomFactor);
+              }
+            }}
+            title="Zoom out (-)"
+          >
             <Minus className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {/* Mini-map — SVG mode only, bottom-left */}
+      {!settings.useOsmBasemap && (
+        <div
+          className={cn(
+            "absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-3 sm:bottom-4 z-20 pointer-events-none hidden sm:block",
+            panel,
+            "p-1 overflow-hidden"
+          )}
+          style={{ width: 120, height: 80 }}
+          title={isFi ? "Karttakartta" : "Overview"}
+        >
+          <svg
+            viewBox={`${campusPlate.x} ${campusPlate.y} ${campusPlate.w} ${campusPlate.h}`}
+            style={{ width: "100%", height: "100%" }}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {Object.values(KSYK_BUILDING_OUTLINES).map((preset) => (
+              <path
+                key={preset.letter}
+                d={outlineToPath(preset.shape)}
+                fill={preset.stroke}
+                fillOpacity={0.18}
+                stroke={preset.stroke}
+                strokeWidth="8"
+                strokeLinejoin="round"
+              />
+            ))}
+            <rect
+              x={viewState.x}
+              y={viewState.y}
+              width={viewState.w}
+              height={viewState.h}
+              fill="rgba(59,130,246,0.12)"
+              stroke="#3b82f6"
+              strokeWidth="8"
+            />
+          </svg>
+        </div>
+      )}
 
       {/* Scale bar */}
       <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 sm:bottom-4 z-20 pointer-events-none hidden sm:flex flex-col items-center">
