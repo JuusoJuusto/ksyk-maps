@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   parseBuildingShape,
   getShapeBounds,
+  getLabelAnchor,
   computeCampusViewBox,
   parseViewBox,
   formatViewBox,
@@ -557,6 +558,15 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     return () => window.removeEventListener("keydown", onKey);
   }, [baseViewBox, zoomFactor, maxFloor]);
 
+  // Effective screen pixels per world unit — used for zoom-aware detail visibility
+  const pxPerUnit = useMemo(() => {
+    const el = mapRef.current;
+    if (!el) return 0.5;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height || !viewState.w || !viewState.h) return 0.5;
+    return Math.min(rect.width / viewState.w, rect.height / viewState.h);
+  }, [viewState]);
+
   const [containerWidth, setContainerWidth] = useState(0);
   useEffect(() => {
     const el = mapRef.current;
@@ -747,16 +757,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            <filter id="wingShadow" x="-15%" y="-15%" width="130%" height="130%">
-              <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#0f172a" floodOpacity={darkMode ? 0.55 : 0.22} />
+            <filter id="wingShadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#0f172a" floodOpacity={darkMode ? 0.45 : 0.16} />
             </filter>
             <filter id="roomGlow">
               <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4" />
             </filter>
-            <filter id="roomShadow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="#0f172a" floodOpacity={darkMode ? 0.5 : 0.18} />
-            </filter>
-            {/* Per-wing gradients */}
+            {/* Per-wing gradients — flatter / less saturated than before for a calm MazeMap look */}
             {Object.values(KSYK_BUILDING_OUTLINES).map((p) => (
               <linearGradient
                 key={`grad-${p.letter}`}
@@ -766,14 +773,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 x2="0"
                 y2="1"
               >
-                <stop offset="0%" stopColor={p.stroke} stopOpacity={darkMode ? 0.32 : 0.36} />
-                <stop offset="100%" stopColor={p.stroke} stopOpacity={darkMode ? 0.14 : 0.18} />
+                <stop offset="0%" stopColor={p.stroke} stopOpacity={darkMode ? 0.22 : 0.18} />
+                <stop offset="100%" stopColor={p.stroke} stopOpacity={darkMode ? 0.1 : 0.1} />
               </linearGradient>
             ))}
-            {/* Hatched pattern for floors above ground */}
-            <pattern id="floorHatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="14" stroke={darkMode ? "#cbd5e1" : "#0f172a"} strokeOpacity="0.07" strokeWidth="1.4" />
-            </pattern>
             {settings.showGrid && (
               <pattern id="spaceGrid" width="40" height="40" patternUnits="userSpaceOnUse">
                 <path d="M 40 0 L 0 0 0 40" fill="none" stroke={darkMode ? "#334155" : "#e2e8f0"} strokeWidth="0.6" />
@@ -815,8 +818,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               const isSel = selectedBuilding?.name === letter || highlightLetter === letter;
               const isHover = hoveredWing === letter;
               const stroke = preset?.stroke ?? building.colorCode ?? "#2563eb";
+              const anchor = getLabelAnchor(shape);
               const bounds = getShapeBounds(shape);
-              const floorIsAbove = selectedFloor > 1;
+              const showLabel = layers.labels && Math.min(bounds.width, bounds.height) * pxPerUnit > 40;
 
               return (
                 <g
@@ -833,63 +837,54 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                     focusBuilding(letter);
                   }}
                 >
-                  {/* Soft fill base */}
+                  {/* Calm fill */}
                   <path
                     d={pathD}
                     fill={`url(#wingGrad-${letter})`}
                     stroke="none"
                   />
-                  {/* Hatch overlay for above-ground floors so users feel they're "above" */}
-                  {floorIsAbove && (
-                    <path d={pathD} fill="url(#floorHatch)" stroke="none" />
-                  )}
-                  {/* Outer crisp building edge — double stroke for that architectural feel */}
+                  {/* Crisp architectural edge */}
                   <path
                     d={pathD}
                     fill="none"
                     stroke={isSel ? "#fbbf24" : isHover ? "#93c5fd" : stroke}
-                    strokeWidth={isSel ? 5 : isHover ? 4 : 3}
+                    strokeWidth={isSel ? 4 : isHover ? 3 : 2.2}
                     strokeLinejoin="round"
                     strokeLinecap="round"
                   />
+                  {/* Subtle inner highlight */}
                   <path
                     d={pathD}
                     fill="none"
-                    stroke={darkMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.6)"}
-                    strokeWidth={1}
+                    stroke={darkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.55)"}
+                    strokeWidth={0.8}
                     strokeLinejoin="round"
                   />
-                  {layers.labels && preset && (
+                  {showLabel && preset && (
                     <>
                       <rect
-                        x={bounds.centerX - 76}
-                        y={bounds.centerY - 16}
-                        width={152}
-                        height={32}
-                        rx={16}
-                        fill={darkMode ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.94)"}
-                        stroke={darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.08)"}
+                        x={anchor.x - 56}
+                        y={anchor.y - 12}
+                        width={112}
+                        height={24}
+                        rx={12}
+                        fill={darkMode ? "rgba(15,23,42,0.88)" : "rgba(255,255,255,0.96)"}
+                        stroke={darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}
                         strokeWidth={1}
                         className="pointer-events-none"
                       />
-                      <circle
-                        cx={bounds.centerX - 58}
-                        cy={bounds.centerY}
-                        r={6}
-                        fill={stroke}
-                        className="pointer-events-none"
-                      />
                       <text
-                        x={bounds.centerX + 8}
-                        y={bounds.centerY + 1}
+                        x={anchor.x}
+                        y={anchor.y + 1}
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        fill={darkMode ? "#f8fafc" : "#0f172a"}
-                        fontSize="13"
+                        fill={stroke}
+                        fontSize="11"
                         fontWeight="700"
+                        letterSpacing="0.04em"
                         className="pointer-events-none"
                       >
-                        {isFi ? preset.nameFi : preset.nameEn}
+                        {(isFi ? preset.nameFi : preset.nameEn).toUpperCase()}
                       </text>
                     </>
                   )}
@@ -908,23 +903,26 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               const isHover = hoveredRoomId === room.id;
               const status = room.currentStatus || "unknown";
               const statusColor = ROOM_STATUS_COLORS[status as keyof typeof ROOM_STATUS_COLORS] ?? ROOM_STATUS_COLORS.unknown;
+
+              // Zoom-aware visibility: only show details when the room actually has screen real estate
+              const roomMinPx = Math.min(w, h) * pxPerUnit;
+              const showLabel = roomMinPx >= 28;
               const iconD = pathForRoomType(room.type);
-              const iconSize = Math.max(12, Math.min(28, Math.min(w, h) * 0.45));
-              const showIcon = !!iconD && Math.min(w, h) >= 36;
-              const showLabel = Math.min(w, h) >= 28;
+              const showIcon = !!iconD && roomMinPx >= 60;
+              const showStatus = roomMinPx >= 32 && status !== "unknown";
+              const iconSize = Math.max(12, Math.min(26, Math.min(w, h) * 0.4));
 
               return (
                 <g
                   key={room.id}
                   data-map-feature="room"
                   className="cursor-pointer"
-                  filter={isSel || isHover ? "url(#roomGlow)" : "url(#roomShadow)"}
+                  filter={isSel || isHover ? "url(#roomGlow)" : undefined}
                   onMouseEnter={() => setHoveredRoomId(room.id)}
                   onMouseLeave={() => setHoveredRoomId(null)}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (e.shiftKey) {
-                      // shift-click sets "to" for navigation
                       setNavTo({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
                     } else if (e.altKey) {
                       setNavFrom({ id: room.id, x: x + w / 2, y: y + h / 2, floor: room.floor ?? 1, label: room.roomNumber });
@@ -938,55 +936,46 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                     y={y}
                     width={w}
                     height={h}
-                    rx={6}
-                    fill={fill}
-                    stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "#0f172a" : "#fff"}
-                    strokeWidth={isSel ? 3 : isHover ? 2 : 1.5}
-                    opacity={isHover || isSel ? 1 : 0.95}
-                  />
-                  {/* Inner highlight for that subtle "lit" feel */}
-                  <rect
-                    x={x + 1.5}
-                    y={y + 1.5}
-                    width={Math.max(0, w - 3)}
-                    height={Math.max(0, Math.min(8, h / 3))}
                     rx={4}
-                    fill="rgba(255,255,255,0.18)"
-                    className="pointer-events-none"
+                    fill={fill}
+                    fillOpacity={isHover || isSel ? 1 : 0.88}
+                    stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.95)"}
+                    strokeWidth={isSel ? 2.5 : isHover ? 1.8 : 1}
                   />
                   {showIcon && (
                     <g
-                      transform={`translate(${x + w / 2 - iconSize / 2} ${y + (showLabel ? h / 2 - iconSize - 2 : h / 2 - iconSize / 2)}) scale(${iconSize / 24})`}
+                      transform={`translate(${x + w / 2 - iconSize / 2} ${y + (showLabel ? h / 2 - iconSize - 1 : h / 2 - iconSize / 2)}) scale(${iconSize / 24})`}
                       className="pointer-events-none"
                     >
-                      <path d={iconD!} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d={iconD!} fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                     </g>
                   )}
                   {showLabel && (
                     <text
                       x={x + w / 2}
-                      y={y + (showIcon ? h - 8 : h / 2)}
+                      y={y + (showIcon ? h - 7 : h / 2)}
                       textAnchor="middle"
                       dominantBaseline={showIcon ? "auto" : "middle"}
                       fill="#fff"
-                      fontSize={Math.min(13, Math.max(9, w / 5))}
+                      fontSize={Math.min(12, Math.max(9, w / 6))}
                       fontWeight="700"
                       className="pointer-events-none"
-                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.45)", strokeWidth: 0.8 }}
+                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.7 }}
                     >
                       {room.roomNumber}
                     </text>
                   )}
-                  {/* Status dot top-right */}
-                  <circle
-                    cx={x + w - 6}
-                    cy={y + 6}
-                    r={3.2}
-                    fill={statusColor}
-                    stroke="#fff"
-                    strokeWidth={1}
-                    className="pointer-events-none"
-                  />
+                  {showStatus && (
+                    <circle
+                      cx={x + w - 5}
+                      cy={y + 5}
+                      r={2.8}
+                      fill={statusColor}
+                      stroke={darkMode ? "#1e293b" : "#fff"}
+                      strokeWidth={0.8}
+                      className="pointer-events-none"
+                    />
+                  )}
                 </g>
               );
             })}
@@ -1246,67 +1235,6 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* Mini-map — bottom-right, above the zoom stack on desktop */}
-      <div
-        className={cn(
-          panel,
-          "absolute z-20 hidden md:block overflow-hidden pointer-events-auto",
-          "bottom-[12rem] right-3"
-        )}
-        style={{ width: 176, height: 108 }}
-        title={isFi ? "Pienoiskartta — klikkaa keskittääksesi" : "Mini-map — click to recenter"}
-      >
-        <div className="absolute top-1 left-2 z-10 text-[9px] font-bold uppercase tracking-wider text-muted-foreground pointer-events-none">
-          {isFi ? "Kampus" : "Campus"}
-        </div>
-        <svg
-          viewBox={`${campusPlate.x} ${campusPlate.y} ${campusPlate.w} ${campusPlate.h}`}
-          preserveAspectRatio="xMidYMid meet"
-          className="w-full h-full cursor-pointer"
-          onClick={(e) => {
-            const svg = e.currentTarget;
-            const rect = svg.getBoundingClientRect();
-            const px = (e.clientX - rect.left) / rect.width;
-            const py = (e.clientY - rect.top) / rect.height;
-            const cx = campusPlate.x + campusPlate.w * px;
-            const cy = campusPlate.y + campusPlate.h * py;
-            tweenView(clampView({ x: cx - viewState.w / 2, y: cy - viewState.h / 2, w: viewState.w, h: viewState.h }));
-          }}
-        >
-          <rect
-            x={campusPlate.x}
-            y={campusPlate.y}
-            width={campusPlate.w}
-            height={campusPlate.h}
-            fill={darkMode ? "#0f172a" : "#f8fafc"}
-          />
-          {campusBuildings.map((b) => {
-            const preset = KSYK_BUILDING_OUTLINES[b.name];
-            if (!preset) return null;
-            return (
-              <path
-                key={b.id}
-                d={outlineToPath(preset.shape)}
-                fill={preset.stroke}
-                fillOpacity={0.55}
-                stroke={preset.stroke}
-                strokeWidth={5}
-              />
-            );
-          })}
-          {/* Viewport rect */}
-          <rect
-            x={viewState.x}
-            y={viewState.y}
-            width={viewState.w}
-            height={viewState.h}
-            fill="rgba(59,130,246,0.2)"
-            stroke="#2563eb"
-            strokeWidth={7}
-            strokeDasharray="16 10"
-          />
-        </svg>
-      </div>
     </div>
   );
 }

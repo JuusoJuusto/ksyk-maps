@@ -10,6 +10,17 @@ import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
 import SessionTimeoutHandler from "@/components/SessionTimeoutHandler";
+
+/**
+ * Only run the Wilma session-timeout watcher when the user is actually inside Wilma.
+ * KSYK Maps is anonymous/public — no timeout should fire on /, /lunch, /hsl, etc.
+ */
+function WilmaScopedSessionTimeout() {
+  const [location] = useLocation();
+  const isWilma = location.startsWith("/wilma");
+  if (!isWilma) return null;
+  return <SessionTimeoutHandler />;
+}
 import CookieConsent from "@/components/CookieConsent";
 // Vercel Analytics removed - causing ERR_BLOCKED_BY_CLIENT errors
 // import { Analytics } from "@vercel/analytics/react";
@@ -219,7 +230,7 @@ function App() {
             <TooltipProvider>
               <HelpProvider>
                 <HelpBubble>
-                  <SessionTimeoutHandler />
+                  <WilmaScopedSessionTimeout />
                   <CookieConsent />
                   <Toaster />
                   <Router />

@@ -44,6 +44,61 @@ export function parseBuildingShape(building: BuildingMapData): MapPoint[] {
   ];
 }
 
+/**
+ * Geometric centroid of a polygon — correct for L-shapes and other concave footprints
+ * where the bounding-box center sits in the notch.
+ */
+export function polygonCentroid(points: MapPoint[]): MapPoint {
+  if (points.length < 3) return { x: 0, y: 0 };
+  let area = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    const cross = points[i].x * points[j].y - points[j].x * points[i].y;
+    area += cross;
+    cx += (points[i].x + points[j].x) * cross;
+    cy += (points[i].y + points[j].y) * cross;
+  }
+  area *= 0.5;
+  if (Math.abs(area) < 1e-6) {
+    // Degenerate polygon — fall back to bbox center.
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    return {
+      x: (Math.min(...xs) + Math.max(...xs)) / 2,
+      y: (Math.min(...ys) + Math.max(...ys)) / 2,
+    };
+  }
+  return { x: cx / (6 * area), y: cy / (6 * area) };
+}
+
+/** True if (px,py) is inside polygon (ray-casting). */
+export function isPointInPolygon(px: number, py: number, points: MapPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = points[i].x, yi = points[i].y;
+    const xj = points[j].x, yj = points[j].y;
+    const intersect = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * A label anchor that's guaranteed to sit inside the polygon. Uses the polygon
+ * centroid; falls back to the bbox center, then to the first vertex if needed.
+ */
+export function getLabelAnchor(points: MapPoint[]): MapPoint {
+  const c = polygonCentroid(points);
+  if (isPointInPolygon(c.x, c.y, points)) return c;
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const bbox = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  if (isPointInPolygon(bbox.x, bbox.y, points)) return bbox;
+  return points[0];
+}
+
 export function getShapeBounds(points: MapPoint[]) {
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
