@@ -1,6 +1,8 @@
 /**
- * KSYK Maps — Aalto Space–style campus map
+ * KSYK Maps — MazeMap-style campus map
  * Wing outlines + floor-based rooms + floating controls + bottom sheets
+ * - Single search source (from top bar); rooms deduped by id, ranked by relevance
+ * - Scale bar, compass, keyboard shortcuts (+/-/0/Esc/1-9 floor jump)
  */
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -25,10 +27,8 @@ import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Search,
   Plus,
   Minus,
   X,
@@ -37,6 +37,7 @@ import {
   Building2,
   ChevronRight,
   Users,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,14 +72,12 @@ type SearchHit =
   | { type: "building"; id: string; label: string; sub: string; letter: string }
   | { type: "room"; id: string; label: string; sub: string; room: Room };
 
-export default function KSYKMapView({ searchQuery: externalSearch = "", highlightLetter = null }: KSYKMapViewProps) {
+export default function KSYKMapView({ searchQuery = "", highlightLetter = null }: KSYKMapViewProps) {
   const { i18n } = useTranslation();
   const { darkMode } = useDarkMode();
   const { settings } = useAppSettings();
   const isFi = i18n.language === "fi";
 
-  const [localSearch, setLocalSearch] = useState("");
-  const searchQuery = externalSearch || localSearch;
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -156,40 +155,70 @@ export default function KSYKMapView({ searchQuery: externalSearch = "", highligh
   const searchHits = useMemo((): SearchHit[] => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
-    const hits: SearchHit[] = [];
+
+    // Score a candidate: exact match > startsWith > includes (higher is better).
+    const score = (s?: string | null): number => {
+      if (!s) return 0;
+      const v = s.toLowerCase();
+      if (v === q) return 100;
+      if (v.startsWith(q)) return 60;
+      if (v.includes(q)) return 30;
+      return 0;
+    };
+
+    type Scored = { hit: SearchHit; score: number };
+    const scored: Scored[] = [];
+
     for (const b of campusBuildings) {
       const label = isFi ? b.nameFi : b.nameEn;
-      if (
-        b.name.toLowerCase().includes(q) ||
-        label?.toLowerCase().includes(q) ||
-        b.nameEn?.toLowerCase().includes(q) ||
-        b.nameFi?.toLowerCase().includes(q)
-      ) {
-        hits.push({
-          type: "building",
-          id: b.id,
-          letter: b.name,
-          label: label || b.name,
-          sub: `${b.floors} ${isFi ? "kerrosta" : "floors"}`,
+      const s = Math.max(
+        score(b.name),
+        score(label),
+        score(b.nameEn),
+        score(b.nameFi)
+      );
+      if (s > 0) {
+        scored.push({
+          score: s + 5, // tiny bias so buildings appear above same-score rooms
+          hit: {
+            type: "building",
+            id: b.id,
+            letter: b.name,
+            label: label || b.name,
+            sub: `${b.floors} ${isFi ? "kerrosta" : "floors"}`,
+          },
         });
       }
     }
+
+    // Dedupe rooms by id (defends against API double-inserts)
+    const seenRoomIds = new Set<string>();
     for (const r of rooms) {
-      if (
-        r.roomNumber.toLowerCase().includes(q) ||
-        r.name?.toLowerCase().includes(q) ||
-        r.nameEn?.toLowerCase().includes(q)
-      ) {
-        hits.push({
-          type: "room",
-          id: r.id,
-          label: r.roomNumber,
-          sub: r.name || r.nameEn || "",
-          room: r,
+      if (!r.id || seenRoomIds.has(r.id)) continue;
+      const s = Math.max(
+        score(r.roomNumber),
+        score(r.name),
+        score(r.nameEn),
+        score(r.nameFi)
+      );
+      if (s > 0) {
+        seenRoomIds.add(r.id);
+        const floorLabel = `${isFi ? "Kerros" : "Floor"} ${r.floor ?? 1}`;
+        scored.push({
+          score: s,
+          hit: {
+            type: "room",
+            id: r.id,
+            label: r.roomNumber,
+            sub: [r.name || r.nameEn, floorLabel].filter(Boolean).join(" · "),
+            room: r,
+          },
         });
       }
     }
-    return hits.slice(0, 8);
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 8).map((x) => x.hit);
   }, [searchQuery, campusBuildings, rooms, isFi]);
 
   const baseViewBox = useMemo(
@@ -306,72 +335,107 @@ export default function KSYKMapView({ searchQuery: externalSearch = "", highligh
     } else {
       focusRoom(hit.room);
     }
-    setLocalSearch("");
   };
+
+  // Keyboard shortcuts (MazeMap-style)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        zoomView(zoomFactor);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        zoomView(2 - zoomFactor);
+      } else if (e.key === "0") {
+        e.preventDefault();
+        setViewState(baseViewBox);
+      } else if (e.key === "Escape") {
+        setSelectedBuilding(null);
+        setSelectedRoom(null);
+      } else if (/^[0-9]$/.test(e.key)) {
+        const n = parseInt(e.key, 10);
+        if (n >= 0 && n <= maxFloor) setSelectedFloor(n);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [baseViewBox, zoomFactor, maxFloor]);
+
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  // Scale bar: compute the world-units length corresponding to ~120 screen px
+  const scaleBarMeters = useMemo(() => {
+    if (!containerWidth) return { px: 100, label: "—" };
+    const unitsPerPx = viewState.w / containerWidth;
+    // 1 world-unit ≈ 0.1 m (calibrated to KSYK outline scale)
+    const targetPx = 120;
+    const worldUnits = targetPx * unitsPerPx;
+    const meters = worldUnits * 0.1;
+    const buckets = [1, 2, 5, 10, 20, 50, 100, 200, 500];
+    const nice = buckets.reduce((p, c) => (Math.abs(c - meters) < Math.abs(p - meters) ? c : p), buckets[0]);
+    const px = (nice / 0.1) / unitsPerPx;
+    return { px: Math.max(40, Math.min(220, px)), label: `${nice} m` };
+  }, [viewState, containerWidth]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* Search results (top bar or local search) */}
-      {searchQuery.trim() && searchHits.length > 0 && (
+      {/* Search results — MazeMap-style dropdown anchored to top bar */}
+      {searchQuery.trim() && (
         <div className="absolute top-2 left-2 right-14 sm:right-16 z-30 max-w-lg mx-auto sm:mx-0">
-          <div className={cn(panel, "max-h-56 overflow-y-auto shadow-2xl")}>
-            {searchHits.map((hit) => (
-              <button
-                key={`${hit.type}-${hit.id}`}
-                type="button"
-                className={cn(
-                  "w-full px-4 py-3 text-left border-b last:border-0 flex items-center justify-between gap-2 transition-colors",
-                  darkMode ? "border-gray-700/80 hover:bg-blue-950/40" : "border-gray-100 hover:bg-blue-50/80"
-                )}
-                onClick={() => onPickSearchHit(hit)}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {hit.type === "building" ? (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
-                      <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </span>
-                  ) : (
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold"
-                      style={{ backgroundColor: getRoomFillColor(hit.room.type, hit.room.currentStatus) }}
-                    >
-                      {hit.room.roomNumber.slice(0, 3)}
-                    </span>
+          <div className={cn(panel, "max-h-72 overflow-y-auto shadow-2xl")}>
+            {searchHits.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                {isFi ? "Ei tuloksia haulla " : "No results for "}<span className="font-medium">“{searchQuery}”</span>
+              </div>
+            ) : (
+              searchHits.map((hit) => (
+                <button
+                  key={`${hit.type}-${hit.id}`}
+                  type="button"
+                  className={cn(
+                    "w-full px-4 py-3 text-left border-b last:border-0 flex items-center justify-between gap-2 transition-colors",
+                    darkMode ? "border-gray-700/80 hover:bg-blue-950/40" : "border-gray-100 hover:bg-blue-50/80"
                   )}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm truncate">{hit.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">{hit.sub}</p>
+                  onClick={() => onPickSearchHit(hit)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {hit.type === "building" ? (
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+                        <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </span>
+                    ) : (
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold"
+                        style={{ backgroundColor: getRoomFillColor(hit.room.type, hit.room.currentStatus) }}
+                      >
+                        {hit.room.roomNumber.slice(0, 3)}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{hit.label}</p>
+                      <p className="text-xs text-muted-foreground truncate">{hit.sub}</p>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Local search when not using top bar */}
-      {!externalSearch && (
-        <div className="absolute top-3 left-3 right-14 z-30 max-w-md hidden sm:block">
-          <div className={panel}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder={isFi ? "Etsi tiloja, rakennuksia…" : "Search rooms, buildings…"}
-              className={cn(
-                "pl-10 pr-10 h-11 border-0 rounded-2xl text-sm bg-transparent",
-                darkMode ? "text-white" : ""
-              )}
-            />
-            {localSearch && (
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                onClick={() => setLocalSearch("")}
-              >
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              ))
             )}
           </div>
         </div>
@@ -661,19 +725,56 @@ export default function KSYKMapView({ searchQuery: externalSearch = "", highligh
         </svg>
       </div>
 
-      {/* Zoom */}
-      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 z-20">
+      {/* Zoom + compass */}
+      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] right-3 sm:bottom-4 z-20 flex flex-col items-end gap-2">
+        <div
+          className={cn(panel, "w-11 h-11 flex items-center justify-center")}
+          title={isFi ? "Pohjoinen ylös" : "North up"}
+        >
+          <Compass className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
         <div className={cn(panel, "flex flex-col")}>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(zoomFactor)}>
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(zoomFactor)} title="Zoom in (+)">
             <Plus className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none border-y" onClick={() => setViewState(baseViewBox)}>
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none border-y" onClick={() => setViewState(baseViewBox)} title="Reset view (0)">
             <MapPin className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(2 - zoomFactor)}>
+          <Button variant="ghost" size="sm" className="w-11 h-10 rounded-none" onClick={() => zoomView(2 - zoomFactor)} title="Zoom out (-)">
             <Minus className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+
+      {/* Scale bar */}
+      <div className="absolute bottom-[max(5.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 sm:bottom-4 z-20 pointer-events-none hidden sm:flex flex-col items-center">
+        <div
+          className={cn(
+            "h-2.5 border-2 border-b-0",
+            darkMode ? "border-gray-200 bg-gray-900/70" : "border-gray-900 bg-white/85"
+          )}
+          style={{ width: `${scaleBarMeters.px}px` }}
+        />
+        <span
+          className={cn(
+            "mt-1 px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded",
+            darkMode ? "bg-gray-900/85 text-gray-100" : "bg-white/90 text-gray-900"
+          )}
+        >
+          {scaleBarMeters.label}
+        </span>
+      </div>
+
+      {/* Keyboard shortcut hint */}
+      <div
+        className={cn(
+          "absolute top-3 left-3 z-20 hidden lg:block",
+          panel,
+          "px-2.5 py-1.5 text-[10px] font-mono text-muted-foreground"
+        )}
+        title={isFi ? "Pikanäppäimet" : "Shortcuts"}
+      >
+        + / − · 0 · 0–9 · Esc
       </div>
 
       {/* Building bottom sheet */}

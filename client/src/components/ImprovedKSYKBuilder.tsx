@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Building, Plus, Trash2, MousePointer, X, Undo, Redo, Square, 
-  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand, Minus
+import {
+  Plus, Trash2, MousePointer, X, Undo, Redo, Square,
+  Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand, Minus,
+  Copy as CopyIcon, Move,
 } from "lucide-react";
 import { getRoomFillColor } from "@/lib/campusSpace";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
@@ -26,13 +27,14 @@ export default function ImprovedKSYKBuilder() {
   const queryClient = useQueryClient();
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const [activeTool, setActiveTool] = useState<Tool>("outline");
+  const [activeTool, setActiveTool] = useState<Tool>("select");
   const [isDrawing, setIsDrawing] = useState(false);
   const [campusOutline, setCampusOutline] = useState<Point[]>([]);
   const [walls, setWalls] = useState<Point[][]>([]);
   const [currentWall, setCurrentWall] = useState<Point[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
   const [gridSize] = useState(50);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -45,6 +47,25 @@ export default function ImprovedKSYKBuilder() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isPanningCanvas, setIsPanningCanvas] = useState(false);
   const panDragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Drag state for moving rooms / resizing rooms
+  type DragState =
+    | { kind: "move"; ids: string[]; startMouse: Point; startBoxes: Record<string, { x: number; y: number }> }
+    | { kind: "resize"; id: string; corner: "tl" | "tr" | "bl" | "br"; startMouse: Point; startBox: { x: number; y: number; w: number; h: number } }
+    | null;
+  const [drag, setDrag] = useState<DragState>(null);
+
+  // Room edits history for undo/redo
+  const [roomHistory, setRoomHistory] = useState<any[][]>([]);
+  const [roomHistoryIndex, setRoomHistoryIndex] = useState(-1);
+  const pushRoomHistory = useCallback((next: any[]) => {
+    setRoomHistory((h) => {
+      const trimmed = h.slice(0, roomHistoryIndex + 1);
+      trimmed.push(next.map((r) => ({ ...r })));
+      return trimmed.slice(-50);
+    });
+    setRoomHistoryIndex((i) => Math.min(i + 1, 49));
+  }, [roomHistoryIndex]);
   
   const [roomData, setRoomData] = useState({
     roomNumber: "",
@@ -103,13 +124,14 @@ export default function ImprovedKSYKBuilder() {
   };
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (activeTool === "pan") {
+    // Middle-click / space-modifier pans even when not in pan tool
+    if (activeTool === "pan" || e.button === 1) {
       setIsPanningCanvas(true);
       panDragStart.current = { x: e.clientX, y: e.clientY, panX, panY };
       return;
     }
     const point = getSVGPoint(e);
-    
+
     if (activeTool === "outline") {
       setIsDrawing(true);
       setCampusOutline([...campusOutline, point]);
@@ -118,22 +140,200 @@ export default function ImprovedKSYKBuilder() {
       setCurrentWall([...currentWall, point]);
     } else if (activeTool === "room") {
       setRoomData({ ...roomData, x: point.x, y: point.y });
+    } else if (activeTool === "select") {
+      // Empty-canvas click clears selection
+      if (!(e.target as Element).closest("[data-room]")) {
+        setSelectedRoom(null);
+        setSelectedRoomIds(new Set());
+      }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (isPanningCanvas && activeTool === "pan") {
+    if (isPanningCanvas) {
       const dx = (e.clientX - panDragStart.current.x) * (1 / zoom);
       const dy = (e.clientY - panDragStart.current.y) * (1 / zoom);
       setPanX(panDragStart.current.panX - dx);
       setPanY(panDragStart.current.panY - dy);
       return;
     }
+
+    if (!drag) return;
+    const mouse = getSVGPoint(e);
+
+    if (drag.kind === "move") {
+      const dx = mouse.x - drag.startMouse.x;
+      const dy = mouse.y - drag.startMouse.y;
+      setRooms((rs) =>
+        rs.map((r) => {
+          const start = drag.startBoxes[r.id];
+          if (!start) return r;
+          const nx = snapToGrid({ x: start.x + dx, y: start.y + dy });
+          return { ...r, mapPositionX: nx.x, mapPositionY: nx.y, x: nx.x, y: nx.y };
+        })
+      );
+    } else if (drag.kind === "resize") {
+      const id = drag.id;
+      const { startBox, corner } = drag;
+      const mx = mouse.x;
+      const my = mouse.y;
+      let nx = startBox.x;
+      let ny = startBox.y;
+      let nw = startBox.w;
+      let nh = startBox.h;
+      if (corner === "br") {
+        nw = Math.max(40, mx - startBox.x);
+        nh = Math.max(40, my - startBox.y);
+      } else if (corner === "tr") {
+        nw = Math.max(40, mx - startBox.x);
+        ny = Math.min(startBox.y + startBox.h - 40, my);
+        nh = Math.max(40, startBox.y + startBox.h - ny);
+      } else if (corner === "bl") {
+        nx = Math.min(startBox.x + startBox.w - 40, mx);
+        nw = Math.max(40, startBox.x + startBox.w - nx);
+        nh = Math.max(40, my - startBox.y);
+      } else if (corner === "tl") {
+        nx = Math.min(startBox.x + startBox.w - 40, mx);
+        ny = Math.min(startBox.y + startBox.h - 40, my);
+        nw = Math.max(40, startBox.x + startBox.w - nx);
+        nh = Math.max(40, startBox.y + startBox.h - ny);
+      }
+      const snapped = snapToGrid({ x: nx, y: ny });
+      setRooms((rs) =>
+        rs.map((r) =>
+          r.id === id
+            ? { ...r, mapPositionX: snapped.x, mapPositionY: snapped.y, x: snapped.x, y: snapped.y, width: Math.round(nw / gridSize) * gridSize || nw, height: Math.round(nh / gridSize) * gridSize || nh }
+            : r
+        )
+      );
+    }
   };
 
   const handleMouseUp = () => {
     setIsPanningCanvas(false);
+    if (drag) {
+      pushRoomHistory(rooms);
+      setDrag(null);
+    }
   };
+
+  // Begin a move/resize drag from a room sub-element
+  const beginMoveRoom = (e: React.MouseEvent, roomId: string) => {
+    if (activeTool !== "select" && activeTool !== "pan") return;
+    if (activeTool === "pan") return;
+    e.stopPropagation();
+    const ids = e.shiftKey
+      ? Array.from(new Set([...selectedRoomIds, roomId]))
+      : selectedRoomIds.has(roomId)
+      ? Array.from(selectedRoomIds)
+      : [roomId];
+
+    setSelectedRoomIds(new Set(ids));
+    const r = rooms.find((x) => x.id === roomId);
+    setSelectedRoom(r || null);
+    if (r) {
+      setRoomData({
+        roomNumber: r.roomNumber,
+        name: r.name || "",
+        floor: r.floor ?? 1,
+        capacity: r.capacity ?? 30,
+        type: r.type || "classroom",
+        x: r.mapPositionX,
+        y: r.mapPositionY,
+        width: r.width,
+        height: r.height,
+      });
+      setBuilderFloor(r.floor ?? 1);
+    }
+
+    const startBoxes: Record<string, { x: number; y: number }> = {};
+    for (const id of ids) {
+      const rr = rooms.find((x) => x.id === id);
+      if (rr) startBoxes[id] = { x: rr.mapPositionX, y: rr.mapPositionY };
+    }
+    setDrag({ kind: "move", ids, startMouse: getSVGPoint(e as React.MouseEvent<SVGSVGElement>), startBoxes });
+  };
+
+  const beginResizeRoom = (e: React.MouseEvent, roomId: string, corner: "tl" | "tr" | "bl" | "br") => {
+    e.stopPropagation();
+    const r = rooms.find((x) => x.id === roomId);
+    if (!r) return;
+    setDrag({
+      kind: "resize",
+      id: roomId,
+      corner,
+      startMouse: getSVGPoint(e as React.MouseEvent<SVGSVGElement>),
+      startBox: { x: r.mapPositionX, y: r.mapPositionY, w: r.width, h: r.height },
+    });
+  };
+
+  const duplicateSelected = () => {
+    if (selectedRoomIds.size === 0) return;
+    const additions: any[] = [];
+    rooms.forEach((r) => {
+      if (selectedRoomIds.has(r.id)) {
+        additions.push({
+          ...r,
+          id: `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          mapPositionX: r.mapPositionX + gridSize,
+          mapPositionY: r.mapPositionY + gridSize,
+          x: r.mapPositionX + gridSize,
+          y: r.mapPositionY + gridSize,
+          _isLocalNew: true,
+        });
+      }
+    });
+    if (additions.length === 0) return;
+    const next = [...rooms, ...additions];
+    setRooms(next);
+    pushRoomHistory(next);
+    setSelectedRoomIds(new Set(additions.map((a) => a.id)));
+  };
+
+  const deleteSelected = () => {
+    if (selectedRoomIds.size === 0) return;
+    const next = rooms.filter((r) => !selectedRoomIds.has(r.id));
+    setRooms(next);
+    pushRoomHistory(next);
+    setSelectedRoomIds(new Set());
+    setSelectedRoom(null);
+  };
+
+  // Keyboard shortcuts in builder
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedRoomIds.size > 0) {
+        e.preventDefault();
+        deleteSelected();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        duplicateSelected();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (roomHistoryIndex > 0) {
+          const next = roomHistoryIndex - 1;
+          setRoomHistoryIndex(next);
+          setRooms(roomHistory[next] ? roomHistory[next].map((r) => ({ ...r })) : []);
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+        e.preventDefault();
+        if (roomHistoryIndex < roomHistory.length - 1) {
+          const next = roomHistoryIndex + 1;
+          setRoomHistoryIndex(next);
+          setRooms(roomHistory[next] ? roomHistory[next].map((r) => ({ ...r })) : []);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedRoom(null);
+        setSelectedRoomIds(new Set());
+      } else if (e.key === "v") setActiveTool("select");
+      else if (e.key === "h") setActiveTool("pan");
+      else if (e.key === "r") setActiveTool("room");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedRoomIds, rooms, roomHistory, roomHistoryIndex]);
 
   const finishOutline = () => {
     if (campusOutline.length >= 3) pushHistory(campusOutline);
@@ -201,6 +401,8 @@ export default function ImprovedKSYKBuilder() {
     }));
     setRooms(loaded);
     setDataLoaded(true);
+    setRoomHistory([loaded.map((r: any) => ({ ...r }))]);
+    setRoomHistoryIndex(0);
   }, [existingRooms, dataLoaded]);
 
   const validateRoomNumber = (roomNumber: string): boolean => {
@@ -245,19 +447,22 @@ export default function ImprovedKSYKBuilder() {
     
     const newRoom = {
       ...roomData,
-      id: `room-${Date.now()}`,
+      id: `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       building,
       mapPositionX: roomData.x,
-      mapPositionY: roomData.y
+      mapPositionY: roomData.y,
+      _isLocalNew: true,
     };
-    
-    setRooms([...rooms, newRoom]);
-    
-    // Reset form
+
+    const next = [...rooms, newRoom];
+    setRooms(next);
+    pushRoomHistory(next);
+
+    // Reset form (but advance the suggested position so successive adds don't stack)
     setRoomData({
       roomNumber: "",
       name: "",
-      floor: 1,
+      floor: roomData.floor,
       capacity: 30,
       type: "classroom",
       x: roomData.x + 120,
@@ -268,9 +473,39 @@ export default function ImprovedKSYKBuilder() {
   };
 
   const deleteRoom = (id: string) => {
-    setRooms((prev) => prev.filter((r) => r.id !== id));
+    const next = rooms.filter((r) => r.id !== id);
+    setRooms(next);
+    pushRoomHistory(next);
     setSelectedRoom(null);
+    setSelectedRoomIds((s) => {
+      const ns = new Set(s);
+      ns.delete(id);
+      return ns;
+    });
   };
+
+  // Apply panel edits to the currently selected room (live edit)
+  useEffect(() => {
+    if (!selectedRoom) return;
+    setRooms((rs) =>
+      rs.map((r) =>
+        r.id === selectedRoom.id
+          ? {
+              ...r,
+              roomNumber: roomData.roomNumber || r.roomNumber,
+              name: roomData.name,
+              floor: roomData.floor,
+              capacity: roomData.capacity,
+              type: roomData.type,
+              width: roomData.width,
+              height: roomData.height,
+            }
+          : r
+      )
+    );
+    // intentionally omit pushRoomHistory here — would spam history on every keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomData.name, roomData.floor, roomData.capacity, roomData.type, roomData.width, roomData.height]);
 
   // Group rooms by building
   const groupedRooms = rooms.reduce((acc, room) => {
@@ -280,20 +515,21 @@ export default function ImprovedKSYKBuilder() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  // Save to database
+  // Save to database — PATCH existing rooms, POST new ones (no more duplicates)
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Create buildings from grouped rooms
       const existingBuildingsRes = await fetch('/api/buildings', { credentials: 'include' });
       const existingBuildings = existingBuildingsRes.ok ? await existingBuildingsRes.json() : [];
 
+      // Build map of existing room ids (from the API load) so we can tell new from edited
+      const existingIds = new Set<string>(existingRooms.map((r: any) => r.id));
+
       const buildingPromises = Object.entries(groupedRooms).map(async ([buildingLetter, buildingRooms]) => {
-        // Calculate building bounds from rooms
         const minX = Math.min(...buildingRooms.map(r => r.mapPositionX));
         const minY = Math.min(...buildingRooms.map(r => r.mapPositionY));
         const maxX = Math.max(...buildingRooms.map(r => r.mapPositionX + r.width));
         const maxY = Math.max(...buildingRooms.map(r => r.mapPositionY + r.height));
-        
+
         const existing = existingBuildings.find(
           (b: { name?: string }) => b.name?.toUpperCase() === buildingLetter.toUpperCase()
         );
@@ -322,42 +558,63 @@ export default function ImprovedKSYKBuilder() {
               })
             })
           });
-          
+
           if (!buildingResponse.ok) throw new Error('Failed to create building');
           building = await buildingResponse.json();
         }
-        
-        // Create rooms for this building
-        const roomPromises = buildingRooms.map(room => 
-          fetch('/api/rooms', {
+
+        const roomPromises = buildingRooms.map((room) => {
+          const payload = {
+            buildingId: building.id,
+            roomNumber: room.roomNumber,
+            name: room.name,
+            nameEn: room.name,
+            floor: room.floor,
+            capacity: room.capacity,
+            type: room.type,
+            mapPositionX: room.mapPositionX,
+            mapPositionY: room.mapPositionY,
+            width: room.width,
+            height: room.height,
+          };
+
+          // If this id existed on the server, PATCH it; otherwise POST.
+          if (existingIds.has(room.id)) {
+            return fetch(`/api/rooms/${encodeURIComponent(room.id)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(payload),
+            });
+          }
+          return fetch('/api/rooms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({
-              buildingId: building.id,
-              roomNumber: room.roomNumber,
-              name: room.name,
-              nameEn: room.name,
-              floor: room.floor,
-              capacity: room.capacity,
-              type: room.type,
-              mapPositionX: room.mapPositionX,
-              mapPositionY: room.mapPositionY,
-              width: room.width,
-              height: room.height
-            })
-          })
-        );
-        
+            body: JSON.stringify(payload),
+          });
+        });
+
         await Promise.all(roomPromises);
       });
-      
+
       await Promise.all(buildingPromises);
+
+      // Delete server rooms the user removed locally
+      const localIds = new Set(rooms.map((r) => r.id));
+      const removedIds = [...existingIds].filter((id) => !localIds.has(id));
+      await Promise.all(
+        removedIds.map((id) =>
+          fetch(`/api/rooms/${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' })
+        )
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      alert('✅ Buildings and rooms saved successfully!');
+      // Reset internal flag so we pick up the saved IDs on next load
+      setDataLoaded(false);
+      alert('✅ Saved. Map updated.');
     },
     onError: (error) => {
       console.error('Save error:', error);
@@ -390,6 +647,14 @@ export default function ImprovedKSYKBuilder() {
   }, [historyIndex]);
 
   const undo = () => {
+    // Prefer room history (more user-visible) when there is something to undo,
+    // otherwise fall back to outline history.
+    if (roomHistoryIndex > 0) {
+      const next = roomHistoryIndex - 1;
+      setRoomHistoryIndex(next);
+      setRooms(roomHistory[next] ? roomHistory[next].map((r) => ({ ...r })) : []);
+      return;
+    }
     if (historyIndex <= 0) return;
     const next = historyIndex - 1;
     setHistoryIndex(next);
@@ -397,11 +662,20 @@ export default function ImprovedKSYKBuilder() {
   };
 
   const redo = () => {
+    if (roomHistoryIndex < roomHistory.length - 1) {
+      const next = roomHistoryIndex + 1;
+      setRoomHistoryIndex(next);
+      setRooms(roomHistory[next] ? roomHistory[next].map((r) => ({ ...r })) : []);
+      return;
+    }
     if (historyIndex >= history.length - 1) return;
     const next = historyIndex + 1;
     setHistoryIndex(next);
     setCampusOutline(history[next] ? [...history[next]] : []);
   };
+
+  const canUndo = roomHistoryIndex > 0 || historyIndex > 0;
+  const canRedo = roomHistoryIndex < roomHistory.length - 1 || historyIndex < history.length - 1;
 
   const loadWingOutline = (letter: string) => {
     const preset = KSYK_BUILDING_OUTLINES[letter];
@@ -495,11 +769,14 @@ export default function ImprovedKSYKBuilder() {
           {toolBtn("room", <Plus className="h-4 w-4 shrink-0" />, "Room")}
           {toolBtn("select", <MousePointer className="h-4 w-4 shrink-0" />, "Select")}
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" className="w-full h-8" onClick={undo} disabled={historyIndex <= 0} title="Undo">
+          <Button variant="ghost" size="sm" className="w-full h-8" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
             <Undo className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="w-full h-8" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
+          <Button variant="ghost" size="sm" className="w-full h-8" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
             <Redo className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setSnapEnabled((s) => !s)} title={snapEnabled ? "Snap on" : "Snap off"}>
+            <Grid3x3 className={`h-4 w-4 ${snapEnabled ? "text-blue-600" : "opacity-50"}`} />
           </Button>
         </aside>
 
@@ -762,50 +1039,63 @@ export default function ImprovedKSYKBuilder() {
             )}
             
             {/* Rooms (current floor) */}
-            {floorRooms.map((room) => (
-              <g key={room.id}>
-                <rect
-                  x={room.mapPositionX}
-                  y={room.mapPositionY}
-                  width={room.width}
-                  height={room.height}
-                  fill={getRoomFillColor(room.type, room.currentStatus)}
-                  stroke={selectedRoom?.id === room.id ? "#fbbf24" : "white"}
-                  strokeWidth={selectedRoom?.id === room.id ? 3 : 2}
-                  rx="4"
-                  opacity="0.92"
-                  className="cursor-pointer hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRoom(room);
-                    setRoomData({
-                      roomNumber: room.roomNumber,
-                      name: room.name || "",
-                      floor: room.floor ?? 1,
-                      capacity: room.capacity ?? 30,
-                      type: room.type || "classroom",
-                      x: room.mapPositionX,
-                      y: room.mapPositionY,
-                      width: room.width,
-                      height: room.height,
-                    });
-                    setBuilderFloor(room.floor ?? 1);
-                  }}
-                />
-                <text
-                  x={room.mapPositionX + room.width / 2}
-                  y={room.mapPositionY + room.height / 2}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill="white"
-                  fontSize="16"
-                  fontWeight="bold"
-                  style={{ pointerEvents: 'none' }}
-                >
-                  {room.roomNumber}
-                </text>
-              </g>
-            ))}
+            {floorRooms.map((room) => {
+              const isSelected = selectedRoomIds.has(room.id) || selectedRoom?.id === room.id;
+              const handleSize = 12;
+              return (
+                <g key={room.id} data-room={room.id}>
+                  <rect
+                    x={room.mapPositionX}
+                    y={room.mapPositionY}
+                    width={room.width}
+                    height={room.height}
+                    fill={getRoomFillColor(room.type, room.currentStatus)}
+                    stroke={isSelected ? "#fbbf24" : "white"}
+                    strokeWidth={isSelected ? 3 : 2}
+                    rx="4"
+                    opacity={isSelected ? 1 : 0.92}
+                    className={activeTool === "select" ? "cursor-move" : "cursor-pointer"}
+                    onMouseDown={(e) => beginMoveRoom(e, room.id)}
+                  />
+                  <text
+                    x={room.mapPositionX + room.width / 2}
+                    y={room.mapPositionY + room.height / 2}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="white"
+                    fontSize="16"
+                    fontWeight="bold"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {room.roomNumber}
+                  </text>
+                  {isSelected && activeTool === "select" && (
+                    <>
+                      {([
+                        ["tl", room.mapPositionX, room.mapPositionY, "nwse-resize"],
+                        ["tr", room.mapPositionX + room.width, room.mapPositionY, "nesw-resize"],
+                        ["bl", room.mapPositionX, room.mapPositionY + room.height, "nesw-resize"],
+                        ["br", room.mapPositionX + room.width, room.mapPositionY + room.height, "nwse-resize"],
+                      ] as const).map(([corner, cx, cy, cursor]) => (
+                        <rect
+                          key={corner}
+                          x={cx - handleSize / 2}
+                          y={cy - handleSize / 2}
+                          width={handleSize}
+                          height={handleSize}
+                          fill="#fbbf24"
+                          stroke="#0f172a"
+                          strokeWidth={1.5}
+                          rx={2}
+                          style={{ cursor }}
+                          onMouseDown={(e) => beginResizeRoom(e, room.id, corner)}
+                        />
+                      ))}
+                    </>
+                  )}
+                </g>
+              );
+            })}
           </svg>
           
           {/* Selected room bottom sheet */}
@@ -828,14 +1118,25 @@ export default function ImprovedKSYKBuilder() {
                     <span className="text-muted-foreground">Type</span>
                     <span className="font-medium">{selectedRoom.type}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setActiveTool("room"); setRoomData({ ...roomData, x: selectedRoom.mapPositionX, y: selectedRoom.mapPositionY }); }}>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setActiveTool("select")} title="Drag on canvas to move (Select tool)">
+                      <Move className="h-4 w-4 mr-1" />
                       Move
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => deleteRoom(selectedRoom.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="outline" size="sm" onClick={duplicateSelected} title="Duplicate (Ctrl+D)">
+                      <CopyIcon className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => deleteRoom(selectedRoom.id)} title="Delete (Del)">
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Del
                     </Button>
                   </div>
+                  {selectedRoomIds.size > 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedRoomIds.size} {`rooms selected — drag any to move all`}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
