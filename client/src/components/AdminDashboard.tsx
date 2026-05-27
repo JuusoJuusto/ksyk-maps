@@ -1456,7 +1456,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           if (!meta) return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-center gap-3 px-1 mt-1 mb-3">
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
                 <Icon className="h-5 w-5" />
               </div>
