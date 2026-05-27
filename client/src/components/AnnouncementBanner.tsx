@@ -89,13 +89,13 @@ export default function AnnouncementBanner() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
-        return "bg-red-100 text-red-800 border-red-300";
+        return "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700";
       case "high":
-        return "bg-orange-100 text-orange-800 border-orange-300";
+        return "bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700";
       case "normal":
-        return "bg-blue-100 text-blue-800 border-blue-300";
+        return "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600";
     }
   };
 
@@ -222,12 +222,12 @@ export default function AnnouncementBanner() {
           <DialogHeader>
             <div className="flex items-center justify-between mb-2">
               <DialogTitle className="text-2xl flex items-center">
-                <div className="bg-orange-100 p-2 rounded-full mr-3">
+                <div className="bg-orange-100 dark:bg-orange-900/40 p-2 rounded-full mr-3">
                   {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
                 <span>{getLocalizedTitle(currentAnnouncement)}</span>
               </DialogTitle>
-              <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+              <Badge className={getPriorityColor(currentAnnouncement.priority)}>
                 {currentAnnouncement.priority}
               </Badge>
             </div>
@@ -258,30 +258,27 @@ export default function AnnouncementBanner() {
           
           <div className="mt-4 space-y-4">
             <div className="prose max-w-none">
-              <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                 {getLocalizedContent(currentAnnouncement).split('\n').map((line, index) => {
-                  // Handle bullet points
                   if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
                     return (
                       <div key={index} className="flex items-start mb-2">
-                        <span className="text-blue-600 font-bold mr-2 mt-1">•</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-bold mr-2 mt-1">•</span>
                         <span>{line.trim().replace(/^[•-]\s*/, '')}</span>
                       </div>
                     );
                   }
-                  
-                  // Handle section headers (lines ending with :)
+
                   if (line.trim().endsWith(':') && line.trim().length < 60 && !line.includes('http')) {
                     return (
-                      <div key={index} className="font-semibold text-gray-900 mt-4 mb-2">
+                      <div key={index} className="font-semibold text-gray-900 dark:text-white mt-4 mb-2">
                         {line.trim()}
                       </div>
                     );
                   }
-                  
-                  // Handle separator lines
+
                   if (line.trim().startsWith('---') || line.trim().startsWith('━━━')) {
-                    return <hr key={index} className="my-4 border-gray-300" />;
+                    return <hr key={index} className="my-4 border-gray-300 dark:border-gray-600" />;
                   }
                   
                   // Empty lines
@@ -300,21 +297,21 @@ export default function AnnouncementBanner() {
             </div>
             
             {currentAnnouncement.priority === 'urgent' && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 dark:border-red-600 p-4 rounded">
                 <div className="flex items-center">
-                  <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                  <p className="text-sm text-red-700 font-semibold">
+                  <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400 mr-2" />
+                  <p className="text-sm text-red-700 dark:text-red-300 font-semibold">
                     Urgent Announcement
                   </p>
                 </div>
               </div>
             )}
-            
+
             {currentAnnouncement.priority === 'high' && (
-              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+              <div className="bg-orange-50 dark:bg-orange-950/30 border-l-4 border-orange-500 dark:border-orange-600 p-4 rounded">
                 <div className="flex items-center">
-                  <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
-                  <p className="text-sm text-orange-700 font-semibold">
+                  <AlertTriangle className="h-5 w-5 text-orange-500 dark:text-orange-400 mr-2" />
+                  <p className="text-sm text-orange-700 dark:text-orange-300 font-semibold">
                     High Priority
                   </p>
                 </div>
