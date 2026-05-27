@@ -286,6 +286,18 @@
   .scrollbar-thin {
     scrollbar-width: thin;
   }
+
+  /* Fully hidden scrollbar — used by the admin tab bar so the horizontal
+   * scroll doesn't clutter the chrome on small screens. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
   
   .scrollbar-thumb-blue-500::-webkit-scrollbar-thumb {
     background-color: #3b82f6;

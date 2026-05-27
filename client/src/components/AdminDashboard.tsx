@@ -19,14 +19,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building, 
-  Users, 
-  Calendar, 
-  Megaphone, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Building,
+  Users,
+  Calendar,
+  Megaphone,
+  Plus,
+  Edit,
+  Trash2,
   Save,
   X,
   MapPin,
@@ -39,7 +39,12 @@ import {
   Brain,
   Zap,
   Shield,
-  Box
+  Box,
+  LayoutDashboard,
+  GraduationCap,
+  Ticket,
+  ScrollText,
+  IdCard,
 } from "lucide-react";
 
 interface Building {
@@ -880,35 +885,37 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-11 gap-1">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-          <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
-          <TabsTrigger value="wilma" className="text-xs sm:text-sm">Wilma</TabsTrigger>
-          <TabsTrigger value="campus-map" className="text-xs sm:text-sm flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            Map
-          </TabsTrigger>
-          <TabsTrigger value="ksyk-builder" className="text-xs sm:text-sm flex items-center gap-1">
-            <Box className="h-3 w-3" />
-            Builder
-          </TabsTrigger>
-          <TabsTrigger value="tickets" className="text-xs sm:text-sm">Tickets</TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs</TabsTrigger>
-          <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>
-          <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
-          {isOwner && (
-            <TabsTrigger value="2fa" className="text-xs sm:text-sm flex items-center gap-1">
-              <Shield className="h-3 w-3" />
-              2FA
-            </TabsTrigger>
-          )}
-          {isOwner && (
-            <TabsTrigger value="settings" className="text-xs sm:text-sm flex items-center gap-1">
-              <Settings className="h-3 w-3" />
-              Settings
-            </TabsTrigger>
-          )}
-        </TabsList>
+        {/* Horizontally scrollable, icon-led tab bar — fits ~11 entries
+           cleanly on desktop and slides on mobile instead of cramming.
+           Each trigger is a pill with icon + label; active trigger gets
+           the primary fill via the underlying Radix data-state.
+           Sticky so it stays visible while scrolling content tabs. */}
+        <div className="-mx-1 px-1 overflow-x-auto scrollbar-none sticky top-0 z-20 py-2 bg-background/95 backdrop-blur-sm">
+          <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
+            {([
+              { value: "overview", label: "Overview", Icon: LayoutDashboard },
+              { value: "users", label: "Users", Icon: Users },
+              { value: "wilma", label: "Wilma", Icon: GraduationCap },
+              { value: "campus-map", label: "Map", Icon: MapPin },
+              { value: "ksyk-builder", label: "Builder", Icon: Box },
+              { value: "tickets", label: "Tickets", Icon: Ticket },
+              { value: "logs", label: "Logs", Icon: ScrollText },
+              { value: "staff", label: "Staff", Icon: IdCard },
+              { value: "announcements", label: "Announcements", Icon: Megaphone },
+              ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
+              ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
+            ]).map(({ value, label, Icon }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
+              >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
           {/* Quick stats — at-a-glance KPI cards */}

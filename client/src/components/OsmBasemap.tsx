@@ -147,6 +147,12 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
+      // Larger keepBuffer so rotation/pitch don't blank the corners that
+      // poke outside Leaflet's axis-aligned viewport. Cheap on mobile too —
+      // a few extra 256 px tiles.
+      keepBuffer: 6,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
       crossOrigin: true,
     }).addTo(map);
 
@@ -221,6 +227,12 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
+      // Larger keepBuffer so rotation/pitch don't blank the corners that
+      // poke outside Leaflet's axis-aligned viewport. Cheap on mobile too —
+      // a few extra 256 px tiles.
+      keepBuffer: 6,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
       crossOrigin: true,
       opacity: 0,
     }).addTo(map);
