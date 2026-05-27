@@ -479,6 +479,238 @@ function BuildingCard({
   );
 }
 
+// ── SchedulesManager ─────────────────────────────────────────────────────────
+// Inline sub-component — kept here so it shares the dashboard's toast context
+// and TanStack Query client without prop-drilling. Manages wilma_schedules
+// rows that the GET /api/rooms/:id/schedule endpoint reads back to the map.
+interface WilmaScheduleRow {
+  id: string;
+  studentId: string;
+  dayOfWeek: number;
+  timeSlot: string;
+  subject: string;
+  room: string;
+  teacherName: string;
+  teacherId?: string | null;
+  isActive: boolean;
+}
+
+const DAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri" };
+
+function SchedulesManager({ rooms }: { rooms: Room[] }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [filterRoom, setFilterRoom] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    room: "", dayOfWeek: 1, timeSlot: "08:00-09:30",
+    subject: "", teacherName: "", studentId: "00000",
+  });
+
+  const { data: schedules = [], isLoading } = useQuery<WilmaScheduleRow[]>({
+    queryKey: ["wilma-schedules-all"],
+    queryFn: async () => {
+      const r = await fetch("/api/wilma/schedules");
+      if (!r.ok) return [];
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const r = await fetch("/api/wilma/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ...data, isActive: true }),
+      });
+      if (!r.ok) throw new Error("Failed to create");
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wilma-schedules-all"] });
+      toast({ title: "Schedule entry added" });
+      setShowForm(false);
+      setForm({ room: "", dayOfWeek: 1, timeSlot: "08:00-09:30", subject: "", teacherName: "", studentId: "00000" });
+    },
+    onError: () => toast({ title: "Failed to add entry", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/wilma/schedules/${id}`, { method: "DELETE", credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wilma-schedules-all"] });
+      toast({ title: "Entry deleted" });
+    },
+    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+  });
+
+  const roomOptions = Array.from(new Set(rooms.map((r) => r.roomNumber).filter(Boolean))).sort();
+  const filtered = (schedules as WilmaScheduleRow[]).filter((s) =>
+    !filterRoom || s.room?.toUpperCase() === filterRoom.toUpperCase()
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={filterRoom}
+          onChange={(e) => setFilterRoom(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-w-[140px]"
+        >
+          <option value="">All rooms</option>
+          {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <span className="text-sm text-muted-foreground ml-1">
+          {filtered.length} entr{filtered.length === 1 ? "y" : "ies"}
+        </span>
+        <div className="flex-1" />
+        <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          Add entry
+        </Button>
+      </div>
+
+      {/* Add form */}
+      {showForm && (
+        <Card className="border border-gray-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold">New Schedule Entry</CardTitle>
+            <CardDescription className="text-xs">Adds a recurring weekly entry shown on the classroom schedule panel.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs mb-1 block">Room *</Label>
+                <select
+                  value={form.room}
+                  onChange={(e) => setForm({ ...form, room: e.target.value })}
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="">Select room…</option>
+                  {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Day *</Label>
+                <select
+                  value={form.dayOfWeek}
+                  onChange={(e) => setForm({ ...form, dayOfWeek: Number(e.target.value) })}
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  {Object.entries(DAY_LABELS).map(([v, label]) => (
+                    <option key={v} value={v}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Time slot *</Label>
+                <Input
+                  value={form.timeSlot}
+                  onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
+                  placeholder="08:00-09:30"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Subject *</Label>
+                <Input
+                  value={form.subject}
+                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                  placeholder="e.g. Mathematics"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Teacher</Label>
+                <Input
+                  value={form.teacherName}
+                  onChange={(e) => setForm({ ...form, teacherName: e.target.value })}
+                  placeholder="Teacher name"
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={!form.room || !form.subject || createMutation.isPending}
+                onClick={() => createMutation.mutate(form)}
+              >
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                Save entry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Schedule table */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-800 py-12 text-center">
+          <Calendar className="h-10 w-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" />
+          <p className="text-sm text-muted-foreground font-medium">No schedule entries yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Add entries above — they appear in the classroom panel on the map.</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/50">
+                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-2.5">Room</th>
+                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2.5">Day</th>
+                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2.5">Time</th>
+                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2.5">Subject</th>
+                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2.5 hidden sm:table-cell">Teacher</th>
+                <th className="px-3 py-2.5 w-10" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {filtered.map((s) => (
+                <tr key={s.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-mono text-xs font-bold">
+                      {s.room}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs font-medium">{DAY_LABELS[s.dayOfWeek] ?? s.dayOfWeek}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{s.timeSlot}</td>
+                  <td className="px-3 py-2.5 font-medium max-w-[12rem] truncate">{s.subject}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground text-xs hidden sm:table-cell">{s.teacherName || "—"}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      onClick={() => deleteMutation.mutate(s.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Entries are stored in <code className="font-mono bg-muted px-1 rounded">wilma_schedules</code> — the same table the map's classroom schedule panel reads.
+        Future Wilma sync will populate this automatically.
+      </p>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -843,6 +1075,7 @@ export default function AdminDashboard() {
               { value: "wilma", label: "Wilma", Icon: GraduationCap },
               { value: "campus-map", label: "Map", Icon: MapPin },
               { value: "ksyk-builder", label: "Builder", Icon: Box },
+              { value: "schedules", label: "Schedules", Icon: Calendar },
               { value: "tickets", label: "Tickets", Icon: Ticket },
               { value: "logs", label: "Logs", Icon: ScrollText },
               { value: "staff", label: "Staff", Icon: IdCard },
@@ -872,6 +1105,7 @@ export default function AdminDashboard() {
             wilma: { title: "Wilma", description: "Wilma school-system integration.", Icon: GraduationCap },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
             "ksyk-builder": { title: "Builder", description: "Rooms, floors and global map defaults.", Icon: Box },
+            schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
@@ -1500,6 +1734,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="logs" className="space-y-6">
           <AppLogsManager />
+        </TabsContent>
+
+        <TabsContent value="schedules" className="space-y-6">
+          <SchedulesManager rooms={rooms as Room[]} />
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-6">
