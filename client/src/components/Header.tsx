@@ -6,9 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { useToast } from "@/hooks/use-toast";
-import NavigationModal from "@/components/NavigationModal";
-import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Globe } from "lucide-react";
+import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +33,6 @@ export default function Header({
   const [currentLang, setCurrentLang] = useState(i18n.language);
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, neonUnlocked } = useTheme();
-  const { toast } = useToast();
-  const [showNavigationModal, setShowNavigationModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
@@ -97,13 +93,6 @@ export default function Header({
       sessionStorage.clear();
       window.location.href = "/";
     }
-  };
-
-  const handleNavigation = (from: string, to: string) => {
-    toast({
-      title: currentLang === 'fi' ? 'Reitti suunniteltu' : 'Route planned',
-      description: `${from} → ${to}`,
-    });
   };
 
   // ── Theme button helper ────────────────────────────────────────────────
@@ -415,11 +404,6 @@ export default function Header({
         </div>
       </div>
 
-      <NavigationModal
-        isOpen={showNavigationModal}
-        onClose={() => setShowNavigationModal(false)}
-        onNavigate={handleNavigation}
-      />
     </>
   );
 }

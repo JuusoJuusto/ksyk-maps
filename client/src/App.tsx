@@ -28,7 +28,6 @@ import { useEffect } from "react";
 import { trackPageView, trackEasterEgg, initAnalytics } from "@/lib/analytics";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import Landing from "@/pages/landing";
-import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import HSL from "@/pages/hsl";
@@ -150,8 +149,7 @@ function Router() {
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
       <Route path="/debug-buildings" component={DebugBuildings} />
-      <Route path="/classic" component={Home} />
-      <Route component={NotFound} />
+<Route component={NotFound} />
     </Switch>
   );
 }
