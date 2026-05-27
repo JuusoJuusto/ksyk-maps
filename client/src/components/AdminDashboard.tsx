@@ -1265,8 +1265,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Owner Access Only</h3>
-                <p className="text-gray-500">User management is restricted to the owner account for security.</p>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Owner Access Only</h3>
+                <p className="text-gray-500 dark:text-gray-400">User management is restricted to the owner account for security.</p>
               </CardContent>
             </Card>
           ) : (
@@ -1404,15 +1404,15 @@ export default function AdminDashboard({ section }: { section?: string }) {
                                       placeholder="Enter password"
                                       className="mt-2"
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                       User will use this password to login
                                     </p>
                                   </div>
                                 )}
-                                
+
                                 {newUser.passwordOption === "email" && (
-                                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                    <p className="text-sm text-blue-800">
+                                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-3">
+                                    <p className="text-sm text-blue-800 dark:text-blue-300">
                                       📧 An email will be sent to <strong>{newUser.email || "the user"}</strong> with instructions to set their password.
                                     </p>
                                   </div>
@@ -1443,7 +1443,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                                   placeholder="Enter new password"
                                   onChange={(e) => setEditingUser({...editingUser, newPassword: e.target.value})}
                                 />
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                   Leave empty to keep current password
                                 </p>
                               </div>
@@ -1590,16 +1590,16 @@ export default function AdminDashboard({ section }: { section?: string }) {
                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
                             <td className="px-4 py-3">
                               <Badge className={`capitalize text-xs font-semibold px-2 py-0.5 ${
-                                user.role === 'owner' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                                user.role === 'admin' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                user.role === 'user' ? 'bg-green-100 text-green-800 border-green-200' :
-                                'bg-gray-100 text-gray-600 border-gray-200'
+                                user.role === 'owner' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-700' :
+                                user.role === 'admin' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700' :
+                                user.role === 'user' ? 'bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700' :
+                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
                               }`}>
                                 {user.role}
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge className="bg-green-100 text-green-800">Active</Badge>
+                              <Badge className="bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300">Active</Badge>
                             </td>
                             <td className="px-4 py-3">
                               {user.email !== "JuusoJuusto112@gmail.com" && (
@@ -1662,7 +1662,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                         ))}
                         {users.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                               No users found. Click "Add User" to create one.
                             </td>
                           </tr>
@@ -2004,8 +2004,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
               {staff.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Staff Members</h3>
-                  <p className="text-gray-600 mb-6">Get started by adding your first staff member</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Staff Members</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">Get started by adding your first staff member</p>
                   <Button 
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={() => {
@@ -2095,21 +2095,21 @@ export default function AdminDashboard({ section }: { section?: string }) {
             <AppSettingsManager />
           
           {/* Danger Zone - Complete Data Cleanup */}
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
             <CardHeader>
-              <CardTitle className="text-red-800 flex items-center gap-2">
+              <CardTitle className="text-red-800 dark:text-red-300 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
                 Danger Zone - Complete Data Cleanup
               </CardTitle>
-              <CardDescription className="text-red-700">
+              <CardDescription className="text-red-700 dark:text-red-400">
                 ⚠️ This will permanently delete ALL buildings, rooms, hallways, stairs, announcements, and staff data. This action cannot be undone!
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Alert className="border-red-300 bg-red-100">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
+                <Alert className="border-red-300 dark:border-red-700 bg-red-100 dark:bg-red-950/50">
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <AlertDescription className="text-red-800 dark:text-red-300">
                     <strong>WARNING:</strong> This will completely empty the map and remove all data:
                     <ul className="list-disc list-inside mt-2 space-y-1">
                       <li>All buildings and their floor plans</li>
