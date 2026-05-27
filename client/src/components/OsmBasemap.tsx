@@ -186,8 +186,48 @@ export default function OsmBasemap({
     };
     tileLayerRef.current?.once("load", fireTilesLoaded);
     // Hard safety net — even if the load event never fires (cached tiles,
-    // offline, etc.) drop the skeleton after 3 s so we never block the UI.
-    const safety = window.setTimeout(fireTilesLoaded, 3000);
+    // offline, etc.) drop the skeleton after 6 s so we never block the UI.
+    const safety = window.setTimeout(fireTilesLoaded, 6000);
+
+    // Tile error recovery — when a tile fails (timeout / 5xx / CORS), redraw
+    // the layer up to 3 times then give up gracefully. Without this, a
+    // single transient network blip can leave permanent grey squares on
+    // the map. The retry runs the URL through Leaflet again, which on most
+    // CDNs hits a different shard.
+    const retries = new Map<string, number>();
+    const onTileError = (e: L.TileErrorEvent) => {
+      const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
+      const tries = (retries.get(key) ?? 0) + 1;
+      retries.set(key, tries);
+      if (tries > 3) return;
+      // Re-set the same URL — Leaflet treats it as a fresh load attempt
+      // and the CDN often serves it from a different shard.
+      const img = e.tile as HTMLImageElement;
+      window.setTimeout(() => {
+        if (!mapRef.current) return;
+        const src = img.src;
+        // Force reload by bouncing through about:blank — bypasses HTTP cache
+        // for failed requests on some browsers.
+        img.src = "";
+        img.src = src;
+      }, 400 * tries);
+    };
+    tileLayerRef.current?.on("tileerror", onTileError);
+
+    // Last-ditch: if NO tiles have rendered after 8 s, hard-redraw the
+    // layer (remove + re-add). Catches cases where the network came back
+    // online after the initial requests already failed.
+    const hardRedraw = window.setTimeout(() => {
+      const t = tileLayerRef.current;
+      if (!t || !mapRef.current) return;
+      // _tiles is Leaflet-internal; if any are "loaded" we're good.
+      const internal = t as unknown as { _tiles?: Record<string, { loaded?: boolean }> };
+      const anyLoaded = Object.values(internal._tiles ?? {}).some((tile) => tile.loaded);
+      if (!anyLoaded) {
+        map.removeLayer(t);
+        t.addTo(map);
+      }
+    }, 8000);
 
     // Mobile / first-paint resilience — Leaflet needs to know its container
     // size to load tiles. On mobile the container often reports 0×0 at
@@ -215,6 +255,8 @@ export default function OsmBasemap({
       cancelAnimationFrame(kickIds[0] as number);
       (kickIds.slice(1) as number[]).forEach((id) => window.clearTimeout(id));
       window.clearTimeout(safety);
+      window.clearTimeout(hardRedraw);
+      tileLayerRef.current?.off("tileerror", onTileError);
       ro.disconnect();
       window.removeEventListener("orientationchange", onOrient);
       window.removeEventListener("resize", onOrient);
@@ -334,29 +376,58 @@ export default function OsmBasemap({
     overlayRef.current?.setBounds(L.latLngBounds(campusBounds));
   }, [campusBounds]);
 
-  // CSS rotation + optional pitch (tilt) — pitch is purely visual, Leaflet hit-testing
-  // stays in 2D so values above ~30° will start to mis-align overlays.
+  // CSS rotation + optional pitch (tilt). Two things happen on rotation:
+  //   1) The .leaflet-map-pane gets the CSS rotate transform — visual.
+  //   2) The leaflet CONTAINER is oversized to the rotated bounding box
+  //      so Leaflet thinks its viewport is the larger rect and loads tiles
+  //      for it. Without that, the rotated corners stayed blank because
+  //      Leaflet still measured the axis-aligned visible area.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const container = containerRef.current;
+    if (!map || !container) return;
     const pane = map.getPane("mapPane");
     if (!pane) return;
+
+    const rotation = settings.osmRotationDeg || 0;
+    const pitch = Math.max(0, Math.min(45, settings.osmPitchDeg ?? 0));
+
+    // Rotated bounding box scale — for any rotation θ of a 1×1 rect,
+    // bbox edges grow to |cos θ| + |sin θ|. Max √2 at 45°.
+    const rad = (rotation * Math.PI) / 180;
+    const scale = Math.abs(Math.cos(rad)) + Math.abs(Math.sin(rad));
+    // Add a small slack so anti-aliased edges never reveal blank tile
+    // gutters at the rotation boundary.
+    const sizePct = Math.max(100, scale * 100 + 4);
+    const offsetPct = -(sizePct - 100) / 2;
+
     pane.style.transformOrigin = "50% 50%";
     pane.style.transition = "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)";
-    const pitch = Math.max(0, Math.min(45, settings.osmPitchDeg ?? 0));
-    pane.style.transform = pitch > 0
-      ? `perspective(1600px) rotateX(${pitch}deg) rotate(${settings.osmRotationDeg}deg)`
-      : `rotate(${settings.osmRotationDeg}deg)`;
-    // Immediate + post-transition kick so tile loads catch up with the
-    // (visually) larger bounding rect after rotation completes.
-    map.invalidateSize({ animate: false });
-    const t1 = window.setTimeout(() => map.invalidateSize({ animate: false }), 320);
-    const t2 = window.setTimeout(() => {
-      // Force Leaflet to re-evaluate which tiles to fetch after rotation
-      // by nudging the view to itself — keeps panning smooth and reloads
-      // missing corner tiles.
+    pane.style.transform =
+      pitch > 0
+        ? `perspective(1600px) rotateX(${pitch}deg) rotate(${rotation}deg)`
+        : `rotate(${rotation}deg)`;
+
+    // Oversize the inner container so Leaflet loads more tiles. The parent
+    // (set in JSX) has overflow:hidden so we only ever SEE the original
+    // area, but Leaflet's tile loader thinks it has the rotated bbox.
+    container.style.position = "absolute";
+    container.style.width = `${sizePct}%`;
+    container.style.height = `${sizePct}%`;
+    container.style.left = `${offsetPct}%`;
+    container.style.top = `${offsetPct}%`;
+    container.style.transition =
+      "width 300ms ease, height 300ms ease, left 300ms ease, top 300ms ease";
+
+    // Tell Leaflet to recompute — fires tile load for the bigger area.
+    const reflow = () => {
+      if (!mapRef.current) return;
+      map.invalidateSize({ animate: false });
       map.setView(map.getCenter(), map.getZoom(), { animate: false });
-    }, 360);
+    };
+    reflow();
+    const t1 = window.setTimeout(reflow, 320);
+    const t2 = window.setTimeout(reflow, 700);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
@@ -365,11 +436,12 @@ export default function OsmBasemap({
 
   return (
     <div
-      ref={containerRef}
-      className={className}
+      className={`${className ?? ""} relative overflow-hidden`}
       role="application"
       aria-label="OpenStreetMap campus view"
       style={{ width: "100%", height: "100%" }}
-    />
+    >
+      <div ref={containerRef} className="absolute inset-0" />
+    </div>
   );
 }

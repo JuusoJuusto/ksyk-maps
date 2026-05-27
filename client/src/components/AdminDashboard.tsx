@@ -957,6 +957,43 @@ export default function AdminDashboard() {
           </TabsList>
         </div>
 
+        {/* Section header — auto-rendered from the current tab so every
+           section gets a consistent title + description without touching
+           each TabsContent. Sits between the tab bar and content. */}
+        {(() => {
+          const sectionMeta: Record<string, { title: string; description: string; Icon: typeof LayoutDashboard }> = {
+            overview: { title: "Overview", description: "At-a-glance state of the campus.", Icon: LayoutDashboard },
+            users: { title: "Users", description: "Manage Wilma and admin accounts.", Icon: Users },
+            wilma: { title: "Wilma", description: "Wilma school-system integration.", Icon: GraduationCap },
+            "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
+            "ksyk-builder": { title: "Builder", description: "Rooms, floors and global map defaults.", Icon: Box },
+            tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
+            logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
+            staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
+            announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
+            "2fa": { title: "Two-Factor Auth", description: "Enroll and manage 2FA for your account.", Icon: Shield },
+            settings: { title: "Settings", description: "Global application configuration.", Icon: Settings },
+          };
+          const meta = sectionMeta[activeTab];
+          if (!meta) return null;
+          const Icon = meta.Icon;
+          return (
+            <div className="flex items-center gap-3 px-1 mt-1 mb-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-bold tracking-tight leading-tight">
+                  {meta.title}
+                </h2>
+                <p className="text-xs text-muted-foreground leading-tight truncate">
+                  {meta.description}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
         <TabsContent value="overview" className="space-y-6">
           {/* Quick stats — at-a-glance KPI cards, each navigates to its tab */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
