@@ -466,6 +466,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {/* ── Map (the one and only) ─────────────────────────────────── */}
       <OsmBasemap
         svgViewBox={{ x: baseViewBox.x, y: baseViewBox.y, w: baseViewBox.w, h: baseViewBox.h }}
+        // Only mount the campus SVG overlay once we actually have rooms to
+        // draw — otherwise Leaflet renders an empty positioned SVG box at
+        // the campus bounds, which can show through as a "ghost square".
+        enableOverlay={(rooms as Room[]).length > 0}
         onOverlayReady={setOverlayEl}
         onReady={(m) => {
           leafletMapRef.current = m;
@@ -478,7 +482,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         }}
         className="absolute inset-0"
       />
-      {overlayEl && createPortal(campusBody, overlayEl)}
+      {overlayEl && (rooms as Room[]).length > 0 && createPortal(campusBody, overlayEl)}
 
       {/* ── Search results dropdown ────────────────────────────────── */}
       {searchQuery.trim() && (

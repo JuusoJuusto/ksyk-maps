@@ -1,4 +1,4 @@
-import { KSYK_MAPS_LOGO_ALT, KSYK_MAPS_LOGO_SRCSET } from "@/lib/branding";
+import { KSYK_MAPS_LOGO_ALT } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type KSYKLogoProps = {
@@ -31,13 +31,11 @@ export default function KSYKLogo({ className, size = "lg", priority = false }: K
   const px = SIZE_PX[size];
   return (
     <img
-      // Pin a single, correctly-sized PNG per logical size. This is more
-      // predictable than srcset+sizes (which let the browser pull the
-      // 512 / 1024 PNG on high-DPR phones — that was the "wrong mobile logo"
-      // bug). Sharp on every device, no oversized downloads.
+      // Pin a single, correctly-sized PNG per logical size. NO srcset —
+      // browsers were picking icon-512.png on high-DPR mobiles even when
+      // we set sizes="64px". The "wrong mobile logo" bug came from there.
+      // One src per logical size means the same crisp PNG on every device.
       src={FIXED_SRC[size]}
-      srcSet={KSYK_MAPS_LOGO_SRCSET}
-      sizes={`${px}px`}
       width={px}
       height={px}
       alt={KSYK_MAPS_LOGO_ALT}

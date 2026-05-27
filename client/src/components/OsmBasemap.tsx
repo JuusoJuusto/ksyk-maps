@@ -25,6 +25,10 @@ interface OsmBasemapProps {
   onReady?: (map: L.Map) => void;
   onView?: (map: L.Map) => void;
   className?: string;
+  /** Whether to mount the campus SVG overlay at all. When false, no SVG
+   * element is added to Leaflet (no possible "ghost square" artifact).
+   * Default false — caller flips this to true when it has rooms to draw. */
+  enableOverlay?: boolean;
 }
 
 function metersToLatDeg(m: number) {
@@ -34,7 +38,14 @@ function metersToLngDeg(m: number, atLat: number) {
   return m / (111_320 * Math.cos((atLat * Math.PI) / 180));
 }
 
-export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView, className }: OsmBasemapProps) {
+export default function OsmBasemap({
+  svgViewBox,
+  onOverlayReady,
+  onReady,
+  onView,
+  className,
+  enableOverlay = false,
+}: OsmBasemapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const overlayRef = useRef<L.SVGOverlay | null>(null);
@@ -135,7 +146,7 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
       crossOrigin: true,
     }).addTo(map);
 
-    if (overlaySvgRef.current) {
+    if (enableOverlay && overlaySvgRef.current) {
       overlayRef.current = L.svgOverlay(overlaySvgRef.current, campusBounds, {
         interactive: true,
         bubblingMouseEvents: false,
@@ -147,13 +158,40 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     mapRef.current = map;
     setReady(true);
     onReady?.(map);
-    if (overlaySvgRef.current) onOverlayReady?.(overlaySvgRef.current);
+    if (enableOverlay && overlaySvgRef.current) onOverlayReady?.(overlaySvgRef.current);
 
     const view = () => onView?.(map);
     map.on("move zoom", view);
     view(); // fire once immediately so callers have the initial scale
 
+    // Mobile / first-paint resilience — Leaflet needs to know its container
+    // size to load tiles. On mobile the container often reports 0×0 at
+    // mount (hidden / animating / safe-area), so kick it a few times.
+    const kick = () => {
+      if (!mapRef.current) return;
+      map.invalidateSize({ animate: false, pan: false });
+    };
+    const kickIds = [
+      requestAnimationFrame(kick),
+      window.setTimeout(kick, 80),
+      window.setTimeout(kick, 250),
+      window.setTimeout(kick, 600),
+    ];
+
+    // Live resize observer + orientation change — also covers the case
+    // where the device is rotated (portrait↔landscape).
+    const ro = new ResizeObserver(kick);
+    if (containerRef.current) ro.observe(containerRef.current);
+    const onOrient = () => kick();
+    window.addEventListener("orientationchange", onOrient);
+    window.addEventListener("resize", onOrient);
+
     return () => {
+      cancelAnimationFrame(kickIds[0] as number);
+      (kickIds.slice(1) as number[]).forEach((id) => window.clearTimeout(id));
+      ro.disconnect();
+      window.removeEventListener("orientationchange", onOrient);
+      window.removeEventListener("resize", onOrient);
       map.off("move zoom", view);
       map.remove();
       mapRef.current = null;
@@ -224,15 +262,29 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     settings.osmMaxBoundsWest,
   ]);
 
-  // Center / zoom updates
+  // Center / zoom updates — lifts the maxBounds restriction during flight
+  // so we can reach a centre that lives outside the previous bounds (e.g.
+  // when admin drags the centre to a new spot before re-defining bounds).
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     map.setMinZoom(settings.osmMinZoom);
     map.setMaxZoom(settings.osmMaxZoom);
+    const wasBounded = settings.osmMaxBoundsEnabled;
+    if (wasBounded) map.setMaxBounds(null as unknown as L.LatLngBoundsExpression);
     map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
       duration: 0.5,
     });
+    if (wasBounded) {
+      const t = setTimeout(() => {
+        const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];
+        const ne: L.LatLngTuple = [settings.osmMaxBoundsNorth, settings.osmMaxBoundsEast];
+        if (sw[0] < ne[0] && sw[1] < ne[1]) {
+          map.setMaxBounds(L.latLngBounds(sw, ne));
+        }
+      }, 700);
+      return () => clearTimeout(t);
+    }
   }, [
     settings.osmCenterLat,
     settings.osmCenterLng,
@@ -259,7 +311,20 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     pane.style.transform = pitch > 0
       ? `perspective(1600px) rotateX(${pitch}deg) rotate(${settings.osmRotationDeg}deg)`
       : `rotate(${settings.osmRotationDeg}deg)`;
-    map.invalidateSize();
+    // Immediate + post-transition kick so tile loads catch up with the
+    // (visually) larger bounding rect after rotation completes.
+    map.invalidateSize({ animate: false });
+    const t1 = window.setTimeout(() => map.invalidateSize({ animate: false }), 320);
+    const t2 = window.setTimeout(() => {
+      // Force Leaflet to re-evaluate which tiles to fetch after rotation
+      // by nudging the view to itself — keeps panning smooth and reloads
+      // missing corner tiles.
+      map.setView(map.getCenter(), map.getZoom(), { animate: false });
+    }, 360);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
   }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 
   return (

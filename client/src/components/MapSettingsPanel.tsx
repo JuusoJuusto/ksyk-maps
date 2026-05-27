@@ -142,8 +142,19 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
           height={260}
           mode={previewMode}
           onPick={(lat, lng) => {
+            // Shift the maxBounds box so it stays centred on the new
+            // location. Otherwise the home/reset button can't fly to a
+            // centre that lives outside stale bounds.
+            const dLat = lat - settings.osmCenterLat;
+            const dLng = lng - settings.osmCenterLng;
             update("osmCenterLat", lat);
             update("osmCenterLng", lng);
+            if (settings.osmMaxBoundsEnabled) {
+              update("osmMaxBoundsNorth", +(settings.osmMaxBoundsNorth + dLat).toFixed(6));
+              update("osmMaxBoundsSouth", +(settings.osmMaxBoundsSouth + dLat).toFixed(6));
+              update("osmMaxBoundsEast", +(settings.osmMaxBoundsEast + dLng).toFixed(6));
+              update("osmMaxBoundsWest", +(settings.osmMaxBoundsWest + dLng).toFixed(6));
+            }
           }}
           onBounds={(b) => {
             update("osmMaxBoundsNorth", b.north);
@@ -255,7 +266,14 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
               value={settings.osmCenterLat}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
-                if (Number.isFinite(v)) update("osmCenterLat", Math.max(-90, Math.min(90, v)));
+                if (!Number.isFinite(v)) return;
+                const next = Math.max(-90, Math.min(90, v));
+                const d = next - settings.osmCenterLat;
+                update("osmCenterLat", next);
+                if (settings.osmMaxBoundsEnabled) {
+                  update("osmMaxBoundsNorth", +(settings.osmMaxBoundsNorth + d).toFixed(6));
+                  update("osmMaxBoundsSouth", +(settings.osmMaxBoundsSouth + d).toFixed(6));
+                }
               }}
               className="h-9 text-sm font-mono"
             />
@@ -270,7 +288,14 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
               value={settings.osmCenterLng}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
-                if (Number.isFinite(v)) update("osmCenterLng", Math.max(-180, Math.min(180, v)));
+                if (!Number.isFinite(v)) return;
+                const next = Math.max(-180, Math.min(180, v));
+                const d = next - settings.osmCenterLng;
+                update("osmCenterLng", next);
+                if (settings.osmMaxBoundsEnabled) {
+                  update("osmMaxBoundsEast", +(settings.osmMaxBoundsEast + d).toFixed(6));
+                  update("osmMaxBoundsWest", +(settings.osmMaxBoundsWest + d).toFixed(6));
+                }
               }}
               className="h-9 text-sm font-mono"
             />
