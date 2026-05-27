@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3, Trophy } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import EasterEggStats from '@/components/EasterEggStats';
+import { useDarkMode } from '@/contexts/DarkModeContext';
+import { cn } from '@/lib/utils';
 
 interface LoginLog {
   id: string;
@@ -47,6 +49,7 @@ interface LiveActivity {
 type LogEntry = LoginLog | AppLog;
 
 export default function AppLogsManager() {
+  const { darkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('all');
 
   const { data: loginLogs = [], isLoading: loginLogsLoading } = useQuery({
@@ -187,10 +190,10 @@ export default function AppLogsManager() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className={cn(darkMode && "bg-gray-900 border-gray-700")}>
         <CardContent className="p-12 text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading logs...</p>
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading logs...</p>
         </CardContent>
       </Card>
     );
@@ -199,22 +202,23 @@ export default function AppLogsManager() {
   const renderLoginLog = (log: LoginLog) => (
     <div
       key={log.id}
-      className={`border rounded-lg p-4 transition-all hover:shadow-md ${
+      className={cn(
+        'border rounded-lg p-4 transition-all hover:shadow-md',
         log.loginStatus === 'success'
-          ? 'border-green-200 bg-green-50'
-          : 'border-red-200 bg-red-50'
-      }`}
+          ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30'
+          : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30'
+      )}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-3">
           {log.loginStatus === 'success' ? (
-            <CheckCircle className="h-6 w-6 text-green-600" />
+            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
           ) : (
-            <XCircle className="h-6 w-6 text-red-600" />
+            <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
           )}
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 dark:text-white">
                 {log.userName || 'Unknown User'}
               </span>
               <Badge variant={log.loginStatus === 'success' ? 'default' : 'destructive'}>
@@ -223,12 +227,12 @@ export default function AppLogsManager() {
               <Badge variant="outline">LOGIN</Badge>
             </div>
             <div className="flex items-center space-x-2 mt-1">
-              <Mail className="h-3 w-3 text-gray-500" />
-              <span className="text-sm text-gray-600">{log.email}</span>
+              <Mail className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">{log.email}</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
+        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <Clock className="h-4 w-4" />
           <span>{formatDate(log.createdAt)}</span>
         </div>
@@ -236,13 +240,13 @@ export default function AppLogsManager() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
         {log.ipAddress && (
-          <div className="flex items-center space-x-2 text-gray-600">
+          <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
             <Monitor className="h-4 w-4" />
             <span>IP: {log.ipAddress}</span>
           </div>
         )}
         {log.sessionId && (
-          <div className="flex items-center space-x-2 text-gray-600">
+          <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
             <User className="h-4 w-4" />
             <span className="truncate">Session: {log.sessionId.substring(0, 16)}...</span>
           </div>
@@ -250,13 +254,13 @@ export default function AppLogsManager() {
       </div>
 
       {log.failureReason && (
-        <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-800">
+        <div className="mt-3 p-2 bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-300">
           <strong>Failure Reason:</strong> {log.failureReason}
         </div>
       )}
 
       {log.userAgent && (
-        <div className="mt-2 text-xs text-gray-500 truncate">
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 truncate">
           {log.userAgent}
         </div>
       )}
@@ -265,10 +269,10 @@ export default function AppLogsManager() {
 
   const renderAppLog = (log: AppLog) => {
     const levelConfig = {
-      info: { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-      success: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
-      warning: { icon: AlertTriangle, color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' },
-      error: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
+      info: { icon: Info, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800' },
+      success: { icon: CheckCircle, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-800' },
+      warning: { icon: AlertTriangle, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-700' },
+      error: { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800' },
     };
 
     const config = levelConfig[log.level];
@@ -284,26 +288,26 @@ export default function AppLogsManager() {
             <Icon className={`h-6 w-6 ${config.color}`} />
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-semibold text-gray-900">{log.message}</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{log.message}</span>
                 <Badge variant="outline">{log.level.toUpperCase()}</Badge>
                 {log.action && <Badge variant="secondary">{log.action}</Badge>}
               </div>
               {log.userName && (
                 <div className="flex items-center space-x-2 mt-1">
-                  <User className="h-3 w-3 text-gray-500" />
-                  <span className="text-sm text-gray-600">{log.userName}</span>
+                  <User className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{log.userName}</span>
                 </div>
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
             <Clock className="h-4 w-4" />
             <span>{formatDate(log.createdAt)}</span>
           </div>
         </div>
 
         {log.details && (
-          <div className="mt-2 text-sm text-gray-700 pl-9">
+          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 pl-9">
             {log.details}
           </div>
         )}
@@ -400,15 +404,15 @@ export default function AppLogsManager() {
             </TabsList>
 
             <TabsContent value="live" className="mt-4">
-              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-800 font-semibold">Live Activity Feed</span>
-                  <Badge variant="outline" className="text-green-700 border-green-300">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-green-800 dark:text-green-300 font-semibold">Live Activity Feed</span>
+                  <Badge variant="outline" className="text-green-700 dark:text-green-400 border-green-300 dark:border-green-700">
                     Real-time
                   </Badge>
                 </div>
-                <p className="text-sm text-green-700 mt-1">
+                <p className="text-sm text-green-700 dark:text-green-400 mt-1">
                   Showing real user activity on KSYK Maps (updates every 10 seconds)
                 </p>
               </div>
@@ -418,14 +422,14 @@ export default function AppLogsManager() {
                   {analyticsEvents.length === 0 ? (
                     <div className="text-center py-12">
                       <Eye className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Live Activity</h3>
-                      <p className="text-gray-500">User activity will appear here in real-time</p>
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Live Activity</h3>
+                      <p className="text-gray-500 dark:text-gray-400">User activity will appear here in real-time</p>
                     </div>
                   ) : (
                     analyticsEvents.map((event: any) => (
                       <div
                         key={event.id}
-                        className="border rounded-lg p-4 transition-all hover:shadow-md bg-white border-gray-200 hover:border-blue-300"
+                        className="border rounded-lg p-4 transition-all hover:shadow-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center space-x-3">
@@ -439,12 +443,12 @@ export default function AppLogsManager() {
                             </div>
                             <div>
                               <div className="flex items-center space-x-2">
-                                <span className="font-medium text-gray-900">{event.message}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{event.message}</span>
                                 <Badge variant="outline" className="text-xs">
                                   {event.type.replace('_', ' ').toUpperCase()}
                                 </Badge>
                               </div>
-                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
                                 {event.userId && (
                                   <div className="flex items-center space-x-1">
                                     <User className="h-3 w-3" />
@@ -460,13 +464,13 @@ export default function AppLogsManager() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4" />
                             <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
                           </div>
                         </div>
                         {event.details && (
-                          <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-2 rounded">
                             {event.details}
                           </div>
                         )}
@@ -483,8 +487,8 @@ export default function AppLogsManager() {
                   {allLogs.length === 0 ? (
                     <div className="text-center py-12">
                       <Activity className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Logs Yet</h3>
-                      <p className="text-gray-500">Activity will appear here</p>
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Logs Yet</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Activity will appear here</p>
                     </div>
                   ) : (
                     allLogs.map((log) => 
@@ -501,8 +505,8 @@ export default function AppLogsManager() {
                   {loginLogs.length === 0 ? (
                     <div className="text-center py-12">
                       <Shield className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Login Logs Yet</h3>
-                      <p className="text-gray-500">Login activity will appear here</p>
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Login Logs Yet</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Login activity will appear here</p>
                     </div>
                   ) : (
                     loginLogs.map((log: LoginLog) => renderLoginLog(log))
@@ -517,8 +521,8 @@ export default function AppLogsManager() {
                   {appLogs.length === 0 ? (
                     <div className="text-center py-12">
                       <Info className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No App Logs Yet</h3>
-                      <p className="text-gray-500">Application events will appear here</p>
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No App Logs Yet</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Application events will appear here</p>
                     </div>
                   ) : (
                     appLogs.map((log: AppLog) => renderAppLog(log))
@@ -537,7 +541,7 @@ export default function AppLogsManager() {
                         <Users className="h-8 w-8 text-blue-600" />
                         <div>
                           <p className="text-2xl font-bold">{analyticsSummary?.totalVisitors || 0}</p>
-                          <p className="text-sm text-gray-600">Total Visitors</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Total Visitors</p>
                         </div>
                       </div>
                     </CardContent>
@@ -548,7 +552,7 @@ export default function AppLogsManager() {
                         <Monitor className="h-8 w-8 text-green-600" />
                         <div>
                           <p className="text-2xl font-bold">{analyticsSummary?.totalPageViews || 0}</p>
-                          <p className="text-sm text-gray-600">Page Views</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Page Views</p>
                         </div>
                       </div>
                     </CardContent>
@@ -559,7 +563,7 @@ export default function AppLogsManager() {
                         <Search className="h-8 w-8 text-purple-600" />
                         <div>
                           <p className="text-2xl font-bold">{analyticsSummary?.totalSearches || 0}</p>
-                          <p className="text-sm text-gray-600">Searches</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Searches</p>
                         </div>
                       </div>
                     </CardContent>
@@ -570,7 +574,7 @@ export default function AppLogsManager() {
                         <Navigation className="h-8 w-8 text-orange-600" />
                         <div>
                           <p className="text-2xl font-bold">{analyticsSummary?.totalNavigationRequests || 0}</p>
-                          <p className="text-sm text-gray-600">Navigation</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Navigation</p>
                         </div>
                       </div>
                     </CardContent>
@@ -653,12 +657,12 @@ export default function AppLogsManager() {
                               <span className="font-medium">"{search.query}"</span>
                               <Badge variant="outline" className="text-xs">{search.type}</Badge>
                             </div>
-                            <span className="text-sm text-gray-600">{search.count} times</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{search.count} times</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center text-gray-500 py-4">
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
                         No search data available yet
                       </div>
                     )}
@@ -678,14 +682,14 @@ export default function AppLogsManager() {
                             <div className="flex items-center space-x-2">
                               <MapPin className="h-4 w-4 text-gray-500" />
                               <span className="font-medium">{room.roomNumber}</span>
-                              <span className="text-sm text-gray-600">({room.building})</span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">({room.building})</span>
                             </div>
-                            <span className="text-sm text-gray-600">{room.visits} visits</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{room.visits} visits</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center text-gray-500 py-4">
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
                         No room visit data available yet
                       </div>
                     )}
@@ -709,13 +713,13 @@ export default function AppLogsManager() {
                             <div key={index} className="flex justify-between items-center">
                               <span className="font-medium">{country.country}</span>
                               <div className="flex items-center space-x-2">
-                                <div className="w-24 bg-gray-200 rounded-full h-2">
-                                  <div 
+                                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div
                                     className="bg-blue-600 h-2 rounded-full"
                                     style={{ width: `${(country.count / (analyticsSummary.topCountries[0]?.count || 1)) * 100}%` }}
                                   />
                                 </div>
-                                <span className="text-sm text-gray-600 w-12 text-right">{country.count}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{country.count}</span>
                               </div>
                             </div>
                           ))}
@@ -732,7 +736,7 @@ export default function AppLogsManager() {
                         </ResponsiveContainer>
                       </>
                     ) : (
-                      <div className="text-center text-gray-500 py-4">
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
                         No geographic data available yet
                       </div>
                     )}
@@ -752,13 +756,13 @@ export default function AppLogsManager() {
                             <div key={index} className="flex justify-between items-center">
                               <span className="font-medium">{browser.browser}</span>
                               <div className="flex items-center space-x-2">
-                                <div className="w-24 bg-gray-200 rounded-full h-2">
-                                  <div 
+                                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div
                                     className="bg-green-600 h-2 rounded-full"
                                     style={{ width: `${(browser.count / (analyticsSummary.topBrowsers[0]?.count || 1)) * 100}%` }}
                                   />
                                 </div>
-                                <span className="text-sm text-gray-600 w-12 text-right">{browser.count}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{browser.count}</span>
                               </div>
                             </div>
                           ))}
@@ -784,7 +788,7 @@ export default function AppLogsManager() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div className="text-center text-gray-500 py-4">
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
                         No browser data available yet
                       </div>
                     )}
@@ -798,23 +802,23 @@ export default function AppLogsManager() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {analyticsSummary?.avgSessionDuration ? Math.floor(analyticsSummary.avgSessionDuration / 60) : 0}m {analyticsSummary?.avgSessionDuration ? Math.round(analyticsSummary.avgSessionDuration % 60) : 0}s
                         </div>
-                        <div className="text-sm text-gray-600">Avg Session Duration</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Avg Session Duration</div>
                       </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">
+                      <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-100 dark:border-green-900">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {analyticsSummary?.peakHours?.join(', ') || 'N/A'}
                         </div>
-                        <div className="text-sm text-gray-600">Peak Hours</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Peak Hours</div>
                       </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">
+                      <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900">
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                           {Math.round((1 - (analyticsSummary?.bounceRate || 0)) * 100)}%
                         </div>
-                        <div className="text-sm text-gray-600">Engagement Rate</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Engagement Rate</div>
                       </div>
                     </div>
                   </CardContent>

@@ -6,17 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Ticket, 
-  AlertCircle, 
-  CheckCircle, 
-  Clock, 
+import {
+  Ticket,
+  AlertCircle,
+  CheckCircle,
+  Clock,
   XCircle,
   Send,
   Eye,
   Filter,
   Search
 } from 'lucide-react';
+import { useDarkMode } from '@/contexts/DarkModeContext';
+import { cn } from '@/lib/utils';
 
 const RESPONSE_TEMPLATES = {
   resolved: `Thank you for reporting this issue. We've investigated and resolved the problem.
@@ -25,12 +27,12 @@ The fix has been deployed and should be live now. Please let us know if you cont
 
 Best regards,
 KSYK Maps Support Team`,
-  
+
   investigating: `Thank you for your report. We're currently investigating this issue and will update you as soon as we have more information.
 
 Best regards,
 KSYK Maps Support Team`,
-  
+
   needsInfo: `Thank you for contacting us. To help resolve your issue, we need some additional information:
 
 - [Please specify what information you need]
@@ -39,7 +41,7 @@ Please reply with these details and we'll continue investigating.
 
 Best regards,
 KSYK Maps Support Team`,
-  
+
   notABug: `Thank you for your report. After investigation, we've determined this is working as intended.
 
 [Explain why this is expected behavior]
@@ -105,6 +107,7 @@ KSYK Maps Support Team`,
 
 export default function TicketManager() {
   const queryClient = useQueryClient();
+  const { darkMode } = useDarkMode();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [response, setResponse] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -115,22 +118,22 @@ export default function TicketManager() {
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: async () => {
-      const response = await fetch('/api/tickets', { credentials: 'include' });
-      if (!response.ok) throw new Error('Failed to fetch tickets');
-      return response.json();
+      const res = await fetch('/api/tickets', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch tickets');
+      return res.json();
     },
   });
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/tickets/${id}`, {
+      const res = await fetch(`/api/tickets/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
         credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to update ticket');
-      return response.json();
+      if (!res.ok) throw new Error('Failed to update ticket');
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
@@ -141,27 +144,19 @@ export default function TicketManager() {
 
   const deleteTicketMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('🗑️ Deleting ticket:', id);
-      const response = await fetch(`/api/tickets/${id}`, {
+      const res = await fetch(`/api/tickets/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Delete failed:', error);
-        throw new Error('Failed to delete ticket');
-      }
-      console.log('✅ Ticket deleted successfully');
-      return response.json();
+      if (!res.ok) throw new Error('Failed to delete ticket');
+      return res.json();
     },
     onSuccess: () => {
-      console.log('♻️ Refreshing ticket list...');
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setSelectedTicket(null);
       setDeleteConfirm(null);
     },
-    onError: (error) => {
-      console.error('❌ Delete error:', error);
+    onError: () => {
       alert('Failed to delete ticket. Please try again.');
     }
   });
@@ -193,37 +188,27 @@ export default function TicketManager() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'resolved': return 'bg-green-100 text-green-800 border-green-300';
-      case 'closed': return 'bg-gray-100 text-gray-800 border-gray-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case 'pending': return 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700';
+      case 'in_progress': return 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+      case 'resolved': return 'bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700';
+      case 'closed': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-300';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'normal': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'low': return 'bg-gray-100 text-gray-800 border-gray-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case 'critical': return 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700';
+      case 'high': return 'bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700';
+      case 'normal': return 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+      case 'low': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
     }
   };
 
   const handleSendResponse = async () => {
     if (!selectedTicket || !response.trim()) return;
-    
     try {
-      console.log('🎯 ========== FRONTEND: SENDING RESPONSE ==========');
-      console.log('Selected Ticket:', selectedTicket);
-      console.log('Ticket ID:', selectedTicket.id);
-      console.log('Ticket Email:', selectedTicket.email);
-      console.log('Response:', response.substring(0, 100));
-      console.log('Status:', 'resolved');
-      console.log('================================================\n');
-      
-      // Update ticket status and send email
       await updateTicketMutation.mutateAsync({
         id: selectedTicket.id,
         data: {
@@ -232,10 +217,7 @@ export default function TicketManager() {
           resolvedAt: new Date().toISOString(),
         },
       });
-      
-      console.log('✅ FRONTEND: Ticket resolved and email sent');
-    } catch (error) {
-      console.error('❌ FRONTEND: Failed to resolve ticket:', error);
+    } catch {
       alert('Failed to send response. Please try again.');
     }
   };
@@ -249,10 +231,10 @@ export default function TicketManager() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className={cn(darkMode && "bg-gray-900 border-gray-700")}>
         <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading tickets...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading tickets...</p>
         </CardContent>
       </Card>
     );
@@ -260,9 +242,9 @@ export default function TicketManager() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className={cn(darkMode && "bg-gray-900 border-gray-700")}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
             <Ticket className="h-6 w-6" />
             Support Tickets ({filteredTickets.length})
           </CardTitle>
@@ -271,7 +253,7 @@ export default function TicketManager() {
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search tickets..."
                 value={searchQuery}
@@ -316,13 +298,16 @@ export default function TicketManager() {
           {/* Tickets List */}
           <div className="space-y-3">
             {filteredTickets.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Ticket className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No tickets found</p>
               </div>
             ) : (
               filteredTickets.map((ticket: any) => (
-                <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+                <Card key={ticket.id} className={cn(
+                  "hover:shadow-md transition-shadow",
+                  darkMode && "bg-gray-800 border-gray-700"
+                )}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -339,26 +324,26 @@ export default function TicketManager() {
                           </Badge>
                           <Badge variant="outline">{ticket.type}</Badge>
                         </div>
-                        <h3 className="font-semibold text-lg mb-1 truncate">
+                        <h3 className="font-semibold text-lg mb-1 truncate text-gray-900 dark:text-white">
                           {ticket.title}
                         </h3>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
                           {ticket.description}
                         </p>
                         {ticket.errorReferenceId && (
-                          <div className="bg-red-50 border border-red-200 rounded px-2 py-1 inline-block">
-                            <span className="text-xs font-mono text-red-800">
+                          <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded px-2 py-1 inline-block">
+                            <span className="text-xs font-mono text-red-800 dark:text-red-300">
                               Error Ref: {ticket.errorReferenceId}
                             </span>
                           </div>
                         )}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
                           <span>From: {ticket.name || 'Anonymous'}</span>
                           {ticket.email && <span>Email: {ticket.email}</span>}
                           <span>Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 shrink-0">
                         <Button
                           size="sm"
                           variant="outline"
@@ -387,15 +372,19 @@ export default function TicketManager() {
 
       {/* Ticket Detail Modal */}
       {selectedTicket && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setSelectedTicket(null);
-            }
+            if (e.target === e.currentTarget) setSelectedTicket(null);
           }}
         >
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <Card
+            className={cn(
+              "w-full max-w-4xl max-h-[90vh] overflow-y-auto",
+              darkMode && "bg-gray-900 border-gray-700"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -404,7 +393,9 @@ export default function TicketManager() {
                       Ticket ID: {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
                     </Badge>
                   </div>
-                  <CardTitle className="text-2xl mb-2">{selectedTicket.title}</CardTitle>
+                  <CardTitle className="text-2xl mb-2 text-gray-900 dark:text-white">
+                    {selectedTicket.title}
+                  </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge className={`${getStatusColor(selectedTicket.status)} border`}>
                       {selectedTicket.status}
@@ -421,33 +412,33 @@ export default function TicketManager() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Ticket Info */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
-                  <p className="text-sm text-gray-600">Type</p>
-                  <p className="font-semibold">{selectedTicket.type}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedTicket.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Priority</p>
-                  <p className="font-semibold">{selectedTicket.priority}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Priority</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedTicket.priority}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Submitted By</p>
-                  <p className="font-semibold">{selectedTicket.name || 'Anonymous'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Submitted By</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedTicket.name || 'Anonymous'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Email</p>
-                  <p className="font-semibold">{selectedTicket.email || 'Not provided'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedTicket.email || 'Not provided'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Created</p>
-                  <p className="font-semibold">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Created</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
                     {new Date(selectedTicket.createdAt).toLocaleString()}
                   </p>
                 </div>
                 {selectedTicket.errorReferenceId && (
                   <div>
-                    <p className="text-sm text-gray-600">Error Reference</p>
-                    <p className="font-mono text-sm text-red-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Error Reference</p>
+                    <p className="font-mono text-sm text-red-600 dark:text-red-400">
                       {selectedTicket.errorReferenceId}
                     </p>
                   </div>
@@ -456,8 +447,8 @@ export default function TicketManager() {
 
               {/* Description */}
               <div>
-                <h4 className="font-semibold mb-2">Description</h4>
-                <div className="p-4 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Description</h4>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg whitespace-pre-wrap text-gray-800 dark:text-gray-200">
                   {selectedTicket.description}
                 </div>
               </div>
@@ -465,9 +456,9 @@ export default function TicketManager() {
               {/* Error Details */}
               {selectedTicket.errorStack && (
                 <div>
-                  <h4 className="font-semibold mb-2">Error Stack Trace</h4>
-                  <div className="p-4 bg-red-50 rounded-lg">
-                    <pre className="text-xs overflow-x-auto">
+                  <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Error Stack Trace</h4>
+                  <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <pre className="text-xs overflow-x-auto text-red-900 dark:text-red-200">
                       {selectedTicket.errorStack}
                     </pre>
                   </div>
@@ -476,10 +467,10 @@ export default function TicketManager() {
 
               {/* Response Section */}
               <div>
-                <h4 className="font-semibold mb-2">Response</h4>
+                <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Response</h4>
                 <div className="space-y-3">
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="text-sm text-gray-600">Quick Templates:</span>
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Quick Templates:</span>
                     {Object.entries(RESPONSE_TEMPLATES).map(([key, template]) => (
                       <Button
                         key={key}
@@ -538,23 +529,27 @@ export default function TicketManager() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setDeleteConfirm(null);
-            }
+            if (e.target === e.currentTarget) setDeleteConfirm(null);
           }}
         >
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <Card
+            className={cn(
+              "w-full max-w-md",
+              darkMode && "bg-gray-900 border-gray-700"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
             <CardHeader>
-              <CardTitle className="text-xl text-red-600 flex items-center gap-2">
+              <CardTitle className="text-xl text-red-600 dark:text-red-400 flex items-center gap-2">
                 <AlertCircle className="h-6 w-6" />
                 Confirm Delete
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-gray-700">
+              <p className="text-gray-700 dark:text-gray-300">
                 Are you sure you want to delete this ticket? This action cannot be undone.
               </p>
               <div className="flex gap-3">
