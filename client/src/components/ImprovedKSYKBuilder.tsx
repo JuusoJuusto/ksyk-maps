@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ type Tool = "outline" | "wall" | "room" | "select" | "pan";
 
 export default function ImprovedKSYKBuilder() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const svgRef = useRef<SVGSVGElement>(null);
   
   const [activeTool, setActiveTool] = useState<Tool>("select");
@@ -519,18 +521,22 @@ export default function ImprovedKSYKBuilder() {
   // Add room
   const addRoom = () => {
     if (!roomData.roomNumber) {
-      alert("Please enter a room number (e.g., A32, M1, U205)");
+      toast({ title: "Room number required", description: "Enter a room number, e.g. A32, M1, U205.", variant: "destructive" });
       return;
     }
-    
+
     if (!validateRoomNumber(roomData.roomNumber)) {
-      alert("Invalid room number format!\n\nValid formats:\n• A32, A21 (A building)\n• M1, M2 (M building - only 1 and 2)\n• U205, K15, L10, R5 (other buildings)\n\nNo dashes or spaces allowed!");
+      toast({
+        title: "Invalid room number",
+        description: "Use letter + digits, no dashes. A/U/K/L/R accept any number; M only allows M1–M2.",
+        variant: "destructive",
+      });
       return;
     }
-    
+
     const building = extractBuilding(roomData.roomNumber);
     if (!building) {
-      alert("Room number must start with a building letter (A, M, U, K, L, R)");
+      toast({ title: "Missing building letter", description: "Room number must start with A, M, U, K, L, or R.", variant: "destructive" });
       return;
     }
     
@@ -701,13 +707,12 @@ export default function ImprovedKSYKBuilder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      // Reset internal flag so we pick up the saved IDs on next load
       setDataLoaded(false);
-      alert('✅ Saved. Map updated.');
+      toast({ title: "Saved", description: "Map data has been updated." });
     },
     onError: (error) => {
       console.error('Save error:', error);
-      alert('❌ Failed to save. Please try again.');
+      toast({ title: "Save failed", description: "Could not save. Please try again.", variant: "destructive" });
     }
   });
 
@@ -834,10 +839,10 @@ export default function ImprovedKSYKBuilder() {
       }
       if (Array.isArray(data.campusOutline)) setCampusOutline(data.campusOutline);
       if (Array.isArray(data.walls)) setWalls(data.walls);
-      alert(`✅ Imported ${data.rooms?.length || 0} rooms`);
+      toast({ title: "Imported", description: `Loaded ${data.rooms?.length || 0} rooms from file.` });
     } catch (e) {
       console.error(e);
-      alert("❌ Failed to import — invalid JSON file");
+      toast({ title: "Import failed", description: "Could not parse file — make sure it's a valid KSYK JSON export.", variant: "destructive" });
     }
   };
 
@@ -987,10 +992,12 @@ export default function ImprovedKSYKBuilder() {
 
         <div className="w-64 sm:w-72 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto max-lg:max-w-[45vw]">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Add Room</CardTitle>
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-sm font-semibold">
+                {selectedRoom ? `Editing ${selectedRoom.roomNumber}` : "Add Room"}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="px-4 pb-4 space-y-3">
               <div>
                 <Label htmlFor="roomNumber">Room Number *</Label>
                 <Input
@@ -1011,22 +1018,6 @@ export default function ImprovedKSYKBuilder() {
                   placeholder="e.g., Physics Lab"
                   value={roomData.name}
                   onChange={(e) => setRoomData({ ...roomData, name: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="floor">Floor</Label>
-                <Input
-                  id="floor"
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={roomData.floor}
-                  onChange={(e) => {
-                    const f = parseInt(e.target.value) || 0;
-                    setRoomData({ ...roomData, floor: f });
-                    setBuilderFloor(f);
-                  }}
                 />
               </div>
               
@@ -1064,7 +1055,35 @@ export default function ImprovedKSYKBuilder() {
               
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label htmlFor="width">Width</Label>
+                  <Label htmlFor="capacity">Capacity</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    min="1"
+                    value={roomData.capacity}
+                    onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="floor-form">Floor</Label>
+                  <Input
+                    id="floor-form"
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={roomData.floor}
+                    onChange={(e) => {
+                      const f = parseInt(e.target.value) || 0;
+                      setRoomData({ ...roomData, floor: f });
+                      setBuilderFloor(f);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="width">Width (px)</Label>
                   <Input
                     id="width"
                     type="number"
@@ -1074,7 +1093,7 @@ export default function ImprovedKSYKBuilder() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="height">Height</Label>
+                  <Label htmlFor="height">Height (px)</Label>
                   <Input
                     id="height"
                     type="number"
@@ -1084,7 +1103,7 @@ export default function ImprovedKSYKBuilder() {
                   />
                 </div>
               </div>
-              
+
               <Button onClick={addRoom} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Room
@@ -1092,41 +1111,54 @@ export default function ImprovedKSYKBuilder() {
             </CardContent>
           </Card>
           
-          {/* Buildings Summary */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Layers className="h-5 w-5" />
-                Buildings ({Object.keys(groupedRooms).length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, buildingRooms]) => (
-                <div key={building} className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-lg">{building} Building</span>
-                    <span 
-                      className="w-6 h-6 rounded" 
+          {/* Buildings summary */}
+          {Object.keys(groupedRooms).length > 0 && (
+            <Card className="mt-3">
+              <CardHeader className="pb-2 pt-3 px-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Layers className="h-4 w-4" />
+                  {Object.keys(groupedRooms).length} building{Object.keys(groupedRooms).length !== 1 ? "s" : ""} · {rooms.length} rooms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 space-y-2">
+                {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, buildingRooms]) => (
+                  <div key={building} className="flex items-center gap-2">
+                    <span
+                      className="shrink-0 w-3 h-3 rounded-sm"
                       style={{ backgroundColor: getColorForBuilding(building) }}
                     />
+                    <span className="font-semibold text-sm">{building}</span>
+                    <span className="text-xs text-muted-foreground">{buildingRooms.length} rooms</span>
+                    <div className="flex flex-wrap gap-1 ml-auto">
+                      {buildingRooms.slice(0, 6).map((room) => (
+                        <button
+                          key={room.id}
+                          className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                          onClick={() => {
+                            setSelectedRoom(room);
+                            setSelectedRoomIds(new Set([room.id]));
+                            setRoomData({
+                              roomNumber: room.roomNumber, name: room.name || "",
+                              floor: room.floor ?? 1, capacity: room.capacity ?? 30,
+                              type: room.type || "classroom",
+                              x: room.mapPositionX, y: room.mapPositionY,
+                              width: room.width, height: room.height,
+                            });
+                            setBuilderFloor(room.floor ?? 1);
+                          }}
+                        >
+                          {room.roomNumber}
+                        </button>
+                      ))}
+                      {buildingRooms.length > 6 && (
+                        <span className="text-[10px] text-muted-foreground px-1">+{buildingRooms.length - 6}</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {buildingRooms.length} rooms
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {buildingRooms.map(room => (
-                      <span 
-                        key={room.id}
-                        className="text-xs px-2 py-1 bg-white dark:bg-gray-800 rounded"
-                      >
-                        {room.roomNumber}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="flex-1 relative overflow-hidden min-w-0 bg-[radial-gradient(ellipse_at_center,#e8ecf1_0%,#d4dae4_100%)] dark:bg-[radial-gradient(ellipse_at_center,#111827_0%,#030712_100%)]">
@@ -1364,43 +1396,57 @@ export default function ImprovedKSYKBuilder() {
             )}
           </svg>
 
-          {/* Selected room bottom sheet */}
+          {/* Selected room properties panel */}
           {selectedRoom && (
-            <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-sm">
+            <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
               <Card className="rounded-t-2xl sm:rounded-2xl shadow-2xl border-t-4 border-blue-500 bg-white/98 dark:bg-gray-900/98">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-lg">{selectedRoom.roomNumber}</p>
-                      <p className="text-sm text-muted-foreground">{selectedRoom.name || "Room"}</p>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow"
+                        style={{ backgroundColor: getRoomFillColor(selectedRoom.type, selectedRoom.currentStatus) }}
+                      >
+                        {selectedRoom.roomNumber.slice(0, 3)}
+                      </span>
+                      <div>
+                        <p className="font-bold leading-tight">{selectedRoom.roomNumber}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[10rem]">{selectedRoom.name || selectedRoom.type}</p>
+                      </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedRoom(null)}>
-                      <X className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setSelectedRoom(null)}>
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+
+                  <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
                     <span className="text-muted-foreground">Floor</span>
-                    <span className="font-medium">{selectedRoom.floor}</span>
+                    <span className="col-span-2 font-medium">{selectedRoom.floor}</span>
                     <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium">{selectedRoom.type}</span>
+                    <span className="col-span-2 font-medium capitalize">{selectedRoom.type?.replace(/_/g, ' ')}</span>
+                    <span className="text-muted-foreground">Capacity</span>
+                    <span className="col-span-2 font-medium">{selectedRoom.capacity ?? '—'}</span>
+                    <span className="text-muted-foreground">Size</span>
+                    <span className="col-span-2 font-medium tabular-nums">{selectedRoom.width} × {selectedRoom.height}</span>
                   </div>
+
                   <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setActiveTool("select")} title="Drag on canvas to move (Select tool)">
-                      <Move className="h-4 w-4 mr-1" />
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => setActiveTool("select")} title="Drag on canvas to move (Select tool)">
+                      <Move className="h-3.5 w-3.5 mr-1" />
                       Move
                     </Button>
-                    <Button variant="outline" size="sm" onClick={duplicateSelected} title="Duplicate (Ctrl+D)">
-                      <CopyIcon className="h-4 w-4 mr-1" />
+                    <Button variant="outline" size="sm" className="text-xs" onClick={duplicateSelected} title="Duplicate (Ctrl+D)">
+                      <CopyIcon className="h-3.5 w-3.5 mr-1" />
                       Copy
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => deleteRoom(selectedRoom.id)} title="Delete (Del)">
-                      <Trash2 className="h-4 w-4 mr-1" />
+                    <Button variant="destructive" size="sm" className="text-xs" onClick={() => deleteRoom(selectedRoom.id)} title="Delete (Del)">
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
                       Del
                     </Button>
                   </div>
                   {selectedRoomIds.size > 1 && (
                     <p className="text-xs text-muted-foreground">
-                      {selectedRoomIds.size} {`rooms selected — drag any to move all`}
+                      {selectedRoomIds.size} rooms selected — drag any to move all
                     </p>
                   )}
                 </CardContent>
