@@ -1179,10 +1179,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
         <TabsContent value="users" className="mt-0 space-y-6">
           {!isOwner ? (
             <Card>
-              <CardContent className="p-12 text-center">
-                <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Owner Access Only</h3>
-                <p className="text-gray-500 dark:text-gray-400">User management is restricted to the owner account for security.</p>
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <Users className="h-10 w-10 text-gray-300 dark:text-gray-700" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Owner access only</p>
+                <p className="text-xs text-muted-foreground">User management requires the owner account.</p>
               </CardContent>
             </Card>
           ) : (
@@ -1853,16 +1853,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Staff Directory</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    {staff.length === 0
-                      ? "No staff members added yet."
-                      : `${staff.length} member${staff.length === 1 ? "" : "s"}`}
-                  </CardDescription>
-                </div>
+                <CardDescription className="text-xs">
+                  {staff.length === 0
+                    ? "No members yet"
+                    : `${staff.length} member${staff.length === 1 ? "" : "s"}`}
+                </CardDescription>
                 <Button
                   size="sm"
                   className="h-8 bg-blue-600 hover:bg-blue-700 text-xs"
