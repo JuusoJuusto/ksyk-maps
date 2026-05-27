@@ -1071,7 +1071,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
             settings: { title: "Settings", description: "App name, branding, and danger zone.", Icon: Settings },
           };
           const meta = sectionMeta[activeTab];
-          if (!meta) return null;
+          // Full-height tabs get no header — they need every pixel
+          if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder") return null;
           const Icon = meta.Icon;
           return (
             <div className="flex items-center gap-3 mb-2">
@@ -1695,11 +1696,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
           {isOwner && <WilmaConfigPanel />}
         </TabsContent>
 
-        <TabsContent value="campus-map" className="mt-0 h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <TabsContent value="campus-map" className="mt-0 h-[calc(100dvh-14rem)] lg:h-[calc(100dvh-9.5rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="mt-0 h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] flex flex-col overflow-hidden rounded-xl">
+        <TabsContent value="ksyk-builder" className="mt-0 h-[calc(100dvh-14rem)] lg:h-[calc(100dvh-9.5rem)] min-h-[500px] flex flex-col overflow-hidden rounded-xl">
           {/* Builder sub-tabs — rooms / map defaults */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm">
             {([
@@ -1723,12 +1724,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
           </div>
 
           {builderSubtab === "rooms" ? (
-            <div className="flex-1 min-h-0 h-[70vh] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
               <ImprovedKSYKBuilder />
             </div>
           ) : (
-            <div className="max-w-3xl">
-              <MapSettingsPanel />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="max-w-3xl pb-6">
+                <MapSettingsPanel />
+              </div>
             </div>
           )}
         </TabsContent>

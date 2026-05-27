@@ -57,6 +57,10 @@ export default function OsmBasemap({
   const { settings } = useAppSettings();
   const { darkMode } = useDarkMode();
   const [, setReady] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(settings.osmDefaultZoom);
+  const [currentLat, setCurrentLat] = useState(settings.osmCenterLat);
+  const [canZoomIn, setCanZoomIn] = useState(true);
+  const [canZoomOut, setCanZoomOut] = useState(true);
 
   // Pick the right tile provider based on the active theme. The tile-theme
   // pack is the source of truth; the legacy per-mode providers are kept as a
@@ -138,9 +142,10 @@ export default function OsmBasemap({
       tap: false,   // disables Leaflet's 300 ms tap shim; @types/leaflet omits it → cast below
     } as unknown as L.MapOptions);
 
-    // Native Leaflet zoom + scale controls (styled in index.css to match the app).
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    L.control.scale({ position: "bottomleft", imperial: false, maxWidth: 140 }).addTo(map);
+    // Native Leaflet controls are NOT added — they'd drift outside the visible
+    // viewport when the map is rotated (the Leaflet container is intentionally
+    // oversized to cover rotated corners, so "bottomright" of the container is
+    // off-screen). React-based controls below are anchored to the outer div instead.
 
     tileLayerRef.current = L.tileLayer(provider.url, {
       maxZoom: settings.osmMaxZoom,
@@ -178,6 +183,18 @@ export default function OsmBasemap({
     const view = () => onView?.(map);
     map.on("move zoom", view);
     view(); // fire once immediately so callers have the initial scale
+
+    // Track zoom + lat so we can render the React-based scale bar
+    const onZoomEnd = () => {
+      const z = map.getZoom();
+      const lat = map.getCenter().lat;
+      setCurrentZoom(z);
+      setCurrentLat(lat);
+      setCanZoomIn(z < map.getMaxZoom());
+      setCanZoomOut(z > map.getMinZoom());
+    };
+    map.on("zoomend moveend", onZoomEnd);
+    onZoomEnd(); // initial state
 
     // First-paint signal — used by callers to dismiss skeleton overlays.
     let firedTilesLoaded = false;
@@ -263,6 +280,7 @@ export default function OsmBasemap({
       window.removeEventListener("orientationchange", onOrient);
       window.removeEventListener("resize", onOrient);
       map.off("move zoom", view);
+      map.off("zoomend moveend", onZoomEnd);
       map.remove();
       mapRef.current = null;
       overlayRef.current = null;
@@ -444,6 +462,21 @@ export default function OsmBasemap({
   // The north indicator counter-rotates: when map rotates CW, "N" points CCW
   const northIndicatorRotation = -rotation;
 
+  // Scale bar calculation — mirror Leaflet's logic
+  // metersPerPx at current zoom + lat
+  const mpp = (156_543.034 * Math.cos((currentLat * Math.PI) / 180)) / Math.pow(2, currentZoom);
+  const maxBarPx = 100; // max pixel width for the bar
+  const maxM = mpp * maxBarPx;
+  // Round to a nice number
+  const niceM = (() => {
+    const steps = [1,2,5,10,20,50,100,200,500,1000,2000,5000];
+    return steps.find(s => s >= maxM / 3) ?? steps[steps.length - 1];
+  })();
+  const barPx = Math.round(niceM / mpp);
+  const barLabel = niceM >= 1000 ? `${niceM / 1000} km` : `${niceM} m`;
+
+  const ctrlBase = "pointer-events-auto flex items-center justify-center bg-white/92 dark:bg-gray-900/92 backdrop-blur-sm border border-gray-200/80 dark:border-gray-700/70 shadow-md text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors select-none";
+
   return (
     <div
       className={`${className ?? ""} relative overflow-hidden`}
@@ -479,6 +512,46 @@ export default function OsmBasemap({
           </div>
         </div>
       )}
+
+      {/* ── React-based zoom controls (bottom-right) ─────────────── */}
+      {/* Anchored to the OUTER div so rotation of the inner Leaflet container
+          can't push them off-screen. */}
+      <div className="absolute bottom-4 right-3 z-[500] flex flex-col overflow-hidden rounded-xl shadow-lg border border-gray-200/80 dark:border-gray-700"
+           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+        <button
+          type="button"
+          aria-label="Zoom in"
+          disabled={!canZoomIn}
+          onClick={() => mapRef.current?.zoomIn()}
+          className={`${ctrlBase} w-9 h-9 text-lg font-light border-b border-gray-200/80 dark:border-gray-700/70 rounded-t-xl rounded-b-none disabled:opacity-35 disabled:cursor-default disabled:hover:bg-transparent`}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom out"
+          disabled={!canZoomOut}
+          onClick={() => mapRef.current?.zoomOut()}
+          className={`${ctrlBase} w-9 h-9 text-lg font-light rounded-t-none rounded-b-xl disabled:opacity-35 disabled:cursor-default disabled:hover:bg-transparent`}
+        >
+          −
+        </button>
+      </div>
+
+      {/* ── React-based scale bar (bottom-left) ──────────────────── */}
+      <div className="absolute bottom-4 left-3 z-[500] pointer-events-none"
+           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+        <div className="flex flex-col items-start gap-0.5">
+          <span className="text-[9px] font-bold font-mono text-gray-600 dark:text-gray-300 bg-white/85 dark:bg-gray-900/85 px-1 rounded-sm leading-none backdrop-blur-sm">
+            {barLabel}
+          </span>
+          <div
+            className="h-[3px] bg-gray-700 dark:bg-gray-200 rounded-full"
+            style={{ width: `${barPx}px` }}
+            aria-label={`Scale: ${barLabel}`}
+          />
+        </div>
+      </div>
     </div>
   );
 }
