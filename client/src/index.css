@@ -1367,6 +1367,11 @@ body {
   z-index: 5 !important;
 }
 
+/* Push bottom controls clear of the iOS home-indicator bar */
+.leaflet-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px) !important;
+}
+
 /* Zoom + scale controls — pill-shaped, soft shadow, matching panel look */
 .leaflet-bar {
   border: none !important;

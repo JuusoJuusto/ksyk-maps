@@ -14,6 +14,7 @@ interface WilmaUser {
   studentId: string;
   username: string;
   password: string;
+  plainPassword?: string;
   firstName: string;
   lastName: string;
   email?: string;
