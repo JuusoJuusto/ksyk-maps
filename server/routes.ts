@@ -1785,16 +1785,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/wilma/schedules', isAuthenticated, async (req: any, res) => {
-    try {
-      const schedule = await storage.createWilmaSchedule(req.body);
-      res.status(201).json(schedule);
-    } catch (error) {
-      await logError(error, 'POST /api/wilma/schedules');
-      res.status(500).json({ message: "Failed to create schedule" });
-    }
-  });
-
   // Wilma Grade routes
   app.get('/api/wilma/grades/:studentId', async (req, res) => {
     try {

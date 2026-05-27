@@ -3,52 +3,17 @@
  */
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export default function KSYKMapsHome() {
   const { darkMode } = useDarkMode();
-  const { t } = useTranslation();
   const [view, setView] = useState<"map" | "settings">("map");
   const [searchQuery, setSearchQuery] = useState("");
-
-  const { isLoading: buildingsLoading } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: async () => {
-      const r = await fetch("/api/buildings");
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    },
-    staleTime: 60000,
-  });
-
-  const { isLoading: announcementsLoading } = useQuery({
-    queryKey: ["announcements"],
-    queryFn: async () => {
-      const r = await fetch("/api/announcements?limit=5");
-      if (!r.ok) return [];
-      return r.json();
-    },
-    staleTime: 30000,
-  });
-
-  const isPageLoading = buildingsLoading || announcementsLoading;
-
-  if (isPageLoading) {
-    return (
-      <LoadingSpinner
-        fullScreen
-        message={t("loading") === "loading" ? (darkMode ? "Ladataan kampuskarttaa…" : "Loading campus map…") : t("loading")}
-      />
-    );
-  }
 
   if (view === "settings") {
     return (

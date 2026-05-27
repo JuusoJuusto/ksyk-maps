@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDarkMode } from '@/contexts/DarkModeContext';
+import { cn } from '@/lib/utils';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -18,6 +20,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
+  const { darkMode } = useDarkMode();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,30 +61,40 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+    <div className={cn(
+      "min-h-screen flex items-center justify-center p-4",
+      darkMode
+        ? "bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900"
+        : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
+    )}>
+      <Card className={cn(
+        "w-full max-w-md shadow-2xl border",
+        darkMode
+          ? "bg-gray-900/95 border-gray-700/80"
+          : "bg-white/95 border-gray-200/80"
+      )}>
         <CardHeader className="text-center pb-6">
-          <div className="mx-auto mb-4 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
             KSYK Admin Portal
           </CardTitle>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-sm">
             Secure access to campus management
           </p>
         </CardHeader>
-        
+
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="rounded-xl">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Admin Email
               </Label>
               <Input
@@ -91,13 +104,13 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your-email@example.com"
                 required
-                className="h-12"
+                className="h-11 rounded-xl"
                 data-testid="admin-email-input"
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </Label>
               <div className="relative">
@@ -108,46 +121,42 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter admin password"
                   required
-                  className="h-12 pr-12"
+                  className="h-11 pr-11 rounded-xl"
                   data-testid="admin-password-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-            
+
             <Button
               type="submit"
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm"
               disabled={isLoading}
               data-testid="admin-login-submit"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing In...
+                  Signing in…
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <LogIn className="w-4 h-4" />
-                  Sign In to Admin Panel
+                  Sign in to Admin Panel
                 </div>
               )}
             </Button>
           </form>
-          
-          <div className="mt-6 pt-6 border-t border-gray-200">
+
+          <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700/60">
             <div className="text-center">
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
                 Alternative authentication methods
               </p>
               <div className="space-y-2">
@@ -187,7 +196,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           </div>
           
           <div className="mt-4 text-center">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               Protected by advanced security protocols
             </p>
           </div>
