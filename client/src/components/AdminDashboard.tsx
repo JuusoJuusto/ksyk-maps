@@ -883,6 +883,46 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Account chip — sits above the tab bar; shows the signed-in user
+          and a quick sign-out. Click avatar/initial to log out. */}
+      {currentUser && (
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <span
+              aria-hidden="true"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[11px] font-bold shadow-inner"
+            >
+              {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0 leading-tight pr-1">
+              <p className="text-[11px] font-semibold truncate max-w-[14ch]">
+                {currentUser.name || currentUser.email}
+              </p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[11px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full"
+              onClick={() => {
+                if (!window.confirm("Log out?")) return;
+                localStorage.removeItem("ksyk_admin_logged_in");
+                localStorage.removeItem("ksyk_admin_user");
+                localStorage.removeItem("ksyk_admin_login_at");
+                fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
+                  window.location.replace("/admin-login");
+                });
+              }}
+              title="Sign out"
+            >
+              Sign out
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         {/* Horizontally scrollable, icon-led tab bar — fits ~11 entries
@@ -918,7 +958,7 @@ export default function AdminDashboard() {
         </div>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Quick stats — at-a-glance KPI cards */}
+          {/* Quick stats — at-a-glance KPI cards, each navigates to its tab */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
               {
@@ -926,12 +966,14 @@ export default function AdminDashboard() {
                 value: (buildings as any[])?.length ?? 0,
                 accent: "from-blue-500 to-indigo-500",
                 icon: Building,
+                tab: "campus-map",
               },
               {
                 label: "Rooms",
                 value: (rooms as any[])?.length ?? 0,
                 accent: "from-emerald-500 to-teal-500",
                 icon: MapPin,
+                tab: "ksyk-builder",
               },
               {
                 label: "Floors",
@@ -942,31 +984,38 @@ export default function AdminDashboard() {
                 ),
                 accent: "from-amber-500 to-orange-500",
                 icon: Layers,
+                tab: "ksyk-builder",
               },
               {
                 label: "Announcements",
                 value: (announcements as any[])?.length ?? 0,
                 accent: "from-rose-500 to-pink-500",
                 icon: AlertTriangle,
+                tab: "announcements",
               },
-            ].map(({ label, value, accent, icon: Icon }) => (
-              <Card
+            ].map(({ label, value, accent, icon: Icon, tab }) => (
+              <button
                 key={label}
-                className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow"
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-xl"
+                aria-label={`Go to ${label} tab`}
               >
-                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-                      <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+                  <CardContent className="p-4 md:p-5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+                        <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+                      </div>
+                      <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
                     </div>
-                    <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </button>
             ))}
           </div>
 

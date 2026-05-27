@@ -24,6 +24,8 @@ interface OsmBasemapProps {
   onOverlayReady?: (svgEl: SVGSVGElement) => void;
   onReady?: (map: L.Map) => void;
   onView?: (map: L.Map) => void;
+  /** Fires when the tile layer first becomes idle (initial paint complete). */
+  onTilesLoaded?: () => void;
   className?: string;
   /** Whether to mount the campus SVG overlay at all. When false, no SVG
    * element is added to Leaflet (no possible "ghost square" artifact).
@@ -43,6 +45,7 @@ export default function OsmBasemap({
   onOverlayReady,
   onReady,
   onView,
+  onTilesLoaded,
   className,
   enableOverlay = false,
 }: OsmBasemapProps) {
@@ -174,6 +177,18 @@ export default function OsmBasemap({
     map.on("move zoom", view);
     view(); // fire once immediately so callers have the initial scale
 
+    // First-paint signal — used by callers to dismiss skeleton overlays.
+    let firedTilesLoaded = false;
+    const fireTilesLoaded = () => {
+      if (firedTilesLoaded) return;
+      firedTilesLoaded = true;
+      onTilesLoaded?.();
+    };
+    tileLayerRef.current?.once("load", fireTilesLoaded);
+    // Hard safety net — even if the load event never fires (cached tiles,
+    // offline, etc.) drop the skeleton after 3 s so we never block the UI.
+    const safety = window.setTimeout(fireTilesLoaded, 3000);
+
     // Mobile / first-paint resilience — Leaflet needs to know its container
     // size to load tiles. On mobile the container often reports 0×0 at
     // mount (hidden / animating / safe-area), so kick it a few times.
@@ -199,6 +214,7 @@ export default function OsmBasemap({
     return () => {
       cancelAnimationFrame(kickIds[0] as number);
       (kickIds.slice(1) as number[]).forEach((id) => window.clearTimeout(id));
+      window.clearTimeout(safety);
       ro.disconnect();
       window.removeEventListener("orientationchange", onOrient);
       window.removeEventListener("resize", onOrient);

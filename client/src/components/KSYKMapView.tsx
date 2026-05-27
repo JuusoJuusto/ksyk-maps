@@ -92,6 +92,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const leafletMapRef = useRef<L.Map | null>(null);
   const [overlayEl, setOverlayEl] = useState<SVGSVGElement | null>(null);
   const [leafletMetersPerPx, setLeafletMetersPerPx] = useState<number | null>(null);
+  const [tilesLoaded, setTilesLoaded] = useState(false);
 
   // Rooms are always visible — the layers panel was removed for a cleaner
   // minimal UI (zoom + reset + floor only).
@@ -480,9 +481,36 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           const mpp = (156_543.034 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, z);
           setLeafletMetersPerPx(mpp);
         }}
+        onTilesLoaded={() => setTilesLoaded(true)}
         className="absolute inset-0"
       />
       {overlayEl && (rooms as Room[]).length > 0 && createPortal(campusBody, overlayEl)}
+
+      {/* Loading skeleton — sits above the tile layer but below all UI
+         (z-10 < navbar z-50, dialogs z-50). Fades out on first tile-load. */}
+      {!tilesLoaded && (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 z-10 flex items-center justify-center",
+            "bg-gradient-to-br",
+            darkMode
+              ? "from-gray-900/95 to-slate-900/95"
+              : "from-slate-100/95 to-blue-50/95",
+            "animate-in fade-in duration-300"
+          )}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative h-12 w-12">
+              <span className="absolute inset-0 rounded-full border-2 border-blue-200 dark:border-blue-900" />
+              <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin" />
+            </div>
+            <p className="text-xs font-medium text-muted-foreground tabular-nums">
+              {isFi ? "Ladataan karttaa…" : "Loading map…"}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Search results dropdown ────────────────────────────────── */}
       {searchQuery.trim() && (
