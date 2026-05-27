@@ -29,7 +29,7 @@ import { pathForRoomType } from "@/lib/roomIcons";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -105,6 +105,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const { darkMode } = useDarkMode();
   const { settings, update } = useAppSettings();
   const isFi = i18n.language === "fi";
+
+  // Load admin-set map defaults from server once on mount
+  useEffect(() => {
+    loadMapDefaultsFromServer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // UI state
   const [selectedFloor, setSelectedFloor] = useState(1);

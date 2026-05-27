@@ -3546,6 +3546,41 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // Map defaults — admin-set map center/zoom/rotation saved to DB so all users see the same home view
+  app.get('/api/map-defaults', async (req, res) => {
+    try {
+      const doc = await db.collection('mapDefaults').doc('default').get();
+      if (!doc.exists) {
+        return res.json(null);
+      }
+      res.json(doc.data());
+    } catch (error) {
+      console.error("Error fetching map defaults:", error);
+      res.status(500).json({ message: "Failed to fetch map defaults" });
+    }
+  });
+
+  app.put('/api/map-defaults', isAuthenticated, async (req: any, res) => {
+    try {
+      const allowed = [
+        'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
+        'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
+        'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
+        'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest'
+      ];
+      const data: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) data[key] = req.body[key];
+      }
+      data.updatedAt = new Date();
+      await db.collection('mapDefaults').doc('default').set(data, { merge: true });
+      res.json({ ...data, success: true });
+    } catch (error) {
+      console.error("Error saving map defaults:", error);
+      res.status(500).json({ message: "Failed to save map defaults" });
+    }
+  });
+
   // Lunch menu proxy to bypass CORS
   app.get("/api/lunch-menu", async (req, res) => {
     try {

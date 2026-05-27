@@ -247,6 +247,11 @@
     background-size: 200px 100%;
     animation: shimmer 1.5s infinite;
   }
+
+  .dark .shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200px 100%;
+  }
   
   /* Floating Animation */
   .floating {
@@ -391,6 +396,23 @@
 
   ::-webkit-scrollbar-corner {
     background: #f1f5f9;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-color: #1e293b;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #60a5fa;
+  }
+
+  .dark ::-webkit-scrollbar-corner {
+    background: #1e293b;
   }
 }
 

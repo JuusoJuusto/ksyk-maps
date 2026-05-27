@@ -35,6 +35,52 @@ if (typeof window !== "undefined") {
   });
 }
 
+// Map setting keys that can be persisted to / loaded from the server
+const MAP_DEFAULT_KEYS = [
+  'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
+  'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
+  'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
+  'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
+] as const;
+
+/** Load admin-set map defaults from the server and merge into the store.
+ *  Called once on map mount so every user gets the admin-configured view. */
+export async function loadMapDefaultsFromServer(): Promise<void> {
+  try {
+    const res = await fetch('/api/map-defaults');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || typeof data !== 'object') return;
+    const next: Partial<AppSettings> = {};
+    for (const k of MAP_DEFAULT_KEYS) {
+      if (data[k] !== undefined) (next as Record<string, unknown>)[k] = data[k];
+    }
+    if (Object.keys(next).length > 0) {
+      setSnapshot({ ...snapshot, ...next });
+    }
+  } catch {
+    // silent — network errors should not break the map
+  }
+}
+
+/** Save current map defaults to the server (admin only). */
+export async function saveMapDefaultsToServer(settings: AppSettings): Promise<void> {
+  const body: Partial<AppSettings> = {};
+  for (const k of MAP_DEFAULT_KEYS) {
+    (body as Record<string, unknown>)[k] = settings[k];
+  }
+  const res = await fetch('/api/map-defaults', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Failed to save map defaults');
+  }
+}
+
 export function useAppSettings() {
   const settings = useSyncExternalStore(subscribe, () => snapshot, () => snapshot);
 

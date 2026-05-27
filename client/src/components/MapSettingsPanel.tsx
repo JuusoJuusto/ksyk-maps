@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useAppSettings, saveMapDefaultsToServer } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +23,7 @@ import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES, DEFAULT_APP_SETTINGS } from "@/lib
 import type { OsmTileTheme } from "@/lib/appSettings";
 import OsmPreviewMap from "@/components/OsmPreviewMap";
 import { cn } from "@/lib/utils";
-import { Map as MapIcon, Compass, Maximize2, RotateCcw, Check } from "lucide-react";
+import { Map as MapIcon, Compass, Maximize2, RotateCcw, Check, Upload, Loader2 } from "lucide-react";
 
 // ── Compass dial widget ──────────────────────────────────────────────────────
 // Interactive SVG compass rose. Drag or click to set map bearing. The red
@@ -174,6 +174,24 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
   const { darkMode } = useDarkMode();
   const { settings, update } = useAppSettings();
   const [previewMode, setPreviewMode] = useState<"center" | "bounds">("center");
+  const [serverSaving, setServerSaving] = useState(false);
+  const [serverSaved, setServerSaved] = useState(false);
+  const [serverSaveError, setServerSaveError] = useState<string | null>(null);
+
+  const handleSaveToServer = async () => {
+    setServerSaving(true);
+    setServerSaveError(null);
+    try {
+      await saveMapDefaultsToServer(settings);
+      setServerSaved(true);
+      setTimeout(() => setServerSaved(false), 2500);
+    } catch (e: any) {
+      setServerSaveError(e.message || "Save failed");
+      setTimeout(() => setServerSaveError(null), 3000);
+    } finally {
+      setServerSaving(false);
+    }
+  };
 
   // Save indicator — flashes "Saved ✓" briefly when any setting changes.
   // First render is suppressed so the badge doesn't flash on mount.
@@ -666,6 +684,46 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
           <Check className="h-3 w-3" />
           {isFi ? "Tallennettu" : "Saved"}
         </div>
+      </div>
+
+      {/* ── Publish to server ──────────────────────────────────────── */}
+      <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2">
+        <div className="text-xs font-semibold text-blue-900 dark:text-blue-200">
+          {isFi ? "Tallenna kaikille käyttäjille" : "Publish for all users"}
+        </div>
+        <p className="text-[10px] text-blue-700 dark:text-blue-300 leading-relaxed">
+          {isFi
+            ? "Tallentaa nykyiset sijainti-, zoomi- ja rotaatioasetukset palvelimelle. Kaikki käyttäjät näkevät nämä oletukset seuraavan latauksen yhteydessä."
+            : "Saves the current center, zoom, rotation, tile theme and bounds to the server. All users will load these as their starting view."}
+        </p>
+        <button
+          type="button"
+          onClick={handleSaveToServer}
+          disabled={serverSaving}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
+            serverSaved
+              ? "bg-emerald-600 text-white"
+              : serverSaveError
+              ? "bg-red-500 text-white"
+              : "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+          )}
+        >
+          {serverSaving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : serverSaved ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Upload className="h-3.5 w-3.5" />
+          )}
+          {serverSaving
+            ? (isFi ? "Tallennetaan…" : "Saving…")
+            : serverSaved
+            ? (isFi ? "Tallennettu!" : "Saved!")
+            : serverSaveError
+            ? serverSaveError
+            : (isFi ? "Tallenna palvelimelle" : "Save to server")}
+        </button>
       </div>
 
       <Button

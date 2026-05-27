@@ -8,7 +8,6 @@ import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
-import CampusSettingsPanel from "@/components/CampusSettingsPanel";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
@@ -1062,28 +1061,28 @@ export default function AdminDashboard({ section }: { section?: string }) {
             users: { title: "Users", description: "Manage Wilma and admin accounts.", Icon: Users },
             wilma: { title: "Wilma", description: "Wilma school-system integration.", Icon: GraduationCap },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
-            "ksyk-builder": { title: "Builder", description: "Rooms, floors and global map defaults.", Icon: Box },
+            "ksyk-builder": { title: "Builder", description: "Rooms, floors and map defaults. Use Map Defaults tab to set home location for all users.", Icon: Box },
             schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
             "2fa": { title: "Two-Factor Auth", description: "Enroll and manage 2FA for your account.", Icon: Shield },
-            settings: { title: "Settings", description: "Global application configuration.", Icon: Settings },
+            settings: { title: "Settings", description: "App name, branding, and danger zone.", Icon: Settings },
           };
           const meta = sectionMeta[activeTab];
           if (!meta) return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
-                <Icon className="h-5 w-5" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+                <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base sm:text-lg font-bold tracking-tight leading-tight">
+                <h2 className="text-sm sm:text-base font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
                   {meta.title}
                 </h2>
-                <p className="text-xs text-muted-foreground leading-tight truncate">
+                <p className="text-[11px] text-muted-foreground leading-tight truncate">
                   {meta.description}
                 </p>
               </div>
@@ -1091,7 +1090,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           );
         })()}
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="mt-0 space-y-6">
           {/* Quick stats — at-a-glance KPI cards, each navigates to its tab */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
@@ -1260,7 +1259,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           </div>
         </TabsContent>
 
-        <TabsContent value="users" className="space-y-6">
+        <TabsContent value="users" className="mt-0 space-y-6">
           {!isOwner ? (
             <Card>
               <CardContent className="p-12 text-center">
@@ -1688,7 +1687,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           )}
         </TabsContent>
 
-        <TabsContent value="wilma" className="space-y-6">
+        <TabsContent value="wilma" className="mt-0 space-y-6">
           {/* Wilma user manager */}
           <EnhancedWilmaUserManager />
 
@@ -1696,11 +1695,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
           {isOwner && <WilmaConfigPanel />}
         </TabsContent>
 
-        <TabsContent value="campus-map" className="h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <TabsContent value="campus-map" className="mt-0 h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] flex flex-col overflow-hidden rounded-xl">
+        <TabsContent value="ksyk-builder" className="mt-0 h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-10.5rem)] min-h-[500px] flex flex-col overflow-hidden rounded-xl">
           {/* Builder sub-tabs — rooms / map defaults */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm">
             {([
@@ -1734,19 +1733,19 @@ export default function AdminDashboard({ section }: { section?: string }) {
           )}
         </TabsContent>
 
-        <TabsContent value="logs" className="space-y-6">
+        <TabsContent value="logs" className="mt-0 space-y-6">
           <AppLogsManager />
         </TabsContent>
 
-        <TabsContent value="schedules" className="space-y-6">
+        <TabsContent value="schedules" className="mt-0 space-y-6">
           <SchedulesManager rooms={rooms as Room[]} />
         </TabsContent>
 
-        <TabsContent value="tickets" className="space-y-6">
+        <TabsContent value="tickets" className="mt-0 space-y-6">
           <TicketManager />
         </TabsContent>
 
-        <TabsContent value="staff" className="space-y-6">
+        <TabsContent value="staff" className="mt-0 space-y-6">
           {/* Staff Form */}
           {showStaffForm && (
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -2079,21 +2078,20 @@ export default function AdminDashboard({ section }: { section?: string }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="announcements" className="space-y-6">
+        <TabsContent value="announcements" className="mt-0 space-y-6">
           <AnnouncementManager />
         </TabsContent>
 
         {isOwner && (
-          <TabsContent value="2fa" className="space-y-6">
+          <TabsContent value="2fa" className="mt-0 space-y-6">
             <TwoFactorAuth />
           </TabsContent>
         )}
 
         {isOwner && (
-          <TabsContent value="settings" className="space-y-6">
-            <CampusSettingsPanel />
+          <TabsContent value="settings" className="mt-0 space-y-6">
             <AppSettingsManager />
-          
+
           {/* Danger Zone - Complete Data Cleanup */}
           <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
             <CardHeader>
