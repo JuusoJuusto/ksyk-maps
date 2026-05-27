@@ -382,6 +382,10 @@ export default function OsmBasemap({
   //      so Leaflet thinks its viewport is the larger rect and loads tiles
   //      for it. Without that, the rotated corners stayed blank because
   //      Leaflet still measured the axis-aligned visible area.
+  //
+  // The reflow (invalidateSize + setView) is debounced so dragging the
+  // admin slider doesn't fire 50 reflows per second — only the final value
+  // triggers the expensive part. Visual rotation still updates per frame.
   useEffect(() => {
     const map = mapRef.current;
     const container = containerRef.current;
@@ -396,21 +400,17 @@ export default function OsmBasemap({
     // bbox edges grow to |cos θ| + |sin θ|. Max √2 at 45°.
     const rad = (rotation * Math.PI) / 180;
     const scale = Math.abs(Math.cos(rad)) + Math.abs(Math.sin(rad));
-    // Add a small slack so anti-aliased edges never reveal blank tile
-    // gutters at the rotation boundary.
     const sizePct = Math.max(100, scale * 100 + 4);
     const offsetPct = -(sizePct - 100) / 2;
 
     pane.style.transformOrigin = "50% 50%";
     pane.style.transition = "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)";
+    pane.style.willChange = "transform";
     pane.style.transform =
       pitch > 0
         ? `perspective(1600px) rotateX(${pitch}deg) rotate(${rotation}deg)`
         : `rotate(${rotation}deg)`;
 
-    // Oversize the inner container so Leaflet loads more tiles. The parent
-    // (set in JSX) has overflow:hidden so we only ever SEE the original
-    // area, but Leaflet's tile loader thinks it has the rotated bbox.
     container.style.position = "absolute";
     container.style.width = `${sizePct}%`;
     container.style.height = `${sizePct}%`;
@@ -419,18 +419,19 @@ export default function OsmBasemap({
     container.style.transition =
       "width 300ms ease, height 300ms ease, left 300ms ease, top 300ms ease";
 
-    // Tell Leaflet to recompute — fires tile load for the bigger area.
+    // Debounced reflow — wait 280 ms after the last value change before
+    // telling Leaflet to recompute / load tiles. Smooth slider dragging.
     const reflow = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false });
       map.setView(map.getCenter(), map.getZoom(), { animate: false });
     };
-    reflow();
-    const t1 = window.setTimeout(reflow, 320);
-    const t2 = window.setTimeout(reflow, 700);
+    const debounce = window.setTimeout(reflow, 280);
+    // Final settle pass once the CSS transition is fully complete.
+    const settle = window.setTimeout(reflow, 700);
     return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
+      window.clearTimeout(debounce);
+      window.clearTimeout(settle);
     };
   }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 

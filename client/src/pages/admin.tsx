@@ -51,7 +51,7 @@ export default function Admin() {
   };
 
   if (isLoading) {
-    return <LoadingSpinner fullScreen variant="white" message="Loading Admin Panel..." />;
+    return <LoadingSpinner fullScreen message="Loading Admin Panel..." />;
   }
 
   // Show password change modal if temporary password
@@ -174,68 +174,17 @@ export default function Admin() {
     );
   }
 
-  // Render admin dashboard
+  // Render admin dashboard — slim modern shell: announcement → header →
+  // a single bordered card containing the dashboard. The redundant blue
+  // welcome banner / role chip / system-status box / home+logout buttons
+  // are now provided in-dashboard by the per-section header and the
+  // top-right account chip, so they're removed here.
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Announcement Banner */}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-slate-900">
       <AnnouncementBanner />
       <Header />
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 w-full">
-        {/* Enhanced Welcome Header */}
-        <div className="mb-4 sm:mb-8 bg-blue-600 rounded-2xl shadow-lg p-6 sm:p-8 text-white border border-blue-700">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <span className="text-2xl">👨‍💼</span>
-                </div>
-                <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold">Admin Dashboard</h1>
-                  <p className="text-blue-100 text-sm sm:text-base mt-1">
-                    KSYK Maps Management Portal
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white/15 rounded-lg p-3 inline-block border border-white/20">
-                <p className="text-sm text-blue-100">Logged in as</p>
-                <p className="text-lg font-semibold">{(user as any)?.firstName || (user as any)?.email}</p>
-                <p className="text-xs text-blue-200 mt-1">
-                  Role: {(user as any)?.role === 'owner' ? '👑 Owner' : '🔧 Administrator'}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3 w-full sm:w-auto">
-              <div className="bg-white/15 rounded-xl p-4 text-center border border-white/20">
-                <p className="text-xs text-blue-100">System Status</p>
-                <p className="text-2xl font-bold flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
-                  Online
-                </p>
-              </div>
-              <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLocation('/')}
-                  className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg transition-all font-semibold text-sm flex items-center justify-center gap-2"
-                >
-                  <Home className="w-4 h-4" />
-                  Home
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex-1 bg-red-500/80 hover:bg-red-600 backdrop-blur-sm text-white px-4 py-2 rounded-lg transition-all font-semibold text-sm flex items-center justify-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Dashboard Content */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
+      <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6 w-full">
+        <div className="rounded-2xl shadow-xl border border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm overflow-hidden">
           <AdminDashboard />
         </div>
       </main>
