@@ -1481,7 +1481,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                 value: (buildings as any[])?.length ?? 0,
                 accent: "from-blue-500 to-indigo-500",
                 icon: Building,
-                tab: "campus-map",
+                tab: "ksyk-builder",
               },
               {
                 label: "Rooms",
@@ -1491,21 +1491,17 @@ export default function AdminDashboard({ section }: { section?: string }) {
                 tab: "ksyk-builder",
               },
               {
-                label: "Floors",
-                value: Math.max(
-                  1,
-                  ...(((rooms as any[]) ?? []).map((r) => r?.floor ?? 1)),
-                  ...(((buildings as any[]) ?? []).map((b) => b?.floors ?? 1))
-                ),
+                label: "Staff",
+                value: (staff as any[])?.length ?? 0,
                 accent: "from-amber-500 to-orange-500",
-                icon: Layers,
-                tab: "ksyk-builder",
+                icon: IdCard,
+                tab: "staff",
               },
               {
                 label: "Announcements",
-                value: (announcements as any[])?.length ?? 0,
+                value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0,
                 accent: "from-rose-500 to-pink-500",
-                icon: AlertTriangle,
+                icon: Megaphone,
                 tab: "announcements",
               },
             ].map(({ label, value, accent, icon: Icon, tab }) => (
@@ -1561,34 +1557,88 @@ export default function AdminDashboard({ section }: { section?: string }) {
             ))}
           </div>
 
-          {/* Latest announcements */}
-          {(announcements as any[]).length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Megaphone className="h-4 w-4 text-rose-500" />
-                  Recent Announcements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  {(announcements as Announcement[]).slice(0, 3).map((a) => (
-                    <div key={a.id} className="flex items-start gap-3 py-2 border-b last:border-0">
-                      <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
-                        a.priority === "urgent" ? "bg-red-100 text-red-700" :
-                        a.priority === "high" ? "bg-orange-100 text-orange-700" :
-                        "bg-blue-100 text-blue-700"
-                      }`}>{a.priority}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{a.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{a.content}</p>
+          {/* Campus buildings summary + latest announcements side by side on wide screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Campus buildings */}
+            {(buildings as any[]).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Building className="h-4 w-4 text-blue-500" />
+                      Campus Buildings
+                    </CardTitle>
+                    <button
+                      type="button"
+                      onClick={() => navigate("ksyk-builder")}
+                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                    >
+                      Manage →
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-1.5">
+                    {(buildings as Building[]).map((b) => {
+                      const roomCount = (rooms as Room[]).filter((r) => r.buildingId === b.id).length;
+                      return (
+                        <div key={b.id} className="flex items-center gap-3 py-1.5 rounded-lg px-1 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <div className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shadow-sm" style={{ backgroundColor: b.colorCode }}>
+                            {b.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{b.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{b.floors} floor{b.floors !== 1 ? "s" : ""} · {roomCount} room{roomCount !== 1 ? "s" : ""}</p>
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${b.isActive ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-gray-200 text-gray-400"}`}>
+                            {b.isActive ? "Active" : "Off"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Latest announcements */}
+            {(announcements as any[]).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Megaphone className="h-4 w-4 text-rose-500" />
+                      Active Announcements
+                    </CardTitle>
+                    <button
+                      type="button"
+                      onClick={() => navigate("announcements")}
+                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                    >
+                      Manage →
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    {(announcements as Announcement[]).slice(0, 4).map((a) => (
+                      <div key={a.id} className="flex items-start gap-3 py-1.5 border-b last:border-0">
+                        <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
+                          a.priority === "urgent" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" :
+                          a.priority === "high" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" :
+                          "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                        }`}>{a.priority}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{a.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{a.content}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
@@ -1914,11 +1964,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {users.map((user: any) => (
-                          <tr key={user.id} className="hover:bg-gray-50">
+                          <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                             <td className="px-4 py-3">
-                              <div className="font-medium">{user.firstName} {user.lastName}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{user.firstName} {user.lastName}</div>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
                             <td className="px-4 py-3">
                               <Badge className={`capitalize text-xs font-semibold px-2 py-0.5 ${
                                 user.role === 'owner' ? 'bg-amber-100 text-amber-800 border-amber-200' :
