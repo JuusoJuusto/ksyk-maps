@@ -50,6 +50,12 @@ import {
   IdCard,
   LogOut,
   ChevronRight,
+  Link,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface Building {
@@ -712,6 +718,215 @@ function SchedulesManager({ rooms }: { rooms: Room[] }) {
         Future Wilma sync will populate this automatically.
       </p>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WilmaConfigPanel — owner-only, credentials never stored client-side
+// ─────────────────────────────────────────────────────────────────────────────
+interface WilmaConfig {
+  configured: boolean;
+  serverUrl: string;
+  lastSync: string | null;
+  connectionStatus: string;
+  lastTestAt: string | null;
+}
+
+function WilmaConfigPanel() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [serverUrl, setServerUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  const { data: config, isLoading } = useQuery<WilmaConfig>({
+    queryKey: ["wilma-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/wilma-config", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load config");
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (config && !hydrated) {
+      if (config.serverUrl) setServerUrl(config.serverUrl);
+      setHydrated(true);
+    }
+  }, [config, hydrated]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/wilma-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ serverUrl, username, password }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to save");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Configuration saved", description: "Wilma integration settings updated." });
+      setPassword("");
+      queryClient.invalidateQueries({ queryKey: ["wilma-config"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/wilma-config/test", {
+        method: "POST",
+        credentials: "include",
+      });
+      return res.json() as Promise<{ success: boolean; status: string; message: string }>;
+    },
+    onSuccess: (d) => {
+      if (d.success) {
+        toast({ title: "Connection successful", description: `Server responded: ${d.message}` });
+      } else {
+        toast({ title: "Connection failed", description: d.message || d.status, variant: "destructive" });
+      }
+      queryClient.invalidateQueries({ queryKey: ["wilma-config"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Test error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const statusColors: Record<string, string> = {
+    reachable: "text-emerald-600 dark:text-emerald-400",
+    unreachable: "text-red-600 dark:text-red-400",
+    error: "text-red-600 dark:text-red-400",
+    unchecked: "text-amber-600 dark:text-amber-400",
+    not_configured: "text-gray-400",
+    unknown: "text-gray-400",
+  };
+
+  const statusIcon = (s: string) => {
+    if (s === "reachable") return <CheckCircle2 className="h-4 w-4" />;
+    if (s === "unreachable" || s === "error") return <XCircle className="h-4 w-4" />;
+    return <Loader2 className="h-4 w-4 animate-spin" />;
+  };
+
+  return (
+    <Card className="border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/30 dark:bg-indigo-950/10">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
+            <Link className="h-4 w-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Wilma Integration</CardTitle>
+            <CardDescription className="text-xs">
+              Connect to your school's Wilma server. Credentials are stored server-side only.
+            </CardDescription>
+          </div>
+          {!isLoading && config && (
+            <div className={cn("ml-auto flex items-center gap-1.5 text-xs font-medium", statusColors[config.connectionStatus] || "text-gray-400")}>
+              {statusIcon(config.connectionStatus)}
+              <span className="capitalize">{config.connectionStatus.replace("_", " ")}</span>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading configuration…
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="wilma-url" className="text-xs font-semibold">Wilma Server URL</Label>
+                <Input
+                  id="wilma-url"
+                  type="url"
+                  placeholder="https://wilma.yourschool.fi"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  className="text-sm h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wilma-user" className="text-xs font-semibold">Username</Label>
+                <Input
+                  id="wilma-user"
+                  type="text"
+                  placeholder="admin@school.fi"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="text-sm h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wilma-pass" className="text-xs font-semibold">
+                  Password {config?.configured && <span className="text-muted-foreground font-normal">(leave blank to keep current)</span>}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="wilma-pass"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={config?.configured ? "••••••••" : "Enter password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="text-sm h-9 pr-9"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-900 dark:hover:text-white"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {config?.lastTestAt && (
+              <p className="text-[11px] text-muted-foreground">
+                Last tested: {new Date(config.lastTestAt).toLocaleString()}
+                {config.lastSync && ` · Last sync: ${new Date(config.lastSync).toLocaleString()}`}
+              </p>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                size="sm"
+                className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !serverUrl || !username}
+              >
+                {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={() => testMutation.mutate()}
+                disabled={testMutation.isPending || !config?.configured}
+                title={!config?.configured ? "Save configuration first" : "Test server connection"}
+              >
+                {testMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />}
+                Test Connection
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1770,17 +1985,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent value="wilma" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Wilma User Management (Temporary)</CardTitle>
-              <CardDescription>
-                Manage Wilma system users. This tab is temporarily added for quick access.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EnhancedWilmaUserManager />
-            </CardContent>
-          </Card>
+          {/* Wilma user manager */}
+          <EnhancedWilmaUserManager />
+
+          {/* Wilma integration config — owner only */}
+          {isOwner && <WilmaConfigPanel />}
         </TabsContent>
 
         <TabsContent value="campus-map" className="h-[calc(100dvh-14rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">

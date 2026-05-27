@@ -4611,6 +4611,107 @@ https://ksykmaps.vercel.app
   });
 
   // ============================================
+  // WILMA INTEGRATION CONFIG (owner-only, credentials never leave server)
+  // ============================================
+  app.get('/api/admin/wilma-config', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ message: 'Owner access required' });
+      }
+      const doc = await db.collection('wilma_integration').doc('config').get();
+      if (!doc.exists) {
+        return res.json({ configured: false, serverUrl: '', lastSync: null, connectionStatus: 'not_configured' });
+      }
+      const data = doc.data() as any;
+      // NEVER return credentials — only metadata
+      res.json({
+        configured: !!(data.serverUrl && data.username),
+        serverUrl: data.serverUrl || '',
+        lastSync: data.lastSync || null,
+        connectionStatus: data.connectionStatus || 'unknown',
+        lastTestAt: data.lastTestAt || null,
+      });
+    } catch (error) {
+      await logError(error, 'GET /api/admin/wilma-config');
+      res.status(500).json({ message: 'Failed to fetch Wilma config' });
+    }
+  });
+
+  app.post('/api/admin/wilma-config', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ message: 'Owner access required' });
+      }
+      const { serverUrl, username, password } = req.body;
+      if (!serverUrl || !username) {
+        return res.status(400).json({ message: 'serverUrl and username are required' });
+      }
+      const configRef = db.collection('wilma_integration').doc('config');
+      const update: any = {
+        serverUrl: serverUrl.trim(),
+        username: username.trim(),
+        updatedAt: new Date().toISOString(),
+        connectionStatus: 'unchecked',
+      };
+      // Only overwrite password if a new one is provided
+      if (password && password.trim()) {
+        update.password = password.trim();
+      }
+      await configRef.set(update, { merge: true });
+      res.json({ success: true, message: 'Wilma configuration saved' });
+    } catch (error) {
+      await logError(error, 'POST /api/admin/wilma-config');
+      res.status(500).json({ message: 'Failed to save Wilma config' });
+    }
+  });
+
+  app.post('/api/admin/wilma-config/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ message: 'Owner access required' });
+      }
+      const doc = await db.collection('wilma_integration').doc('config').get();
+      if (!doc.exists) {
+        return res.status(400).json({ success: false, message: 'Wilma not configured yet' });
+      }
+      const data = doc.data() as any;
+      if (!data.serverUrl || !data.username || !data.password) {
+        return res.status(400).json({ success: false, message: 'Incomplete configuration — serverUrl, username, and password are required' });
+      }
+      // Validate URL format
+      try { new URL(data.serverUrl); } catch {
+        return res.status(400).json({ success: false, message: 'Invalid server URL format' });
+      }
+      // Attempt a real connection to the Wilma server
+      let connectionStatus = 'error';
+      let statusMessage = '';
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const testUrl = data.serverUrl.replace(/\/$/, '') + '/';
+        const testRes = await fetch(testUrl, { signal: controller.signal, redirect: 'manual' });
+        clearTimeout(timeout);
+        connectionStatus = (testRes.status >= 200 && testRes.status < 500) ? 'reachable' : 'error';
+        statusMessage = `HTTP ${testRes.status}`;
+      } catch (err: any) {
+        connectionStatus = 'unreachable';
+        statusMessage = err.name === 'AbortError' ? 'Connection timed out' : String(err.message || err);
+      }
+      await db.collection('wilma_integration').doc('config').update({
+        connectionStatus,
+        lastTestAt: new Date().toISOString(),
+      });
+      res.json({ success: connectionStatus === 'reachable', status: connectionStatus, message: statusMessage });
+    } catch (error) {
+      await logError(error, 'POST /api/admin/wilma-config/test');
+      res.status(500).json({ success: false, message: 'Test failed due to server error' });
+    }
+  });
+
+  // ============================================
   // REGISTER WILMA EXTENDED ROUTES
   // ============================================
   console.log('🔵 Registering Wilma Extended Routes...');
