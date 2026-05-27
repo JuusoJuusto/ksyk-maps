@@ -1647,10 +1647,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
                             </td>
                           </tr>
                         ))}
-                        {users.length === 0 && (
+                        {(users as any[]).length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                              No users found. Click "Add User" to create one.
+                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                              No users yet — click <strong>Add User</strong> to create one.
                             </td>
                           </tr>
                         )}
@@ -1980,55 +1980,43 @@ export default function AdminDashboard({ section }: { section?: string }) {
             </CardHeader>
             <CardContent>
               {staff.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Staff Members</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">Get started by adding your first staff member</p>
-                  <Button 
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      setShowStaffForm(true);
-                      setEditingStaff(null);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Staff Member
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <Users className="h-10 w-10 text-gray-300 dark:text-gray-700" />
+                  <p className="text-sm font-medium text-muted-foreground">No staff members yet</p>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs"
+                    onClick={() => { setShowStaffForm(true); setEditingStaff(null); }}>
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add first member
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {staff.slice(0, 20).map((member: Staff) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                          {member.firstName?.[0]}{member.lastName?.[0]}
+                  {(staff as Staff[]).map((member) => (
+                    <div key={member.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow-sm">
+                          {(member.firstName?.[0] ?? "").toUpperCase()}{(member.lastName?.[0] ?? "").toUpperCase()}
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {member.firstName} {member.lastName}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {member.position || 'No position'} • {member.department || 'No department'}
                           </p>
-                          {member.email && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{member.email}</p>
-                          )}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {[member.position, member.department].filter(Boolean).join(" · ") || "—"}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={member.isActive ? "default" : "secondary"} className={member.isActive ? "bg-green-600" : ""}>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant={member.isActive ? "default" : "secondary"} className={`text-[10px] px-1.5 ${member.isActive ? "bg-emerald-500 hover:bg-emerald-500" : ""}`}>
                           {member.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setEditingStaff(member);
-                            setShowStaffForm(true);
-                          }}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() => { setEditingStaff(member); setShowStaffForm(true); }}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3.5 w-3.5" />
                         </Button>
                         {confirmDeleteStaffId === member.id ? (
                           <>
@@ -2041,24 +2029,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
                               onClick={() => setConfirmDeleteStaffId(null)}>No</Button>
                           </>
                         ) : (
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
                             onClick={() => handleDeleteStaff(member.id)}>
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
                     </div>
                   ))}
-                  {staff.length > 20 && (
-                    <div className="text-center py-4 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        Showing 20 of {staff.length} staff members
-                      </p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        Load More
-                      </Button>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>
