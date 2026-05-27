@@ -435,6 +435,13 @@ export default function OsmBasemap({
     };
   }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 
+  // Current rotation for the north indicator
+  const rotation = settings.osmRotationDeg || 0;
+  // Normalise to 0-360 for display
+  const bearing = ((rotation % 360) + 360) % 360;
+  // The north indicator counter-rotates: when map rotates CW, "N" points CCW
+  const northIndicatorRotation = -rotation;
+
   return (
     <div
       className={`${className ?? ""} relative overflow-hidden`}
@@ -443,6 +450,33 @@ export default function OsmBasemap({
       style={{ width: "100%", height: "100%" }}
     >
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* North compass indicator — visible when bearing ≠ 0 */}
+      {bearing !== 0 && (
+        <div
+          className="absolute top-3 left-3 z-[500] pointer-events-none"
+          aria-label={`Map bearing ${bearing}°`}
+        >
+          <div className="flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-md border border-white/60 dark:border-gray-700/60 backdrop-blur-sm">
+            <svg
+              width="28" height="28"
+              viewBox="0 0 28 28"
+              style={{ transform: `rotate(${northIndicatorRotation}deg)`, transition: "transform 280ms cubic-bezier(0.22,1,0.36,1)" }}
+            >
+              <circle cx="14" cy="14" r="13" fill="none" stroke="#e5e7eb" strokeWidth="1" />
+              {/* North tip — red */}
+              <polygon points="14,3 11,14 14,12 17,14" fill="#ef4444" />
+              {/* South tip — gray */}
+              <polygon points="14,25 11,14 14,16 17,14" fill="#94a3b8" />
+              <circle cx="14" cy="14" r="2.5" fill="#1e293b" />
+              <circle cx="14" cy="14" r="1" fill="white" />
+            </svg>
+            <span className="text-[8px] font-bold font-mono text-gray-500 dark:text-gray-400 leading-none">
+              {bearing}°
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@
  * (see hooks/useAppSettings) — every change is applied to the live map.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -24,6 +24,142 @@ import type { OsmTileTheme } from "@/lib/appSettings";
 import OsmPreviewMap from "@/components/OsmPreviewMap";
 import { cn } from "@/lib/utils";
 import { Map as MapIcon, Compass, Maximize2, RotateCcw, Check } from "lucide-react";
+
+// ── Compass dial widget ──────────────────────────────────────────────────────
+// Interactive SVG compass rose. Drag or click to set map bearing. The red
+// needle always points to geographic north in the current rotated view.
+// bearing = 0 → north at top; bearing = 90 → east at top (map rotated CW 90°).
+
+interface CompassDialProps {
+  value: number;
+  onChange: (deg: number) => void;
+  darkMode?: boolean;
+}
+
+function CompassDial({ value, onChange, darkMode }: CompassDialProps) {
+  const SIZE = 112;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R_OUTER = SIZE / 2 - 4;
+  const R_INNER = R_OUTER - 14;
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragging = useRef(false);
+
+  const angleFromPointer = useCallback((clientX: number, clientY: number): number => {
+    if (!svgRef.current) return 0;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = clientX - rect.left - CX;
+    const y = clientY - rect.top - CY;
+    const raw = Math.atan2(x, -y) * (180 / Math.PI);
+    return Math.round(raw);
+  }, []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    dragging.current = true;
+    svgRef.current?.setPointerCapture(e.pointerId);
+    onChange(angleFromPointer(e.clientX, e.clientY));
+  }, [angleFromPointer, onChange]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (!dragging.current) return;
+    onChange(angleFromPointer(e.clientX, e.clientY));
+  }, [angleFromPointer, onChange]);
+
+  const onPointerUp = useCallback(() => { dragging.current = false; }, []);
+
+  const ring = darkMode ? "#374151" : "#e5e7eb";
+  const tick = darkMode ? "#6b7280" : "#9ca3af";
+  const tickMinor = darkMode ? "#374151" : "#d1d5db";
+  const cardinalColor = darkMode ? "#9ca3af" : "#6b7280";
+  const bg = darkMode ? "#1f2937" : "#f9fafb";
+
+  const normalised = ((value % 360) + 360) % 360;
+
+  return (
+    <svg
+      ref={svgRef}
+      width={SIZE}
+      height={SIZE}
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      className="shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+      aria-label={`Compass: ${normalised}°`}
+      role="slider"
+      aria-valuenow={normalised}
+      aria-valuemin={0}
+      aria-valuemax={360}
+    >
+      {/* Background fill */}
+      <circle cx={CX} cy={CY} r={R_OUTER + 3} fill={bg} />
+
+      {/* Outer ring */}
+      <circle cx={CX} cy={CY} r={R_OUTER} fill="none" stroke={ring} strokeWidth="1.5" />
+
+      {/* Tick marks every 10°, long ticks at 45° intervals */}
+      {Array.from({ length: 36 }, (_, i) => {
+        const deg = i * 10;
+        const rad = (deg - 90) * (Math.PI / 180);
+        const major = deg % 45 === 0;
+        const len = major ? 8 : 4;
+        const x1 = CX + (R_OUTER - len) * Math.cos(rad);
+        const y1 = CY + (R_OUTER - len) * Math.sin(rad);
+        const x2 = CX + R_OUTER * Math.cos(rad);
+        const y2 = CY + R_OUTER * Math.sin(rad);
+        return (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke={major ? tick : tickMinor} strokeWidth={major ? 1.5 : 1} />
+        );
+      })}
+
+      {/* Cardinal labels — fixed, show where N/E/S/W are on the screen grid */}
+      {[
+        { label: "N", angle: 0, fill: "#ef4444", fw: "bold" },
+        { label: "E", angle: 90, fill: cardinalColor, fw: "600" },
+        { label: "S", angle: 180, fill: cardinalColor, fw: "600" },
+        { label: "W", angle: 270, fill: cardinalColor, fw: "600" },
+      ].map(({ label, angle, fill, fw }) => {
+        const rad = (angle - 90) * (Math.PI / 180);
+        return (
+          <text key={label}
+            x={CX + (R_INNER - 2) * Math.cos(rad)}
+            y={CY + (R_INNER - 2) * Math.sin(rad)}
+            textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fontWeight={fw} fill={fill}
+          >{label}</text>
+        );
+      })}
+
+      {/* Rotating needle — north tip (red) points to current bearing direction */}
+      <g transform={`rotate(${value} ${CX} ${CY})`}>
+        {/* North (red) arrow */}
+        <polygon
+          points={`${CX},${CY - R_INNER + 6} ${CX - 4.5},${CY + 4} ${CX},${CY + 1} ${CX + 4.5},${CY + 4}`}
+          fill="#ef4444"
+        />
+        {/* South (muted) arrow */}
+        <polygon
+          points={`${CX},${CY + R_INNER - 6} ${CX - 3.5},${CY - 4} ${CX},${CY - 1} ${CX + 3.5},${CY - 4}`}
+          fill={darkMode ? "#4b5563" : "#cbd5e1"}
+        />
+        {/* Center pin */}
+        <circle cx={CX} cy={CY} r={3.5} fill={darkMode ? "#e5e7eb" : "#1e293b"} />
+        <circle cx={CX} cy={CY} r={1.5} fill={darkMode ? "#1f2937" : "white"} />
+      </g>
+
+      {/* Bearing readout in centre ring */}
+      <text x={CX} y={CY + R_INNER + 10}
+        textAnchor="middle" dominantBaseline="middle"
+        fontSize="7.5" fontWeight="600" fill={cardinalColor} fontFamily="monospace"
+      >{normalised}°</text>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface MapSettingsPanelProps {
   /** Whether to render the card chrome (title bar etc.). Set false to embed flat. */
@@ -347,38 +483,88 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
       </div>
 
       {/* ── Orientation ───────────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
+      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-4">
         <Label className="text-xs font-semibold flex items-center gap-1.5">
           <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
-          {isFi ? "Suunta ja kallistus" : "Orientation"}
+          {isFi ? "Suunta ja kallistus" : "Orientation & Bearing"}
         </Label>
 
-        <div>
-          <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs">{isFi ? "Kierto (bearing)" : "Rotation (bearing)"}</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono">{settings.osmRotationDeg}°</span>
-              {settings.osmRotationDeg !== 0 && (
+        {/* Compass rose + bearing controls */}
+        <div className="flex items-center gap-4">
+          {/* Compass dial — drag or click to set bearing */}
+          <CompassDial
+            value={settings.osmRotationDeg}
+            onChange={(v) => update("osmRotationDeg", v)}
+            darkMode={darkMode}
+          />
+
+          {/* Bearing readout + cardinal snaps */}
+          <div className="flex-1 space-y-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                {isFi ? "Suuntakulma" : "Bearing"}
+              </span>
+              <span className="text-sm font-mono font-bold tabular-nums">
+                {((settings.osmRotationDeg % 360) + 360) % 360}°
+              </span>
+            </div>
+
+            {/* Cardinal quick-snap buttons */}
+            <div className="grid grid-cols-4 gap-1">
+              {([
+                { label: "N", value: 0 },
+                { label: "E", value: 90 },
+                { label: "S", value: 180 },
+                { label: "W", value: -90 },
+              ] as const).map(({ label, value }) => (
                 <button
+                  key={label}
                   type="button"
-                  onClick={() => update("osmRotationDeg", 0)}
-                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline"
+                  onClick={() => update("osmRotationDeg", value)}
+                  className={cn(
+                    "py-1 rounded-lg text-xs font-semibold transition-all border",
+                    Math.abs(((settings.osmRotationDeg % 360) + 360) % 360 - ((value % 360) + 360) % 360) < 2
+                      ? "bg-blue-500 text-white border-blue-600 shadow-sm"
+                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 hover:text-blue-600"
+                  )}
                 >
-                  {isFi ? "Pohj." : "Reset"}
+                  {label}
                 </button>
-              )}
+              ))}
+            </div>
+
+            {/* Bearing slider for fine control */}
+            <div>
+              <Slider
+                value={[settings.osmRotationDeg]}
+                min={-180}
+                max={180}
+                step={1}
+                onValueChange={([v]) => update("osmRotationDeg", v)}
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground mt-1 font-mono">
+                <span>-180°</span>
+                <span>0°</span>
+                <span>+180°</span>
+              </div>
             </div>
           </div>
-          <Slider
-            value={[settings.osmRotationDeg]}
-            min={-180}
-            max={180}
-            step={1}
-            onValueChange={([v]) => update("osmRotationDeg", v)}
-          />
         </div>
 
-        <div>
+        {/* Reset to north */}
+        {settings.osmRotationDeg !== 0 && (
+          <button
+            type="button"
+            onClick={() => update("osmRotationDeg", 0)}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {isFi ? "Palauta pohjoiseen" : "Reset to North"}
+          </button>
+        )}
+
+        {/* Pitch slider */}
+        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-700/40">
           <div className="flex justify-between items-baseline mb-2">
             <Label className="text-xs">{isFi ? "Kallistus (pitch)" : "Tilt / pitch"}</Label>
             <span className="text-xs font-mono">{settings.osmPitchDeg ?? 0}°</span>
@@ -395,7 +581,8 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
           </p>
         </div>
 
-        <div>
+        {/* Campus span */}
+        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-700/40">
           <div className="flex justify-between items-baseline mb-2">
             <Label className="text-xs">{isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}</Label>
             <span className="text-xs font-mono">{settings.osmCampusSpanMeters} m</span>

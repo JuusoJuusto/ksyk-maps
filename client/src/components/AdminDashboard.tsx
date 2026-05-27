@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
@@ -114,6 +115,7 @@ function BuildingCard({
   setBuilderMode: (mode: 'buildings' | 'rooms' | 'hallways') => void;
   setEditingRoom: (room: any) => void;
 }) {
+  const { toast } = useToast();
   const buildingRooms = rooms.filter((r: Room) => r.buildingId === building.id);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -294,15 +296,15 @@ function BuildingCard({
                         credentials: 'include'
                       });
                       if (response.ok) {
-                        alert('Building deleted successfully!');
+                        toast({ title: "Building deleted", description: `${building.name} has been removed.` });
                         queryClient.invalidateQueries({ queryKey: ["buildings"] });
                         queryClient.invalidateQueries({ queryKey: ["rooms"] });
                       } else {
-                        alert('Failed to delete building');
+                        toast({ title: "Delete failed", description: "Failed to delete building.", variant: "destructive" });
                       }
                     } catch (error) {
                       console.error('Error deleting building:', error);
-                      alert('Error deleting building');
+                      toast({ title: "Error", description: "Could not delete building.", variant: "destructive" });
                     }
                   }}
                 >
@@ -342,15 +344,15 @@ function BuildingCard({
                         body: JSON.stringify(editData)
                       });
                       if (response.ok) {
-                        alert('Building updated successfully!');
+                        toast({ title: "Building updated", description: `${building.name} saved successfully.` });
                         queryClient.invalidateQueries({ queryKey: ["buildings"] });
                         setIsEditing(false);
                       } else {
-                        alert('Failed to update building');
+                        toast({ title: "Save failed", description: "Failed to update building.", variant: "destructive" });
                       }
                     } catch (error) {
                       console.error('Error updating building:', error);
-                      alert('Error updating building');
+                      toast({ title: "Error", description: "Could not update building.", variant: "destructive" });
                     }
                   }}
                 >
@@ -444,20 +446,21 @@ function BuildingCard({
                           variant="ghost"
                           className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={async () => {
-                            if (!confirm(`Delete room ${room.roomNumber}?`)) return;
+                            if (!window.confirm(`Delete room ${room.roomNumber}?`)) return;
                             try {
                               const response = await fetch(`/api/rooms/${room.id}`, {
                                 method: 'DELETE',
                                 credentials: 'include'
                               });
                               if (response.ok) {
+                                toast({ title: "Room deleted", description: `Room ${room.roomNumber} removed.` });
                                 queryClient.invalidateQueries({ queryKey: ["rooms"] });
                               } else {
-                                alert('Failed to delete room');
+                                toast({ title: "Delete failed", description: "Failed to delete room.", variant: "destructive" });
                               }
                             } catch (error) {
                               console.error('Error deleting room:', error);
-                              alert('Error deleting room');
+                              toast({ title: "Error", description: "Could not delete room.", variant: "destructive" });
                             }
                           }}
                         >
@@ -478,6 +481,7 @@ function BuildingCard({
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -790,7 +794,7 @@ export default function AdminDashboard() {
 
   const handleCreateAnnouncement = () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
-      alert("Please fill in title and content");
+      toast({ title: "Required fields missing", description: "Please fill in title and content.", variant: "destructive" });
       return;
     }
     createAnnouncementMutation.mutate(newAnnouncement);
@@ -803,7 +807,7 @@ export default function AdminDashboard() {
 
   const handleCreateStaff = () => {
     if (!newStaff.firstName || !newStaff.lastName) {
-      alert("Please fill in first name and last name");
+      toast({ title: "Required fields missing", description: "Please fill in first and last name.", variant: "destructive" });
       return;
     }
     createStaffMutation.mutate(newStaff);
@@ -829,60 +833,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const stats = [
-    {
-      title: "Buildings",
-      value: buildings.length,
-      icon: Building,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
-    },
-    {
-      title: "Rooms",
-      value: rooms.length,
-      icon: MapPin,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-    },
-    {
-      title: "Staff Members",
-      value: staff.length,
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
-    },
-    {
-      title: "Announcements",
-      value: announcements.filter((a: Announcement) => a.isActive).length,
-      icon: Megaphone,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-    },
-  ];
-
   return (
     <div className="space-y-6 h-full flex flex-col p-6">
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
-                </div>
-                <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor} shadow-md`}>
-                  <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Account chip — sits above the tab bar; shows the signed-in user
           and a quick sign-out. Click avatar/initial to log out. */}
       {currentUser && (
@@ -1056,53 +1008,61 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>System Overview</CardTitle>
-              <CardDescription>
-                Quick overview of your KSYK campus management system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Welcome to the KSYK Admin Dashboard. Here you can manage buildings, rooms, staff, and announcements.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Recent Activity</h3>
-                    <p className="text-sm text-muted-foreground">
-                      System is running smoothly. All services are operational.
-                    </p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Quick Actions</h3>
-                    <div className="space-y-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => setActiveTab("announcements")}
-                      >
-                        Create Announcement
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setActiveTab("rooms")}
-                      >
-                        Manage Rooms
-                      </Button>
-                    </div>
-                  </div>
+          {/* Quick actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements", accent: "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800" },
+              { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff", accent: "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800" },
+              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "ksyk-builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800" },
+              { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800" },
+              { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800" },
+              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "logs", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800" },
+            ].map(({ label, desc, icon: Icon, tab, accent }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${accent}`}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
+                  <Icon className="h-4 w-4" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{label}</p>
+                  <p className="text-xs opacity-70 truncate">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Latest announcements */}
+          {(announcements as any[]).length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 text-rose-500" />
+                  Recent Announcements
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {(announcements as Announcement[]).slice(0, 3).map((a) => (
+                    <div key={a.id} className="flex items-start gap-3 py-2 border-b last:border-0">
+                      <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
+                        a.priority === "urgent" ? "bg-red-100 text-red-700" :
+                        a.priority === "high" ? "bg-orange-100 text-orange-700" :
+                        "bg-blue-100 text-blue-700"
+                      }`}>{a.priority}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{a.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{a.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
@@ -1323,20 +1283,20 @@ export default function AdminDashboard() {
                                   const error = await response.json();
                                   throw new Error(error.message || 'Failed to update user');
                                 }
-                                
-                                alert('User updated successfully!');
+
+                                toast({ title: "User updated", description: "User account saved successfully." });
                                 queryClient.invalidateQueries({ queryKey: ["users"] });
                                 setShowUserForm(false);
                                 setEditingUser(null);
                               } else {
                                 // Create user
                                 if (!newUser.email || !newUser.firstName || !newUser.lastName) {
-                                  alert('Please fill in all required fields');
+                                  toast({ title: "Required fields missing", description: "Please fill in all required fields.", variant: "destructive" });
                                   return;
                                 }
-                                
+
                                 if (newUser.passwordOption === 'manual' && !newUser.password) {
-                                  alert('Please enter a password or choose email invitation');
+                                  toast({ title: "Password required", description: "Please enter a password or choose email invitation.", variant: "destructive" });
                                   return;
                                 }
                                 
@@ -1353,17 +1313,16 @@ export default function AdminDashboard() {
                                 
                                 const result = await response.json();
                                 
-                                const message = newUser.passwordOption === 'email' 
-                                  ? `✅ User created successfully!\n\n📧 Email invitation sent to: ${newUser.email}\n\nThe user will receive their login credentials via email.`
-                                  : 'User created successfully!';
-                                  
-                                alert(message);
+                                const description = newUser.passwordOption === 'email'
+                                  ? `Invitation sent to ${newUser.email}.`
+                                  : "User account created.";
+                                toast({ title: "User created", description });
                                 queryClient.invalidateQueries({ queryKey: ["users"] });
                                 setShowUserForm(false);
                                 setNewUser({ email: "", firstName: "", lastName: "", role: "admin", password: "", passwordOption: "manual" });
                               }
                             } catch (error: any) {
-                              alert(`Error: ${error.message}`);
+                              toast({ title: "Error", description: error.message, variant: "destructive" });
                             }
                           }}
                         >
@@ -1481,11 +1440,11 @@ export default function AdminDashboard() {
                                             const error = await response.json();
                                             throw new Error(error.message || 'Failed to delete user');
                                           }
-                                          
-                                          alert('User deleted successfully!');
+
+                                          toast({ title: "User deleted", description: "Account removed." });
                                           queryClient.invalidateQueries({ queryKey: ["users"] });
                                         } catch (error: any) {
-                                          alert(`Error: ${error.message}`);
+                                          toast({ title: "Error", description: error.message, variant: "destructive" });
                                         }
                                       }
                                     }}
@@ -1581,401 +1540,6 @@ export default function AdminDashboard() {
           )}
         </TabsContent>
 
-        <TabsContent value="builder" className="space-y-6">
-          <Card className="border-2 border-blue-200 shadow-xl">
-            <CardHeader className="bg-blue-600 text-white">
-              <CardTitle className="text-2xl flex items-center">
-                <Building className="mr-3 h-7 w-7" />
-                🏗️ KSYK Interactive Builder
-              </CardTitle>
-              <CardDescription className="text-blue-100 text-lg">
-                Create and manage buildings, rooms, and hallways with ease
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              {/* Builder Mode Selector */}
-              <div className="flex space-x-2 mb-6">
-                <Button
-                  onClick={() => setBuilderMode('buildings')}
-                  className={builderMode === 'buildings' ? 'bg-blue-600' : 'bg-gray-400'}
-                >
-                  <Building className="mr-2 h-4 w-4" />
-                  Buildings
-                </Button>
-                <Button
-                  onClick={() => setBuilderMode('rooms')}
-                  className={builderMode === 'rooms' ? 'bg-green-600' : 'bg-gray-400'}
-                >
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Rooms
-                </Button>
-                <Button
-                  onClick={() => setBuilderMode('hallways')}
-                  className={builderMode === 'hallways' ? 'bg-purple-600' : 'bg-gray-400'}
-                >
-                  <Layers className="mr-2 h-4 w-4" />
-                  Hallways
-                </Button>
-              </div>
-
-              {/* Buildings Builder */}
-              {builderMode === 'buildings' && (
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Left Side - Form and List */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-bold">Buildings ({buildings.length})</h3>
-                      <Button
-                        onClick={() => {
-                          setShowBuilderForm(true);
-                          setEditingBuilding(null);
-                          setNewBuilding({
-                            name: '',
-                            nameEn: '',
-                            nameFi: '',
-                            floors: 1,
-                            capacity: 0,
-                            colorCode: '#3B82F6',
-                            mapPositionX: 100,
-                            mapPositionY: 100
-                          });
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Building
-                      </Button>
-                    </div>
-
-                  {showBuilderForm && (
-                    <div className="border-2 border-blue-300 rounded-lg p-6 bg-blue-50">
-                      <h4 className="text-lg font-semibold mb-4">
-                        {editingBuilding ? 'Edit Building' : 'Create New Building'}
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>Building Code *</Label>
-                          <Input
-                            value={editingBuilding ? editingBuilding.name : newBuilding.name}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, name: e.target.value})
-                              : setNewBuilding({...newBuilding, name: e.target.value})
-                            }
-                            placeholder="M, K, L, etc."
-                          />
-                        </div>
-                        <div>
-                          <Label>English Name</Label>
-                          <Input
-                            value={editingBuilding ? editingBuilding.nameEn : newBuilding.nameEn}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, nameEn: e.target.value})
-                              : setNewBuilding({...newBuilding, nameEn: e.target.value})
-                            }
-                            placeholder="Music Building"
-                          />
-                        </div>
-                        <div>
-                          <Label>Finnish Name</Label>
-                          <Input
-                            value={editingBuilding ? editingBuilding.nameFi : newBuilding.nameFi}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, nameFi: e.target.value})
-                              : setNewBuilding({...newBuilding, nameFi: e.target.value})
-                            }
-                            placeholder="Musiikkitalo"
-                          />
-                        </div>
-                        <div>
-                          <Label>Number of Floors</Label>
-                          <Input
-                            type="number"
-                            value={editingBuilding ? editingBuilding.floors : newBuilding.floors}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, floors: parseInt(e.target.value)})
-                              : setNewBuilding({...newBuilding, floors: parseInt(e.target.value)})
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label>Capacity</Label>
-                          <Input
-                            type="number"
-                            value={editingBuilding ? editingBuilding.capacity : newBuilding.capacity}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, capacity: parseInt(e.target.value)})
-                              : setNewBuilding({...newBuilding, capacity: parseInt(e.target.value)})
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label>Color</Label>
-                          <Input
-                            type="color"
-                            value={editingBuilding ? editingBuilding.colorCode : newBuilding.colorCode}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, colorCode: e.target.value})
-                              : setNewBuilding({...newBuilding, colorCode: e.target.value})
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label>Map Position X</Label>
-                          <Input
-                            type="number"
-                            value={editingBuilding ? editingBuilding.mapPositionX : newBuilding.mapPositionX}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, mapPositionX: parseInt(e.target.value)})
-                              : setNewBuilding({...newBuilding, mapPositionX: parseInt(e.target.value)})
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label>Map Position Y</Label>
-                          <Input
-                            type="number"
-                            value={editingBuilding ? editingBuilding.mapPositionY : newBuilding.mapPositionY}
-                            onChange={(e) => editingBuilding
-                              ? setEditingBuilding({...editingBuilding, mapPositionY: parseInt(e.target.value)})
-                              : setNewBuilding({...newBuilding, mapPositionY: parseInt(e.target.value)})
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end space-x-2 mt-4">
-                        <Button variant="outline" onClick={() => {
-                          setShowBuilderForm(false);
-                          setEditingBuilding(null);
-                        }}>
-                          Cancel
-                        </Button>
-                        <Button
-                          className="bg-blue-600 hover:bg-blue-700"
-                          onClick={async () => {
-                            try {
-                              const data = editingBuilding || newBuilding;
-                              const url = editingBuilding ? `/api/buildings/${editingBuilding.id}` : '/api/buildings';
-                              const method = editingBuilding ? 'PUT' : 'POST';
-                              
-                              const response = await fetch(url, {
-                                method,
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(data)
-                              });
-                              
-                              if (!response.ok) throw new Error('Failed to save building');
-                              
-                              alert(editingBuilding ? 'Building updated!' : 'Building created!');
-                              queryClient.invalidateQueries({ queryKey: ["buildings"] });
-                              setShowBuilderForm(false);
-                              setEditingBuilding(null);
-                            } catch (error: any) {
-                              alert(`Error: ${error.message}`);
-                            }
-                          }}
-                        >
-                          <Save className="mr-2 h-4 w-4" />
-                          {editingBuilding ? 'Update' : 'Create'} Building
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Buildings List */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {buildings.map((building: Building) => (
-                      <div key={building.id} className="border-2 rounded-lg p-4 hover:shadow-lg transition-shadow" style={{ borderColor: building.colorCode }}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl" style={{ backgroundColor: building.colorCode }}>
-                              {building.name}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-lg">{building.nameEn || building.name}</h4>
-                              <p className="text-sm text-gray-600">{building.floors} floors • {building.capacity || 0} capacity</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingBuilding(building);
-                                setShowBuilderForm(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600"
-                              onClick={async () => {
-                                if (confirm(`Delete building ${building.name}?`)) {
-                                  try {
-                                    await fetch(`/api/buildings/${building.id}`, { method: 'DELETE' });
-                                    alert('Building deleted!');
-                                    queryClient.invalidateQueries({ queryKey: ["buildings"] });
-                                  } catch (error) {
-                                    alert('Failed to delete building');
-                                  }
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    </div>
-                  </div>
-
-                  {/* Right Side - Interactive Map Preview */}
-                  <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <h3 className="text-lg font-bold mb-4 flex items-center">
-                      <MapPin className="mr-2 h-5 w-5" />
-                      Live Map Preview
-                    </h3>
-                    <div className="bg-white border rounded-lg overflow-hidden" style={{ height: '600px' }}>
-                      <svg viewBox="0 0 1000 600" className="w-full h-full">
-                        {/* Grid */}
-                        <defs>
-                          <pattern id="builderGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="white" />
-                        <rect width="100%" height="100%" fill="url(#builderGrid)" />
-                        
-                        {/* Buildings on Map */}
-                        {buildings.map((building: Building) => {
-                          const x = building.mapPositionX || 100;
-                          const y = building.mapPositionY || 100;
-                          const isEditing = editingBuilding?.id === building.id;
-                          
-                          return (
-                            <g key={building.id} className="cursor-pointer" onClick={() => {
-                              setEditingBuilding(building);
-                              setShowBuilderForm(true);
-                            }}>
-                              <rect
-                                x={x}
-                                y={y}
-                                width="160"
-                                height="120"
-                                fill={building.colorCode}
-                                stroke={isEditing ? "#fbbf24" : "#94a3b8"}
-                                strokeWidth={isEditing ? "3" : "2"}
-                                rx="4"
-                                opacity="0.9"
-                              />
-                              <text
-                                x={x + 80}
-                                y={y + 60}
-                                textAnchor="middle"
-                                className="fill-white font-bold text-3xl pointer-events-none"
-                                style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
-                              >
-                                {building.name}
-                              </text>
-                              <text
-                                x={x + 80}
-                                y={y + 85}
-                                textAnchor="middle"
-                                className="fill-white text-sm pointer-events-none"
-                              >
-                                {building.nameEn}
-                              </text>
-                            </g>
-                          );
-                        })}
-                        
-                        {/* Preview for new building */}
-                        {showBuilderForm && !editingBuilding && (
-                          <g opacity="0.5">
-                            <rect
-                              x={newBuilding.mapPositionX}
-                              y={newBuilding.mapPositionY}
-                              width="160"
-                              height="120"
-                              fill={newBuilding.colorCode}
-                              stroke="#fbbf24"
-                              strokeWidth="3"
-                              strokeDasharray="8,4"
-                              rx="4"
-                            />
-                            <text
-                              x={newBuilding.mapPositionX + 80}
-                              y={newBuilding.mapPositionY + 60}
-                              textAnchor="middle"
-                              className="fill-white font-bold text-3xl"
-                              style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
-                            >
-                              {newBuilding.name || '?'}
-                            </text>
-                            <text
-                              x={newBuilding.mapPositionX + 80}
-                              y={newBuilding.mapPositionY + 85}
-                              textAnchor="middle"
-                              className="fill-white text-sm"
-                            >
-                              Preview
-                            </text>
-                          </g>
-                        )}
-                      </svg>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      💡 Click on buildings to edit them. New buildings show as preview.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Rooms Builder */}
-              {builderMode === 'rooms' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Rooms ({rooms.length})</h3>
-                    <Button
-                      onClick={() => {
-                        setShowBuilderForm(true);
-                        setEditingRoom(null);
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Room
-                    </Button>
-                  </div>
-                  <p className="text-gray-600">Room builder coming soon! Use the Buildings tab for now.</p>
-                </div>
-              )}
-
-              {/* Hallways Builder */}
-              {builderMode === 'hallways' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Hallways</h3>
-                    <Button
-                      onClick={() => {
-                        setShowBuilderForm(true);
-                        setEditingHallway(null);
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Hallway
-                    </Button>
-                  </div>
-                  <p className="text-gray-600">Hallway builder coming soon! Use the Buildings tab for now.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="logs" className="space-y-6">
           <AppLogsManager />
         </TabsContent>
@@ -1984,51 +1548,9 @@ export default function AdminDashboard() {
           <TicketManager />
         </TabsContent>
 
-        <TabsContent value="rooms" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rooms Management</CardTitle>
-              <CardDescription>
-                Manage individual rooms and their details
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {rooms.slice(0, 10).map((room: Room) => (
-                  <div key={room.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{room.roomNumber}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {room.name || room.nameEn} • Floor {room.floor} • {room.type}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={room.isActive ? "default" : "secondary"}>
-                        {room.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {rooms.length > 10 && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Showing 10 of {rooms.length} rooms
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="staff" className="space-y-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold">Staff Management</h2>
-              <p className="text-muted-foreground">Manage staff members and their information</p>
-            </div>
-            <Button 
+          <div className="flex justify-end mb-2">
+            <Button
               className="bg-blue-600 hover:bg-blue-700"
               onClick={() => {
                 setShowStaffForm(true);
