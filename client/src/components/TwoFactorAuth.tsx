@@ -153,32 +153,32 @@ export default function TwoFactorAuth() {
         <CardContent className="p-6">
           {/* Enforcement Notice */}
           {is2FAEnforced && (
-            <Alert className="mb-6 bg-yellow-50 border-yellow-300">
-              <Lock className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
+            <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-300 dark:border-yellow-700">
+              <Lock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-300">
                 <strong>2FA is enforced by the owner.</strong> All admin users must have 2FA enabled. You cannot disable it.
               </AlertDescription>
             </Alert>
           )}
 
           {/* Current Status */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {twoFactorStatus?.enabled ? (
                   <>
-                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                     <div>
-                      <p className="font-semibold text-gray-900">2FA is Enabled</p>
-                      <p className="text-sm text-gray-600">Your account is protected</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">2FA is Enabled</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Your account is protected</p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-6 w-6 text-orange-600" />
+                    <XCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                     <div>
-                      <p className="font-semibold text-gray-900">2FA is Disabled</p>
-                      <p className="text-sm text-gray-600">{is2FAEnforced ? "You must enable 2FA" : "Enable 2FA for better security"}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">2FA is Disabled</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{is2FAEnforced ? "You must enable 2FA" : "Enable 2FA for better security"}</p>
                     </div>
                   </>
                 )}
@@ -189,12 +189,12 @@ export default function TwoFactorAuth() {
           {/* Enable 2FA Section */}
           {!twoFactorStatus?.enabled && !showSetup && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-2">
                   <Smartphone className="h-5 w-5" />
                   How it works
                 </h3>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-disc list-inside">
                   <li>Install an authenticator app (Google Authenticator, Authy, etc.)</li>
                   <li>Scan the QR code or enter the secret key</li>
                   <li>Enter the 6-digit code from your app to verify</li>
@@ -223,7 +223,7 @@ export default function TwoFactorAuth() {
               </Alert>
 
               {/* QR Code */}
-              <div className="flex justify-center p-6 bg-white border-2 border-gray-200 rounded-lg">
+              <div className="flex justify-center p-6 bg-white dark:bg-white border-2 border-gray-200 dark:border-gray-600 rounded-lg">
                 <QRCode
                   value={twoFactorStatus.otpauthUrl || `otpauth://totp/KSYK:${currentUser.email}?secret=${twoFactorStatus.secret}&issuer=KSYK`}
                   size={200}
@@ -231,12 +231,12 @@ export default function TwoFactorAuth() {
               </div>
 
               {/* Manual Entry */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                   Or enter this secret key manually:
                 </Label>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white px-3 py-2 rounded border font-mono text-sm">
+                  <code className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 rounded border border-gray-200 dark:border-gray-700 font-mono text-sm">
                     {twoFactorStatus.secret}
                   </code>
                   <Button
@@ -294,9 +294,9 @@ export default function TwoFactorAuth() {
           {/* Disable 2FA Section */}
           {twoFactorStatus?.enabled && !is2FAEnforced && (
             <div className="space-y-4">
-              <Alert className="bg-yellow-50 border-yellow-200">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-800">
+              <Alert className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-300">
                   Disabling 2FA will make your account less secure. You'll only need your password to log in.
                 </AlertDescription>
               </Alert>
@@ -345,8 +345,8 @@ export default function TwoFactorAuth() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <Alert className="bg-red-50 border-red-200">
-              <AlertDescription className="text-red-800">
+            <Alert className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
+              <AlertDescription className="text-red-800 dark:text-red-300">
                 ⚠️ Feature coming soon: Backup codes will be generated when you enable 2FA.
               </AlertDescription>
             </Alert>

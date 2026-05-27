@@ -138,8 +138,8 @@ export default function AppSettingsManager() {
       <Card>
         <CardContent className="p-12 text-center">
           <Settings className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Owner Access Only</h3>
-          <p className="text-gray-500">App settings management is restricted to the owner account for security.</p>
+          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Owner Access Only</h3>
+          <p className="text-gray-500 dark:text-gray-400">App settings management is restricted to the owner account for security.</p>
         </CardContent>
       </Card>
     );
@@ -370,8 +370,8 @@ export default function AppSettingsManager() {
                   </div>
                 </div>
                 
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
                     💡 <strong>Theme changes apply globally</strong> to all users and are saved to the database. The System theme automatically follows your device's light/dark mode preference.
                   </p>
                 </div>
@@ -601,7 +601,7 @@ export default function AppSettingsManager() {
                   id="defaultLanguage"
                   value={settings.defaultLanguage}
                   onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="en">English</option>
                   <option value="fi">Finnish</option>
@@ -893,17 +893,17 @@ export default function AppSettingsManager() {
               <CardDescription>Configure class times, breaks, and lunch periods for the school</CardDescription>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
-                <p className="text-sm text-blue-800">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-6">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
                   ⏰ <strong>Schedule Management:</strong> Configure the school's daily schedule including class periods, breaks, and lunch times. This will be used throughout the Wilma system.
                 </p>
               </div>
               
               <div className="space-y-4">
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-400">
                   The schedule configuration feature allows you to:
                 </p>
-                <ul className="list-disc list-inside space-y-2 text-gray-600 ml-4">
+                <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-400 ml-4">
                   <li>Define class periods with start and end times</li>
                   <li>Set break and lunch periods</li>
                   <li>Create multiple schedule configurations (e.g., normal day, early release)</li>
@@ -911,11 +911,11 @@ export default function AppSettingsManager() {
                   <li>Mark schedules as active or default</li>
                 </ul>
                 
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-800 font-semibold mb-2">
+                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-800 dark:text-green-300 font-semibold mb-2">
                     ✅ Schedule configuration is managed in the Wilma Admin panel
                   </p>
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-green-700 dark:text-green-400">
                     Navigate to Wilma Admin → Schedule Configuration to create and manage school schedules.
                   </p>
                 </div>
@@ -931,8 +931,8 @@ export default function AppSettingsManager() {
               <CardDescription>Enable cutting-edge features and experimental functionality</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
                   ⚡ <strong>Power User Settings:</strong> These advanced features provide enterprise-level functionality. Some features may be experimental.
                 </p>
               </div>
@@ -1082,7 +1082,7 @@ export default function AppSettingsManager() {
               <div className="space-y-6 pt-6 border-t">
                 <h3 className="font-semibold text-lg">🔬 Experimental Features</h3>
                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-                  <p className="text-sm text-yellow-800">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
                     ⚠️ <strong>Warning:</strong> These features are experimental and may not work as expected.
                   </p>
                 </div>
@@ -1787,8 +1787,8 @@ export default function AppSettingsManager() {
                 </div>
               </div>
 
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg mt-6">
-                <p className="text-sm text-red-800">
+              <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg mt-6">
+                <p className="text-sm text-red-800 dark:text-red-300">
                   ⚠️ <strong>Warning:</strong> Super Advanced features may impact performance and security. Test thoroughly before enabling in production.
                 </p>
               </div>
@@ -1803,8 +1803,8 @@ export default function AppSettingsManager() {
               <CardDescription>Security and authentication settings restricted to the owner account</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
                   🔐 <strong>Owner Access Only:</strong> These settings control global security policies and can only be modified by JuusoJuusto112@gmail.com
                 </p>
               </div>
@@ -1813,7 +1813,7 @@ export default function AppSettingsManager() {
                 <h3 className="font-semibold text-lg">Two-Factor Authentication (2FA) Policy</h3>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="space-y-0.5">
                       <Label className="text-base font-semibold">Enforce 2FA for All Users</Label>
                       <p className="text-sm text-muted-foreground">Require all admin users to enable two-factor authentication</p>
@@ -1829,7 +1829,7 @@ export default function AppSettingsManager() {
                     <select
                       value={settings.twoFactorMethod || 'authenticator'}
                       onChange={(e) => setSettings({ ...settings, twoFactorMethod: e.target.value as any })}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="authenticator">Authenticator App (Google Authenticator, Authy)</option>
                       <option value="email">Email Verification Code</option>
@@ -1840,12 +1840,12 @@ export default function AppSettingsManager() {
                     </p>
                   </div>
 
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h4 className="font-semibold mb-2">Current 2FA Status</h4>
-                    <div className="space-y-1 text-sm">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Current 2FA Status</h4>
+                    <div className="space-y-1 text-sm text-gray-800 dark:text-gray-300">
                       <p>• <strong>Global Policy:</strong> {settings.enable2FA ? '✅ Enforced for all users' : '❌ Optional (users can enable individually)'}</p>
                       <p>• <strong>Method:</strong> {settings.twoFactorMethod === 'authenticator' ? '📱 Authenticator App' : settings.twoFactorMethod === 'email' ? '📧 Email Code' : '🔄 Both Methods'}</p>
-                      <p className="text-xs text-gray-500 mt-2">Users can manage their 2FA settings in the Admin Dashboard → Two-Factor Auth tab</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Users can manage their 2FA settings in the Admin Dashboard → Two-Factor Auth tab</p>
                     </div>
                   </div>
                 </div>
@@ -1892,12 +1892,12 @@ export default function AppSettingsManager() {
 
               <div className="space-y-6 pt-6 border-t">
                 <h3 className="font-semibold text-lg text-red-600">🗑️ Danger Zone - Delete All Data</h3>
-                <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                <div className="p-4 bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-700 rounded-lg">
                   <div className="flex items-start gap-3 mb-4">
-                    <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
+                    <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-bold text-red-900 mb-2">⚠️ EXTREME CAUTION REQUIRED</h4>
-                      <p className="text-sm text-red-800 mb-2">
+                      <h4 className="font-bold text-red-900 dark:text-red-300 mb-2">⚠️ EXTREME CAUTION REQUIRED</h4>
+                      <p className="text-sm text-red-800 dark:text-red-300 mb-2">
                         These actions will <strong>permanently delete</strong> data from the system. This cannot be undone!
                       </p>
                     </div>
@@ -2029,15 +2029,15 @@ export default function AppSettingsManager() {
 
               <div className="space-y-6 pt-6 border-t">
                 <h3 className="font-semibold text-lg text-red-700">💣 NUCLEAR OPTION - Complete Data Wipe</h3>
-                <div className="p-6 bg-red-100 border-4 border-red-500 rounded-lg">
+                <div className="p-6 bg-red-100 dark:bg-red-950/50 border-4 border-red-500 dark:border-red-600 rounded-lg">
                   <div className="flex items-start gap-3 mb-4">
-                    <AlertTriangle className="h-8 w-8 text-red-700 flex-shrink-0 mt-1" />
+                    <AlertTriangle className="h-8 w-8 text-red-700 dark:text-red-400 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-black text-red-900 text-lg mb-2">☢️ COMPLETE DATABASE WIPE</h4>
-                      <p className="text-sm text-red-900 font-semibold mb-2">
+                      <h4 className="font-black text-red-900 dark:text-red-300 text-lg mb-2">☢️ COMPLETE DATABASE WIPE</h4>
+                      <p className="text-sm text-red-900 dark:text-red-300 font-semibold mb-2">
                         This will delete EVERYTHING from the entire system:
                       </p>
-                      <ul className="text-sm text-red-800 list-disc list-inside space-y-1">
+                      <ul className="text-sm text-red-800 dark:text-red-300 list-disc list-inside space-y-1">
                         <li>All buildings and their floor plans</li>
                         <li>All rooms, hallways, and stairs</li>
                         <li>All announcements and staff information</li>
