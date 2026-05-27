@@ -609,6 +609,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const [showUserForm, setShowUserForm] = useState(false);
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [viewingPassword, setViewingPassword] = useState<string | null>(null);
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
+  const [confirmDeleteStaffId, setConfirmDeleteStaffId] = useState<string | null>(null);
+  const [dangerInput, setDangerInput] = useState("");
+  const [dangerDeleting, setDangerDeleting] = useState(false);
   
   // Staff management state
   const [editingStaff, setEditingStaff] = useState<any>(null);
@@ -879,14 +883,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
     updateStaffMutation.mutate(editingStaff);
   };
 
-  const handleDeleteStaff = (id: string, name: string) => {
-    if (!confirm(`Delete staff member ${name}?`)) return;
-    deleteStaffMutation.mutate(id);
+  const handleDeleteStaff = (id: string) => {
+    setConfirmDeleteStaffId(id);
   };
 
-
   const logoutFn = () => {
-    if (!window.confirm("Log out?")) return;
     localStorage.removeItem("ksyk_admin_logged_in");
     localStorage.removeItem("ksyk_admin_user");
     localStorage.removeItem("ksyk_admin_login_at");
@@ -1271,24 +1272,22 @@ export default function AdminDashboard({ section }: { section?: string }) {
             </Card>
           ) : (
             <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>User Management (Owner Only)</CardTitle>
-                    <CardDescription>
-                      Add and manage users in the system. Roles: visitor, user, admin, owner.
-                    </CardDescription>
-                  </div>
-                  <Button 
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-4">
+                  <CardDescription className="text-xs">
+                    Roles: visitor · user · admin · owner
+                  </CardDescription>
+                  <Button
+                    size="sm"
                     onClick={() => {
                       setShowUserForm(true);
                       setEditingUser(null);
                       setNewUser({ email: "", firstName: "", lastName: "", role: "admin", password: "", passwordOption: "manual" });
                       setShowPasswordField(false);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="shrink-0 bg-blue-600 hover:bg-blue-700 h-8 text-xs"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
                     Add User
                   </Button>
                 </div>
@@ -1602,60 +1601,48 @@ export default function AdminDashboard({ section }: { section?: string }) {
                               <Badge className="bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300">Active</Badge>
                             </td>
                             <td className="px-4 py-3">
-                              {user.email !== "JuusoJuusto112@gmail.com" && (
-                                <div className="flex space-x-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingUser(user);
-                                      setShowUserForm(true);
-                                      setShowPasswordField(false);
-                                    }}
-                                    title="Edit user"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600 hover:text-blue-700"
-                                    onClick={() => setViewingPassword(user.id)}
-                                    title="View password"
-                                  >
-                                    👁️
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700"
-                                    onClick={async () => {
-                                      if (confirm(`Delete user ${user.email}?\n\nThis action cannot be undone.`)) {
+                              {user.email !== "JuusoJuusto112@gmail.com" ? (
+                                confirmDeleteUserId === user.id ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">Delete?</span>
+                                    <Button
+                                      variant="ghost" size="sm"
+                                      className="h-7 px-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700"
+                                      onClick={async () => {
                                         try {
-                                          const response = await fetch(`/api/users/${user.id}`, {
-                                            method: 'DELETE'
-                                          });
-                                          
-                                          if (!response.ok) {
-                                            const error = await response.json();
-                                            throw new Error(error.message || 'Failed to delete user');
-                                          }
-
-                                          toast({ title: "User deleted", description: "Account removed." });
+                                          const r = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+                                          if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Failed"); }
+                                          toast({ title: "User deleted" });
                                           queryClient.invalidateQueries({ queryKey: ["users"] });
-                                        } catch (error: any) {
-                                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                                        } catch (e: any) {
+                                          toast({ title: "Error", description: e.message, variant: "destructive" });
+                                        } finally {
+                                          setConfirmDeleteUserId(null);
                                         }
-                                      }
-                                    }}
-                                    title="Delete user"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )}
-                              {user.email === "JuusoJuusto112@gmail.com" && (
-                                <Badge className="bg-yellow-100 text-yellow-800">Owner</Badge>
+                                      }}
+                                    >Yes</Button>
+                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                                      onClick={() => setConfirmDeleteUserId(null)}>No</Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-0.5">
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                      onClick={() => { setEditingUser(user); setShowUserForm(true); setShowPasswordField(false); }}
+                                      title="Edit">
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700"
+                                      onClick={() => setViewingPassword(user.id)} title="View password">
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                      onClick={() => setConfirmDeleteUserId(user.id)} title="Delete">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                )
+                              ) : (
+                                <Badge className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700">Owner</Badge>
                               )}
                             </td>
                           </tr>
@@ -1671,17 +1658,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     </table>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Owner Account Information</h4>
-                    <div className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
-                      <p><strong>Email:</strong> JuusoJuusto112@gmail.com</p>
-                      <p><strong>Name:</strong> Juuso Kaikula</p>
-                      <p><strong>Role:</strong> Owner/Admin</p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                        This account is hardcoded and cannot be edited or deleted.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -2054,14 +2030,22 @@ export default function AdminDashboard({ section }: { section?: string }) {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteStaff(member.id, `${member.firstName} ${member.lastName}`)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {confirmDeleteStaffId === member.id ? (
+                          <>
+                            <span className="text-xs text-red-600 dark:text-red-400 font-medium">Delete?</span>
+                            <Button size="sm" className="h-7 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
+                              onClick={() => { deleteStaffMutation.mutate(member.id); setConfirmDeleteStaffId(null); }}>
+                              Yes
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                              onClick={() => setConfirmDeleteStaffId(null)}>No</Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteStaff(member.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2121,85 +2105,59 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </AlertDescription>
                 </Alert>
                 
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  className="w-full bg-red-600 hover:bg-red-700"
-                  onClick={async () => {
-                    const confirmText = prompt(
-                      'This will DELETE ALL DATA from the map!\n\n' +
-                      'Type "DELETE_EVERYTHING" to confirm this destructive action:'
-                    );
-                    
-                    if (confirmText !== 'DELETE_EVERYTHING') {
-                      alert('Cleanup cancelled. Data is safe.');
-                      return;
-                    }
-                    
-                    const finalConfirm = confirm(
-                      'FINAL CONFIRMATION:\n\n' +
-                      'Are you absolutely sure you want to delete ALL buildings, rooms, hallways, stairs, announcements, and staff?\n\n' +
-                      'This action CANNOT be undone!'
-                    );
-                    
-                    if (!finalConfirm) {
-                      alert('Cleanup cancelled. Data is safe.');
-                      return;
-                    }
-                    
-                    try {
-                      console.log('🗑️ Starting complete data cleanup...');
-                      
-                      const response = await fetch('/api/admin/cleanup-all', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                          confirmDelete: 'DELETE_EVERYTHING'
-                        })
-                      });
-                      
-                      const result = await response.json();
-                      
-                      if (response.ok) {
-                        alert(
-                          '✅ SUCCESS! All data has been deleted.\n\n' +
-                          `📊 Deletion Summary:\n` +
-                          `🏢 Buildings: ${result.deleted.buildings}\n` +
-                          `🚪 Rooms: ${result.deleted.rooms}\n` +
-                          `🛤️ Hallways: ${result.deleted.hallways}\n` +
-                          `🏗️ Floors: ${result.deleted.floors}\n` +
-                          `📢 Announcements: ${result.deleted.announcements}\n` +
-                          `👥 Staff: ${result.deleted.staff}\n\n` +
-                          '🎯 The map is now completely empty!'
-                        );
-                        
-                        // Refresh all data
-                        queryClient.invalidateQueries({ queryKey: ["buildings"] });
-                        queryClient.invalidateQueries({ queryKey: ["rooms"] });
-                        queryClient.invalidateQueries({ queryKey: ["announcements"] });
-                        queryClient.invalidateQueries({ queryKey: ["staff"] });
-                        
-                        // Refresh the page to show empty state
-                        window.location.reload();
-                      } else {
-                        alert(`❌ Failed to delete data: ${result.message}`);
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="danger-confirm" className="text-xs font-semibold text-red-700 dark:text-red-400">
+                      Type <code className="font-mono bg-red-100 dark:bg-red-950/50 px-1 rounded">DELETE_EVERYTHING</code> to unlock
+                    </Label>
+                    <Input
+                      id="danger-confirm"
+                      value={dangerInput}
+                      onChange={(e) => setDangerInput(e.target.value)}
+                      placeholder="Type exactly to unlock…"
+                      className="border-red-300 dark:border-red-700 focus-visible:ring-red-400 font-mono text-sm"
+                      disabled={dangerDeleting}
+                    />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-40"
+                    disabled={dangerInput !== "DELETE_EVERYTHING" || dangerDeleting}
+                    onClick={async () => {
+                      setDangerDeleting(true);
+                      try {
+                        const response = await fetch('/api/admin/cleanup-all', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ confirmDelete: 'DELETE_EVERYTHING' })
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                          toast({
+                            title: "All data deleted",
+                            description: `Buildings: ${result.deleted?.buildings ?? 0} · Rooms: ${result.deleted?.rooms ?? 0} · Staff: ${result.deleted?.staff ?? 0}`,
+                          });
+                          queryClient.invalidateQueries({ queryKey: ["buildings"] });
+                          queryClient.invalidateQueries({ queryKey: ["rooms"] });
+                          queryClient.invalidateQueries({ queryKey: ["announcements"] });
+                          queryClient.invalidateQueries({ queryKey: ["staff"] });
+                          setDangerInput("");
+                        } else {
+                          toast({ title: "Delete failed", description: result.message, variant: "destructive" });
+                        }
+                      } catch (error: any) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" });
+                      } finally {
+                        setDangerDeleting(false);
                       }
-                    } catch (error: any) {
-                      console.error('Cleanup error:', error);
-                      alert(`❌ Error during cleanup: ${error.message}`);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-5 w-5 mr-2" />
-                  DELETE ALL MAP DATA
-                </Button>
-                
-                <p className="text-xs text-red-600 text-center">
-                  This button will completely empty the KSYK Maps database
-                </p>
+                    }}
+                  >
+                    {dangerDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    DELETE ALL MAP DATA
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
