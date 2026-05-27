@@ -938,6 +938,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Room schedule endpoint — returns today's timetable for a room.
+  // Queries the wilma_schedules table by room number and today's day-of-week.
+  // Architecture is intentionally modular: swap the storage call below for a
+  // live Wilma API proxy when credentials become available.
+  app.get('/api/rooms/:id/schedule', async (req, res) => {
+    try {
+      const room = await storage.getRoom(req.params.id);
+      if (!room) return res.status(404).json({ message: 'Room not found' });
+
+      const now = new Date();
+      // JS getDay(): 0=Sun, 1=Mon … 6=Sat  →  wilma_schedules day_of_week: 1=Mon … 5=Fri
+      const jsDay = now.getDay();
+      const wilmaDay = jsDay === 0 || jsDay === 6 ? null : jsDay; // null on weekends
+
+      interface WilmaScheduleRow {
+        id: string;
+        dayOfWeek: number;
+        timeSlot: string;       // e.g. "08:00-09:30"
+        subject: string;
+        room: string;
+        teacherName: string;
+        teacherId: string | null;
+        isActive: boolean;
+      }
+
+      let schedule: WilmaScheduleRow[] = [];
+      if (wilmaDay !== null) {
+        // Fetch all schedules for this room number on today's weekday
+        try {
+          const all: WilmaScheduleRow[] = await (storage as any).getWilmaSchedulesAll?.() ?? [];
+          schedule = all.filter(
+            (s) => s.isActive && s.dayOfWeek === wilmaDay &&
+              s.room?.toUpperCase() === room.roomNumber?.toUpperCase()
+          );
+        } catch { /* wilma_schedules may not be seeded — return empty gracefully */ }
+      }
+
+      // Parse "HH:MM-HH:MM" into minutes-from-midnight for current/next detection
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const parse = (slot: string) => {
+        const [start, end] = slot.split('-');
+        const [sh, sm] = (start || '').split(':').map(Number);
+        const [eh, em] = (end || '').split(':').map(Number);
+        return {
+          startMins: (sh || 0) * 60 + (sm || 0),
+          endMins: (eh || 0) * 60 + (em || 0),
+        };
+      };
+
+      const entries = schedule
+        .sort((a, b) => parse(a.timeSlot).startMins - parse(b.timeSlot).startMins)
+        .map((s) => {
+          const { startMins, endMins } = parse(s.timeSlot);
+          const [startTime, endTime] = s.timeSlot.split('-');
+          return {
+            id: s.id,
+            startTime: startTime?.trim() ?? '',
+            endTime: endTime?.trim() ?? '',
+            subject: s.subject,
+            teacher: s.teacherName,
+            group: null as string | null,
+            isCurrent: nowMins >= startMins && nowMins < endMins,
+            isNext: nowMins < startMins &&
+              !schedule.some((x) => {
+                const p = parse(x.timeSlot);
+                return nowMins >= p.startMins && nowMins < p.endMins;
+              }) &&
+              startMins === Math.min(
+                ...schedule.filter((x) => parse(x.timeSlot).startMins > nowMins).map((x) => parse(x.timeSlot).startMins)
+              ),
+          };
+        });
+
+      res.json({
+        roomId: req.params.id,
+        roomNumber: room.roomNumber,
+        date: now.toISOString().slice(0, 10),
+        dayOfWeek: wilmaDay,
+        schedule: entries,
+        source: entries.length > 0 ? 'wilma' : 'none',
+        lastUpdated: entries.length > 0 ? now.toISOString() : null,
+      });
+    } catch (error) {
+      await logError(error, 'GET /api/rooms/:id/schedule', { roomId: req.params.id });
+      res.status(500).json({ message: 'Failed to fetch room schedule' });
+    }
+  });
+
   // Hallway routes
   app.get('/api/hallways', async (req, res) => {
     try {
