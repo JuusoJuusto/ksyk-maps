@@ -177,6 +177,7 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
   const [serverSaving, setServerSaving] = useState(false);
   const [serverSaved, setServerSaved] = useState(false);
   const [serverSaveError, setServerSaveError] = useState<string | null>(null);
+  const [resetPending, setResetPending] = useState(false);
 
   const handleSaveToServer = async () => {
     setServerSaving(true);
@@ -726,44 +727,39 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
         </button>
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full text-xs rounded-xl"
-        onClick={() => {
-          if (
-            typeof window !== "undefined" &&
-            !window.confirm(
-              isFi
-                ? "Palauta KSYK-oletukset (sijainti, zoomi, kierto, kallistus, rajat, tyyli)?"
-                : "Reset all map defaults (center, zoom, rotation, pitch, bounds, style)?"
-            )
-          )
-            return;
-          (
-            [
-              "osmCenterLat",
-              "osmCenterLng",
-              "osmDefaultZoom",
-              "osmMinZoom",
-              "osmMaxZoom",
-              "osmRotationDeg",
-              "osmPitchDeg",
-              "osmCampusSpanMeters",
-              "osmTileTheme",
-              "osmTileProvider",
-              "osmTileProviderDark",
-              "osmMaxBoundsEnabled",
-              "osmMaxBoundsNorth",
-              "osmMaxBoundsEast",
-              "osmMaxBoundsSouth",
-              "osmMaxBoundsWest",
-            ] as const
-          ).forEach((k) => update(k, DEFAULT_APP_SETTINGS[k] as never));
-        }}
-      >
-        {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
-      </Button>
+      {resetPending ? (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-amber-700 dark:text-amber-400 flex-1">
+            {isFi ? "Vahvista nollaus?" : "Confirm reset?"}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2.5 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30"
+            onClick={() => {
+              (["osmCenterLat","osmCenterLng","osmDefaultZoom","osmMinZoom","osmMaxZoom",
+                "osmRotationDeg","osmPitchDeg","osmCampusSpanMeters","osmTileTheme",
+                "osmTileProvider","osmTileProviderDark","osmMaxBoundsEnabled",
+                "osmMaxBoundsNorth","osmMaxBoundsEast","osmMaxBoundsSouth","osmMaxBoundsWest",
+              ] as const).forEach((k) => update(k, DEFAULT_APP_SETTINGS[k] as never));
+              setResetPending(false);
+            }}
+          >{isFi ? "Nollaa" : "Reset"}</Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+            onClick={() => setResetPending(false)}>
+            {isFi ? "Peruuta" : "Cancel"}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs rounded-xl"
+          onClick={() => setResetPending(true)}
+        >
+          {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
+        </Button>
+      )}
     </div>
   );
 
