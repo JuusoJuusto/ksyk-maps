@@ -36,15 +36,9 @@ import {
   Plus,
   Minus,
   X,
-  Layers,
   MapPin,
   Building2,
   Users,
-  Compass,
-  LocateFixed,
-  Maximize,
-  Minimize,
-  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -84,15 +78,13 @@ type RoomPt = { id: string; x: number; y: number; floor: number; label: string }
 export default function KSYKMapView({ searchQuery = "", highlightLetter = null }: KSYKMapViewProps) {
   const { i18n } = useTranslation();
   const { darkMode } = useDarkMode();
-  const { settings } = useAppSettings();
+  const { settings, update } = useAppSettings();
   const isFi = i18n.language === "fi";
 
   // UI state
   const [selectedFloor, setSelectedFloor] = useState(1);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const [showLayers, setShowLayers] = useState(false);
-  const [layers, setLayers] = useState({ rooms: true, labels: true });
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
 
   // Leaflet plumbing
@@ -101,12 +93,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [overlayEl, setOverlayEl] = useState<SVGSVGElement | null>(null);
   const [leafletMetersPerPx, setLeafletMetersPerPx] = useState<number | null>(null);
 
-  // Geolocation / fullscreen
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [locateError, setLocateError] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
+  // Rooms are always visible — the layers panel was removed for a cleaner
+  // minimal UI (zoom + reset + floor only).
+  const layers = { rooms: true, labels: true };
 
   // Room-to-room navigation
   const [navFrom, setNavFrom] = useState<RoomPt | null>(null);
@@ -288,97 +277,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     setSelectedRoom(null);
   }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
-  // ─── Geolocation ───────────────────────────────────────────────────────
-  const locateMe = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocateError(isFi ? "Selain ei tue paikannusta" : "Geolocation not supported");
-      return;
-    }
-    setLocating(true);
-    setLocateError(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
-        setLocating(false);
-        flyTo(pos.coords.latitude, pos.coords.longitude, Math.max(settings.osmDefaultZoom, 19));
-      },
-      (err) => {
-        setLocating(false);
-        const msg =
-          err.code === err.PERMISSION_DENIED
-            ? isFi
-              ? "Paikannuslupa evätty"
-              : "Location permission denied"
-            : err.code === err.POSITION_UNAVAILABLE
-            ? isFi
-              ? "Sijaintia ei saatavilla"
-              : "Position unavailable"
-            : isFi
-            ? "Aikakatkaisu"
-            : "Timed out";
-        setLocateError(msg);
-        setTimeout(() => setLocateError(null), 3500);
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 }
-    );
-  }, [isFi, flyTo, settings.osmDefaultZoom]);
-
-  // Live user-location dot on the Leaflet map (lazy-imports Leaflet so the
-  // initial bundle doesn't change).
-  const userPinRef = useRef<L.LayerGroup | null>(null);
-  useEffect(() => {
-    const map = leafletMapRef.current;
-    if (!map) return;
-    if (!userLocation) {
-      userPinRef.current?.remove();
-      userPinRef.current = null;
-      return;
-    }
-    let cancelled = false;
-    void import("leaflet").then((Lmod) => {
-      if (cancelled) return;
-      const Lreal = (Lmod as unknown as { default: typeof L }).default ?? (Lmod as unknown as typeof L);
-      userPinRef.current?.remove();
-      const grp = Lreal.layerGroup();
-      Lreal.circle([userLocation.lat, userLocation.lng], {
-        radius: Math.max(8, Math.min(40, userLocation.accuracy)),
-        color: "#2563eb",
-        weight: 1,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.12,
-      }).addTo(grp);
-      Lreal.circleMarker([userLocation.lat, userLocation.lng], {
-        radius: 7,
-        color: "#fff",
-        weight: 2.5,
-        fillColor: "#2563eb",
-        fillOpacity: 1,
-      }).addTo(grp);
-      grp.addTo(map);
-      userPinRef.current = grp;
-    });
-    return () => {
-      cancelled = true;
-      userPinRef.current?.remove();
-      userPinRef.current = null;
-    };
-  }, [userLocation]);
-
-  // ─── Fullscreen ────────────────────────────────────────────────────────
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(document.fullscreenElement != null);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else el.requestFullscreen?.().catch(() => {});
-  }, []);
-
-  // ─── Keyboard shortcuts ────────────────────────────────────────────────
+  // ─── Keyboard shortcuts (minimal — only zoom + reset + floor) ─────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -395,25 +294,16 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         e.preventDefault();
         resetView();
       } else if (e.key === "Escape") {
-        if (showShortcuts) setShowShortcuts(false);
-        else {
-          setSelectedBuilding(null);
-          setSelectedRoom(null);
-        }
+        setSelectedBuilding(null);
+        setSelectedRoom(null);
       } else if (/^[1-9]$/.test(e.key)) {
         const n = parseInt(e.key, 10);
         if (n <= maxFloor) setSelectedFloor(n);
-      } else if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        toggleFullscreen();
-      } else if (e.key === "?" || (e.shiftKey && e.key === "/")) {
-        e.preventDefault();
-        setShowShortcuts((s) => !s);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [maxFloor, resetView, toggleFullscreen, showShortcuts]);
+  }, [maxFloor, resetView]);
 
   // ─── Auto-focus single search hit ──────────────────────────────────────
   useEffect(() => {
@@ -657,146 +547,19 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </Button>
       </div>
 
-      {/* ── Layers panel (bottom-left, above Leaflet scale) ────────── */}
-      <div className="absolute left-3 bottom-[max(7rem,calc(2.5rem+env(safe-area-inset-bottom)))] sm:bottom-12 z-20">
-        <Button
-          variant="outline"
-          className={cn(panel, "h-10 px-3 gap-2")}
-          onClick={() => setShowLayers((s) => !s)}
-          aria-expanded={showLayers}
-        >
-          <Layers className="h-4 w-4" />
-          <span className="text-sm font-medium">{isFi ? "Tasot" : "Layers"}</span>
-        </Button>
-        {showLayers && (
-          <div className={cn(panel, "absolute bottom-12 left-0 p-3 space-y-2 min-w-[10rem]")}>
-            {([["rooms", isFi ? "Tilat" : "Rooms"], ["labels", isFi ? "Nimiöt" : "Labels"]] as const).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layers[key]}
-                  onChange={() => setLayers((l) => ({ ...l, [key]: !l[key] }))}
-                  className="rounded"
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Floating controls (right column, above Leaflet's zoom) ── */}
-      <div className="absolute right-3 bottom-[max(8.5rem,calc(4rem+env(safe-area-inset-bottom)))] sm:bottom-28 z-20 flex flex-col items-end gap-2">
-        <div className={cn(panel, "w-11 h-11 flex items-center justify-center")} title={isFi ? "Pohjoinen ylös" : "North up"}>
-          <Compass className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={isFi ? "Paikanna minut" : "Locate me"}
-          className={cn(panel, "w-11 h-11 p-0", locating && "animate-pulse")}
-          onClick={locateMe}
-          disabled={locating}
-          title={isFi ? "Paikanna minut" : "My location"}
-        >
-          <LocateFixed className={cn("h-4 w-4", userLocation && "text-blue-600 dark:text-blue-400")} />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={isFullscreen ? (isFi ? "Sulje koko näyttö" : "Exit fullscreen") : (isFi ? "Koko näyttö" : "Fullscreen")}
-          className={cn(panel, "w-11 h-11 p-0")}
-          onClick={toggleFullscreen}
-        >
-          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </Button>
+      {/* ── Reset view — only extra control, sits above Leaflet's zoom ── */}
+      <div className="absolute right-3 bottom-[max(8.5rem,calc(4rem+env(safe-area-inset-bottom)))] sm:bottom-28 z-20">
         <Button
           variant="ghost"
           size="sm"
           aria-label={isFi ? "Palauta näkymä" : "Reset view"}
           className={cn(panel, "w-11 h-11 p-0")}
           onClick={resetView}
-          title="Reset (0)"
+          title={isFi ? "Palauta näkymä (0)" : "Reset view (0)"}
         >
           <MapPin className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={isFi ? "Pikanäppäimet" : "Keyboard shortcuts"}
-          className={cn(panel, "w-11 h-11 p-0")}
-          onClick={() => setShowShortcuts(true)}
-          title={isFi ? "Pikanäppäimet (?)" : "Keyboard shortcuts (?)"}
-        >
-          <Keyboard className="h-4 w-4" />
-        </Button>
       </div>
-
-      {/* ── Keyboard shortcut overlay ──────────────────────────────── */}
-      {showShortcuts && (
-        <div
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4"
-          onClick={() => setShowShortcuts(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="kbd-title"
-        >
-          <div
-            className="max-w-md w-full rounded-2xl shadow-2xl border bg-white dark:bg-gray-900 dark:border-gray-700 overflow-hidden animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <Keyboard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h2 id="kbd-title" className="font-bold text-lg">
-                  {isFi ? "Pikanäppäimet" : "Keyboard shortcuts"}
-                </h2>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowShortcuts(false)} aria-label="Close">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="px-5 py-4 space-y-3 text-sm">
-              {[
-                { keys: ["+", "="], label: isFi ? "Suurenna" : "Zoom in" },
-                { keys: ["−", "_"], label: isFi ? "Pienennä" : "Zoom out" },
-                { keys: ["0"], label: isFi ? "Palauta näkymä" : "Reset view" },
-                { keys: ["1", "2", "…", "9"], label: isFi ? "Vaihda kerros" : "Jump to floor" },
-                { keys: ["F"], label: isFi ? "Koko näyttö" : "Toggle fullscreen" },
-                { keys: ["?"], label: isFi ? "Avaa tämä" : "Open this help" },
-                { keys: ["Esc"], label: isFi ? "Sulje" : "Close panels" },
-                { keys: [isFi ? "Klikkaus" : "Click"], label: isFi ? "Valitse tila" : "Select room" },
-                { keys: [isFi ? "Shift+klikkaus" : "Shift+click"], label: isFi ? "Aseta määränpää" : "Set destination" },
-                { keys: [isFi ? "Alt+klikkaus" : "Alt+click"], label: isFi ? "Aseta lähtöpiste" : "Set start point" },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">{row.label}</span>
-                  <div className="flex gap-1">
-                    {row.keys.map((k) => (
-                      <kbd
-                        key={k}
-                        className="px-2 py-0.5 text-[11px] font-mono font-semibold rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm"
-                      >
-                        {k}
-                      </kbd>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Locate error toast ─────────────────────────────────────── */}
-      {locateError && (
-        <div
-          role="alert"
-          className="absolute top-[4.5rem] right-3 z-40 max-w-xs px-3 py-2 rounded-xl bg-red-500/95 text-white text-xs font-medium shadow-lg animate-in fade-in slide-in-from-top-2"
-        >
-          {locateError}
-        </div>
-      )}
 
       {/* ── Nav bar ────────────────────────────────────────────────── */}
       {(navFrom || navTo) && (

@@ -1462,9 +1462,31 @@ body {
   transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-/* Our custom SVG overlay — disable Leaflet's default pointer-events behaviour */
+/* Our custom SVG overlay — must be invisible when empty so no "ghost square"
+ * appears at the campus bounds. Children opt back into pointer-events
+ * explicitly where they need to be interactive. */
 .ksyk-campus-svg-overlay {
+  pointer-events: none;
+  background: transparent !important;
+  outline: none !important;
+  border: none !important;
+}
+.ksyk-campus-svg-overlay > * {
   pointer-events: auto;
+}
+
+/* Defensive — make sure Leaflet's own panes never show a visible background
+ * or border. Tiles render in the tile pane; everything else should be
+ * transparent. */
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane,
+.leaflet-map-pane > svg {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
 }
 
 /* Reduced-motion users — strip animations */

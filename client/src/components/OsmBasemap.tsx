@@ -53,14 +53,18 @@ export default function OsmBasemap({ svgViewBox, onOverlayReady, onReady, onView
     return OSM_TILE_PROVIDERS[key] ?? OSM_TILE_PROVIDERS["carto-voyager"];
   }, [darkMode, settings.osmTileTheme]);
 
-  // Build SVG element once
+  // Build SVG element once. Explicitly invisible by default — only the
+  // children React portals into it should ever draw pixels.
   if (!overlaySvgRef.current) {
     const el = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
     el.setAttribute("viewBox", `${svgViewBox.x} ${svgViewBox.y} ${svgViewBox.w} ${svgViewBox.h}`);
     el.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    el.setAttribute("fill", "none");
+    el.setAttribute("stroke", "none");
     el.style.width = "100%";
     el.style.height = "100%";
     el.style.overflow = "visible";
+    el.style.background = "transparent";
     overlaySvgRef.current = el;
   }
 

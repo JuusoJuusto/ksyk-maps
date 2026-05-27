@@ -26,13 +26,18 @@ export const KSYK_LOADER_LOGO_ALT = "KSYK Maps";
 
 /** Sized derivatives for srcset (generated from master via icons:generate) */
 export const KSYK_MAPS_LOGO_128 = "/favicon-128.png";
+export const KSYK_MAPS_LOGO_192 = "/favicon-192.png";
+export const KSYK_MAPS_LOGO_256 = "/icon-192.png"; // 192 actually, but treated as 256 step
 export const KSYK_MAPS_LOGO_512 = "/icon-512.png";
 export const KSYK_MAPS_LOGO_1024 = "/icon-1024.png";
 
+/** srcset with fine-grained steps so high-DPR mobiles still pick the small
+ * favicon-128 PNG instead of downloading the 512/1024 master. */
 export const KSYK_MAPS_LOGO_SRCSET = [
   `${KSYK_MAPS_LOGO_128} 128w`,
+  `${KSYK_MAPS_LOGO_192} 192w`,
   `${KSYK_MAPS_LOGO_512} 512w`,
-  `${KSYK_MAPS_LOGO_MASTER} 1024w`,
+  `${KSYK_MAPS_LOGO_1024} 1024w`,
 ].join(", ");
 
 export const KSYK_BRAND_BLUE = "#2563eb";

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import AnnouncementManager from "@/components/AnnouncementManager";
 import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
+import MapSettingsPanel from "@/components/MapSettingsPanel";
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
@@ -473,6 +474,7 @@ function BuildingCard({
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
@@ -1452,8 +1454,38 @@ export default function AdminDashboard() {
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="min-h-[70vh] h-[75vh] overflow-hidden">
-          <ImprovedKSYKBuilder />
+        <TabsContent value="ksyk-builder" className="min-h-[70vh] flex flex-col overflow-hidden">
+          {/* Builder sub-tabs — rooms / map defaults */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm">
+            {([
+              { id: "rooms" as const, label: "Rooms & Floors" },
+              { id: "map" as const, label: "Map Defaults" },
+            ]).map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setBuilderSubtab(id)}
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  builderSubtab === id
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                }`}
+                aria-pressed={builderSubtab === id}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {builderSubtab === "rooms" ? (
+            <div className="flex-1 min-h-0 h-[70vh] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+              <ImprovedKSYKBuilder />
+            </div>
+          ) : (
+            <div className="max-w-3xl">
+              <MapSettingsPanel />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="builder" className="space-y-6">
