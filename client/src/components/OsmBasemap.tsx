@@ -131,10 +131,12 @@ export default function OsmBasemap({
       markerZoomAnimation: true,
       preferCanvas: true,
       inertia: true,
-      inertiaDeceleration: 2200,
-      inertiaMaxSpeed: 1500,
+      inertiaDeceleration: 2800,     // slightly more friction on mobile feel
+      inertiaMaxSpeed: 1400,
       worldCopyJump: false,
-    });
+      bounceAtZoomLimits: false,
+      tap: false,   // disables Leaflet's 300 ms tap shim; @types/leaflet omits it → cast below
+    } as unknown as L.MapOptions);
 
     // Native Leaflet zoom + scale controls (styled in index.css to match the app).
     L.control.zoom({ position: "bottomright" }).addTo(map);

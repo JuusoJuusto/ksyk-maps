@@ -40,6 +40,9 @@ import {
   Building2,
   Users,
   Home,
+  Clock,
+  ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +79,27 @@ type SearchHit =
 
 type RoomPt = { id: string; x: number; y: number; floor: number; label: string };
 
+interface ScheduleEntry {
+  id: string;
+  startTime: string;
+  endTime: string;
+  subject?: string;
+  teacher?: string;
+  group?: string | null;
+  isCurrent?: boolean;
+  isNext?: boolean;
+}
+
+interface RoomSchedule {
+  roomId: string;
+  roomNumber: string;
+  date: string;
+  dayOfWeek: number | null;
+  schedule: ScheduleEntry[];
+  source: 'wilma' | 'manual' | 'none';
+  lastUpdated: string | null;
+}
+
 export default function KSYKMapView({ searchQuery = "", highlightLetter = null }: KSYKMapViewProps) {
   const { i18n } = useTranslation();
   const { darkMode } = useDarkMode();
@@ -102,6 +126,18 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   // Room-to-room navigation
   const [navFrom, setNavFrom] = useState<RoomPt | null>(null);
   const [navTo, setNavTo] = useState<RoomPt | null>(null);
+
+  // Room schedule — fetched lazily when a room is selected
+  const { data: roomSchedule, isFetching: scheduleLoading } = useQuery<RoomSchedule>({
+    queryKey: ["room-schedule", selectedRoom?.id],
+    queryFn: async () => {
+      const r = await fetch(`/api/rooms/${selectedRoom!.id}/schedule`);
+      if (!r.ok) throw new Error("schedule fetch failed");
+      return r.json();
+    },
+    enabled: !!selectedRoom?.id,
+    staleTime: 60_000,
+  });
 
   // ─── Data ──────────────────────────────────────────────────────────────
   const { data: buildings = [] } = useQuery({
@@ -765,6 +801,78 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 >
                   {isFi ? "Reititä tänne" : "Route here"}
                 </Button>
+              </div>
+
+              {/* ── Schedule section ─────────────────────────────────── */}
+              <div className={cn("border-t pt-3 -mx-5 px-5", darkMode ? "border-gray-700/60" : "border-gray-100")}>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {isFi ? "Tänään" : "Today"}
+                  </span>
+                  {scheduleLoading && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  )}
+                </div>
+
+                {!scheduleLoading && roomSchedule?.dayOfWeek === null && (
+                  <p className="text-xs text-muted-foreground">
+                    {isFi ? "Viikonloppu — ei lukujärjestystä." : "Weekend — no schedule."}
+                  </p>
+                )}
+
+                {!scheduleLoading && roomSchedule?.dayOfWeek !== null && roomSchedule?.schedule.length === 0 && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                    <BookOpen className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                    <span>{isFi ? "Ei tunteja tänään." : "No classes scheduled today."}</span>
+                  </div>
+                )}
+
+                {roomSchedule?.schedule && roomSchedule.schedule.length > 0 && (
+                  <div className="space-y-1.5">
+                    {roomSchedule.schedule.slice(0, 5).map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={cn(
+                          "flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-xs",
+                          entry.isCurrent
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50"
+                            : entry.isNext
+                            ? "bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50"
+                            : darkMode
+                            ? "bg-gray-800/50"
+                            : "bg-gray-50"
+                        )}
+                      >
+                        <div className={cn(
+                          "shrink-0 font-mono text-[10px] font-bold leading-tight mt-0.5 min-w-[3.5rem]",
+                          entry.isCurrent ? "text-emerald-700 dark:text-emerald-400" : entry.isNext ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground"
+                        )}>
+                          {entry.startTime}<br />{entry.endTime}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate leading-tight">{entry.subject ?? (isFi ? "Tunti" : "Class")}</p>
+                          {entry.teacher && <p className="text-muted-foreground truncate mt-0.5">{entry.teacher}</p>}
+                        </div>
+                        {entry.isCurrent && (
+                          <span className="shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none mt-0.5">
+                            {isFi ? "NYT" : "NOW"}
+                          </span>
+                        )}
+                        {entry.isNext && !entry.isCurrent && (
+                          <span className="shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-blue-500 text-white leading-none mt-0.5">
+                            {isFi ? "SEU" : "NEXT"}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {roomSchedule.schedule.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center pt-0.5">
+                        +{roomSchedule.schedule.length - 5} {isFi ? "lisää" : "more"}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
