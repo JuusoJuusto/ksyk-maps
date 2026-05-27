@@ -15,7 +15,6 @@ import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,14 +31,9 @@ import {
   Save,
   X,
   MapPin,
-  Clock,
   AlertTriangle,
   Layers,
-  MessageSquare,
   Settings,
-  Sparkles,
-  Brain,
-  Zap,
   Shield,
   Box,
   LayoutDashboard,
