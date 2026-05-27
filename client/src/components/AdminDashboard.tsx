@@ -583,46 +583,8 @@ export default function AdminDashboard() {
   }, []);
   
   // Builder state
-  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
-  const [showBuilderForm, setShowBuilderForm] = useState(false);
-  const [editingBuilding, setEditingBuilding] = useState<any>(null);
-  const [editingRoom, setEditingRoom] = useState<any>(null);
-  const [editingHallway, setEditingHallway] = useState<any>(null);
-  const [newBuilding, setNewBuilding] = useState({
-    name: '',
-    nameEn: '',
-    nameFi: '',
-    floors: 1,
-    capacity: 0,
-    colorCode: '#3B82F6',
-    mapPositionX: 100,
-    mapPositionY: 100
-  });
-  const [newRoom, setNewRoom] = useState({
-    buildingId: '',
-    roomNumber: '',
-    name: '',
-    nameEn: '',
-    nameFi: '',
-    floor: 1,
-    capacity: 0,
-    type: 'classroom',
-    mapPositionX: 0,
-    mapPositionY: 0
-  });
-  const [newHallway, setNewHallway] = useState({
-    buildingId: '',
-    floorId: '',
-    name: '',
-    nameEn: '',
-    nameFi: '',
-    startX: 0,
-    startY: 0,
-    endX: 0,
-    endY: 0,
-    width: 2,
-    colorCode: '#9CA3AF'
-  });
+  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
+  const [editingRoom, setEditingRoom] = useState<any>(null);
 
   // Fetch data
   const { data: buildings = [] } = useQuery({
@@ -822,16 +784,7 @@ export default function AdminDashboard() {
     if (!confirm(`Delete staff member ${name}?`)) return;
     deleteStaffMutation.mutate(id);
   };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "urgent": return "bg-red-100 text-red-800 border-red-200";
-      case "high": return "bg-orange-100 text-orange-800 border-orange-200";
-      case "normal": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "low": return "bg-gray-100 text-gray-800 border-gray-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+
 
   return (
     <div className="space-y-6 h-full flex flex-col p-6">
