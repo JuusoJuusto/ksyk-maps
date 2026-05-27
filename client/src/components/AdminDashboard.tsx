@@ -583,8 +583,8 @@ export default function AdminDashboard() {
   }, []);
   
   // Builder state
-  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
-  const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
+  const [editingRoom, setEditingRoom] = useState<any>(null);
 
   // Fetch data
   const { data: buildings = [] } = useQuery({
@@ -784,7 +784,7 @@ export default function AdminDashboard() {
     if (!confirm(`Delete staff member ${name}?`)) return;
     deleteStaffMutation.mutate(id);
   };
-
+
 
   return (
     <div className="space-y-6 h-full flex flex-col p-6">
@@ -1055,9 +1055,9 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   {/* User Form */}
                   {showUserForm && (
-                    <div className="border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40 p-5 shadow-sm">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-blue-900">
+                        <h3 className="text-sm font-semibold">
                           {editingUser ? "Edit User" : "Add New User"}
                         </h3>
                         <Button
@@ -1110,9 +1110,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Role</Label>
                           <select
-                            className="w-full border rounded-md px-3 py-2"
+                            className="w-full h-10 border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                             value={editingUser ? editingUser.role : newUser.role}
-                            onChange={(e) => editingUser 
+                            onChange={(e) => editingUser
                               ? setEditingUser({...editingUser, role: e.target.value})
                               : setNewUser({...newUser, role: e.target.value})
                             }
@@ -1328,18 +1328,18 @@ export default function AdminDashboard() {
                   )}
 
                   {/* Users Table */}
-                  <div className="border rounded-lg">
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <table className="w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50/80 dark:bg-gray-800/60">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold">Name</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold">Role</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold">Actions</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {users.map((user: any) => (
                           <tr key={user.id} className="hover:bg-gray-50">
                             <td className="px-4 py-3">
@@ -1347,7 +1347,12 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
                             <td className="px-4 py-3">
-                              <Badge variant="outline" className="capitalize">
+                              <Badge className={`capitalize text-xs font-semibold px-2 py-0.5 ${
+                                user.role === 'owner' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                                user.role === 'admin' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                user.role === 'user' ? 'bg-green-100 text-green-800 border-green-200' :
+                                'bg-gray-100 text-gray-600 border-gray-200'
+                              }`}>
                                 {user.role}
                               </Badge>
                             </td>
@@ -1533,9 +1538,9 @@ export default function AdminDashboard() {
 
           {/* Staff Form */}
           {showStaffForm && (
-            <Card className="border-2 border-blue-500">
+            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardHeader>
-                <CardTitle>{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
+                <CardTitle className="text-base">{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
                 <CardDescription>
                   {editingStaff ? "Update staff member information" : "Fill in the details to add a new staff member"}
                 </CardDescription>
@@ -1818,7 +1823,7 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-3">
                   {staff.slice(0, 20).map((member: Staff) => (
-                    <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                           {member.firstName?.[0]}{member.lastName?.[0]}
