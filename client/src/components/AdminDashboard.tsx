@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Building,
@@ -1642,23 +1643,20 @@ export default function AdminDashboard({ section }: { section?: string }) {
           {/* Staff Form */}
           {showStaffForm && (
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
-                    <CardDescription className="text-xs mt-0.5">
-                      {editingStaff ? "Update staff member information" : "Fill in the details to add a new staff member"}
-                    </CardDescription>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setShowStaffForm(false); setEditingStaff(null); }}>
+                  <CardTitle className="text-sm font-semibold">
+                    {editingStaff ? "Edit Member" : "Add New Member"}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setShowStaffForm(false); setEditingStaff(null); }}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>First Name *</Label>
+                    <Label className="text-xs mb-1 block">First Name *</Label>
                     <Input
                       value={editingStaff ? editingStaff.firstName : newStaff.firstName}
                       onChange={(e) => {
@@ -1672,7 +1670,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Last Name *</Label>
+                    <Label className="text-xs mb-1 block">Last Name *</Label>
                     <Input
                       value={editingStaff ? editingStaff.lastName : newStaff.lastName}
                       onChange={(e) => {
@@ -1687,9 +1685,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Email</Label>
+                    <Label className="text-xs mb-1 block">Email</Label>
                     <Input
                       type="email"
                       value={editingStaff ? editingStaff.email || "" : newStaff.email}
@@ -1704,7 +1702,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Phone</Label>
+                    <Label className="text-xs mb-1 block">Phone</Label>
                     <Input
                       value={editingStaff ? editingStaff.phone || "" : newStaff.phone}
                       onChange={(e) => {
@@ -1719,9 +1717,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <Label>Position (Default)</Label>
+                    <Label className="text-xs mb-1 block">Position</Label>
                     <Input
                       value={editingStaff ? editingStaff.position || "" : newStaff.position}
                       onChange={(e) => {
@@ -1735,7 +1733,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Position (English)</Label>
+                    <Label className="text-xs mb-1 block">Position (EN)</Label>
                     <Input
                       value={editingStaff ? editingStaff.positionEn || "" : newStaff.positionEn}
                       onChange={(e) => {
@@ -1749,7 +1747,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Position (Finnish)</Label>
+                    <Label className="text-xs mb-1 block">Position (FI)</Label>
                     <Input
                       value={editingStaff ? editingStaff.positionFi || "" : newStaff.positionFi}
                       onChange={(e) => {
@@ -1764,9 +1762,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <Label>Department (Default)</Label>
+                    <Label className="text-xs mb-1 block">Department</Label>
                     <Input
                       value={editingStaff ? editingStaff.department || "" : newStaff.department}
                       onChange={(e) => {
@@ -1780,7 +1778,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Department (English)</Label>
+                    <Label className="text-xs mb-1 block">Department (EN)</Label>
                     <Input
                       value={editingStaff ? editingStaff.departmentEn || "" : newStaff.departmentEn}
                       onChange={(e) => {
@@ -1794,7 +1792,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     />
                   </div>
                   <div>
-                    <Label>Department (Finnish)</Label>
+                    <Label className="text-xs mb-1 block">Department (FI)</Label>
                     <Input
                       value={editingStaff ? editingStaff.departmentFi || "" : newStaff.departmentFi}
                       onChange={(e) => {
@@ -1809,40 +1807,27 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="staff-active"
                     checked={editingStaff ? editingStaff.isActive : newStaff.isActive}
-                    onChange={(e) => {
-                      if (editingStaff) {
-                        setEditingStaff({ ...editingStaff, isActive: e.target.checked });
-                      } else {
-                        setNewStaff({ ...newStaff, isActive: e.target.checked });
-                      }
+                    onCheckedChange={(checked) => {
+                      if (editingStaff) setEditingStaff({ ...editingStaff, isActive: checked });
+                      else setNewStaff({ ...newStaff, isActive: checked });
                     }}
-                    className="w-4 h-4"
                   />
-                  <Label htmlFor="isActive">Active</Label>
+                  <Label htmlFor="staff-active" className="text-sm cursor-pointer select-none">Active</Label>
                 </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowStaffForm(false);
-                      setEditingStaff(null);
-                    }}
-                  >
-                    <X className="h-4 w-4 mr-2" />
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="h-8 text-xs"
+                    onClick={() => { setShowStaffForm(false); setEditingStaff(null); }}>
                     Cancel
                   </Button>
-                  <Button
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {editingStaff ? "Update" : "Create"} Staff Member
+                  <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                    onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}>
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    {editingStaff ? "Update" : "Add"} Member
                   </Button>
                 </div>
               </CardContent>
