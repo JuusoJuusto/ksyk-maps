@@ -105,8 +105,10 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // Kulosaaren Yhteiskoulu (KSYK), Helsinki — already referenced in fmiWeather.ts
   osmCenterLat: 60.187,
   osmCenterLng: 25.006,
-  osmDefaultZoom: 19.5,
-  osmMaxZoom: 20,
+  osmDefaultZoom: 19,
+  // Cap at Carto's native max (19) so detectRetina-disabled tile requests
+  // never 404 on high-DPR phones at max zoom.
+  osmMaxZoom: 19,
   osmMinZoom: 15,
   osmRotationDeg: 0,
   osmPitchDeg: 0,

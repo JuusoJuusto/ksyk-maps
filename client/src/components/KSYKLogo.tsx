@@ -17,13 +17,15 @@ const SIZE_CLASS = {
 
 const SIZE_PX = { sm: 44, md: 64, lg: 80, xl: 96, hero: 144 } as const;
 
-/** Match a logical size to the smallest PNG that won't blur. */
+/** Match a logical size to the right PNG. The two header sizes (sm + md)
+ * both use favicon-128 — that's the brand favicon and stays consistent
+ * between desktop and mobile (no surprise icon-192/512 on high-DPR phones). */
 const FIXED_SRC: Record<keyof typeof SIZE_PX, string> = {
-  sm: "/favicon-128.png",   // 44px @ 3× = 132 actual → favicon-128 is plenty
-  md: "/favicon-192.png",   // 64px @ 3× = 192 actual
-  lg: "/icon-192.png",      // 80px @ 3× = 240 actual
-  xl: "/icon-512.png",      // 96px @ 3× = 288 actual
-  hero: "/icon-512.png",    // 144px @ 3× = 432 actual
+  sm: "/favicon-128.png",
+  md: "/favicon-128.png",
+  lg: "/favicon-128.png",
+  xl: "/icon-192.png",
+  hero: "/icon-512.png",
 };
 
 /** ksykmaps_logo_NEW (2).png — no borders or rings on the image */

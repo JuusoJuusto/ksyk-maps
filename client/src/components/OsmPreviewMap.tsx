@@ -70,7 +70,7 @@ export default function OsmPreviewMap({
       maxZoom: settings.osmMaxZoom,
       maxNativeZoom: provider.maxNativeZoom,
       subdomains: "abcd",
-      detectRetina: true,
+      detectRetina: false,
       crossOrigin: true,
     }).addTo(map);
 
@@ -164,7 +164,7 @@ export default function OsmPreviewMap({
       maxZoom: settings.osmMaxZoom,
       maxNativeZoom: provider.maxNativeZoom,
       subdomains: "abcd",
-      detectRetina: true,
+      detectRetina: false,
       crossOrigin: true,
     }).addTo(map);
     // eslint-disable-next-line react-hooks/exhaustive-deps

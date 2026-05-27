@@ -142,7 +142,11 @@ export default function OsmBasemap({
       maxNativeZoom: provider.maxNativeZoom,
       attribution: provider.attribution,
       subdomains: "abcd",
-      detectRetina: true,
+      // detectRetina was forcing Leaflet to request zoom+1 tiles, which
+      // 404s past the provider's maxNativeZoom and broke the map on
+      // high-DPR phones at max zoom. The `{r}` placeholder in the tile
+      // URL gives us @2x crispness without bumping zoom.
+      detectRetina: false,
       crossOrigin: true,
     }).addTo(map);
 
@@ -212,7 +216,11 @@ export default function OsmBasemap({
       maxNativeZoom: provider.maxNativeZoom,
       attribution: provider.attribution,
       subdomains: "abcd",
-      detectRetina: true,
+      // detectRetina was forcing Leaflet to request zoom+1 tiles, which
+      // 404s past the provider's maxNativeZoom and broke the map on
+      // high-DPR phones at max zoom. The `{r}` placeholder in the tile
+      // URL gives us @2x crispness without bumping zoom.
+      detectRetina: false,
       crossOrigin: true,
       opacity: 0,
     }).addTo(map);
