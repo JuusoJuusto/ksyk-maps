@@ -90,6 +90,7 @@ function Router() {
     <Switch>
       <Route path="/" component={KSYKMapsHome} />
       <Route path="/admin-login" component={AdminLogin} />
+      <Route path="/admin-ksyk-management-portal/:section" component={Admin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />

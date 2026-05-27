@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +48,8 @@ import {
   Ticket,
   ScrollText,
   IdCard,
+  LogOut,
+  ChevronRight,
 } from "lucide-react";
 
 interface Building {
@@ -100,18 +104,18 @@ interface Announcement {
 }
 
 // BuildingCard Component - Extracted to fix React Hooks rules
-function BuildingCard({ 
-  building, 
-  rooms, 
+function BuildingCard({
+  building,
+  rooms,
   queryClient,
-  setActiveTab,
+  navigate,
   setBuilderMode,
   setEditingRoom
 }: { 
   building: Building;
   rooms: Room[];
   queryClient: QueryClient;
-  setActiveTab: (tab: string) => void;
+  navigate: (tab: string) => void;
   setBuilderMode: (mode: 'buildings' | 'rooms' | 'hallways') => void;
   setEditingRoom: (room: any) => void;
 }) {
@@ -374,7 +378,7 @@ function BuildingCard({
               <Button 
                 size="sm"
                 onClick={() => {
-                  setActiveTab('ksyk-builder');
+                  navigate('ksyk-builder');
                   setBuilderMode('rooms');
                 }}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -393,7 +397,7 @@ function BuildingCard({
                   variant="outline"
                   className="mt-3"
                   onClick={() => {
-                    setActiveTab('ksyk-builder');
+                    navigate('ksyk-builder');
                     setBuilderMode('rooms');
                   }}
                 >
@@ -434,7 +438,7 @@ function BuildingCard({
                           variant="ghost"
                           className="h-6 w-6 p-0"
                           onClick={() => {
-                            setActiveTab('ksyk-builder');
+                            navigate('ksyk-builder');
                             setBuilderMode('rooms');
                             setEditingRoom(room);
                           }}
@@ -711,10 +715,39 @@ function SchedulesManager({ rooms }: { rooms: Room[] }) {
   );
 }
 
-export default function AdminDashboard() {
+const ADMIN_BASE = "/admin-ksyk-management-portal";
+
+// Canonical tab slugs — also used as URL path segments
+const TAB_SLUGS = [
+  "overview","users","wilma","campus-map","ksyk-builder",
+  "schedules","tickets","logs","staff","announcements","2fa","settings",
+] as const;
+type TabSlug = typeof TAB_SLUGS[number];
+
+function isValidTab(s?: string): s is TabSlug {
+  return !!s && (TAB_SLUGS as readonly string[]).includes(s);
+}
+
+export default function AdminDashboard({ section }: { section?: string }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [, setLocation] = useLocation();
+
+  const initialTab = isValidTab(section) ? section : "overview";
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // Sync with URL when the browser navigates back/forward or the section prop changes
+  useEffect(() => {
+    const next = isValidTab(section) ? section : "overview";
+    if (next !== activeTab) setActiveTab(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
+  const navigate = (tab: string) => {
+    setActiveTab(tab);
+    const path = tab === "overview" ? ADMIN_BASE : `${ADMIN_BASE}/${tab}`;
+    setLocation(path);
+  };
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [newAnnouncement, setNewAnnouncement] = useState({
@@ -1018,82 +1051,138 @@ export default function AdminDashboard() {
   };
 
 
+  const logoutFn = () => {
+    if (!window.confirm("Log out?")) return;
+    localStorage.removeItem("ksyk_admin_logged_in");
+    localStorage.removeItem("ksyk_admin_user");
+    localStorage.removeItem("ksyk_admin_login_at");
+    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
+      window.location.replace("/admin-login");
+    });
+  };
+
+  const NAV_ITEMS = [
+    { value: "overview", label: "Overview", Icon: LayoutDashboard },
+    { value: "users", label: "Users", Icon: Users },
+    { value: "wilma", label: "Wilma", Icon: GraduationCap },
+    { value: "campus-map", label: "Campus Map", Icon: MapPin },
+    { value: "ksyk-builder", label: "Builder", Icon: Box },
+    { value: "schedules", label: "Schedules", Icon: Calendar },
+    { value: "tickets", label: "Tickets", Icon: Ticket },
+    { value: "logs", label: "Logs", Icon: ScrollText },
+    { value: "staff", label: "Staff", Icon: IdCard },
+    { value: "announcements", label: "Announcements", Icon: Megaphone },
+    ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
+    ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
+  ];
+
   return (
-    <div className="space-y-6 h-full flex flex-col p-6">
-      {/* Account chip — sits above the tab bar; shows the signed-in user
-          and a quick sign-out. Click avatar/initial to log out. */}
-      {currentUser && (
-        <div className="flex items-center justify-end gap-2 mb-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <span
-              aria-hidden="true"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[11px] font-bold shadow-inner"
+    <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+
+      {/* ── Desktop sidebar ──────────────────────────────────────── */}
+      <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        {/* Brand strip */}
+        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+            <LayoutDashboard className="h-4 w-4" />
+          </div>
+          <span className="font-bold text-sm tracking-tight text-gray-900 dark:text-white">KSYK Admin</span>
+        </div>
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+          {NAV_ITEMS.map(({ value, label, Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => navigate(value)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                activeTab === value
+                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+              )}
             >
-              {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
-            </span>
-            <div className="min-w-0 leading-tight pr-1">
-              <p className="text-[11px] font-semibold truncate max-w-[14ch]">
-                {currentUser.name || currentUser.email}
-              </p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
-                {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
-              </p>
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate flex-1 text-left">{label}</span>
+              {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
+            </button>
+          ))}
+        </nav>
+        {/* User chip */}
+        {currentUser && (
+          <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[11px] font-bold shadow-inner">
+                {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold truncate text-gray-900 dark:text-white">
+                  {currentUser.name || currentUser.email}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg shrink-0"
+                onClick={logoutFn}
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-[11px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full"
-              onClick={() => {
-                if (!window.confirm("Log out?")) return;
-                localStorage.removeItem("ksyk_admin_logged_in");
-                localStorage.removeItem("ksyk_admin_user");
-                localStorage.removeItem("ksyk_admin_login_at");
-                fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
-                  window.location.replace("/admin-login");
-                });
-              }}
-              title="Sign out"
-            >
-              Sign out
-            </Button>
+          </div>
+        )}
+      </aside>
+
+      {/* ── Main content area ────────────────────────────────────── */}
+      <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
+        {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
+        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          {currentUser && (
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[10px] font-bold">
+                  {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
+                </span>
+                <span className="text-xs font-semibold truncate max-w-[20ch] text-gray-900 dark:text-white">
+                  {currentUser.name || currentUser.email}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  · {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full shrink-0"
+                onClick={logoutFn}
+              >
+                Sign out
+              </Button>
+            </div>
+          )}
+          <div className="overflow-x-auto scrollbar-none px-3 py-2">
+            <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
+              {NAV_ITEMS.map(({ value, label, Icon }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
         </div>
-      )}
 
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        {/* Horizontally scrollable, icon-led tab bar — fits ~11 entries
-           cleanly on desktop and slides on mobile instead of cramming.
-           Each trigger is a pill with icon + label; active trigger gets
-           the primary fill via the underlying Radix data-state.
-           Sticky so it stays visible while scrolling content tabs. */}
-        <div className="-mx-1 px-1 overflow-x-auto scrollbar-none sticky top-0 z-20 py-2 bg-background/95 backdrop-blur-sm">
-          <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
-            {([
-              { value: "overview", label: "Overview", Icon: LayoutDashboard },
-              { value: "users", label: "Users", Icon: Users },
-              { value: "wilma", label: "Wilma", Icon: GraduationCap },
-              { value: "campus-map", label: "Map", Icon: MapPin },
-              { value: "ksyk-builder", label: "Builder", Icon: Box },
-              { value: "schedules", label: "Schedules", Icon: Calendar },
-              { value: "tickets", label: "Tickets", Icon: Ticket },
-              { value: "logs", label: "Logs", Icon: ScrollText },
-              { value: "staff", label: "Staff", Icon: IdCard },
-              { value: "announcements", label: "Announcements", Icon: Megaphone },
-              ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
-              ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
-            ]).map(({ value, label, Icon }) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
-              >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>{label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        {/* Scrollable content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="p-4 sm:p-6">
 
         {/* Section header — auto-rendered from the current tab so every
            section gets a consistent title + description without touching
@@ -1173,7 +1262,7 @@ export default function AdminDashboard() {
               <button
                 key={label}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => navigate(tab)}
                 className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-xl"
                 aria-label={`Go to ${label} tab`}
               >
@@ -1208,7 +1297,7 @@ export default function AdminDashboard() {
               <button
                 key={label}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => navigate(tab)}
                 className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${accent}`}
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
@@ -1694,11 +1783,11 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="campus-map" className="min-h-[70vh] h-[75vh] overflow-hidden rounded-lg border border-gray-200">
+        <TabsContent value="campus-map" className="h-[calc(100dvh-14rem)] min-h-[500px] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="min-h-[70vh] flex flex-col overflow-hidden">
+        <TabsContent value="ksyk-builder" className="h-[calc(100dvh-14rem)] min-h-[500px] flex flex-col overflow-hidden rounded-xl">
           {/* Builder sub-tabs — rooms / map defaults */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm">
             {([
@@ -2245,6 +2334,8 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
         )}
+          </div>
+        </div>
       </Tabs>
     </div>
   );
