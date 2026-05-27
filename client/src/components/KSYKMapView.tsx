@@ -39,6 +39,7 @@ import {
   MapPin,
   Building2,
   Users,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -564,8 +565,14 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         >
           <Plus className="h-4 w-4" />
         </Button>
-        <div className="w-11 h-10 flex items-center justify-center font-bold text-sm bg-blue-600 text-white border-y border-blue-700" aria-live="polite">
-          {selectedFloor}
+        <div
+          className="w-11 flex flex-col items-center justify-center bg-blue-600 text-white border-y border-blue-700 py-1.5"
+          aria-live="polite"
+        >
+          <span className="text-[9px] font-semibold uppercase tracking-widest opacity-70 leading-none">
+            {isFi ? "KRS" : "FL"}
+          </span>
+          <span className="font-bold text-base leading-none mt-0.5">{selectedFloor}</span>
         </div>
         <Button
           variant="ghost"
@@ -589,9 +596,18 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           onClick={resetView}
           title={isFi ? "Palauta näkymä (0)" : "Reset view (0)"}
         >
-          <MapPin className="h-4 w-4" />
+          <Home className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* ── Nav hint — shown when nothing selected yet ─────────────── */}
+      {!navFrom && !navTo && !searchQuery.trim() && !selectedRoom && !selectedBuilding && (
+        <div className="absolute bottom-[max(10rem,calc(5rem+env(safe-area-inset-bottom)))] sm:bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="bg-black/40 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm hidden sm:block whitespace-nowrap">
+            {isFi ? "Shift+klikkaus = reitti lähtöpiste · Alt+klikkaus = kohde" : "Shift+click room = route start · Alt+click = destination"}
+          </div>
+        </div>
+      )}
 
       {/* ── Nav bar ────────────────────────────────────────────────── */}
       {(navFrom || navTo) && (
