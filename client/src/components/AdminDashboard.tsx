@@ -583,19 +583,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
     setLocation(path);
   };
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  const [newAnnouncement, setNewAnnouncement] = useState({
-    title: "",
-    titleEn: "",
-    titleFi: "",
-    content: "",
-    contentEn: "",
-    contentFi: "",
-    priority: "normal",
-    publishDate: new Date().toISOString().slice(0, 16), // datetime-local format
-    expiresAt: "" // optional expiry date
-  });
-  
   // User management state
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({
@@ -685,9 +672,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Builder state
-  const [builderMode, setBuilderMode] = useState<'buildings' | 'rooms' | 'hallways'>('buildings');
-  const [editingRoom, setEditingRoom] = useState<any>(null);
 
   // Fetch data
   const { data: buildings = [] } = useQuery({
@@ -732,63 +716,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
       const response = await fetch("/api/users");
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
-    },
-  });
-
-  // Create announcement mutation
-  const createAnnouncementMutation = useMutation({
-    mutationFn: async (announcement: any) => {
-      const response = await fetch("/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(announcement),
-      });
-      if (!response.ok) throw new Error("Failed to create announcement");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      setNewAnnouncement({
-        title: "",
-        titleEn: "",
-        titleFi: "",
-        content: "",
-        contentEn: "",
-        contentFi: "",
-        priority: "normal",
-        publishDate: new Date().toISOString().slice(0, 16),
-        expiresAt: ""
-      });
-    },
-  });
-
-  // Update announcement mutation
-  const updateAnnouncementMutation = useMutation({
-    mutationFn: async ({ id, ...announcement }: any) => {
-      const response = await fetch(`/api/announcements/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(announcement),
-      });
-      if (!response.ok) throw new Error("Failed to update announcement");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      setEditingAnnouncement(null);
-    },
-  });
-
-  // Delete announcement mutation
-  const deleteAnnouncementMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/announcements/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete announcement");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
     },
   });
 
@@ -856,19 +783,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
     },
   });
-
-  const handleCreateAnnouncement = () => {
-    if (!newAnnouncement.title || !newAnnouncement.content) {
-      toast({ title: "Required fields missing", description: "Please fill in title and content.", variant: "destructive" });
-      return;
-    }
-    createAnnouncementMutation.mutate(newAnnouncement);
-  };
-
-  const handleUpdateAnnouncement = () => {
-    if (!editingAnnouncement) return;
-    updateAnnouncementMutation.mutate(editingAnnouncement);
-  };
 
   const handleCreateStaff = () => {
     if (!newStaff.firstName || !newStaff.lastName) {
