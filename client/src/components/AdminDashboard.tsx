@@ -56,6 +56,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Home,
 } from "lucide-react";
 
 interface Building {
@@ -1301,27 +1302,61 @@ export default function AdminDashboard({ section }: { section?: string }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
             <LayoutDashboard className="h-4 w-4" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-gray-900 dark:text-white">KSYK Admin</span>
+          <span className="font-bold text-sm tracking-tight text-gray-900 dark:text-white flex-1">KSYK Admin</span>
+          <a
+            href="/"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Back to Map"
+          >
+            <Home className="h-3.5 w-3.5" />
+          </a>
         </div>
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {NAV_ITEMS.map(({ value, label, Icon }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => navigate(value)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                activeTab === value
-                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate flex-1 text-left">{label}</span>
-              {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
-            </button>
-          ))}
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
+          <div className="space-y-0.5">
+            {NAV_ITEMS.filter(({ value }) => value !== "2fa" && value !== "settings").map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => navigate(value)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                  activeTab === value
+                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate flex-1 text-left">{label}</span>
+                {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
+              </button>
+            ))}
+          </div>
+          {isOwner && (
+            <>
+              <div className="my-2 mx-1 border-t border-gray-100 dark:border-gray-800" />
+              <p className="px-3 py-1 text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Owner</p>
+              <div className="space-y-0.5">
+                {NAV_ITEMS.filter(({ value }) => value === "2fa" || value === "settings").map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => navigate(value)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                      activeTab === value
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate flex-1 text-left">{label}</span>
+                    {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </nav>
         {/* User chip */}
         {currentUser && (
@@ -2043,43 +2078,21 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent value="staff" className="space-y-6">
-          <div className="flex justify-end mb-2">
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => {
-                setShowStaffForm(true);
-                setEditingStaff(null);
-                setNewStaff({
-                  firstName: "",
-                  lastName: "",
-                  email: "",
-                  phone: "",
-                  position: "",
-                  positionEn: "",
-                  positionFi: "",
-                  department: "",
-                  departmentEn: "",
-                  departmentFi: "",
-                  bio: "",
-                  bioEn: "",
-                  bioFi: "",
-                  isActive: true
-                });
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Staff Member
-            </Button>
-          </div>
-
           {/* Staff Form */}
           {showStaffForm && (
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
-                <CardDescription>
-                  {editingStaff ? "Update staff member information" : "Fill in the details to add a new staff member"}
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">{editingStaff ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
+                    <CardDescription className="text-xs mt-0.5">
+                      {editingStaff ? "Update staff member information" : "Fill in the details to add a new staff member"}
+                    </CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setShowStaffForm(false); setEditingStaff(null); }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -2276,68 +2289,47 @@ export default function AdminDashboard({ section }: { section?: string }) {
           )}
 
           {/* Staff Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Staff</p>
-                    <p className="text-2xl font-bold">{staff.length}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-600" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total", value: staff.length, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", Icon: Users },
+              { label: "Active", value: staff.filter((s: Staff) => s.isActive).length, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30", Icon: Users },
+              { label: "Departments", value: new Set(staff.map((s: Staff) => s.department).filter(Boolean)).size, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30", Icon: Building },
+              { label: "Positions", value: new Set(staff.map((s: Staff) => s.position).filter(Boolean)).size, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30", Icon: Layers },
+            ].map(({ label, value, color, bg, Icon }) => (
+              <div key={label} className={`rounded-xl ${bg} p-4 flex items-center gap-3`}>
+                <Icon className={`h-5 w-5 shrink-0 ${color}`} />
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">{label}</p>
+                  <p className={`text-2xl font-bold tabular-nums ${color}`}>{value}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {staff.filter((s: Staff) => s.isActive).length}
-                    </p>
-                  </div>
-                  <Users className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Departments</p>
-                    <p className="text-2xl font-bold">
-                      {new Set(staff.map((s: Staff) => s.department).filter(Boolean)).size}
-                    </p>
-                  </div>
-                  <Building className="h-8 w-8 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Positions</p>
-                    <p className="text-2xl font-bold">
-                      {new Set(staff.map((s: Staff) => s.position).filter(Boolean)).size}
-                    </p>
-                  </div>
-                  <Layers className="h-8 w-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Staff Directory</CardTitle>
-              <CardDescription>
-                {staff.length === 0 
-                  ? "No staff members found. Add staff members to get started."
-                  : `Showing ${Math.min(staff.length, 20)} of ${staff.length} staff members`
-                }
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Staff Directory</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    {staff.length === 0
+                      ? "No staff members added yet."
+                      : `${staff.length} member${staff.length === 1 ? "" : "s"}`}
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 bg-blue-600 hover:bg-blue-700 text-xs"
+                  onClick={() => {
+                    setShowStaffForm(true);
+                    setEditingStaff(null);
+                    setNewStaff({ firstName: "", lastName: "", email: "", phone: "", position: "", positionEn: "", positionFi: "", department: "", departmentEn: "", departmentFi: "", bio: "", bioEn: "", bioFi: "", isActive: true });
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Member
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {staff.length === 0 ? (
