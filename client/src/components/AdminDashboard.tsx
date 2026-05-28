@@ -1627,11 +1627,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
           {isOwner && <WilmaConfigPanel />}
         </TabsContent>
 
-        <TabsContent value="campus-map" className="mt-0 h-full overflow-hidden">
+        <TabsContent forceMount value="campus-map" className={cn("mt-0 h-full overflow-hidden", activeTab !== "campus-map" && "hidden")}>
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0">
+        <TabsContent forceMount value="ksyk-builder" className={cn("mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0", activeTab !== "ksyk-builder" && "hidden")}>
           {/* Builder sub-tabs — rooms / map defaults */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm shrink-0">
             {([
