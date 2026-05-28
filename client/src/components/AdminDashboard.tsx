@@ -983,7 +983,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
         {/* Scrollable content — full-bleed for map/builder, padded for everything else */}
         <div className={`flex-1 min-h-0 ${activeTab === "campus-map" || activeTab === "ksyk-builder" ? "overflow-hidden" : "overflow-y-auto"}`}>
-          <div className={activeTab === "campus-map" || activeTab === "ksyk-builder" ? "h-full" : "p-4 sm:p-6"}>
+          <div className={activeTab === "campus-map" || activeTab === "ksyk-builder" ? "h-full" : "p-4 sm:p-6 pb-8"}>
 
         {/* Section header — auto-rendered from the current tab so every
            section gets a consistent title + description without touching
@@ -1608,9 +1608,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent value="ksyk-builder" className="mt-0 h-full flex flex-col overflow-hidden">
+        <TabsContent value="ksyk-builder" className="mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0">
           {/* Builder sub-tabs — rooms / map defaults */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm shrink-0">
             {([
               { id: "rooms" as const, label: "Rooms & Floors" },
               { id: "map" as const, label: "Map Defaults" },
