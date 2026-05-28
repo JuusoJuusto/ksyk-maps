@@ -681,7 +681,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     let cancelled = false;
     const verify = async () => {
       try {
-        const r = await fetch("/api/auth/me", { credentials: "include" });
+        const r = await fetch("/api/auth/user", { credentials: "include" });
         if (cancelled) return;
         if (r.status === 401 || r.status === 403) {
           localStorage.removeItem("ksyk_admin_logged_in");
