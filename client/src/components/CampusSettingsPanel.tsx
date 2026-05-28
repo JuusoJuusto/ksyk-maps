@@ -271,8 +271,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 <CardContent className="space-y-5">
                   <p className={cn("text-sm leading-relaxed text-center sm:text-left", darkMode ? "text-gray-300" : "text-gray-600")}>
                     {isFi
-                      ? "Interaktiivinen karttasovellus Kulosaaren yhteiskoululle. Löydä siivet A, U, K, M, R ja B nopeasti 2D- tai 3D-näkymässä."
-                      : "Interactive map for Kulosaaren yhteiskoulu. Find wings A, U, K, M, R, and B quickly in 2D or 3D."}
+                      ? "Interaktiivinen karttasovellus Kulosaaren yhteiskoululle. Löydä rakennukset A, U, K, M, R ja B – huonehaku, lukujärjestykset ja opasteet."
+                      : "Interactive campus map for Kulosaaren yhteiskoulu. Find wings A, U, K, M, R, and B — with room search, timetables, and navigation."}
                   </p>
 
                   <div className="grid sm:grid-cols-3 gap-3 text-center text-sm">
