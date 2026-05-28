@@ -553,8 +553,29 @@ const TAB_SLUGS = [
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
+// Short URL aliases for the /admin/* route family.
+// e.g. /admin/builder  →  ksyk-builder
+const URL_TO_TAB: Record<string, TabSlug> = {
+  builder: "ksyk-builder",
+  "map-settings": "campus-map",
+  map: "campus-map",
+  "2fa-setup": "2fa",
+};
+// Reverse: canonical slug → preferred short URL segment (when on /admin/* base)
+const TAB_TO_SHORT: Partial<Record<TabSlug, string>> = {
+  "ksyk-builder": "builder",
+  "campus-map": "map-settings",
+};
+
 function isValidTab(s?: string): s is TabSlug {
-  return !!s && (TAB_SLUGS as readonly string[]).includes(s);
+  return !!s && ((TAB_SLUGS as readonly string[]).includes(s) || s in URL_TO_TAB);
+}
+
+function resolveTab(s?: string): TabSlug | "overview" {
+  if (!s) return "overview";
+  if ((TAB_SLUGS as readonly string[]).includes(s)) return s as TabSlug;
+  if (s in URL_TO_TAB) return URL_TO_TAB[s];
+  return "overview";
 }
 
 export default function AdminDashboard({ section }: { section?: string }) {
@@ -562,24 +583,26 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
 
-  const initialTab = isValidTab(section) ? section : "overview";
+  const initialTab = resolveTab(section);
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
   // Sync with URL when the browser navigates back/forward or the section prop changes
   useEffect(() => {
-    const next = isValidTab(section) ? section : "overview";
+    const next = resolveTab(section);
     if (next !== activeTab) setActiveTab(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
   // Use the URL prefix we arrived on — supports both /admin/* and the legacy
   // /admin-ksyk-management-portal/* paths without breaking deep links.
-  const adminBase =
-    location.startsWith("/admin/") || location === "/admin" ? "/admin" : ADMIN_BASE;
+  const isShortBase = location.startsWith("/admin/") || location === "/admin";
+  const adminBase = isShortBase ? "/admin" : ADMIN_BASE;
 
   const navigate = (tab: string) => {
     setActiveTab(tab);
-    const path = tab === "overview" ? adminBase : `${adminBase}/${tab}`;
+    // On the /admin/* base, use short slug aliases where available
+    const slug = isShortBase ? (TAB_TO_SHORT[tab as TabSlug] ?? tab) : tab;
+    const path = slug === "overview" ? adminBase : `${adminBase}/${slug}`;
     setLocation(path);
   };
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
@@ -1688,6 +1711,15 @@ export default function AdminDashboard({ section }: { section?: string }) {
                         <CheckCircle2 className="h-3 w-3 mr-1" />Configured
                       </Badge>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs text-blue-600 hover:text-blue-700"
+                      onClick={() => navigate("wilma")}
+                      title="Go to full Wilma integration page"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5 mr-1" />Wilma tab
+                    </Button>
                     <Button
                       size="sm"
                       variant={showWilmaConfig ? "outline" : "default"}

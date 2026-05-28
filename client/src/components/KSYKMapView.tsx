@@ -646,7 +646,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Floor selector (top-right) ─────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-20 flex flex-col rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95">
+      <div className="absolute top-3 right-3 z-30 flex flex-col rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95">
         <Button
           variant="ghost"
           size="sm"
@@ -763,8 +763,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Building bottom sheet ──────────────────────────────────── */}
       {selectedBuilding && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-20 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none">
-          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl")}>
+        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none"
+             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl max-h-[60dvh] sm:max-h-none overflow-y-auto")}>
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
             <CardContent className="p-5 pt-3 sm:pt-5">
               <div className="flex justify-between gap-2 mb-3">
@@ -789,11 +790,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Room bottom sheet ──────────────────────────────────────── */}
       {selectedRoom && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-20 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none"
+             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <Card
             className={cn(
               panel,
-              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl",
+              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[75dvh] sm:max-h-none overflow-y-auto",
               selectedRoom.currentStatus === "free"
                 ? "border-emerald-500"
                 : selectedRoom.currentStatus === "occupied"
