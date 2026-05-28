@@ -1811,15 +1811,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
                       size="sm"
                       variant="outline"
                       className="h-8 text-xs gap-1.5"
-                      disabled={!wilmaForm.serverUrl || !wilmaForm.username || wilmaTestStatus === "testing"}
+                      disabled={!wilmaConfig?.configured || wilmaTestStatus === "testing"}
+                      title={!wilmaConfig?.configured ? "Save credentials first before testing" : "Test the saved server connection"}
                       onClick={async () => {
                         setWilmaTestStatus("testing");
                         try {
                           const r = await fetch("/api/admin/wilma-config/test", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
                             credentials: "include",
-                            body: JSON.stringify({ serverUrl: wilmaForm.serverUrl, username: wilmaForm.username, password: wilmaForm.password }),
                           });
                           setWilmaTestStatus(r.ok ? "ok" : "error");
                         } catch {

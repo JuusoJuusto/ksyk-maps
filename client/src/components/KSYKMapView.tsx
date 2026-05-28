@@ -555,7 +555,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   return (
     <div
       ref={wrapRef}
-      className="relative h-full w-full overflow-hidden bg-[#dde6ef] dark:bg-gray-950"
+      className="relative h-full w-full overflow-hidden bg-[#dde6ef] dark:bg-gray-950 overscroll-contain"
     >
       {/* ── Map (the one and only) ─────────────────────────────────── */}
       <OsmBasemap
@@ -765,7 +765,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {selectedBuilding && (
         <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none"
              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl max-h-[60dvh] sm:max-h-none overflow-y-auto")}>
+          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl max-h-[60dvh] sm:max-h-none overflow-y-auto overscroll-contain")}>
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
             <CardContent className="p-5 pt-3 sm:pt-5">
               <div className="flex justify-between gap-2 mb-3">
@@ -795,7 +795,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           <Card
             className={cn(
               panel,
-              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[75dvh] sm:max-h-none overflow-y-auto",
+              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[75dvh] sm:max-h-none overflow-y-auto overscroll-contain",
               selectedRoom.currentStatus === "free"
                 ? "border-emerald-500"
                 : selectedRoom.currentStatus === "occupied"
