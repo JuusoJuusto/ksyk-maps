@@ -844,7 +844,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
   ];
 
   return (
-    <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex h-[100dvh] overflow-hidden bg-white dark:bg-gray-900">
 
       {/* ── Desktop sidebar ──────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -939,7 +939,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
       </aside>
 
       {/* ── Main content area ────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
+      <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
         {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
         <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           {currentUser && (

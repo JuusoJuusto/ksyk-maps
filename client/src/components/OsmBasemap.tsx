@@ -451,17 +451,23 @@ export default function OsmBasemap({
     }
 
     // Debounced reflow — wait for the CSS transition to finish before telling
-    // Leaflet to re-measure its container and reload edge tiles.
+    // Leaflet to re-measure its container and reload edge tiles. Three kicks:
+    // early (before transition ends), at transition end, and a long tail for
+    // edge cases where the browser paints later (e.g. heavy workloads).
     const reflow = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false });
       map.setView(map.getCenter(), map.getZoom(), { animate: false });
     };
-    const debounce = window.setTimeout(reflow, 300);
-    const settle = window.setTimeout(reflow, 720);
+    const t1 = window.setTimeout(reflow, 150);
+    const t2 = window.setTimeout(reflow, 320);
+    const t3 = window.setTimeout(reflow, 750);
+    const t4 = window.setTimeout(reflow, 1400);
     return () => {
-      window.clearTimeout(debounce);
-      window.clearTimeout(settle);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      window.clearTimeout(t4);
     };
   }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 
@@ -525,9 +531,12 @@ export default function OsmBasemap({
 
       {/* ── React-based zoom controls (bottom-right) ─────────────── */}
       {/* Anchored to the OUTER div so rotation of the inner Leaflet container
-          can't push them off-screen. */}
-      <div className="absolute bottom-4 right-3 z-[500] flex flex-col overflow-hidden rounded-xl shadow-lg border border-gray-200/80 dark:border-gray-700"
-           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+          can't push them off-screen. Uses safe-area-inset to stay above
+          iOS home bar on all devices. */}
+      <div
+        className="absolute right-3 z-[500] flex flex-col overflow-hidden rounded-xl shadow-lg border border-gray-200/80 dark:border-gray-700"
+        style={{ bottom: 'max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))' }}
+      >
         <button
           type="button"
           aria-label="Zoom in"
@@ -549,8 +558,10 @@ export default function OsmBasemap({
       </div>
 
       {/* ── React-based scale bar (bottom-left) ──────────────────── */}
-      <div className="absolute bottom-4 left-3 z-[500] pointer-events-none"
-           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+      <div
+        className="absolute left-3 z-[500] pointer-events-none"
+        style={{ bottom: 'max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))' }}
+      >
         <div className="flex flex-col items-start gap-0.5">
           <span className="text-[9px] font-bold font-mono text-gray-600 dark:text-gray-300 bg-white/85 dark:bg-gray-900/85 px-1 rounded-sm leading-none backdrop-blur-sm">
             {barLabel}
