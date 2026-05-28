@@ -528,6 +528,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   );
 
   const onPickSearchHit = (hit: SearchHit) => {
+    // Dismiss mobile keyboard when a result is selected
+    (document.activeElement as HTMLElement)?.blur?.();
     if (hit.type === "building") focusBuilding(hit.letter);
     else focusRoom(hit.room);
   };

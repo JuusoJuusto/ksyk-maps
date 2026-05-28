@@ -1135,24 +1135,32 @@ export default function AdminDashboard({ section }: { section?: string }) {
           {/* Campus buildings summary + latest announcements side by side on wide screens */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Campus buildings */}
-            {(buildings as any[]).length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <Building className="h-4 w-4 text-blue-500" />
-                      Campus Buildings
-                    </CardTitle>
-                    <button
-                      type="button"
-                      onClick={() => navigate("ksyk-builder")}
-                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
-                    >
-                      Manage →
-                    </button>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Building className="h-4 w-4 text-blue-500" />
+                    Campus Buildings
+                  </CardTitle>
+                  <button
+                    type="button"
+                    onClick={() => navigate("ksyk-builder")}
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                  >
+                    {(buildings as any[]).length > 0 ? "Manage →" : "Add first →"}
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {(buildings as any[]).length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-6 text-center">
+                    <Building className="h-8 w-8 text-gray-300 dark:text-gray-700" />
+                    <p className="text-xs text-muted-foreground">No buildings yet — open the Builder to add rooms and floors.</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs mt-1" onClick={() => navigate("ksyk-builder")}>
+                      Open Builder
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
+                ) : (
                   <div className="space-y-1.5">
                     {(buildings as Building[]).map((b) => {
                       const roomCount = (rooms as Room[]).filter((r) => r.buildingId === b.id).length;
@@ -1172,31 +1180,39 @@ export default function AdminDashboard({ section }: { section?: string }) {
                       );
                     })}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
 
             {/* Latest announcements */}
-            {(announcements as any[]).length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <Megaphone className="h-4 w-4 text-rose-500" />
-                      Active Announcements
-                    </CardTitle>
-                    <button
-                      type="button"
-                      onClick={() => navigate("announcements")}
-                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
-                    >
-                      Manage →
-                    </button>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Megaphone className="h-4 w-4 text-rose-500" />
+                    Active Announcements
+                  </CardTitle>
+                  <button
+                    type="button"
+                    onClick={() => navigate("announcements")}
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                  >
+                    {(announcements as any[]).filter((a: any) => a.isActive).length > 0 ? "Manage →" : "Create →"}
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {(announcements as any[]).filter((a: any) => a.isActive).length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-6 text-center">
+                    <Megaphone className="h-8 w-8 text-gray-300 dark:text-gray-700" />
+                    <p className="text-xs text-muted-foreground">No active announcements — create one to notify all users.</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs mt-1" onClick={() => navigate("announcements")}>
+                      Create Announcement
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
+                ) : (
                   <div className="space-y-2">
-                    {(announcements as Announcement[]).slice(0, 4).map((a) => (
+                    {(announcements as Announcement[]).filter((a) => a.isActive).slice(0, 4).map((a) => (
                       <div key={a.id} className="flex items-start gap-3 py-1.5 border-b last:border-0">
                         <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
                           a.priority === "urgent" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" :
@@ -1210,9 +1226,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
