@@ -27,6 +27,7 @@ export default function KSYKMapsHome() {
           ? "bg-gradient-to-b from-gray-950 via-gray-900 to-slate-900"
           : "bg-gradient-to-b from-slate-50 via-white to-blue-50/40"
       )}
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <AnnouncementBanner />
       <Header
@@ -35,8 +36,9 @@ export default function KSYKMapsHome() {
         onOpenSettings={settingsOpen ? undefined : () => setSettingsOpen(true)}
       />
 
-      {/* Map container — always mounted so Leaflet stays alive */}
-      <div className="flex-1 overflow-hidden relative min-h-0 pb-[env(safe-area-inset-bottom)]">
+      {/* Map container — full-bleed: tiles extend under the iOS home indicator.
+          Controls inside use env(safe-area-inset-bottom) to stay visible. */}
+      <div className="flex-1 overflow-hidden relative min-h-0">
         <KSYKMapView searchQuery={searchQuery} />
 
         {/* Settings panel — absolutely positioned over the map, not a separate route */}
