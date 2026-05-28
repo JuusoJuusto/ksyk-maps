@@ -6,11 +6,9 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Sun,
   Moon,
@@ -18,10 +16,7 @@ import {
   ExternalLink,
   Palette,
   Map,
-  Box,
-  Gauge,
   Accessibility,
-  Code2,
   Info,
   ChevronLeft,
   Sparkles,
@@ -37,22 +32,16 @@ import { cn } from "@/lib/utils";
 type SettingsTab =
   | "appearance"
   | "map"
-  | "3d"
-  | "performance"
   | "accessibility"
   | "changelog"
-  | "developer"
   | "about";
 
 const TABS: { id: SettingsTab; icon: typeof Palette; labelEn: string; labelFi: string }[] = [
   { id: "appearance", icon: Palette, labelEn: "Appearance", labelFi: "Ulkoasu" },
   { id: "map", icon: Map, labelEn: "Map", labelFi: "Kartta" },
-  { id: "3d", icon: Box, labelEn: "3D", labelFi: "3D" },
   { id: "accessibility", icon: Accessibility, labelEn: "Accessibility", labelFi: "Saavutettavuus" },
-  { id: "performance", icon: Gauge, labelEn: "Performance", labelFi: "Suorituskyky" },
   { id: "changelog", icon: ScrollText, labelEn: "Changelog", labelFi: "Muutosloki" },
   { id: "about", icon: Info, labelEn: "About", labelFi: "Tietoja" },
-  { id: "developer", icon: Code2, labelEn: "Developer", labelFi: "Dev" },
 ];
 
 type CampusSettingsPanelProps = {
@@ -233,60 +222,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
             {tab === "map" && <MapSettingsPanel />}
 
-            {tab === "3d" && (
-              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
-                <CardHeader>
-                  <CardTitle>{isFi ? "3D-kartta" : "3D map settings"}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50">
-                    <Label className="mb-3 block">{isFi ? "Renderöintilaatu" : "Render quality"}</Label>
-                    <div className="flex gap-2">
-                      {(["low", "medium", "high"] as const).map((q) => (
-                        <Button
-                          key={q}
-                          variant={settings.threeDQuality === q ? "default" : "outline"}
-                          size="sm"
-                          className="rounded-xl capitalize flex-1"
-                          onClick={() => update("threeDQuality", q)}
-                        >
-                          {q}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <SettingRow label={isFi ? "Varjot" : "Shadows"}>
-                    <Switch checked={settings.threeDShadows} onCheckedChange={(v) => update("threeDShadows", v)} />
-                  </SettingRow>
-                  <SettingRow label={isFi ? "Automaattinen pyörintä" : "Auto-rotate preview"}>
-                    <Switch checked={settings.threeDAutoRotate} onCheckedChange={(v) => update("threeDAutoRotate", v)} />
-                  </SettingRow>
-                </CardContent>
-              </Card>
-            )}
-
-            {tab === "performance" && (
-              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
-                <CardHeader>
-                  <CardTitle>{isFi ? "Suorituskyky" : "Performance"}</CardTitle>
-                  <CardDescription>
-                    {isFi ? "Optimoi lataus ja animaatiot" : "Optimize loading and animations"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SettingRow
-                    label={isFi ? "Vähennä animaatioita" : "Reduce motion"}
-                    description={isFi ? "Poistaa turhat siirtymät" : "Minimizes transitions"}
-                  >
-                    <Switch checked={settings.reduceMotion} onCheckedChange={(v) => update("reduceMotion", v)} />
-                  </SettingRow>
-                  <Button variant="outline" className="mt-4 rounded-xl w-full" onClick={reset}>
-                    {isFi ? "Palauta oletukset" : "Reset all settings"}
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
             {tab === "accessibility" && (
               <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
                 <CardHeader>
@@ -298,25 +233,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                   </SettingRow>
                   <SettingRow label={isFi ? "Suurempi teksti" : "Larger UI text"}>
                     <Switch checked={settings.largeText} onCheckedChange={(v) => update("largeText", v)} />
-                  </SettingRow>
-                </CardContent>
-              </Card>
-            )}
-
-            {tab === "developer" && (
-              <Card className={cn("border-0 shadow-xl", darkMode ? "bg-gray-800/80" : "bg-white/90")}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {isFi ? "Kehittäjäasetukset" : "Developer options"}
-                    <Badge variant="secondary">Dev</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="divide-y divide-gray-200 dark:divide-gray-700">
-                  <SettingRow label="Debug overlay">
-                    <Switch checked={settings.devShowDebug} onCheckedChange={(v) => update("devShowDebug", v)} />
-                  </SettingRow>
-                  <SettingRow label={isFi ? "Näytä koordinaatit" : "Show coordinates"}>
-                    <Switch checked={settings.devShowCoords} onCheckedChange={(v) => update("devShowCoords", v)} />
                   </SettingRow>
                 </CardContent>
               </Card>
