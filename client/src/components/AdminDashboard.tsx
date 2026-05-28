@@ -560,7 +560,7 @@ function isValidTab(s?: string): s is TabSlug {
 export default function AdminDashboard({ section }: { section?: string }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const initialTab = isValidTab(section) ? section : "overview";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -572,9 +572,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
+  // Use the URL prefix we arrived on — supports both /admin/* and the legacy
+  // /admin-ksyk-management-portal/* paths without breaking deep links.
+  const adminBase =
+    location.startsWith("/admin/") || location === "/admin" ? "/admin" : ADMIN_BASE;
+
   const navigate = (tab: string) => {
     setActiveTab(tab);
-    const path = tab === "overview" ? ADMIN_BASE : `${ADMIN_BASE}/${tab}`;
+    const path = tab === "overview" ? adminBase : `${adminBase}/${tab}`;
     setLocation(path);
   };
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
@@ -595,6 +600,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const [confirmDeleteStaffId, setConfirmDeleteStaffId] = useState<string | null>(null);
   const [dangerInput, setDangerInput] = useState("");
   const [dangerDeleting, setDangerDeleting] = useState(false);
+
+  // Wilma integration config state (owner-only)
+  const [showWilmaConfig, setShowWilmaConfig] = useState(false);
+  const [wilmaForm, setWilmaForm] = useState({ serverUrl: "", username: "", password: "", schoolConfig: "" });
+  const [showWilmaPassword, setShowWilmaPassword] = useState(false);
+  const [wilmaSaving, setWilmaSaving] = useState(false);
+  const [wilmaTestStatus, setWilmaTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   
   // Staff management state
   const [editingStaff, setEditingStaff] = useState<any>(null);
@@ -712,6 +724,17 @@ export default function AdminDashboard({ section }: { section?: string }) {
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
     },
+  });
+
+  const { data: wilmaConfig } = useQuery<{ configured: boolean; serverUrl: string; connectionStatus: string; lastSync: string | null; lastTestAt: string | null }>({
+    queryKey: ["wilma-config"],
+    queryFn: async () => {
+      const r = await fetch("/api/admin/wilma-config", { credentials: "include" });
+      if (!r.ok) return null;
+      return r.json();
+    },
+    enabled: isOwner,
+    staleTime: 60_000,
   });
 
   // Staff mutations
@@ -1627,6 +1650,203 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
         <TabsContent value="schedules" className="mt-0 space-y-6">
           <SchedulesManager rooms={rooms as Room[]} />
+
+          {/* ── Wilma integration (owner-only) ───────────────── */}
+          {isOwner && (
+            <Card className={cn(
+              "border",
+              wilmaConfig?.configured
+                ? "border-emerald-200 dark:border-emerald-800"
+                : "border-dashed border-gray-300 dark:border-gray-700"
+            )}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      wilmaConfig?.configured
+                        ? "bg-emerald-100 dark:bg-emerald-950/40"
+                        : "bg-gray-100 dark:bg-gray-800"
+                    )}>
+                      <GraduationCap className={cn(
+                        "h-4 w-4",
+                        wilmaConfig?.configured ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"
+                      )} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm">Wilma Integration</CardTitle>
+                      <CardDescription className="text-xs">
+                        {wilmaConfig?.configured
+                          ? `Server: ${wilmaConfig.serverUrl}`
+                          : "Not configured — schedules use manual entries only"}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {wilmaConfig?.configured && (
+                      <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />Configured
+                      </Badge>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={showWilmaConfig ? "outline" : "default"}
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setShowWilmaConfig((v) => !v);
+                        if (!showWilmaConfig && wilmaConfig) {
+                          setWilmaForm({
+                            serverUrl: wilmaConfig.serverUrl ?? "",
+                            username: "",
+                            password: "",
+                            schoolConfig: "",
+                          });
+                        }
+                      }}
+                    >
+                      {showWilmaConfig ? (
+                        <><X className="h-3.5 w-3.5 mr-1.5" />Close</>
+                      ) : (
+                        <><Settings className="h-3.5 w-3.5 mr-1.5" />Configure</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              {showWilmaConfig && (
+                <CardContent className="pt-0 space-y-4">
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2.5 flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>Credentials are stored server-side only and are never sent back to the browser. Wilma integration is owner-only.</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs mb-1.5 block">Wilma URL *</Label>
+                      <Input
+                        value={wilmaForm.serverUrl}
+                        onChange={(e) => setWilmaForm({ ...wilmaForm, serverUrl: e.target.value })}
+                        placeholder="https://school.inschool.fi"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1.5 block">Username *</Label>
+                      <Input
+                        value={wilmaForm.username}
+                        onChange={(e) => setWilmaForm({ ...wilmaForm, username: e.target.value })}
+                        placeholder="admin@school.fi"
+                        className="h-9 text-sm"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1.5 block">
+                        Password {wilmaConfig?.configured && <span className="text-muted-foreground font-normal">(leave blank to keep current)</span>}
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type={showWilmaPassword ? "text" : "password"}
+                          value={wilmaForm.password}
+                          onChange={(e) => setWilmaForm({ ...wilmaForm, password: e.target.value })}
+                          placeholder={wilmaConfig?.configured ? "••••••••" : "Password"}
+                          className="h-9 text-sm pr-9"
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowWilmaPassword((v) => !v)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showWilmaPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1.5 block">School ID / Config</Label>
+                      <Input
+                        value={wilmaForm.schoolConfig}
+                        onChange={(e) => setWilmaForm({ ...wilmaForm, schoolConfig: e.target.value })}
+                        placeholder="e.g. school-slug or numeric ID"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1.5"
+                      disabled={!wilmaForm.serverUrl || !wilmaForm.username || wilmaTestStatus === "testing"}
+                      onClick={async () => {
+                        setWilmaTestStatus("testing");
+                        try {
+                          const r = await fetch("/api/admin/wilma-config/test", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ serverUrl: wilmaForm.serverUrl, username: wilmaForm.username, password: wilmaForm.password }),
+                          });
+                          setWilmaTestStatus(r.ok ? "ok" : "error");
+                        } catch {
+                          setWilmaTestStatus("error");
+                        }
+                        setTimeout(() => setWilmaTestStatus("idle"), 3500);
+                      }}
+                    >
+                      {wilmaTestStatus === "testing" ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" />Testing…</>
+                      ) : wilmaTestStatus === "ok" ? (
+                        <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />Connected!</>
+                      ) : wilmaTestStatus === "error" ? (
+                        <><XCircle className="h-3.5 w-3.5 text-red-500" />Failed</>
+                      ) : (
+                        <><Link className="h-3.5 w-3.5" />Test Connection</>
+                      )}
+                    </Button>
+                    <div className="flex-1" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setShowWilmaConfig(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                      disabled={!wilmaForm.serverUrl || !wilmaForm.username || wilmaSaving}
+                      onClick={async () => {
+                        setWilmaSaving(true);
+                        try {
+                          const r = await fetch("/api/admin/wilma-config", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify(wilmaForm),
+                          });
+                          if (!r.ok) throw new Error((await r.json()).message ?? "Save failed");
+                          queryClient.invalidateQueries({ queryKey: ["wilma-config"] });
+                          setShowWilmaConfig(false);
+                          toast({ title: "Wilma config saved", description: "Integration credentials stored securely." });
+                        } catch (e: any) {
+                          toast({ title: "Save failed", description: e.message, variant: "destructive" });
+                        } finally {
+                          setWilmaSaving(false);
+                        }
+                      }}
+                    >
+                      {wilmaSaving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                      Save credentials
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-0 space-y-6">

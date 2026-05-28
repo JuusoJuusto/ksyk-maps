@@ -43,6 +43,8 @@ import {
   Clock,
   ChevronRight,
   BookOpen,
+  Crosshair,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -132,6 +134,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   // Room-to-room navigation
   const [navFrom, setNavFrom] = useState<RoomPt | null>(null);
   const [navTo, setNavTo] = useState<RoomPt | null>(null);
+
+  // GPS geolocation
+  const [locating, setLocating] = useState(false);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   // Room schedule — fetched lazily when a room is selected
   const { data: roomSchedule, isFetching: scheduleLoading } = useQuery<RoomSchedule>({
@@ -321,6 +327,21 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     setSelectedRoom(null);
   }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
+  const handleLocate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation([latitude, longitude]);
+        flyTo(latitude, longitude, Math.max(settings.osmDefaultZoom, 18));
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, [flyTo, settings.osmDefaultZoom]);
+
   // ─── Keyboard shortcuts (minimal — only zoom + reset + floor) ─────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -372,6 +393,24 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     darkMode ? "bg-gray-900/92 border-gray-700/80" : "bg-white/92 border-gray-200/90"
   );
 
+  // Convert GPS lat/lng back to SVG coords for the location dot
+  const lngLatToSvg = useCallback(
+    (lat: number, lng: number): [number, number] => {
+      const halfLatM = settings.osmCampusSpanMeters / 2;
+      const halfLatDeg = halfLatM / 111_320;
+      const halfLngDeg =
+        (halfLatM * (baseViewBox.w / baseViewBox.h)) /
+        (111_320 * Math.cos((settings.osmCenterLat * Math.PI) / 180));
+      const fy = (settings.osmCenterLat + halfLatDeg - lat) / (2 * halfLatDeg);
+      const fx = (lng - (settings.osmCenterLng - halfLngDeg)) / (2 * halfLngDeg);
+      return [
+        baseViewBox.x + fx * baseViewBox.w,
+        baseViewBox.y + fy * baseViewBox.h,
+      ];
+    },
+    [baseViewBox, settings.osmCenterLat, settings.osmCenterLng, settings.osmCampusSpanMeters]
+  );
+
   // ─── Campus body (rooms only — OSM tiles show buildings) ───────────────
   const campusBody = (
     <>
@@ -380,6 +419,17 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4" />
         </filter>
       </defs>
+
+      {/* User location dot */}
+      {userLocation && (() => {
+        const [sx, sy] = lngLatToSvg(userLocation[0], userLocation[1]);
+        return (
+          <g className="pointer-events-none">
+            <circle cx={sx} cy={sy} r={10} fill="rgba(59,130,246,0.15)" />
+            <circle cx={sx} cy={sy} r={5} fill="#3b82f6" stroke="white" strokeWidth={1.5} />
+          </g>
+        );
+      })()}
 
       {layers.rooms &&
         floorRooms.map((room) => {
@@ -628,8 +678,24 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </Button>
       </div>
 
-      {/* ── Reset view — only extra control, sits above Leaflet's zoom ── */}
-      <div className="absolute right-3 bottom-[max(8.5rem,calc(4rem+env(safe-area-inset-bottom)))] sm:bottom-28 z-20">
+      {/* ── GPS locate + reset view — always above bottom sheets (z-40) ── */}
+      <div className="absolute right-3 z-40 flex flex-col gap-2"
+           style={{ bottom: 'max(8.5rem, calc(4rem + env(safe-area-inset-bottom)))' }}>
+        {navigator?.geolocation && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={isFi ? "Paikanna" : "Locate me"}
+            className={cn(panel, "w-11 h-11 p-0", userLocation ? "text-blue-600 dark:text-blue-400" : "")}
+            onClick={handleLocate}
+            title={isFi ? "Näytä oma sijaintisi" : "Show my location"}
+          >
+            {locating
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Crosshair className={cn("h-4 w-4", userLocation ? "text-blue-500" : "")} />
+            }
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

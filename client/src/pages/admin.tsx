@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
+
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
 import { AdminLogin } from "@/components/AdminLogin";
@@ -13,9 +14,10 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const { darkMode } = useDarkMode();
 
-  // Read the optional :section param from both possible route patterns
-  const [, paramsWithSection] = useRoute("/admin-ksyk-management-portal/:section");
-  const section = paramsWithSection?.section;
+  // Read the optional :section param from all possible route patterns
+  const [, paramsLong] = useRoute("/admin-ksyk-management-portal/:section");
+  const [, paramsShort] = useRoute("/admin/:section");
+  const section = paramsLong?.section ?? paramsShort?.section;
 
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
