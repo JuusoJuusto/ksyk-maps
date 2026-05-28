@@ -26,6 +26,7 @@ import CookieConsent from "@/components/CookieConsent";
 // import { Analytics } from "@vercel/analytics/react";
 import { useEffect } from "react";
 import { trackPageView, trackEasterEgg, initAnalytics } from "@/lib/analytics";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import Landing from "@/pages/landing";
 import Admin from "@/pages/admin";
@@ -154,6 +155,17 @@ function Router() {
   );
 }
 
+function AccessibilityClasses() {
+  const { settings } = useAppSettings();
+  useEffect(() => {
+    document.documentElement.classList.toggle("large-text", settings.largeText);
+  }, [settings.largeText]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("high-contrast", settings.highContrast);
+  }, [settings.highContrast]);
+  return null;
+}
+
 function App() {
   // Initialize analytics
   useEffect(() => {
@@ -225,6 +237,7 @@ function App() {
             <TooltipProvider>
               <HelpProvider>
                 <HelpBubble>
+                  <AccessibilityClasses />
                   <WilmaScopedSessionTimeout />
                   <CookieConsent />
                   <Toaster />
