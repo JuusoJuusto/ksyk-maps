@@ -251,15 +251,19 @@ export default function OsmBasemap({
     // Mobile / first-paint resilience — Leaflet needs to know its container
     // size to load tiles. On mobile the container often reports 0×0 at
     // mount (hidden / animating / safe-area), so kick it a few times.
+    // We spread kicks across 2 s to cover slow devices + iOS Safari's
+    // deferred layout passes.
     const kick = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false, pan: false });
     };
     const kickIds = [
       requestAnimationFrame(kick),
-      window.setTimeout(kick, 80),
-      window.setTimeout(kick, 250),
-      window.setTimeout(kick, 600),
+      window.setTimeout(kick, 50),
+      window.setTimeout(kick, 150),
+      window.setTimeout(kick, 350),
+      window.setTimeout(kick, 700),
+      window.setTimeout(kick, 1500),
     ];
 
     // Live resize observer + orientation change — also covers the case
