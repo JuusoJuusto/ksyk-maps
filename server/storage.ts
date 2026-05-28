@@ -110,8 +110,11 @@ export interface IStorage {
   
   // App Log operations
   createAppLog(log: {
-    level: string;
+    level?: string;
+    type?: string;
     message: string;
+    details?: string | null;
+    timestamp?: Date;
     errorReferenceId?: string | null;
     errorStack?: string | null;
     errorInfo?: any;
@@ -119,10 +122,16 @@ export interface IStorage {
     url?: string | null;
     userId?: string | null;
     ipAddress?: string | null;
+    action?: string | null;
+    userName?: string | null;
   }): Promise<void>;
   
   getAppLogs(limit?: number): Promise<any[]>;
-  
+
+  // Easter egg tracking
+  trackEasterEggDiscovery(data: { eggId: string; eggName: string; userId: string; timestamp: string }): Promise<void>;
+  getEasterEggStats(): Promise<any>;
+
   // Analytics operations
   createPageView(view: any): Promise<void>;
   createSearchAnalytic(search: any): Promise<void>;
@@ -478,6 +487,11 @@ class MemStorage implements IStorage {
   // User operations
   private mockUsers: User[] = [];
 
+  // In-memory log stores (persists for server lifetime)
+  private loginLogs: any[] = [];
+  private appLogs: any[] = [];
+  private easterEggDiscoveries: any[] = [];
+
   async getUser(id: string): Promise<User | undefined> { 
     return this.mockUsers.find(u => u.id === id);
   }
@@ -744,22 +758,26 @@ class MemStorage implements IStorage {
     failureReason?: string | null;
     sessionId?: string | null;
   }): Promise<void> {
-    // In-memory storage - just log to console for now
-    console.log('📝 Admin Login Log:', {
+    const entry = {
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       ...log,
-      timestamp: new Date().toISOString()
-    });
+      createdAt: new Date(),
+    };
+    this.loginLogs.unshift(entry);
+    if (this.loginLogs.length > 500) this.loginLogs.length = 500;
   }
 
-  async getAdminLoginLogs(limit?: number): Promise<any[]> {
-    // In-memory storage - return empty array
-    return [];
+  async getAdminLoginLogs(limit: number = 100): Promise<any[]> {
+    return this.loginLogs.slice(0, limit);
   }
 
   // App Log operations
   async createAppLog(log: {
-    level: string;
+    level?: string;
+    type?: string;
     message: string;
+    details?: string | null;
+    timestamp?: Date;
     errorReferenceId?: string | null;
     errorStack?: string | null;
     errorInfo?: any;
@@ -767,20 +785,40 @@ class MemStorage implements IStorage {
     url?: string | null;
     userId?: string | null;
     ipAddress?: string | null;
+    action?: string | null;
+    userName?: string | null;
   }): Promise<void> {
-    // In-memory storage - just log to console
-    console.log(`📝 App Log [${log.level.toUpperCase()}]:`, log.message);
-    if (log.errorReferenceId) {
-      console.log('  Error Ref:', log.errorReferenceId);
-    }
-    if (log.errorStack) {
-      console.log('  Stack:', log.errorStack.substring(0, 200));
-    }
+    const entry = {
+      id: `alog-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      ...log,
+      level: log.level ?? log.type ?? 'info',
+      createdAt: new Date(),
+    };
+    this.appLogs.unshift(entry);
+    if (this.appLogs.length > 1000) this.appLogs.length = 1000;
   }
 
   async getAppLogs(limit: number = 100): Promise<any[]> {
-    // In-memory storage - return empty array
-    return [];
+    return this.appLogs.slice(0, limit);
+  }
+
+  async trackEasterEggDiscovery(data: { eggId: string; eggName: string; userId: string; timestamp: string }): Promise<void> {
+    this.easterEggDiscoveries.unshift({ ...data, id: `egg-${Date.now()}` });
+    if (this.easterEggDiscoveries.length > 500) this.easterEggDiscoveries.length = 500;
+  }
+
+  async getEasterEggStats(): Promise<any> {
+    const counts: Record<string, { name: string; count: number; lastFound: string }> = {};
+    for (const d of this.easterEggDiscoveries) {
+      if (!counts[d.eggId]) counts[d.eggId] = { name: d.eggName, count: 0, lastFound: d.timestamp };
+      counts[d.eggId].count++;
+    }
+    return {
+      totalDiscoveries: this.easterEggDiscoveries.length,
+      uniqueEggs: Object.keys(counts).length,
+      byEgg: Object.entries(counts).map(([id, v]) => ({ id, ...v })),
+      recent: this.easterEggDiscoveries.slice(0, 20),
+    };
   }
 
   // Analytics methods - mock implementations for in-memory storage

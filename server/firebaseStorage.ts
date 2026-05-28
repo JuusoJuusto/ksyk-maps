@@ -4514,6 +4514,38 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
+
+  private eggCache: any[] = [];
+  async trackEasterEggDiscovery(data: { eggId: string; eggName: string; userId: string; timestamp: string }): Promise<void> {
+    try {
+      const docRef = db.collection('easterEggDiscoveries').doc();
+      await docRef.set({ ...data, id: docRef.id, createdAt: new Date() });
+      this.eggCache.unshift({ ...data, id: docRef.id });
+      if (this.eggCache.length > 200) this.eggCache.length = 200;
+    } catch {
+      this.eggCache.unshift({ ...data, id: `egg-${Date.now()}` });
+    }
+  }
+
+  async getEasterEggStats(): Promise<any> {
+    try {
+      const snap = await db.collection('easterEggDiscoveries').orderBy('createdAt', 'desc').limit(200).get();
+      const discoveries = snap.docs.map(d => d.data());
+      const counts: Record<string, any> = {};
+      for (const d of discoveries) {
+        if (!counts[d.eggId]) counts[d.eggId] = { name: d.eggName, count: 0, lastFound: d.timestamp };
+        counts[d.eggId].count++;
+      }
+      return {
+        totalDiscoveries: discoveries.length,
+        uniqueEggs: Object.keys(counts).length,
+        byEgg: Object.entries(counts).map(([id, v]) => ({ id, ...(v as any) })),
+        recent: discoveries.slice(0, 20),
+      };
+    } catch {
+      return { totalDiscoveries: 0, uniqueEggs: 0, byEgg: [], recent: [] };
+    }
+  }
 }
 
 export const firebaseStorage = new FirebaseStorage();

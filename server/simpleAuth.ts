@@ -4,15 +4,24 @@ import { storage } from "./storage";
 
 // Real authentication with sessions
 export async function setupAuth(app: Express) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    console.warn(
+      "⚠️  SESSION_SECRET env var is not set — using insecure default. " +
+      "Set SESSION_SECRET to a long random string in production."
+    );
+  }
+
   // Setup session middleware
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'ksyk-map-secret-key-change-in-production',
+      secret: secret || 'ksyk-map-secret-key-change-in-production',
       resave: false,
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: 'lax',        // blocks cross-site POST requests (CSRF mitigation)
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
     })

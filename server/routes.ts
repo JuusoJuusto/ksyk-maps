@@ -8,6 +8,31 @@ import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
 import { registerCampusRoutes } from "./campusRoutes";
+import bcrypt from "bcrypt";
+
+const BCRYPT_ROUNDS = 12;
+
+/** Compare a plaintext password against a stored value.
+ *  Supports both bcrypt hashes ($2b$…) and legacy plaintext.
+ *  On a successful plaintext match the hash is written back to DB automatically. */
+async function verifyPassword(
+  plain: string,
+  stored: string,
+  userId: string
+): Promise<boolean> {
+  if (stored.startsWith("$2b$") || stored.startsWith("$2a$")) {
+    return bcrypt.compare(plain, stored);
+  }
+  // Legacy plaintext — compare directly, then silently migrate to bcrypt
+  if (plain !== stored) return false;
+  const hashed = await bcrypt.hash(plain, BCRYPT_ROUNDS);
+  await storage.updateUser(userId, { password: hashed }).catch(() => {});
+  return true;
+}
+
+async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
+}
 
 const db = getFirestore();
 
@@ -146,13 +171,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Check password against database
-        if (!ownerUser.password || ownerUser.password !== trimmedPassword) {
+        // Check password against database (bcrypt-aware)
+        const ownerPwOk = ownerUser.password
+          ? await verifyPassword(trimmedPassword, ownerUser.password, ownerUser.id)
+          : false;
+        if (!ownerPwOk) {
           console.log('❌ Invalid owner password');
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
         console.log('✅ OWNER LOGIN SUCCESS');
+
+        // 2FA check for owner
+        if (ownerUser.twoFactorEnabled) {
+          console.log('🔐 Owner has 2FA — deferring session until code verified');
+          return res.json({ requiresTwoFactor: true, userId: ownerUser.id });
+        }
 
         // Log successful login
         await storage.createAdminLoginLog({
@@ -216,10 +250,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
       
-      if (user.password !== trimmedPassword) {
+      const pwOk = await verifyPassword(trimmedPassword, user.password, user.id);
+      if (!pwOk) {
         console.log('❌ Password mismatch');
-        
-        // Log failed login attempt
+
         await storage.createAdminLoginLog({
           userId: user.id,
           email: normalizedEmail,
@@ -229,10 +263,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'failed',
           failureReason: 'Invalid password'
         });
-        
+
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      
+
+      // 2FA check — defer session creation until code is verified
+      if (user.twoFactorEnabled) {
+        console.log('🔐 User has 2FA — deferring session');
+        return res.json({ requiresTwoFactor: true, userId: user.id });
+      }
+
       // Valid user login
       req.login({
         claims: {
@@ -416,6 +456,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete login with 2FA — verify code and create session
+  app.post('/api/auth/2fa/complete-login', rateLimiters.auth, async (req: any, res) => {
+    try {
+      const { userId, code } = req.body;
+      if (!userId || !code) {
+        return res.status(400).json({ message: 'User ID and code required' });
+      }
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+        return res.status(400).json({ message: '2FA not enabled for this user' });
+      }
+
+      const { TwoFactorAuthService } = await import('./twoFactorAuth');
+      const isValid = TwoFactorAuthService.verifyToken(user.twoFactorSecret, code);
+      const isBackup = !isValid && await TwoFactorAuthService.verifyBackupCode(userId, code);
+
+      if (!isValid && !isBackup) {
+        return res.status(401).json({ success: false, message: 'Invalid 2FA code' });
+      }
+
+      req.login({
+        claims: {
+          sub: user.id,
+          email: user.email,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          profile_image_url: user.profileImageUrl,
+        }
+      }, async (err: any) => {
+        if (err) return res.status(500).json({ message: 'Login failed' });
+        await storage.createAdminLoginLog({
+          userId: user.id,
+          email: user.email,
+          userName: `${user.firstName} ${user.lastName}`,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          loginStatus: 'success',
+          sessionId: req.sessionID || null
+        });
+        res.json({ success: true, user, usedBackupCode: isBackup });
+      });
+    } catch (error) {
+      console.error('Error completing 2FA login:', error);
+      res.status(500).json({ message: 'Failed to complete login' });
+    }
+  });
+
   // Send email verification code for 2FA
   app.post('/api/auth/2fa/send-email-code', isAuthenticated, async (req: any, res) => {
     try {
@@ -492,6 +582,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
       });
 
+      await storage.createAppLog({
+        level: 'success',
+        message: `🥚 Easter egg discovered: ${eggName}`,
+        action: 'easter_egg',
+        userId: userId !== 'anonymous' ? userId : null,
+        userName: null,
+      }).catch(() => {});
+
       res.json({ success: true });
     } catch (error) {
       console.error('Error tracking easter egg:', error);
@@ -509,10 +607,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
       
-      // Update user password
+      // Hash before storing
+      const hashed = await hashPassword(newPassword);
       await storage.upsertUser({
         id: userId,
-        password: newPassword,
+        password: hashed,
         isTemporaryPassword: false
       });
       
@@ -627,10 +726,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Reset token has expired" });
       }
       
-      // Update password and clear reset token
+      // Hash and store the new password, clear reset token
+      const hashedNew = await hashPassword(newPassword);
       await storage.upsertUser({
         id: user.id,
-        password: newPassword,
+        password: hashedNew,
         passwordResetToken: null,
         passwordResetExpiry: null,
         isTemporaryPassword: false
@@ -1114,13 +1214,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTemp = true;
       }
 
-      // Create user
+      // Hash the password before storing
+      const hashedFinal = await hashPassword(finalPassword);
       const newUser = await storage.upsertUser({
         email,
         firstName,
         lastName,
         role: role || 'admin',
-        password: finalPassword,
+        password: hashedFinal,
         isTemporaryPassword: isTemp,
         profileImageUrl: null
       });
@@ -3533,8 +3634,9 @@ https://ksykmaps.vercel.app
 
   app.put('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      const userId = req.user?.claims?.sub ?? req.user?.id;
+      const user = userId ? await storage.getUser(userId) : null;
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 

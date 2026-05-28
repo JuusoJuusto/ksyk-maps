@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Plus, Trash2, MousePointer, X, Undo, Redo, Square,
   Save, ZoomIn, ZoomOut, RotateCcw, Grid3x3, Layers, Hand, Minus,
-  Copy as CopyIcon, Move, Maximize2,
+  Copy as CopyIcon, Move, Maximize2, Search, AlertCircle, ChevronDown,
+  Download, Upload, CheckCircle2, Pencil,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getRoomFillColor } from "@/lib/campusSpace";
 import { KSYK_WING_PRESETS } from "@/lib/ksykWings";
 import KSYKLogo from "@/components/KSYKLogo";
@@ -71,6 +73,7 @@ export default function ImprovedKSYKBuilder() {
       return trimmed.slice(-50);
     });
     setRoomHistoryIndex((i) => Math.min(i + 1, 49));
+    setUnsavedChanges(true);
   }, [roomHistoryIndex]);
   
   const [roomData, setRoomData] = useState({
@@ -87,6 +90,8 @@ export default function ImprovedKSYKBuilder() {
 
   const [dataLoaded, setDataLoaded] = useState(false);
   const [builderFloor, setBuilderFloor] = useState(1);
+  const [roomSearch, setRoomSearch] = useState("");
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   const { data: existingRooms = [] } = useQuery({
     queryKey: ["rooms"],
@@ -708,6 +713,7 @@ export default function ImprovedKSYKBuilder() {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       setDataLoaded(false);
+      setUnsavedChanges(false);
       toast({ title: "Saved", description: "Map data has been updated." });
     },
     onError: (error) => {
@@ -914,30 +920,56 @@ export default function ImprovedKSYKBuilder() {
   const floorRooms = rooms.filter((r) => (r.floor ?? 1) === builderFloor);
   const maxBuilderFloor = Math.max(1, ...rooms.map((r) => r.floor ?? 1), 3);
 
-  const toolBtn = (tool: Tool, icon: React.ReactNode, label: string) => (
-    <Button
-      type="button"
-      variant={activeTool === tool ? "default" : "ghost"}
-      size="sm"
-      className="w-full justify-start gap-2 h-9"
-      onClick={() => setActiveTool(tool)}
-      title={label}
-    >
-      {icon}
-      <span className="text-xs">{label}</span>
-    </Button>
-  );
+  const filteredRooms = roomSearch.trim()
+    ? rooms.filter(
+        (r) =>
+          r.roomNumber?.toLowerCase().includes(roomSearch.toLowerCase()) ||
+          r.name?.toLowerCase().includes(roomSearch.toLowerCase())
+      )
+    : rooms;
+
+  const floorCounts = rooms.reduce((acc: Record<number, number>, r) => {
+    const f = r.floor ?? 1;
+    acc[f] = (acc[f] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const TOOLS: { id: Tool; icon: React.ReactNode; label: string; shortcut: string }[] = [
+    { id: "select", icon: <MousePointer className="h-4 w-4" />, label: "Select", shortcut: "V" },
+    { id: "pan", icon: <Hand className="h-4 w-4" />, label: "Pan", shortcut: "H" },
+    { id: "room", icon: <Plus className="h-4 w-4" />, label: "Place room", shortcut: "R" },
+    { id: "wall", icon: <Square className="h-4 w-4" />, label: "Draw wall", shortcut: "W" },
+    { id: "outline", icon: <Layers className="h-4 w-4" />, label: "Wing outline", shortcut: "O" },
+  ];
 
   return (
-    <div className="h-screen flex flex-col bg-[#eef1f6] dark:bg-gray-950">
-      <header className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-2 min-w-0">
+    <div className="h-screen flex flex-col bg-[#eef1f6] dark:bg-gray-950 font-sans">
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <header className="h-13 shrink-0 flex items-center justify-between px-4 gap-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center gap-3 min-w-0">
           <KSYKLogo size="sm" />
-          <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">Campus Builder</span>
+          <div>
+            <p className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Campus Builder</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">KSYK Maps</p>
+          </div>
+          {unsavedChanges && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-semibold">
+              <AlertCircle className="h-3 w-3" />
+              Unsaved
+            </span>
+          )}
+          {saveMutation.isSuccess && !unsavedChanges && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold">
+              <CheckCircle2 className="h-3 w-3" />
+              Saved
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Wing template */}
           <Select value={activeWingLetter} onValueChange={loadWingOutline}>
-            <SelectTrigger className="h-8 w-[10rem] text-xs">
+            <SelectTrigger className="h-8 w-36 text-xs rounded-lg">
               <SelectValue placeholder="Wing template" />
             </SelectTrigger>
             <SelectContent>
@@ -948,217 +980,280 @@ export default function ImprovedKSYKBuilder() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportJson} title="Export JSON">
-            ⤓ JSON
+
+          {/* Export */}
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 rounded-lg" onClick={exportJson} title="Export JSON">
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
-          <label className="inline-flex items-center h-8 text-xs px-3 rounded-md border bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 cursor-pointer">
-            ⤒ JSON
-            <input
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) importJson(f);
-                e.target.value = "";
-              }}
-            />
+
+          {/* Import */}
+          <label className="inline-flex items-center gap-1 h-8 text-xs px-3 rounded-lg border bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Import</span>
+            <input type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
           </label>
-          <Button size="sm" className="h-8" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 mr-1" />
-            Save
+
+          {/* Save */}
+          <Button
+            size="sm"
+            className={cn(
+              "h-8 gap-1.5 rounded-lg font-semibold transition-all",
+              unsavedChanges
+                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+            )}
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saveMutation.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <aside className="w-14 sm:w-44 shrink-0 flex flex-col gap-1 p-2 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          {toolBtn("pan", <Hand className="h-4 w-4 shrink-0" />, "Pan")}
-          {toolBtn("outline", <Layers className="h-4 w-4 shrink-0" />, "Outline")}
-          {toolBtn("wall", <Square className="h-4 w-4 shrink-0" />, "Walls")}
-          {toolBtn("room", <Plus className="h-4 w-4 shrink-0" />, "Room")}
-          {toolBtn("select", <MousePointer className="h-4 w-4 shrink-0" />, "Select")}
+        {/* ── Tool Sidebar ─────────────────────────────────────────── */}
+        <aside className="w-14 shrink-0 flex flex-col items-center gap-1 py-3 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          {TOOLS.map(({ id, icon, label, shortcut }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTool(id)}
+              title={`${label} (${shortcut})`}
+              className={cn(
+                "w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all",
+                activeTool === id
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
+            >
+              {icon}
+              <span className="text-[8px] font-bold opacity-70 leading-none">{shortcut}</span>
+            </button>
+          ))}
+
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" className="w-full h-8" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+
+          {/* Snap toggle */}
+          <button
+            type="button"
+            onClick={() => setSnapEnabled((s) => !s)}
+            title={snapEnabled ? "Snap to grid: ON" : "Snap to grid: OFF"}
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+              snapEnabled ? "text-blue-600 bg-blue-50 dark:bg-blue-950/40" : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            )}
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </button>
+
+          {/* Undo / Redo */}
+          <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 transition-all">
             <Undo className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full h-8" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
+          </button>
+          <button type="button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 transition-all mb-1">
             <Redo className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setSnapEnabled((s) => !s)} title={snapEnabled ? "Snap on" : "Snap off"}>
-            <Grid3x3 className={`h-4 w-4 ${snapEnabled ? "text-blue-600" : "opacity-50"}`} />
-          </Button>
+          </button>
         </aside>
 
-        <div className="w-64 sm:w-72 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto max-lg:max-w-[45vw]">
-          <Card>
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-sm font-semibold">
-                {selectedRoom ? `Editing ${selectedRoom.roomNumber}` : "Add Room"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-3">
-              <div>
-                <Label htmlFor="roomNumber">Room Number *</Label>
-                <Input
-                  id="roomNumber"
-                  placeholder="A32, A21, M1, M2, U205..."
-                  value={roomData.roomNumber}
-                  onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value.toUpperCase() })}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Buildings: A, M (M1-M2 only), U, K, L, R + numbers (no dashes)
-                </p>
-              </div>
-              
-              <div>
-                <Label htmlFor="name">Room Name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., Physics Lab"
-                  value={roomData.name}
-                  onChange={(e) => setRoomData({ ...roomData, name: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="type">Room Type</Label>
-                <Select
-                  value={roomData.type}
-                  onValueChange={(value) => setRoomData({ ...roomData, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="classroom">📚 Classroom</SelectItem>
-                    <SelectItem value="classroom_science">🔬 Science Classroom</SelectItem>
-                    <SelectItem value="classroom_language">🗣️ Language Classroom</SelectItem>
-                    <SelectItem value="classroom_art">🎨 Art Classroom</SelectItem>
-                    <SelectItem value="classroom_music">🎵 Music Classroom</SelectItem>
-                    <SelectItem value="classroom_computer">💻 Computer Lab</SelectItem>
-                    <SelectItem value="lab">🧪 Laboratory</SelectItem>
-                    <SelectItem value="office">🏢 Office</SelectItem>
-                    <SelectItem value="library">📖 Library</SelectItem>
-                    <SelectItem value="gymnasium">🏀 Gymnasium</SelectItem>
-                    <SelectItem value="cafeteria">🍽️ Cafeteria</SelectItem>
-                    <SelectItem value="lobby">🚪 Lobby/Entrance</SelectItem>
-                    <SelectItem value="toilet">🚻 Toilet</SelectItem>
-                    <SelectItem value="stairway">🪜 Stairway</SelectItem>
-                    <SelectItem value="hallway">🚶 Hallway/Corridor</SelectItem>
-                    <SelectItem value="door">🚪 Door</SelectItem>
-                    <SelectItem value="storage">📦 Storage Room</SelectItem>
-                    <SelectItem value="auditorium">🎭 Auditorium</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="capacity">Capacity</Label>
-                  <Input
-                    id="capacity"
-                    type="number"
-                    min="1"
-                    value={roomData.capacity}
-                    onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 1 })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="floor-form">Floor</Label>
-                  <Input
-                    id="floor-form"
-                    type="number"
-                    min="0"
-                    max="5"
-                    value={roomData.floor}
-                    onChange={(e) => {
-                      const f = parseInt(e.target.value) || 0;
-                      setRoomData({ ...roomData, floor: f });
-                      setBuilderFloor(f);
-                    }}
-                  />
-                </div>
-              </div>
+        {/* ── Properties / Add-Room Panel ──────────────────────────── */}
+        <div className="w-64 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
+          {/* Panel header */}
+          <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className={cn("w-2.5 h-2.5 rounded-full", selectedRoom ? "bg-amber-400" : "bg-blue-500")} />
+              <p className="text-xs font-bold text-gray-900 dark:text-white">
+                {selectedRoom ? (
+                  <span className="flex items-center gap-1.5">
+                    <Pencil className="h-3 w-3" />
+                    Editing <span className="text-blue-600">{selectedRoom.roomNumber}</span>
+                  </span>
+                ) : "Add Room"}
+              </p>
+              {selectedRoom && (
+                <button type="button" onClick={() => { setSelectedRoom(null); setSelectedRoomIds(new Set()); }}
+                  className="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="width">Width (px)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    min="50"
-                    value={roomData.width}
-                    onChange={(e) => setRoomData({ ...roomData, width: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height">Height (px)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    min="50"
-                    value={roomData.height}
-                    onChange={(e) => setRoomData({ ...roomData, height: parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
+          {/* Form */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div>
+              <Label className="text-xs mb-1 block">Room Number *</Label>
+              <Input
+                placeholder="A32, U205, K15…"
+                value={roomData.roomNumber}
+                onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value.toUpperCase() })}
+                className="h-9 text-sm font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground mt-0.5">A / U / K / L / R + digits, or M1–M2</p>
+            </div>
 
-              <Button onClick={addRoom} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Room
+            <div>
+              <Label className="text-xs mb-1 block">Room Name</Label>
+              <Input placeholder="Physics Lab, A-sali…" value={roomData.name} onChange={(e) => setRoomData({ ...roomData, name: e.target.value })} className="h-9 text-sm" />
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1 block">Type</Label>
+              <Select value={roomData.type} onValueChange={(v) => setRoomData({ ...roomData, type: v })}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    ["classroom","📚 Classroom"],
+                    ["classroom_science","🔬 Science"],
+                    ["classroom_language","🗣️ Language"],
+                    ["classroom_art","🎨 Art"],
+                    ["classroom_music","🎵 Music"],
+                    ["classroom_computer","💻 Computer Lab"],
+                    ["lab","🧪 Laboratory"],
+                    ["office","🏢 Office"],
+                    ["library","📖 Library"],
+                    ["gymnasium","🏀 Gymnasium"],
+                    ["cafeteria","🍽️ Cafeteria"],
+                    ["lobby","🚪 Lobby"],
+                    ["toilet","🚻 Toilet"],
+                    ["stairway","🪜 Stairway"],
+                    ["hallway","🚶 Hallway"],
+                    ["storage","📦 Storage"],
+                    ["auditorium","🎭 Auditorium"],
+                  ].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {/* Color preview chip */}
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="w-4 h-4 rounded-md border" style={{ background: getRoomFillColor(roomData.type, undefined) }} />
+                <span className="text-[10px] text-muted-foreground capitalize">{roomData.type.replace(/_/g, " ")}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs mb-1 block">Floor</Label>
+                <Input type="number" min="0" max="5" value={roomData.floor}
+                  onChange={(e) => { const f = parseInt(e.target.value) || 0; setRoomData({ ...roomData, floor: f }); setBuilderFloor(f); }}
+                  className="h-9 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Capacity</Label>
+                <Input type="number" min="1" value={roomData.capacity}
+                  onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 1 })}
+                  className="h-9 text-sm font-mono" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs mb-1 block">Width px</Label>
+                <Input type="number" min="50" value={roomData.width}
+                  onChange={(e) => setRoomData({ ...roomData, width: parseInt(e.target.value) })}
+                  className="h-9 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Height px</Label>
+                <Input type="number" min="50" value={roomData.height}
+                  onChange={(e) => setRoomData({ ...roomData, height: parseInt(e.target.value) })}
+                  className="h-9 text-sm font-mono" />
+              </div>
+            </div>
+
+            {!selectedRoom ? (
+              <Button onClick={addRoom} className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Room to canvas
               </Button>
-            </CardContent>
-          </Card>
-          
-          {/* Buildings summary */}
-          {Object.keys(groupedRooms).length > 0 && (
-            <Card className="mt-3">
-              <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Layers className="h-4 w-4" />
-                  {Object.keys(groupedRooms).length} building{Object.keys(groupedRooms).length !== 1 ? "s" : ""} · {rooms.length} rooms
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-3 space-y-2">
-                {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, buildingRooms]) => (
-                  <div key={building} className="flex items-center gap-2">
-                    <span
-                      className="shrink-0 w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: getColorForBuilding(building) }}
-                    />
-                    <span className="font-semibold text-sm">{building}</span>
-                    <span className="text-xs text-muted-foreground">{buildingRooms.length} rooms</span>
-                    <div className="flex flex-wrap gap-1 ml-auto">
-                      {buildingRooms.slice(0, 6).map((room) => (
-                        <button
-                          key={room.id}
-                          className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                          onClick={() => {
-                            setSelectedRoom(room);
-                            setSelectedRoomIds(new Set([room.id]));
-                            setRoomData({
-                              roomNumber: room.roomNumber, name: room.name || "",
-                              floor: room.floor ?? 1, capacity: room.capacity ?? 30,
-                              type: room.type || "classroom",
-                              x: room.mapPositionX, y: room.mapPositionY,
-                              width: room.width, height: room.height,
-                            });
-                            setBuilderFloor(room.floor ?? 1);
-                          }}
-                        >
-                          {room.roomNumber}
-                        </button>
-                      ))}
-                      {buildingRooms.length > 6 && (
-                        <span className="text-[10px] text-muted-foreground px-1">+{buildingRooms.length - 6}</span>
-                      )}
-                    </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs" onClick={duplicateSelected}>
+                  <CopyIcon className="h-3.5 w-3.5 mr-1" />Duplicate
+                </Button>
+                <Button variant="destructive" size="sm" className="h-9 rounded-xl text-xs" onClick={() => deleteRoom(selectedRoom.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />Delete
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Rooms browser */}
+          <div className="border-t border-gray-100 dark:border-gray-800 shrink-0">
+            <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
+              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                Rooms <span className="text-blue-600 font-bold">{rooms.length}</span>
+              </p>
+              {selectedRoomIds.size > 0 && (
+                <button type="button" onClick={deleteSelected}
+                  className="text-[10px] text-red-500 hover:text-red-700 font-medium">
+                  Delete {selectedRoomIds.size}
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                <input
+                  type="search"
+                  placeholder="Search rooms…"
+                  value={roomSearch}
+                  onChange={(e) => setRoomSearch(e.target.value)}
+                  className="w-full h-7 pl-7 pr-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto max-h-48 px-3 pb-3 space-y-0.5">
+            {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, bRooms]) => {
+              const visible = bRooms.filter(
+                (r) => !roomSearch.trim() ||
+                  r.roomNumber?.toLowerCase().includes(roomSearch.toLowerCase()) ||
+                  r.name?.toLowerCase().includes(roomSearch.toLowerCase())
+              );
+              if (visible.length === 0) return null;
+              return (
+                <div key={building}>
+                  <div className="flex items-center gap-1.5 py-0.5 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: getColorForBuilding(building) }} />
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{building} wing</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{visible.length}</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                  {visible.map((room) => (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRoom(room);
+                        setSelectedRoomIds(new Set([room.id]));
+                        setRoomData({ roomNumber: room.roomNumber, name: room.name || "", floor: room.floor ?? 1, capacity: room.capacity ?? 30, type: room.type || "classroom", x: room.mapPositionX, y: room.mapPositionY, width: room.width, height: room.height });
+                        setBuilderFloor(room.floor ?? 1);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left transition-colors text-xs",
+                        selectedRoomIds.has(room.id)
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                      )}
+                    >
+                      <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: getRoomFillColor(room.type, undefined) }} />
+                      <span className="font-mono font-semibold">{room.roomNumber}</span>
+                      <span className="truncate text-muted-foreground text-[10px]">{room.name}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto shrink-0">F{room.floor}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+            {filteredRooms.length === 0 && roomSearch && (
+              <p className="text-xs text-muted-foreground text-center py-4">No rooms match "{roomSearch}"</p>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 relative overflow-hidden min-w-0 bg-[radial-gradient(ellipse_at_center,#e8ecf1_0%,#d4dae4_100%)] dark:bg-[radial-gradient(ellipse_at_center,#111827_0%,#030712_100%)]">

@@ -1,2087 +1,378 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
-import { toast } from 'react-hot-toast';
-import { Palette, Globe, Settings, Mail, Paintbrush, Zap, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Globe, Bell, Wrench, Save, AlertTriangle, Settings,
+  RefreshCw, Eye, EyeOff, Egg,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface AppSettings {
-  id: string;
-  appName: string;
-  appNameEn: string;
-  appNameFi: string;
-  logoUrl: string | null;
-  primaryColor: string;
-  secondaryColor: string;
-  successColor: string;
-  warningColor: string;
-  theme: string;
-  headerTitle: string;
-  headerTitleEn: string;
-  headerTitleFi: string;
-  footerText: string | null;
-  footerTextEn: string | null;
-  footerTextFi: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  showStats: boolean;
-  showAnnouncements: boolean;
-  enableSearch: boolean;
-  enableAnimations: boolean;
-  enableAutoSave: boolean;
-  compactMode: boolean;
-  defaultLanguage: string;
-  aiSensitivity: number;
-  enableSmartSnap: boolean;
-  enableRoomAutoCreation: boolean;
-  cacheMinutes: number;
-  maxImageSizeMB: number;
-  enablePreloadImages: boolean;
-  enableLazyLoading: boolean;
-  defaultZoomLevel: number;
+  id?: string;
+  appName?: string;
+  appNameEn?: string;
+  appNameFi?: string;
+  defaultLanguage?: string;
+  theme?: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  showStats?: boolean;
+  showAnnouncements?: boolean;
+  enableSearch?: boolean;
+  enableAnimations?: boolean;
+  compactMode?: boolean;
   enableEasterEgg?: boolean;
-  enableEvents?: boolean;
-  enableTicketSystem?: boolean;
-  enableVersionInfo?: boolean;
   maintenanceMode?: boolean;
   maintenanceMessage?: string | null;
-  // ADVANCED FEATURES
-  enableDarkModeToggle?: boolean;
-  enableNotifications?: boolean;
-  enableOfflineMode?: boolean;
-  enableAnalytics?: boolean;
-  enableAccessibilityMode?: boolean;
-  enableKeyboardShortcuts?: boolean;
-  enableAdvancedSearch?: boolean;
-  enableRoomBooking?: boolean;
-  enableQRCodeScanning?: boolean;
-  enableARMode?: boolean;
-  enable3DView?: boolean;
-  enableVoiceCommands?: boolean;
-  enableMultiLanguage?: boolean;
-  enableExportData?: boolean;
-  enableImportData?: boolean;
-  enableBulkOperations?: boolean;
-  enableAdvancedFilters?: boolean;
-  enableCustomFields?: boolean;
-  enableWebhooks?: boolean;
-  enableAPIAccess?: boolean;
-  maxUploadSizeMB?: number;
-  sessionTimeoutMinutes?: number;
-  maxLoginAttempts?: number;
-  passwordMinLength?: number;
-  requireStrongPassword?: boolean;
-  enable2FA?: boolean;
-  twoFactorMethod?: 'authenticator' | 'email' | 'both';
-  enableSSO?: boolean;
-  enableAuditLog?: boolean;
-  enableBackups?: boolean;
-  backupFrequencyHours?: number;
-  // SUPER ADVANCED FEATURES
-  enableRealTimeUpdates?: boolean;
-  enableCollaborativeEditing?: boolean;
-  enableLiveChat?: boolean;
-  enableUserPresence?: boolean;
-  enableActivityFeed?: boolean;
-  enableVersionControl?: boolean;
-  enableSmartSuggestions?: boolean;
-  enablePersonalizedDashboard?: boolean;
-  enableQuickActions?: boolean;
-  enableDragDrop?: boolean;
-  enableGestureControls?: boolean;
-  enableInteractiveTours?: boolean;
-  enableContextualHelp?: boolean;
-  enableVideoTutorials?: boolean;
-  enableSmartSearch?: boolean;
-  enableFAQIntegration?: boolean;
-  enableProgressTracking?: boolean;
-  enableMachineLearning?: boolean;
-  enablePredictiveAnalytics?: boolean;
-  enableAdvancedCaching?: boolean;
-  enableLoadBalancing?: boolean;
-  enableCDNIntegration?: boolean;
-  enableEdgeComputing?: boolean;
-  enablePushNotifications?: boolean;
-  enableEmailNotifications?: boolean;
-  enableSMSNotifications?: boolean;
-  enableSlackIntegration?: boolean;
-  enableDiscordIntegration?: boolean;
-  enableCustomWebhooks?: boolean;
-  enableSEOOptimization?: boolean;
-  enableOpenGraphTags?: boolean;
-  enableSchemaMarkup?: boolean;
-  enableSitemapGeneration?: boolean;
-  enableMetaTags?: boolean;
-  enableCanonicalURLs?: boolean;
-  enableCustomCSS?: boolean;
-  enableCustomJS?: boolean;
-  enablePluginSystem?: boolean;
+  footerTextEn?: string | null;
+  footerTextFi?: string | null;
+  [key: string]: any;
 }
 
+const DEFAULT_SETTINGS: AppSettings = {
+  appName: 'KSYK Maps',
+  appNameEn: 'KSYK Maps',
+  appNameFi: 'KSYK Kartat',
+  defaultLanguage: 'fi',
+  theme: 'system',
+  contactEmail: '',
+  contactPhone: '',
+  showStats: true,
+  showAnnouncements: true,
+  enableSearch: true,
+  enableAnimations: true,
+  compactMode: false,
+  enableEasterEgg: true,
+  maintenanceMode: false,
+  maintenanceMessage: '',
+  footerTextEn: '',
+  footerTextFi: '',
+};
+
 export default function AppSettingsManager() {
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [localSettings, setLocalSettings] = useState<AppSettings | null>(null);
+  const [dirty, setDirty] = useState(false);
 
-  // Check if current user is owner
-  const storedUser = localStorage.getItem('ksyk_admin_user');
-  const currentUser = storedUser ? JSON.parse(storedUser) : null;
-  const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
+  const { data: serverSettings, isLoading, isError } = useQuery<AppSettings>({
+    queryKey: ['app-settings'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load settings');
+      return res.json();
+    },
+  });
 
-  // If not owner, show access denied
-  if (!isOwner) {
+  useEffect(() => {
+    if (serverSettings) {
+      setLocalSettings({ ...DEFAULT_SETTINGS, ...serverSettings });
+      setDirty(false);
+    }
+  }, [serverSettings]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (settings: AppSettings) => {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Save failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+      setDirty(false);
+      toast({ title: 'Settings saved', description: 'Changes are live for all users.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Save failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const update = (patch: Partial<AppSettings>) => {
+    setLocalSettings((s) => ({ ...(s ?? DEFAULT_SETTINGS), ...patch }));
+    setDirty(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />Loading settings…
+      </div>
+    );
+  }
+
+  if (isError || !localSettings) {
     return (
       <Card>
-        <CardContent className="p-12 text-center">
-          <Settings className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Owner Access Only</h3>
-          <p className="text-gray-500 dark:text-gray-400">App settings management is restricted to the owner account for security.</p>
+        <CardContent className="p-8 text-center text-muted-foreground">
+          <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+          <p>Could not load settings. Make sure you are logged in as admin.</p>
         </CardContent>
       </Card>
     );
   }
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-      toast.error('Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!settings) return;
-    
-    setSaving(true);
-    try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        toast.success('Settings saved successfully!');
-        
-        // Apply theme change immediately
-        if (settings.theme) {
-          document.documentElement.classList.remove('light', 'dark', 'system');
-          document.documentElement.classList.add(settings.theme);
-          
-          // Trigger theme change event
-          const themeChangeEvent = new CustomEvent('manualThemeChange', { 
-            detail: { theme: settings.theme } 
-          });
-          window.dispatchEvent(themeChangeEvent);
-        }
-        
-        // Reload page to apply other changes after a short delay
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        toast.error('Failed to save settings');
-      }
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return <div className="p-8 text-center">Loading settings...</div>;
-  }
-
-  if (!settings) {
-    return <div className="p-8 text-center">Failed to load settings</div>;
-  }
+  const s = localSettings;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold">App Customization</h2>
-          <p className="text-muted-foreground">Customize the look and feel of your application</p>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Settings className="h-5 w-5 text-muted-foreground" />
+            App Settings
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Global configuration — changes apply to all users immediately after saving.</p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">Unsaved changes</Badge>}
+          <Button
+            onClick={() => localSettings && saveMutation.mutate(localSettings)}
+            disabled={saveMutation.isPending || !dirty}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
-          <TabsTrigger value="appearance">
-            <Paintbrush className="w-4 h-4 mr-2" />
-            Appearance
+      {s.maintenanceMode && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Maintenance mode is ON — the app is hidden from regular users.
+        </div>
+      )}
+
+      <Tabs defaultValue="general">
+        <TabsList className="grid w-full grid-cols-3 h-9">
+          <TabsTrigger value="general" className="gap-1.5 text-xs">
+            <Globe className="h-3.5 w-3.5" />General
           </TabsTrigger>
-          <TabsTrigger value="branding">
-            <Palette className="w-4 h-4 mr-2" />
-            Branding
+          <TabsTrigger value="content" className="gap-1.5 text-xs">
+            <Bell className="h-3.5 w-3.5" />Content
           </TabsTrigger>
-          <TabsTrigger value="content">
-            <Globe className="w-4 h-4 mr-2" />
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="features">
-            <Settings className="w-4 h-4 mr-2" />
-            Features
-          </TabsTrigger>
-          <TabsTrigger value="performance">
-            <Zap className="w-4 h-4 mr-2" />
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="contact">
-            <Mail className="w-4 h-4 mr-2" />
-            Contact
-          </TabsTrigger>
-          <TabsTrigger value="schedule">
-            <Settings className="w-4 h-4 mr-2" />
-            Schedule
-          </TabsTrigger>
-          <TabsTrigger value="advanced">
-            <Settings className="w-4 h-4 mr-2" />
-            Advanced
-          </TabsTrigger>
-          <TabsTrigger value="super-advanced">
-            <Zap className="w-4 h-4 mr-2" />
-            Super Advanced
-          </TabsTrigger>
-          <TabsTrigger value="owner-only">
-            🔒 Owner Only
+          <TabsTrigger value="maintenance" className="gap-1.5 text-xs">
+            <Wrench className="h-3.5 w-3.5" />Maintenance
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="appearance" className="space-y-4">
+        {/* ── General ─────────────────────────────────────── */}
+        <TabsContent value="general" className="mt-4 space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Theme & Appearance</CardTitle>
-              <CardDescription>Customize the visual theme and appearance settings</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">App Identity</CardTitle>
+              <CardDescription>Name shown in the browser title and header.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <Label>Global Theme</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Light Theme */}
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      settings.theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                    onClick={() => setSettings({ ...settings, theme: 'light' })}
-                  >
-                    <div className="bg-white rounded-lg p-3 mb-3 shadow-sm border">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-2 bg-blue-500 rounded"></div>
-                        <div className="w-3/4 h-2 bg-gray-300 rounded"></div>
-                      </div>
-                    </div>
-                    <h4 className="font-semibold">☀️ Light Theme</h4>
-                    <p className="text-sm text-gray-600">Clean & bright interface</p>
-                    {settings.theme === 'light' && (
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dark Theme */}
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      settings.theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                    onClick={() => setSettings({ ...settings, theme: 'dark' })}
-                  >
-                    <div className="bg-gray-900 rounded-lg p-3 mb-3 shadow-sm border border-gray-700">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-2 bg-blue-400 rounded"></div>
-                        <div className="w-3/4 h-2 bg-gray-600 rounded"></div>
-                      </div>
-                    </div>
-                    <h4 className="font-semibold">🌙 Dark Theme</h4>
-                    <p className="text-sm text-gray-600">Easy on the eyes</p>
-                    {settings.theme === 'dark' && (
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* System Theme */}
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      settings.theme === 'system' 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-400'
-                    }`}
-                    onClick={() => setSettings({ ...settings, theme: 'system' })}
-                  >
-                    <div className="bg-gray-100 rounded-lg p-3 mb-3 shadow-sm border relative overflow-hidden">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-2 bg-blue-500 rounded"></div>
-                        <div className="w-3/4 h-2 bg-gray-400 rounded"></div>
-                      </div>
-                    </div>
-                    <h4 className="font-semibold text-gray-900">🖥️ System Theme</h4>
-                    <p className="text-sm text-gray-700">Follows system preference</p>
-                    {settings.theme === 'system' && (
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
-                      </div>
-                    )}
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs mb-1 block">App name (default)</Label>
+                  <Input value={s.appName ?? ''} onChange={(e) => update({ appName: e.target.value })} className="h-9 text-sm" />
                 </div>
-                
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
-                    💡 <strong>Theme changes apply globally</strong> to all users and are saved to the database. The System theme automatically follows your device's light/dark mode preference.
-                  </p>
+                <div>
+                  <Label className="text-xs mb-1 block">English name</Label>
+                  <Input value={s.appNameEn ?? ''} onChange={(e) => update({ appNameEn: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Finnish name</Label>
+                  <Input value={s.appNameFi ?? ''} onChange={(e) => update({ appNameFi: e.target.value })} className="h-9 text-sm" />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Enable Animations</Label>
-                    <p className="text-sm text-muted-foreground">Smooth transitions and effects</p>
-                  </div>
-                  <Switch
-                    checked={settings.enableAnimations}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableAnimations: checked })}
-                  />
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Language & Theme</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs mb-1 block">Default language</Label>
+                  <Select value={s.defaultLanguage ?? 'fi'} onValueChange={(v) => update({ defaultLanguage: v })}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fi">Finnish (Suomi)</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Compact Mode</Label>
-                    <p className="text-sm text-muted-foreground">Reduce spacing and padding</p>
-                  </div>
-                  <Switch
-                    checked={settings.compactMode}
-                    onCheckedChange={(checked) => setSettings({ ...settings, compactMode: checked })}
-                  />
+                <div>
+                  <Label className="text-xs mb-1 block">Default theme</Label>
+                  <Select value={s.theme ?? 'system'} onValueChange={(v) => update({ theme: v })}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System (follows OS)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="space-y-3">
-                <Label>Default Zoom Level: {settings.defaultZoomLevel}x</Label>
-                <Slider
-                  value={[settings.defaultZoomLevel]}
-                  onValueChange={(value) => setSettings({ ...settings, defaultZoomLevel: value[0] })}
-                  max={3}
-                  min={0.5}
-                  step={0.1}
-                  className="w-full"
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Contact info</CardTitle>
+              <CardDescription>Shown in the footer and help sections.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs mb-1 block">Contact email</Label>
+                <Input type="email" value={s.contactEmail ?? ''} onChange={(e) => update({ contactEmail: e.target.value })} className="h-9 text-sm" placeholder="info@example.fi" />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Contact phone</Label>
+                <Input type="tel" value={s.contactPhone ?? ''} onChange={(e) => update({ contactPhone: e.target.value })} className="h-9 text-sm" placeholder="+358 …" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Footer text</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs mb-1 block">English</Label>
+                <Textarea value={s.footerTextEn ?? ''} onChange={(e) => update({ footerTextEn: e.target.value })} className="text-sm h-20 resize-none" placeholder="© 2025 KSYK" />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Finnish</Label>
+                <Textarea value={s.footerTextFi ?? ''} onChange={(e) => update({ footerTextFi: e.target.value })} className="text-sm h-20 resize-none" placeholder="© 2025 KSYK" />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Content ─────────────────────────────────────── */}
+        <TabsContent value="content" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Features visible to all users</CardTitle>
+              <CardDescription>Toggle which sections and features are shown on the public map.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {([
+                { key: 'showStats', label: 'Show campus stats', desc: 'Visitor counts and room statistics panel' },
+                { key: 'showAnnouncements', label: 'Show announcements', desc: 'Announcement banner on the map page' },
+                { key: 'enableSearch', label: 'Enable room search', desc: 'Search bar and autocomplete in the map' },
+                { key: 'enableAnimations', label: 'Enable animations', desc: 'Smooth transitions and map effects' },
+                { key: 'compactMode', label: 'Compact mode', desc: 'Tighter spacing across the whole UI' },
+              ] as { key: keyof AppSettings; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between py-1">
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={!!s[key]}
+                    onCheckedChange={(v) => update({ [key]: v })}
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Egg className="h-4 w-4 text-amber-500" />
+                Easter egg
+              </CardTitle>
+              <CardDescription>Hidden secret accessible via a special interaction on the map.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Enable easter egg</p>
+                  <p className="text-xs text-muted-foreground">When off, the easter egg trigger is disabled site-wide</p>
+                </div>
+                <Switch
+                  checked={!!s.enableEasterEgg}
+                  onCheckedChange={(v) => update({ enableEasterEgg: v })}
                 />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="branding" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand Identity & Colors</CardTitle>
-              <CardDescription>Customize your app's name, logo, and color scheme</CardDescription>
+        {/* ── Maintenance ─────────────────────────────────── */}
+        <TabsContent value="maintenance" className="mt-4 space-y-4">
+          <Card className={s.maintenanceMode ? 'border-red-300 dark:border-red-800' : ''}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                {s.maintenanceMode
+                  ? <><AlertTriangle className="h-4 w-4 text-red-500" />Maintenance mode — ACTIVE</>
+                  : <><Eye className="h-4 w-4 text-green-500" />Site is live</>
+                }
+              </CardTitle>
+              <CardDescription>
+                When maintenance mode is on, visitors see only the maintenance message. Admin login still works.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="appName">App Name (Default)</Label>
-                  <Input
-                    id="appName"
-                    value={settings.appName}
-                    onChange={(e) => setSettings({ ...settings, appName: e.target.value })}
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Maintenance mode</p>
+                  <p className="text-xs text-muted-foreground">Hides the app from non-admin visitors</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo URL</Label>
-                  <Input
-                    id="logoUrl"
-                    value={settings.logoUrl || ''}
-                    onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="primaryColor"
-                      type="color"
-                      value={settings.primaryColor}
-                      onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={settings.primaryColor}
-                      onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
-                      placeholder="#3B82F6"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Secondary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="secondaryColor"
-                      type="color"
-                      value={settings.secondaryColor}
-                      onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={settings.secondaryColor}
-                      onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
-                      placeholder="#2563EB"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="successColor">Success Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="successColor"
-                      type="color"
-                      value={settings.successColor}
-                      onChange={(e) => setSettings({ ...settings, successColor: e.target.value })}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={settings.successColor}
-                      onChange={(e) => setSettings({ ...settings, successColor: e.target.value })}
-                      placeholder="#10B981"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="warningColor">Warning Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="warningColor"
-                      type="color"
-                      value={settings.warningColor}
-                      onChange={(e) => setSettings({ ...settings, warningColor: e.target.value })}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={settings.warningColor}
-                      onChange={(e) => setSettings({ ...settings, warningColor: e.target.value })}
-                      placeholder="#EF4444"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="content" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Multilingual Content</CardTitle>
-              <CardDescription>Set titles and text in different languages</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Header Titles</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="headerTitleEn">English</Label>
-                    <Input
-                      id="headerTitleEn"
-                      value={settings.headerTitleEn}
-                      onChange={(e) => setSettings({ ...settings, headerTitleEn: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="headerTitleFi">Finnish</Label>
-                    <Input
-                      id="headerTitleFi"
-                      value={settings.headerTitleFi}
-                      onChange={(e) => setSettings({ ...settings, headerTitleFi: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold">App Names</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="appNameEn">English</Label>
-                    <Input
-                      id="appNameEn"
-                      value={settings.appNameEn}
-                      onChange={(e) => setSettings({ ...settings, appNameEn: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="appNameFi">Finnish</Label>
-                    <Input
-                      id="appNameFi"
-                      value={settings.appNameFi}
-                      onChange={(e) => setSettings({ ...settings, appNameFi: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold">Footer Text</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="footerTextEn">English</Label>
-                    <Input
-                      id="footerTextEn"
-                      value={settings.footerTextEn || ''}
-                      onChange={(e) => setSettings({ ...settings, footerTextEn: e.target.value })}
-                      placeholder="© 2025 Your Organization"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="footerTextFi">Finnish</Label>
-                    <Input
-                      id="footerTextFi"
-                      value={settings.footerTextFi || ''}
-                      onChange={(e) => setSettings({ ...settings, footerTextFi: e.target.value })}
-                      placeholder="© 2025 Organisaatiosi"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultLanguage">Default Language</Label>
-                <select
-                  id="defaultLanguage"
-                  value={settings.defaultLanguage}
-                  onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
-                  className="w-full p-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="en">English</option>
-                  <option value="fi">Finnish</option>
-                </select>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="features" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Feature Toggles</CardTitle>
-              <CardDescription>Enable or disable app features and functionality</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="showStats">Show Statistics</Label>
-                    <p className="text-sm text-muted-foreground">Display campus statistics on the home page</p>
-                  </div>
-                  <Switch
-                    id="showStats"
-                    checked={settings.showStats}
-                    onCheckedChange={(checked) => setSettings({ ...settings, showStats: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="showAnnouncements">Show Announcements</Label>
-                    <p className="text-sm text-muted-foreground">Display announcement banner</p>
-                  </div>
-                  <Switch
-                    id="showAnnouncements"
-                    checked={settings.showAnnouncements}
-                    onCheckedChange={(checked) => setSettings({ ...settings, showAnnouncements: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enableSearch">Enable Search</Label>
-                    <p className="text-sm text-muted-foreground">Allow users to search for rooms and staff</p>
-                  </div>
-                  <Switch
-                    id="enableSearch"
-                    checked={settings.enableSearch}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableSearch: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enableAutoSave">Auto Save</Label>
-                    <p className="text-sm text-muted-foreground">Automatically save changes</p>
-                  </div>
-                  <Switch
-                    id="enableAutoSave"
-                    checked={settings.enableAutoSave}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableAutoSave: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enableSmartSnap">Smart Snap</Label>
-                    <p className="text-sm text-muted-foreground">Snap elements to grid automatically</p>
-                  </div>
-                  <Switch
-                    id="enableSmartSnap"
-                    checked={settings.enableSmartSnap}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableSmartSnap: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enableRoomAutoCreation">Auto Create Rooms</Label>
-                    <p className="text-sm text-muted-foreground">Automatically create rooms from AI detection</p>
-                  </div>
-                  <Switch
-                    id="enableRoomAutoCreation"
-                    checked={settings.enableRoomAutoCreation}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableRoomAutoCreation: checked })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label>AI Sensitivity: {Math.round(settings.aiSensitivity * 100)}%</Label>
-                  <Slider
-                    value={[settings.aiSensitivity]}
-                    onValueChange={(value) => setSettings({ ...settings, aiSensitivity: value[0] })}
-                    max={1}
-                    min={0.1}
-                    step={0.1}
-                    className="w-full"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Higher values make AI more sensitive to detecting rooms and features
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="font-semibold mb-4">Additional Features</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="enableEasterEgg">Enable Easter Egg</Label>
-                      <p className="text-sm text-muted-foreground">Show hidden Easter egg feature</p>
-                    </div>
-                    <Switch
-                      id="enableEasterEgg"
-                      checked={settings.enableEasterEgg ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableEasterEgg: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="enableEvents">Enable Events</Label>
-                      <p className="text-sm text-muted-foreground">Show events system</p>
-                    </div>
-                    <Switch
-                      id="enableEvents"
-                      checked={settings.enableEvents ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableEvents: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="enableTicketSystem">Enable Ticket System</Label>
-                      <p className="text-sm text-muted-foreground">Show support ticket system</p>
-                    </div>
-                    <Switch
-                      id="enableTicketSystem"
-                      checked={settings.enableTicketSystem ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableTicketSystem: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="enableVersionInfo">Enable Version Info</Label>
-                      <p className="text-sm text-muted-foreground">Show version information button</p>
-                    </div>
-                    <Switch
-                      id="enableVersionInfo"
-                      checked={settings.enableVersionInfo ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableVersionInfo: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                      <p className="text-sm text-muted-foreground">Put app in maintenance mode</p>
-                    </div>
-                    <Switch
-                      id="maintenanceMode"
-                      checked={settings.maintenanceMode ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, maintenanceMode: checked })}
-                    />
-                  </div>
-                </div>
-
-                {settings.maintenanceMode && (
-                  <div className="mt-4 space-y-2">
-                    <Label htmlFor="maintenanceMessage">Maintenance Message</Label>
-                    <Input
-                      id="maintenanceMessage"
-                      value={settings.maintenanceMessage || ''}
-                      onChange={(e) => setSettings({ ...settings, maintenanceMessage: e.target.value })}
-                      placeholder="We are currently performing maintenance. Please check back soon."
-                    />
-                    <p className="text-sm text-muted-foreground">Message shown to users during maintenance</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance & Optimization</CardTitle>
-              <CardDescription>Configure performance and caching settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enablePreloadImages">Preload Images</Label>
-                    <p className="text-sm text-muted-foreground">Load images in advance for faster display</p>
-                  </div>
-                  <Switch
-                    id="enablePreloadImages"
-                    checked={settings.enablePreloadImages}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enablePreloadImages: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="enableLazyLoading">Lazy Loading</Label>
-                    <p className="text-sm text-muted-foreground">Load content only when needed</p>
-                  </div>
-                  <Switch
-                    id="enableLazyLoading"
-                    checked={settings.enableLazyLoading}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableLazyLoading: checked })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="cacheMinutes">Cache Duration (minutes)</Label>
-                  <Input
-                    id="cacheMinutes"
-                    type="number"
-                    min="1"
-                    max="1440"
-                    value={settings.cacheMinutes}
-                    onChange={(e) => setSettings({ ...settings, cacheMinutes: parseInt(e.target.value) || 30 })}
-                  />
-                  <p className="text-sm text-muted-foreground">How long to cache data (1-1440 minutes)</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="maxImageSizeMB">Max Image Size (MB)</Label>
-                  <Input
-                    id="maxImageSizeMB"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={settings.maxImageSizeMB}
-                    onChange={(e) => setSettings({ ...settings, maxImageSizeMB: parseInt(e.target.value) || 10 })}
-                  />
-                  <p className="text-sm text-muted-foreground">Maximum allowed image upload size</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="contact" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>Set contact details for support</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  value={settings.contactEmail || ''}
-                  onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-                  placeholder="support@example.com"
+                <Switch
+                  checked={!!s.maintenanceMode}
+                  onCheckedChange={(v) => update({ maintenanceMode: v })}
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Contact Phone</Label>
-                <Input
-                  id="contactPhone"
-                  type="tel"
-                  value={settings.contactPhone || ''}
-                  onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
-                  placeholder="+358 123 456 789"
+              <div>
+                <Label className="text-xs mb-1 block">Maintenance message</Label>
+                <Textarea
+                  value={s.maintenanceMessage ?? ''}
+                  onChange={(e) => update({ maintenanceMessage: e.target.value })}
+                  className="text-sm h-24 resize-none"
+                  placeholder="We're updating the campus map. Back soon!"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Shown to visitors during maintenance. Leave blank for a generic message.</p>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="schedule" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>📅 Schedule Configuration</CardTitle>
-              <CardDescription>Configure class times, breaks, and lunch periods for the school</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Data management</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-6">
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  ⏰ <strong>Schedule Management:</strong> Configure the school's daily schedule including class periods, breaks, and lunch times. This will be used throughout the Wilma system.
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <p className="text-gray-600 dark:text-gray-400">
-                  The schedule configuration feature allows you to:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-400 ml-4">
-                  <li>Define class periods with start and end times</li>
-                  <li>Set break and lunch periods</li>
-                  <li>Create multiple schedule configurations (e.g., normal day, early release)</li>
-                  <li>Set effective dates for different schedules</li>
-                  <li>Mark schedules as active or default</li>
-                </ul>
-                
-                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-800 dark:text-green-300 font-semibold mb-2">
-                    ✅ Schedule configuration is managed in the Wilma Admin panel
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    Navigate to Wilma Admin → Schedule Configuration to create and manage school schedules.
-                  </p>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-dashed">
+                <div>
+                  <p className="text-sm font-medium">Reload settings from database</p>
+                  <p className="text-xs text-muted-foreground">Discard unsaved local changes</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="advanced" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>🚀 Advanced Features</CardTitle>
-              <CardDescription>Enable cutting-edge features and experimental functionality</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  ⚡ <strong>Power User Settings:</strong> These advanced features provide enterprise-level functionality. Some features may be experimental.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="font-semibold text-lg">UI/UX Enhancements</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Dark Mode Toggle</Label>
-                      <p className="text-sm text-muted-foreground">Show dark mode toggle in UI</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableDarkModeToggle ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableDarkModeToggle: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Enable push notifications</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableNotifications ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableNotifications: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Offline Mode</Label>
-                      <p className="text-sm text-muted-foreground">Work without internet connection</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableOfflineMode ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableOfflineMode: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Accessibility Mode</Label>
-                      <p className="text-sm text-muted-foreground">Enhanced accessibility features</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAccessibilityMode ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAccessibilityMode: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Keyboard Shortcuts</Label>
-                      <p className="text-sm text-muted-foreground">Enable keyboard navigation</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableKeyboardShortcuts ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableKeyboardShortcuts: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Multi-Language</Label>
-                      <p className="text-sm text-muted-foreground">Support multiple languages</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableMultiLanguage ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableMultiLanguage: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">Advanced Functionality</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Advanced Search</Label>
-                      <p className="text-sm text-muted-foreground">Enhanced search with filters</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAdvancedSearch ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAdvancedSearch: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Room Booking</Label>
-                      <p className="text-sm text-muted-foreground">Allow users to book rooms</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableRoomBooking ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableRoomBooking: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>QR Code Scanning</Label>
-                      <p className="text-sm text-muted-foreground">Scan QR codes for quick access</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableQRCodeScanning ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableQRCodeScanning: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Analytics</Label>
-                      <p className="text-sm text-muted-foreground">Track usage and statistics</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAnalytics ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAnalytics: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Advanced Filters</Label>
-                      <p className="text-sm text-muted-foreground">Complex filtering options</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAdvancedFilters ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAdvancedFilters: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Bulk Operations</Label>
-                      <p className="text-sm text-muted-foreground">Perform actions on multiple items</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableBulkOperations ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableBulkOperations: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔬 Experimental Features</h3>
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                    ⚠️ <strong>Warning:</strong> These features are experimental and may not work as expected.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>AR Mode</Label>
-                      <p className="text-sm text-muted-foreground">Augmented reality navigation</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableARMode ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableARMode: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>3D View</Label>
-                      <p className="text-sm text-muted-foreground">3D building visualization</p>
-                    </div>
-                    <Switch
-                      checked={settings.enable3DView ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enable3DView: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Voice Commands</Label>
-                      <p className="text-sm text-muted-foreground">Control with voice</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableVoiceCommands ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableVoiceCommands: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Custom Fields</Label>
-                      <p className="text-sm text-muted-foreground">Add custom data fields</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCustomFields ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCustomFields: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔌 Integration & API</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Export Data</Label>
-                      <p className="text-sm text-muted-foreground">Allow data export</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableExportData ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableExportData: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Import Data</Label>
-                      <p className="text-sm text-muted-foreground">Allow data import</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableImportData ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableImportData: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Webhooks</Label>
-                      <p className="text-sm text-muted-foreground">Send events to external services</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableWebhooks ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableWebhooks: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>API Access</Label>
-                      <p className="text-sm text-muted-foreground">Enable REST API</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAPIAccess ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAPIAccess: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔒 Security Settings</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Max Upload Size (MB)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="500"
-                      value={settings.maxUploadSizeMB ?? 50}
-                      onChange={(e) => setSettings({ ...settings, maxUploadSizeMB: parseInt(e.target.value) || 50 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Maximum file upload size</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Session Timeout (minutes)</Label>
-                    <Input
-                      type="number"
-                      min="5"
-                      max="1440"
-                      value={settings.sessionTimeoutMinutes ?? 60}
-                      onChange={(e) => setSettings({ ...settings, sessionTimeoutMinutes: parseInt(e.target.value) || 60 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Auto-logout after inactivity</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Max Login Attempts</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={settings.maxLoginAttempts ?? 5}
-                      onChange={(e) => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) || 5 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Lock account after failed attempts</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Password Min Length</Label>
-                    <Input
-                      type="number"
-                      min="6"
-                      max="32"
-                      value={settings.passwordMinLength ?? 8}
-                      onChange={(e) => setSettings({ ...settings, passwordMinLength: parseInt(e.target.value) || 8 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Minimum password characters</p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Strong Password Required</Label>
-                      <p className="text-sm text-muted-foreground">Require special characters</p>
-                    </div>
-                    <Switch
-                      checked={settings.requireStrongPassword ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, requireStrongPassword: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Two-Factor Authentication</Label>
-                      <p className="text-sm text-muted-foreground">Enable 2FA for all users</p>
-                    </div>
-                    <Switch
-                      checked={settings.enable2FA ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enable2FA: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Single Sign-On (SSO)</Label>
-                      <p className="text-sm text-muted-foreground">Enable SSO integration</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSSO ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSSO: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Audit Log</Label>
-                      <p className="text-sm text-muted-foreground">Track all user actions</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAuditLog ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAuditLog: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">💾 Backup & Recovery</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Automated Backups</Label>
-                      <p className="text-sm text-muted-foreground">Enable automatic backups</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableBackups ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableBackups: checked })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Backup Frequency (hours)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="168"
-                      value={settings.backupFrequencyHours ?? 24}
-                      onChange={(e) => setSettings({ ...settings, backupFrequencyHours: parseInt(e.target.value) || 24 })}
-                    />
-                    <p className="text-sm text-muted-foreground">How often to backup data</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="super-advanced" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>⚡ Super Advanced Features</CardTitle>
-              <CardDescription>Enterprise-level customization and cutting-edge functionality</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
-                <p className="text-sm text-purple-800">
-                  🚀 <strong>Enterprise Features:</strong> These settings provide maximum customization and control. Use with caution in production environments.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="font-semibold text-lg">🔄 Real-Time & Collaboration</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Real-Time Updates</Label>
-                      <p className="text-sm text-muted-foreground">Live data synchronization</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableRealTimeUpdates ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableRealTimeUpdates: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Collaborative Editing</Label>
-                      <p className="text-sm text-muted-foreground">Multiple users editing simultaneously</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCollaborativeEditing ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCollaborativeEditing: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Live Chat Support</Label>
-                      <p className="text-sm text-muted-foreground">Built-in chat system</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableLiveChat ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableLiveChat: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>User Presence</Label>
-                      <p className="text-sm text-muted-foreground">Show who's online</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableUserPresence ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableUserPresence: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Activity Feed</Label>
-                      <p className="text-sm text-muted-foreground">Real-time activity updates</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableActivityFeed ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableActivityFeed: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Version Control</Label>
-                      <p className="text-sm text-muted-foreground">Track changes and revisions</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableVersionControl ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableVersionControl: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🎯 User Experience</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Smart Suggestions</Label>
-                      <p className="text-sm text-muted-foreground">AI-powered recommendations</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSmartSuggestions ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSmartSuggestions: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Personalized Dashboard</Label>
-                      <p className="text-sm text-muted-foreground">Customizable user interface</p>
-                    </div>
-                    <Switch
-                      checked={settings.enablePersonalizedDashboard ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enablePersonalizedDashboard: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Quick Actions</Label>
-                      <p className="text-sm text-muted-foreground">Contextual action buttons</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableQuickActions ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableQuickActions: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Drag & Drop</Label>
-                      <p className="text-sm text-muted-foreground">Intuitive drag and drop interface</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableDragDrop ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableDragDrop: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Gesture Controls</Label>
-                      <p className="text-sm text-muted-foreground">Touch gestures on mobile</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableGestureControls ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableGestureControls: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Auto-Save</Label>
-                      <p className="text-sm text-muted-foreground">Automatically save changes</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAutoSave ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAutoSave: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🧭 Guidance & Help</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Interactive Tours</Label>
-                      <p className="text-sm text-muted-foreground">Guided feature walkthroughs</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableInteractiveTours ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableInteractiveTours: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Contextual Help</Label>
-                      <p className="text-sm text-muted-foreground">Smart help tooltips</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableContextualHelp ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableContextualHelp: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Video Tutorials</Label>
-                      <p className="text-sm text-muted-foreground">Embedded tutorial videos</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableVideoTutorials ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableVideoTutorials: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Smart Search</Label>
-                      <p className="text-sm text-muted-foreground">AI-enhanced search results</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSmartSearch ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSmartSearch: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>FAQ Integration</Label>
-                      <p className="text-sm text-muted-foreground">Built-in FAQ system</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableFAQIntegration ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableFAQIntegration: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Progress Tracking</Label>
-                      <p className="text-sm text-muted-foreground">Track user learning progress</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableProgressTracking ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableProgressTracking: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔧 Advanced Features</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Machine Learning</Label>
-                      <p className="text-sm text-muted-foreground">AI-powered insights</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableMachineLearning ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableMachineLearning: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Predictive Analytics</Label>
-                      <p className="text-sm text-muted-foreground">Forecast usage patterns</p>
-                    </div>
-                    <Switch
-                      checked={settings.enablePredictiveAnalytics ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enablePredictiveAnalytics: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Advanced Caching</Label>
-                      <p className="text-sm text-muted-foreground">Intelligent data caching</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAdvancedCaching ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableAdvancedCaching: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Load Balancing</Label>
-                      <p className="text-sm text-muted-foreground">Distribute server load</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableLoadBalancing ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableLoadBalancing: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>CDN Integration</Label>
-                      <p className="text-sm text-muted-foreground">Content delivery network</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCDNIntegration ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCDNIntegration: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Edge Computing</Label>
-                      <p className="text-sm text-muted-foreground">Process data at the edge</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableEdgeComputing ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableEdgeComputing: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔔 Notifications</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Push Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Browser push notifications</p>
-                    </div>
-                    <Switch
-                      checked={settings.enablePushNotifications ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enablePushNotifications: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Send email alerts</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableEmailNotifications ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableEmailNotifications: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>SMS Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Text message alerts</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSMSNotifications ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSMSNotifications: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Slack Integration</Label>
-                      <p className="text-sm text-muted-foreground">Send alerts to Slack</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSlackIntegration ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSlackIntegration: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Discord Integration</Label>
-                      <p className="text-sm text-muted-foreground">Send alerts to Discord</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableDiscordIntegration ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableDiscordIntegration: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Custom Webhooks</Label>
-                      <p className="text-sm text-muted-foreground">Send to custom endpoints</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCustomWebhooks ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCustomWebhooks: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">🔍 SEO & Meta</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>SEO Optimization</Label>
-                      <p className="text-sm text-muted-foreground">Search engine optimization</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSEOOptimization ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSEOOptimization: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Open Graph Tags</Label>
-                      <p className="text-sm text-muted-foreground">Social media previews</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableOpenGraphTags ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableOpenGraphTags: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Schema Markup</Label>
-                      <p className="text-sm text-muted-foreground">Structured data for search</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSchemaMarkup ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSchemaMarkup: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Sitemap Generation</Label>
-                      <p className="text-sm text-muted-foreground">Auto-generate XML sitemap</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableSitemapGeneration ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableSitemapGeneration: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Meta Tags</Label>
-                      <p className="text-sm text-muted-foreground">Dynamic meta descriptions</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableMetaTags ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableMetaTags: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Canonical URLs</Label>
-                      <p className="text-sm text-muted-foreground">Prevent duplicate content</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCanonicalURLs ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCanonicalURLs: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg">💻 Custom Code</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Custom CSS</Label>
-                      <p className="text-sm text-muted-foreground">Allow custom styling</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCustomCSS ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCustomCSS: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Custom JavaScript</Label>
-                      <p className="text-sm text-muted-foreground">Allow custom scripts</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableCustomJS ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enableCustomJS: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Plugin System</Label>
-                      <p className="text-sm text-muted-foreground">Third-party plugins</p>
-                    </div>
-                    <Switch
-                      checked={settings.enablePluginSystem ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enablePluginSystem: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg mt-6">
-                <p className="text-sm text-red-800 dark:text-red-300">
-                  ⚠️ <strong>Warning:</strong> Super Advanced features may impact performance and security. Test thoroughly before enabling in production.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="owner-only" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>🔒 Owner-Only Settings</CardTitle>
-              <CardDescription>Security and authentication settings restricted to the owner account</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                  🔐 <strong>Owner Access Only:</strong> These settings control global security policies and can only be modified by JuusoJuusto112@gmail.com
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="font-semibold text-lg">Two-Factor Authentication (2FA) Policy</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div className="space-y-0.5">
-                      <Label className="text-base font-semibold">Enforce 2FA for All Users</Label>
-                      <p className="text-sm text-muted-foreground">Require all admin users to enable two-factor authentication</p>
-                    </div>
-                    <Switch
-                      checked={settings.enable2FA ?? false}
-                      onCheckedChange={(checked) => setSettings({ ...settings, enable2FA: checked })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-base font-semibold">2FA Method</Label>
-                    <select
-                      value={settings.twoFactorMethod || 'authenticator'}
-                      onChange={(e) => setSettings({ ...settings, twoFactorMethod: e.target.value as any })}
-                      className="w-full p-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="authenticator">Authenticator App (Google Authenticator, Authy)</option>
-                      <option value="email">Email Verification Code</option>
-                      <option value="both">Both Methods Available</option>
-                    </select>
-                    <p className="text-sm text-muted-foreground">
-                      Choose how users verify their identity during login
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Current 2FA Status</h4>
-                    <div className="space-y-1 text-sm text-gray-800 dark:text-gray-300">
-                      <p>• <strong>Global Policy:</strong> {settings.enable2FA ? '✅ Enforced for all users' : '❌ Optional (users can enable individually)'}</p>
-                      <p>• <strong>Method:</strong> {settings.twoFactorMethod === 'authenticator' ? '📱 Authenticator App' : settings.twoFactorMethod === 'email' ? '📧 Email Code' : '🔄 Both Methods'}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Users can manage their 2FA settings in the Admin Dashboard → Two-Factor Auth tab</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-6 border-t">
-                  <h3 className="font-semibold text-lg">Advanced Security</h3>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Require Strong Passwords</Label>
-                      <p className="text-sm text-muted-foreground">Enforce special characters and complexity</p>
-                    </div>
-                    <Switch
-                      checked={settings.requireStrongPassword ?? true}
-                      onCheckedChange={(checked) => setSettings({ ...settings, requireStrongPassword: checked })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Maximum Login Attempts</Label>
-                    <Input
-                      type="number"
-                      min="3"
-                      max="10"
-                      value={settings.maxLoginAttempts ?? 5}
-                      onChange={(e) => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) || 5 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Lock account after this many failed attempts</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Session Timeout (minutes)</Label>
-                    <Input
-                      type="number"
-                      min="15"
-                      max="1440"
-                      value={settings.sessionTimeoutMinutes ?? 60}
-                      onChange={(e) => setSettings({ ...settings, sessionTimeoutMinutes: parseInt(e.target.value) || 60 })}
-                    />
-                    <p className="text-sm text-muted-foreground">Auto-logout users after inactivity</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg text-red-600">🗑️ Danger Zone - Delete All Data</h3>
-                <div className="p-4 bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-700 rounded-lg">
-                  <div className="flex items-start gap-3 mb-4">
-                    <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <h4 className="font-bold text-red-900 dark:text-red-300 mb-2">⚠️ EXTREME CAUTION REQUIRED</h4>
-                      <p className="text-sm text-red-800 dark:text-red-300 mb-2">
-                        These actions will <strong>permanently delete</strong> data from the system. This cannot be undone!
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={async () => {
-                        if (!confirm("⚠️ DELETE ALL BUILDINGS?\n\nThis will permanently delete ALL buildings, floors, rooms, and hallways from the database.\n\nType 'DELETE' to confirm.")) return;
-                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
-                        if (confirmation !== "DELETE") {
-                          alert("Deletion cancelled - confirmation text did not match.");
-                          return;
-                        }
-                        try {
-                          const response = await fetch("/api/buildings/delete-all", {
-                            method: "DELETE",
-                            credentials: "include",
-                          });
-                          if (response.ok) {
-                            alert("✅ All buildings deleted successfully!");
-                            window.location.reload();
-                          } else {
-                            alert("❌ Failed to delete buildings");
-                          }
-                        } catch (error) {
-                          alert("❌ Error: " + error);
-                        }
-                      }}
-                    >
-                      🏢 Delete All Buildings
-                    </Button>
-
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={async () => {
-                        if (!confirm("⚠️ DELETE ALL ANNOUNCEMENTS?\n\nThis will permanently delete ALL announcements from the database.\n\nType 'DELETE' to confirm.")) return;
-                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
-                        if (confirmation !== "DELETE") {
-                          alert("Deletion cancelled - confirmation text did not match.");
-                          return;
-                        }
-                        try {
-                          const response = await fetch("/api/announcements/delete-all", {
-                            method: "DELETE",
-                            credentials: "include",
-                          });
-                          if (response.ok) {
-                            alert("✅ All announcements deleted successfully!");
-                            window.location.reload();
-                          } else {
-                            alert("❌ Failed to delete announcements");
-                          }
-                        } catch (error) {
-                          alert("❌ Error: " + error);
-                        }
-                      }}
-                    >
-                      📢 Delete All Announcements
-                    </Button>
-
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={async () => {
-                        if (!confirm("⚠️ DELETE ALL TICKETS?\n\nThis will permanently delete ALL support tickets from the database.\n\nType 'DELETE' to confirm.")) return;
-                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
-                        if (confirmation !== "DELETE") {
-                          alert("Deletion cancelled - confirmation text did not match.");
-                          return;
-                        }
-                        try {
-                          const response = await fetch("/api/tickets/delete-all", {
-                            method: "DELETE",
-                            credentials: "include",
-                          });
-                          if (response.ok) {
-                            alert("✅ All tickets deleted successfully!");
-                            window.location.reload();
-                          } else {
-                            alert("❌ Failed to delete tickets");
-                          }
-                        } catch (error) {
-                          alert("❌ Error: " + error);
-                        }
-                      }}
-                    >
-                      🎫 Delete All Tickets
-                    </Button>
-
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-red-700 hover:bg-red-800"
-                      onClick={async () => {
-                        if (!confirm("⚠️⚠️⚠️ DELETE ALL LOGS?\n\nThis will permanently delete ALL application logs from the database.\n\nType 'DELETE' to confirm.")) return;
-                        const confirmation = prompt("Type 'DELETE' in capital letters to confirm:");
-                        if (confirmation !== "DELETE") {
-                          alert("Deletion cancelled - confirmation text did not match.");
-                          return;
-                        }
-                        try {
-                          const response = await fetch("/api/logs/delete-all", {
-                            method: "DELETE",
-                            credentials: "include",
-                          });
-                          if (response.ok) {
-                            alert("✅ All logs deleted successfully!");
-                            window.location.reload();
-                          } else {
-                            alert("❌ Failed to delete logs");
-                          }
-                        } catch (error) {
-                          alert("❌ Error: " + error);
-                        }
-                      }}
-                    >
-                      📋 Delete All Logs
-                    </Button>
-                  </div>
-
-                  <p className="text-xs text-red-700 mt-4 font-semibold">
-                    ⚠️ These actions require double confirmation and are restricted to the owner account only.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="font-semibold text-lg text-red-700">💣 NUCLEAR OPTION - Complete Data Wipe</h3>
-                <div className="p-6 bg-red-100 dark:bg-red-950/50 border-4 border-red-500 dark:border-red-600 rounded-lg">
-                  <div className="flex items-start gap-3 mb-4">
-                    <AlertTriangle className="h-8 w-8 text-red-700 dark:text-red-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <h4 className="font-black text-red-900 dark:text-red-300 text-lg mb-2">☢️ COMPLETE DATABASE WIPE</h4>
-                      <p className="text-sm text-red-900 dark:text-red-300 font-semibold mb-2">
-                        This will delete EVERYTHING from the entire system:
-                      </p>
-                      <ul className="text-sm text-red-800 dark:text-red-300 list-disc list-inside space-y-1">
-                        <li>All buildings and their floor plans</li>
-                        <li>All rooms, hallways, and stairs</li>
-                        <li>All announcements and staff information</li>
-                        <li>All tickets and support data</li>
-                        <li>All logs and analytics</li>
-                        <li>All map data and configurations</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    className="w-full bg-red-700 hover:bg-red-800 text-white font-black py-6 text-lg"
-                    onClick={async () => {
-                      if (!confirm("⚠️⚠️⚠️ COMPLETE DATABASE WIPE ⚠️⚠️⚠️\n\nThis will DELETE EVERYTHING from KSYK Maps.\n\nType 'WIPE DATABASE' to confirm.")) return;
-                      const confirmation = prompt("Type 'WIPE DATABASE' in capital letters to confirm complete deletion:");
-                      if (confirmation !== "WIPE DATABASE") {
-                        alert("Deletion cancelled - confirmation text did not match.");
-                        return;
-                      }
-                      try {
-                        const response = await fetch("/api/admin/cleanup-all", {
-                          method: "POST",
-                          credentials: "include",
-                        });
-                        if (response.ok) {
-                          alert("✅ Complete database wipe successful!\n\nThe page will now reload.");
-                          window.location.reload();
-                        } else {
-                          alert("❌ Failed to wipe database");
-                        }
-                      } catch (error) {
-                        alert("❌ Error: " + error);
-                      }
-                    }}
-                  >
-                    💣 WIPE ENTIRE DATABASE
-                  </Button>
-
-                  <p className="text-xs text-red-900 mt-4 font-black text-center">
-                    ☢️ THIS CANNOT BE UNDONE - REQUIRES TYPING CONFIRMATION ☢️
-                  </p>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => {
+                  setLocalSettings({ ...DEFAULT_SETTINGS, ...serverSettings });
+                  setDirty(false);
+                }} className="gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5" />Reload
+                </Button>
               </div>
             </CardContent>
           </Card>

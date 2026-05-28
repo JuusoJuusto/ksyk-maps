@@ -396,22 +396,21 @@ export default function OsmBasemap({
     overlayRef.current?.setBounds(L.latLngBounds(campusBounds));
   }, [campusBounds]);
 
-  // CSS rotation + optional pitch (tilt). Two things happen on rotation:
-  //   1) The .leaflet-map-pane gets the CSS rotate transform — visual.
-  //   2) The leaflet CONTAINER is oversized to the rotated bounding box
-  //      so Leaflet thinks its viewport is the larger rect and loads tiles
-  //      for it. Without that, the rotated corners stayed blank because
-  //      Leaflet still measured the axis-aligned visible area.
+  // CSS rotation + optional pitch (tilt).
   //
-  // The reflow (invalidateSize + setView) is debounced so dragging the
-  // admin slider doesn't fire 50 reflows per second — only the final value
-  // triggers the expensive part. Visual rotation still updates per frame.
+  // IMPORTANT: rotation is applied to the Leaflet CONTAINER div, NOT to
+  // .leaflet-map-pane. Leaflet overrides mapPane.style.transform on every
+  // pan event with its own translate3d(), which used to wipe the rotation.
+  // The container's transform is never touched by Leaflet, so rotation now
+  // survives all pan/zoom operations.
+  //
+  // Oversizing the container forces Leaflet to think its viewport is larger
+  // than the visible area, so it loads tiles for the rotated corners that
+  // would otherwise be blank.
   useEffect(() => {
     const map = mapRef.current;
     const container = containerRef.current;
     if (!map || !container) return;
-    const pane = map.getPane("mapPane");
-    if (!pane) return;
 
     const rotation = settings.osmRotationDeg || 0;
     const pitch = Math.max(0, Math.min(45, settings.osmPitchDeg ?? 0));
@@ -423,32 +422,43 @@ export default function OsmBasemap({
     const sizePct = Math.max(100, scale * 100 + 4);
     const offsetPct = -(sizePct - 100) / 2;
 
-    pane.style.transformOrigin = "50% 50%";
-    pane.style.transition = "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)";
-    pane.style.willChange = "transform";
-    pane.style.transform =
-      pitch > 0
-        ? `perspective(1600px) rotateX(${pitch}deg) rotate(${rotation}deg)`
-        : `rotate(${rotation}deg)`;
-
     container.style.position = "absolute";
+    container.style.transformOrigin = "50% 50%";
+    container.style.transition = [
+      "width 300ms ease",
+      "height 300ms ease",
+      "left 300ms ease",
+      "top 300ms ease",
+      "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+    ].join(", ");
     container.style.width = `${sizePct}%`;
     container.style.height = `${sizePct}%`;
     container.style.left = `${offsetPct}%`;
     container.style.top = `${offsetPct}%`;
-    container.style.transition =
-      "width 300ms ease, height 300ms ease, left 300ms ease, top 300ms ease";
+    container.style.transform =
+      pitch > 0
+        ? `perspective(1600px) rotateX(${pitch}deg) rotate(${rotation}deg)`
+        : rotation !== 0
+        ? `rotate(${rotation}deg)`
+        : "";
 
-    // Debounced reflow — wait 280 ms after the last value change before
-    // telling Leaflet to recompute / load tiles. Smooth slider dragging.
+    // Ensure mapPane has no stale rotation left over from old code.
+    const pane = map.getPane("mapPane");
+    if (pane) {
+      pane.style.transition = "";
+      pane.style.willChange = "";
+      // Do NOT set pane.style.transform — Leaflet owns this for pan translation
+    }
+
+    // Debounced reflow — wait for the CSS transition to finish before telling
+    // Leaflet to re-measure its container and reload edge tiles.
     const reflow = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false });
       map.setView(map.getCenter(), map.getZoom(), { animate: false });
     };
-    const debounce = window.setTimeout(reflow, 280);
-    // Final settle pass once the CSS transition is fully complete.
-    const settle = window.setTimeout(reflow, 700);
+    const debounce = window.setTimeout(reflow, 300);
+    const settle = window.setTimeout(reflow, 720);
     return () => {
       window.clearTimeout(debounce);
       window.clearTimeout(settle);
