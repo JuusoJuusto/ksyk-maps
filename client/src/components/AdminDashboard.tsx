@@ -988,19 +988,22 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </Button>
             </div>
           )}
-          <div className="overflow-x-auto scrollbar-none px-3 py-2">
-            <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
-              {NAV_ITEMS.map(({ value, label, Icon }) => (
-                <TabsTrigger
-                  key={value}
-                  value={value}
-                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
-                >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>{label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="relative overflow-hidden">
+            <div className="overflow-x-auto scrollbar-none px-3 py-2">
+              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
+                {NAV_ITEMS.map(({ value, label, Icon }) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>{label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white dark:from-gray-900 to-transparent" />
           </div>
         </div>
 
