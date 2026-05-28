@@ -166,9 +166,11 @@ interface MapSettingsPanelProps {
   variant?: "card" | "embed";
   /** Optional className for the outer container. */
   className?: string;
+  /** Show the "Publish for all users" section. Admin-only — hide from public settings. */
+  showPublish?: boolean;
 }
 
-export default function MapSettingsPanel({ variant = "card", className }: MapSettingsPanelProps) {
+export default function MapSettingsPanel({ variant = "card", className, showPublish = false }: MapSettingsPanelProps) {
   const { i18n } = useTranslation();
   const isFi = i18n.language === "fi";
   const { darkMode } = useDarkMode();
@@ -688,7 +690,7 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
       </div>
 
       {/* ── Publish to server ──────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2">
+      {showPublish && <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2">
         <div className="text-xs font-semibold text-blue-900 dark:text-blue-200">
           {isFi ? "Tallenna kaikille käyttäjille" : "Publish for all users"}
         </div>
@@ -725,7 +727,7 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
             ? serverSaveError
             : (isFi ? "Tallenna palvelimelle" : "Save to server")}
         </button>
-      </div>
+      </div>}
 
       {resetPending ? (
         <div className="flex items-center gap-2">
@@ -772,9 +774,13 @@ export default function MapSettingsPanel({ variant = "card", className }: MapSet
       <CardHeader>
         <CardTitle>{isFi ? "Karttapohjan oletukset" : "Map defaults"}</CardTitle>
         <CardDescription>
-          {isFi
-            ? "Globaalit asetukset. Muutokset näkyvät heti kaikilla käyttäjillä."
-            : "Global settings. Changes apply live for everyone."}
+          {showPublish
+            ? isFi
+              ? "Globaalit asetukset. Julkaise palvelimelle, jotta muutokset näkyvät kaikille."
+              : "Global settings — publish to server to share changes with all users."
+            : isFi
+            ? "Mukauta oma karttanäkymäsi."
+            : "Customize your map view."}
         </CardDescription>
       </CardHeader>
       <CardContent>{body}</CardContent>

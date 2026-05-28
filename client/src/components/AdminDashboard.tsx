@@ -1615,7 +1615,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto">
               <div className="max-w-3xl pb-6">
-                <MapSettingsPanel />
+                <MapSettingsPanel showPublish />
               </div>
             </div>
           )}

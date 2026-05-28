@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Info, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // Helper function to convert Firebase Timestamp to Date
 const convertFirebaseDate = (timestamp: any): Date => {
@@ -222,7 +223,14 @@ export default function AnnouncementBanner() {
           <DialogHeader>
             <div className="flex items-center justify-between mb-2">
               <DialogTitle className="text-2xl flex items-center">
-                <div className="bg-orange-100 dark:bg-orange-900/40 p-2 rounded-full mr-3">
+                <div className={cn(
+                  "p-2 rounded-full mr-3",
+                  currentAnnouncement.priority === "urgent"
+                    ? "bg-red-100 dark:bg-red-900/40"
+                    : currentAnnouncement.priority === "high"
+                    ? "bg-orange-100 dark:bg-orange-900/40"
+                    : "bg-blue-100 dark:bg-blue-900/40"
+                )}>
                   {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
                 <span>{getLocalizedTitle(currentAnnouncement)}</span>
@@ -320,8 +328,17 @@ export default function AnnouncementBanner() {
           </div>
           
           <div className="mt-6 flex justify-end">
-            <Button onClick={() => setIsDialogOpen(false)} className="bg-orange-500 hover:bg-orange-600">
-              Close
+            <Button
+              onClick={() => setIsDialogOpen(false)}
+              className={
+                currentAnnouncement.priority === "urgent"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : currentAnnouncement.priority === "high"
+                  ? "bg-orange-500 hover:bg-orange-600"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
+            >
+              {i18n.language === "fi" ? "Sulje" : "Close"}
             </Button>
           </div>
         </DialogContent>
