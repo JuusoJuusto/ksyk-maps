@@ -286,7 +286,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const flyTo = useCallback(
     (lat: number, lng: number, zoom?: number) => {
       const map = leafletMapRef.current;
-      if (!map) return;
+      if (!map || !isFinite(lat) || !isFinite(lng)) return;
       const targetZoom = Math.max(zoom ?? settings.osmDefaultZoom, settings.osmDefaultZoom);
       map.flyTo([lat, lng], targetZoom, { duration: 0.55 });
     },
@@ -772,7 +772,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             <CardContent className="p-5 pt-3 sm:pt-5">
               <div className="flex justify-between gap-2 mb-3">
                 <div>
-                  <h3 className="text-xl font-bold">{isFi ? selectedBuilding.nameFi : selectedBuilding.nameEn}</h3>
+                  <h3 className="text-xl font-bold">
+                    {(isFi ? selectedBuilding.nameFi : selectedBuilding.nameEn) ?? selectedBuilding.name}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     {selectedBuilding.floors} {isFi ? "kerrosta" : "floors"}
                   </p>

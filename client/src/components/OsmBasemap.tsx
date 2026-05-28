@@ -374,9 +374,11 @@ export default function OsmBasemap({
     map.setMaxZoom(settings.osmMaxZoom);
     const wasBounded = settings.osmMaxBoundsEnabled;
     if (wasBounded) map.setMaxBounds(null as unknown as L.LatLngBoundsExpression);
-    map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
-      duration: 0.5,
-    });
+    if (isFinite(settings.osmCenterLat) && isFinite(settings.osmCenterLng)) {
+      map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
+        duration: 0.5,
+      });
+    }
     if (wasBounded) {
       const t = setTimeout(() => {
         const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];

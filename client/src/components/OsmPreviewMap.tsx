@@ -176,10 +176,12 @@ export default function OsmPreviewMap({
     if (!map) return;
     map.setMinZoom(settings.osmMinZoom);
     map.setMaxZoom(settings.osmMaxZoom);
-    map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
-      duration: 0.35,
-    });
-    centerMarkerRef.current?.setLatLng([settings.osmCenterLat, settings.osmCenterLng]);
+    if (isFinite(settings.osmCenterLat) && isFinite(settings.osmCenterLng)) {
+      map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
+        duration: 0.35,
+      });
+      centerMarkerRef.current?.setLatLng([settings.osmCenterLat, settings.osmCenterLng]);
+    }
   }, [
     settings.osmCenterLat,
     settings.osmCenterLng,
