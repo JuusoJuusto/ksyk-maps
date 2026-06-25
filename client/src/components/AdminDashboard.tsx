@@ -1053,143 +1053,153 @@ export default function AdminDashboard({ section }: { section?: string }) {
           );
         })()}
 
-        <TabsContent value="overview" className="mt-0 space-y-6">
-          {/* Quick stats — at-a-glance KPI cards, each navigates to its tab */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {[
-              {
-                label: "Buildings",
-                value: (buildings as any[])?.length ?? 0,
-                accent: "from-blue-500 to-indigo-500",
-                icon: Building,
-                tab: "ksyk-builder",
-              },
-              {
-                label: "Rooms",
-                value: (rooms as any[])?.length ?? 0,
-                accent: "from-emerald-500 to-teal-500",
-                icon: MapPin,
-                tab: "ksyk-builder",
-              },
-              {
-                label: "Staff",
-                value: (staff as any[])?.length ?? 0,
-                accent: "from-amber-500 to-orange-500",
-                icon: IdCard,
-                tab: "staff",
-              },
-              {
-                label: "Announcements",
-                value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0,
-                accent: "from-rose-500 to-pink-500",
-                icon: Megaphone,
-                tab: "announcements",
-              },
-            ].map(({ label, value, accent, icon: Icon, tab }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => navigate(tab)}
-                className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-xl"
-                aria-label={`Go to ${label} tab`}
-              >
-                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
-                  <CardContent className="p-4 md:p-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-                        <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+        <TabsContent value="overview" className="mt-0 space-y-5">
+          {/* Campus utilisation hero — computes all metrics in one pass */}
+          {(() => {
+            const usable = (rooms as Room[]).filter(r => r.type !== "hallway");
+            const freeN = usable.filter(r => (r as any).currentStatus === "free").length;
+            const occupiedN = usable.filter(r => (r as any).currentStatus === "occupied").length;
+            const reservedN = usable.filter(r => (r as any).currentStatus === "reserved").length;
+            const maintN = usable.filter(r => (r as any).currentStatus === "maintenance").length;
+            const unknownN = usable.filter(r => !((r as any).currentStatus) || (r as any).currentStatus === "unknown").length;
+            const total = usable.length;
+            const utilPct = total > 0 ? Math.round(((occupiedN + reservedN) / total) * 100) : 0;
+            const availPct = total > 0 ? Math.round((freeN / total) * 100) : 0;
+            const utilColor = utilPct >= 80 ? "text-red-600 dark:text-red-400" : utilPct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+            const statusDefs = [
+              { key: "free" as const, label: "Free", color: "#10B981", bg: "bg-emerald-500", count: freeN },
+              { key: "occupied" as const, label: "Occupied", color: "#EF4444", bg: "bg-red-500", count: occupiedN },
+              { key: "reserved" as const, label: "Reserved", color: "#F59E0B", bg: "bg-amber-500", count: reservedN },
+              { key: "maintenance" as const, label: "Maint.", color: "#8B5CF6", bg: "bg-purple-500", count: maintN },
+              { key: "unknown" as const, label: "Unknown", color: "#6B7280", bg: "bg-gray-400", count: unknownN },
+            ];
+            return (
+              <>
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, accent: "from-blue-500 to-indigo-500", icon: Building, tab: "ksyk-builder", sub: null },
+                    { label: "Rooms", value: total || (rooms as any[]).length, accent: "from-emerald-500 to-teal-500", icon: MapPin, tab: "ksyk-builder", sub: total > 0 ? `${availPct}% available` : null },
+                    { label: "Staff", value: (staff as any[])?.length ?? 0, accent: "from-amber-500 to-orange-500", icon: IdCard, tab: "staff", sub: null },
+                    { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, accent: "from-rose-500 to-pink-500", icon: Megaphone, tab: "announcements", sub: "active" },
+                  ].map(({ label, value, accent, icon: Icon, tab, sub }) => (
+                    <button key={label} type="button" onClick={() => navigate(tab)}
+                      className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-xl"
+                      aria-label={`Go to ${label} tab`}>
+                      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                        <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+                        <CardContent className="p-4 md:p-5">
+                          <div className="flex items-start justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+                              <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+                              {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
+                            </div>
+                            <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm shrink-0`}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Campus occupancy card */}
+                {total > 0 && (
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-teal-500" />
+                          Campus Occupancy
+                        </CardTitle>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-2xl font-black tabular-nums ${utilColor}`}>{utilPct}%</span>
+                          <span className="text-xs text-muted-foreground">in use</span>
+                          <span className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+                          <span className="text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">{availPct}%</span>
+                          <span className="text-xs text-muted-foreground">free</span>
+                        </div>
                       </div>
-                      <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}>
-                        <Icon className="h-5 w-5" />
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-3">
+                      <div className="flex h-4 rounded-full overflow-hidden gap-0.5">
+                        {statusDefs.map(({ key, bg, count }) => {
+                          const pct = total > 0 ? (count / total) * 100 : 0;
+                          if (pct === 0) return null;
+                          return <div key={key} className={`${bg} transition-all first:rounded-l-full last:rounded-r-full`} style={{ width: `${pct}%` }} title={`${key}: ${count}`} />;
+                        })}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </button>
-            ))}
-          </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {statusDefs.map(({ key, label, color, count }) => (
+                          <div key={key} className="flex flex-col gap-0.5 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                              <span className="text-[10px] text-muted-foreground">{label}</span>
+                            </div>
+                            <span className="text-base font-black tabular-nums leading-none" style={{ color }}>{count}</span>
+                            <span className="text-[9px] text-muted-foreground">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Per-floor breakdown */}
+                      {(buildings as any[]).length > 0 && (() => {
+                        const maxFloors = Math.max(...(buildings as any[]).map((b: any) => b.floors ?? 1), 1);
+                        if (maxFloors <= 1) return null;
+                        return (
+                          <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">By Floor</p>
+                            <div className="space-y-1.5">
+                              {Array.from({ length: maxFloors }, (_, i) => i + 1).map(fl => {
+                                const flRooms = (rooms as Room[]).filter(r => r.type !== "hallway" && (r.floor ?? 1) === fl);
+                                const flFree = flRooms.filter(r => (r as any).currentStatus === "free").length;
+                                const flOcc = flRooms.filter(r => (r as any).currentStatus === "occupied").length;
+                                const flTotal = flRooms.length;
+                                if (flTotal === 0) return null;
+                                return (
+                                  <div key={fl} className="flex items-center gap-3">
+                                    <span className="text-xs font-bold text-muted-foreground w-12 shrink-0">Floor {fl}</span>
+                                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                      <div className="h-full rounded-full bg-red-400 transition-all" style={{ width: `${flTotal > 0 ? Math.round((flOcc / flTotal) * 100) : 0}%` }} />
+                                    </div>
+                                    <span className="text-xs tabular-nums text-muted-foreground w-20 text-right shrink-0">{flFree}/{flTotal} free</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
 
           {/* Quick actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {[
-              { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements", accent: "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800" },
-              { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff", accent: "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800" },
-              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "ksyk-builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800" },
-              { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800" },
-              { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800" },
-              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "logs", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800" },
+              { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements", accent: "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-400" },
+              { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff", accent: "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800 dark:text-violet-400" },
+              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "ksyk-builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400" },
+              { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-400" },
+              { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400" },
+              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "logs", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800 dark:text-slate-400" },
             ].map(({ label, desc, icon: Icon, tab, accent }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => navigate(tab)}
-                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${accent}`}
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
+              <button key={label} type="button" onClick={() => navigate(tab)}
+                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all hover:-translate-y-px ${accent}`}>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{label}</p>
-                  <p className="text-xs opacity-70 truncate">{desc}</p>
+                  <p className="text-xs font-semibold leading-tight">{label}</p>
+                  <p className="text-[10px] opacity-65 truncate mt-0.5">{desc}</p>
                 </div>
               </button>
             ))}
           </div>
-
-          {/* Room status distribution */}
-          {(rooms as Room[]).length > 0 && (() => {
-            const allRooms = rooms as Room[];
-            const statusGroups = {
-              free: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "free").length,
-              occupied: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "occupied").length,
-              reserved: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "reserved").length,
-              maintenance: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "maintenance").length,
-              unknown: allRooms.filter(r => r.type !== "hallway" && (!((r as any).currentStatus) || (r as any).currentStatus === "unknown")).length,
-            };
-            const total = Object.values(statusGroups).reduce((s, n) => s + n, 0);
-            const statusDefs = [
-              { key: "free", label: "Free", color: "#10B981", bg: "bg-emerald-500" },
-              { key: "occupied", label: "Occupied", color: "#EF4444", bg: "bg-red-500" },
-              { key: "reserved", label: "Reserved", color: "#F59E0B", bg: "bg-amber-500" },
-              { key: "maintenance", label: "Maint.", color: "#8B5CF6", bg: "bg-purple-500" },
-              { key: "unknown", label: "Unknown", color: "#6B7280", bg: "bg-gray-400" },
-            ] as const;
-            return (
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-teal-500" />
-                      Room Occupancy
-                    </CardTitle>
-                    <span className="text-xs text-muted-foreground">{total} rooms</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {/* Stacked bar */}
-                  <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-3">
-                    {statusDefs.map(({ key, bg }) => {
-                      const count = statusGroups[key];
-                      const pct = total > 0 ? (count / total) * 100 : 0;
-                      if (pct === 0) return null;
-                      return <div key={key} className={`${bg} transition-all`} style={{ width: `${pct}%` }} />;
-                    })}
-                  </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                    {statusDefs.map(({ key, label, color }) => (
-                      <div key={key} className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                        <span className="text-xs text-muted-foreground">{label}</span>
-                        <span className="text-xs font-bold tabular-nums ml-auto">{statusGroups[key]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
 
           {/* Campus buildings summary + latest announcements side by side on wide screens */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

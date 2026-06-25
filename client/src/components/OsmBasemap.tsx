@@ -119,11 +119,14 @@ export default function OsmBasemap({
     if (mapRef.current) return;
     const provider = activeProvider;
 
+    const safeLat = Number.isFinite(settings.osmCenterLat) ? settings.osmCenterLat : 60.187;
+    const safeLng = Number.isFinite(settings.osmCenterLng) ? settings.osmCenterLng : 25.006;
+    const safeZoom = Number.isFinite(settings.osmDefaultZoom) ? settings.osmDefaultZoom : 19;
     const map = L.map(containerRef.current, {
-      center: [settings.osmCenterLat, settings.osmCenterLng],
-      zoom: settings.osmDefaultZoom,
-      maxZoom: settings.osmMaxZoom,
-      minZoom: settings.osmMinZoom,
+      center: [safeLat, safeLng],
+      zoom: safeZoom,
+      maxZoom: Number.isFinite(settings.osmMaxZoom) ? settings.osmMaxZoom : 19,
+      minZoom: Number.isFinite(settings.osmMinZoom) ? settings.osmMinZoom : 15,
       zoomControl: false,
       attributionControl: true,
       wheelPxPerZoomLevel: 60,

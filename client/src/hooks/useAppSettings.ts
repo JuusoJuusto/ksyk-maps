@@ -43,6 +43,12 @@ const MAP_DEFAULT_KEYS = [
   'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
 ] as const;
 
+const NUMERIC_MAP_KEYS = new Set<string>([
+  "osmCenterLat", "osmCenterLng", "osmDefaultZoom", "osmMinZoom", "osmMaxZoom",
+  "osmRotationDeg", "osmPitchDeg", "osmCampusSpanMeters",
+  "osmMaxBoundsNorth", "osmMaxBoundsEast", "osmMaxBoundsSouth", "osmMaxBoundsWest",
+]);
+
 /** Load admin-set map defaults from the server and merge into the store.
  *  Called once on map mount so every user gets the admin-configured view. */
 export async function loadMapDefaultsFromServer(): Promise<void> {
@@ -53,7 +59,14 @@ export async function loadMapDefaultsFromServer(): Promise<void> {
     if (!data || typeof data !== 'object') return;
     const next: Partial<AppSettings> = {};
     for (const k of MAP_DEFAULT_KEYS) {
-      if (data[k] !== undefined) (next as Record<string, unknown>)[k] = data[k];
+      if (data[k] === undefined) continue;
+      if (NUMERIC_MAP_KEYS.has(k)) {
+        const n = Number(data[k]);
+        if (!Number.isFinite(n)) continue; // reject NaN/null/string values from server
+        (next as Record<string, unknown>)[k] = n;
+      } else {
+        (next as Record<string, unknown>)[k] = data[k];
+      }
     }
     if (Object.keys(next).length > 0) {
       setSnapshot({ ...snapshot, ...next });

@@ -44,6 +44,9 @@ import {
   Loader2,
   Layers,
   Navigation,
+  Mountain,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -422,6 +425,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         <filter id="roomGlow3d">
           <feDropShadow dx="1" dy="3" stdDeviation="3" floodOpacity="0.35" />
         </filter>
+        <filter id="wallShadow">
+          <feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#1e293b" floodOpacity="0.45" />
+        </filter>
+        <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.25)" />
+        </linearGradient>
       </defs>
 
       {/* User location dot */}
@@ -496,6 +506,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             );
           }
 
+          const floorN = room.floor ?? 1;
+          const wallH = is3DMode ? Math.max(10, floorN * 7 + 5) : 0;
+          const sideW = is3DMode ? Math.max(4, Math.min(w * 0.12, 8)) : 0;
+
           return (
             <g
               key={room.id}
@@ -515,16 +529,40 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 }
               }}
             >
-              {/* 3D depth shadow beneath room */}
-              {is3DMode && (
-                <rect
-                  x={x + 3} y={y + 4} width={w} height={h} rx={5}
-                  fill="rgba(0,0,0,0.22)"
+              {/* ── 3D building extrusion (right side wall) ─── */}
+              {is3DMode && sideW > 0 && (
+                <polygon
+                  points={`${x+w},${y} ${x+w+sideW},${y-sideW*0.6} ${x+w+sideW},${y+h+wallH-sideW*0.6} ${x+w},${y+h+wallH}`}
+                  fill={fill}
+                  fillOpacity={0.45}
+                  style={{ filter: "brightness(0.55)" }}
                   className="pointer-events-none"
                 />
               )}
 
-              {/* Room background */}
+              {/* ── 3D front wall face ─── */}
+              {is3DMode && wallH > 0 && (
+                <>
+                  <rect
+                    x={x} y={y + h - 2} width={w} height={wallH + 2}
+                    fill={fill} fillOpacity={0.72}
+                    className="pointer-events-none"
+                  />
+                  <rect
+                    x={x} y={y + h - 2} width={w} height={wallH + 2}
+                    fill="rgba(0,0,0,0.38)"
+                    className="pointer-events-none"
+                  />
+                  {/* wall highlight strip at top edge */}
+                  <rect
+                    x={x + 1} y={y + h - 2} width={w - 2} height={2}
+                    fill="rgba(255,255,255,0.22)"
+                    className="pointer-events-none"
+                  />
+                </>
+              )}
+
+              {/* ── Roof (room background) ─── */}
               <rect
                 x={x} y={y} width={w} height={h} rx={4}
                 fill={fill}
@@ -537,7 +575,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               {w > 18 && h > 14 && (
                 <rect
                   x={x + 2.5} y={y + 2.5} width={w - 5} height={h - 5} rx={2.5}
-                  fill="rgba(255,255,255,0.14)"
+                  fill={is3DMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.14)"}
                   className="pointer-events-none"
                 />
               )}
@@ -738,13 +776,47 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {/* ── GPS locate + 3D toggle + reset view ──────────────────── */}
       <div className="absolute right-3 z-40 flex flex-col gap-2"
            style={{ bottom: 'max(8.5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+
+        {/* 3D pitch control — expands when 3D is on */}
+        {is3DMode && (
+          <div className={cn(panel, "w-11 flex flex-col items-center gap-1 py-2 px-0")}>
+            <button
+              type="button"
+              aria-label="Increase pitch"
+              onClick={() => update("osmPitchDeg", Math.min(45, (settings.osmPitchDeg ?? 32) + 4))}
+              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[9px] font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">
+                {settings.osmPitchDeg ?? 32}°
+              </span>
+              <div className="h-14 w-1.5 rounded-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-full bg-indigo-500 transition-all duration-200"
+                  style={{ height: `${((settings.osmPitchDeg ?? 32) / 45) * 100}%` }}
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Decrease pitch"
+              onClick={() => update("osmPitchDeg", Math.max(5, (settings.osmPitchDeg ?? 32) - 4))}
+              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* 3D perspective toggle */}
         <Button
           variant="ghost"
           size="sm"
           aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
           className={cn(
-            panel, "w-11 h-11 p-0 transition-colors",
+            panel, "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
             is3DMode
               ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700"
               : ""
@@ -752,7 +824,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
           title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
         >
-          <Layers className="h-4 w-4" />
+          <Mountain className="h-4 w-4" />
+          <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
+            {is3DMode ? "3D" : "2D"}
+          </span>
         </Button>
 
         {navigator?.geolocation && (
@@ -781,6 +856,16 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           <Home className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* ── 3D mode info chip ──────────────────────────────────────── */}
+      {is3DMode && !selectedRoom && !selectedBuilding && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="flex items-center gap-1.5 bg-indigo-600/90 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm shadow-lg whitespace-nowrap">
+            <Mountain className="h-3 w-3" />
+            3D · {settings.osmPitchDeg ?? 32}° pitch
+          </div>
+        </div>
+      )}
 
       {/* ── Nav hint — shown when nothing selected yet ─────────────── */}
       {!navFrom && !navTo && !searchQuery.trim() && !selectedRoom && !selectedBuilding && (

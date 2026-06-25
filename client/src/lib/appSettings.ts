@@ -173,7 +173,24 @@ export function loadAppSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_APP_SETTINGS };
-    return { ...DEFAULT_APP_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    // Guard numeric fields — old localStorage versions can store null / string / undefined
+    // which silently become NaN in arithmetic and crash Leaflet's flyTo/center.
+    const numericFields: Array<keyof AppSettings> = [
+      "osmCenterLat", "osmCenterLng", "osmDefaultZoom", "osmMaxZoom", "osmMinZoom",
+      "osmRotationDeg", "osmPitchDeg", "osmCampusSpanMeters", "mapZoomSpeed",
+      "osmMaxBoundsNorth", "osmMaxBoundsEast", "osmMaxBoundsSouth", "osmMaxBoundsWest",
+    ];
+    for (const k of numericFields) {
+      const v = parsed[k];
+      const n = Number(v);
+      if (v === undefined || v === null || !Number.isFinite(n)) {
+        delete parsed[k]; // fall back to DEFAULT_APP_SETTINGS value
+      } else {
+        parsed[k] = n; // ensure it's a JS number, not a string
+      }
+    }
+    return { ...DEFAULT_APP_SETTINGS, ...parsed };
   } catch {
     return { ...DEFAULT_APP_SETTINGS };
   }
