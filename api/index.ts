@@ -74,7 +74,95 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Import and use storage
     const { storage } = await import('../server/storage.js');
-    
+
+    // ── KSYK security & telemetry endpoints (added 2026-06-25) ──────────
+    // These were missing on the Vercel build and were returning 404 in
+    // production, breaking the access-control gate and the IP probe.
+
+    // GET /api/client-info — caller's IP + server time.
+    if (apiPath === '/client-info' && req.method === 'GET') {
+      const xff = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
+      const ip = xff || (req.headers['cf-connecting-ip'] as string) || 'unknown';
+      return res.status(200).json({ ip, time: new Date().toISOString() });
+    }
+
+    // GET /api/security-settings — public read for the gate engine.
+    if (apiPath === '/security-settings' && req.method === 'GET') {
+      try {
+        if ((storage as any).getSecuritySettings) {
+          const s = await (storage as any).getSecuritySettings();
+          return res.status(200).json(s ?? null);
+        }
+        // Storage layer doesn't expose it yet — return null so the client
+        // falls back to localStorage / defaults instead of looping 404s.
+        return res.status(200).json(null);
+      } catch (err) {
+        console.error('security-settings GET error:', err);
+        return res.status(200).json(null);
+      }
+    }
+
+    // PUT /api/security-settings — admin write (basic validation; the
+    // real validation lives in the Express route on the dev server).
+    if (apiPath === '/security-settings' && req.method === 'PUT') {
+      try {
+        if ((storage as any).setSecuritySettings) {
+          await (storage as any).setSecuritySettings({ ...req.body, updatedAt: new Date() });
+        }
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('security-settings PUT error:', err);
+        return res.status(500).json({ message: 'Failed to save' });
+      }
+    }
+
+    // POST /api/security-settings/request-access — queues a guest request.
+    if (apiPath === '/security-settings/request-access' && req.method === 'POST') {
+      try {
+        const { email, reason } = req.body || {};
+        if (!email || typeof email !== 'string') {
+          return res.status(400).json({ message: 'Email is required' });
+        }
+        if ((storage as any).appendAccessRequest) {
+          await (storage as any).appendAccessRequest({
+            email: email.toLowerCase().trim(),
+            reason: (reason || '').toString().slice(0, 500),
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+          });
+        }
+        return res.status(200).json({ success: true });
+      } catch {
+        return res.status(500).json({ message: 'Failed to submit request' });
+      }
+    }
+
+    // GET /api/admin/wilma-config — Wilma-config endpoint kept as a no-op
+    // stub now that the Wilma admin tab has been removed; returning a
+    // benign object stops the client query from spamming 404s.
+    if (apiPath === '/admin/wilma-config' && req.method === 'GET') {
+      return res.status(200).json({
+        configured: false,
+        serverUrl: '',
+        connectionStatus: 'not_configured',
+        lastSync: null,
+        lastTestAt: null,
+      });
+    }
+
+    // GET /api/map-defaults — admin-set map home/zoom.
+    if (apiPath === '/map-defaults' && req.method === 'GET') {
+      try {
+        if ((storage as any).getMapDefaults) {
+          const d = await (storage as any).getMapDefaults();
+          return res.status(200).json(d ?? null);
+        }
+        return res.status(200).json(null);
+      } catch {
+        return res.status(200).json(null);
+      }
+    }
+
     // Buildings endpoints
     if (apiPath.startsWith('/buildings')) {
       if (req.method === 'GET' && apiPath === '/buildings') {

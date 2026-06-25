@@ -3699,7 +3699,59 @@ https://ksykmaps.vercel.app
 
   app.put('/api/security-settings', isAuthenticated, async (req: any, res) => {
     try {
-      const payload = { ...req.body, updatedAt: new Date() };
+      // Whitelisted fields only — anything else in req.body is dropped.
+      // Each field is validated by shape: arrays stay arrays, booleans
+      // are coerced, strings are length-capped, numbers are range-clamped.
+      const src = req.body || {};
+      const safeBool = (v: unknown, fb = false) => typeof v === "boolean" ? v : fb;
+      const safeStr = (v: unknown, max = 500) => typeof v === "string" ? v.slice(0, max) : "";
+      const safeTier = (v: unknown) => v === "full" || v === "restricted" || v === "blocked" ? v : "restricted";
+      const safeArr = <T,>(v: unknown, map: (x: any) => T | null): T[] =>
+        Array.isArray(v) ? v.map(map).filter((x): x is T => x !== null).slice(0, 500) : [];
+      const safeId = (v: unknown) => typeof v === "string" && v.length < 128 ? v : `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      const payload = {
+        enabled: safeBool(src.enabled),
+        timeWindowEnabled: safeBool(src.timeWindowEnabled),
+        schedule: src.schedule && typeof src.schedule === "object" ? src.schedule : {},
+        outsideHoursTier: safeTier(src.outsideHoursTier),
+        holidays: safeArr(src.holidays, (h: any) => h && typeof h === "object" ? {
+          id: safeId(h.id),
+          name: safeStr(h.name, 100),
+          start: safeStr(h.start, 10),
+          end: safeStr(h.end, 10),
+        } : null),
+        ipGateEnabled: safeBool(src.ipGateEnabled),
+        ipAllowlist: safeArr(src.ipAllowlist, (r: any) => r && typeof r === "object" ? {
+          id: safeId(r.id),
+          cidr: safeStr(r.cidr, 64),
+          label: r.label ? safeStr(r.label, 100) : undefined,
+        } : null),
+        offNetworkTier: safeTier(src.offNetworkTier),
+        loginGateEnabled: safeBool(src.loginGateEnabled),
+        allowedEmailDomains: safeArr(src.allowedEmailDomains, (d: any) => typeof d === "string" ? d.slice(0, 100) : null),
+        loggedInTier: safeTier(src.loggedInTier),
+        guestTier: safeTier(src.guestTier),
+        restrictedDisabledFeatures: src.restrictedDisabledFeatures && typeof src.restrictedDisabledFeatures === "object" ? src.restrictedDisabledFeatures : {},
+        userExceptions: safeArr(src.userExceptions, (e: any) => e && typeof e === "object" && typeof e.email === "string" ? {
+          id: safeId(e.id),
+          email: e.email.toLowerCase().slice(0, 254),
+          tier: safeTier(e.tier),
+          expiresAt: e.expiresAt ? safeStr(e.expiresAt, 10) : undefined,
+          note: e.note ? safeStr(e.note, 500) : undefined,
+        } : null),
+        accessRequests: safeArr(src.accessRequests, (r: any) => r && typeof r === "object" && typeof r.email === "string" ? {
+          id: safeId(r.id),
+          email: r.email.toLowerCase().slice(0, 254),
+          reason: safeStr(r.reason, 500),
+          createdAt: safeStr(r.createdAt, 40),
+          status: r.status === "approved" || r.status === "denied" ? r.status : "pending",
+        } : null),
+        lockoutMessage: safeStr(src.lockoutMessage, 1000),
+        dryRun: safeBool(src.dryRun),
+        updatedAt: new Date(),
+        updatedBy: req.user?.claims?.email || req.user?.email || "unknown",
+      };
       await db.collection('securitySettings').doc('default').set(payload, { merge: false });
       res.json({ success: true });
     } catch (error) {

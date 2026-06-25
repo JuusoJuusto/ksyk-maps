@@ -26,8 +26,14 @@
 
 const ENDPOINT = "/api/analytics/track";
 const LOGS_ENDPOINT = "/api/logs";
-const FLUSH_INTERVAL_MS = 3000;
-const MAX_QUEUE = 50;
+// Slower default flush so we don't trip the server-side rate limiter
+// (which was returning 429 in prod). Flushes also fire opportunistically
+// on tab-hide / pagehide / unload, so events still leave the device.
+const FLUSH_INTERVAL_MS = 15_000;
+const MAX_QUEUE = 200;
+// Exponential backoff when the server is overwhelmed.
+let backoffUntil = 0;
+let consecutive429 = 0;
 
 type EventType =
   | "session_start"
@@ -138,11 +144,17 @@ function push(type: EventType, payload?: Record<string, unknown>) {
     url: window.location.pathname + window.location.search,
     payload,
   });
-  if (queue.length >= MAX_QUEUE) flush();
+  // Drop oldest if the queue overflows — important when the server is
+  // throttling us and we're stockpiling events that may never ship.
+  if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
+  // Only auto-flush at queue threshold, not on every event.
+  if (queue.length >= MAX_QUEUE * 0.9) flush();
 }
 
 function flush() {
   if (queue.length === 0) return;
+  // Respect backoff — keep events queued until the window opens.
+  if (Date.now() < backoffUntil) return;
   const batch = queue.splice(0, queue.length);
   const body = JSON.stringify({
     sessionInfo: { sessionId: sessionId(), userId: userId(), email: userEmail() },
@@ -153,9 +165,11 @@ function flush() {
       email: userEmail(),
     })),
   });
-  // navigator.sendBeacon is the only reliable transport when the page is
-  // unloading; falls back to fetch keepalive otherwise.
-  if (navigator.sendBeacon) {
+  // navigator.sendBeacon is best for tab-hide / unload (fire-and-forget).
+  // Use it ONLY then — we lose the response code, which we need to
+  // detect 429 and back off.
+  const useFetch = document.visibilityState === "visible";
+  if (!useFetch && navigator.sendBeacon) {
     try {
       navigator.sendBeacon(ENDPOINT, new Blob([body], { type: "application/json" }));
       return;
@@ -166,7 +180,19 @@ function flush() {
     headers: { "Content-Type": "application/json" },
     body,
     keepalive: true,
-  }).catch(() => { /* silent */ });
+  })
+    .then((r) => {
+      if (r.status === 429) {
+        consecutive429 += 1;
+        // Exponential backoff: 30 s, 60 s, 120 s, 240 s, cap at 10 min.
+        const delay = Math.min(30_000 * Math.pow(2, consecutive429 - 1), 600_000);
+        backoffUntil = Date.now() + delay;
+      } else if (r.ok) {
+        consecutive429 = 0;
+        backoffUntil = 0;
+      }
+    })
+    .catch(() => { /* silent */ });
 }
 
 /** Bootstraps every listener once, idempotent. */

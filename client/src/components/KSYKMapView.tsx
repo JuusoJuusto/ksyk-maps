@@ -472,6 +472,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const is3DMode = (settings.osmPitchDeg ?? 0) > 0 && canUse3D;
 
   // ─── Campus body (rooms only — OSM tiles show buildings) ───────────────
+  // 3D feel comes from layered SVG: ground-plane drop shadow per room,
+  // right-side parallelogram (sun from upper-left at ≈ 30°), front wall
+  // face with a baked vertical gradient + thin highlight strip. The
+  // pitch CSS transform on the container does the perspective foreshorten.
   const campusBody = (
     <>
       <defs>
@@ -483,6 +487,18 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </filter>
         <filter id="wallShadow">
           <feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#1e293b" floodOpacity="0.45" />
+        </filter>
+        {/* Soft ground shadow under buildings — gives them weight. */}
+        <filter id="groundShadow3d" x="-30%" y="-20%" width="160%" height="180%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" />
+          <feOffset dx="3" dy="6" result="offsetblur" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.32" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
         <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
@@ -563,15 +579,23 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           }
 
           const floorN = room.floor ?? 1;
-          const wallH = is3DMode ? Math.max(10, floorN * 7 + 5) : 0;
-          const sideW = is3DMode ? Math.max(4, Math.min(w * 0.12, 8)) : 0;
+          // Pitch-driven extrusion height: more pitch → taller walls so
+          // the doll-house effect intensifies as the user tilts the map.
+          const pitchScale = is3DMode
+            ? 0.7 + (safeNum(settings.osmPitchDeg, 32) / 45) * 0.7
+            : 0;
+          const wallH = is3DMode ? Math.max(12, (floorN * 9 + 6) * pitchScale) : 0;
+          const sideW = is3DMode ? Math.max(5, Math.min(w * 0.14, 11)) : 0;
+          // Lighting offsets — sun from upper-left at ~30° elevation.
+          const sunDx = 0.5;
+          const sunDy = -0.8;
 
           return (
             <g
               key={room.id}
               data-map-feature="room"
               className="cursor-pointer"
-              filter={isSel ? "url(#roomGlow)" : isHover ? "url(#roomGlow3d)" : undefined}
+              filter={isSel ? "url(#roomGlow)" : is3DMode ? "url(#groundShadow3d)" : isHover ? "url(#roomGlow3d)" : undefined}
               onMouseEnter={() => setHoveredRoomId(room.id)}
               onMouseLeave={() => setHoveredRoomId(null)}
               onClick={(e) => {
@@ -585,13 +609,36 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 }
               }}
             >
+              {/* ── 3D ground shadow (cast on the campus floor) ─── */}
+              {is3DMode && (
+                <ellipse
+                  cx={x + w / 2 + sunDx * 4}
+                  cy={y + h + wallH + 1.5}
+                  rx={w * 0.55}
+                  ry={Math.max(2, sideW * 0.35)}
+                  fill="rgba(15,23,42,0.32)"
+                  className="pointer-events-none"
+                />
+              )}
+
               {/* ── 3D building extrusion (right side wall) ─── */}
               {is3DMode && sideW > 0 && (
                 <polygon
-                  points={`${x+w},${y} ${x+w+sideW},${y-sideW*0.6} ${x+w+sideW},${y+h+wallH-sideW*0.6} ${x+w},${y+h+wallH}`}
+                  points={`${x+w},${y} ${x+w+sideW},${y-sideW*0.55} ${x+w+sideW},${y+h+wallH-sideW*0.55} ${x+w},${y+h+wallH}`}
                   fill={fill}
-                  fillOpacity={0.45}
-                  style={{ filter: "brightness(0.55)" }}
+                  fillOpacity={0.6}
+                  style={{ filter: "brightness(0.5) saturate(1.1)" }}
+                  className="pointer-events-none"
+                />
+              )}
+
+              {/* ── 3D back wall (left side, lit by the sun) ─── */}
+              {is3DMode && sideW > 0 && (
+                <polygon
+                  points={`${x},${y} ${x-sideW*0.5},${y-sideW*0.4} ${x-sideW*0.5},${y+h+wallH-sideW*0.4} ${x},${y+h+wallH}`}
+                  fill={fill}
+                  fillOpacity={0.5}
+                  style={{ filter: "brightness(0.78) saturate(1.05)" }}
                   className="pointer-events-none"
                 />
               )}

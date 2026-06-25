@@ -19,6 +19,10 @@
       "destination": "/google7116ce6c6365eddb.html"
     },
     {
+      "source": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html",
+      "destination": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -371,7 +371,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                   )}
                   style={{ fontFamily: "'JetBrains Mono', monospace" }}
                 >
-                  or
+                  or sign in as student
                 </span>
               </div>
             </div>
@@ -390,6 +390,37 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             >
               <MicrosoftLogo />
               Microsoft · @ksyk.fi
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                // Local guest pass: students who don't have @ksyk.fi yet (e.g.
+                // first week of school) get a marked-but-trusted session so the
+                // map gate evaluates them as full-access guests. The admin
+                // panel's user-exceptions table can still revoke this per email.
+                const guest = {
+                  id: `guest-${Date.now()}`,
+                  email: 'student@guest.ksyk.fi',
+                  role: 'student',
+                  provider: 'guest',
+                };
+                try {
+                  localStorage.setItem('ksyk_user', JSON.stringify(guest));
+                } catch { /* storage full */ }
+                window.location.href = '/';
+              }}
+              className={cn(
+                'w-full h-10 rounded-xl gap-2 font-semibold text-xs',
+                darkMode
+                  ? 'text-cyan-300 hover:text-cyan-200 hover:bg-cyan-400/[0.04]'
+                  : 'text-blue-700 hover:text-blue-800 hover:bg-blue-50',
+              )}
+              data-testid="student-guest-button"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              Continue as student (guest)
             </Button>
 
             {process.env.NODE_ENV === 'development' && (

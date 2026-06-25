@@ -594,16 +594,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
-  // Use the URL prefix we arrived on — supports both /admin/* and the legacy
-  // /admin-ksyk-management-portal/* paths without breaking deep links.
-  const isShortBase = location.startsWith("/admin/") || location === "/admin";
-  const adminBase = isShortBase ? "/admin" : ADMIN_BASE;
+  // Single canonical admin base — the short /admin path was retired so
+  // the panel is only reachable via the obscure portal URL.
+  const adminBase = ADMIN_BASE;
 
   const navigate = (tab: string) => {
     setActiveTab(tab);
-    // On the /admin/* base, use short slug aliases where available
-    const slug = isShortBase ? (TAB_TO_SHORT[tab as TabSlug] ?? tab) : tab;
-    const path = slug === "overview" ? adminBase : `${adminBase}/${slug}`;
+    const path = tab === "overview" ? adminBase : `${adminBase}/${tab}`;
     setLocation(path);
   };
   const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");

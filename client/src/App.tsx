@@ -72,10 +72,12 @@ function Router() {
       {/* Public map */}
       <Route path="/" component={KSYKMapsHome} />
 
-      {/* Admin */}
+      {/* Admin —
+       *   /admin-login                            → AdminLogin (sign-in page)
+       *   /admin-ksyk-management-portal[/:section] → Admin panel itself
+       * The short /admin path was intentionally removed so a leaked
+       * "?admin" URL doesn't reveal the panel exists at a guessable path. */}
       <Route path="/admin-login" component={AdminLogin} />
-      <Route path="/admin/:section" component={Admin} />
-      <Route path="/admin" component={Admin} />
       <Route path="/admin-ksyk-management-portal/:section" component={Admin} />
       <Route path="/admin-ksyk-management-portal" component={Admin} />
 
