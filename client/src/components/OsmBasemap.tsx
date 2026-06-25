@@ -16,6 +16,7 @@ import "leaflet/dist/leaflet.css";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES } from "@/lib/appSettings";
+import { safeLatLng, safeNum, safeZoom } from "@/lib/safeNum";
 
 interface OsmBasemapProps {
   /** The viewBox the overlay SVG paints into (caller's SVG world coords). */
@@ -94,16 +95,20 @@ export default function OsmBasemap({
     );
   }, [svgViewBox.x, svgViewBox.y, svgViewBox.w, svgViewBox.h]);
 
-  // Compute geographic bounds — span scaled to SVG aspect ratio
+  // Compute geographic bounds — span scaled to SVG aspect ratio.
+  // Every numeric input is sanitised first so the resulting bounds can never
+  // be NaN (which Leaflet rejects with an Invalid LatLng error).
   const campusBounds = useMemo<L.LatLngBoundsLiteral>(() => {
-    const halfLatM = settings.osmCampusSpanMeters / 2;
+    const [centerLat, centerLng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const span = safeNum(settings.osmCampusSpanMeters, 220);
+    const halfLatM = span / 2;
     const halfLatDeg = metersToLatDeg(halfLatM);
     const aspect = svgViewBox.w / Math.max(1, svgViewBox.h);
     const halfLngM = halfLatM * aspect;
-    const halfLngDeg = metersToLngDeg(halfLngM, settings.osmCenterLat);
+    const halfLngDeg = metersToLngDeg(halfLngM, centerLat);
     return [
-      [settings.osmCenterLat - halfLatDeg, settings.osmCenterLng - halfLngDeg],
-      [settings.osmCenterLat + halfLatDeg, settings.osmCenterLng + halfLngDeg],
+      [centerLat - halfLatDeg, centerLng - halfLngDeg],
+      [centerLat + halfLatDeg, centerLng + halfLngDeg],
     ];
   }, [
     settings.osmCenterLat,
@@ -119,14 +124,13 @@ export default function OsmBasemap({
     if (mapRef.current) return;
     const provider = activeProvider;
 
-    const safeLat = Number.isFinite(settings.osmCenterLat) ? settings.osmCenterLat : 60.187;
-    const safeLng = Number.isFinite(settings.osmCenterLng) ? settings.osmCenterLng : 25.006;
-    const safeZoom = Number.isFinite(settings.osmDefaultZoom) ? settings.osmDefaultZoom : 19;
+    const [initLat, initLng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const initZoom = safeZoom(settings.osmDefaultZoom);
     const map = L.map(containerRef.current, {
-      center: [safeLat, safeLng],
-      zoom: safeZoom,
-      maxZoom: Number.isFinite(settings.osmMaxZoom) ? settings.osmMaxZoom : 19,
-      minZoom: Number.isFinite(settings.osmMinZoom) ? settings.osmMinZoom : 15,
+      center: [initLat, initLng],
+      zoom: initZoom,
+      maxZoom: safeZoom(settings.osmMaxZoom, 19),
+      minZoom: safeZoom(settings.osmMinZoom, 15),
       zoomControl: false,
       attributionControl: true,
       wheelPxPerZoomLevel: 60,
@@ -348,11 +352,17 @@ export default function OsmBasemap({
     const map = mapRef.current;
     if (!map) return;
     if (settings.osmMaxBoundsEnabled) {
-      const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];
-      const ne: L.LatLngTuple = [settings.osmMaxBoundsNorth, settings.osmMaxBoundsEast];
-      // Skip if the box is degenerate (e.g. unedited zeros).
-      if (sw[0] < ne[0] && sw[1] < ne[1]) {
-        map.setMaxBounds(L.latLngBounds(sw, ne));
+      const south = safeNum(settings.osmMaxBoundsSouth, NaN);
+      const west = safeNum(settings.osmMaxBoundsWest, NaN);
+      const north = safeNum(settings.osmMaxBoundsNorth, NaN);
+      const east = safeNum(settings.osmMaxBoundsEast, NaN);
+      // Skip if the box is degenerate (e.g. unedited zeros) or NaN.
+      if (
+        Number.isFinite(south) && Number.isFinite(west) &&
+        Number.isFinite(north) && Number.isFinite(east) &&
+        south < north && west < east
+      ) {
+        map.setMaxBounds(L.latLngBounds([south, west], [north, east]));
         map.options.maxBoundsViscosity = 0.8;
       }
     } else {
@@ -373,21 +383,37 @@ export default function OsmBasemap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.setMinZoom(settings.osmMinZoom);
-    map.setMaxZoom(settings.osmMaxZoom);
+    // Every numeric input goes through safeNum — if any settings value is
+    // NaN/null/undefined (corrupt localStorage, server returned junk, etc.)
+    // we fall back to the KSYK defaults and never call Leaflet with NaN.
+    const minZ = safeZoom(settings.osmMinZoom, 15);
+    const maxZ = safeZoom(settings.osmMaxZoom, 19);
+    map.setMinZoom(minZ);
+    map.setMaxZoom(maxZ);
     const wasBounded = settings.osmMaxBoundsEnabled;
     if (wasBounded) map.setMaxBounds(null as unknown as L.LatLngBoundsExpression);
-    if (isFinite(settings.osmCenterLat) && isFinite(settings.osmCenterLng)) {
-      map.flyTo([settings.osmCenterLat, settings.osmCenterLng], settings.osmDefaultZoom, {
-        duration: 0.5,
-      });
+    const [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const zoom = safeZoom(settings.osmDefaultZoom);
+    try {
+      map.flyTo([lat, lng], zoom, { duration: 0.5 });
+    } catch (err) {
+      // Last-ditch — swallow any LatLng error so the map keeps rendering.
+      // This is the layer that the prior NaN crash bypassed.
+      console.warn("flyTo blocked invalid coords; using setView fallback", err);
+      try { map.setView([lat, lng], zoom, { animate: false }); } catch { /* give up */ }
     }
     if (wasBounded) {
       const t = setTimeout(() => {
-        const sw: L.LatLngTuple = [settings.osmMaxBoundsSouth, settings.osmMaxBoundsWest];
-        const ne: L.LatLngTuple = [settings.osmMaxBoundsNorth, settings.osmMaxBoundsEast];
-        if (sw[0] < ne[0] && sw[1] < ne[1]) {
-          map.setMaxBounds(L.latLngBounds(sw, ne));
+        const south = safeNum(settings.osmMaxBoundsSouth, NaN);
+        const west = safeNum(settings.osmMaxBoundsWest, NaN);
+        const north = safeNum(settings.osmMaxBoundsNorth, NaN);
+        const east = safeNum(settings.osmMaxBoundsEast, NaN);
+        if (
+          Number.isFinite(south) && Number.isFinite(west) &&
+          Number.isFinite(north) && Number.isFinite(east) &&
+          south < north && west < east
+        ) {
+          map.setMaxBounds(L.latLngBounds([south, west], [north, east]));
         }
       }, 700);
       return () => clearTimeout(t);
@@ -421,8 +447,10 @@ export default function OsmBasemap({
     const container = containerRef.current;
     if (!map || !container) return;
 
-    const rotation = settings.osmRotationDeg || 0;
-    const pitch = Math.max(0, Math.min(45, settings.osmPitchDeg ?? 0));
+    // safeNum gracefully turns NaN/string/null into 0 so the CSS transform
+    // never receives `rotate(NaNdeg)` (which silently breaks the whole map).
+    const rotation = safeNum(settings.osmRotationDeg, 0);
+    const pitch = Math.max(0, Math.min(45, safeNum(settings.osmPitchDeg, 0)));
 
     // Rotated bounding box scale — for any rotation θ of a 1×1 rect,
     // bbox edges grow to |cos θ| + |sin θ|. Max √2 at 45°.

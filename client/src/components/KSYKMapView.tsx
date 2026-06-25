@@ -17,6 +17,7 @@ import AccessLockoutScreen from "@/components/AccessLockoutScreen";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
+import { safeLatLng, safeNum, safeZoom, KSYK_FALLBACK_LAT, KSYK_FALLBACK_LNG, KSYK_FALLBACK_ZOOM } from "@/lib/safeNum";
 import {
   parseBuildingShape,
   getLabelAnchor,
@@ -51,6 +52,11 @@ import {
   Mountain,
   ChevronDown,
   ChevronUp,
+  Menu,
+  Compass,
+  RotateCcw,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -132,6 +138,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
+  /** Mobile control menu — opens the hamburger drawer with 3D / pitch /
+   * rotation / locate / home all inside, so the bottom-right doesn't crash
+   * into the mobile bottom nav. */
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Leaflet plumbing
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -296,12 +306,22 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   }, [searchQuery, campusBuildings, rooms, isFi]);
 
   // ─── Map interaction ───────────────────────────────────────────────────
+  // Every flyTo passes through safeLatLng + safeZoom and is wrapped in
+  // try/catch, so corrupted localStorage / server data can NEVER reach
+  // Leaflet and crash the React tree with "Invalid LatLng (NaN, NaN)".
   const flyTo = useCallback(
     (lat: number, lng: number, zoom?: number) => {
       const map = leafletMapRef.current;
-      if (!map || !isFinite(lat) || !isFinite(lng)) return;
-      const targetZoom = Math.max(zoom ?? settings.osmDefaultZoom, settings.osmDefaultZoom);
-      map.flyTo([lat, lng], targetZoom, { duration: 0.55 });
+      if (!map) return;
+      const [safeLat, safeLng] = safeLatLng(lat, lng);
+      const defaultZ = safeZoom(settings.osmDefaultZoom);
+      const targetZoom = safeZoom(Math.max(zoom ?? defaultZ, defaultZ));
+      try {
+        map.flyTo([safeLat, safeLng], targetZoom, { duration: 0.55 });
+      } catch (err) {
+        console.warn("flyTo failed; falling back to setView", err);
+        try { map.setView([safeLat, safeLng], targetZoom, { animate: false }); } catch { /* give up */ }
+      }
     },
     [settings.osmDefaultZoom]
   );
@@ -334,10 +354,17 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     [campusBuildings, svgToLatLng, flyTo, settings.osmDefaultZoom]
   );
 
+  // Reset = fly back to the admin-configured home position. Always uses
+  // sanitised numbers so this never crashes the map (it's the *escape hatch*
+  // — if anything else is broken, hitting Home must always recover).
   const resetView = useCallback(() => {
-    flyTo(settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom);
+    const [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const zoom = safeZoom(settings.osmDefaultZoom);
+    flyTo(lat, lng, zoom);
     setSelectedBuilding(null);
     setSelectedRoom(null);
+    setNavFrom(null);
+    setNavTo(null);
   }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
   const handleLocate = useCallback(() => {
@@ -798,36 +825,111 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── GPS locate + 3D toggle + reset view ──────────────────── */}
-      <div className="absolute right-3 z-40 flex flex-col gap-2"
+      {/* ── Mobile hamburger trigger — bottom right, well above mobile nav. */}
+      <div className="sm:hidden absolute right-3 z-40"
+           style={{ bottom: 'max(7rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={menuOpen ? (isFi ? "Sulje valikko" : "Close menu") : (isFi ? "Avaa kartan asetukset" : "Open map controls")}
+          aria-expanded={menuOpen}
+          className={cn(
+            panel,
+            "w-12 h-12 p-0 transition-all",
+            menuOpen && "rotate-90 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
+          )}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* ── Mobile dropdown drawer — opens above the hamburger. */}
+      {menuOpen && (
+        <>
+          {/* Tap-outside backdrop */}
+          <button
+            type="button"
+            aria-label={isFi ? "Sulje valikko" : "Close menu"}
+            className="sm:hidden absolute inset-0 z-30 bg-black/20 backdrop-blur-[2px]"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            className={cn(
+              panel,
+              "sm:hidden absolute right-3 z-40 w-[min(18rem,calc(100vw-1.5rem))] p-3 animate-in fade-in slide-in-from-bottom-2 duration-150",
+            )}
+            style={{ bottom: 'max(11rem, calc(9.5rem + env(safe-area-inset-bottom)))' }}
+            role="dialog"
+            aria-label={isFi ? "Karttavalikko" : "Map menu"}
+          >
+            <MobileControlMenu
+              isFi={isFi}
+              canUse3D={canUse3D}
+              canUseGeolocation={canUseGeolocation}
+              is3DMode={is3DMode}
+              pitch={safeNum(settings.osmPitchDeg, 0)}
+              rotation={safeNum(settings.osmRotationDeg, 0)}
+              locating={locating}
+              userLocation={userLocation}
+              onTogglePitch={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
+              onPitchChange={(v) => update("osmPitchDeg", v)}
+              onRotationChange={(v) => update("osmRotationDeg", v)}
+              onLocate={() => { setMenuOpen(false); handleLocate(); }}
+              onReset={() => { setMenuOpen(false); resetView(); }}
+              onClose={() => setMenuOpen(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ── Desktop stacked controls — right side, hidden on mobile. */}
+      <div className="hidden sm:flex absolute right-3 z-40 flex-col gap-2"
            style={{ bottom: 'max(8.5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
 
-        {/* 3D pitch control — expands when 3D is on (gated by access tier) */}
+        {/* Rotation reset (visible whenever rotation ≠ 0) */}
+        {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={isFi ? "Palauta pohjoinen ylös" : "Reset rotation"}
+            className={cn(panel, "w-11 h-11 p-0 text-indigo-600 dark:text-indigo-400")}
+            onClick={() => update("osmRotationDeg", 0)}
+            title={isFi ? "Kompassi · pohjoinen ylös" : "Compass · north up"}
+          >
+            <Compass
+              className="h-4 w-4 transition-transform"
+              style={{ transform: `rotate(${-safeNum(settings.osmRotationDeg, 0)}deg)` }}
+            />
+          </Button>
+        )}
+
+        {/* 3D pitch slider — visible when 3D is on */}
         {is3DMode && canUse3D && (
           <div className={cn(panel, "w-11 flex flex-col items-center gap-1 py-2 px-0")}>
             <button
               type="button"
               aria-label="Increase pitch"
-              onClick={() => update("osmPitchDeg", Math.min(45, (settings.osmPitchDeg ?? 32) + 4))}
+              onClick={() => update("osmPitchDeg", Math.min(45, safeNum(settings.osmPitchDeg, 32) + 4))}
               className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
             >
               <ChevronUp className="h-3.5 w-3.5" />
             </button>
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-[9px] font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">
-                {settings.osmPitchDeg ?? 32}°
+                {Math.round(safeNum(settings.osmPitchDeg, 32))}°
               </span>
               <div className="h-14 w-1.5 rounded-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
                 <div
                   className="absolute bottom-0 left-0 right-0 rounded-full bg-indigo-500 transition-all duration-200"
-                  style={{ height: `${((settings.osmPitchDeg ?? 32) / 45) * 100}%` }}
+                  style={{ height: `${(safeNum(settings.osmPitchDeg, 32) / 45) * 100}%` }}
                 />
               </div>
             </div>
             <button
               type="button"
               aria-label="Decrease pitch"
-              onClick={() => update("osmPitchDeg", Math.max(5, (settings.osmPitchDeg ?? 32) - 4))}
+              onClick={() => update("osmPitchDeg", Math.max(5, safeNum(settings.osmPitchDeg, 32) - 4))}
               className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
             >
               <ChevronDown className="h-3.5 w-3.5" />
@@ -835,7 +937,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </div>
         )}
 
-        {/* 3D perspective toggle — hidden when access tier disallows it */}
+        {/* 3D toggle */}
         {canUse3D && (
           <Button
             variant="ghost"
@@ -1159,6 +1261,158 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Mobile control drawer ───────────────────────────────────────────── */
+
+interface MobileControlMenuProps {
+  isFi: boolean;
+  canUse3D: boolean;
+  canUseGeolocation: boolean;
+  is3DMode: boolean;
+  pitch: number;
+  rotation: number;
+  locating: boolean;
+  userLocation: [number, number] | null;
+  onTogglePitch: () => void;
+  onPitchChange: (v: number) => void;
+  onRotationChange: (v: number) => void;
+  onLocate: () => void;
+  onReset: () => void;
+  onClose: () => void;
+}
+
+function MobileControlMenu({
+  isFi, canUse3D, canUseGeolocation, is3DMode, pitch, rotation, locating, userLocation,
+  onTogglePitch, onPitchChange, onRotationChange, onLocate, onReset,
+}: MobileControlMenuProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 pb-2 border-b border-gray-200/70 dark:border-gray-700/70">
+        <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <span className="text-xs font-bold uppercase tracking-widest">
+          {isFi ? "Karttavalikko" : "Map menu"}
+        </span>
+      </div>
+
+      {/* Quick row — 3D / Locate / Home */}
+      <div className="grid grid-cols-3 gap-2">
+        {canUse3D && (
+          <button
+            type="button"
+            onClick={onTogglePitch}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-semibold transition-colors",
+              is3DMode
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200"
+            )}
+          >
+            <Mountain className="h-4 w-4" />
+            <span>{is3DMode ? "3D" : "2D"}</span>
+          </button>
+        )}
+        {canUseGeolocation && (
+          <button
+            type="button"
+            onClick={onLocate}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-semibold transition-colors",
+              userLocation
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200"
+            )}
+          >
+            {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+            <span>{isFi ? "Paikka" : "Locate"}</span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onReset}
+          className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 text-xs font-semibold transition-colors"
+        >
+          <Home className="h-4 w-4" />
+          <span>{isFi ? "Koti" : "Home"}</span>
+        </button>
+      </div>
+
+      {/* Pitch slider — only when 3D on */}
+      {is3DMode && canUse3D && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+              <Mountain className="h-3 w-3" />
+              {isFi ? "Kallistus" : "Tilt"}
+            </span>
+            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400">{Math.round(pitch)}°</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Less pitch"
+              onClick={() => onPitchChange(Math.max(0, pitch - 4))}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={45}
+              step={1}
+              value={pitch}
+              onChange={(e) => onPitchChange(Number(e.target.value))}
+              className="flex-1 h-1.5 accent-indigo-500"
+              aria-label="Pitch angle"
+            />
+            <button
+              type="button"
+              aria-label="More pitch"
+              onClick={() => onPitchChange(Math.min(45, pitch + 4))}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rotation slider — always available */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+            <Compass className="h-3 w-3" />
+            {isFi ? "Kierto" : "Rotation"}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400">{Math.round(rotation)}°</span>
+            {Math.abs(rotation) > 0.5 && (
+              <button
+                type="button"
+                aria-label={isFi ? "Nollaa kierto" : "Reset rotation"}
+                onClick={() => onRotationChange(0)}
+                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+              >
+                <RotateCcw className="h-2.5 w-2.5" />
+                {isFi ? "Nollaa" : "Reset"}
+              </button>
+            )}
+          </div>
+        </div>
+        <input
+          type="range"
+          min={-180}
+          max={180}
+          step={1}
+          value={rotation}
+          onChange={(e) => onRotationChange(Number(e.target.value))}
+          className="w-full h-1.5 accent-indigo-500"
+          aria-label="Map rotation"
+        />
+      </div>
     </div>
   );
 }
