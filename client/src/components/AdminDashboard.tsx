@@ -872,14 +872,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
       {/* ── Desktop sidebar ──────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         {/* Brand strip */}
-        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-100 dark:border-gray-800 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white shadow-sm ring-1 ring-white/20">
             <LayoutDashboard className="h-4 w-4" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-gray-900 dark:text-white flex-1">KSYK Admin</span>
+          <span className="font-bold text-sm tracking-tight text-white flex-1">KSYK Admin</span>
           <a
             href="/"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors"
             title="Back to Map"
           >
             <Home className="h-3.5 w-3.5" />
@@ -964,28 +964,31 @@ export default function AdminDashboard({ section }: { section?: string }) {
       {/* ── Main content area ────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
         {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
-        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
           {currentUser && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700/30">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[10px] font-bold">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white text-[11px] font-bold ring-1 ring-white/30">
                   {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
                 </span>
-                <span className="text-xs font-semibold truncate max-w-[20ch] text-gray-900 dark:text-white">
+                <span className="text-xs font-semibold truncate max-w-[18ch] text-white">
                   {currentUser.name || currentUser.email}
                 </span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] uppercase tracking-wider text-white/55 hidden sm:inline">
                   · {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full shrink-0"
-                onClick={logoutFn}
-              >
-                Sign out
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <a href="/" className="text-[11px] text-white/70 hover:text-white font-medium transition-colors">← Map</a>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] font-semibold text-white/80 hover:text-white hover:bg-white/20 rounded-full"
+                  onClick={logoutFn}
+                >
+                  Sign out
+                </Button>
+              </div>
             </div>
           )}
           <div className="relative overflow-hidden">
@@ -1134,6 +1137,59 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </button>
             ))}
           </div>
+
+          {/* Room status distribution */}
+          {(rooms as Room[]).length > 0 && (() => {
+            const allRooms = rooms as Room[];
+            const statusGroups = {
+              free: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "free").length,
+              occupied: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "occupied").length,
+              reserved: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "reserved").length,
+              maintenance: allRooms.filter(r => r.type !== "hallway" && (r as any).currentStatus === "maintenance").length,
+              unknown: allRooms.filter(r => r.type !== "hallway" && (!((r as any).currentStatus) || (r as any).currentStatus === "unknown")).length,
+            };
+            const total = Object.values(statusGroups).reduce((s, n) => s + n, 0);
+            const statusDefs = [
+              { key: "free", label: "Free", color: "#10B981", bg: "bg-emerald-500" },
+              { key: "occupied", label: "Occupied", color: "#EF4444", bg: "bg-red-500" },
+              { key: "reserved", label: "Reserved", color: "#F59E0B", bg: "bg-amber-500" },
+              { key: "maintenance", label: "Maint.", color: "#8B5CF6", bg: "bg-purple-500" },
+              { key: "unknown", label: "Unknown", color: "#6B7280", bg: "bg-gray-400" },
+            ] as const;
+            return (
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-teal-500" />
+                      Room Occupancy
+                    </CardTitle>
+                    <span className="text-xs text-muted-foreground">{total} rooms</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {/* Stacked bar */}
+                  <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-3">
+                    {statusDefs.map(({ key, bg }) => {
+                      const count = statusGroups[key];
+                      const pct = total > 0 ? (count / total) * 100 : 0;
+                      if (pct === 0) return null;
+                      return <div key={key} className={`${bg} transition-all`} style={{ width: `${pct}%` }} />;
+                    })}
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {statusDefs.map(({ key, label, color }) => (
+                      <div key={key} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="text-xs text-muted-foreground">{label}</span>
+                        <span className="text-xs font-bold tabular-nums ml-auto">{statusGroups[key]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Campus buildings summary + latest announcements side by side on wide screens */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

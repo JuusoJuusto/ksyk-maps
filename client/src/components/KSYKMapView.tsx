@@ -33,18 +33,17 @@ import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSetting
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Plus,
-  Minus,
   X,
   MapPin,
   Building2,
   Users,
   Home,
   Clock,
-  ChevronRight,
   BookOpen,
   Crosshair,
   Loader2,
+  Layers,
+  Navigation,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -411,12 +410,17 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     [baseViewBox, settings.osmCenterLat, settings.osmCenterLng, settings.osmCampusSpanMeters]
   );
 
+  const is3DMode = (settings.osmPitchDeg ?? 0) > 0;
+
   // ─── Campus body (rooms only — OSM tiles show buildings) ───────────────
   const campusBody = (
     <>
       <defs>
         <filter id="roomGlow">
-          <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4" />
+          <feDropShadow dx="0" dy="1" stdDeviation="2.5" floodOpacity="0.5" />
+        </filter>
+        <filter id="roomGlow3d">
+          <feDropShadow dx="1" dy="3" stdDeviation="3" floodOpacity="0.35" />
         </filter>
       </defs>
 
@@ -425,8 +429,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         const [sx, sy] = lngLatToSvg(userLocation[0], userLocation[1]);
         return (
           <g className="pointer-events-none">
-            <circle cx={sx} cy={sy} r={10} fill="rgba(59,130,246,0.15)" />
-            <circle cx={sx} cy={sy} r={5} fill="#3b82f6" stroke="white" strokeWidth={1.5} />
+            <circle cx={sx} cy={sy} r={14} fill="rgba(59,130,246,0.12)" />
+            <circle cx={sx} cy={sy} r={7} fill="rgba(59,130,246,0.25)" />
+            <circle cx={sx} cy={sy} r={5} fill="#3b82f6" stroke="white" strokeWidth={2} />
+            <circle cx={sx} cy={sy} r={2} fill="white" />
           </g>
         );
       })()}
@@ -444,8 +450,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           const statusColor =
             ROOM_STATUS_COLORS[status as keyof typeof ROOM_STATUS_COLORS] ?? ROOM_STATUS_COLORS.unknown;
 
-          // Compute on-screen pixel size at the current Leaflet zoom so we can
-          // density-gate labels and icons.
+          const isHallway = room.type === "hallway" || room.type === "corridor";
+
           const metersPerSvgUnit = settings.osmCampusSpanMeters / baseViewBox.w;
           const roomMinPx =
             leafletMetersPerPx && leafletMetersPerPx > 0
@@ -454,15 +460,48 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           const showLabel = isSel || isHover || roomMinPx >= 26;
           const iconD = pathForRoomType(room.type);
           const showIcon = !!iconD && roomMinPx >= 60;
-          const showStatus = roomMinPx >= 32 && status !== "unknown";
+          const showStatus = roomMinPx >= 28 && status !== "unknown";
           const iconSize = Math.max(12, Math.min(26, Math.min(w, h) * 0.4));
+
+          if (isHallway) {
+            return (
+              <g
+                key={room.id}
+                data-map-feature="room"
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredRoomId(room.id)}
+                onMouseLeave={() => setHoveredRoomId(null)}
+                onClick={(e) => { e.stopPropagation(); focusRoom(room); }}
+              >
+                <rect
+                  x={x} y={y} width={w} height={h} rx={2}
+                  fill={isSel ? "rgba(99,102,241,0.25)" : darkMode ? "rgba(100,116,139,0.18)" : "rgba(148,163,184,0.22)"}
+                  stroke={isSel ? "#6366f1" : "rgba(148,163,184,0.55)"}
+                  strokeWidth={isSel ? 1.5 : 0.7}
+                  strokeDasharray={isSel ? undefined : "3,2"}
+                />
+                {showLabel && (
+                  <text
+                    x={x + w / 2} y={y + h / 2}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill={darkMode ? "rgba(148,163,184,0.85)" : "rgba(100,116,139,0.9)"}
+                    fontSize={Math.min(10, Math.max(7, w / 7))} fontWeight="500"
+                    className="pointer-events-none"
+                    style={{ paintOrder: "stroke", stroke: darkMode ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.6)", strokeWidth: 0.5 }}
+                  >
+                    {room.roomNumber}
+                  </text>
+                )}
+              </g>
+            );
+          }
 
           return (
             <g
               key={room.id}
               data-map-feature="room"
               className="cursor-pointer"
-              filter={isSel || isHover ? "url(#roomGlow)" : undefined}
+              filter={isSel ? "url(#roomGlow)" : isHover ? "url(#roomGlow3d)" : undefined}
               onMouseEnter={() => setHoveredRoomId(room.id)}
               onMouseLeave={() => setHoveredRoomId(null)}
               onClick={(e) => {
@@ -476,25 +515,44 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 }
               }}
             >
+              {/* 3D depth shadow beneath room */}
+              {is3DMode && (
+                <rect
+                  x={x + 3} y={y + 4} width={w} height={h} rx={5}
+                  fill="rgba(0,0,0,0.22)"
+                  className="pointer-events-none"
+                />
+              )}
+
+              {/* Room background */}
               <rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                rx={4}
+                x={x} y={y} width={w} height={h} rx={4}
                 fill={fill}
-                fillOpacity={isHover || isSel ? 1 : 0.88}
-                stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.95)"}
-                strokeWidth={isSel ? 2.5 : isHover ? 1.8 : 1}
+                fillOpacity={isHover || isSel ? 1 : 0.92}
+                stroke={isSel ? "#fbbf24" : isHover ? "#fde68a" : darkMode ? "rgba(15,23,42,0.55)" : "rgba(255,255,255,0.9)"}
+                strokeWidth={isSel ? 2.5 : isHover ? 2 : 0.9}
               />
+
+              {/* Inner highlight — gives depth / "floor" feel */}
+              {w > 18 && h > 14 && (
+                <rect
+                  x={x + 2.5} y={y + 2.5} width={w - 5} height={h - 5} rx={2.5}
+                  fill="rgba(255,255,255,0.14)"
+                  className="pointer-events-none"
+                />
+              )}
+
+              {/* Icon */}
               {showIcon && iconD && (
                 <g
                   transform={`translate(${x + w / 2 - iconSize / 2} ${y + (showLabel ? h / 2 - iconSize - 1 : h / 2 - iconSize / 2)}) scale(${iconSize / 24})`}
                   className="pointer-events-none"
                 >
-                  <path d={iconD} fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={iconD} fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                 </g>
               )}
+
+              {/* Label */}
               {showLabel && (
                 <text
                   x={x + w / 2}
@@ -502,24 +560,29 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                   textAnchor="middle"
                   dominantBaseline={showIcon ? "auto" : "middle"}
                   fill="#fff"
-                  fontSize={Math.min(12, Math.max(9, w / 6))}
+                  fontSize={Math.min(12, Math.max(8, w / 6))}
                   fontWeight="700"
                   className="pointer-events-none"
-                  style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.7 }}
+                  style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.45)", strokeWidth: 0.8 }}
                 >
                   {room.roomNumber}
                 </text>
               )}
+
+              {/* Status dot with pulse animation for occupied */}
               {showStatus && (
-                <circle
-                  cx={x + w - 5}
-                  cy={y + 5}
-                  r={3.5}
-                  fill={statusColor}
-                  stroke="rgba(255,255,255,0.92)"
-                  strokeWidth={1}
-                  className="pointer-events-none"
-                />
+                <g className="pointer-events-none">
+                  {status === "occupied" && (
+                    <circle cx={x + w - 5} cy={y + 5} r={5.5} fill={statusColor} fillOpacity={0.3}>
+                      <animate attributeName="r" values="4;6.5;4" dur="2.2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.3;0;0.3" dur="2.2s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  <circle
+                    cx={x + w - 5} cy={y + 5} r={3.5}
+                    fill={statusColor} stroke="rgba(255,255,255,0.95)" strokeWidth={1.2}
+                  />
+                </g>
               )}
             </g>
           );
@@ -648,41 +711,50 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Floor selector (top-right) ─────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-30 flex flex-col rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-11 h-9 rounded-none"
-          onClick={() => setSelectedFloor((f) => Math.min(f + 1, maxFloor))}
-          disabled={selectedFloor >= maxFloor}
-          aria-label="Floor up"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        <div
-          className="w-11 flex flex-col items-center justify-center bg-blue-600 text-white border-y border-blue-700 py-1.5"
-          aria-live="polite"
-        >
-          <span className="text-[9px] font-semibold uppercase tracking-widest opacity-70 leading-none">
-            {isFi ? "KRS" : "FL"}
-          </span>
-          <span className="font-bold text-base leading-none mt-0.5">{selectedFloor}</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-11 h-9 rounded-none"
-          onClick={() => setSelectedFloor((f) => Math.max(f - 1, 0))}
-          disabled={selectedFloor <= 0}
-          aria-label="Floor down"
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
+      <div className="absolute top-3 right-3 z-30 flex flex-col gap-1 p-1.5 rounded-2xl shadow-lg border border-gray-200/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm"
+           aria-label="Floor selector">
+        <p className="text-[8px] font-bold uppercase tracking-widest text-center text-muted-foreground leading-none py-0.5">
+          {isFi ? "KRS" : "FL"}
+        </p>
+        {Array.from({ length: maxFloor }, (_, i) => maxFloor - i).map((floor) => (
+          <button
+            key={floor}
+            type="button"
+            aria-label={`${isFi ? "Kerros" : "Floor"} ${floor}`}
+            aria-pressed={selectedFloor === floor}
+            onClick={() => setSelectedFloor(floor)}
+            className={cn(
+              "w-9 h-8 rounded-xl text-sm font-bold transition-all duration-150 leading-none",
+              selectedFloor === floor
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+            )}
+          >
+            {floor}
+          </button>
+        ))}
       </div>
 
-      {/* ── GPS locate + reset view — always above bottom sheets (z-40) ── */}
+      {/* ── GPS locate + 3D toggle + reset view ──────────────────── */}
       <div className="absolute right-3 z-40 flex flex-col gap-2"
-           style={{ bottom: 'max(8.5rem, calc(4rem + env(safe-area-inset-bottom)))' }}>
+           style={{ bottom: 'max(8.5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+        {/* 3D perspective toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
+          className={cn(
+            panel, "w-11 h-11 p-0 transition-colors",
+            is3DMode
+              ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700"
+              : ""
+          )}
+          onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
+          title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
+        >
+          <Layers className="h-4 w-4" />
+        </Button>
+
         {navigator?.geolocation && (
           <Button
             variant="ghost"
@@ -765,8 +837,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Building bottom sheet ──────────────────────────────────── */}
       {selectedBuilding && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none"
-             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none map-room-sheet"
+             style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4rem)' }}>
           <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl max-h-[60dvh] sm:max-h-none overflow-y-auto overscroll-contain")}>
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
             <CardContent className="p-5 pt-3 sm:pt-5">
@@ -794,65 +866,82 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Room bottom sheet ──────────────────────────────────────── */}
       {selectedRoom && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none"
-             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none map-room-sheet"
+             style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4rem)' }}>
           <Card
             className={cn(
               panel,
-              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[75dvh] sm:max-h-none overflow-y-auto overscroll-contain",
+              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[78dvh] sm:max-h-none overflow-y-auto overscroll-contain",
               selectedRoom.currentStatus === "free"
                 ? "border-emerald-500"
                 : selectedRoom.currentStatus === "occupied"
                 ? "border-red-500"
+                : selectedRoom.currentStatus === "maintenance"
+                ? "border-purple-500"
                 : "border-amber-500"
             )}
           >
+            {/* Drag handle */}
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
             <CardContent className="p-5 pt-3 sm:pt-5">
-              <div className="flex justify-between gap-2 mb-3">
+              {/* Header */}
+              <div className="flex justify-between gap-2 mb-4">
                 <div className="flex gap-3 min-w-0">
                   <span
-                    className="shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl text-white font-bold text-sm shadow-md"
-                    style={{ backgroundColor: getRoomStatusColor(selectedRoom.currentStatus) }}
+                    className="shrink-0 flex h-13 w-13 items-center justify-center rounded-2xl text-white font-bold text-sm shadow-lg ring-2 ring-white/20"
+                    style={{ backgroundColor: getRoomStatusColor(selectedRoom.currentStatus), minWidth: "3.25rem", height: "3.25rem" }}
                   >
-                    {selectedRoom.roomNumber}
+                    <span className="text-xs font-extrabold leading-none">{selectedRoom.roomNumber}</span>
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-bold truncate">
+                    <h3 className="text-base font-bold truncate leading-tight">
                       {selectedRoom.name || selectedRoom.nameEn || selectedRoom.roomNumber}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {isFi ? "Kerros" : "Floor"} {selectedRoom.floor}
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ backgroundColor: getRoomStatusColor(selectedRoom.currentStatus) }}
+                      />
+                      {roomStatusLabel(selectedRoom.currentStatus, isFi)}
+                      {selectedRoom.type && (
+                        <>
+                          <span className="opacity-40">·</span>
+                          <span className="capitalize">{selectedRoom.type}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedRoom(null)} aria-label="Close">
+                <Button variant="ghost" size="icon" onClick={() => setSelectedRoom(null)} aria-label="Close" className="shrink-0">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="space-y-2 text-sm mb-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{isFi ? "Tila" : "Status"}</span>
-                  <span className="font-medium px-2 py-0.5 rounded-full bg-muted">
-                    {roomStatusLabel(selectedRoom.currentStatus, isFi)}
+
+              {/* Info chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
+                  darkMode ? "bg-gray-800 text-gray-200" : "bg-gray-100 text-gray-700"
+                )}>
+                  <Building2 className="h-3 w-3 opacity-60" />
+                  {isFi ? "Kerros" : "Floor"} {selectedRoom.floor}
+                </span>
+                {selectedRoom.capacity != null && (
+                  <span className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
+                    darkMode ? "bg-gray-800 text-gray-200" : "bg-gray-100 text-gray-700"
+                  )}>
+                    <Users className="h-3 w-3 opacity-60" />
+                    {selectedRoom.capacity}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {isFi ? "Kapasiteetti" : "Capacity"}
-                  </span>
-                  <span className="font-medium">{selectedRoom.capacity ?? "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{isFi ? "Kerros" : "Floor"}</span>
-                  <span className="font-medium">{selectedRoom.floor}</span>
-                </div>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              {/* Navigation buttons */}
+              <div className="grid grid-cols-2 gap-2 mb-1">
                 <Button
                   variant="outline"
-                  className="text-xs"
+                  className="text-xs h-9 gap-1.5"
                   onClick={() =>
                     setNavFrom({
                       id: selectedRoom.id,
@@ -863,10 +952,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                     })
                   }
                 >
-                  {isFi ? "Lähtöpiste" : "Set start"}
+                  <MapPin className="h-3.5 w-3.5" />
+                  {isFi ? "Lähtöpiste" : "Start here"}
                 </Button>
                 <Button
-                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                  className="text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
                   onClick={() =>
                     setNavTo({
                       id: selectedRoom.id,
@@ -877,6 +967,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                     })
                   }
                 >
+                  <Navigation className="h-3.5 w-3.5" />
                   {isFi ? "Reititä tänne" : "Route here"}
                 </Button>
               </div>

@@ -38,6 +38,25 @@
   .dark .ksykmaps-app {
     --primary: #60a5fa;
   }
+
+  /* Smooth slide-up for bottom sheets */
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .sheet-enter {
+    animation: slideUp 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* 3D perspective map container transition */
+  .leaflet-container {
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Map bottom-sheet room info card */
+  .map-room-sheet {
+    animation: slideUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @layer utilities {
