@@ -549,7 +549,7 @@ const ADMIN_BASE = "/admin-ksyk-management-portal";
 
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
-  "overview","security","users","wilma","campus-map","ksyk-builder",
+  "overview","security","users","campus-map","ksyk-builder",
   "schedules","tickets","logs","staff","announcements","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
@@ -846,7 +846,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "overview", label: "Overview", Icon: LayoutDashboard },
     { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
-    { value: "wilma", label: "Wilma", Icon: GraduationCap },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
     { value: "ksyk-builder", label: "Builder", Icon: Box },
     { value: "schedules", label: "Schedules", Icon: Calendar },
@@ -1013,8 +1012,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           const sectionMeta: Record<string, { title: string; description: string; Icon: typeof LayoutDashboard }> = {
             overview: { title: "Overview", description: "At-a-glance state of the campus.", Icon: LayoutDashboard },
             security: { title: "Security & Access", description: "Time, IP, login, and per-user access controls.", Icon: Shield },
-            users: { title: "Users", description: "Manage Wilma and admin accounts.", Icon: Users },
-            wilma: { title: "Wilma", description: "Wilma school-system integration.", Icon: GraduationCap },
+            users: { title: "Users", description: "Manage admin accounts and per-user access rules.", Icon: Users },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
             "ksyk-builder": { title: "Builder", description: "Rooms, floors and map defaults. Use Map Defaults tab to set home location for all users.", Icon: Box },
             schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
@@ -1709,14 +1707,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        <TabsContent value="wilma" className="mt-0 space-y-6">
-          {/* Wilma user manager */}
-          <EnhancedWilmaUserManager />
-
-          {/* Wilma integration config — owner only */}
-          {isOwner && <WilmaConfigPanel />}
         </TabsContent>
 
         <TabsContent forceMount value="campus-map" className={cn("mt-0 h-full overflow-hidden", activeTab !== "campus-map" && "hidden")}>

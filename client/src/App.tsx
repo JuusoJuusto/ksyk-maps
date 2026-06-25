@@ -18,6 +18,7 @@ import MaintenanceMode from "@/components/MaintenanceMode";
 import CookieConsent from "@/components/CookieConsent";
 import { useEffect } from "react";
 import { initAnalytics } from "@/lib/analytics";
+import { initTelemetry } from "@/lib/telemetry";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import { useLocation } from "wouter";
@@ -100,6 +101,7 @@ function Router() {
 export default function App() {
   useEffect(() => {
     initAnalytics();
+    initTelemetry();
   }, []);
 
   // Global error logging to admin panel

@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Link } from "wouter";
 import { createPortal } from "react-dom";
 import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
@@ -18,6 +19,7 @@ import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
 import { safeLatLng, safeNum, safeZoom, KSYK_FALLBACK_LAT, KSYK_FALLBACK_LNG, KSYK_FALLBACK_ZOOM } from "@/lib/safeNum";
+import { t as track } from "@/lib/telemetry";
 import {
   parseBuildingShape,
   getLabelAnchor,
@@ -57,6 +59,10 @@ import {
   RotateCcw,
   Plus,
   Minus,
+  UtensilsCrossed,
+  Bus,
+  Search,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -120,6 +126,14 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const { settings, update } = useAppSettings();
   const { settings: securitySettings } = useSecuritySettings();
   const accessDecision = useAccessDecision();
+  // Fire a single telemetry event each time the decision tier changes.
+  useEffect(() => {
+    track.accessDecision({
+      tier: accessDecision.tier,
+      reasonCode: accessDecision.reasonCode,
+      reason: accessDecision.reason,
+    });
+  }, [accessDecision.tier, accessDecision.reasonCode]);
   const canUse3D = isFeatureAllowed("threeDView", accessDecision, securitySettings);
   const canUseRouting = isFeatureAllowed("routing", accessDecision, securitySettings);
   const canUseSearch = isFeatureAllowed("search", accessDecision, securitySettings);
@@ -335,6 +349,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       const cy = (room.mapPositionY ?? 0) + (room.height ?? 60) / 2;
       const [lat, lng] = svgToLatLng(cx, cy);
       flyTo(lat, lng, Math.max(settings.osmDefaultZoom, 19.5));
+      track.focus("room", room.id, room.roomNumber);
     },
     [svgToLatLng, flyTo, settings.osmDefaultZoom]
   );
@@ -350,6 +365,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       }
       if (b) setSelectedBuilding(b);
       setSelectedRoom(null);
+      track.focus("building", letter, letter);
     },
     [campusBuildings, svgToLatLng, flyTo, settings.osmDefaultZoom]
   );
@@ -365,6 +381,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     setSelectedRoom(null);
     setNavFrom(null);
     setNavTo(null);
+    track.reset();
   }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
   const handleLocate = useCallback(() => {
@@ -888,9 +905,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Desktop stacked controls — right side, hidden on mobile. */}
-      {/* Bottom offset is now well above the mobile bottom nav (≈ 80 px) + safe area. */}
       <div className="hidden sm:flex absolute right-3 z-40 flex-col gap-2"
-           style={{ bottom: 'max(11rem, calc(7rem + env(safe-area-inset-bottom)))' }}>
+           style={{ bottom: 'max(2rem, calc(1.25rem + env(safe-area-inset-bottom)))' }}>
 
         {/* Rotation reset (visible whenever rotation ≠ 0) */}
         {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (
@@ -1271,6 +1287,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 }
 
 /* ── Mobile control drawer ───────────────────────────────────────────── */
+/* Top-down sheet that replaces the removed bottom nav. Holds the campus
+ * shortcuts (Lunch / HSL / Search) and the live map controls (3D toggle,
+ * pitch, rotation, locate, home). Editorial layout: serif label up top,
+ * grid of jumbo touch targets below, sliders at the foot. */
 
 interface MobileControlMenuProps {
   isFi: boolean;
@@ -1291,75 +1311,131 @@ interface MobileControlMenuProps {
 
 function MobileControlMenu({
   isFi, canUse3D, canUseGeolocation, is3DMode, pitch, rotation, locating, userLocation,
-  onTogglePitch, onPitchChange, onRotationChange, onLocate, onReset,
+  onTogglePitch, onPitchChange, onRotationChange, onLocate, onReset, onClose,
 }: MobileControlMenuProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 pb-2 border-b border-gray-200/70 dark:border-gray-700/70">
-        <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <span className="text-xs font-bold uppercase tracking-widest">
-          {isFi ? "Karttavalikko" : "Map menu"}
-        </span>
-      </div>
-
-      {/* Quick row — 3D / Locate / Home */}
-      <div className="grid grid-cols-3 gap-2">
-        {canUse3D && (
-          <button
-            type="button"
-            onClick={onTogglePitch}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-semibold transition-colors",
-              is3DMode
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200"
-            )}
+    <div className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
+      {/* Editorial header strip */}
+      <div className="flex items-center justify-between pb-3 border-b border-gray-200/70 dark:border-gray-700/70">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.22em] text-blue-600 dark:text-blue-400 uppercase mb-0.5">
+            KSYK · {isFi ? "kartta" : "Map"}
+          </p>
+          <p
+            className="text-xl font-bold leading-none tracking-tight"
+            style={{ fontFamily: "'Libre Baskerville', Georgia, serif" }}
           >
-            <Mountain className="h-4 w-4" />
-            <span>{is3DMode ? "3D" : "2D"}</span>
-          </button>
-        )}
-        {canUseGeolocation && (
-          <button
-            type="button"
-            onClick={onLocate}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-semibold transition-colors",
-              userLocation
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200"
-            )}
-          >
-            {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-            <span>{isFi ? "Paikka" : "Locate"}</span>
-          </button>
-        )}
+            {isFi ? "Valikko" : "Menu"}
+          </p>
+        </div>
         <button
           type="button"
-          onClick={onReset}
-          className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 text-xs font-semibold transition-colors"
+          onClick={onClose}
+          aria-label={isFi ? "Sulje" : "Close"}
+          className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <Home className="h-4 w-4" />
-          <span>{isFi ? "Koti" : "Home"}</span>
+          <X className="h-4 w-4" />
         </button>
+      </div>
+
+      {/* Section: campus shortcuts (the bits that used to live in the bottom nav). */}
+      <div>
+        <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground uppercase mb-2 px-1">
+          {isFi ? "Pikalinkit" : "Quick links"}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <Link
+            href="/lunch"
+            onClick={onClose}
+            className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-950/50 transition-colors"
+          >
+            <UtensilsCrossed className="h-5 w-5" />
+            <span className="text-[11px] font-semibold">{isFi ? "Ruoka" : "Lunch"}</span>
+          </Link>
+          <Link
+            href="/hsl"
+            onClick={onClose}
+            className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+          >
+            <Bus className="h-5 w-5" />
+            <span className="text-[11px] font-semibold">HSL</span>
+          </Link>
+          <Link
+            href="/features"
+            onClick={onClose}
+            className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
+          >
+            <Layers className="h-5 w-5" />
+            <span className="text-[11px] font-semibold">{isFi ? "Lisää" : "More"}</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Section: map controls */}
+      <div>
+        <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground uppercase mb-2 px-1">
+          {isFi ? "Kartta" : "View"}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {canUse3D && (
+            <button
+              type="button"
+              onClick={onTogglePitch}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl text-[11px] font-semibold transition-colors",
+                is3DMode
+                  ? "bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/30"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700",
+              )}
+            >
+              <Mountain className="h-5 w-5" />
+              <span>{is3DMode ? "3D" : "2D"}</span>
+            </button>
+          )}
+          {canUseGeolocation && (
+            <button
+              type="button"
+              onClick={onLocate}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl text-[11px] font-semibold transition-colors",
+                userLocation
+                  ? "bg-gradient-to-br from-blue-600 to-cyan-600 text-white shadow-md shadow-blue-500/30"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700",
+              )}
+            >
+              {locating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Crosshair className="h-5 w-5" />}
+              <span>{isFi ? "Paikka" : "Locate"}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 text-[11px] font-semibold transition-colors"
+          >
+            <Home className="h-5 w-5" />
+            <span>{isFi ? "Koti" : "Home"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Pitch slider — only when 3D on */}
       {is3DMode && canUse3D && (
-        <div className="space-y-1.5">
+        <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-              <Mountain className="h-3 w-3" />
+              <Mountain className="h-3.5 w-3.5" />
               {isFi ? "Kallistus" : "Tilt"}
             </span>
-            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400">{Math.round(pitch)}°</span>
+            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              {String(Math.round(pitch)).padStart(2, "0")}°
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               aria-label="Less pitch"
               onClick={() => onPitchChange(Math.max(0, pitch - 4))}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
@@ -1370,14 +1446,14 @@ function MobileControlMenu({
               step={1}
               value={pitch}
               onChange={(e) => onPitchChange(Number(e.target.value))}
-              className="flex-1 h-1.5 accent-indigo-500"
+              className="flex-1 h-2 accent-indigo-500"
               aria-label="Pitch angle"
             />
             <button
               type="button"
               aria-label="More pitch"
               onClick={() => onPitchChange(Math.min(45, pitch + 4))}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -1386,20 +1462,22 @@ function MobileControlMenu({
       )}
 
       {/* Rotation slider — always available */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-            <Compass className="h-3 w-3" />
+            <Compass className="h-3.5 w-3.5" />
             {isFi ? "Kierto" : "Rotation"}
           </span>
           <div className="flex items-center gap-2">
-            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400">{Math.round(rotation)}°</span>
+            <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              {(rotation >= 0 ? "+" : "") + String(Math.round(rotation)).padStart(rotation < 0 ? 3 : 2, "0")}°
+            </span>
             {Math.abs(rotation) > 0.5 && (
               <button
                 type="button"
                 aria-label={isFi ? "Nollaa kierto" : "Reset rotation"}
                 onClick={() => onRotationChange(0)}
-                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 font-semibold"
               >
                 <RotateCcw className="h-2.5 w-2.5" />
                 {isFi ? "Nollaa" : "Reset"}
@@ -1414,7 +1492,7 @@ function MobileControlMenu({
           step={1}
           value={rotation}
           onChange={(e) => onRotationChange(Number(e.target.value))}
-          className="w-full h-1.5 accent-indigo-500"
+          className="w-full h-2 accent-indigo-500"
           aria-label="Map rotation"
         />
       </div>

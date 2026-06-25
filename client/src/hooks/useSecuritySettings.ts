@@ -29,14 +29,19 @@ if (typeof window !== "undefined") {
   });
 }
 
-/** Load admin-set security from server. Falls back silently if offline. */
+/** Load admin-set security from server. Falls back silently if offline.
+ *  Server is authoritative — local edits that haven't been saved get
+ *  overwritten on the next pull. This is intentional: it's how admin
+ *  changes propagate to every device. */
 export async function loadSecurityFromServer(): Promise<void> {
   try {
     const r = await fetch("/api/security-settings", { credentials: "include" });
     if (!r.ok) return;
     const data = await r.json();
     if (data && typeof data === "object") {
-      setSnapshot({ ...DEFAULT_SECURITY_SETTINGS, ...snapshot, ...data });
+      // Server doc wins. Defaults fill in any new keys the server doc
+      // doesn't know about yet (forward-compat with schema growth).
+      setSnapshot({ ...DEFAULT_SECURITY_SETTINGS, ...data });
     }
   } catch {
     /* silent */
@@ -60,9 +65,19 @@ export function useSecuritySettings() {
     () => snapshot,
   );
 
-  // Cheap once-per-mount server pull. Errors are silent.
+  // Pull on mount + every 60 s so admin-saved changes propagate without a
+  // hard refresh on every device. Errors stay silent (offline-friendly).
   useEffect(() => {
     loadSecurityFromServer();
+    const id = setInterval(loadSecurityFromServer, 60_000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") loadSecurityFromServer();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, []);
 
   const update = useCallback(
