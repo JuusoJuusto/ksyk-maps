@@ -12,6 +12,7 @@ import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
+import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -548,7 +549,7 @@ const ADMIN_BASE = "/admin-ksyk-management-portal";
 
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
-  "overview","users","wilma","campus-map","ksyk-builder",
+  "overview","security","users","wilma","campus-map","ksyk-builder",
   "schedules","tickets","logs","staff","announcements","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
@@ -853,6 +854,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
   const NAV_ITEMS = [
     { value: "overview", label: "Overview", Icon: LayoutDashboard },
+    { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
     { value: "wilma", label: "Wilma", Icon: GraduationCap },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
@@ -1020,6 +1022,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
         {(() => {
           const sectionMeta: Record<string, { title: string; description: string; Icon: typeof LayoutDashboard }> = {
             overview: { title: "Overview", description: "At-a-glance state of the campus.", Icon: LayoutDashboard },
+            security: { title: "Security & Access", description: "Time, IP, login, and per-user access controls.", Icon: Shield },
             users: { title: "Users", description: "Manage Wilma and admin accounts.", Icon: Users },
             wilma: { title: "Wilma", description: "Wilma school-system integration.", Icon: GraduationCap },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
@@ -1299,6 +1302,20 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-0 space-y-5">
+          {!isOwner ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <Shield className="h-10 w-10 text-gray-300 dark:text-gray-700" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Owner access only</p>
+                <p className="text-xs text-muted-foreground">Security configuration is restricted to the owner account.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <SecuritySettingsPanel />
+          )}
         </TabsContent>
 
         <TabsContent value="users" className="mt-0 space-y-6">

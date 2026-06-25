@@ -3683,6 +3683,118 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // ── Security & access control ──────────────────────────────────────────
+  // All settings are stored in a single Firestore doc, ready for the future
+  // Supabase migration (one JSON column on a `app_settings` table).
+  app.get('/api/security-settings', async (req, res) => {
+    try {
+      const doc = await db.collection('securitySettings').doc('default').get();
+      if (!doc.exists) return res.json(null);
+      res.json(doc.data());
+    } catch (error) {
+      console.error("Error fetching security settings:", error);
+      res.status(500).json({ message: "Failed to fetch security settings" });
+    }
+  });
+
+  app.put('/api/security-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const payload = { ...req.body, updatedAt: new Date() };
+      await db.collection('securitySettings').doc('default').set(payload, { merge: false });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving security settings:", error);
+      res.status(500).json({ message: "Failed to save security settings" });
+    }
+  });
+
+  // Reports the caller's IP so the client can pre-flight the access decision.
+  // Honours X-Forwarded-For when the app is behind a proxy / load balancer.
+  app.get('/api/client-info', (req, res) => {
+    const xff = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
+    const ip = xff || req.ip || req.socket.remoteAddress || null;
+    res.json({ ip, time: new Date().toISOString() });
+  });
+
+  // Guest access request — written to securitySettings.accessRequests
+  app.post('/api/security-settings/request-access', async (req, res) => {
+    try {
+      const { email, reason } = req.body || {};
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const ref = db.collection('securitySettings').doc('default');
+      const snap = await ref.get();
+      const current = (snap.data() as any) || {};
+      const requests = Array.isArray(current.accessRequests) ? current.accessRequests : [];
+      const request = {
+        id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        email: email.toLowerCase().trim(),
+        reason: (reason || '').toString().slice(0, 500),
+        createdAt: new Date().toISOString(),
+        status: 'pending' as const,
+      };
+      await ref.set({ ...current, accessRequests: [request, ...requests].slice(0, 200) }, { merge: true });
+      res.json({ success: true, id: request.id });
+    } catch (error) {
+      console.error("Error saving access request:", error);
+      res.status(500).json({ message: "Failed to submit request" });
+    }
+  });
+
+  // ── Microsoft / OAuth sign-in (school email stub) ─────────────────────
+  // Real implementation will use msal-node + Azure AD. For now we accept a
+  // dev callback that takes ?email= so the access engine can be exercised
+  // end-to-end while the OAuth app is being provisioned.
+  app.get('/api/auth/microsoft/start', (req, res) => {
+    const azureClientId = process.env.AZURE_CLIENT_ID;
+    const azureTenant = process.env.AZURE_TENANT_ID || 'common';
+    const redirectUri = process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/microsoft/callback`;
+    if (!azureClientId) {
+      // Dev fallback — render a tiny form so testing the flow doesn't require Azure.
+      return res.send(`
+        <html><body style="font-family: system-ui; max-width: 420px; margin: 4rem auto; padding: 2rem; text-align: center;">
+          <h2>Microsoft sign-in (dev)</h2>
+          <p style="color:#666;">AZURE_CLIENT_ID is not set. Use this form to simulate a school login.</p>
+          <form method="GET" action="/api/auth/microsoft/callback" style="display:flex;flex-direction:column;gap:.5rem;">
+            <input type="email" name="email" required placeholder="you@ksyk.fi" style="padding:.5rem .75rem;border:1px solid #ccc;border-radius:.5rem;" />
+            <button type="submit" style="padding:.5rem 1rem;background:#2563eb;color:#fff;border:0;border-radius:.5rem;font-weight:600;">Sign in</button>
+          </form>
+        </body></html>
+      `);
+    }
+    const url = `https://login.microsoftonline.com/${azureTenant}/oauth2/v2.0/authorize`
+      + `?client_id=${encodeURIComponent(azureClientId)}`
+      + `&response_type=code`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&response_mode=query`
+      + `&scope=${encodeURIComponent('openid email profile User.Read')}`;
+    res.redirect(url);
+  });
+
+  app.get('/api/auth/microsoft/callback', async (req: any, res) => {
+    // Real flow would exchange `code` for tokens here. For dev / when AZURE_CLIENT_ID
+    // is not set, accept ?email= and create a session directly so the rest of the
+    // access pipeline can be tested.
+    const email = (req.query.email as string) || '';
+    if (!email) return res.redirect('/?auth_error=missing_email');
+    const role = (process.env.OWNER_EMAILS || '').toLowerCase().split(',').includes(email.toLowerCase()) ? 'owner' : 'student';
+    const user = { id: `ms-${email}`, email: email.toLowerCase(), role, provider: 'microsoft' };
+    if (typeof req.login === 'function') {
+      req.login(user, () => { /* noop */ });
+    } else if (req.session) {
+      req.session.user = user;
+    }
+    res.send(`
+      <html><body>
+        <script>
+          try { localStorage.setItem('ksyk_user', ${JSON.stringify(JSON.stringify(user))}); } catch (e) {}
+          window.location.replace('/');
+        </script>
+      </body></html>
+    `);
+  });
+
   // Lunch menu proxy to bypass CORS
   app.get("/api/lunch-menu", async (req, res) => {
     try {

@@ -162,13 +162,27 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <div className="space-y-2">
                 <Button
                   variant="outline"
+                  onClick={() => window.location.href = "/api/auth/microsoft/start"}
+                  className="w-full h-10 text-sm gap-2 font-semibold"
+                  data-testid="microsoft-auth-button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 23 23" aria-hidden="true">
+                    <rect x="1"  y="1"  width="10" height="10" fill="#F25022" />
+                    <rect x="12" y="1"  width="10" height="10" fill="#7FBA00" />
+                    <rect x="1"  y="12" width="10" height="10" fill="#00A4EF" />
+                    <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
+                  </svg>
+                  Sign in with Microsoft (@ksyk.fi)
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => window.location.href = "/api/login"}
                   className="w-full h-10 text-sm"
                   data-testid="replit-auth-button"
                 >
                   🔐 Continue with Replit Auth
                 </Button>
-                
+
                 {process.env.NODE_ENV === 'development' && (
                   <Button
                     variant="outline"

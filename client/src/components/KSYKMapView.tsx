@@ -13,6 +13,10 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
+import AccessLockoutScreen from "@/components/AccessLockoutScreen";
+import { useAccessDecision } from "@/hooks/useAccessDecision";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
+import { isFeatureAllowed } from "@/lib/accessControl";
 import {
   parseBuildingShape,
   getLabelAnchor,
@@ -108,6 +112,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const { i18n } = useTranslation();
   const { darkMode } = useDarkMode();
   const { settings, update } = useAppSettings();
+  const { settings: securitySettings } = useSecuritySettings();
+  const accessDecision = useAccessDecision();
+  const canUse3D = isFeatureAllowed("threeDView", accessDecision, securitySettings);
+  const canUseRouting = isFeatureAllowed("routing", accessDecision, securitySettings);
+  const canUseSearch = isFeatureAllowed("search", accessDecision, securitySettings);
+  const canUseGeolocation = isFeatureAllowed("geolocation", accessDecision, securitySettings);
+  const canUseSchedules = isFeatureAllowed("schedules", accessDecision, securitySettings);
   const isFi = i18n.language === "fi";
 
   // Load admin-set map defaults from server once on mount
@@ -141,7 +152,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
-  // Room schedule — fetched lazily when a room is selected
+  // Room schedule — fetched lazily when a room is selected (gated by security)
   const { data: roomSchedule, isFetching: scheduleLoading } = useQuery<RoomSchedule>({
     queryKey: ["room-schedule", selectedRoom?.id],
     queryFn: async () => {
@@ -149,7 +160,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       if (!r.ok) throw new Error("schedule fetch failed");
       return r.json();
     },
-    enabled: !!selectedRoom?.id,
+    enabled: !!selectedRoom?.id && canUseSchedules,
     staleTime: 60_000,
   });
 
@@ -413,7 +424,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     [baseViewBox, settings.osmCenterLat, settings.osmCenterLng, settings.osmCampusSpanMeters]
   );
 
-  const is3DMode = (settings.osmPitchDeg ?? 0) > 0;
+  // Restricted users are forced to 2D regardless of the saved pitch setting.
+  const is3DMode = (settings.osmPitchDeg ?? 0) > 0 && canUse3D;
 
   // ─── Campus body (rooms only — OSM tiles show buildings) ───────────────
   const campusBody = (
@@ -655,11 +667,24 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     );
   };
 
+  // Hard block — render the lockout screen instead of the map.
+  if (accessDecision.tier === "blocked") {
+    return <AccessLockoutScreen decision={accessDecision} />;
+  }
+
   return (
     <div
       ref={wrapRef}
       className="relative h-full w-full overflow-hidden bg-[#dde6ef] dark:bg-gray-950 overscroll-contain"
     >
+      {/* Restricted-tier banner — explains why the user can't see everything. */}
+      {accessDecision.tier === "restricted" && (
+        <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none flex justify-center">
+          <div className="mt-1.5 px-3 py-1 rounded-full bg-amber-500/95 text-white text-[10px] font-semibold shadow-lg pointer-events-auto flex items-center gap-1.5">
+            🔒 {accessDecision.reason}
+          </div>
+        </div>
+      )}
       {/* ── Map (the one and only) ─────────────────────────────────── */}
       <OsmBasemap
         svgViewBox={{ x: baseViewBox.x, y: baseViewBox.y, w: baseViewBox.w, h: baseViewBox.h }}
@@ -708,8 +733,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* ── Search results dropdown ────────────────────────────────── */}
-      {searchQuery.trim() && (
+      {/* ── Search results dropdown — gated by access tier ───────── */}
+      {canUseSearch && searchQuery.trim() && (
         <div className="absolute top-3 left-3 right-16 sm:right-20 z-30 max-w-lg sm:max-w-md mx-auto sm:mx-0">
           <div className={cn(panel, "max-h-[60vh] overflow-y-auto shadow-2xl")}>
             {searchHits.length === 0 ? (
@@ -777,8 +802,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       <div className="absolute right-3 z-40 flex flex-col gap-2"
            style={{ bottom: 'max(8.5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
 
-        {/* 3D pitch control — expands when 3D is on */}
-        {is3DMode && (
+        {/* 3D pitch control — expands when 3D is on (gated by access tier) */}
+        {is3DMode && canUse3D && (
           <div className={cn(panel, "w-11 flex flex-col items-center gap-1 py-2 px-0")}>
             <button
               type="button"
@@ -810,27 +835,29 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </div>
         )}
 
-        {/* 3D perspective toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
-          className={cn(
-            panel, "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
-            is3DMode
-              ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700"
-              : ""
-          )}
-          onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
-          title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
-        >
-          <Mountain className="h-4 w-4" />
-          <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
-            {is3DMode ? "3D" : "2D"}
-          </span>
-        </Button>
+        {/* 3D perspective toggle — hidden when access tier disallows it */}
+        {canUse3D && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
+            className={cn(
+              panel, "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
+              is3DMode
+                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700"
+                : ""
+            )}
+            onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
+            title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
+          >
+            <Mountain className="h-4 w-4" />
+            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
+              {is3DMode ? "3D" : "2D"}
+            </span>
+          </Button>
+        )}
 
-        {navigator?.geolocation && (
+        {navigator?.geolocation && canUseGeolocation && (
           <Button
             variant="ghost"
             size="sm"
@@ -868,7 +895,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Nav hint — shown when nothing selected yet ─────────────── */}
-      {!navFrom && !navTo && !searchQuery.trim() && !selectedRoom && !selectedBuilding && (
+      {canUseRouting && !navFrom && !navTo && !searchQuery.trim() && !selectedRoom && !selectedBuilding && (
         <div className="absolute bottom-[max(10rem,calc(5rem+env(safe-area-inset-bottom)))] sm:bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
           <div className="bg-black/40 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm hidden sm:block whitespace-nowrap">
             {isFi ? "Shift+klikkaus = reitti lähtöpiste · Alt+klikkaus = kohde" : "Shift+click room = route start · Alt+click = destination"}
@@ -876,8 +903,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* ── Nav bar ────────────────────────────────────────────────── */}
-      {(navFrom || navTo) && (
+      {/* ── Nav bar — hidden if routing is disabled ──────────────── */}
+      {canUseRouting && (navFrom || navTo) && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-md w-[min(95%,28rem)] pointer-events-auto">
           <div className={cn(panel, "p-3 flex items-center gap-2 shadow-2xl")}>
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
