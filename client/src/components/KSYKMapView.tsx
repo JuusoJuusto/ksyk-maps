@@ -825,9 +825,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Mobile hamburger trigger — bottom right, well above mobile nav. */}
-      <div className="sm:hidden absolute right-3 z-40"
-           style={{ bottom: 'max(7rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}>
+      {/* ── Mobile hamburger trigger — TOP-right, just under the floor selector. */}
+      <div
+        className="sm:hidden absolute right-3 z-40"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.25rem)' }}
+      >
         <Button
           variant="ghost"
           size="sm"
@@ -835,8 +837,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           aria-expanded={menuOpen}
           className={cn(
             panel,
-            "w-12 h-12 p-0 transition-all",
-            menuOpen && "rotate-90 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
+            "w-12 h-12 p-0 transition-all duration-200",
+            menuOpen
+              ? "rotate-90 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
+              : ""
           )}
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -844,22 +848,22 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </Button>
       </div>
 
-      {/* ── Mobile dropdown drawer — opens above the hamburger. */}
+      {/* ── Mobile drawer — slides DOWN from the top of the viewport. */}
       {menuOpen && (
         <>
           {/* Tap-outside backdrop */}
           <button
             type="button"
             aria-label={isFi ? "Sulje valikko" : "Close menu"}
-            className="sm:hidden absolute inset-0 z-30 bg-black/20 backdrop-blur-[2px]"
+            className="sm:hidden absolute inset-0 z-30 bg-black/30 backdrop-blur-[2px] animate-in fade-in duration-150"
             onClick={() => setMenuOpen(false)}
           />
           <div
             className={cn(
               panel,
-              "sm:hidden absolute right-3 z-40 w-[min(18rem,calc(100vw-1.5rem))] p-3 animate-in fade-in slide-in-from-bottom-2 duration-150",
+              "sm:hidden absolute z-40 left-3 right-3 p-4 animate-in fade-in slide-in-from-top-4 duration-200 rounded-2xl",
             )}
-            style={{ bottom: 'max(11rem, calc(9.5rem + env(safe-area-inset-bottom)))' }}
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
             role="dialog"
             aria-label={isFi ? "Karttavalikko" : "Map menu"}
           >
@@ -884,8 +888,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Desktop stacked controls — right side, hidden on mobile. */}
+      {/* Bottom offset is now well above the mobile bottom nav (≈ 80 px) + safe area. */}
       <div className="hidden sm:flex absolute right-3 z-40 flex-col gap-2"
-           style={{ bottom: 'max(8.5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+           style={{ bottom: 'max(11rem, calc(7rem + env(safe-area-inset-bottom)))' }}>
 
         {/* Rotation reset (visible whenever rotation ≠ 0) */}
         {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (

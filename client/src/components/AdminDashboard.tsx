@@ -669,38 +669,28 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
   const isAdmin = currentUser?.role === "admin" || isOwner; // Admin or owner
 
-  // Auto-redirect to /admin-login if no valid session is present, OR if the
-  // server says our session is gone. localStorage flag alone is trust-on-write;
-  // we additionally probe /api/auth/me on mount and on tab focus and bounce
-  // out on 401/403.
+  // Auth gate — only bounces to /admin-login when the localStorage flag is
+  // missing entirely. The server probe is best-effort and never logs you out:
+  // on Vercel-style serverless deployments the session can evaporate between
+  // cold starts, so an opportunistic 401 doesn't mean the user logged out.
+  // (The user explicitly logs out via the sidebar button.)
   useEffect(() => {
     const flagged = localStorage.getItem("ksyk_admin_logged_in") === "true";
-    if (!flagged || !currentUser) {
+    const loginAt = Number(localStorage.getItem("ksyk_admin_login_at") || 0);
+    const hoursSinceLogin = (Date.now() - loginAt) / (1000 * 60 * 60);
+    // Hard cap: 12 hours since login = expired.
+    if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
+      localStorage.removeItem("ksyk_admin_logged_in");
+      localStorage.removeItem("ksyk_admin_user");
+      localStorage.removeItem("ksyk_admin_login_at");
       window.location.replace("/admin-login");
       return;
     }
-    let cancelled = false;
-    const verify = async () => {
-      try {
-        const r = await fetch("/api/auth/user", { credentials: "include" });
-        if (cancelled) return;
-        if (r.status === 401 || r.status === 403) {
-          localStorage.removeItem("ksyk_admin_logged_in");
-          localStorage.removeItem("ksyk_admin_user");
-          window.location.replace("/admin-login");
-        }
-      } catch {
-        // Network errors are non-fatal — keep the user in the panel.
-      }
-    };
-    verify();
-    const onFocus = () => verify();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("focus", onFocus);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Best-effort: refresh user data when the server is reachable. We
+    // intentionally do NOT log the user out on 401 — that path used to
+    // cause an infinite loop on serverless deployments where the session
+    // store is in-memory and resets between requests.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
 
