@@ -13,6 +13,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
+import StudentLoginGate from "@/components/StudentLoginGate";
 import { cn } from "@/lib/utils";
 
 export default function KSYKMapsHome() {
@@ -33,6 +34,7 @@ export default function KSYKMapsHome() {
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
+      <StudentLoginGate />
       <AnnouncementBanner />
       <Header
         searchQuery={settingsOpen ? undefined : searchQuery}

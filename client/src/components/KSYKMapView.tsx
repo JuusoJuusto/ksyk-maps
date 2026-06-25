@@ -63,6 +63,8 @@ import {
   Bus,
   Search,
   Settings,
+  LogIn,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -332,8 +334,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       const targetZoom = safeZoom(Math.max(zoom ?? defaultZ, defaultZ));
       try {
         map.flyTo([safeLat, safeLng], targetZoom, { duration: 0.55 });
-      } catch (err) {
-        console.warn("flyTo failed; falling back to setView", err);
+      } catch {
+        // Expected fallback when Leaflet rejects an internal projection
+        // (e.g. stale NaN survives the safe-num path). Silent — the
+        // setView call below recovers the view without bothering the user.
         try { map.setView([safeLat, safeLng], targetZoom, { animate: false }); } catch { /* give up */ }
       }
     },
@@ -865,9 +869,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       )}
 
       {/* ── Floor selector (top-right) ─────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-1 p-1.5 rounded-2xl shadow-lg border border-gray-200/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm"
+      <div className="absolute top-3 right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl shadow-xl border border-gray-200/80 dark:border-gray-700/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md"
            aria-label="Floor selector">
-        <p className="text-[8px] font-bold uppercase tracking-widest text-center text-muted-foreground leading-none py-0.5">
+        <p
+          className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-0.5"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
           {isFi ? "KRS" : "FL"}
         </p>
         {Array.from({ length: maxFloor }, (_, i) => maxFloor - i).map((floor) => (
@@ -878,9 +885,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             aria-pressed={selectedFloor === floor}
             onClick={() => setSelectedFloor(floor)}
             className={cn(
-              "w-9 h-8 rounded-xl text-sm font-bold transition-all duration-150 leading-none",
+              "w-9 h-8 rounded-xl text-sm font-bold transition-all duration-150 leading-none tabular-nums",
               selectedFloor === floor
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30"
                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             )}
           >
@@ -892,7 +899,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {/* ── Mobile hamburger trigger — TOP-right, just under the floor selector. */}
       <div
         className="sm:hidden absolute right-3 z-40"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.25rem)' }}
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.5rem)' }}
       >
         <Button
           variant="ghost"
@@ -900,11 +907,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           aria-label={menuOpen ? (isFi ? "Sulje valikko" : "Close menu") : (isFi ? "Avaa kartan asetukset" : "Open map controls")}
           aria-expanded={menuOpen}
           className={cn(
-            panel,
-            "w-12 h-12 p-0 transition-all duration-200",
+            "w-12 h-12 p-0 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-200 active:scale-95",
             menuOpen
-              ? "rotate-90 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
-              : ""
+              ? "rotate-90 bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-blue-500 shadow-blue-500/30"
+              : darkMode
+                ? "bg-gray-900/92 border-gray-700/80"
+                : "bg-white/92 border-gray-200/90",
           )}
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -1385,6 +1393,9 @@ function MobileControlMenu({
         </button>
       </div>
 
+      {/* Section: account — sign-in / current user. */}
+      <AccountRow isFi={isFi} onClose={onClose} />
+
       {/* Section: campus shortcuts (the bits that used to live in the bottom nav). */}
       <div>
         <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground uppercase mb-2 px-1">
@@ -1543,6 +1554,85 @@ function MobileControlMenu({
           aria-label="Map rotation"
         />
       </div>
+    </div>
+  );
+}
+
+/* ── Account row inside the hamburger drawer ────────────────────────── */
+
+function AccountRow({ isFi, onClose }: { isFi: boolean; onClose: () => void }) {
+  // Read the current user from localStorage every render — cheap, and the
+  // drawer mounts/unmounts so the value is always fresh on open.
+  const readUser = (): { email?: string | null; role?: string; provider?: string } | null => {
+    try {
+      const raw = localStorage.getItem("ksyk_user") || localStorage.getItem("ksyk_admin_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+  const user = readUser();
+  const isGuest = !user || user.role === "guest" || user.provider === "guest";
+
+  const signIn = () => {
+    onClose();
+    // Clear the intro-seen flag so the login modal can show again, then
+    // navigate to the dedicated admin-login page which carries the
+    // editorial split-screen sign-in.
+    try { localStorage.removeItem("ksyk_intro_seen_v2"); } catch { /* */ }
+    window.location.href = "/admin-login";
+  };
+
+  const signOut = () => {
+    try {
+      localStorage.removeItem("ksyk_user");
+      localStorage.removeItem("ksyk_admin_user");
+      localStorage.removeItem("ksyk_admin_logged_in");
+      localStorage.removeItem("ksyk_admin_login_at");
+      localStorage.removeItem("ksyk_intro_seen_v2");
+    } catch { /* */ }
+    window.location.reload();
+  };
+
+  if (isGuest) {
+    return (
+      <button
+        type="button"
+        onClick={signIn}
+        className="flex items-center gap-3 w-full p-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:from-blue-500 hover:to-indigo-500 transition-all"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-md ring-1 ring-white/20">
+          <LogIn className="h-4 w-4" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-bold tracking-tight">{isFi ? "Kirjaudu sisään" : "Sign in"}</p>
+          <p className="text-[11px] text-white/75">
+            {isFi ? "Saa pääsy lukujärjestyksiin ja 3D-näkymään" : "Unlock schedules & 3D view"}
+          </p>
+        </div>
+        <ChevronUp className="h-4 w-4 opacity-60 rotate-90" />
+      </button>
+    );
+  }
+
+  const initial = (user?.email || "U").slice(0, 1).toUpperCase();
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm shadow-sm">
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{user?.email || "Account"}</p>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+          {user?.role || "user"}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={signOut}
+        aria-label="Sign out"
+        className="h-8 px-2.5 rounded-lg text-[10px] font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+      >
+        {isFi ? "Ulos" : "Sign out"}
+      </button>
     </div>
   );
 }

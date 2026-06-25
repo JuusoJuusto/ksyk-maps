@@ -666,28 +666,49 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const isOwner = currentUser?.email === "JuusoJuusto112@gmail.com" || currentUser?.id === "owner-admin-user";
   const isAdmin = currentUser?.role === "admin" || isOwner; // Admin or owner
 
-  // Auth gate — only bounces to /admin-login when the localStorage flag is
-  // missing entirely. The server probe is best-effort and never logs you out:
-  // on Vercel-style serverless deployments the session can evaporate between
-  // cold starts, so an opportunistic 401 doesn't mean the user logged out.
-  // (The user explicitly logs out via the sidebar button.)
+  // Auth gate:
+  // - localStorage flag must be present (you literally signed in here)
+  // - Token must be < 12 h old
+  // - Server probe must NOT return an explicit "invalid token" signal
+  //   (we look for status 401 + message containing "invalid|expired", so
+  //   a generic cold-start 401 from a serverless function doesn't bounce
+  //   us out)
+  // Anything else → redirect to /admin-login.
   useEffect(() => {
     const flagged = localStorage.getItem("ksyk_admin_logged_in") === "true";
     const loginAt = Number(localStorage.getItem("ksyk_admin_login_at") || 0);
     const hoursSinceLogin = (Date.now() - loginAt) / (1000 * 60 * 60);
-    // Hard cap: 12 hours since login = expired.
-    if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
+    const wipeAndRedirect = () => {
       localStorage.removeItem("ksyk_admin_logged_in");
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
       window.location.replace("/admin-login");
+    };
+    if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
+      wipeAndRedirect();
       return;
     }
-    // Best-effort: refresh user data when the server is reachable. We
-    // intentionally do NOT log the user out on 401 — that path used to
-    // cause an infinite loop on serverless deployments where the session
-    // store is in-memory and resets between requests.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Probe the server. If it tells us specifically that the token is
+    // invalid (vs a generic cold-start 401), redirect.
+    let cancelled = false;
+    fetch("/api/auth/user", { credentials: "include" })
+      .then(async (r) => {
+        if (cancelled) return;
+        if (r.status === 401 || r.status === 403) {
+          const data = await r.json().catch(() => ({}));
+          const msg = (data?.message || "").toLowerCase();
+          // Real "invalid token" signal.
+          if (msg.includes("invalid") || msg.includes("expired") || msg.includes("token")) {
+            wipeAndRedirect();
+            return;
+          }
+          // Plain "Unauthorized" probably means the serverless session
+          // was lost — don't bounce, keep the localStorage flag.
+        }
+      })
+      .catch(() => { /* network errors aren't fatal */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
 

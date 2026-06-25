@@ -163,6 +163,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/admin-login-logs — recent admin sign-in events.
+    if ((apiPath === '/admin-login-logs' || apiPath.startsWith('/admin-login-logs?')) && req.method === 'GET') {
+      try {
+        if ((storage as any).getAdminLoginLogs) {
+          const limit = parseInt((req.query.limit as string) || '100', 10);
+          const logs = await (storage as any).getAdminLoginLogs(Math.min(limit, 500));
+          return res.status(200).json(logs);
+        }
+        return res.status(200).json([]);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/analytics/rooms — top viewed rooms.
+    if ((apiPath === '/analytics/rooms' || apiPath.startsWith('/analytics/rooms?')) && req.method === 'GET') {
+      try {
+        if ((storage as any).getTopRooms) {
+          const data = await (storage as any).getTopRooms();
+          return res.status(200).json(data);
+        }
+        return res.status(200).json([]);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/analytics/searches — recent / top searches.
+    if ((apiPath === '/analytics/searches' || apiPath.startsWith('/analytics/searches?')) && req.method === 'GET') {
+      try {
+        if ((storage as any).getTopSearches) {
+          const data = await (storage as any).getTopSearches();
+          return res.status(200).json(data);
+        }
+        return res.status(200).json([]);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/analytics/visitors — visitor breakdown by device / country.
+    if ((apiPath === '/analytics/visitors' || apiPath.startsWith('/analytics/visitors?')) && req.method === 'GET') {
+      try {
+        if ((storage as any).getVisitors) {
+          const data = await (storage as any).getVisitors();
+          return res.status(200).json(data);
+        }
+        return res.status(200).json([]);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/easter-eggs/stats — discovered eggs counter.
+    if (apiPath === '/easter-eggs/stats' && req.method === 'GET') {
+      try {
+        if ((storage as any).getEasterEggStats) {
+          const data = await (storage as any).getEasterEggStats();
+          return res.status(200).json(data);
+        }
+        return res.status(200).json({ discovered: 0, total: 0, eggs: [] });
+      } catch {
+        return res.status(200).json({ discovered: 0, total: 0, eggs: [] });
+      }
+    }
+
     // Buildings endpoints
     if (apiPath.startsWith('/buildings')) {
       if (req.method === 'GET' && apiPath === '/buildings') {

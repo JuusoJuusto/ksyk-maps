@@ -396,10 +396,10 @@ export default function OsmBasemap({
     const zoom = safeZoom(settings.osmDefaultZoom);
     try {
       map.flyTo([lat, lng], zoom, { duration: 0.5 });
-    } catch (err) {
-      // Last-ditch — swallow any LatLng error so the map keeps rendering.
-      // This is the layer that the prior NaN crash bypassed.
-      console.warn("flyTo blocked invalid coords; using setView fallback", err);
+    } catch {
+      // Last-ditch — swallow Leaflet's internal LatLng error so the map
+      // keeps rendering. Silent (no console.warn) because this fires
+      // every settings hop and the setView below recovers cleanly.
       try { map.setView([lat, lng], zoom, { animate: false }); } catch { /* give up */ }
     }
     if (wasBounded) {
