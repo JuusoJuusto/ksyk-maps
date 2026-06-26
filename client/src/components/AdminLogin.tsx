@@ -58,7 +58,19 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* ── LEFT · narrow sign-in column ───────────────────────────── */}
+      {/* ── LEFT · big photo, no overlay, no copy ──────────────── */}
+      <div className="hidden lg:block relative flex-1 bg-gray-900 overflow-hidden">
+        <img
+          src="/wilma-bg.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+        />
+      </div>
+
+      {/* ── RIGHT · narrow sign-in column ───────────────────────── */}
       <div className={cn(
         "relative flex flex-col w-full lg:w-[38%] xl:w-[34%] px-6 sm:px-10 lg:px-12 py-10 lg:py-14 shrink-0",
         darkMode ? "bg-gray-950" : "bg-white",
@@ -295,17 +307,6 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         </div>
       </div>
 
-      {/* ── RIGHT · big photo, no overlay, no copy ──────────────── */}
-      <div className="hidden lg:block relative flex-1 bg-gray-900 overflow-hidden">
-        <img
-          src="/wilma-bg.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
-      </div>
     </div>
   );
 }

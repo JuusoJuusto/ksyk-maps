@@ -267,6 +267,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ── Beacon survey storage ─────────────────────────────────────────
+    // Path: /api/beacons/:roomId/positions[/:positionId]
+    {
+      const beaconListMatch = apiPath.match(/^\/beacons\/([^\/]+)\/positions$/);
+      const beaconOneMatch = apiPath.match(/^\/beacons\/([^\/]+)\/positions\/([^\/]+)$/);
+
+      if (beaconListMatch && req.method === 'GET') {
+        const roomId = beaconListMatch[1];
+        try {
+          const { db } = await import('../server/firebaseStorage.js');
+          const snap = await db.collection('beaconSurveys').doc(roomId).collection('positions')
+            .orderBy('capturedAt', 'desc').get();
+          const positions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          return res.status(200).json(positions);
+        } catch {
+          return res.status(200).json([]);
+        }
+      }
+
+      if (beaconListMatch && req.method === 'POST') {
+        const roomId = beaconListMatch[1];
+        try {
+          const { db } = await import('../server/firebaseStorage.js');
+          const { positionLabel, capturedAt, readings } = req.body || {};
+          if (!positionLabel || !Array.isArray(readings)) {
+            return res.status(400).json({ message: 'positionLabel and readings[] required' });
+          }
+          const safeReadings = readings.slice(0, 50).map((r: any) => ({
+            bssid: String(r.bssid || '').toLowerCase().slice(0, 30),
+            rssi: Number(r.rssi) || 0,
+            ssid: r.ssid ? String(r.ssid).slice(0, 64) : undefined,
+          })).filter((r: any) => r.bssid);
+          const doc = await db.collection('beaconSurveys').doc(roomId)
+            .collection('positions').add({
+              positionLabel: String(positionLabel).slice(0, 60),
+              capturedAt: capturedAt || new Date().toISOString(),
+              readings: safeReadings,
+              createdAt: new Date(),
+            });
+          return res.status(201).json({ id: doc.id, success: true });
+        } catch (err) {
+          console.error('beacons POST error:', err);
+          return res.status(500).json({ message: 'Failed to save position' });
+        }
+      }
+
+      if (beaconOneMatch && req.method === 'DELETE') {
+        const [, roomId, positionId] = beaconOneMatch;
+        try {
+          const { db } = await import('../server/firebaseStorage.js');
+          await db.collection('beaconSurveys').doc(roomId).collection('positions').doc(positionId).delete();
+          return res.status(204).send('');
+        } catch (err) {
+          console.error('beacons DELETE error:', err);
+          return res.status(500).json({ message: 'Failed to delete' });
+        }
+      }
+    }
+
     // GET /api/easter-eggs/stats — count of each discovered egg, persisted
     // in Firestore (one counter doc, atomic increments). The shape matches
     // what EasterEggStats.tsx expects: { secretEasterEgg, konamiCode, devMode }.

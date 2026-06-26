@@ -14,6 +14,7 @@ import TwoFactorAuth from "@/components/TwoFactorAuth";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import Builder3D from "@/components/Builder3D";
+import BeaconSurveyor from "@/components/BeaconSurveyor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ import {
   Eye,
   EyeOff,
   Home,
+  Radio,
 } from "lucide-react";
 
 interface Building {
@@ -551,7 +553,7 @@ const ADMIN_BASE = "/admin";
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
   "overview","security","users","campus-map","ksyk-builder","builder-3d",
-  "schedules","tickets","logs","staff","announcements","2fa","settings",
+  "schedules","tickets","logs","staff","announcements","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -873,6 +875,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "logs", label: "Logs", Icon: ScrollText },
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
+    ...(isOwner ? [{ value: "beacons", label: "Beacons", Icon: Radio }] : []),
     ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
   ];
@@ -1059,6 +1062,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
+            beacons: { title: "Beacon Surveyor", description: "Map WiFi signal strength per room for indoor positioning. Coming later.", Icon: Radio },
             "2fa": { title: "Two-Factor Auth", description: "Enroll and manage 2FA for your account.", Icon: Shield },
             settings: { title: "Settings", description: "App name, branding, and danger zone.", Icon: Settings },
           };
@@ -2312,6 +2316,12 @@ export default function AdminDashboard({ section }: { section?: string }) {
         <TabsContent value="announcements" className="mt-0 space-y-6">
           <AnnouncementManager />
         </TabsContent>
+
+        {isOwner && (
+          <TabsContent value="beacons" className="mt-0 space-y-6">
+            <BeaconSurveyor />
+          </TabsContent>
+        )}
 
         {isOwner && (
           <TabsContent value="2fa" className="mt-0 space-y-6">

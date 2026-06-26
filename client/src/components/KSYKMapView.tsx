@@ -155,6 +155,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
+  /** Rotation popover open/close — toggled by the compass button. */
+  const [rotateOpen, setRotateOpen] = useState(false);
   /** Matterport tour overlay — fullscreen 3D walkthrough. Visible when
    * the admin has configured matterportTourUrl AND the user has tapped
    * the Tour button. */
@@ -376,19 +378,33 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     [campusBuildings, svgToLatLng, flyTo, settings.osmDefaultZoom]
   );
 
-  // Reset = fly back to the admin-configured home position. Always uses
-  // sanitised numbers so this never crashes the map (it's the *escape hatch*
-  // — if anything else is broken, hitting Home must always recover).
+  // Reset = fly back to KSYK school. We use the admin-configured center
+  // only if it's plausibly close to KSYK (within ~5km); otherwise we
+  // snap to the hard-coded school coords. This is the user's "escape
+  // hatch" — if anything else is broken (corrupt settings, wrong saved
+  // center), hitting Home must ALWAYS recover the KSYK view.
   const resetView = useCallback(() => {
-    const [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const KM_THRESHOLD_DEG = 0.05; // ~5.5km in latitude
+    let [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
+    const drift =
+      Math.abs(lat - KSYK_FALLBACK_LAT) + Math.abs(lng - KSYK_FALLBACK_LNG);
+    if (drift > KM_THRESHOLD_DEG) {
+      lat = KSYK_FALLBACK_LAT;
+      lng = KSYK_FALLBACK_LNG;
+    }
     const zoom = safeZoom(settings.osmDefaultZoom);
     flyTo(lat, lng, zoom);
+    // Also clear rotation if it's drifted, so "Home" feels like a true reset.
+    if (Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5) {
+      update("osmRotationDeg", 0);
+    }
     setSelectedBuilding(null);
     setSelectedRoom(null);
     setNavFrom(null);
     setNavTo(null);
+    setRotateOpen(false);
     track.reset();
-  }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
+  }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom, settings.osmRotationDeg, update]);
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -931,18 +947,28 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </button>
         )}
 
-        {/* Rotation reset (visible whenever rotation ≠ 0) */}
-        {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (
+        {/* Rotation — click compass to open a rotation slider popover.
+         *   Compass needle reflects current angle. Long-press / shift-click
+         *   resets to 0. Always visible so users can find rotation. */}
+        <div className="relative">
           <button
             type="button"
-            aria-label={isFi ? "Palauta pohjoinen ylös" : "Reset rotation"}
-            onClick={() => update("osmRotationDeg", 0)}
-            title={isFi ? "Kompassi · pohjoinen ylös" : "Compass · north up"}
+            aria-label={isFi ? "Kierrä karttaa" : "Rotate map"}
+            onClick={(e) => {
+              if (e.shiftKey || Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && e.altKey) {
+                update("osmRotationDeg", 0);
+              } else {
+                setRotateOpen((v) => !v);
+              }
+            }}
+            title={isFi ? "Kierrä · pidä Shift nollataksesi" : "Rotate · Shift-click to reset"}
             className={cn(
               "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
-              darkMode
-                ? "bg-gray-900/92 border-gray-700/70 text-blue-400 hover:bg-gray-800"
-                : "bg-white/95 border-gray-200 text-blue-600 hover:bg-blue-50",
+              Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5
+                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
+                : darkMode
+                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
             )}
           >
             <Compass
@@ -950,7 +976,53 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               style={{ transform: `rotate(${-safeNum(settings.osmRotationDeg, 0)}deg)` }}
             />
           </button>
-        )}
+          {rotateOpen && (
+            <div
+              className={cn(
+                "absolute right-full mr-2 top-1/2 -translate-y-1/2 z-50 rounded-xl shadow-xl border backdrop-blur-md p-3 w-48 animate-in fade-in slide-in-from-right-1 duration-150",
+                darkMode ? "bg-gray-900/95 border-gray-700/70" : "bg-white/95 border-gray-200",
+              )}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold tracking-[0.22em] uppercase text-gray-500">
+                  {isFi ? "Kierto" : "Rotation"}
+                </span>
+                <span className="text-xs font-mono tabular-nums font-bold text-blue-600 dark:text-blue-400">
+                  {Math.round(safeNum(settings.osmRotationDeg, 0))}°
+                </span>
+              </div>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={safeNum(settings.osmRotationDeg, 0)}
+                onChange={(e) => update("osmRotationDeg", Number(e.target.value))}
+                className="w-full accent-blue-600"
+                aria-label="Map rotation"
+              />
+              <div className="flex items-center justify-between mt-2 gap-1">
+                {[-90, 0, 90, 180].map((deg) => (
+                  <button
+                    key={deg}
+                    type="button"
+                    onClick={() => update("osmRotationDeg", deg)}
+                    className={cn(
+                      "h-7 flex-1 text-[10px] font-bold rounded-md transition-colors tabular-nums",
+                      Math.abs(safeNum(settings.osmRotationDeg, 0) - deg) < 0.5
+                        ? "bg-blue-600 text-white"
+                        : darkMode
+                          ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                    )}
+                  >
+                    {deg > 0 ? `+${deg}` : deg}°
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* 3D pitch stepper — visible when 3D is on */}
         {is3DMode && canUse3D && (
