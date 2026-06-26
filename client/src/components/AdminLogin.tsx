@@ -295,28 +295,6 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               Microsoft · @ksyk.fi
             </Button>
 
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                const guest = {
-                  id: `guest-${Date.now()}`,
-                  email: 'student@guest.ksyk.fi',
-                  role: 'student',
-                  provider: 'guest',
-                };
-                try { localStorage.setItem('ksyk_user', JSON.stringify(guest)); } catch { /* */ }
-                window.location.href = '/';
-              }}
-              className={cn(
-                "w-full h-9 rounded-lg text-xs font-medium",
-                darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900",
-              )}
-              data-testid="student-guest-button"
-            >
-              Continue as student (guest) →
-            </Button>
-
             {process.env.NODE_ENV === 'development' && (
               <Button
                 type="button"

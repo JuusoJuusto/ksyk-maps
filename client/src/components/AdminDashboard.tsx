@@ -988,24 +988,31 @@ export default function AdminDashboard({ section }: { section?: string }) {
         {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
         <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
           {currentUser && (
-            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700/30">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white text-[11px] font-bold ring-1 ring-white/30">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src="/favicon-128.png"
+                  alt="KSYK Maps"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain shrink-0"
+                />
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold">
                   {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
                 </span>
-                <span className="text-xs font-semibold truncate max-w-[18ch] text-white">
+                <span className="text-xs font-semibold truncate max-w-[18ch] text-gray-900 dark:text-white">
                   {currentUser.name || currentUser.email}
                 </span>
-                <span className="text-[10px] uppercase tracking-wider text-white/55 hidden sm:inline">
-                  · {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
+                <span className="text-[10px] uppercase tracking-wider text-gray-500 hidden sm:inline">
+                  {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <a href="/" className="text-[11px] text-white/70 hover:text-white font-medium transition-colors">← Map</a>
+                <a href="/" className="text-[11px] text-gray-500 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">← Map</a>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px] font-semibold text-white/80 hover:text-white hover:bg-white/20 rounded-full"
+                  className="h-7 px-2.5 text-[10px] font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg"
                   onClick={logoutFn}
                 >
                   Sign out
@@ -1015,14 +1022,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
           )}
           <div className="relative overflow-hidden">
             <div className="overflow-x-auto scrollbar-none px-3 py-2">
-              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100/80 dark:bg-gray-900/60 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-800">
+              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl border border-gray-200 dark:border-gray-800">
                 {NAV_ITEMS.map(({ value, label, Icon }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-300 rounded-xl px-3 py-2 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-200 whitespace-nowrap"
+                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/30 rounded-lg px-3 py-1.5 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-150 whitespace-nowrap"
                   >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{label}</span>
                   </TabsTrigger>
                 ))}
@@ -1060,15 +1067,15 @@ export default function AdminDashboard({ section }: { section?: string }) {
           if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d") return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
-                <Icon className="h-4 w-4" />
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/50">
+                <Icon className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm sm:text-base font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
+                <h2 className="text-base sm:text-lg font-semibold tracking-tight leading-tight text-gray-900 dark:text-white">
                   {meta.title}
                 </h2>
-                <p className="text-[11px] text-muted-foreground leading-tight truncate">
+                <p className="text-xs text-muted-foreground leading-snug">
                   {meta.description}
                 </p>
               </div>

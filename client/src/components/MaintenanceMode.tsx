@@ -5,7 +5,7 @@
  * status pill. Admins are not blocked: App.tsx bypasses this on /admin*.
  */
 
-import { Wrench, ArrowRight } from "lucide-react";
+import { Wrench } from "lucide-react";
 
 interface Props {
   message?: string;
@@ -47,14 +47,6 @@ export default function MaintenanceMode({ message }: Props) {
           {message || "We're making a few quick updates. The campus map will be back shortly."}
         </p>
 
-        {/* Admin escape hatch */}
-        <a
-          href="/admin"
-          className="group mt-9 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-        >
-          Admin sign-in
-          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </a>
       </div>
 
       {/* Bottom corner mark */}
