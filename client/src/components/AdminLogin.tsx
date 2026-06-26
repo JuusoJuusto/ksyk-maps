@@ -3,22 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, LogIn, MapPin, ArrowRight, Compass, Lock } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
 
 /**
- * KSYK Admin Login — editorial cartographic split.
+ * KSYK Admin Login — minimal split.
  *
- * Left: full-bleed wilma-bg.jpg behind a navy/cyan brand wash with a
- * compass watermark and a serif headline.
- * Right: refined login form, generous whitespace, no AI-slop gradients.
- *
- * Typography:
- *   display → Libre Baskerville (already loaded in index.html)
- *   body    → Plus Jakarta Sans
- *   tabular → JetBrains Mono
+ * Left: the wilma-bg.jpg photo with a soft white wash so it reads as a
+ * calm campus backdrop, not a marketing splash. Brand mark, one tagline.
+ * Right: tight white form. No gradients, no glow, no "shouting" copy.
+ * The whole page is built around restraint — appropriate for an admin
+ * surface used daily by one or two people.
  */
 
 interface AdminLoginProps {
@@ -38,7 +35,6 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
       const response = await fetch('/api/auth/admin-login', {
         method: 'POST',
@@ -46,13 +42,12 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
-
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('ksyk_admin_logged_in', 'true');
         localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
         localStorage.setItem('ksyk_admin_login_at', String(Date.now()));
-        toast({ title: 'Welcome back', description: 'Signed in to KSYK Admin.' });
+        toast({ title: 'Signed in', description: 'Welcome back.' });
         onLoginSuccess();
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -66,118 +61,37 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   };
 
   return (
-    <div
-      className="min-h-screen flex relative overflow-hidden"
-      style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
-    >
-      {/* ── LEFT · brand panel ───────────────────────────────────────── */}
-      <div className="hidden lg:flex relative w-[58%] xl:w-[60%] overflow-hidden bg-[#0b1322]">
+    <div className="min-h-screen flex bg-white">
+      {/* ── LEFT · photo panel ──────────────────────────────────────── */}
+      <div className="hidden lg:block relative w-1/2 xl:w-[55%] bg-gray-100 overflow-hidden">
         <img
           src="/wilma-bg.jpg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover opacity-50"
-          loading="eager"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        {/* Navy → midnight overlay — turns the photo into a backdrop. */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0b1322]/95 via-[#0b1322]/82 to-[#070b16]/96" />
-        {/* Soft cyan glow blob — gives the panel depth. */}
-        <div
-          aria-hidden="true"
-          className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full opacity-25 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #22d3ee 0%, transparent 70%)' }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute -bottom-40 -left-32 w-[32rem] h-[32rem] rounded-full opacity-15 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #fbbf24 0%, transparent 70%)' }}
-        />
-        {/* Faint grid texture */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
-        {/* Watermark compass — huge, ghosted, behind text */}
-        <Compass
-          aria-hidden="true"
-          className="absolute -bottom-20 -right-20 w-[34rem] h-[34rem] text-white/[0.025] stroke-[0.5]"
-        />
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-16 text-white">
-          {/* Top brand strip */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/20 shadow-lg">
-              <MapPin className="h-5 w-5 text-cyan-300" strokeWidth={2.4} />
-            </div>
-            <div>
-              <p
-                className="text-[10px] font-bold tracking-[0.32em] text-cyan-300/80 uppercase"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                KSYK · 60.187°N
-              </p>
-              <p className="text-base font-bold tracking-tight text-white/95">
-                Admin Portal
-              </p>
-            </div>
-          </div>
-
-          {/* Mid headline block */}
-          <div className="space-y-6 max-w-xl">
-            <p
-              className="text-[10px] font-bold tracking-[0.4em] text-amber-200/80 uppercase"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            >
-              · Campus Operations ·
+        {/* Soft white wash so text on top reads clearly */}
+        <div className="absolute inset-0 bg-white/55" />
+        {/* Bottom-left brand block */}
+        <div className="absolute inset-0 flex flex-col justify-between p-12 xl:p-14 text-gray-900">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.42em] text-gray-500 uppercase">
+              KSYK · Maps
             </p>
-            <h1
-              className="text-[2.6rem] xl:text-[3.2rem] leading-[1.05] tracking-tight text-white"
-              style={{ fontFamily: "'Libre Baskerville', Georgia, serif", fontWeight: 700 }}
-            >
-              Map the campus,<br />
-              <em className="not-italic bg-gradient-to-r from-cyan-200 via-amber-100 to-cyan-200 bg-clip-text text-transparent">
-                run the school.
-              </em>
+            <p className="text-sm font-semibold mt-1">Admin Portal</p>
+          </div>
+          <div className="space-y-2 max-w-md">
+            <h1 className="text-4xl xl:text-5xl font-semibold leading-[1.05] tracking-tight">
+              Run the campus map.
             </h1>
-            <p className="text-sm text-white/65 leading-relaxed max-w-md">
-              The single console for rooms, schedules, security gates and the
-              3D map experience students see every day.
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Manage rooms, schedules, security and the 3D experience that
+              students see every day.
             </p>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-3 pt-3 max-w-md">
-              {[
-                ['01', 'Live 3D map editor'],
-                ['02', 'Time · IP · email gates'],
-                ['03', 'Per-user overrides'],
-                ['04', 'Heavy telemetry logs'],
-              ].map(([num, label]) => (
-                <div key={num} className="flex items-baseline gap-2">
-                  <span
-                    className="text-[10px] font-bold text-cyan-300/70"
-                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                  >
-                    {num}
-                  </span>
-                  <span className="text-xs text-white/75">{label}</span>
-                </div>
-              ))}
-            </div>
           </div>
-
-          {/* Bottom strip — coordinates + legal */}
-          <div className="flex items-end justify-between text-[10px] text-white/40">
-            <div className="space-y-1">
-              <p style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                60.187°N · 25.006°E
-              </p>
-              <p>© KSYK Maps · Nordbyte Studio</p>
-            </div>
-            <a href="/" className="text-white/55 hover:text-white transition-colors">
+          <div className="flex items-center justify-between text-[11px] text-gray-500">
+            <span>© KSYK · Nordbyte Studio</span>
+            <a href="/" className="hover:text-gray-900 transition-colors">
               ← Back to map
             </a>
           </div>
@@ -185,83 +99,67 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       </div>
 
       {/* ── RIGHT · login form ──────────────────────────────────────── */}
-      <div
-        className={cn(
-          'relative flex-1 flex items-center justify-center px-5 sm:px-10 py-12',
-          darkMode
-            ? 'bg-gradient-to-b from-[#0b1322] via-[#0e1729] to-[#0b1322]'
-            : 'bg-[#fbfaf6]',
-        )}
-      >
+      <div className={cn(
+        "relative flex-1 flex items-center justify-center px-5 sm:px-12 py-12",
+        darkMode ? "bg-gray-950" : "bg-white",
+      )}>
         {/* Mobile brand strip */}
         <div className="lg:hidden absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b1322] to-[#1b2540] text-cyan-300 shadow-md">
-              <MapPin className="h-4 w-4" />
-            </div>
-            <div>
-              <p
-                className="text-[9px] font-bold tracking-[0.28em] text-muted-foreground uppercase"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                KSYK
-              </p>
-              <p
-                className="text-sm font-bold leading-tight"
-                style={{ fontFamily: "'Libre Baskerville', Georgia, serif" }}
-              >
-                Admin Portal
-              </p>
-            </div>
+          <div>
+            <p className={cn(
+              "text-[9px] font-bold tracking-[0.42em] uppercase",
+              darkMode ? "text-gray-500" : "text-gray-400",
+            )}>
+              KSYK · Maps
+            </p>
+            <p className={cn(
+              "text-xs font-semibold",
+              darkMode ? "text-white" : "text-gray-900",
+            )}>
+              Admin
+            </p>
           </div>
-          <a href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <a
+            href="/"
+            className={cn(
+              "text-xs transition-colors",
+              darkMode ? "text-gray-500 hover:text-white" : "text-gray-500 hover:text-gray-900",
+            )}
+          >
             ← Map
           </a>
         </div>
 
-        <div className="w-full max-w-[26rem]">
+        <div className="w-full max-w-[22rem]">
           {/* Header */}
-          <div className="space-y-3 mb-9">
-            <p
-              className={cn(
-                'text-[10px] font-bold tracking-[0.32em] uppercase',
-                darkMode ? 'text-cyan-400' : 'text-blue-700',
-              )}
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            >
-              · Sign In ·
-            </p>
-            <h2
-              className={cn(
-                'text-[2.2rem] leading-[1.05] tracking-tight',
-                darkMode ? 'text-white' : 'text-[#0b1322]',
-              )}
-              style={{ fontFamily: "'Libre Baskerville', Georgia, serif", fontWeight: 700 }}
-            >
-              Welcome back.
+          <div className="space-y-2 mb-8">
+            <h2 className={cn(
+              "text-2xl font-semibold tracking-tight",
+              darkMode ? "text-white" : "text-gray-900",
+            )}>
+              Sign in
             </h2>
-            <p className={cn('text-sm leading-relaxed', darkMode ? 'text-white/55' : 'text-[#0b1322]/55')}>
-              Sign in to manage the KSYK Maps platform.
+            <p className={cn(
+              "text-sm",
+              darkMode ? "text-gray-400" : "text-gray-500",
+            )}>
+              Continue to the KSYK admin panel.
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <Alert variant="destructive" className="rounded-xl border-red-200 dark:border-red-900/50 text-sm">
+              <Alert variant="destructive" className="rounded-lg text-sm">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="email"
-                className={cn(
-                  'text-[10px] font-bold uppercase tracking-[0.18em]',
-                  darkMode ? 'text-white/60' : 'text-[#0b1322]/60',
-                )}
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-              >
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className={cn(
+                "text-xs font-medium",
+                darkMode ? "text-gray-300" : "text-gray-700",
+              )}>
                 Email
               </Label>
               <Input
@@ -274,24 +172,20 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 autoComplete="email"
                 autoFocus
                 className={cn(
-                  'h-12 rounded-xl text-sm border-2 transition-colors',
+                  "h-10 rounded-lg text-sm",
                   darkMode
-                    ? 'bg-white/[0.04] border-white/10 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20 text-white placeholder:text-white/35'
-                    : 'bg-white border-[#0b1322]/12 focus-visible:border-[#0b1322] focus-visible:ring-[#0b1322]/10 text-[#0b1322]',
+                    ? "bg-gray-900 border-gray-800 text-white"
+                    : "bg-white border-gray-300 text-gray-900",
                 )}
                 data-testid="admin-email-input"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className={cn(
-                  'text-[10px] font-bold uppercase tracking-[0.18em]',
-                  darkMode ? 'text-white/60' : 'text-[#0b1322]/60',
-                )}
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-              >
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className={cn(
+                "text-xs font-medium",
+                darkMode ? "text-gray-300" : "text-gray-700",
+              )}>
                 Password
               </Label>
               <div className="relative">
@@ -304,10 +198,10 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                   required
                   autoComplete="current-password"
                   className={cn(
-                    'h-12 pr-12 rounded-xl text-sm border-2 transition-colors',
+                    "h-10 pr-10 rounded-lg text-sm",
                     darkMode
-                      ? 'bg-white/[0.04] border-white/10 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20 text-white placeholder:text-white/35'
-                      : 'bg-white border-[#0b1322]/12 focus-visible:border-[#0b1322] focus-visible:ring-[#0b1322]/10 text-[#0b1322]',
+                      ? "bg-gray-900 border-gray-800 text-white"
+                      : "bg-white border-gray-300 text-gray-900",
                   )}
                   data-testid="admin-password-input"
                 />
@@ -315,15 +209,15 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className={cn(
-                    'absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors',
+                    "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors",
                     darkMode
-                      ? 'text-white/40 hover:text-white/80 hover:bg-white/10'
-                      : 'text-[#0b1322]/40 hover:text-[#0b1322] hover:bg-[#0b1322]/05',
+                      ? "text-gray-500 hover:text-white hover:bg-white/10"
+                      : "text-gray-400 hover:text-gray-700 hover:bg-gray-100",
                   )}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -331,10 +225,10 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             <Button
               type="submit"
               className={cn(
-                'w-full h-12 font-semibold rounded-xl gap-2 text-sm tracking-tight shadow-lg transition-all',
+                "w-full h-10 font-semibold rounded-lg gap-2 text-sm mt-2",
                 darkMode
-                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#0b1322] shadow-cyan-500/25'
-                  : 'bg-[#0b1322] hover:bg-[#1b2540] text-white shadow-[#0b1322]/15',
+                  ? "bg-white hover:bg-gray-100 text-gray-900"
+                  : "bg-gray-900 hover:bg-gray-800 text-white",
               )}
               disabled={isLoading}
               data-testid="admin-login-submit"
@@ -342,36 +236,35 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               {isLoading ? (
                 <>
                   <div className={cn(
-                    'w-4 h-4 border-2 border-t-transparent rounded-full animate-spin',
-                    darkMode ? 'border-[#0b1322]' : 'border-white',
+                    "w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin",
+                    darkMode ? "border-gray-900" : "border-white",
                   )} />
                   Signing in…
                 </>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4" />
                   Sign in
-                  <ArrowRight className="w-4 h-4 ml-auto opacity-60" />
+                  <ArrowRight className="w-3.5 h-3.5 opacity-70" />
                 </>
               )}
             </Button>
           </form>
 
           {/* Alternative providers */}
-          <div className="mt-7 space-y-3">
+          <div className="mt-6 space-y-2">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className={cn('w-full border-t', darkMode ? 'border-white/10' : 'border-[#0b1322]/10')} />
+                <div className={cn(
+                  "w-full border-t",
+                  darkMode ? "border-gray-800" : "border-gray-200",
+                )} />
               </div>
               <div className="relative flex justify-center">
-                <span
-                  className={cn(
-                    'px-3 text-[10px] font-bold tracking-[0.28em] uppercase',
-                    darkMode ? 'bg-[#0e1729] text-white/40' : 'bg-[#fbfaf6] text-[#0b1322]/40',
-                  )}
-                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                >
-                  or sign in as student
+                <span className={cn(
+                  "px-2 text-[10px] font-medium uppercase tracking-wider",
+                  darkMode ? "bg-gray-950 text-gray-500" : "bg-white text-gray-400",
+                )}>
+                  or
                 </span>
               </div>
             </div>
@@ -381,10 +274,10 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               variant="outline"
               onClick={() => (window.location.href = '/api/auth/microsoft/start')}
               className={cn(
-                'w-full h-11 rounded-xl gap-3 font-semibold text-sm border-2',
+                "w-full h-10 rounded-lg gap-2 font-medium text-sm",
                 darkMode
-                  ? 'bg-transparent border-white/15 text-white hover:bg-white/[0.04]'
-                  : 'bg-white border-[#0b1322]/12 text-[#0b1322] hover:bg-[#0b1322]/[0.02]',
+                  ? "bg-transparent border-gray-800 text-gray-200 hover:bg-white/5"
+                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50",
               )}
               data-testid="microsoft-auth-button"
             >
@@ -396,31 +289,22 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               type="button"
               variant="ghost"
               onClick={() => {
-                // Local guest pass: students who don't have @ksyk.fi yet (e.g.
-                // first week of school) get a marked-but-trusted session so the
-                // map gate evaluates them as full-access guests. The admin
-                // panel's user-exceptions table can still revoke this per email.
                 const guest = {
                   id: `guest-${Date.now()}`,
                   email: 'student@guest.ksyk.fi',
                   role: 'student',
                   provider: 'guest',
                 };
-                try {
-                  localStorage.setItem('ksyk_user', JSON.stringify(guest));
-                } catch { /* storage full */ }
+                try { localStorage.setItem('ksyk_user', JSON.stringify(guest)); } catch { /* */ }
                 window.location.href = '/';
               }}
               className={cn(
-                'w-full h-10 rounded-xl gap-2 font-semibold text-xs',
-                darkMode
-                  ? 'text-cyan-300 hover:text-cyan-200 hover:bg-cyan-400/[0.04]'
-                  : 'text-blue-700 hover:text-blue-800 hover:bg-blue-50',
+                "w-full h-9 rounded-lg text-xs font-medium",
+                darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900",
               )}
               data-testid="student-guest-button"
             >
-              <ArrowRight className="w-3.5 h-3.5" />
-              Continue as student (guest)
+              Continue as student (guest) →
             </Button>
 
             {process.env.NODE_ENV === 'development' && (
@@ -443,33 +327,33 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                   }
                 }}
                 className={cn(
-                  'w-full h-9 text-xs',
-                  darkMode ? 'text-amber-300 hover:text-amber-200' : 'text-amber-700 hover:text-amber-800',
+                  "w-full h-8 text-[11px]",
+                  darkMode ? "text-amber-400 hover:text-amber-300" : "text-amber-600 hover:text-amber-700",
                 )}
                 data-testid="dev-login-button"
               >
-                🚀 Quick Dev Access
+                Dev quick access
               </Button>
             )}
           </div>
 
           {/* Footer */}
           <div className={cn(
-            'mt-9 pt-6 border-t flex items-center justify-between text-[11px]',
-            darkMode ? 'border-white/10 text-white/40' : 'border-[#0b1322]/10 text-[#0b1322]/45',
+            "mt-8 pt-5 border-t flex items-center justify-between text-[11px]",
+            darkMode ? "border-gray-900 text-gray-500" : "border-gray-100 text-gray-400",
           )}>
             <span className="flex items-center gap-1.5">
               <Lock className="h-3 w-3" />
-              Secured by KSYK gates
+              Protected
             </span>
             <a
               href="/"
               className={cn(
-                'hover:underline transition-colors',
-                darkMode ? 'text-cyan-400 hover:text-cyan-300' : 'text-blue-700 hover:text-blue-800',
+                "transition-colors",
+                darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900",
               )}
             >
-              go to map →
+              Back to map →
             </a>
           </div>
         </div>
@@ -480,7 +364,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
 function MicrosoftLogo() {
   return (
-    <svg width="16" height="16" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="1"  y="1"  width="10" height="10" fill="#F25022" />
       <rect x="12" y="1"  width="10" height="10" fill="#7FBA00" />
       <rect x="1"  y="12" width="10" height="10" fill="#00A4EF" />

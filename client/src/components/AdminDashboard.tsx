@@ -882,15 +882,22 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
       {/* ── Desktop sidebar ──────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        {/* Brand strip */}
-        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-100 dark:border-gray-800 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white shadow-sm ring-1 ring-white/20">
-            <LayoutDashboard className="h-4 w-4" />
+        {/* Brand strip — monochrome, calm */}
+        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-200 dark:border-gray-800 shrink-0 bg-white dark:bg-gray-950">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900">
+            <LayoutDashboard className="h-3.5 w-3.5" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-white flex-1">KSYK Admin</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-bold tracking-[0.32em] text-gray-400 dark:text-gray-500 uppercase leading-none">
+              KSYK
+            </p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mt-0.5">
+              Admin
+            </p>
+          </div>
           <a
             href="/"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Back to Map"
           >
             <Home className="h-3.5 w-3.5" />
@@ -907,7 +914,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                   activeTab === value
-                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                 )}
               >
@@ -947,7 +954,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
         {currentUser && (
           <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[11px] font-bold shadow-inner">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-bold">
                 {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">

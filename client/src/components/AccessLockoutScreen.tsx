@@ -1,13 +1,31 @@
-import { useState } from "react";
+/**
+ * KSYK Maps — Access Lockout (full page).
+ *
+ * Whole-page minimal layout for blocked visitors. Replaces the prior
+ * card-in-the-middle treatment with a proper page: top status ticker,
+ * hero "why you're locked out", schedule preview if a time window
+ * applies, sign-in CTA, request-access form below the fold.
+ *
+ * Used by KSYKMapView when the access engine returns tier="blocked".
+ * Time-window rules apply to logged-in students too — the check fires
+ * before the login-tier check — so after-school hours mean lockout for
+ * everyone except admins.
+ */
+
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, Clock, Wifi, Mail, AlertTriangle, Send, ArrowRight } from "lucide-react";
+import {
+  Clock, Wifi, Mail, AlertTriangle, Send, ArrowRight, Calendar,
+  Shield, ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import type { AccessDecision } from "@/lib/accessControl";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
+import { DAY_KEYS, DAY_LABELS, dayKeyForDate } from "@/lib/securitySettings";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -18,7 +36,7 @@ const ICON_FOR_REASON: Record<AccessDecision["reasonCode"], typeof Clock> = {
   disabled: Shield,
   "owner-bypass": Shield,
   "user-exception": Shield,
-  holiday: Clock,
+  holiday: Calendar,
   "outside-hours": Clock,
   "off-network": Wifi,
   "guest-login-required": Mail,
@@ -40,9 +58,9 @@ export default function AccessLockoutScreen({ decision }: Props) {
   const [submitted, setSubmitted] = useState(false);
 
   const Icon = ICON_FOR_REASON[decision.reasonCode] ?? AlertTriangle;
+  const today = useMemo(() => dayKeyForDate(new Date()), []);
 
   const handleMsLogin = () => {
-    // Routes to the Microsoft OAuth handler — server picks up the tenant.
     window.location.href = "/api/auth/microsoft/start";
   };
 
@@ -67,7 +85,6 @@ export default function AccessLockoutScreen({ decision }: Props) {
     } catch {
       toast({
         title: isFi ? "Lähetys epäonnistui" : "Could not send",
-        description: isFi ? "Yritä uudelleen." : "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -76,108 +93,265 @@ export default function AccessLockoutScreen({ decision }: Props) {
   };
 
   return (
-    <div
-      className={cn(
-        "min-h-[100dvh] flex items-center justify-center p-4",
+    <div className={cn(
+      "min-h-screen w-full flex flex-col",
+      darkMode ? "bg-gray-950 text-gray-100" : "bg-white text-gray-900",
+    )}>
+      {/* ── Top status ticker ───────────────────────────────────────── */}
+      <header className={cn(
+        "shrink-0 px-5 sm:px-10 py-3 flex items-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.28em] border-b",
         darkMode
-          ? "bg-gradient-to-br from-gray-950 via-slate-900 to-gray-900"
-          : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50",
-      )}
-    >
-      <Card
-        className={cn(
-          "w-full max-w-md shadow-2xl border-0 backdrop-blur-md",
-          darkMode ? "bg-gray-900/95" : "bg-white/95",
-        )}
-      >
-        <CardContent className="p-8 text-center">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
-            <Icon className="h-10 w-10 text-white" />
+          ? "border-gray-900 text-gray-400"
+          : "border-gray-100 text-gray-500",
+      )}>
+        <span className="inline-flex items-center gap-2">
+          <span className={cn(
+            "h-1.5 w-1.5 rounded-full animate-pulse",
+            decision.reasonCode === "outside-hours" || decision.reasonCode === "holiday"
+              ? "bg-amber-500"
+              : "bg-red-500",
+          )} />
+          {isFi ? "Pääsy rajoitettu" : "Access restricted"}
+        </span>
+        <span className="hidden sm:inline opacity-30">·</span>
+        <span className="hidden sm:inline opacity-70">
+          {decision.reasonCode.replace(/-/g, " ").toUpperCase()}
+        </span>
+        <span className="ml-auto hidden sm:inline opacity-50">
+          KSYK · Maps
+        </span>
+      </header>
+
+      {/* ── Body ────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col items-center justify-center px-5 sm:px-10 py-12">
+        <div className="w-full max-w-2xl">
+          {/* Hero block */}
+          <div className="flex flex-col items-center text-center mb-12">
+            <div className={cn(
+              "h-12 w-12 rounded-full flex items-center justify-center mb-6",
+              darkMode ? "bg-gray-900" : "bg-gray-100",
+            )}>
+              <Icon className={cn(
+                "h-5 w-5",
+                darkMode ? "text-gray-400" : "text-gray-500",
+              )} strokeWidth={1.8} />
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+              {isFi ? "Suljettu juuri nyt." : "Closed for now."}
+            </h1>
+
+            <p className={cn(
+              "mt-4 max-w-md text-sm sm:text-base leading-relaxed",
+              darkMode ? "text-gray-400" : "text-gray-500",
+            )}>
+              {decision.reason}
+            </p>
+
+            {decision.nextOpen && (
+              <div className={cn(
+                "mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold",
+                darkMode ? "bg-gray-900 text-gray-300" : "bg-gray-100 text-gray-700",
+              )}>
+                <Clock className="h-3.5 w-3.5" />
+                {isFi ? "Avoinna" : "Opens"} {decision.nextOpen}
+              </div>
+            )}
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {isFi ? "Pääsy rajoitettu" : "Access restricted"}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {decision.reason}
-          </p>
-
-          {decision.nextOpen && (
-            <p className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-semibold">
-              <Clock className="h-3.5 w-3.5" />
-              {isFi ? "Avoinna" : "Opens"} {decision.nextOpen}
-            </p>
+          {/* Schedule preview — only when a time window is active */}
+          {settings.timeWindowEnabled && (
+            <div className={cn(
+              "mb-12 rounded-2xl border overflow-hidden",
+              darkMode ? "border-gray-900" : "border-gray-200",
+            )}>
+              <div className={cn(
+                "px-4 py-2.5 flex items-center justify-between border-b",
+                darkMode ? "bg-gray-900 border-gray-800" : "bg-gray-50 border-gray-200",
+              )}>
+                <p className="text-[10px] font-bold tracking-[0.28em] uppercase text-gray-500">
+                  {isFi ? "Aukioloajat" : "Opening hours"}
+                </p>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-900">
+                {DAY_KEYS.map((d) => {
+                  const win = settings.schedule[d];
+                  const isToday = today === d;
+                  return (
+                    <div
+                      key={d}
+                      className={cn(
+                        "flex items-center px-4 py-2.5 text-sm",
+                        isToday && (darkMode ? "bg-gray-900/60" : "bg-amber-50/60"),
+                      )}
+                    >
+                      <span className={cn(
+                        "w-12 text-xs font-bold uppercase tracking-wider",
+                        isToday
+                          ? (darkMode ? "text-amber-400" : "text-amber-600")
+                          : (darkMode ? "text-gray-400" : "text-gray-500"),
+                      )}>
+                        {DAY_LABELS[d]}
+                      </span>
+                      <span className={cn(
+                        "flex-1 font-medium",
+                        darkMode ? "text-gray-200" : "text-gray-900",
+                      )}>
+                        {win
+                          ? `${win.open} – ${win.close}`
+                          : (isFi ? "Suljettu" : "Closed")}
+                      </span>
+                      {isToday && (
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider",
+                          darkMode ? "text-amber-400" : "text-amber-700",
+                        )}>
+                          {isFi ? "Tänään" : "Today"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
-          <p className="mt-6 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {settings.lockoutMessage}
-          </p>
-
-          <div className="mt-7 space-y-2.5">
-            {settings.loginGateEnabled && (
+          {/* Sign-in CTAs */}
+          {settings.loginGateEnabled && (
+            <div className="space-y-3 mb-12">
+              <div className="text-center">
+                <p className="text-[10px] font-bold tracking-[0.32em] uppercase text-gray-400 mb-2">
+                  {isFi ? "Tai" : "Or"}
+                </p>
+              </div>
               <Button
                 onClick={handleMsLogin}
-                className="w-full h-11 bg-[#2F2F2F] hover:bg-black text-white font-semibold rounded-xl gap-2"
+                className={cn(
+                  "w-full h-11 font-semibold rounded-xl gap-2.5",
+                  darkMode
+                    ? "bg-white text-gray-900 hover:bg-gray-100"
+                    : "bg-gray-900 text-white hover:bg-gray-800",
+                )}
               >
                 <MicrosoftLogo />
                 {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
-                <ArrowRight className="h-4 w-4 ml-auto" />
+                <ArrowRight className="h-4 w-4 ml-auto opacity-60" />
               </Button>
-            )}
+            </div>
+          )}
 
-            {!submitted ? (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800 space-y-2 text-left">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">
-                  {isFi ? "Pyydä pääsyä" : "Request access"}
+          {/* Custom lockout message from admin */}
+          {settings.lockoutMessage && (
+            <p className={cn(
+              "max-w-md mx-auto text-center text-sm leading-relaxed mb-12",
+              darkMode ? "text-gray-400" : "text-gray-600",
+            )}>
+              {settings.lockoutMessage}
+            </p>
+          )}
+
+          {/* Divider */}
+          <div className={cn(
+            "h-px max-w-md mx-auto mb-10",
+            darkMode ? "bg-gray-900" : "bg-gray-200",
+          )} />
+
+          {/* Request access */}
+          {!submitted ? (
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="text-center">
+                <p className="text-[10px] font-bold tracking-[0.32em] uppercase text-gray-400 mb-1">
+                  {isFi ? "Tarvitsetko pääsyn?" : "Need access?"}
                 </p>
+                <h3 className="text-base font-semibold tracking-tight">
+                  {isFi ? "Pyydä admineja" : "Ask the admins"}
+                </h3>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ra-email" className="sr-only">Email</Label>
                 <Input
+                  id="ra-email"
                   type="email"
                   placeholder={isFi ? "Sähköpostisi" : "Your email"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-10 rounded-xl"
+                  className={cn(
+                    "h-10 rounded-lg text-sm",
+                    darkMode
+                      ? "bg-gray-900 border-gray-800 text-white"
+                      : "bg-white border-gray-300 text-gray-900",
+                  )}
                 />
                 <Input
+                  id="ra-reason"
                   type="text"
                   placeholder={isFi ? "Syy (valinnainen)" : "Reason (optional)"}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="h-10 rounded-xl"
+                  className={cn(
+                    "h-10 rounded-lg text-sm",
+                    darkMode
+                      ? "bg-gray-900 border-gray-800 text-white"
+                      : "bg-white border-gray-300 text-gray-900",
+                  )}
                 />
                 <Button
+                  type="button"
                   onClick={handleRequestAccess}
                   disabled={submitting}
                   variant="outline"
-                  className="w-full h-10 rounded-xl gap-2"
+                  className={cn(
+                    "w-full h-10 font-medium rounded-lg gap-2 text-sm",
+                    darkMode
+                      ? "bg-transparent border-gray-800 text-gray-200 hover:bg-white/5"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50",
+                  )}
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3.5 w-3.5" />
                   {submitting
-                    ? isFi ? "Lähetetään…" : "Sending…"
-                    : isFi ? "Lähetä pyyntö" : "Send request"}
+                    ? (isFi ? "Lähetetään…" : "Sending…")
+                    : (isFi ? "Lähetä pyyntö" : "Send request")}
                 </Button>
               </div>
-            ) : (
-              <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                ✓ {isFi ? "Pyyntö lähetetty admin-paneeliin." : "Request sent to the admin panel."}
-              </p>
-            )}
-          </div>
+            </div>
+          ) : (
+            <p className={cn(
+              "max-w-md mx-auto text-center text-sm font-semibold",
+              darkMode ? "text-emerald-400" : "text-emerald-600",
+            )}>
+              ✓ {isFi ? "Pyyntö lähetetty admin-paneeliin." : "Request sent to the admin panel."}
+            </p>
+          )}
+        </div>
+      </main>
 
-          <p className="mt-6 text-[11px] text-gray-400 dark:text-gray-500">
-            KSYK Maps · {isFi ? "Suojattu pääsy" : "Protected access"}
-          </p>
-        </CardContent>
-      </Card>
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <footer className={cn(
+        "shrink-0 border-t px-5 sm:px-10 py-4 flex items-center justify-between text-[11px]",
+        darkMode ? "border-gray-900 text-gray-500" : "border-gray-100 text-gray-400",
+      )}>
+        <span>© KSYK · Maps</span>
+        <a
+          href="/admin"
+          className={cn(
+            "inline-flex items-center gap-1 transition-colors",
+            darkMode ? "hover:text-white" : "hover:text-gray-900",
+          )}
+        >
+          {isFi ? "Admin kirjautuminen" : "Admin sign-in"}
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </footer>
     </div>
   );
 }
 
 function MicrosoftLogo() {
   return (
-    <svg width="16" height="16" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-      <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
-      <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
+    <svg width="14" height="14" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="1"  y="1"  width="10" height="10" fill="#F25022" />
+      <rect x="12" y="1"  width="10" height="10" fill="#7FBA00" />
+      <rect x="1"  y="12" width="10" height="10" fill="#00A4EF" />
       <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
     </svg>
   );
