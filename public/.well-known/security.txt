@@ -1,0 +1,28 @@
+Contact: mailto:juuso.kaikula@gmail.com
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en, fi
+Canonical: https://ksykmaps.vercel.app/.well-known/security.txt
+Policy: https://ksykmaps.vercel.app/security
+Acknowledgments: https://ksykmaps.vercel.app/security#acknowledgments
+
+# KSYK Maps responsible disclosure
+#
+# If you find a security issue, please email the contact above with:
+#   1. A short summary of the issue (1-2 lines)
+#   2. Steps to reproduce
+#   3. The impact you think it has
+#   4. Any suggested mitigation
+#
+# We aim to acknowledge reports within 48 hours and provide an initial
+# triage decision within 7 days. We do not run a paid bug-bounty program
+# but we will credit reporters publicly with their permission.
+#
+# In-scope: the public KSYK Maps app at *.ksykmaps.fi and the related
+# Vercel deployments, including the admin panel.
+#
+# Out-of-scope: third-party services we integrate (Cloudflare Analytics,
+# Carto/OSM tile providers, Replit Auth, Microsoft auth), and social
+# engineering attempts against KSYK staff or students.
+#
+# Please do not run automated scanners that could disrupt service or
+# generate large volumes of telemetry.

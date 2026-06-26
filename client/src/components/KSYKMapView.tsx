@@ -89,6 +89,8 @@ interface Room {
   mapPositionY?: number;
   width?: number;
   height?: number;
+  /** Optional per-room Matterport tour URL (set by admin via builder). */
+  virtualTourUrl?: string;
 }
 
 interface KSYKMapViewProps {
@@ -1319,6 +1321,26 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                   {isFi ? "Reititä tänne" : "Route here"}
                 </Button>
               </div>
+
+              {/* ── Per-room Matterport 3D walkthrough — only when admin
+                   set a URL on this specific room in the builder. */}
+              {(selectedRoom.virtualTourUrl ?? "").trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Reuse the existing tour overlay state — temporarily
+                    // override the URL with this room's URL.
+                    const url = (selectedRoom.virtualTourUrl ?? "").trim();
+                    if (!url) return;
+                    update("matterportTourUrl", url);
+                    setTourOpen(true);
+                  }}
+                  className="mt-2 w-full h-9 rounded-lg gap-2 text-xs font-semibold inline-flex items-center justify-center transition-colors bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
+                >
+                  <Mountain className="h-3.5 w-3.5" />
+                  {isFi ? "3D-virtuaalikierros" : "3D walkthrough"}
+                </button>
+              )}
 
               {/* ── Schedule section ─────────────────────────────────── */}
               <div className={cn("border-t pt-3 -mx-5 px-5", darkMode ? "border-gray-700/60" : "border-gray-100")}>

@@ -56,6 +56,9 @@ interface Room {
   mapPositionY?: number;
   width?: number;
   height?: number;
+  /** Optional Matterport tour URL — when set, students get a "3D
+   * walkthrough" button on this room's detail sheet in the public map. */
+  virtualTourUrl?: string;
 }
 
 type Mode = "select" | "add";
@@ -680,7 +683,8 @@ function RoomPropertiesPanel({
     || draft.type !== room.type
     || draft.width !== room.width
     || draft.height !== room.height
-    || draft.buildingId !== room.buildingId;
+    || draft.buildingId !== room.buildingId
+    || (draft.virtualTourUrl ?? "") !== (room.virtualTourUrl ?? "");
 
   return (
     <aside className={cn(
@@ -795,8 +799,40 @@ function RoomPropertiesPanel({
           />
         </div>
 
+        {/* Matterport scan URL — links a 3D walkthrough to this room */}
+        <div className="pt-3 border-t border-gray-200/70 dark:border-gray-800/70 space-y-1.5">
+          <Label className="text-[10px] font-bold tracking-[0.22em] uppercase text-gray-400 flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+              3D
+            </span>
+            Matterport scan
+          </Label>
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="https://my.matterport.com/show/?m=…"
+            value={draft.virtualTourUrl ?? ""}
+            onChange={(e) => setDraft({ ...draft, virtualTourUrl: e.target.value })}
+            className="w-full h-9 rounded-lg text-xs font-mono border border-input bg-background px-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+          {(draft.virtualTourUrl ?? "").trim() && (
+            <a
+              href={(draft.virtualTourUrl ?? "").trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Open in new tab →
+            </a>
+          )}
+          <p className="text-[11px] text-gray-400 leading-snug">
+            Paste a tour URL or bare model ID. Students see a "3D walkthrough" button on this room.
+          </p>
+        </div>
+
         {/* Position read-out (live) */}
-        <div className="pt-2 border-t border-gray-200/70 dark:border-gray-800/70">
+        <div className="pt-3 border-t border-gray-200/70 dark:border-gray-800/70">
           <Label className="text-[10px] font-bold tracking-[0.22em] uppercase text-gray-400">
             Map position
           </Label>
@@ -834,6 +870,7 @@ function RoomPropertiesPanel({
             width: draft.width,
             height: draft.height,
             buildingId: draft.buildingId,
+            virtualTourUrl: (draft.virtualTourUrl ?? "").trim() || undefined,
           })}
           className="h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5"
         >
