@@ -40,9 +40,14 @@ export default function EasterEgg() {
     const wasAlreadyUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
     localStorage.setItem("ksyk_british_unlocked", "true");
     
-    // Track discovery if first time
+    // Track discovery if first time — both client telemetry AND server counter.
     if (!wasFound) {
       trackEasterEgg('secret-easter-egg');
+      fetch("/api/easter-eggs/found", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ egg: "secretEasterEgg" }),
+      }).catch(() => { /* silent */ });
     }
     
     // Show unlock popup if it wasn't already unlocked

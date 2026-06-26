@@ -1652,7 +1652,7 @@ function AccountRow({ isFi, onClose }: { isFi: boolean; onClose: () => void }) {
     // navigate to the dedicated admin-login page which carries the
     // editorial split-screen sign-in.
     try { localStorage.removeItem("ksyk_intro_seen_v2"); } catch { /* */ }
-    window.location.href = "/admin-login";
+    window.location.href = "/admin";
   };
 
   const signOut = () => {

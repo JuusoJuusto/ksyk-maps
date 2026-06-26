@@ -267,16 +267,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // GET /api/easter-eggs/stats — discovered eggs counter.
+    // GET /api/easter-eggs/stats — count of each discovered egg, persisted
+    // in Firestore (one counter doc, atomic increments). The shape matches
+    // what EasterEggStats.tsx expects: { secretEasterEgg, konamiCode, devMode }.
     if (apiPath === '/easter-eggs/stats' && req.method === 'GET') {
       try {
-        if ((storage as any).getEasterEggStats) {
-          const data = await (storage as any).getEasterEggStats();
-          return res.status(200).json(data);
-        }
-        return res.status(200).json({ discovered: 0, total: 0, eggs: [] });
+        const { db } = await import('../server/firebaseStorage.js');
+        const doc = await db.collection('easterEggs').doc('counters').get();
+        const data = doc.exists ? doc.data() : {};
+        return res.status(200).json({
+          secretEasterEgg: data?.secretEasterEgg ?? 0,
+          konamiCode: data?.konamiCode ?? 0,
+          devMode: data?.devMode ?? 0,
+          total: (data?.secretEasterEgg ?? 0) + (data?.konamiCode ?? 0) + (data?.devMode ?? 0),
+        });
       } catch {
-        return res.status(200).json({ discovered: 0, total: 0, eggs: [] });
+        return res.status(200).json({ secretEasterEgg: 0, konamiCode: 0, devMode: 0, total: 0 });
+      }
+    }
+
+    // POST /api/easter-eggs/found — record an egg discovery. Body: { egg: "secretEasterEgg" | ... }
+    if (apiPath === '/easter-eggs/found' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { FieldValue } = await import('firebase-admin/firestore');
+        const egg = (req.body?.egg || '').toString();
+        const allowed = ['secretEasterEgg', 'konamiCode', 'devMode'];
+        if (!allowed.includes(egg)) return res.status(400).json({ message: 'Invalid egg id' });
+        await db.collection('easterEggs').doc('counters').set({
+          [egg]: FieldValue.increment(1),
+          [`${egg}LastAt`]: new Date(),
+        }, { merge: true });
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('easter-eggs POST error:', err);
+        return res.status(500).json({ message: 'Failed' });
       }
     }
 

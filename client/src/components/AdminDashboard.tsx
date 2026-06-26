@@ -13,6 +13,7 @@ import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
+import Builder3D from "@/components/Builder3D";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -545,11 +546,11 @@ function WilmaConfigPanel() {
   );
 }
 
-const ADMIN_BASE = "/admin-ksyk-management-portal";
+const ADMIN_BASE = "/admin";
 
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
-  "overview","security","users","campus-map","ksyk-builder",
+  "overview","security","users","campus-map","ksyk-builder","builder-3d",
   "schedules","tickets","logs","staff","announcements","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
@@ -682,7 +683,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
       localStorage.removeItem("ksyk_admin_logged_in");
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
-      window.location.replace("/admin-login");
+      window.location.replace("/admin");
     };
     if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
       wipeAndRedirect();
@@ -856,7 +857,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     localStorage.removeItem("ksyk_admin_user");
     localStorage.removeItem("ksyk_admin_login_at");
     fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
-      window.location.replace("/admin-login");
+      window.location.replace("/admin");
     });
   };
 
@@ -866,6 +867,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "users", label: "Users", Icon: Users },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
     { value: "ksyk-builder", label: "Builder", Icon: Box },
+    { value: "builder-3d", label: "3D Builder", Icon: Layers },
     { value: "schedules", label: "Schedules", Icon: Calendar },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
@@ -1020,8 +1022,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </div>
 
         {/* Scrollable content — full-bleed for map/builder, padded for everything else */}
-        <div className={`flex-1 min-h-0 ${activeTab === "campus-map" || activeTab === "ksyk-builder" ? "overflow-hidden" : "overflow-y-auto"}`}>
-          <div className={activeTab === "campus-map" || activeTab === "ksyk-builder" ? "h-full" : "p-4 sm:p-6 pb-8"}>
+        <div className={`flex-1 min-h-0 ${activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d" ? "overflow-hidden" : "overflow-y-auto"}`}>
+          <div className={activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d" ? "h-full" : "p-4 sm:p-6 pb-8"}>
 
         {/* Section header — auto-rendered from the current tab so every
            section gets a consistent title + description without touching
@@ -1033,6 +1035,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
             users: { title: "Users", description: "Manage admin accounts and per-user access rules.", Icon: Users },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
             "ksyk-builder": { title: "Builder", description: "Rooms, floors and map defaults. Use Map Defaults tab to set home location for all users.", Icon: Box },
+            "builder-3d": { title: "3D Builder", description: "Drag rooms into place in 3D. Releasing the pointer saves to the server.", Icon: Layers },
             schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
@@ -1043,7 +1046,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           };
           const meta = sectionMeta[activeTab];
           // Full-height tabs get no header — they need every pixel
-          if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder") return null;
+          if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d") return null;
           const Icon = meta.Icon;
           return (
             <div className="flex items-center gap-3 mb-2">
@@ -1765,6 +1768,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent forceMount value="builder-3d" className={cn("mt-0 h-full overflow-hidden", activeTab !== "builder-3d" && "hidden")}>
+          <Builder3D />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-0 space-y-6">

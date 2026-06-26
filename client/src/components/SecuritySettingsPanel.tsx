@@ -72,11 +72,20 @@ export default function SecuritySettingsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      setAll(draft);
+      // Server is authoritative. Save first, then update local snapshot
+      // so the UI never shows "saved!" before the server actually persisted.
       await saveSecurityToServer(draft);
-      toast({ title: "Security settings saved", description: "All users will pick this up within a minute." });
+      setAll(draft);
+      toast({
+        title: "Saved",
+        description: "Live for all users — propagates within 60 s.",
+      });
     } catch (e) {
-      toast({ title: "Save failed", description: (e as Error).message, variant: "destructive" });
+      toast({
+        title: "Save failed",
+        description: (e as Error).message || "Network or auth error. Try again.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }

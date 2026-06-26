@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
+import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
 import { useEffect } from "react";
 import { initAnalytics } from "@/lib/analytics";
@@ -25,7 +26,6 @@ import { useLocation } from "wouter";
 
 import KSYKMapsHome from "@/pages/ksykmaps-home";
 import Admin from "@/pages/admin";
-import AdminLogin from "@/pages/admin-login";
 import HSL from "@/pages/hsl";
 import Lunch from "@/pages/lunch";
 import Features from "@/pages/features";
@@ -36,6 +36,13 @@ import DebugBuildings from "@/pages/debug-buildings";
 import NordbyteStudio from "@/pages/owlapps";
 import NotFound from "@/pages/not-found";
 import "./lib/i18n";
+
+/** Sends visitors at legacy admin URLs to the single canonical /admin. */
+function LegacyAdminRedirect() {
+  const [, setLocation] = useLocation();
+  useEffect(() => { setLocation("/admin"); }, [setLocation]);
+  return null;
+}
 
 function AccessibilityClasses() {
   const { settings } = useAppSettings();
@@ -63,7 +70,10 @@ function Router() {
     staleTime: 60_000,
   });
 
-  if (appSettings?.maintenanceMode) {
+  // Maintenance mode hides the public app — but admins still need to
+  // get in to switch it off, so /admin* always bypasses.
+  const isAdminPath = window.location.pathname.startsWith("/admin");
+  if (appSettings?.maintenanceMode && !isAdminPath) {
     return <MaintenanceMode message={appSettings.maintenanceMessage} />;
   }
 
@@ -72,14 +82,17 @@ function Router() {
       {/* Public map */}
       <Route path="/" component={KSYKMapsHome} />
 
-      {/* Admin —
-       *   /admin-login                            → AdminLogin (sign-in page)
-       *   /admin-ksyk-management-portal[/:section] → Admin panel itself
-       * The short /admin path was intentionally removed so a leaked
-       * "?admin" URL doesn't reveal the panel exists at a guessable path. */}
-      <Route path="/admin-login" component={AdminLogin} />
-      <Route path="/admin-ksyk-management-portal/:section" component={Admin} />
-      <Route path="/admin-ksyk-management-portal" component={Admin} />
+      {/* Admin — single route. Renders the login screen when no session
+       * exists, the panel when authed. Invalid tokens bounce back to the
+       * login view automatically (AdminDashboard's gate detects them).
+       *
+       * Legacy paths redirect via the LegacyAdminRedirect component below
+       * so old bookmarks keep working. */}
+      <Route path="/admin/:section" component={Admin} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/admin-login" component={LegacyAdminRedirect} />
+      <Route path="/admin-ksyk-management-portal/:section" component={LegacyAdminRedirect} />
+      <Route path="/admin-ksyk-management-portal" component={LegacyAdminRedirect} />
 
       {/* Public info pages */}
       <Route path="/hsl" component={HSL} />
@@ -144,6 +157,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <SplashScreen />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <DarkModeProvider>

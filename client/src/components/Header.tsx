@@ -65,7 +65,7 @@ export default function Header({
 
   const isActive = (path: string) => location === path;
   const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
-  const isInAdminPanel = location === '/admin-ksyk-management-portal';
+  const isInAdminPanel = location === '/admin' || location.startsWith('/admin/');
 
   const handleLanguageChange = (lang: string) => {
     localStorage.setItem('ksyk_language', lang);
