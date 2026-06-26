@@ -166,23 +166,21 @@ export default function Builder3D() {
       {/* Toolbar */}
       <div className={cn(
         "shrink-0 px-4 sm:px-6 py-3 border-b flex items-center gap-3 flex-wrap",
-        darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-white/80",
+        darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-white",
       )}>
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-sm">
-            <Move className="h-4 w-4" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/favicon-128.png"
+            alt="KSYK Maps"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+          />
           <div className="min-w-0">
-            <p
-              className="text-[9px] font-bold tracking-[0.28em] uppercase text-muted-foreground"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            >
+            <p className="text-[9px] font-bold tracking-[0.32em] uppercase text-gray-400 dark:text-gray-500 leading-none">
               KSYK · Builder
             </p>
-            <p
-              className="text-sm font-bold leading-tight"
-              style={{ fontFamily: "'Libre Baskerville', Georgia, serif" }}
-            >
+            <p className="text-sm font-semibold leading-tight mt-0.5">
               3D Room Placement
             </p>
           </div>
@@ -192,10 +190,7 @@ export default function Builder3D() {
 
         {/* Floor selector */}
         <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800">
-          <span
-            className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground px-2"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
-          >
+          <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-gray-500 px-2">
             Floor
           </span>
           {Array.from({ length: maxFloor }, (_, i) => i + 1).map((f) => (
@@ -206,7 +201,7 @@ export default function Builder3D() {
               className={cn(
                 "h-7 w-7 text-xs font-bold rounded-lg transition-all tabular-nums",
                 floor === f
-                  ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30"
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
                   : "text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700",
               )}
             >
@@ -217,34 +212,39 @@ export default function Builder3D() {
 
         {/* Pitch */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800">
-          <Layers className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+          <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
           <input
             type="range"
             min={0}
             max={45}
             value={pitch}
             onChange={(e) => setPitch(Number(e.target.value))}
-            className="w-28 accent-cyan-500"
+            className="w-28 accent-blue-600"
             aria-label="Pitch"
           />
-          <span
-            className="text-xs font-bold tabular-nums w-8 text-right text-cyan-700 dark:text-cyan-300"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
-          >
+          <span className="text-xs font-bold tabular-nums w-8 text-right text-blue-700 dark:text-blue-300">
             {pitch}°
           </span>
+        </div>
+
+        {/* Room counter */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300">
+          <span className="font-semibold tabular-nums">{floorRooms.length}</span>
+          <span className="text-gray-500">{floorRooms.length === 1 ? "room" : "rooms"}</span>
         </div>
       </div>
 
       {/* Help strip */}
       <div className={cn(
         "shrink-0 px-4 sm:px-6 py-2 text-[11px] flex items-center gap-3 border-b",
-        darkMode ? "border-gray-800 text-gray-400 bg-gray-900/40" : "border-gray-200 text-gray-600 bg-blue-50/40",
+        darkMode ? "border-gray-800 text-gray-400 bg-gray-900/40" : "border-gray-200 text-gray-600 bg-blue-50/60",
       )}>
-        <Move className="h-3 w-3" />
-        Drag a room to reposition it. Releasing the pointer saves to the server.
+        <Move className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+        <span>
+          <strong className="font-semibold text-gray-700 dark:text-gray-300">Drag</strong> a room to reposition it. Releasing the pointer saves to the server.
+        </span>
         {savingId && (
-          <span className="ml-auto flex items-center gap-1 text-blue-600 dark:text-blue-400">
+          <span className="ml-auto flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
             <Loader2 className="h-3 w-3 animate-spin" />
             Saving…
           </span>
@@ -353,8 +353,8 @@ export default function Builder3D() {
                     <rect
                       x={x} y={y} width={w} height={h} rx={4}
                       fill={fill} fillOpacity={0.95}
-                      stroke={isDragging ? "#22d3ee" : isSaving ? "#fbbf24" : "rgba(255,255,255,0.9)"}
-                      strokeWidth={isDragging ? 2.5 : isSaving ? 2 : 0.9}
+                      stroke={isDragging ? "#2563eb" : isSaving ? "#fbbf24" : "rgba(255,255,255,0.9)"}
+                      strokeWidth={isDragging ? 3 : isSaving ? 2 : 0.9}
                     />
                     {/* Label */}
                     <text

@@ -127,14 +127,21 @@ export default function AccessLockoutScreen({ decision }: Props) {
         <div className="w-full max-w-2xl">
           {/* Hero block */}
           <div className="flex flex-col items-center text-center mb-12">
+            <img
+              src="/favicon-128.png"
+              alt="KSYK Maps"
+              width={48}
+              height={48}
+              className="h-12 w-12 object-contain mb-5"
+            />
             <div className={cn(
-              "h-12 w-12 rounded-full flex items-center justify-center mb-6",
-              darkMode ? "bg-gray-900" : "bg-gray-100",
+              "h-10 w-10 rounded-full flex items-center justify-center mb-6",
+              darkMode ? "bg-blue-950/40" : "bg-blue-50",
             )}>
               <Icon className={cn(
-                "h-5 w-5",
-                darkMode ? "text-gray-400" : "text-gray-500",
-              )} strokeWidth={1.8} />
+                "h-4 w-4",
+                darkMode ? "text-blue-400" : "text-blue-600",
+              )} strokeWidth={2} />
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
@@ -226,16 +233,11 @@ export default function AccessLockoutScreen({ decision }: Props) {
               </div>
               <Button
                 onClick={handleMsLogin}
-                className={cn(
-                  "w-full h-11 font-semibold rounded-xl gap-2.5",
-                  darkMode
-                    ? "bg-white text-gray-900 hover:bg-gray-100"
-                    : "bg-gray-900 text-white hover:bg-gray-800",
-                )}
+                className="w-full h-11 font-semibold rounded-xl gap-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
               >
                 <MicrosoftLogo />
                 {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
-                <ArrowRight className="h-4 w-4 ml-auto opacity-60" />
+                <ArrowRight className="h-4 w-4 ml-auto opacity-80" />
               </Button>
             </div>
           )}

@@ -18,9 +18,17 @@ export default function MaintenanceMode({ message }: Props) {
       <div className="absolute top-0 inset-x-0 h-px bg-gray-200" />
 
       <div className="flex flex-col items-center text-center max-w-md">
-        {/* Tiny icon */}
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 mb-5">
-          <Wrench className="h-5 w-5 text-gray-500" strokeWidth={1.8} />
+        {/* KSYK logo */}
+        <img
+          src="/favicon-128.png"
+          alt="KSYK Maps"
+          width={48}
+          height={48}
+          className="h-12 w-12 object-contain mb-5"
+        />
+        {/* Tiny tools icon */}
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 mb-4">
+          <Wrench className="h-4 w-4 text-blue-600" strokeWidth={2} />
         </div>
 
         {/* Status pill */}

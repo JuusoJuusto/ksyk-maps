@@ -156,7 +156,14 @@ export default function StudentLoginGate() {
 
         {step === "choice" && (
           <div className="px-8 pt-9 pb-8 space-y-7">
-            <div className="flex flex-col items-center text-center space-y-1">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <img
+                src="/favicon-128.png"
+                alt="KSYK Maps"
+                width={56}
+                height={56}
+                className="h-14 w-14 object-contain"
+              />
               <p className={cn(
                 "text-[10px] font-bold tracking-[0.42em] uppercase",
                 darkMode ? "text-gray-500" : "text-gray-400",
@@ -177,15 +184,10 @@ export default function StudentLoginGate() {
               <Button
                 type="button"
                 onClick={() => setStep("signin")}
-                className={cn(
-                  "w-full h-11 font-semibold rounded-xl gap-2 text-sm justify-between",
-                  darkMode
-                    ? "bg-white text-gray-900 hover:bg-gray-100"
-                    : "bg-gray-900 text-white hover:bg-gray-800",
-                )}
+                className="w-full h-11 font-semibold rounded-xl gap-2 text-sm justify-between bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
               >
                 <span>{isFi ? "Kirjaudu opiskelijana" : "Sign in as student"}</span>
-                <ArrowRight className="h-4 w-4 opacity-70" />
+                <ArrowRight className="h-4 w-4 opacity-80" />
               </Button>
 
               <Button
@@ -339,17 +341,12 @@ export default function StudentLoginGate() {
             <Button
               type="submit"
               disabled={submitting}
-              className={cn(
-                "w-full h-10 font-semibold rounded-lg gap-2 text-sm",
-                darkMode
-                  ? "bg-white hover:bg-gray-100 text-gray-900"
-                  : "bg-gray-900 hover:bg-gray-800 text-white",
-              )}
+              className="w-full h-10 font-semibold rounded-lg gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
             >
               {submitting
                 ? (isFi ? "Tallennetaan…" : "Saving…")
                 : (isFi ? "Kirjaudu kartalle" : "Continue to map")}
-              <ArrowRight className="h-3.5 w-3.5 opacity-70" />
+              <ArrowRight className="h-3.5 w-3.5 opacity-80" />
             </Button>
 
             <p className={cn(

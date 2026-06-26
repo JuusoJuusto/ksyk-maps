@@ -1,9 +1,9 @@
 /**
- * KSYK Maps — minimal boot splash.
+ * KSYK Maps — minimal boot splash with KSYK brand.
  *
- * Clean white background, single centered KSYK wordmark, thin indeterminate
- * progress bar. Auto-fades 600ms after mount. The goal is "calm, brief,
- * out of the way" — nothing to distract from the map that's about to appear.
+ * White background, centered KSYK logo (favicon-128 — same file the
+ * header uses), small "KSYK MAPS" rail, thin blue indeterminate progress
+ * bar. Auto-fades 600ms after mount.
  */
 
 import { useEffect, useState } from "react";
@@ -35,16 +35,26 @@ export default function SplashScreen() {
       ].join(" ")}
     >
       <div className="flex flex-col items-center gap-5">
-        {/* Wordmark — small, refined */}
+        {/* Brand mark */}
+        <img
+          src="/favicon-128.png"
+          alt="KSYK Maps"
+          width={56}
+          height={56}
+          className="h-14 w-14 object-contain"
+          decoding="sync"
+          fetchPriority="high"
+        />
+        {/* Wordmark */}
         <p
-          className="text-[11px] font-bold tracking-[0.45em] text-gray-500 uppercase"
+          className="text-[10px] font-bold tracking-[0.42em] text-gray-500 uppercase"
           style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
         >
           KSYK · Maps
         </p>
-        {/* Thin progress line — indeterminate sweep */}
-        <div className="h-[2px] w-32 rounded-full bg-gray-100 overflow-hidden">
-          <span className="block h-full w-1/3 rounded-full bg-gray-900 splash-sweep" />
+        {/* KSYK blue indeterminate sweep */}
+        <div className="h-[2px] w-28 rounded-full bg-blue-100 overflow-hidden">
+          <span className="block h-full w-1/3 rounded-full bg-blue-600 splash-sweep" />
         </div>
       </div>
       <style>{`

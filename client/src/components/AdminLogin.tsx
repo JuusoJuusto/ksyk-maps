@@ -74,11 +74,20 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         <div className="absolute inset-0 bg-white/55" />
         {/* Bottom-left brand block */}
         <div className="absolute inset-0 flex flex-col justify-between p-12 xl:p-14 text-gray-900">
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.42em] text-gray-500 uppercase">
-              KSYK · Maps
-            </p>
-            <p className="text-sm font-semibold mt-1">Admin Portal</p>
+          <div className="flex items-center gap-3">
+            <img
+              src="/favicon-128.png"
+              alt="KSYK Maps"
+              width={44}
+              height={44}
+              className="h-11 w-11 object-contain drop-shadow"
+            />
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.42em] text-gray-500 uppercase">
+                KSYK · Maps
+              </p>
+              <p className="text-sm font-semibold mt-0.5">Admin Portal</p>
+            </div>
           </div>
           <div className="space-y-2 max-w-md">
             <h1 className="text-4xl xl:text-5xl font-semibold leading-[1.05] tracking-tight">
@@ -105,19 +114,28 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       )}>
         {/* Mobile brand strip */}
         <div className="lg:hidden absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5">
-          <div>
-            <p className={cn(
-              "text-[9px] font-bold tracking-[0.42em] uppercase",
-              darkMode ? "text-gray-500" : "text-gray-400",
-            )}>
-              KSYK · Maps
-            </p>
-            <p className={cn(
-              "text-xs font-semibold",
-              darkMode ? "text-white" : "text-gray-900",
-            )}>
-              Admin
-            </p>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/favicon-128.png"
+              alt="KSYK Maps"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+            />
+            <div>
+              <p className={cn(
+                "text-[9px] font-bold tracking-[0.42em] uppercase",
+                darkMode ? "text-gray-500" : "text-gray-400",
+              )}>
+                KSYK · Maps
+              </p>
+              <p className={cn(
+                "text-xs font-semibold",
+                darkMode ? "text-white" : "text-gray-900",
+              )}>
+                Admin
+              </p>
+            </div>
           </div>
           <a
             href="/"
@@ -224,27 +242,19 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
             <Button
               type="submit"
-              className={cn(
-                "w-full h-10 font-semibold rounded-lg gap-2 text-sm mt-2",
-                darkMode
-                  ? "bg-white hover:bg-gray-100 text-gray-900"
-                  : "bg-gray-900 hover:bg-gray-800 text-white",
-              )}
+              className="w-full h-10 font-semibold rounded-lg gap-2 text-sm mt-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
               disabled={isLoading}
               data-testid="admin-login-submit"
             >
               {isLoading ? (
                 <>
-                  <div className={cn(
-                    "w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin",
-                    darkMode ? "border-gray-900" : "border-white",
-                  )} />
+                  <div className="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                   Signing in…
                 </>
               ) : (
                 <>
                   Sign in
-                  <ArrowRight className="w-3.5 h-3.5 opacity-70" />
+                  <ArrowRight className="w-3.5 h-3.5 opacity-80" />
                 </>
               )}
             </Button>
