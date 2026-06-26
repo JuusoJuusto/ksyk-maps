@@ -70,37 +70,43 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {/* Soft white wash so text on top reads clearly */}
-        <div className="absolute inset-0 bg-white/55" />
-        {/* Bottom-left brand block */}
-        <div className="absolute inset-0 flex flex-col justify-between p-12 xl:p-14 text-gray-900">
+        {/* Dark gradient wash — photo reads strongly, text stays legible */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/85 via-blue-950/75 to-gray-900/90" />
+        {/* Subtle blue accent at the bottom-right corner */}
+        <div className="absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full opacity-30 blur-3xl pointer-events-none"
+             style={{ background: "radial-gradient(circle, #3b82f6 0%, transparent 70%)" }} />
+        {/* Brand block */}
+        <div className="absolute inset-0 flex flex-col justify-between p-12 xl:p-14 text-white">
           <div className="flex items-center gap-3">
             <img
               src="/favicon-128.png"
               alt="KSYK Maps"
               width={44}
               height={44}
-              className="h-11 w-11 object-contain drop-shadow"
+              className="h-11 w-11 object-contain drop-shadow-lg"
             />
             <div>
-              <p className="text-[10px] font-bold tracking-[0.42em] text-gray-500 uppercase">
+              <p className="text-[10px] font-bold tracking-[0.42em] text-blue-200/80 uppercase">
                 KSYK · Maps
               </p>
-              <p className="text-sm font-semibold mt-0.5">Admin Portal</p>
+              <p className="text-sm font-semibold mt-0.5 text-white">Admin Portal</p>
             </div>
           </div>
-          <div className="space-y-2 max-w-md">
-            <h1 className="text-4xl xl:text-5xl font-semibold leading-[1.05] tracking-tight">
+          <div className="space-y-3 max-w-md">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest text-blue-200 ring-1 ring-blue-400/20">
+              Campus Operations
+            </span>
+            <h1 className="text-4xl xl:text-5xl font-semibold leading-[1.05] tracking-tight text-white">
               Run the campus map.
             </h1>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm text-blue-100/75 leading-relaxed max-w-sm">
               Manage rooms, schedules, security and the 3D experience that
               students see every day.
             </p>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-gray-500">
+          <div className="flex items-center justify-between text-[11px] text-blue-200/55">
             <span>© KSYK · Nordbyte Studio</span>
-            <a href="/" className="hover:text-gray-900 transition-colors">
+            <a href="/" className="hover:text-white transition-colors">
               ← Back to map
             </a>
           </div>

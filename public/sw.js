@@ -1,7 +1,9 @@
 // KSYK Map Service Worker - Advanced PWA Capabilities
-const CACHE_NAME = 'ksyk-map-v1.0.0';
-const STATIC_CACHE_NAME = 'ksyk-static-v1';
-const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v1';
+// Bump these version strings whenever you ship breaking client changes —
+// older caches get evicted on the next page load (see activate handler).
+const CACHE_NAME = 'ksyk-map-v1.2.0';
+const STATIC_CACHE_NAME = 'ksyk-static-v2';
+const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v2';
 
 // Cache strategies for different resource types
 const CACHE_STRATEGIES = {
