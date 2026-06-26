@@ -9,13 +9,9 @@ import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
 
 /**
- * KSYK Admin Login — minimal split.
- *
- * Left: the wilma-bg.jpg photo with a soft white wash so it reads as a
- * calm campus backdrop, not a marketing splash. Brand mark, one tagline.
- * Right: tight white form. No gradients, no glow, no "shouting" copy.
- * The whole page is built around restraint — appropriate for an admin
- * surface used daily by one or two people.
+ * KSYK Admin Login — flipped split:
+ *   left  → narrow white sign-in column (38%)
+ *   right → full-bleed wilma-bg.jpg (62%), no overlay, no marketing copy.
  */
 
 interface AdminLoginProps {
@@ -62,91 +58,38 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* ── LEFT · photo panel ──────────────────────────────────────── */}
-      <div className="hidden lg:block relative w-1/2 xl:w-[55%] bg-gray-100 overflow-hidden">
-        <img
-          src="/wilma-bg.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        {/* Dark gradient wash — photo reads strongly, text stays legible */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/85 via-blue-950/75 to-gray-900/90" />
-        {/* Subtle blue accent at the bottom-right corner */}
-        <div className="absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full opacity-30 blur-3xl pointer-events-none"
-             style={{ background: "radial-gradient(circle, #3b82f6 0%, transparent 70%)" }} />
-        {/* Brand block */}
-        <div className="absolute inset-0 flex flex-col justify-between p-12 xl:p-14 text-white">
-          <div className="flex items-center gap-3">
-            <img
-              src="/favicon-128.png"
-              alt="KSYK Maps"
-              width={44}
-              height={44}
-              className="h-11 w-11 object-contain drop-shadow-lg"
-            />
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.42em] text-blue-200/80 uppercase">
-                KSYK · Maps
-              </p>
-              <p className="text-sm font-semibold mt-0.5 text-white">Admin Portal</p>
-            </div>
-          </div>
-          <div className="space-y-3 max-w-md">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest text-blue-200 ring-1 ring-blue-400/20">
-              Campus Operations
-            </span>
-            <h1 className="text-4xl xl:text-5xl font-semibold leading-[1.05] tracking-tight text-white">
-              Run the campus map.
-            </h1>
-            <p className="text-sm text-blue-100/75 leading-relaxed max-w-sm">
-              Manage rooms, schedules, security and the 3D experience that
-              students see every day.
-            </p>
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-blue-200/55">
-            <span>© KSYK · Nordbyte Studio</span>
-            <a href="/" className="hover:text-white transition-colors">
-              ← Back to map
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT · login form ──────────────────────────────────────── */}
+      {/* ── LEFT · narrow sign-in column ───────────────────────────── */}
       <div className={cn(
-        "relative flex-1 flex items-center justify-center px-5 sm:px-12 py-12",
+        "relative flex flex-col w-full lg:w-[38%] xl:w-[34%] px-6 sm:px-10 lg:px-12 py-10 lg:py-14 shrink-0",
         darkMode ? "bg-gray-950" : "bg-white",
       )}>
-        {/* Mobile brand strip */}
-        <div className="lg:hidden absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5">
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/favicon-128.png"
-              alt="KSYK Maps"
-              width={32}
-              height={32}
-              className="h-8 w-8 object-contain"
-            />
-            <div>
-              <p className={cn(
-                "text-[9px] font-bold tracking-[0.42em] uppercase",
-                darkMode ? "text-gray-500" : "text-gray-400",
-              )}>
-                KSYK · Maps
-              </p>
-              <p className={cn(
-                "text-xs font-semibold",
-                darkMode ? "text-white" : "text-gray-900",
-              )}>
-                Admin
-              </p>
-            </div>
+        {/* Top brand */}
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/favicon-128.png"
+            alt="KSYK Maps"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain"
+          />
+          <div>
+            <p className={cn(
+              "text-[9px] font-bold tracking-[0.42em] uppercase",
+              darkMode ? "text-gray-500" : "text-gray-400",
+            )}>
+              KSYK · Maps
+            </p>
+            <p className={cn(
+              "text-xs font-semibold",
+              darkMode ? "text-white" : "text-gray-900",
+            )}>
+              Admin
+            </p>
           </div>
           <a
             href="/"
             className={cn(
-              "text-xs transition-colors",
+              "ml-auto text-xs transition-colors",
               darkMode ? "text-gray-500 hover:text-white" : "text-gray-500 hover:text-gray-900",
             )}
           >
@@ -154,9 +97,9 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           </a>
         </div>
 
-        <div className="w-full max-w-[22rem]">
-          {/* Header */}
-          <div className="space-y-2 mb-8">
+        {/* Form column — vertically centred between the header and footer */}
+        <div className="flex-1 flex flex-col justify-center py-10 max-w-sm w-full mx-auto lg:mx-0">
+          <div className="space-y-2 mb-7">
             <h2 className={cn(
               "text-2xl font-semibold tracking-tight",
               darkMode ? "text-white" : "text-gray-900",
@@ -171,7 +114,6 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive" className="rounded-lg text-sm">
@@ -266,7 +208,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             </Button>
           </form>
 
-          {/* Alternative providers */}
+          {/* Alt providers */}
           <div className="mt-6 space-y-2">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -330,27 +272,39 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               </Button>
             )}
           </div>
-
-          {/* Footer */}
-          <div className={cn(
-            "mt-8 pt-5 border-t flex items-center justify-between text-[11px]",
-            darkMode ? "border-gray-900 text-gray-500" : "border-gray-100 text-gray-400",
-          )}>
-            <span className="flex items-center gap-1.5">
-              <Lock className="h-3 w-3" />
-              Protected
-            </span>
-            <a
-              href="/"
-              className={cn(
-                "transition-colors",
-                darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900",
-              )}
-            >
-              Back to map →
-            </a>
-          </div>
         </div>
+
+        {/* Footer */}
+        <div className={cn(
+          "flex items-center justify-between text-[11px]",
+          darkMode ? "text-gray-500" : "text-gray-400",
+        )}>
+          <span className="flex items-center gap-1.5">
+            <Lock className="h-3 w-3" />
+            Protected · KSYK
+          </span>
+          <a
+            href="/"
+            className={cn(
+              "transition-colors",
+              darkMode ? "hover:text-white" : "hover:text-gray-900",
+            )}
+          >
+            Back to map →
+          </a>
+        </div>
+      </div>
+
+      {/* ── RIGHT · big photo, no overlay, no copy ──────────────── */}
+      <div className="hidden lg:block relative flex-1 bg-gray-900 overflow-hidden">
+        <img
+          src="/wilma-bg.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+        />
       </div>
     </div>
   );

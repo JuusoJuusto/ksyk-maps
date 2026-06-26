@@ -912,62 +912,67 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       <div className="absolute right-3 z-40 flex flex-col gap-2"
            style={{ bottom: 'max(2rem, calc(1.25rem + env(safe-area-inset-bottom)))' }}>
 
-        {/* Matterport tour — admin-configured, opens a fullscreen iframe. */}
+        {/* Matterport tour — admin-configured. */}
         {tourUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             aria-label={isFi ? "Avaa virtuaalikierros" : "Open virtual tour"}
-            className={cn(
-              panel,
-              "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
-              "text-cyan-600 dark:text-cyan-400 bg-cyan-50/90 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-700/60",
-            )}
             onClick={() => setTourOpen(true)}
             title={isFi ? "3D virtuaalikierros (Matterport)" : "3D virtual tour (Matterport)"}
+            className={cn(
+              "w-11 h-11 p-0 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
+              "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30",
+            )}
           >
             <Mountain className="h-4 w-4" />
-            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
+            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums tracking-wider">
               TOUR
             </span>
-          </Button>
+          </button>
         )}
 
         {/* Rotation reset (visible whenever rotation ≠ 0) */}
         {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             aria-label={isFi ? "Palauta pohjoinen ylös" : "Reset rotation"}
-            className={cn(panel, "w-11 h-11 p-0 text-indigo-600 dark:text-indigo-400")}
             onClick={() => update("osmRotationDeg", 0)}
             title={isFi ? "Kompassi · pohjoinen ylös" : "Compass · north up"}
+            className={cn(
+              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+              darkMode
+                ? "bg-gray-900/92 border-gray-700/70 text-blue-400 hover:bg-gray-800"
+                : "bg-white/95 border-gray-200 text-blue-600 hover:bg-blue-50",
+            )}
           >
             <Compass
               className="h-4 w-4 transition-transform"
               style={{ transform: `rotate(${-safeNum(settings.osmRotationDeg, 0)}deg)` }}
             />
-          </Button>
+          </button>
         )}
 
-        {/* 3D pitch slider — visible when 3D is on */}
+        {/* 3D pitch stepper — visible when 3D is on */}
         {is3DMode && canUse3D && (
-          <div className={cn(panel, "w-11 flex flex-col items-center gap-1 py-2 px-0")}>
+          <div className={cn(
+            "w-11 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center gap-1 py-2 px-0",
+            darkMode ? "bg-gray-900/92 border-gray-700/70" : "bg-white/95 border-gray-200",
+          )}>
             <button
               type="button"
               aria-label="Increase pitch"
               onClick={() => update("osmPitchDeg", Math.min(45, safeNum(settings.osmPitchDeg, 32) + 4))}
-              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
+              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 transition-colors"
             >
               <ChevronUp className="h-3.5 w-3.5" />
             </button>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">
+              <span className="text-[9px] font-bold font-mono text-blue-600 dark:text-blue-400 tabular-nums leading-none">
                 {Math.round(safeNum(settings.osmPitchDeg, 32))}°
               </span>
               <div className="h-14 w-1.5 rounded-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
                 <div
-                  className="absolute bottom-0 left-0 right-0 rounded-full bg-indigo-500 transition-all duration-200"
+                  className="absolute bottom-0 left-0 right-0 rounded-full bg-blue-600 transition-all duration-200"
                   style={{ height: `${(safeNum(settings.osmPitchDeg, 32) / 45) * 100}%` }}
                 />
               </div>
@@ -976,7 +981,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               type="button"
               aria-label="Decrease pitch"
               onClick={() => update("osmPitchDeg", Math.max(5, safeNum(settings.osmPitchDeg, 32) - 4))}
-              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors"
+              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 transition-colors"
             >
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
@@ -985,59 +990,70 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
         {/* 3D toggle */}
         {canUse3D && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
-            className={cn(
-              panel, "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
-              is3DMode
-                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700"
-                : ""
-            )}
             onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
             title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
+            className={cn(
+              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
+              is3DMode
+                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
+                : darkMode
+                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800"
+                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+            )}
           >
             <Mountain className="h-4 w-4" />
             <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
               {is3DMode ? "3D" : "2D"}
             </span>
-          </Button>
+          </button>
         )}
 
         {navigator?.geolocation && canUseGeolocation && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             aria-label={isFi ? "Paikanna" : "Locate me"}
-            className={cn(panel, "w-11 h-11 p-0", userLocation ? "text-blue-600 dark:text-blue-400" : "")}
             onClick={handleLocate}
             title={isFi ? "Näytä oma sijaintisi" : "Show my location"}
+            className={cn(
+              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+              userLocation
+                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
+                : darkMode
+                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+            )}
           >
             {locating
               ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Crosshair className={cn("h-4 w-4", userLocation ? "text-blue-500" : "")} />
+              : <Crosshair className="h-4 w-4" />
             }
-          </Button>
+          </button>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
+          type="button"
           aria-label={isFi ? "Palauta näkymä" : "Reset view"}
-          className={cn(panel, "w-11 h-11 p-0")}
           onClick={resetView}
           title={isFi ? "Palauta näkymä (0)" : "Reset view (0)"}
+          className={cn(
+            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+            darkMode
+              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+          )}
         >
           <Home className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
 
       {/* ── 3D mode info chip ──────────────────────────────────────── */}
       {is3DMode && !selectedRoom && !selectedBuilding && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="flex items-center gap-1.5 bg-indigo-600/90 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm shadow-lg whitespace-nowrap">
+          <div className="flex items-center gap-1.5 bg-blue-600 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-lg whitespace-nowrap">
             <Mountain className="h-3 w-3" />
-            3D · {settings.osmPitchDeg ?? 32}° pitch
+            3D · {Math.round(safeNum(settings.osmPitchDeg, 32))}° pitch
           </div>
         </div>
       )}
