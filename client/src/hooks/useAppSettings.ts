@@ -41,6 +41,7 @@ const MAP_DEFAULT_KEYS = [
   'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
   'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
   'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
+  'matterportTourUrl',
 ] as const;
 
 const NUMERIC_MAP_KEYS = new Set<string>([

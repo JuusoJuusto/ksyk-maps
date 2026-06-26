@@ -84,6 +84,9 @@ export type AppSettings = {
   osmMaxBoundsEast: number;
   osmMaxBoundsSouth: number;
   osmMaxBoundsWest: number;
+  /** Optional Matterport tour URL — opens a fullscreen 3D walkthrough
+   * from the map's hamburger drawer. Empty string = hide the button. */
+  matterportTourUrl: string;
 };
 
 const STORAGE_KEY = "ksyk_app_settings_v2";
@@ -123,6 +126,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   osmMaxBoundsEast: 25.0125,
   osmMaxBoundsSouth: 60.1834,
   osmMaxBoundsWest: 24.9995,
+  matterportTourUrl: "",
 };
 
 export const OSM_TILE_PROVIDERS: Record<OsmTileProvider, { name: string; url: string; attribution: string; maxNativeZoom: number }> = {

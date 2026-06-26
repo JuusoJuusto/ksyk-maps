@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
 import AccessLockoutScreen from "@/components/AccessLockoutScreen";
+import MatterportTour from "@/components/MatterportTour";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
@@ -158,6 +159,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
    * rotation / locate / home all inside, so the bottom-right doesn't crash
    * into the mobile bottom nav. */
   const [menuOpen, setMenuOpen] = useState(false);
+  /** Matterport tour overlay — fullscreen 3D walkthrough. Visible when
+   * the admin has configured matterportTourUrl AND the user has tapped
+   * the Tour button. */
+  const [tourOpen, setTourOpen] = useState(false);
+  const tourUrl = (settings.matterportTourUrl || "").trim();
 
   // Leaflet plumbing
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -767,6 +773,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     return <AccessLockoutScreen decision={accessDecision} />;
   }
 
+  // Matterport overlay — when open it covers the map entirely.
+  if (tourOpen && tourUrl) {
+    return <MatterportTour rawUrl={tourUrl} isFi={isFi} onClose={() => setTourOpen(false)} />;
+  }
+
   return (
     <div
       ref={wrapRef}
@@ -948,11 +959,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               rotation={safeNum(settings.osmRotationDeg, 0)}
               locating={locating}
               userLocation={userLocation}
+              tourAvailable={!!tourUrl}
               onTogglePitch={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
               onPitchChange={(v) => update("osmPitchDeg", v)}
               onRotationChange={(v) => update("osmRotationDeg", v)}
               onLocate={() => { setMenuOpen(false); handleLocate(); }}
               onReset={() => { setMenuOpen(false); resetView(); }}
+              onOpenTour={() => { setMenuOpen(false); setTourOpen(true); }}
               onClose={() => setMenuOpen(false)}
             />
           </div>
@@ -962,6 +975,27 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {/* ── Desktop stacked controls — right side, hidden on mobile. */}
       <div className="hidden sm:flex absolute right-3 z-40 flex-col gap-2"
            style={{ bottom: 'max(2rem, calc(1.25rem + env(safe-area-inset-bottom)))' }}>
+
+        {/* Matterport tour — admin-configured, opens a fullscreen iframe. */}
+        {tourUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={isFi ? "Avaa virtuaalikierros" : "Open virtual tour"}
+            className={cn(
+              panel,
+              "w-11 h-11 p-0 flex flex-col items-center justify-center gap-0 transition-colors",
+              "text-cyan-600 dark:text-cyan-400 bg-cyan-50/90 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-700/60",
+            )}
+            onClick={() => setTourOpen(true)}
+            title={isFi ? "3D virtuaalikierros (Matterport)" : "3D virtual tour (Matterport)"}
+          >
+            <Mountain className="h-4 w-4" />
+            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
+              TOUR
+            </span>
+          </Button>
+        )}
 
         {/* Rotation reset (visible whenever rotation ≠ 0) */}
         {Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && (
@@ -1356,17 +1390,20 @@ interface MobileControlMenuProps {
   rotation: number;
   locating: boolean;
   userLocation: [number, number] | null;
+  tourAvailable: boolean;
   onTogglePitch: () => void;
   onPitchChange: (v: number) => void;
   onRotationChange: (v: number) => void;
   onLocate: () => void;
   onReset: () => void;
+  onOpenTour: () => void;
   onClose: () => void;
 }
 
 function MobileControlMenu({
   isFi, canUse3D, canUseGeolocation, is3DMode, pitch, rotation, locating, userLocation,
-  onTogglePitch, onPitchChange, onRotationChange, onLocate, onReset, onClose,
+  tourAvailable,
+  onTogglePitch, onPitchChange, onRotationChange, onLocate, onReset, onOpenTour, onClose,
 }: MobileControlMenuProps) {
   return (
     <div className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
@@ -1428,6 +1465,43 @@ function MobileControlMenu({
           </Link>
         </div>
       </div>
+
+      {/* Hero: Matterport 3D tour — only when admin has configured a URL. */}
+      {tourAvailable && (
+        <button
+          type="button"
+          onClick={onOpenTour}
+          className="relative w-full overflow-hidden rounded-2xl p-4 text-left bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition-transform"
+        >
+          <div className="absolute inset-0 opacity-15"
+            style={{
+              backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-md ring-1 ring-white/25">
+              <Mountain className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-[9px] font-bold tracking-[0.22em] text-white/80 uppercase"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {isFi ? "Uusi · 3D" : "New · 3D"}
+              </p>
+              <p
+                className="text-base font-bold leading-tight"
+                style={{ fontFamily: "'Libre Baskerville', Georgia, serif" }}
+              >
+                {isFi ? "Virtuaalikierros" : "Virtual Tour"}
+              </p>
+            </div>
+            <ChevronUp className="h-4 w-4 opacity-70 rotate-90" />
+          </div>
+        </button>
+      )}
 
       {/* Section: map controls */}
       <div>

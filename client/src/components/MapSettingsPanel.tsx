@@ -665,6 +665,38 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
 
       <Separator />
 
+      {/* ── Matterport 3D virtual tour ─────────────────────────────── */}
+      <div className="p-3.5 rounded-2xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+            3D
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-cyan-900 dark:text-cyan-200">
+              {isFi ? "Matterport virtuaalikierros" : "Matterport virtual tour"}
+            </div>
+            <p className="text-[10px] text-cyan-700 dark:text-cyan-300 leading-tight">
+              {isFi ? "Liitä Matterport-tilausosoite tai mallin ID" : "Paste a Matterport share URL or model ID"}
+            </p>
+          </div>
+        </div>
+        <input
+          type="url"
+          inputMode="url"
+          placeholder="https://my.matterport.com/show/?m=…"
+          value={settings.matterportTourUrl || ""}
+          onChange={(e) => update("matterportTourUrl", e.target.value)}
+          className="w-full h-9 px-3 text-xs font-mono rounded-lg border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+        />
+        <p className="text-[10px] text-cyan-700/80 dark:text-cyan-300/70 leading-relaxed">
+          {isFi
+            ? "Kun täytetty, käyttäjille ilmestyy ”Tour”-painike kartan oikealle reunalle ja hamburger-valikkoon."
+            : "When set, users see a Tour button on the map's right edge and a hero card in the hamburger menu."}
+        </p>
+      </div>
+
+      <Separator />
+
       {/* ── Live-applied + save indicator ──────────────────────────── */}
       <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/40">
         <div className="flex items-center gap-2">

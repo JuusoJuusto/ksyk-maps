@@ -87,28 +87,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // GET /api/security-settings — public read for the gate engine.
+    // Hits Firestore directly so the response is authoritative even when
+    // the IStorage interface doesn't expose the doc.
     if (apiPath === '/security-settings' && req.method === 'GET') {
       try {
-        if ((storage as any).getSecuritySettings) {
-          const s = await (storage as any).getSecuritySettings();
-          return res.status(200).json(s ?? null);
-        }
-        // Storage layer doesn't expose it yet — return null so the client
-        // falls back to localStorage / defaults instead of looping 404s.
-        return res.status(200).json(null);
+        const { db } = await import('../server/firebaseStorage.js');
+        const doc = await db.collection('securitySettings').doc('default').get();
+        return res.status(200).json(doc.exists ? doc.data() : null);
       } catch (err) {
         console.error('security-settings GET error:', err);
         return res.status(200).json(null);
       }
     }
 
-    // PUT /api/security-settings — admin write (basic validation; the
-    // real validation lives in the Express route on the dev server).
+    // PUT /api/security-settings — admin write. Whitelist + validate so
+    // a malformed body can't poison the doc.
     if (apiPath === '/security-settings' && req.method === 'PUT') {
       try {
-        if ((storage as any).setSecuritySettings) {
-          await (storage as any).setSecuritySettings({ ...req.body, updatedAt: new Date() });
-        }
+        const { db } = await import('../server/firebaseStorage.js');
+        const src = req.body || {};
+        const safeBool = (v: any, fb = false) => typeof v === 'boolean' ? v : fb;
+        const safeStr = (v: any, max = 500) => typeof v === 'string' ? v.slice(0, max) : '';
+        const safeTier = (v: any) => v === 'full' || v === 'restricted' || v === 'blocked' ? v : 'restricted';
+        const safeArr = (v: any, max = 500) => Array.isArray(v) ? v.slice(0, max) : [];
+        const payload = {
+          enabled: safeBool(src.enabled),
+          timeWindowEnabled: safeBool(src.timeWindowEnabled),
+          schedule: (src.schedule && typeof src.schedule === 'object') ? src.schedule : {},
+          outsideHoursTier: safeTier(src.outsideHoursTier),
+          holidays: safeArr(src.holidays),
+          ipGateEnabled: safeBool(src.ipGateEnabled),
+          ipAllowlist: safeArr(src.ipAllowlist),
+          offNetworkTier: safeTier(src.offNetworkTier),
+          loginGateEnabled: safeBool(src.loginGateEnabled),
+          allowedEmailDomains: safeArr(src.allowedEmailDomains),
+          loggedInTier: safeTier(src.loggedInTier),
+          guestTier: safeTier(src.guestTier),
+          restrictedDisabledFeatures: (src.restrictedDisabledFeatures && typeof src.restrictedDisabledFeatures === 'object') ? src.restrictedDisabledFeatures : {},
+          userExceptions: safeArr(src.userExceptions),
+          accessRequests: safeArr(src.accessRequests),
+          lockoutMessage: safeStr(src.lockoutMessage, 1000),
+          dryRun: safeBool(src.dryRun),
+          updatedAt: new Date(),
+        };
+        await db.collection('securitySettings').doc('default').set(payload, { merge: false });
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('security-settings PUT error:', err);
@@ -116,23 +138,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/security-settings/request-access — queues a guest request.
+    // POST /api/security-settings/request-access — queues a guest request
+    // into the same Firestore doc the admin panel inbox reads.
     if (apiPath === '/security-settings/request-access' && req.method === 'POST') {
       try {
+        const { db } = await import('../server/firebaseStorage.js');
         const { email, reason } = req.body || {};
         if (!email || typeof email !== 'string') {
           return res.status(400).json({ message: 'Email is required' });
         }
-        if ((storage as any).appendAccessRequest) {
-          await (storage as any).appendAccessRequest({
-            email: email.toLowerCase().trim(),
-            reason: (reason || '').toString().slice(0, 500),
-            createdAt: new Date().toISOString(),
-            status: 'pending',
-          });
-        }
-        return res.status(200).json({ success: true });
-      } catch {
+        const ref = db.collection('securitySettings').doc('default');
+        const snap = await ref.get();
+        const current = (snap.data() as any) || {};
+        const requests = Array.isArray(current.accessRequests) ? current.accessRequests : [];
+        const request = {
+          id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          email: email.toLowerCase().trim(),
+          reason: (reason || '').toString().slice(0, 500),
+          createdAt: new Date().toISOString(),
+          status: 'pending' as const,
+        };
+        await ref.set({ ...current, accessRequests: [request, ...requests].slice(0, 200) }, { merge: true });
+        return res.status(200).json({ success: true, id: request.id });
+      } catch (err) {
+        console.error('access-request POST error:', err);
         return res.status(500).json({ message: 'Failed to submit request' });
       }
     }
@@ -153,13 +182,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // GET /api/map-defaults — admin-set map home/zoom.
     if (apiPath === '/map-defaults' && req.method === 'GET') {
       try {
-        if ((storage as any).getMapDefaults) {
-          const d = await (storage as any).getMapDefaults();
-          return res.status(200).json(d ?? null);
-        }
-        return res.status(200).json(null);
+        const { db } = await import('../server/firebaseStorage.js');
+        const doc = await db.collection('mapDefaults').doc('default').get();
+        return res.status(200).json(doc.exists ? doc.data() : null);
       } catch {
         return res.status(200).json(null);
+      }
+    }
+
+    // PUT /api/map-defaults — admin write.
+    if (apiPath === '/map-defaults' && req.method === 'PUT') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const allowed = [
+          'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
+          'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
+          'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
+          'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
+          'matterportTourUrl',
+        ];
+        const data: Record<string, any> = {};
+        for (const key of allowed) {
+          if (req.body[key] !== undefined) data[key] = req.body[key];
+        }
+        data.updatedAt = new Date();
+        await db.collection('mapDefaults').doc('default').set(data, { merge: true });
+        return res.status(200).json({ ...data, success: true });
+      } catch (err) {
+        console.error('map-defaults PUT error:', err);
+        return res.status(500).json({ message: 'Failed to save' });
       }
     }
 

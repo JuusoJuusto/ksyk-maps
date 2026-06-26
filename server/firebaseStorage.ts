@@ -109,7 +109,10 @@ if (!getApps().length) {
   }
 }
 
-const db = getFirestore();
+// Exported so route handlers (api/index.ts, server/routes.ts) can do
+// targeted writes — security settings, map defaults, telemetry sinks —
+// without us having to add a method to IStorage for every new doc.
+export const db = getFirestore();
 
 export class FirebaseStorage implements IStorage {
   constructor() {
