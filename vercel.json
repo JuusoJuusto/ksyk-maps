@@ -31,6 +31,14 @@
       "destination": "/security.txt"
     },
     {
+      "source": "/toolbench.html",
+      "destination": "/toolbench.html"
+    },
+    {
+      "source": "/toolbench",
+      "destination": "/toolbench.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

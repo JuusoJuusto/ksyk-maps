@@ -55,7 +55,7 @@ export default function OsmBasemap({
   const overlayRef = useRef<L.SVGOverlay | null>(null);
   const overlaySvgRef = useRef<SVGSVGElement | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const { settings } = useAppSettings();
+  const { settings, setSettings } = useAppSettings();
   const { darkMode } = useDarkMode();
   const [, setReady] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(settings.osmDefaultZoom);
@@ -430,6 +430,108 @@ export default function OsmBasemap({
   useEffect(() => {
     overlayRef.current?.setBounds(L.latLngBounds(campusBounds));
   }, [campusBounds]);
+
+  // Desktop rotation — Shift + drag rotates the map around its centre.
+  // Same write path as the touch gesture below (setSettings on the
+  // shared store) so the rotation persists once the gesture ends.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let startAngleDeg: number | null = null;
+    let startSettingsDeg = 0;
+
+    const angleTo = (e: MouseEvent): number => {
+      const rect = container.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      return (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI;
+    };
+
+    const onDown = (e: MouseEvent) => {
+      if (!e.shiftKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      startAngleDeg = angleTo(e);
+      startSettingsDeg = settings.osmRotationDeg ?? 0;
+      // Pause Leaflet panning during the gesture.
+      mapRef.current?.dragging?.disable();
+      document.body.style.cursor = "grabbing";
+    };
+    const onMove = (e: MouseEvent) => {
+      if (startAngleDeg === null) return;
+      const ang = angleTo(e);
+      const delta = ang - startAngleDeg;
+      let next = startSettingsDeg + delta;
+      while (next > 180) next -= 360;
+      while (next < -180) next += 360;
+      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(next * 10) / 10 }));
+    };
+    const onUp = () => {
+      if (startAngleDeg === null) return;
+      startAngleDeg = null;
+      mapRef.current?.dragging?.enable();
+      document.body.style.cursor = "";
+    };
+
+    container.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      container.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+  }, [settings.osmRotationDeg, setSettings]);
+
+  // Two-finger touch rotation — listen on the wrapper element and translate
+  // the angle delta between two fingers into osmRotationDeg updates. Held
+  // through the gesture (Leaflet's pinch zoom still works in parallel
+  // because Leaflet eats the pinch separately). Rotation persists when the
+  // gesture ends because we write to the shared settings store.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let startAngleDeg: number | null = null;
+    let startSettingsDeg = 0;
+
+    const twoFingerAngleDeg = (e: TouchEvent): number | null => {
+      if (e.touches.length !== 2) return null;
+      const a = e.touches[0];
+      const b = e.touches[1];
+      return (Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180) / Math.PI;
+    };
+
+    const onStart = (e: TouchEvent) => {
+      const ang = twoFingerAngleDeg(e);
+      if (ang === null) return;
+      startAngleDeg = ang;
+      startSettingsDeg = settings.osmRotationDeg ?? 0;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startAngleDeg === null) return;
+      const ang = twoFingerAngleDeg(e);
+      if (ang === null) return;
+      const delta = ang - startAngleDeg;
+      // Normalize into -180…+180 so a 359° jump doesn't snap.
+      let next = startSettingsDeg + delta;
+      while (next > 180) next -= 360;
+      while (next < -180) next += 360;
+      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(next * 10) / 10 }));
+    };
+    const onEnd = () => { startAngleDeg = null; };
+
+    container.addEventListener("touchstart", onStart, { passive: true });
+    container.addEventListener("touchmove", onMove, { passive: true });
+    container.addEventListener("touchend", onEnd, { passive: true });
+    container.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      container.removeEventListener("touchstart", onStart);
+      container.removeEventListener("touchmove", onMove);
+      container.removeEventListener("touchend", onEnd);
+      container.removeEventListener("touchcancel", onEnd);
+    };
+  }, [settings.osmRotationDeg, setSettings]);
 
   // CSS rotation + optional pitch (tilt).
   //

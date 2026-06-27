@@ -46,6 +46,7 @@ interface BeaconReading {
   bssid: string;          // MAC of the access point (lowercased)
   ssid?: string;          // friendly SSID name
   rssi: number;           // dBm, typically -30 to -95
+  source?: "manual" | "bluetooth"; // how the reading was captured
 }
 
 interface SurveyPosition {
@@ -53,6 +54,15 @@ interface SurveyPosition {
   positionLabel: string;  // "Corner NW", "Doorway", etc.
   capturedAt: string;
   readings: BeaconReading[];
+  /** Optional GPS coordinates of the surveyor at the moment of capture.
+   *  When 4+ positions in a room have GPS, the system can auto-derive
+   *  the room's bounding rectangle and snap it onto the campus map. */
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  /** Auto-assigned corner label after auto-detection runs over the
+   *  saved positions of the room. NW/NE/SW/SE — not user input. */
+  autoCorner?: "NW" | "NE" | "SW" | "SE" | null;
 }
 
 const DEFAULT_POSITION_LABELS = [
@@ -107,6 +117,27 @@ export default function BeaconSurveyor() {
   });
 
   const completedCount = positions.length;
+
+  /** Auto-corner detection — runs over every position labelled "Corner"
+   *  that also carries a GPS fix. With 4+ such corners, we work out the
+   *  centroid and assign NW/NE/SW/SE by sign of (lat-centroidLat) and
+   *  (lng-centroidLng). The result is a per-position lookup so the UI
+   *  can label corners without the user picking them by hand. */
+  const cornerLabels = useMemo<Record<string, "NW" | "NE" | "SW" | "SE">>(() => {
+    const corners = positions.filter((p) => p.lat != null && p.lng != null && /corner/i.test(p.positionLabel));
+    if (corners.length < 4) return {};
+    const cLat = corners.reduce((a, p) => a + (p.lat ?? 0), 0) / corners.length;
+    const cLng = corners.reduce((a, p) => a + (p.lng ?? 0), 0) / corners.length;
+    const out: Record<string, "NW" | "NE" | "SW" | "SE"> = {};
+    for (const p of corners) {
+      const north = (p.lat ?? 0) > cLat;
+      const east = (p.lng ?? 0) > cLng;
+      out[p.id] = north
+        ? east ? "NE" : "NW"
+        : east ? "SE" : "SW";
+    }
+    return out;
+  }, [positions]);
 
   /* ── Save / delete ──────────────────────────────────────────────── */
 
@@ -268,43 +299,71 @@ export default function BeaconSurveyor() {
                       Nothing captured yet. Use the form above.
                     </p>
                   ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {positions.map((p) => (
-                        <div key={p.id} className="py-2.5 flex items-start gap-3">
-                          <CornerDownLeft className="h-3.5 w-3.5 text-blue-500 mt-1 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold">{p.positionLabel}</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">
-                              {p.readings.length} reading{p.readings.length === 1 ? "" : "s"} ·
-                              {" "}{new Date(p.capturedAt).toLocaleString()}
-                            </p>
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {p.readings.slice(0, 6).map((r, i) => (
-                                <span
-                                  key={i}
-                                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                  {r.ssid || r.bssid.slice(-5)}: {r.rssi}dBm
-                                </span>
-                              ))}
-                              {p.readings.length > 6 && (
-                                <span className="text-[10px] text-gray-400">
-                                  +{p.readings.length - 6} more
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deletePosition.mutate(p.id)}
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 shrink-0"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                    <>
+                      {Object.keys(cornerLabels).length >= 4 && (
+                        <div className="mb-3 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300">
+                          ✓ Corners auto-detected — NW / NE / SW / SE assigned by GPS.
                         </div>
-                      ))}
-                    </div>
+                      )}
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {positions.map((p) => {
+                          const auto = cornerLabels[p.id];
+                          return (
+                            <div key={p.id} className="py-2.5 flex items-start gap-3">
+                              <CornerDownLeft className="h-3.5 w-3.5 text-blue-500 mt-1 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="text-sm font-semibold">{p.positionLabel}</p>
+                                  {auto && (
+                                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                                      Auto: {auto}
+                                    </Badge>
+                                  )}
+                                  {p.lat != null && (
+                                    <Badge variant="secondary" className="text-[10px] gap-0.5">
+                                      <MapPin className="h-2.5 w-2.5" />
+                                      GPS
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-gray-500 mt-0.5">
+                                  {p.readings.length} reading{p.readings.length === 1 ? "" : "s"} ·
+                                  {" "}{new Date(p.capturedAt).toLocaleString()}
+                                </p>
+                                {p.lat != null && p.lng != null && (
+                                  <p className="text-[10px] font-mono text-gray-400 mt-0.5">
+                                    {p.lat.toFixed(6)}, {p.lng.toFixed(6)} · ±{Math.round(p.accuracyM ?? 0)}m
+                                  </p>
+                                )}
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {p.readings.slice(0, 6).map((r, i) => (
+                                    <span
+                                      key={i}
+                                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                      {r.ssid || r.bssid.slice(-5)}: {r.rssi}dBm
+                                    </span>
+                                  ))}
+                                  {p.readings.length > 6 && (
+                                    <span className="text-[10px] text-gray-400">
+                                      +{p.readings.length - 6} more
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deletePosition.mutate(p.id)}
+                                className="h-7 w-7 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 shrink-0"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -325,9 +384,87 @@ function NewPositionForm({
   submitting: boolean;
   darkMode: boolean;
 }) {
-  const [label, setLabel] = useState("Corner NW");
+  const [label, setLabel] = useState("Corner");
   const [paste, setPaste] = useState("");
   const [readings, setReadings] = useState<BeaconReading[]>([]);
+  /** Captured GPS — auto-fills when the user taps "Capture GPS". */
+  const [gps, setGps] = useState<{ lat: number; lng: number; accuracyM: number } | null>(null);
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  /** Bluetooth scan status — for the experimental "scan" button. */
+  const [bleBusy, setBleBusy] = useState(false);
+  const [bleError, setBleError] = useState<string | null>(null);
+
+  const captureGps = () => {
+    if (!navigator.geolocation) {
+      setGpsError("Geolocation not supported.");
+      return;
+    }
+    setGpsBusy(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGps({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracyM: pos.coords.accuracy,
+        });
+        setGpsBusy(false);
+      },
+      (err) => {
+        setGpsError(err.message || "Couldn't get GPS.");
+        setGpsBusy(false);
+      },
+      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+    );
+  };
+
+  const scanBluetooth = async () => {
+    // Web Bluetooth lets us pick up Eddystone / iBeacon advertisements,
+    // but the API requires a user gesture and runs in Chrome only. For
+    // unsupported browsers we fall back to manual paste.
+    const nav = navigator as any;
+    if (!nav.bluetooth?.requestLEScan) {
+      setBleError("This browser doesn't support Bluetooth scanning. Use the paste field below.");
+      return;
+    }
+    setBleBusy(true);
+    setBleError(null);
+    try {
+      const scan = await nav.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
+      const seen: Record<string, BeaconReading> = {};
+      const onAdv = (e: any) => {
+        const id = String(e.device?.id || e.device?.name || "");
+        if (!id) return;
+        const rssi = e.rssi;
+        if (typeof rssi !== "number") return;
+        // Keep the strongest reading per device id seen during the scan.
+        if (!seen[id] || seen[id].rssi < rssi) {
+          seen[id] = {
+            bssid: id.toLowerCase().slice(0, 30),
+            ssid: e.device?.name || undefined,
+            rssi,
+            source: "bluetooth",
+          };
+        }
+      };
+      nav.bluetooth.addEventListener("advertisementreceived", onAdv);
+      // Collect for ~5 seconds.
+      await new Promise((r) => setTimeout(r, 5000));
+      scan.stop();
+      nav.bluetooth.removeEventListener("advertisementreceived", onAdv);
+      const arr = Object.values(seen).sort((a, b) => b.rssi - a.rssi);
+      if (arr.length === 0) {
+        setBleError("No BLE beacons heard. Move closer or try again.");
+      } else {
+        setReadings((prev) => [...arr, ...prev.filter((p) => !arr.find((a) => a.bssid === p.bssid))]);
+      }
+    } catch (err) {
+      setBleError((err as Error).message || "Bluetooth scan failed.");
+    } finally {
+      setBleBusy(false);
+    }
+  };
 
   const parsePaste = () => {
     // Accepted input — one reading per line, format:
@@ -343,6 +480,7 @@ function NewPositionForm({
         bssid: m[1].toLowerCase(),
         rssi: parseInt(m[2], 10),
         ssid: m[3]?.trim() || undefined,
+        source: "manual",
       });
     }
     if (out.length === 0) return;
@@ -353,13 +491,17 @@ function NewPositionForm({
   const removeReading = (i: number) => setReadings((rs) => rs.filter((_, j) => j !== i));
 
   const submit = () => {
-    if (readings.length === 0) return;
+    if (readings.length === 0 && !gps) return;
     onSubmit({
       positionLabel: label,
       capturedAt: new Date().toISOString(),
       readings,
+      lat: gps?.lat,
+      lng: gps?.lng,
+      accuracyM: gps?.accuracyM,
     });
     setReadings([]);
+    setGps(null);
   };
 
   return (
@@ -370,23 +512,71 @@ function NewPositionForm({
           New position
         </CardTitle>
         <CardDescription className="text-xs">
-          Stand at the position, list the WiFi access points your phone sees, paste below.
+          Walk to a corner (or any spot in the room), tap <strong>Capture GPS</strong> + <strong>Scan</strong>,
+          then save. With 4+ corners + GPS we'll auto-detect the room shape.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Capture row — GPS + Bluetooth */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={captureGps}
+            disabled={gpsBusy}
+            className={cn(
+              "h-10 rounded-lg text-xs font-semibold gap-1.5 inline-flex items-center justify-center transition-colors border-2",
+              gps
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300"
+                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700",
+            )}
+          >
+            {gpsBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
+            {gps
+              ? `GPS · ±${Math.round(gps.accuracyM)} m`
+              : gpsBusy ? "Locating…" : "Capture GPS"}
+          </button>
+          <button
+            type="button"
+            onClick={scanBluetooth}
+            disabled={bleBusy}
+            className={cn(
+              "h-10 rounded-lg text-xs font-semibold gap-1.5 inline-flex items-center justify-center transition-colors border-2",
+              "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700",
+            )}
+          >
+            {bleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+            {bleBusy ? "Scanning…" : "Scan BLE (5s)"}
+          </button>
+        </div>
+        {gpsError && (
+          <p className="text-[11px] text-red-600 dark:text-red-400">{gpsError}</p>
+        )}
+        {bleError && (
+          <p className="text-[11px] text-amber-700 dark:text-amber-300">{bleError}</p>
+        )}
+        {gps && (
+          <p className="text-[10px] font-mono text-gray-500">
+            {gps.lat.toFixed(6)}, {gps.lng.toFixed(6)} · accuracy ±{Math.round(gps.accuracyM)} m
+          </p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs">Position</Label>
+            <Label className="text-xs">Label</Label>
             <select
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
+              <option value="Corner">Corner (auto-detect)</option>
               {DEFAULT_POSITION_LABELS.map((l) => (
                 <option key={l} value={l}>{l}</option>
               ))}
               <option value="Other">Other…</option>
             </select>
+            <p className="text-[10px] text-gray-400 leading-tight">
+              Use <strong>Corner</strong> for auto-detection — we'll work out NW/NE/SW/SE from GPS.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Captured at</Label>

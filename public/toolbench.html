@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>KSYK Toolbench</title>
+  <link rel="icon" type="image/png" href="/favicon-128.png" />
+  <style>
+    /* ── Retro Win-9x palette ─────────────────────────────────────── */
+    :root {
+      --bg-desktop: #008080;       /* classic teal */
+      --bg-window: #c0c0c0;        /* silver */
+      --bg-button: #c0c0c0;
+      --bg-titlebar: #000080;      /* navy */
+      --fg-titlebar: #ffffff;
+      --fg-default: #000000;
+      --fg-muted: #555555;
+      --border-light: #ffffff;
+      --border-mid: #c0c0c0;
+      --border-dark: #808080;
+      --border-darker: #000000;
+      --accent: #2563eb;           /* KSYK blue, as a single modern accent */
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: "MS Sans Serif", "Tahoma", "Microsoft Sans Serif", sans-serif;
+      font-size: 11px;
+      color: var(--fg-default);
+      background: var(--bg-desktop);
+      min-height: 100vh;
+    }
+    body {
+      padding: 24px;
+      background-image:
+        radial-gradient(circle at 25% 25%, rgba(255,255,255,0.04) 1px, transparent 1.5px),
+        radial-gradient(circle at 75% 75%, rgba(0,0,0,0.05) 1px, transparent 1.5px);
+      background-size: 4px 4px;
+    }
+    /* ── Bevelled "window" container ─────────────────────────────── */
+    .window {
+      background: var(--bg-window);
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
+      box-shadow: 1px 1px 0 var(--border-darker);
+      max-width: 880px;
+      margin: 0 auto 16px;
+    }
+    .titlebar {
+      background: linear-gradient(90deg, var(--bg-titlebar) 0%, #1084d0 100%);
+      color: var(--fg-titlebar);
+      font-weight: 700;
+      font-size: 11px;
+      padding: 3px 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .titlebar .icon { width: 16px; height: 16px; }
+    .titlebar .controls { margin-left: auto; display: flex; gap: 2px; }
+    .titlebar button {
+      width: 16px; height: 14px;
+      background: var(--bg-button);
+      border: 1px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
+      font-size: 9px; color: var(--fg-default);
+      font-family: inherit;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+    .window-body {
+      padding: 10px 12px 12px;
+    }
+    /* ── Bevelled "field" ─────────────────────────────────────────── */
+    .fieldset {
+      border: 2px solid;
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      padding: 10px 12px 12px;
+      margin: 0 0 12px;
+    }
+    .fieldset legend {
+      padding: 0 4px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    /* ── Buttons ──────────────────────────────────────────────────── */
+    button.win, .win-btn {
+      background: var(--bg-button);
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
+      padding: 4px 12px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      min-width: 80px;
+    }
+    button.win:active, .win-btn:active {
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      padding: 5px 11px 3px 13px;
+    }
+    button.win:disabled { color: #808080; cursor: not-allowed; }
+    button.win.primary { font-weight: 700; }
+    /* ── Inputs ──────────────────────────────────────────────────── */
+    input[type="text"], input[type="url"], input[type="email"], input[type="password"], select, textarea {
+      background: #ffffff;
+      border: 2px solid;
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      padding: 3px 4px;
+      font-family: inherit;
+      font-size: 11px;
+      width: 100%;
+    }
+    label { display: block; margin: 0 0 2px; font-weight: 700; }
+    /* ── Grid + utility ───────────────────────────────────────────── */
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .col { flex: 1 1 0; min-width: 120px; }
+    .stack { display: flex; flex-direction: column; gap: 8px; }
+    .mono {
+      font-family: "Lucida Console", "Consolas", monospace;
+      font-size: 11px;
+    }
+    .muted { color: var(--fg-muted); }
+    .pill {
+      display: inline-flex; gap: 4px; align-items: center;
+      padding: 1px 6px; border: 1px solid var(--border-darker);
+      background: #fff8c4; font-size: 10px; font-weight: 700;
+    }
+    .ok-pill { background: #d4f0d0; }
+    .warn-pill { background: #ffe0b3; }
+    .err-pill { background: #ffd0d0; }
+    /* ── Tabs ─────────────────────────────────────────────────────── */
+    .tabs { display: flex; gap: 0; margin-bottom: -2px; }
+    .tab {
+      background: var(--bg-button);
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-window-bg, var(--bg-window)) var(--border-light);
+      padding: 4px 14px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      position: relative;
+      bottom: 0;
+    }
+    .tab.active {
+      font-weight: 700;
+      z-index: 1;
+      padding-bottom: 6px;
+      margin-bottom: -2px;
+    }
+    /* ── Log box ─────────────────────────────────────────────────── */
+    .logbox {
+      background: #000000;
+      color: #00ff66;
+      font-family: "Lucida Console", "Consolas", monospace;
+      font-size: 11px;
+      padding: 6px 8px;
+      height: 140px;
+      overflow-y: auto;
+      border: 2px solid;
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .logbox .err { color: #ff6b6b; }
+    .logbox .ok { color: #00ff66; }
+    .logbox .info { color: #ffd166; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 11px;
+    }
+    th, td {
+      border: 1px solid var(--border-dark);
+      padding: 3px 6px;
+      text-align: left;
+      background: #ffffff;
+    }
+    th {
+      background: var(--bg-button);
+    }
+    /* ── Status bar ───────────────────────────────────────────────── */
+    .statusbar {
+      background: var(--bg-window);
+      border: 2px solid;
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      padding: 2px 6px;
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .statusbar > * + * {
+      border-left: 1px solid var(--border-dark);
+      padding-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ── Main window ──────────────────────────────────────────────── -->
+  <div class="window">
+    <div class="titlebar">
+      <img class="icon" src="/favicon-128.png" alt="" />
+      <span>KSYK Toolbench — Beacon Surveyor &amp; Admin Utilities</span>
+      <div class="controls">
+        <button title="Minimize" onclick="alert('Already minimal — that\\'s the point.')">_</button>
+        <button title="Maximize" onclick="document.body.requestFullscreen?.()">□</button>
+        <button title="Close" onclick="window.close()">✕</button>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="scan">Scan</button>
+        <button class="tab" data-tab="login">Sign-in</button>
+        <button class="tab" data-tab="logs">Server logs</button>
+        <button class="tab" data-tab="about">About</button>
+      </div>
+
+      <!-- Scan tab -->
+      <div class="window-body tab-pane" data-pane="scan" style="border: 2px solid; border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light); padding: 12px;">
+
+        <fieldset class="fieldset">
+          <legend>1. Target room</legend>
+          <div class="row">
+            <div class="col" style="flex: 2 1 200px;">
+              <label for="room-select">Room</label>
+              <select id="room-select">
+                <option value="">— loading from server —</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="position-label">Position label</label>
+              <select id="position-label">
+                <option>Corner</option>
+                <option>Corner NW</option>
+                <option>Corner NE</option>
+                <option>Corner SW</option>
+                <option>Corner SE</option>
+                <option>Centre</option>
+                <option>Doorway</option>
+                <option>Window-side</option>
+                <option>Whiteboard</option>
+              </select>
+            </div>
+            <button class="win-btn" id="reload-rooms">Reload</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>2. Capture readings</legend>
+          <div class="row">
+            <button class="win-btn primary" id="btn-gps">Capture GPS</button>
+            <button class="win-btn" id="btn-bluetooth">Scan BLE (5 s)</button>
+            <button class="win-btn" id="btn-wifi" disabled title="Web browsers can't scan WiFi BSSIDs — paste manually.">Scan WiFi (n/a)</button>
+            <span id="gps-status" class="pill warn-pill">GPS: not set</span>
+            <span id="ble-status" class="pill warn-pill">BLE: idle</span>
+          </div>
+          <div style="margin-top: 8px;">
+            <label for="paste">Or paste readings — one per line: <code>&lt;bssid&gt; &lt;rssi&gt; [ssid]</code></label>
+            <textarea id="paste" rows="4" placeholder="aa:bb:cc:dd:ee:ff -67 ksyk-staff
+11:22:33:44:55:66 -82 eduroam"></textarea>
+            <button class="win-btn" id="btn-parse" style="margin-top: 6px;">Parse paste</button>
+          </div>
+          <div style="margin-top: 8px;">
+            <label>Pending readings</label>
+            <table id="readings-table">
+              <thead>
+                <tr><th>BSSID / Device</th><th>SSID / Name</th><th>RSSI</th><th>Source</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" class="muted">No readings captured yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>3. Save</legend>
+          <div class="row">
+            <button class="win-btn primary" id="btn-save" disabled>Save position</button>
+            <button class="win-btn" id="btn-clear">Clear pending</button>
+            <span id="save-status" class="muted">Idle.</span>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Sign-in tab -->
+      <div class="window-body tab-pane" data-pane="login" hidden style="border: 2px solid; border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light); padding: 12px;">
+        <fieldset class="fieldset">
+          <legend>Server connection</legend>
+          <div class="stack">
+            <div>
+              <label for="srv">Server base URL</label>
+              <input id="srv" type="url" value="https://ksykmaps.vercel.app" />
+            </div>
+            <div>
+              <label for="login-email">Admin email</label>
+              <input id="login-email" type="email" placeholder="you@ksyk.fi" />
+            </div>
+            <div>
+              <label for="login-password">Password</label>
+              <input id="login-password" type="password" />
+            </div>
+            <div class="row">
+              <button class="win-btn primary" id="btn-login">Sign in</button>
+              <span id="login-status" class="muted">Not signed in.</span>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Logs tab -->
+      <div class="window-body tab-pane" data-pane="logs" hidden style="border: 2px solid; border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light); padding: 12px;">
+        <fieldset class="fieldset">
+          <legend>Activity log</legend>
+          <div id="logbox" class="logbox"></div>
+          <button class="win-btn" style="margin-top: 6px;" id="btn-clear-log">Clear log</button>
+        </fieldset>
+      </div>
+
+      <!-- About tab -->
+      <div class="window-body tab-pane" data-pane="about" hidden style="border: 2px solid; border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light); padding: 12px;">
+        <fieldset class="fieldset">
+          <legend>About KSYK Toolbench</legend>
+          <p>
+            A small offline utility for surveying classrooms and managing the KSYK Maps platform.
+            Save this HTML file to your desktop and double-click to open — it works without an internet
+            connection apart from when it talks to the KSYK server.
+          </p>
+          <p>
+            <strong>Web Bluetooth</strong> beacon scanning works in Chrome / Edge on Windows and macOS.
+            <strong>GPS</strong> uses the browser's geolocation API. <strong>WiFi BSSID</strong> scanning
+            isn't exposed by browsers — use your phone's WiFi info tool and paste readings here.
+          </p>
+          <p class="muted">
+            Tip: rename to <code class="mono">ksyk-toolbench.hta</code> on Windows to launch it as a
+            self-contained "HTML Application" without browser chrome.
+          </p>
+          <p class="muted">© KSYK · Nordbyte Studio · v0.1</p>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <span id="status-conn">Server: <strong id="srv-display">ksykmaps.vercel.app</strong></span>
+      <span id="status-room" class="muted">Room: —</span>
+      <span id="status-time" class="muted"></span>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────
+    const state = {
+      server: localStorage.getItem("ksyk_toolbench_server") || "https://ksykmaps.vercel.app",
+      auth: null,
+      rooms: [],
+      selectedRoomId: null,
+      gps: null,
+      readings: [],
+    };
+
+    // ── Helpers ────────────────────────────────────────────────────
+    const $ = (id) => document.getElementById(id);
+    const log = (msg, level = "info") => {
+      const box = $("logbox");
+      if (!box) return;
+      const time = new Date().toTimeString().slice(0, 8);
+      const line = document.createElement("div");
+      line.className = level;
+      line.textContent = `[${time}] ${msg}`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    };
+    const setPill = (id, label, type) => {
+      const el = $(id);
+      if (!el) return;
+      el.textContent = label;
+      el.className = "pill " + (type === "ok" ? "ok-pill" : type === "err" ? "err-pill" : "warn-pill");
+    };
+
+    // ── Tab switching ──────────────────────────────────────────────
+    document.querySelectorAll(".tab").forEach((t) => {
+      t.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+        const key = t.dataset.tab;
+        document.querySelectorAll(".tab-pane").forEach((p) => {
+          p.hidden = p.dataset.pane !== key;
+        });
+      });
+    });
+
+    // ── Server hookup ──────────────────────────────────────────────
+    $("srv").value = state.server;
+    $("srv-display").textContent = state.server.replace(/^https?:\/\//, "");
+    $("srv").addEventListener("change", (e) => {
+      state.server = e.target.value.trim().replace(/\/$/, "");
+      localStorage.setItem("ksyk_toolbench_server", state.server);
+      $("srv-display").textContent = state.server.replace(/^https?:\/\//, "");
+      log(`Server set to ${state.server}`);
+    });
+
+    // ── Load rooms ─────────────────────────────────────────────────
+    async function loadRooms() {
+      log("Loading rooms…");
+      try {
+        const r = await fetch(`${state.server}/api/rooms`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        state.rooms = await r.json();
+        const sel = $("room-select");
+        sel.innerHTML = "<option value=''>— pick a room —</option>"
+          + state.rooms.map((r) => `<option value="${r.id}">${r.roomNumber} · ${r.name || r.type || "—"} · F${r.floor}</option>`).join("");
+        log(`Loaded ${state.rooms.length} rooms.`, "ok");
+      } catch (err) {
+        log(`Failed to load rooms: ${err.message}`, "err");
+      }
+    }
+    $("reload-rooms").addEventListener("click", loadRooms);
+    $("room-select").addEventListener("change", (e) => {
+      state.selectedRoomId = e.target.value || null;
+      const r = state.rooms.find((x) => x.id === state.selectedRoomId);
+      $("status-room").innerHTML = r ? `Room: <strong>${r.roomNumber}</strong>` : "Room: —";
+      log(r ? `Room selected: ${r.roomNumber}` : "Room cleared.");
+    });
+
+    // ── GPS capture ────────────────────────────────────────────────
+    $("btn-gps").addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        setPill("gps-status", "GPS: not supported", "err");
+        return log("GPS not supported in this browser.", "err");
+      }
+      setPill("gps-status", "GPS: locating…", "warn");
+      log("Requesting high-accuracy GPS fix…");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.gps = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracyM: pos.coords.accuracy,
+          };
+          setPill("gps-status", `GPS: ±${Math.round(state.gps.accuracyM)} m`, "ok");
+          log(`GPS captured: ${state.gps.lat.toFixed(6)}, ${state.gps.lng.toFixed(6)}`, "ok");
+          updateSaveButton();
+        },
+        (err) => {
+          setPill("gps-status", "GPS: failed", "err");
+          log(`GPS error: ${err.message}`, "err");
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
+      );
+    });
+
+    // ── Bluetooth scan ─────────────────────────────────────────────
+    $("btn-bluetooth").addEventListener("click", async () => {
+      const nav = navigator;
+      if (!nav.bluetooth?.requestLEScan) {
+        setPill("ble-status", "BLE: not supported", "err");
+        return log("Web Bluetooth scanning not available in this browser.", "err");
+      }
+      setPill("ble-status", "BLE: scanning…", "warn");
+      log("Starting BLE scan for 5 seconds…");
+      try {
+        const scan = await nav.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
+        const seen = {};
+        const onAdv = (e) => {
+          const id = String(e.device?.id || e.device?.name || "");
+          if (!id || typeof e.rssi !== "number") return;
+          if (!seen[id] || seen[id].rssi < e.rssi) {
+            seen[id] = {
+              bssid: id.toLowerCase().slice(0, 30),
+              ssid: e.device?.name || undefined,
+              rssi: e.rssi,
+              source: "bluetooth",
+            };
+          }
+        };
+        nav.bluetooth.addEventListener("advertisementreceived", onAdv);
+        await new Promise((r) => setTimeout(r, 5000));
+        scan.stop();
+        nav.bluetooth.removeEventListener("advertisementreceived", onAdv);
+        const arr = Object.values(seen).sort((a, b) => b.rssi - a.rssi);
+        if (arr.length === 0) {
+          setPill("ble-status", "BLE: 0 found", "warn");
+          log("No BLE advertisements heard.", "info");
+        } else {
+          setPill("ble-status", `BLE: ${arr.length} found`, "ok");
+          log(`BLE scan complete: ${arr.length} unique devices.`, "ok");
+          state.readings.push(...arr);
+          renderReadings();
+          updateSaveButton();
+        }
+      } catch (err) {
+        setPill("ble-status", "BLE: failed", "err");
+        log(`BLE error: ${err.message}`, "err");
+      }
+    });
+
+    // ── Parse paste ────────────────────────────────────────────────
+    $("btn-parse").addEventListener("click", () => {
+      const lines = $("paste").value.split(/\r?\n/);
+      const out = [];
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        const m = line.match(/^([0-9a-f:.\-]+)\s+(-?\d+)(?:\s+(.+))?$/i);
+        if (!m) continue;
+        out.push({
+          bssid: m[1].toLowerCase(),
+          rssi: parseInt(m[2], 10),
+          ssid: m[3]?.trim() || undefined,
+          source: "manual",
+        });
+      }
+      if (out.length === 0) return log("No valid lines found in paste.", "err");
+      state.readings.push(...out);
+      $("paste").value = "";
+      renderReadings();
+      updateSaveButton();
+      log(`Parsed ${out.length} readings from paste.`, "ok");
+    });
+
+    // ── Render readings table ──────────────────────────────────────
+    function renderReadings() {
+      const tbody = document.querySelector("#readings-table tbody");
+      if (state.readings.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='5' class='muted'>No readings captured yet.</td></tr>";
+        return;
+      }
+      tbody.innerHTML = state.readings.map((r, i) => `
+        <tr>
+          <td class="mono">${r.bssid}</td>
+          <td>${r.ssid || ""}</td>
+          <td class="mono">${r.rssi} dBm</td>
+          <td>${r.source}</td>
+          <td><button class="win-btn" data-i="${i}" style="min-width: 50px;">Remove</button></td>
+        </tr>
+      `).join("");
+      tbody.querySelectorAll("button[data-i]").forEach((b) =>
+        b.addEventListener("click", () => {
+          state.readings.splice(parseInt(b.dataset.i, 10), 1);
+          renderReadings();
+          updateSaveButton();
+        }),
+      );
+    }
+
+    // ── Save position ──────────────────────────────────────────────
+    function updateSaveButton() {
+      $("btn-save").disabled = !state.selectedRoomId || (state.readings.length === 0 && !state.gps);
+    }
+    $("btn-save").addEventListener("click", async () => {
+      if (!state.selectedRoomId) return;
+      $("save-status").textContent = "Saving…";
+      try {
+        const r = await fetch(`${state.server}/api/beacons/${state.selectedRoomId}/positions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            positionLabel: $("position-label").value,
+            capturedAt: new Date().toISOString(),
+            readings: state.readings,
+            lat: state.gps?.lat,
+            lng: state.gps?.lng,
+            accuracyM: state.gps?.accuracyM,
+          }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        log("Position saved.", "ok");
+        $("save-status").textContent = "Saved ✓";
+        state.readings = [];
+        state.gps = null;
+        renderReadings();
+        setPill("gps-status", "GPS: not set", "warn");
+        setPill("ble-status", "BLE: idle", "warn");
+        updateSaveButton();
+      } catch (err) {
+        log(`Save failed: ${err.message}`, "err");
+        $("save-status").textContent = "Save failed.";
+      }
+    });
+    $("btn-clear").addEventListener("click", () => {
+      state.readings = [];
+      state.gps = null;
+      setPill("gps-status", "GPS: not set", "warn");
+      setPill("ble-status", "BLE: idle", "warn");
+      renderReadings();
+      updateSaveButton();
+      log("Pending readings cleared.");
+    });
+    $("btn-clear-log").addEventListener("click", () => {
+      $("logbox").innerHTML = "";
+    });
+
+    // ── Sign-in ────────────────────────────────────────────────────
+    $("btn-login").addEventListener("click", async () => {
+      $("login-status").textContent = "Signing in…";
+      try {
+        const r = await fetch(`${state.server}/api/auth/admin-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email: $("login-email").value, password: $("login-password").value }),
+        });
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          throw new Error(j.message || `HTTP ${r.status}`);
+        }
+        const j = await r.json();
+        state.auth = j.user;
+        $("login-status").textContent = `Signed in as ${j.user?.email}`;
+        log(`Authenticated as ${j.user?.email}`, "ok");
+      } catch (err) {
+        $("login-status").textContent = `Failed: ${err.message}`;
+        log(`Login failed: ${err.message}`, "err");
+      }
+    });
+
+    // ── Tick clock ─────────────────────────────────────────────────
+    function tick() {
+      $("status-time").textContent = new Date().toLocaleTimeString();
+    }
+    setInterval(tick, 1000);
+    tick();
+
+    // ── Boot ───────────────────────────────────────────────────────
+    log("KSYK Toolbench v0.1 ready.", "ok");
+    loadRooms();
+  </script>
+</body>
+</html>

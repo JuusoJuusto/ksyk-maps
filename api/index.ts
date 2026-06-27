@@ -326,6 +326,116 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/analytics/external — aggregated CF + Vercel + Firestore stats.
+    if ((apiPath === '/analytics/external' || apiPath.startsWith('/analytics/external?')) && req.method === 'GET') {
+      const range = (req.query.range as string) || '24h';
+      const now = new Date().toISOString();
+
+      // Build a single response that each provider fills in independently.
+      const out: any = {};
+
+      // ── Cloudflare Web Analytics (GraphQL) ───────────────────────────
+      // Requires CLOUDFLARE_API_TOKEN with the "Account Analytics — Read"
+      // permission and CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_SITE_TAG.
+      const cfToken = process.env.CLOUDFLARE_API_TOKEN;
+      const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
+      const cfSite = process.env.CLOUDFLARE_SITE_TAG;
+      if (!cfToken || !cfAccount || !cfSite) {
+        out.cloudflare = { configured: false, source: 'cloudflare', fetchedAt: now };
+      } else {
+        try {
+          const sinceDays = range === '7d' ? 7 : range === '30d' ? 30 : 1;
+          const since = new Date(Date.now() - sinceDays * 86_400_000).toISOString();
+          const query = `query GetVisits($accountTag: string!, $siteTag: string!, $since: Time!) {
+            viewer {
+              accounts(filter: { accountTag: $accountTag }) {
+                rumPageloadEventsAdaptiveGroups(
+                  filter: { siteTag: $siteTag, datetime_geq: $since }
+                  limit: 1
+                ) {
+                  count
+                  uniq { uniques }
+                }
+              }
+            }
+          }`;
+          const cfRes = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${cfToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              variables: { accountTag: cfAccount, siteTag: cfSite, since },
+            }),
+          });
+          const cfData: any = await cfRes.json();
+          const g = cfData?.data?.viewer?.accounts?.[0]?.rumPageloadEventsAdaptiveGroups?.[0];
+          out.cloudflare = {
+            configured: true,
+            source: 'Cloudflare Web Analytics',
+            visitors24h: range === '24h' ? g?.uniq?.uniques : undefined,
+            pageviews24h: range === '24h' ? g?.count : undefined,
+            visitors7d: range === '7d' ? g?.uniq?.uniques : undefined,
+            pageviews7d: range === '7d' ? g?.count : undefined,
+            fetchedAt: now,
+          };
+        } catch (err) {
+          out.cloudflare = {
+            configured: true,
+            source: 'cloudflare',
+            error: (err as Error).message,
+            fetchedAt: now,
+          };
+        }
+      }
+
+      // ── Vercel Web Analytics ─────────────────────────────────────────
+      // The official Web Analytics has no public REST endpoint yet; we
+      // surface "not configured" until they publish one. (You can still
+      // see the dashboard at vercel.com/<team>/<project>/analytics.)
+      out.vercel = process.env.VERCEL_ACCESS_TOKEN
+        ? { configured: true, source: 'Vercel (preview)', fetchedAt: now,
+            error: 'Vercel public Web Analytics API is not yet available — see your project dashboard.' }
+        : { configured: false, source: 'vercel', fetchedAt: now };
+
+      // ── Firestore telemetry summary ──────────────────────────────────
+      // This source is always on — we aggregate the events lib/telemetry
+      // posts to /api/analytics/track.
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const sinceDate = new Date(Date.now() - (range === '7d' ? 7 : range === '30d' ? 30 : 1) * 86_400_000);
+        const snap = await db.collection('analyticsEvents').where('createdAt', '>=', sinceDate).limit(5000).get();
+        const events = snap.docs.map((d) => d.data() as any);
+        const sessions = new Set(events.map((e) => e.sessionId).filter(Boolean));
+        const pageviews = events.filter((e) => e.type === 'page_view').length;
+        const pageCounts: Record<string, number> = {};
+        for (const e of events.filter((e) => e.type === 'page_view')) {
+          const path = e.url || e.payload?.path || '/';
+          pageCounts[path] = (pageCounts[path] || 0) + 1;
+        }
+        const topPages = Object.entries(pageCounts)
+          .map(([path, views]) => ({ path, views }))
+          .sort((a, b) => b.views - a.views)
+          .slice(0, 8);
+        out.firestore = {
+          configured: true,
+          source: 'KSYK Firestore telemetry',
+          visitors24h: range === '24h' ? sessions.size : undefined,
+          pageviews24h: range === '24h' ? pageviews : undefined,
+          visitors7d: range === '7d' ? sessions.size : undefined,
+          pageviews7d: range === '7d' ? pageviews : undefined,
+          topPages,
+          fetchedAt: now,
+        };
+      } catch (err) {
+        out.firestore = { configured: true, source: 'firestore', error: (err as Error).message, fetchedAt: now };
+      }
+
+      return res.status(200).json(out);
+    }
+
     // GET /api/easter-eggs/stats — count of each discovered egg, persisted
     // in Firestore (one counter doc, atomic increments). The shape matches
     // what EasterEggStats.tsx expects: { secretEasterEgg, konamiCode, devMode }.

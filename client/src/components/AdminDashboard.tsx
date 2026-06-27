@@ -15,6 +15,7 @@ import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import Builder3D from "@/components/Builder3D";
 import BeaconSurveyor from "@/components/BeaconSurveyor";
+import AnalyticsExternalPanel from "@/components/AnalyticsExternalPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +55,7 @@ import {
   EyeOff,
   Home,
   Radio,
+  TrendingUp,
 } from "lucide-react";
 
 interface Building {
@@ -553,7 +555,7 @@ const ADMIN_BASE = "/admin";
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
   "overview","security","users","campus-map","ksyk-builder","builder-3d",
-  "schedules","tickets","logs","staff","announcements","beacons","2fa","settings",
+  "schedules","tickets","logs","analytics","staff","announcements","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -868,11 +870,15 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
-    { value: "ksyk-builder", label: "Builder", Icon: Box },
-    { value: "builder-3d", label: "3D Builder", Icon: Layers },
+    // ksyk-builder retired — the map-based Builder below covers everything.
+    // Deep links to /admin/ksyk-builder still resolve via the TabsContent
+    // mounted with that value (so old bookmarks don't 404), but it isn't
+    // shown in the nav anymore.
+    { value: "builder-3d", label: "Builder", Icon: Box },
     { value: "schedules", label: "Schedules", Icon: Calendar },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
+    { value: "analytics", label: "Analytics", Icon: TrendingUp },
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
     ...(isOwner ? [{ value: "beacons", label: "Beacons", Icon: Radio }] : []),
@@ -902,6 +908,15 @@ export default function AdminDashboard({ section }: { section?: string }) {
               Admin
             </p>
           </div>
+          <a
+            href="/toolbench"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-7 px-2 items-center justify-center rounded-lg text-[10px] font-bold tracking-wider uppercase text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+            title="Open Toolbench (retro utility)"
+          >
+            Tool
+          </a>
           <a
             href="/"
             className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
@@ -1055,11 +1070,12 @@ export default function AdminDashboard({ section }: { section?: string }) {
             security: { title: "Security & Access", description: "Time, IP, login, and per-user access controls.", Icon: Shield },
             users: { title: "Users", description: "Manage admin accounts and per-user access rules.", Icon: Users },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
-            "ksyk-builder": { title: "Builder", description: "Rooms, floors and map defaults. Use Map Defaults tab to set home location for all users.", Icon: Box },
-            "builder-3d": { title: "3D Builder", description: "Drag rooms into place in 3D. Releasing the pointer saves to the server.", Icon: Layers },
+            "ksyk-builder": { title: "Map Defaults", description: "Set the home location, default zoom, and tile theme for everyone.", Icon: Box },
+            "builder-3d": { title: "Builder", description: "Place, drag, and edit every room on the live campus map. Toggle 2D / 3D in the toolbar.", Icon: Box },
             schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
+            analytics: { title: "Analytics", description: "Cloudflare + Vercel + Firestore visitor metrics in one place.", Icon: TrendingUp },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
             beacons: { title: "Beacon Surveyor", description: "Map WiFi signal strength per room for indoor positioning. Coming later.", Icon: Radio },
@@ -1798,6 +1814,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
         <TabsContent value="logs" className="mt-0 space-y-6">
           <AppLogsManager />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-0 space-y-6">
+          <AnalyticsExternalPanel />
         </TabsContent>
 
         <TabsContent value="schedules" className="mt-0 space-y-6">
