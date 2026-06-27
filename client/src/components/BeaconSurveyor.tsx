@@ -46,8 +46,11 @@ interface BeaconReading {
   bssid: string;          // MAC of the access point (lowercased)
   ssid?: string;          // friendly SSID name
   rssi: number;           // dBm, typically -30 to -95
-  source?: "manual" | "bluetooth"; // how the reading was captured
+  source?: "manual" | "wifi" | "bluetooth"; // how the reading was captured
 }
+
+/** True when running inside the Electron desktop app, which has native WiFi access. */
+const IS_ELECTRON = typeof window !== "undefined" && (window as any).electronAPI?.isElectron === true;
 
 interface SurveyPosition {
   id: string;
@@ -391,9 +394,9 @@ function NewPositionForm({
   const [gps, setGps] = useState<{ lat: number; lng: number; accuracyM: number } | null>(null);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
-  /** Bluetooth scan status — for the experimental "scan" button. */
-  const [bleBusy, setBleBusy] = useState(false);
-  const [bleError, setBleError] = useState<string | null>(null);
+  /** WiFi / BLE scan status. */
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const captureGps = () => {
     if (!navigator.geolocation) {
@@ -419,50 +422,69 @@ function NewPositionForm({
     );
   };
 
-  const scanBluetooth = async () => {
-    // Web Bluetooth lets us pick up Eddystone / iBeacon advertisements,
-    // but the API requires a user gesture and runs in Chrome only. For
-    // unsupported browsers we fall back to manual paste.
-    const nav = navigator as any;
-    if (!nav.bluetooth?.requestLEScan) {
-      setBleError("This browser doesn't support Bluetooth scanning. Use the paste field below.");
+  const scan = async () => {
+    setScanBusy(true);
+    setScanError(null);
+
+    if (IS_ELECTRON) {
+      // Native WiFi scan via Electron IPC — works on Windows/Mac/Linux.
+      try {
+        const result: { networks?: Array<{ bssid: string; ssid?: string; rssi: number }>; error?: string } =
+          await (window as any).electronAPI.scanWifi();
+        if (result.error && (!result.networks || result.networks.length === 0)) {
+          setScanError(`WiFi scan failed: ${result.error}`);
+        } else if (!result.networks || result.networks.length === 0) {
+          setScanError("No WiFi networks found. Make sure WiFi is enabled.");
+        } else {
+          const arr: BeaconReading[] = result.networks.map((n) => ({
+            bssid: n.bssid,
+            ssid: n.ssid || undefined,
+            rssi: n.rssi,
+            source: "wifi" as const,
+          }));
+          setReadings((prev) => [...arr, ...prev.filter((p) => !arr.find((a) => a.bssid === p.bssid))]);
+        }
+      } catch (err) {
+        setScanError((err as Error).message || "WiFi scan failed.");
+      } finally {
+        setScanBusy(false);
+      }
       return;
     }
-    setBleBusy(true);
-    setBleError(null);
+
+    // Browser fallback: Web Bluetooth (Chrome only, experimental).
+    const nav = navigator as any;
+    if (!nav.bluetooth?.requestLEScan) {
+      setScanError("Use the Electron desktop app for WiFi scanning. In browser, paste readings manually below.");
+      setScanBusy(false);
+      return;
+    }
     try {
-      const scan = await nav.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
+      const bleScan = await nav.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
       const seen: Record<string, BeaconReading> = {};
       const onAdv = (e: any) => {
         const id = String(e.device?.id || e.device?.name || "");
         if (!id) return;
         const rssi = e.rssi;
         if (typeof rssi !== "number") return;
-        // Keep the strongest reading per device id seen during the scan.
         if (!seen[id] || seen[id].rssi < rssi) {
-          seen[id] = {
-            bssid: id.toLowerCase().slice(0, 30),
-            ssid: e.device?.name || undefined,
-            rssi,
-            source: "bluetooth",
-          };
+          seen[id] = { bssid: id.toLowerCase().slice(0, 30), ssid: e.device?.name || undefined, rssi, source: "bluetooth" };
         }
       };
       nav.bluetooth.addEventListener("advertisementreceived", onAdv);
-      // Collect for ~5 seconds.
       await new Promise((r) => setTimeout(r, 5000));
-      scan.stop();
+      bleScan.stop();
       nav.bluetooth.removeEventListener("advertisementreceived", onAdv);
       const arr = Object.values(seen).sort((a, b) => b.rssi - a.rssi);
       if (arr.length === 0) {
-        setBleError("No BLE beacons heard. Move closer or try again.");
+        setScanError("No BLE beacons heard. Use the Electron app for WiFi scanning.");
       } else {
         setReadings((prev) => [...arr, ...prev.filter((p) => !arr.find((a) => a.bssid === p.bssid))]);
       }
     } catch (err) {
-      setBleError((err as Error).message || "Bluetooth scan failed.");
+      setScanError((err as Error).message || "Bluetooth scan failed.");
     } finally {
-      setBleBusy(false);
+      setScanBusy(false);
     }
   };
 
@@ -512,8 +534,12 @@ function NewPositionForm({
           New position
         </CardTitle>
         <CardDescription className="text-xs">
-          Walk to a corner (or any spot in the room), tap <strong>Capture GPS</strong> + <strong>Scan</strong>,
-          then save. With 4+ corners + GPS we'll auto-detect the room shape.
+          Walk to a corner, tap <strong>Capture GPS</strong> +{" "}
+          <strong>{IS_ELECTRON ? "Scan WiFi" : "Scan BLE"}</strong>, then save.
+          {IS_ELECTRON
+            ? " Running in desktop app — native WiFi scanning is active."
+            : " In browser only BLE beacons are scannable; use the desktop app for full WiFi scanning."}
+          {" "}With 4+ corners + GPS we'll auto-detect the room shape.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -537,22 +563,22 @@ function NewPositionForm({
           </button>
           <button
             type="button"
-            onClick={scanBluetooth}
-            disabled={bleBusy}
+            onClick={scan}
+            disabled={scanBusy}
             className={cn(
               "h-10 rounded-lg text-xs font-semibold gap-1.5 inline-flex items-center justify-center transition-colors border-2",
               "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700",
             )}
           >
-            {bleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
-            {bleBusy ? "Scanning…" : "Scan BLE (5s)"}
+            {scanBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+            {scanBusy ? "Scanning…" : IS_ELECTRON ? "Scan WiFi" : "Scan BLE (5s)"}
           </button>
         </div>
         {gpsError && (
           <p className="text-[11px] text-red-600 dark:text-red-400">{gpsError}</p>
         )}
-        {bleError && (
-          <p className="text-[11px] text-amber-700 dark:text-amber-300">{bleError}</p>
+        {scanError && (
+          <p className="text-[11px] text-amber-700 dark:text-amber-300">{scanError}</p>
         )}
         {gps && (
           <p className="text-[10px] font-mono text-gray-500">

@@ -391,15 +391,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // ── Vercel Web Analytics ─────────────────────────────────────────
-      // The official Web Analytics has no public REST endpoint yet; we
-      // surface "not configured" until they publish one. (You can still
-      // see the dashboard at vercel.com/<team>/<project>/analytics.)
-      out.vercel = process.env.VERCEL_ACCESS_TOKEN
-        ? { configured: true, source: 'Vercel (preview)', fetchedAt: now,
-            error: 'Vercel public Web Analytics API is not yet available — see your project dashboard.' }
-        : { configured: false, source: 'vercel', fetchedAt: now };
-
       // ── Firestore telemetry summary ──────────────────────────────────
       // This source is always on — we aggregate the events lib/telemetry
       // posts to /api/analytics/track.
@@ -719,7 +710,7 @@ Email: ${ticketData.email}
 
 Action Required:
 Please review and respond to this ticket in the admin panel.
-Login at: https://ksykmaps.vercel.app/admin-login`;
+Login at: https://ksykmaps.fi/admin-login`;
             
             console.log('📤 Sending to owner:', ownerEmail);
             const ownerResult = await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
@@ -746,7 +737,7 @@ What happens next?
 
 Keep your ticket ID safe for future reference.
 
-Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
+Need immediate help? Visit our website at https://ksykmaps.fi`;
             
             console.log('📤 Sending to user:', ticketData.email);
             const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
@@ -1253,7 +1244,7 @@ Need immediate help? Visit our website at https://ksykmaps.vercel.app`;
         });
         
         // Send reset email
-        const resetUrl = `${process.env.APP_URL || 'https://ksyk-maps.vercel.app'}/wilma/reset-password?token=${resetToken}`;
+        const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}/wilma/reset-password?token=${resetToken}`;
         
         try {
           const emailService = await import('../server/emailService.js');

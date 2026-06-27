@@ -18,9 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Activity, AlertCircle, ArrowUpRight, BarChart3, ChevronDown,
-  Cloud, ExternalLink, Globe, Loader2, RefreshCw, Settings,
-  Triangle, Zap,
+  AlertCircle, Cloud, Globe, Loader2, RefreshCw, Settings, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +38,6 @@ interface ProviderSnapshot {
 
 interface ExternalAnalyticsResponse {
   cloudflare?: ProviderSnapshot;
-  vercel?: ProviderSnapshot;
   firestore?: ProviderSnapshot;
 }
 
@@ -59,7 +56,6 @@ export default function AnalyticsExternalPanel() {
 
   const providers: Array<{ key: keyof ExternalAnalyticsResponse; name: string; Icon: typeof Cloud; gradient: string }> = [
     { key: "cloudflare", name: "Cloudflare", Icon: Cloud, gradient: "from-orange-500 to-amber-500" },
-    { key: "vercel", name: "Vercel", Icon: Triangle, gradient: "from-gray-800 to-black" },
     { key: "firestore", name: "Live (Firestore)", Icon: Zap, gradient: "from-blue-600 to-indigo-600" },
   ];
 
@@ -98,7 +94,7 @@ export default function AnalyticsExternalPanel() {
       </div>
 
       {/* Providers grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {providers.map(({ key, name, Icon, gradient }) => {
           const snap = data?.[key];
           return (
@@ -139,8 +135,7 @@ export default function AnalyticsExternalPanel() {
                       Add a token in env to enable.
                     </p>
                     <p>
-                      {key === "cloudflare" && "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID."}
-                      {key === "vercel" && "VERCEL_ACCESS_TOKEN + VERCEL_TEAM_ID."}
+                      {key === "cloudflare" && "Set CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_SITE_TAG in Vercel env vars."}
                       {key === "firestore" && "Already on — no setup needed."}
                     </p>
                   </div>
@@ -182,9 +177,9 @@ export default function AnalyticsExternalPanel() {
       </div>
 
       <p className="text-[11px] text-gray-500 leading-relaxed max-w-2xl">
-        Cloudflare + Vercel data is fetched server-side using project tokens stored as
-        environment variables — the client never sees them. Firestore numbers come from
-        our own <code className="font-mono text-blue-600 dark:text-blue-400">lib/telemetry</code> stream which already runs in production.
+        Cloudflare data is fetched server-side using the API token stored as an environment variable —
+        the client never sees it. Firestore numbers come from our own{" "}
+        <code className="font-mono text-blue-600 dark:text-blue-400">lib/telemetry</code> stream which already runs in production.
       </p>
     </div>
   );

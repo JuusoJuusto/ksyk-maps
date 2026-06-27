@@ -6,6 +6,7 @@
   },
   "files": [
     "admin-main.js",
+    "preload.js",
     "../client/public/**/*"
   ],
   "win": {
