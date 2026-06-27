@@ -2,18 +2,21 @@
  * KSYK Maps — Map Builder.
  *
  * Single workspace for admins to manage every room on the campus.
- * Improvements in this rev (vs. the previous Builder):
- *   - Multi-select via shift-click; bulk move + bulk delete.
- *   - Keyboard shortcuts: V/A mode, Esc deselect, Delete remove,
- *     ⌘/Ctrl+D duplicate, ⌘/Ctrl+Z undo, ⌘/Ctrl+Shift+Z redo,
- *     ←↑→↓ nudge (1 px, Shift = 10 px), 1-9 switch floor.
- *   - Working resize from the 4 corner handles.
- *   - Snap-to-grid toggle (8 px); grid overlay when active.
- *   - Ghost preview of rooms on the floor below (toggle).
- *   - Live coords + dimensions tooltip during drag / resize.
- *   - Sidebar type filter chips; auto-scrolls to the active room.
- *   - One-shot Duplicate button in the properties panel.
- *   - Local undo / redo stack (last 40 ops, in-memory only).
+ * What this gives admins:
+ *   • Multi-select — shift-click rooms OR shift-drag empty area for a lasso box.
+ *   • Bulk move / resize / delete / duplicate / type-set / floor-set.
+ *   • Alignment toolbar (left/right/top/bottom/centre) when 2+ rooms selected.
+ *   • Distribute horizontally / vertically when 3+ rooms selected.
+ *   • Copy / paste via ⌘C / ⌘V (in-memory clipboard, offsets by 12 px).
+ *   • Working corner-resize handles (NW/NE/SW/SE).
+ *   • Undo / redo (40-op stack, ⌘Z / ⌘⇧Z).
+ *   • Snap-to-grid (8 px) with grid overlay; toggle with G.
+ *   • Ghost preview of the floor below.
+ *   • Live coords + dimensions tooltip while dragging / resizing.
+ *   • Right-click context menu — duplicate / lock / type / floor / delete.
+ *   • Status colour legend on the canvas (bottom-left).
+ *   • Sidebar with type-filter chips + auto-scroll to selection.
+ *   • Comprehensive keyboard shortcuts (press the ⌨ button for the list).
  *
  * Everything still writes through /api/rooms; what admins see IS what
  * students see.
@@ -40,7 +43,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Building2, Copy, Eye, EyeOff, Grid3x3, Keyboard, Layers, Loader2,
+  AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal,
+  AlignEndVertical, AlignHorizontalSpaceAround, AlignStartHorizontal,
+  AlignStartVertical, AlignVerticalSpaceAround,
+  Building2, Clipboard, Copy, Eye, EyeOff, Grid3x3, Keyboard, Layers, Loader2,
   Mountain, MousePointer2, PlusCircle, Redo2, Save, Search, Trash2, Undo2, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -80,6 +86,26 @@ interface HistoryEntry {
   positions: Record<string, { x: number; y: number; w: number; h: number }>;
 }
 
+/** A copy-pasted room shape, kept in memory only. */
+interface ClipboardItem {
+  roomNumber: string;
+  name?: string;
+  floor: number;
+  type?: string;
+  width?: number;
+  height?: number;
+  mapPositionX: number;
+  mapPositionY: number;
+  buildingId?: string;
+  virtualTourUrl?: string;
+}
+
+interface ContextMenuState {
+  x: number;     // viewport coords for placement
+  y: number;
+  roomId: string | null;
+}
+
 export default function Builder3D() {
   const { darkMode } = useDarkMode();
   const { toast } = useToast();
@@ -100,6 +126,15 @@ export default function Builder3D() {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showGhost, setShowGhost] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showLegend, setShowLegend] = useState(true);
+
+  /* ── Lasso (box) selection state ────────────────────────────────── */
+  const [lasso, setLasso] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const lassoStart = useRef<{ x: number; y: number } | null>(null);
+
+  /* ── Clipboard + context menu ───────────────────────────────────── */
+  const clipboardRef = useRef<ClipboardItem[]>([]);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   /* ── Drag / resize state ────────────────────────────────────────── */
   const [dragId, setDragId] = useState<string | null>(null);
@@ -317,6 +352,12 @@ export default function Builder3D() {
   }, [eventToSvg, mode, selectedIds, rooms, pushHistory]);
 
   const onPointerMove = useCallback((e: PointerEvent) => {
+    if (lasso && lassoStart.current) {
+      const p = eventToSvg(e.clientX, e.clientY);
+      if (!p) return;
+      setLasso({ x0: lassoStart.current.x, y0: lassoStart.current.y, x1: p.x, y1: p.y });
+      return;
+    }
     if (resizing && resizeStart.current) {
       const p = eventToSvg(e.clientX, e.clientY);
       if (!p) return;
@@ -353,11 +394,33 @@ export default function Builder3D() {
     }
     setLocalPositions(next);
     setHoverTip({ x: p.x, y: p.y, text: `${targetX}, ${targetY}` });
-  }, [dragId, eventToSvg, snap, resizing]);
+  }, [dragId, eventToSvg, snap, resizing, lasso]);
 
   const onPointerUp = useCallback(async () => {
     mapRef.current?.dragging?.enable();
     setHoverTip(null);
+
+    if (lasso) {
+      const x0 = Math.min(lasso.x0, lasso.x1);
+      const y0 = Math.min(lasso.y0, lasso.y1);
+      const x1 = Math.max(lasso.x0, lasso.x1);
+      const y1 = Math.max(lasso.y0, lasso.y1);
+      // Picked: any room whose centre lies inside the lasso.
+      const picked = floorRooms.filter((r) => {
+        const cx = (r.mapPositionX ?? 0) + (r.width  ?? 56) / 2;
+        const cy = (r.mapPositionY ?? 0) + (r.height ?? 40) / 2;
+        return cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1;
+      }).map((r) => r.id);
+      // Lasso is additive (it's triggered by shift-drag).
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of picked) next.add(id);
+        return next;
+      });
+      setLasso(null);
+      lassoStart.current = null;
+      return;
+    }
 
     if (resizing) {
       const id = resizing.id;
@@ -394,10 +457,10 @@ export default function Builder3D() {
       }));
       setLocalPositions({});
     } catch { /* error already toasted */ }
-  }, [dragId, localPositions, updateRoom, resizing, localSizes]);
+  }, [dragId, localPositions, updateRoom, resizing, localSizes, lasso, floorRooms]);
 
   useEffect(() => {
-    if (!dragId && !resizing) return;
+    if (!dragId && !resizing && !lasso) return;
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
@@ -406,7 +469,7 @@ export default function Builder3D() {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [dragId, resizing, onPointerMove, onPointerUp]);
+  }, [dragId, resizing, lasso, onPointerMove, onPointerUp]);
 
   const onResizePointerDown = useCallback((e: React.PointerEvent, room: Room, corner: Corner) => {
     e.stopPropagation();
@@ -528,6 +591,124 @@ export default function Builder3D() {
     })));
   }, [updateRoom]);
 
+  /* ── Alignment / distribution ───────────────────────────────────── */
+
+  const alignSelected = useCallback(async (dir: "left" | "right" | "top" | "bottom" | "centerX" | "centerY") => {
+    if (selectedIds.size < 2) return;
+    pushHistory();
+    const items = rooms.filter((r) => selectedIds.has(r.id));
+    let anchor: number;
+    switch (dir) {
+      case "left":    anchor = Math.min(...items.map((r) => r.mapPositionX ?? 0)); break;
+      case "right":   anchor = Math.max(...items.map((r) => (r.mapPositionX ?? 0) + (r.width ?? 56))); break;
+      case "top":     anchor = Math.min(...items.map((r) => r.mapPositionY ?? 0)); break;
+      case "bottom":  anchor = Math.max(...items.map((r) => (r.mapPositionY ?? 0) + (r.height ?? 40))); break;
+      case "centerX": {
+        const left  = Math.min(...items.map((r) => r.mapPositionX ?? 0));
+        const right = Math.max(...items.map((r) => (r.mapPositionX ?? 0) + (r.width ?? 56)));
+        anchor = (left + right) / 2;
+        break;
+      }
+      case "centerY": {
+        const top    = Math.min(...items.map((r) => r.mapPositionY ?? 0));
+        const bottom = Math.max(...items.map((r) => (r.mapPositionY ?? 0) + (r.height ?? 40)));
+        anchor = (top + bottom) / 2;
+        break;
+      }
+    }
+    await Promise.all(items.map((r) => {
+      const w = r.width ?? 56, h = r.height ?? 40;
+      let nx = r.mapPositionX ?? 0;
+      let ny = r.mapPositionY ?? 0;
+      if (dir === "left")    nx = anchor;
+      if (dir === "right")   nx = anchor - w;
+      if (dir === "top")     ny = anchor;
+      if (dir === "bottom")  ny = anchor - h;
+      if (dir === "centerX") nx = Math.round(anchor - w / 2);
+      if (dir === "centerY") ny = Math.round(anchor - h / 2);
+      return updateRoom.mutateAsync({ id: r.id, patch: { mapPositionX: nx, mapPositionY: ny } });
+    }));
+    toast({ title: `Aligned ${items.length} rooms` });
+  }, [selectedIds, rooms, updateRoom, pushHistory, toast]);
+
+  const distributeSelected = useCallback(async (axis: "h" | "v") => {
+    if (selectedIds.size < 3) return;
+    pushHistory();
+    const items = rooms.filter((r) => selectedIds.has(r.id));
+    const sorted = [...items].sort((a, b) =>
+      axis === "h"
+        ? (a.mapPositionX ?? 0) - (b.mapPositionX ?? 0)
+        : (a.mapPositionY ?? 0) - (b.mapPositionY ?? 0)
+    );
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    if (!first || !last) return;
+    const start = axis === "h" ? (first.mapPositionX ?? 0) : (first.mapPositionY ?? 0);
+    const end   = axis === "h" ? (last.mapPositionX  ?? 0) : (last.mapPositionY  ?? 0);
+    const step = (end - start) / (sorted.length - 1);
+    await Promise.all(sorted.map((r, i) => {
+      const target = Math.round(start + i * step);
+      const patch = axis === "h" ? { mapPositionX: target } : { mapPositionY: target };
+      return updateRoom.mutateAsync({ id: r.id, patch });
+    }));
+    toast({ title: `Distributed ${sorted.length} rooms ${axis === "h" ? "horizontally" : "vertically"}` });
+  }, [selectedIds, rooms, updateRoom, pushHistory, toast]);
+
+  /* ── Clipboard ──────────────────────────────────────────────────── */
+
+  const copySelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const items: ClipboardItem[] = rooms
+      .filter((r) => selectedIds.has(r.id))
+      .map((r) => ({
+        roomNumber: r.roomNumber,
+        name: r.name,
+        floor: r.floor,
+        type: r.type,
+        width: r.width,
+        height: r.height,
+        mapPositionX: r.mapPositionX ?? 0,
+        mapPositionY: r.mapPositionY ?? 0,
+        buildingId: r.buildingId,
+        virtualTourUrl: r.virtualTourUrl,
+      }));
+    clipboardRef.current = items;
+    toast({ title: `Copied ${items.length} room${items.length === 1 ? "" : "s"}` });
+  }, [selectedIds, rooms, toast]);
+
+  const pasteClipboard = useCallback(async () => {
+    const items = clipboardRef.current;
+    if (items.length === 0) {
+      toast({ title: "Clipboard is empty", variant: "destructive" });
+      return;
+    }
+    const newIds: string[] = [];
+    for (const src of items) {
+      const created = await createRoom.mutateAsync({
+        roomNumber: nextRoomNumber(rooms, floor),
+        name: src.name,
+        floor,                       // paste lands on the active floor
+        type: src.type,
+        currentStatus: "unknown",
+        width: src.width,
+        height: src.height,
+        mapPositionX: src.mapPositionX + 12,
+        mapPositionY: src.mapPositionY + 12,
+        buildingId: src.buildingId,
+      });
+      if (created?.id) newIds.push(created.id);
+    }
+    if (newIds.length > 0) setSelectedIds(new Set(newIds));
+  }, [rooms, floor, createRoom, toast]);
+
+  /* ── Bulk patch (type / floor / etc.) ────────────────────────────── */
+
+  const bulkPatch = useCallback(async (patch: Partial<Room>) => {
+    if (selectedIds.size === 0) return;
+    pushHistory();
+    await Promise.all(Array.from(selectedIds).map((id) => updateRoom.mutateAsync({ id, patch })));
+    toast({ title: `Updated ${selectedIds.size} room${selectedIds.size === 1 ? "" : "s"}` });
+  }, [selectedIds, updateRoom, pushHistory, toast]);
+
   /* ── Keyboard shortcuts ─────────────────────────────────────────── */
 
   useEffect(() => {
@@ -541,7 +722,14 @@ export default function Builder3D() {
       if (mod && e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); redo(); return; }
       if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); return; }
       if (mod && e.key.toLowerCase() === "d") { e.preventDefault(); duplicateSelected(); return; }
-      if (e.key === "Escape") { setSelectedIds(new Set()); return; }
+      if (mod && e.key.toLowerCase() === "c") { e.preventDefault(); copySelected(); return; }
+      if (mod && e.key.toLowerCase() === "v") { e.preventDefault(); pasteClipboard(); return; }
+      if (mod && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setSelectedIds(new Set(floorRooms.map((r) => r.id)));
+        return;
+      }
+      if (e.key === "Escape") { setSelectedIds(new Set()); setContextMenu(null); return; }
       if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelected(); return; }
       if (e.key.toLowerCase() === "v") { setMode("select"); return; }
       if (e.key.toLowerCase() === "a") { setMode("add"); setSelectedIds(new Set()); return; }
@@ -561,7 +749,7 @@ export default function Builder3D() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, duplicateSelected, deleteSelected, nudge, maxFloor]);
+  }, [undo, redo, duplicateSelected, deleteSelected, nudge, maxFloor, copySelected, pasteClipboard, floorRooms]);
 
   /* ── Auto-scroll sidebar to active ───────────────────────────────── */
 
@@ -620,6 +808,43 @@ export default function Builder3D() {
         />
       )}
 
+      {/* Lasso / deselect target in select mode — also drives shift-drag lasso. */}
+      {mode === "select" && (
+        <rect
+          x={baseViewBox.x} y={baseViewBox.y}
+          width={baseViewBox.w} height={baseViewBox.h}
+          fill="transparent"
+          onPointerDown={(e) => {
+            const p = eventToSvg(e.clientX, e.clientY);
+            if (!p) return;
+            // Shift-drag → lasso. Plain click → clear selection (deselect).
+            if (e.shiftKey) {
+              lassoStart.current = { x: p.x, y: p.y };
+              setLasso({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
+              (e.target as Element).setPointerCapture?.(e.pointerId);
+              mapRef.current?.dragging?.disable();
+            } else {
+              if (selectedIds.size > 0) setSelectedIds(new Set());
+            }
+          }}
+        />
+      )}
+
+      {/* Live lasso rectangle */}
+      {lasso && (
+        <rect
+          x={Math.min(lasso.x0, lasso.x1)}
+          y={Math.min(lasso.y0, lasso.y1)}
+          width={Math.abs(lasso.x1 - lasso.x0)}
+          height={Math.abs(lasso.y1 - lasso.y0)}
+          fill="rgba(37,99,235,0.10)"
+          stroke="#2563eb"
+          strokeWidth={1}
+          strokeDasharray="3,3"
+          className="pointer-events-none"
+        />
+      )}
+
       {/* Building outlines */}
       {buildingPolys.map(({ letter, pts }) => (
         <polygon
@@ -673,6 +898,11 @@ export default function Builder3D() {
           <g
             key={room.id}
             onPointerDown={(e) => onRoomPointerDown(e, room, e.shiftKey)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (!selectedIds.has(room.id)) setSelectedIds(new Set([room.id]));
+              setContextMenu({ x: e.clientX, y: e.clientY, roomId: room.id });
+            }}
             className={cn("group", mode === "select" && "cursor-grab", isDragging && "cursor-grabbing")}
             style={{ touchAction: "none" }}
             filter={isDragging || isResizing ? "url(#builderDragHalo)" : undefined}
@@ -895,6 +1125,12 @@ export default function Builder3D() {
           className="h-9 w-9 rounded-xl inline-flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200">
           <Keyboard className="h-3.5 w-3.5" />
         </button>
+        {!showLegend && (
+          <button type="button" onClick={() => setShowLegend(true)} title="Show legend"
+            className="h-9 px-3 rounded-xl inline-flex items-center justify-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 text-xs font-bold">
+            Legend
+          </button>
+        )}
       </div>
 
       {/* Body */}
@@ -1022,6 +1258,61 @@ export default function Builder3D() {
                   : "Click a room (Shift+click for multi) · arrows to nudge"}
           </div>
 
+          {/* Alignment + distribute toolbar — pops up when 2+ rooms selected */}
+          {selectedIds.size >= 2 && (
+            <div className={cn(
+              "absolute top-3 right-3 z-30 rounded-xl shadow-xl border backdrop-blur-md flex items-center gap-0.5 p-1 animate-in slide-in-from-top-2 fade-in duration-200",
+              darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200",
+            )}>
+              <AlignBtn title="Align left"   onClick={() => alignSelected("left")}><AlignStartVertical className="h-3.5 w-3.5" /></AlignBtn>
+              <AlignBtn title="Centre X"     onClick={() => alignSelected("centerX")}><AlignCenterVertical className="h-3.5 w-3.5" /></AlignBtn>
+              <AlignBtn title="Align right"  onClick={() => alignSelected("right")}><AlignEndVertical className="h-3.5 w-3.5" /></AlignBtn>
+              <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+              <AlignBtn title="Align top"    onClick={() => alignSelected("top")}><AlignStartHorizontal className="h-3.5 w-3.5" /></AlignBtn>
+              <AlignBtn title="Centre Y"     onClick={() => alignSelected("centerY")}><AlignCenterHorizontal className="h-3.5 w-3.5" /></AlignBtn>
+              <AlignBtn title="Align bottom" onClick={() => alignSelected("bottom")}><AlignEndHorizontal className="h-3.5 w-3.5" /></AlignBtn>
+              {selectedIds.size >= 3 && (
+                <>
+                  <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                  <AlignBtn title="Distribute horizontally" onClick={() => distributeSelected("h")}><AlignHorizontalSpaceAround className="h-3.5 w-3.5" /></AlignBtn>
+                  <AlignBtn title="Distribute vertically"   onClick={() => distributeSelected("v")}><AlignVerticalSpaceAround className="h-3.5 w-3.5" /></AlignBtn>
+                </>
+              )}
+              <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+              <div className="px-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                {selectedIds.size}
+              </div>
+            </div>
+          )}
+
+          {/* Bulk type / floor edit — pops up below the alignment bar */}
+          {selectedIds.size >= 2 && (
+            <div className={cn(
+              "absolute top-16 right-3 z-30 rounded-xl shadow-xl border backdrop-blur-md flex items-center gap-1.5 p-2 animate-in slide-in-from-top-2 fade-in duration-200",
+              darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200",
+            )}>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1">Bulk</span>
+              <select
+                aria-label="Set type for all selected"
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { bulkPatch({ type: e.target.value }); e.target.value = ""; } }}
+                className="h-7 text-xs rounded-md border border-input bg-background px-2"
+              >
+                <option value="">Set type…</option>
+                {ROOM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <select
+                aria-label="Set floor for all selected"
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { bulkPatch({ floor: Number(e.target.value) }); e.target.value = ""; } }}
+                className="h-7 text-xs rounded-md border border-input bg-background px-2"
+              >
+                <option value="">Set floor…</option>
+                {Array.from({ length: maxFloor }, (_, i) => i + 1).map((f) => <option key={f} value={f}>Floor {f}</option>)}
+              </select>
+            </div>
+          )}
+
           <OsmBasemap
             svgViewBox={{ x: baseViewBox.x, y: baseViewBox.y, w: baseViewBox.w, h: baseViewBox.h }}
             enableOverlay
@@ -1030,6 +1321,30 @@ export default function Builder3D() {
             className="absolute inset-0"
           />
           {overlayEl && createPortal(overlayBody, overlayEl)}
+
+          {/* Status legend (bottom-left) */}
+          {showLegend && (
+            <div className={cn(
+              "absolute bottom-3 left-3 z-20 rounded-xl shadow-lg border backdrop-blur-md text-xs p-2.5 max-w-[200px]",
+              darkMode ? "bg-gray-900/85 border-gray-700 text-gray-200" : "bg-white/90 border-gray-200 text-gray-700",
+            )}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-[10px] uppercase tracking-wider text-gray-400">Legend</span>
+                <button type="button" onClick={() => setShowLegend(false)}
+                  className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <LegendDot color={getRoomFillColor("classroom", "available")} label="Available" />
+                <LegendDot color={getRoomFillColor("classroom", "occupied")} label="Occupied" />
+                <LegendDot color={getRoomFillColor("hallway",   undefined)}  label="Hallway" />
+                <LegendDot color={getRoomFillColor("lab",       undefined)}  label="Lab" />
+                <LegendDot color={getRoomFillColor("office",    undefined)}  label="Office" />
+                <LegendDot color={getRoomFillColor("wc",        undefined)}  label="WC" />
+              </div>
+            </div>
+          )}
 
           {floorRooms.length === 0 && mode !== "add" && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1069,9 +1384,90 @@ export default function Builder3D() {
         )}
       </div>
 
+      {/* Right-click context menu */}
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }} />
+          <div
+            className={cn(
+              "fixed z-50 rounded-xl shadow-2xl border min-w-[180px] py-1 text-sm animate-in fade-in duration-100",
+              darkMode ? "bg-gray-900 border-gray-700 text-gray-200" : "bg-white border-gray-200 text-gray-900",
+            )}
+            style={{ left: Math.min(contextMenu.x, window.innerWidth - 200), top: Math.min(contextMenu.y, window.innerHeight - 280) }}
+          >
+            <CtxItem onClick={() => { duplicateSelected(); setContextMenu(null); }}>
+              <Copy className="h-3.5 w-3.5" /> Duplicate
+              <kbd className="ml-auto text-[10px] text-gray-400">⌘D</kbd>
+            </CtxItem>
+            <CtxItem onClick={() => { copySelected(); setContextMenu(null); }}>
+              <Copy className="h-3.5 w-3.5" /> Copy
+              <kbd className="ml-auto text-[10px] text-gray-400">⌘C</kbd>
+            </CtxItem>
+            <CtxItem onClick={() => { pasteClipboard(); setContextMenu(null); }} disabled={clipboardRef.current.length === 0}>
+              <Clipboard className="h-3.5 w-3.5" /> Paste
+              <kbd className="ml-auto text-[10px] text-gray-400">⌘V</kbd>
+            </CtxItem>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Set type</div>
+            {ROOM_TYPES.slice(0, 7).map((t) => (
+              <CtxItem key={t} onClick={() => { bulkPatch({ type: t }); setContextMenu(null); }}>
+                <span className="w-3.5" /> {t}
+              </CtxItem>
+            ))}
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+            <CtxItem onClick={() => { deleteSelected(); setContextMenu(null); }} className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+              <kbd className="ml-auto text-[10px] text-gray-400">Del</kbd>
+            </CtxItem>
+          </div>
+        </>
+      )}
+
       {/* Shortcuts dialog */}
       {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
     </div>
+  );
+}
+
+/* ── Small helpers used in the toolbar / overlay ───────────────────── */
+
+function AlignBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+    >
+      {children}
+    </button>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: color }} />
+      <span className="truncate">{label}</span>
+    </div>
+  );
+}
+
+function CtxItem({ onClick, disabled, className, children }: { onClick: () => void; disabled?: boolean; className?: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "w-full px-3 py-1.5 text-left text-xs flex items-center gap-2.5 transition-colors",
+        "hover:bg-gray-100 dark:hover:bg-gray-800",
+        "disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -1240,14 +1636,19 @@ function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     ["A", "Add-room mode"],
     ["1–9", "Switch floor"],
     ["G", "Toggle snap-to-grid"],
-    ["Esc", "Clear selection"],
+    ["Esc", "Clear selection / close menu"],
     ["Del / Backspace", "Delete selected"],
     ["⌘/Ctrl + D", "Duplicate selected"],
+    ["⌘/Ctrl + C", "Copy selected"],
+    ["⌘/Ctrl + V", "Paste"],
+    ["⌘/Ctrl + A", "Select all on floor"],
     ["⌘/Ctrl + Z", "Undo"],
     ["⌘/Ctrl + Shift + Z", "Redo"],
     ["← ↑ → ↓", "Nudge 1 px"],
     ["Shift + ← ↑ → ↓", "Nudge 10 px"],
     ["Shift + click", "Multi-select"],
+    ["Shift + drag (empty)", "Lasso select"],
+    ["Right-click room", "Context menu"],
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>

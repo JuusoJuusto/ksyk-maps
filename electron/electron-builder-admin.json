@@ -24,9 +24,6 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "KSYK Maps Admin",
-    "uninstallDisplayName": "KSYK Maps Admin",
-    "installerHeaderIcon": "../client/public/icon-512.png",
-    "installerIcon": "../client/public/icon-512.png",
-    "uninstallerIcon": "../client/public/icon-512.png"
+    "uninstallDisplayName": "KSYK Maps Admin"
   }
 }

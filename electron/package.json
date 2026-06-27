@@ -6,18 +6,16 @@
   "scripts": {
     "start": "electron .",
     "start:admin": "electron admin-main.js",
-    "start:wilma": "electron wilma-main.js",
     "build": "electron-builder",
-    "build:all": "npm run build:main && npm run build:admin-app && npm run build:wilma-app",
+    "build:all": "npm run build:main && npm run build:admin-app",
     "build:main": "electron-builder --config electron-builder-main.json",
     "build:admin-app": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='admin-main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\" && electron-builder --config electron-builder-admin.json && node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\"",
-    "build:wilma-app": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='wilma-main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\" && electron-builder --config electron-builder-wilma.json && node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));pkg.main='main.js';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2))\"",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.nordbytestudio.ksykmaps",
+    "appId": "fi.ksykmaps.viewer",
     "productName": "KSYK Maps",
     "directories": {
       "output": "dist"
@@ -25,7 +23,6 @@
     "files": [
       "main.js",
       "admin-main.js",
-      "wilma-main.js",
       "preload.js",
       "../client/public/**/*"
     ],
