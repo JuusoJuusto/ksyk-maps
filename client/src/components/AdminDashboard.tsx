@@ -909,15 +909,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
             </p>
           </div>
           <a
-            href="/toolbench"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-7 px-2 items-center justify-center rounded-lg text-[10px] font-bold tracking-wider uppercase text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-            title="Open Toolbench (retro utility)"
-          >
-            Tool
-          </a>
-          <a
             href="/"
             className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
             title="Back to Map"

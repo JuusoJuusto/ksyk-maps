@@ -90,7 +90,7 @@ function createAdminWindow() {
   });
 
   const startUrl = process.env.ELECTRON_START_URL || 'https://ksykmaps.fi';
-  adminWindow.loadURL(`${startUrl}/admin-login`);
+  adminWindow.loadURL(`${startUrl}/admin`);
 
   if (process.env.NODE_ENV === 'development') {
     adminWindow.webContents.openDevTools();

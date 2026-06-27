@@ -1,8 +1,10 @@
 {
-  "appId": "com.nordbytestudio.ksykmaps",
+  "appId": "fi.ksykmaps.viewer",
   "productName": "KSYK Maps",
+  "copyright": "© 2026 Nordbyte Studio",
   "directories": {
-    "output": "dist/main"
+    "output": "dist/main",
+    "buildResources": "build"
   },
   "files": [
     "main.js",
@@ -10,11 +12,31 @@
     "../client/public/**/*"
   ],
   "win": {
-    "target": ["nsis"],
-    "icon": "../client/public/icon-512.png"
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "../client/public/icon-512.png",
+    "publisherName": "Nordbyte Studio",
+    "artifactName": "KSYK-Maps-Setup-${version}.${ext}"
+  },
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+    "icon": "../client/public/icon-512.png",
+    "category": "public.app-category.education"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "icon": "../client/public/icon-512.png",
+    "category": "Education"
   },
   "nsis": {
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "allowToChangeInstallationDirectory": true,
+    "perMachine": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "KSYK Maps",
+    "uninstallDisplayName": "KSYK Maps",
+    "installerHeaderIcon": "../client/public/icon-512.png",
+    "installerIcon": "../client/public/icon-512.png",
+    "uninstallerIcon": "../client/public/icon-512.png"
   }
 }

@@ -1,8 +1,10 @@
 {
-  "appId": "com.nordbytestudio.ksykmaps.admin",
+  "appId": "fi.ksykmaps.admin",
   "productName": "KSYK Maps Admin",
+  "copyright": "© 2026 Nordbyte Studio",
   "directories": {
-    "output": "dist/admin"
+    "output": "dist/admin",
+    "buildResources": "build"
   },
   "files": [
     "admin-main.js",
@@ -10,11 +12,21 @@
     "../client/public/**/*"
   ],
   "win": {
-    "target": ["nsis"],
-    "icon": "../client/public/icon-512.png"
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "../client/public/icon-512.png",
+    "publisherName": "Nordbyte Studio",
+    "artifactName": "KSYK-Maps-Admin-Setup-${version}.${ext}"
   },
   "nsis": {
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "allowToChangeInstallationDirectory": true,
+    "perMachine": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "KSYK Maps Admin",
+    "uninstallDisplayName": "KSYK Maps Admin",
+    "installerHeaderIcon": "../client/public/icon-512.png",
+    "installerIcon": "../client/public/icon-512.png",
+    "uninstallerIcon": "../client/public/icon-512.png"
   }
 }

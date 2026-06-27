@@ -346,7 +346,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           const sinceDays = range === '7d' ? 7 : range === '30d' ? 30 : 1;
           const since = new Date(Date.now() - sinceDays * 86_400_000).toISOString();
-          const query = `query GetVisits($accountTag: string!, $siteTag: string!, $since: Time!) {
+          const query = `query GetVisits($accountTag: String!, $siteTag: String!, $since: Time!) {
             viewer {
               accounts(filter: { accountTag: $accountTag }) {
                 rumPageloadEventsAdaptiveGroups(
@@ -710,7 +710,7 @@ Email: ${ticketData.email}
 
 Action Required:
 Please review and respond to this ticket in the admin panel.
-Login at: https://ksykmaps.fi/admin-login`;
+Login at: https://ksykmaps.fi/admin`;
             
             console.log('📤 Sending to owner:', ownerEmail);
             const ownerResult = await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
