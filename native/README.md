@@ -1,64 +1,89 @@
 # KSYK Maps — Native Windows Apps
 
-Two true-native Tkinter desktop apps for KSYK Maps. Not Electron, not a webview — pure Win32 widgets styled in the retro Win-9x palette. Both talk directly to `https://ksykmaps.fi/api/...` over HTTPS.
+Real, native Windows applications. Written in C#, compiled to true Win32 `.exe` files with the compiler that ships built-in to Windows (`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`). **No Electron. No Python. No web view.** Each app talks directly to `https://ksykmaps.fi/api/*` over HTTPS.
 
-## Apps
+## What you get
 
-### KSYK Maps Admin (`ksyk_admin.py` → `KSYK-Maps-Admin.exe`)
+| File | Size | Purpose |
+|---|---|---|
+| `build\KSYK-Maps-Admin.exe` | ~130 KB | Admin thick client (Rooms, Buildings, Tickets, Analytics, WiFi Scan, System health) |
+| `build\KSYK-Maps-Quick.exe` | ~110 KB | Student utility (Room finder, Lunch menu, Announcements) |
+| `build\Setup.exe` | ~360 KB | Full wizard installer that embeds the two apps |
 
-Thick-client admin tool. Sign in with your owner / admin credentials and you get tabbed access to:
+All three carry the KSYK Maps logo as their Windows icon (multi-resolution: 16/32/48/64/128/512 px).
 
-- **Rooms** — search, edit (number, name, floor, type, x/y/width/height), create, delete
-- **Buildings** — campus building list with room counts
-- **Tickets** — incoming support tickets, double-click any to see the full body
-- **Analytics** — summary numbers (visitors, pageviews, sessions, avg duration) plus the external Cloudflare / Firestore provider rows
-- **WiFi Scan** — native `netsh wlan show networks mode=bssid` parsed into BSSID/RSSI/signal rows; one click copies them in the exact format BeaconSurveyor's paste field expects
-- **System** — server health probe (`/`, `/email-diagnostic`, `/client-info`)
+## Setup.exe — real Windows wizard installer
 
-### KSYK Maps Quick (`ksyk_viewer.py` → `KSYK-Maps-Quick.exe`)
+Setup.exe is a proper graphical Windows installer:
 
-Lightweight student utility. No login required.
+- 5-page wizard: **Welcome → Choose location → Confirm → Installing… → Done**
+- Default install path: `%LOCALAPPDATA%\Programs\KSYK Maps`
+- Browse button to pick a custom location
+- Optional: create a desktop shortcut, launch app when finished
+- Creates Start Menu folder `KSYK Maps` with three shortcuts:
+  - `KSYK Maps` (student utility)
+  - `KSYK Maps Admin` (admin tool)
+  - `Uninstall KSYK Maps`
+- Registers itself in **Add or Remove Programs** (Windows Settings → Apps)
+- Both apps are findable from the **Start menu search bar** the moment install finishes
+- Per-user install — no admin / UAC prompt needed
 
-- **Find a room** — type-as-you-search across number, name, type; double-click to open the room on the live map at ksykmaps.fi
-- **Lunch** — pulls the school's RSS lunch feed via `/api/lunch-menu`, parses + renders day-by-day
-- **Announcements** — latest 20 from `/api/announcements`
+### Command-line flags
 
-## Build
+```cmd
+Setup.exe                          ; interactive wizard (default)
+Setup.exe /silent                  ; headless install to default location
+Setup.exe /silent /dir="D:\Apps"   ; headless install to a custom location
+Setup.exe /uninstall               ; uninstall wizard
+Setup.exe /uninstall /silent       ; headless uninstall
+```
+
+## Building from source
 
 ```powershell
-# One-time
-python -m pip install --user pyinstaller
-
-# Build both .exes
+cd native
 .\build.ps1
 ```
 
-Outputs land in `native/dist/`:
+The script:
+1. Compiles `MakeIcon.exe` (a tiny PNG→ICO converter)
+2. Builds `icon.ico` from the KSYK logo PNGs in `../public/`
+3. Compiles `KSYK-Maps-Admin.exe` with the icon embedded
+4. Compiles `KSYK-Maps-Quick.exe` with the icon embedded
+5. Compiles `Setup.exe` with both apps embedded as resources, also with the icon
 
+No external SDKs / toolchains required — every binary used by `build.ps1` is already on a stock Windows install.
+
+## Smoke testing
+
+```powershell
+cd native
+.\test-install.ps1
 ```
-KSYK-Maps-Admin.exe   ~10 MB
-KSYK-Maps-Quick.exe   ~11 MB
-```
 
-Each .exe is a single self-contained Windows binary — no Python install required on the target machine.
+Runs `Setup.exe /silent`, verifies every install artifact (files, shortcuts, registry, desktop link), launches each installed app to make sure it starts, then runs the silent uninstall and verifies everything is gone again.
 
-## Run
+## Why not Electron / Python?
 
-Just double-click the `.exe`. To point at a non-production API (e.g. dev server), set an env var:
+These are real native binaries — they use Windows' own widget toolkit (Win32 controls via WinForms), don't bundle Chromium, don't depend on a Python runtime, and the .exe files are kilobytes instead of tens of megabytes. The admin tool also gets WiFi scanning straight from `netsh wlan show networks` with no IPC layer in between.
+
+## Pointing at a non-prod API
 
 ```powershell
 $env:KSYK_API_BASE = "http://localhost:5000/api"
-.\KSYK-Maps-Admin.exe
+.\build\KSYK-Maps-Admin.exe
 ```
 
-## Look & feel
+## Source layout
 
-Both apps share the Win-9x palette from the old browser Toolbench page:
-- Teal `#008080` desktop
-- Silver `#c0c0c0` chrome with raised/sunken bevels
-- Navy `#000080` title bars with white MS Sans Serif bold
-- Native Tkinter `classic` theme — no themed widgets, no gradients
-
-## Why not Electron?
-
-These are truly native: they use the OS's native widget toolkit (Tk, which wraps Win32 controls on Windows), don't bundle Chromium, and the .exe is ~10 MB instead of ~76 MB. The admin tool also gets WiFi scanning through `netsh` directly — no extra IPC layer.
+```
+native/
+  src/
+    Admin.cs       Admin thick client
+    Quick.cs       Student utility
+    Setup.cs       Wizard installer + silent install + uninstall
+    MakeIcon.cs    Build-time PNG → multi-res ICO converter
+  build/           Build output (gitignored)
+  build.ps1        Compiles everything
+  test-install.ps1 End-to-end install/uninstall verification
+```
