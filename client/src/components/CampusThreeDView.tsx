@@ -120,8 +120,27 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const w = host.clientWidth, h = host.clientHeight;
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(darkMode ? 0x0b1320 : 0xeaf2ff);
-      scene.fog = new THREE.Fog(darkMode ? 0x0b1320 : 0xeaf2ff, 800, 2800);
+      // Sky gradient texture — 2px tall canvas, top = sky, bottom = horizon.
+      // Way nicer than a flat colour and costs nothing per frame.
+      const skyCanvas = document.createElement("canvas");
+      skyCanvas.width = 2; skyCanvas.height = 256;
+      const skyCtx = skyCanvas.getContext("2d")!;
+      const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 256);
+      if (darkMode) {
+        skyGrad.addColorStop(0, "#0b1320");
+        skyGrad.addColorStop(0.7, "#172033");
+        skyGrad.addColorStop(1, "#1f2d4a");
+      } else {
+        skyGrad.addColorStop(0, "#7eb1ff");
+        skyGrad.addColorStop(0.5, "#b4d2ff");
+        skyGrad.addColorStop(1, "#e9f1ff");
+      }
+      skyCtx.fillStyle = skyGrad;
+      skyCtx.fillRect(0, 0, 2, 256);
+      const skyTex = new THREE.CanvasTexture(skyCanvas);
+      skyTex.mapping = THREE.EquirectangularReflectionMapping;
+      scene.background = skyTex;
+      scene.fog = new THREE.Fog(darkMode ? 0x172033 : 0xb4d2ff, 800, 3000);
 
       const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 5000);
       camera.position.set(0, 600, 600);
@@ -219,6 +238,37 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         );
         edges.position.copy(cube.position);
         roomGroup.add(edges);
+
+        // Room number floating above each cube — a tiny canvas turned into
+        // a sprite. Keeps text crisp at every zoom and rotates to face the
+        // camera for free.
+        if (r.roomNumber) {
+          const labelCanvas = document.createElement("canvas");
+          labelCanvas.width = 256; labelCanvas.height = 96;
+          const ctx = labelCanvas.getContext("2d")!;
+          ctx.font = "bold 56px -apple-system, Segoe UI, Roboto, sans-serif";
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "center";
+          // Pill background
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          const m = ctx.measureText(r.roomNumber);
+          const pillW = m.width + 36;
+          const pillH = 70;
+          const pillX = (256 - pillW) / 2;
+          ctx.beginPath();
+          // @ts-ignore — roundRect is available in modern Canvas
+          ctx.roundRect?.(pillX, (96 - pillH) / 2, pillW, pillH, 14);
+          ctx.fill();
+          ctx.fillStyle = "#0f172a";
+          ctx.fillText(r.roomNumber, 128, 48);
+          const tex = new THREE.CanvasTexture(labelCanvas);
+          tex.minFilter = THREE.LinearFilter;
+          const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+          const sprite = new THREE.Sprite(spriteMat);
+          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 8, cube.position.z);
+          sprite.scale.set(36, 13.5, 1);
+          roomGroup.add(sprite);
+        }
       }
 
       setStats((s) => ({ ...s, rooms: roomGroup.children.length / 2 }));

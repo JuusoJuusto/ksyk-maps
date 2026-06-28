@@ -615,6 +615,13 @@ namespace KsykAdmin
     public class BuildingsPanel : UserControl
     {
         readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+        readonly Dictionary<string, TextBox> fields = new Dictionary<string, TextBox>();
+        readonly string[] keys = new[] { "name", "type", "description", "address", "floors" };
+        readonly string[] labels = new[] { "Name", "Type", "Description", "Address", "Floors" };
+        List<IDictionary<string, object>> buildings = new List<IDictionary<string, object>>();
+        string selectedId;
+
         public BuildingsPanel()
         {
             BackColor = SystemColors.Control;
@@ -622,68 +629,204 @@ namespace KsykAdmin
 
             var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
             tb.Controls.Add(new Label { Text = "Campus buildings", Location = new Point(8, 10), AutoSize = true });
-            var btn = new Button { Text = "Reload", Location = new Point(140, 6), Size = new Size(75, 24) };
-            btn.Click += (s, e) => Load();
-            tb.Controls.Add(btn);
+            var btnReload = new Button { Text = "Reload", Location = new Point(140, 6), Size = new Size(75, 24) };
+            btnReload.Click += (s, e) => Load();
+            tb.Controls.Add(btnReload);
+            var btnNew = new Button { Text = "New building", Location = new Point(220, 6), Size = new Size(100, 24) };
+            btnNew.Click += (s, e) => NewBuilding();
+            tb.Controls.Add(btnNew);
+            lblStatus.Location = new Point(330, 10);
+            lblStatus.AutoSize = true;
+            lblStatus.ForeColor = SystemColors.GrayText;
+            tb.Controls.Add(lblStatus);
             Controls.Add(tb);
 
+            var split = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterDistance = 620,
+            };
+            Controls.Add(split); split.BringToFront();
+
             list.View = View.Details;
-            list.FullRowSelect = true;
-            list.GridLines = true;
+            list.FullRowSelect = true; list.HideSelection = false;
+            list.MultiSelect = false; list.GridLines = true;
             list.Dock = DockStyle.Fill;
-            list.Columns.Add("Name", 220);
-            list.Columns.Add("Type", 180);
-            list.Columns.Add("Rooms", 100);
-            Controls.Add(list);
-            list.BringToFront();
+            list.Columns.Add("Name", 200);
+            list.Columns.Add("Type", 130);
+            list.Columns.Add("Floors", 60);
+            list.Columns.Add("Rooms", 60);
+            list.Columns.Add("Address", 180);
+            list.SelectedIndexChanged += (s, e) => OnPick();
+            split.Panel1.Controls.Add(list);
+
+            // Editor on the right
+            var editor = new GroupBox
+            {
+                Text = "Edit building",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(8),
+            };
+            split.Panel2.Controls.Add(editor);
+
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                RowCount = keys.Length,
+                AutoSize = true,
+                Padding = new Padding(6),
+            };
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            for (int i = 0; i < keys.Length; i++)
+            {
+                grid.Controls.Add(new Label { Text = labels[i] + ":", Anchor = AnchorStyles.Left, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 0, i);
+                var tx = new TextBox { Dock = DockStyle.Fill, Margin = new Padding(0, 3, 0, 3) };
+                fields[keys[i]] = tx;
+                grid.Controls.Add(tx, 1, i);
+            }
+            editor.Controls.Add(grid);
+
+            var btnRow = new Panel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(6) };
+            editor.Controls.Add(btnRow);
+            var btnSave = new Button { Text = "Save", Size = new Size(80, 26), Location = new Point(0, 6) };
+            btnSave.Click += (s, e) => Save();
+            btnRow.Controls.Add(btnSave);
+            var btnDel = new Button { Text = "Delete", Size = new Size(80, 26), Location = new Point(88, 6) };
+            btnDel.Click += (s, e) => Delete();
+            btnRow.Controls.Add(btnDel);
 
             Load();
         }
 
         void Load()
         {
-            var t = new Thread(() =>
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
             {
                 try
                 {
-                    var buildings = Api.Request("/buildings") as object[];
+                    var bs = Api.Request("/buildings") as object[];
                     var rooms = Session.CachedRooms.Count > 0
                                     ? Session.CachedRooms.ToArray()
                                     : Api.Request("/rooms") as object[];
                     var counts = new Dictionary<string, int>();
-                    if (rooms != null)
-                        foreach (var r in rooms)
-                        {
-                            var bid = Api.Str(r as IDictionary<string, object>, "buildingId");
-                            if (!string.IsNullOrEmpty(bid))
-                                counts[bid] = (counts.ContainsKey(bid) ? counts[bid] : 0) + 1;
-                        }
+                    if (rooms != null) foreach (var r in rooms)
+                    {
+                        var bid = Api.Str(r as IDictionary<string, object>, "buildingId");
+                        if (!string.IsNullOrEmpty(bid))
+                            counts[bid] = (counts.ContainsKey(bid) ? counts[bid] : 0) + 1;
+                    }
+                    var loaded = new List<IDictionary<string, object>>();
+                    if (bs != null) foreach (var b in bs) loaded.Add(b as IDictionary<string, object>);
                     BeginInvoke((Action)(() =>
                     {
-                        list.BeginUpdate();
-                        list.Items.Clear();
-                        if (buildings != null) foreach (var b in buildings)
+                        buildings = loaded;
+                        list.BeginUpdate(); list.Items.Clear();
+                        foreach (var d in loaded)
+                        {
+                            var id = Api.Str(d, "id");
+                            var item = new ListViewItem(new[]
                             {
-                                var d = b as IDictionary<string, object>;
-                                var id = Api.Str(d, "id");
-                                list.Items.Add(new ListViewItem(new[]
-                                {
-                                    Api.Str(d, "name"),
-                                    Api.Str(d, "type"),
-                                    (counts.ContainsKey(id) ? counts[id] : 0).ToString(),
-                                }));
-                            }
+                                Api.Str(d, "name"),
+                                Api.Str(d, "type"),
+                                Api.Int(d, "floors").ToString(),
+                                (counts.ContainsKey(id) ? counts[id] : 0).ToString(),
+                                Api.Str(d, "address"),
+                            });
+                            item.Tag = id;
+                            list.Items.Add(item);
+                        }
                         list.EndUpdate();
+                        lblStatus.Text = loaded.Count + " buildings";
+                        lblStatus.ForeColor = SystemColors.GrayText;
                     }));
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "API error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error)));
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
                 }
-            });
-            t.IsBackground = true;
-            t.Start();
+            }) { IsBackground = true }.Start();
+        }
+
+        void OnPick()
+        {
+            if (list.SelectedItems.Count == 0) return;
+            selectedId = list.SelectedItems[0].Tag as string;
+            var b = buildings.Find(x => Api.Str(x, "id") == selectedId);
+            if (b == null) return;
+            foreach (var kv in fields)
+            {
+                if (b.ContainsKey(kv.Key) && b[kv.Key] != null) kv.Value.Text = b[kv.Key].ToString();
+                else kv.Value.Text = "";
+            }
+        }
+
+        void Save()
+        {
+            var patch = new Dictionary<string, object>();
+            foreach (var kv in fields)
+            {
+                var v = kv.Value.Text.Trim();
+                if (kv.Key == "floors")
+                {
+                    if (v.Length == 0) continue;
+                    int n; if (int.TryParse(v, out n)) patch[kv.Key] = n;
+                }
+                else patch[kv.Key] = v;
+            }
+            if (patch.Count == 0) return;
+            lblStatus.Text = "Saving..."; lblStatus.ForeColor = Color.Navy;
+            var id = selectedId;
+            new Thread(() =>
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        Api.Request("/buildings", "POST", patch);
+                    }
+                    else
+                    {
+                        Api.Request("/buildings/" + id, "PUT", patch);
+                    }
+                    BeginInvoke((Action)(() => { lblStatus.Text = "Saved."; lblStatus.ForeColor = Color.Green; Load(); }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Delete()
+        {
+            if (string.IsNullOrEmpty(selectedId)) return;
+            if (MessageBox.Show("Delete this building? Rooms inside will lose their buildingId.",
+                "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/buildings/" + selectedId, "DELETE");
+                    BeginInvoke((Action)(() => { selectedId = null; Load(); }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete")));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void NewBuilding()
+        {
+            selectedId = null;
+            foreach (var kv in fields) kv.Value.Text = "";
+            fields["name"].Focus();
+            lblStatus.Text = "Fill the fields and press Save to create.";
+            lblStatus.ForeColor = Color.Navy;
         }
     }
 
@@ -927,14 +1070,20 @@ namespace KsykAdmin
         readonly Label lblScan = new Label();
         readonly Label lblRoomTitle = new Label();
         readonly Label lblPositions = new Label();
+        readonly Label lblLiveScan = new Label();
         readonly CampusMapView campusMap = new CampusMapView();
         readonly ListView positionsList = new ListView();
+        readonly ListView liveWifiList = new ListView();
 
         // Background workers
         System.Device.Location.GeoCoordinateWatcher gpsWatcher;
         System.Windows.Forms.Timer autoTimer;
+        System.Windows.Forms.Timer wifiTimer;
+        Thread wifiScanThread;
+        bool wifiScanning = false;
         bool autoMode = false;
         DateTime lastCapture = DateTime.MinValue;
+        DateTime lastWifiScan = DateTime.MinValue;
 
         // Current state
         List<IDictionary<string, object>> rooms = new List<IDictionary<string, object>>();
@@ -954,46 +1103,115 @@ namespace KsykAdmin
 
             // ── Status bar (bottom) ─────────────────────────────────
             lblStatus.Dock = DockStyle.Bottom;
-            lblStatus.Height = 22;
+            lblStatus.Height = 24;
             lblStatus.TextAlign = ContentAlignment.MiddleLeft;
-            lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.Padding = new Padding(10, 0, 0, 0);
             lblStatus.ForeColor = SystemColors.GrayText;
-            lblStatus.Text = "Idle. Start GPS to begin.";
+            lblStatus.Text = "Idle. GPS and WiFi will start automatically.";
+            lblStatus.BorderStyle = BorderStyle.FixedSingle;
             Controls.Add(lblStatus);
 
-            // ── Toolbar (top) ───────────────────────────────────────
-            var tb = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = SystemColors.Control };
-            tb.Controls.Add(new Label { Text = "Smart beacon survey — pick a room, walk + capture, the app figures out the rest.", Location = new Point(10, 11), AutoSize = true });
-            Controls.Add(tb);
+            // ── Header strip (top) — title + capture buttons + GPS/WiFi live status ──
+            var header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = Color.FromArgb(247, 249, 253) };
+            header.BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(header);
 
-            // ── Main split: rooms | map+controls ────────────────────
-            var split1 = new SplitContainer
+            lblRoomTitle.Location = new Point(14, 10);
+            lblRoomTitle.AutoSize = true;
+            lblRoomTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblRoomTitle.ForeColor = Color.FromArgb(15, 35, 80);
+            lblRoomTitle.Text = "No room selected";
+            header.Controls.Add(lblRoomTitle);
+
+            lblGps.Location = new Point(14, 38);
+            lblGps.AutoSize = true;
+            lblGps.Font = new Font("Segoe UI", 9F);
+            lblGps.ForeColor = Color.FromArgb(100, 110, 130);
+            lblGps.Text = "● GPS: starting...";
+            header.Controls.Add(lblGps);
+
+            lblScan.Location = new Point(280, 38);
+            lblScan.AutoSize = true;
+            lblScan.Font = new Font("Segoe UI", 9F);
+            lblScan.ForeColor = Color.FromArgb(100, 110, 130);
+            lblScan.Text = "● WiFi: starting...";
+            header.Controls.Add(lblScan);
+
+            btnCapture.Text = "● CAPTURE";
+            btnCapture.Size = new Size(150, 56);
+            btnCapture.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnCapture.Location = new Point(header.ClientSize.Width - 480, 8);
+            btnCapture.BackColor = Color.FromArgb(37, 99, 235);
+            btnCapture.ForeColor = Color.White;
+            btnCapture.FlatStyle = FlatStyle.Flat;
+            btnCapture.FlatAppearance.BorderSize = 0;
+            btnCapture.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnCapture.Click += (s, e) => CapturePosition();
+            header.Controls.Add(btnCapture);
+
+            btnAutoMode.Text = "Auto-capture: OFF";
+            btnAutoMode.Size = new Size(160, 28);
+            btnAutoMode.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnAutoMode.Location = new Point(header.ClientSize.Width - 320, 8);
+            btnAutoMode.Font = new Font("Segoe UI", 9F);
+            btnAutoMode.Click += (s, e) => ToggleAutoMode();
+            header.Controls.Add(btnAutoMode);
+
+            btnDelete.Text = "Delete selected position";
+            btnDelete.Size = new Size(160, 24);
+            btnDelete.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnDelete.Location = new Point(header.ClientSize.Width - 320, 40);
+            btnDelete.Font = new Font("Segoe UI", 8.5F);
+            btnDelete.Click += (s, e) => DeleteSelectedPosition();
+            header.Controls.Add(btnDelete);
+
+            var btnStartGps = new Button
+            {
+                Text = "Restart GPS",
+                Size = new Size(150, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Location = new Point(header.ClientSize.Width - 150, 8),
+                Font = new Font("Segoe UI", 8.5F),
+            };
+            btnStartGps.Click += (s, e) => StartGps();
+            header.Controls.Add(btnStartGps);
+
+            // ── Main content: 3-column layout via TableLayoutPanel ───────────────
+            //   left: room picker
+            //   centre: campus map (the big draw)
+            //   right: positions list + live wifi
+            // TableLayoutPanel with percentage columns means it grows with the
+            // window — no fixed splitter that squishes panels on small screens.
+            var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Orientation = Orientation.Vertical,
-                SplitterDistance = 240,
-                FixedPanel = FixedPanel.Panel1,
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = new Padding(6),
+                BackColor = SystemColors.Control,
             };
-            Controls.Add(split1);
-            split1.BringToFront();
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));   // map dominates
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            Controls.Add(grid);
+            grid.BringToFront();
 
-            // ── Left: room picker ───────────────────────────────────
-            var left = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
-            split1.Panel1.Controls.Add(left);
+            // ── Left col: rooms ───────────────────────────────────
+            var leftCol = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 6, 0) };
+            grid.Controls.Add(leftCol, 0, 0);
 
-            var leftBar = new Panel { Dock = DockStyle.Top, Height = 30 };
-            leftBar.Controls.Add(new Label { Text = "Room:", Location = new Point(0, 6), AutoSize = true });
-            txtSearch.Location = new Point(46, 4);
+            var leftBar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
+            leftBar.Controls.Add(new Label { Text = "Rooms:", Location = new Point(0, 7), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            txtSearch.Location = new Point(60, 5);
             txtSearch.Size = new Size(140, 22);
             txtSearch.TextChanged += (s, e) => RenderRoomList();
             leftBar.Controls.Add(txtSearch);
             btnRoomReload.Text = "↻";
             btnRoomReload.Size = new Size(26, 22);
-            btnRoomReload.Location = new Point(190, 3);
+            btnRoomReload.Location = new Point(204, 4);
             btnRoomReload.Click += (s, e) => LoadAll();
             leftBar.Controls.Add(btnRoomReload);
-            left.Controls.Add(leftBar);
-            leftBar.BringToFront();
+            leftCol.Controls.Add(leftBar);
 
             roomList.View = View.Details;
             roomList.FullRowSelect = true;
@@ -1001,108 +1219,83 @@ namespace KsykAdmin
             roomList.MultiSelect = false;
             roomList.GridLines = true;
             roomList.Dock = DockStyle.Fill;
-            roomList.Columns.Add("#", 50);
-            roomList.Columns.Add("Name", 110);
-            roomList.Columns.Add("F", 25);
-            roomList.Columns.Add("●", 25);
+            roomList.Columns.Add("#", 60);
+            roomList.Columns.Add("Name", 100);
+            roomList.Columns.Add("F", 30);
+            roomList.Columns.Add("●", 30);
             roomList.SelectedIndexChanged += (s, e) => OnRoomPicked();
-            left.Controls.Add(roomList);
+            roomList.Font = new Font("Segoe UI", 9F);
+            leftCol.Controls.Add(roomList);
             roomList.BringToFront();
 
-            // ── Right side: top map / bottom controls ────────────────
-            var split2 = new SplitContainer
-            {
-                Dock = DockStyle.Fill,
-                Orientation = Orientation.Horizontal,
-                SplitterDistance = 380,
-            };
-            split1.Panel2.Controls.Add(split2);
+            // ── Centre col: campus map ────────────────────────────
+            var mapCol = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 6, 0) };
+            grid.Controls.Add(mapCol, 1, 0);
 
-            // ── Top right: campus map ───────────────────────────────
             campusMap.Dock = DockStyle.Fill;
-            split2.Panel1.Controls.Add(campusMap);
+            mapCol.Controls.Add(campusMap);
 
-            // ── Bottom right: control bar + positions list ──────────
-            var bottomPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(6) };
-            split2.Panel2.Controls.Add(bottomPanel);
+            // ── Right col: split between saved positions and live WiFi ──
+            var rightCol = new Panel { Dock = DockStyle.Fill };
+            grid.Controls.Add(rightCol, 2, 0);
 
-            var ctrlBar = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.FromArgb(247, 249, 253) };
-            ctrlBar.BorderStyle = BorderStyle.FixedSingle;
-            bottomPanel.Controls.Add(ctrlBar);
-            ctrlBar.BringToFront();
+            // Bottom half: live WiFi
+            var liveBlock = new Panel { Dock = DockStyle.Bottom, Height = 230 };
+            rightCol.Controls.Add(liveBlock);
 
-            lblRoomTitle.Location = new Point(10, 8);
-            lblRoomTitle.AutoSize = true;
-            lblRoomTitle.Font = new Font("MS Sans Serif", 10F, FontStyle.Bold);
-            lblRoomTitle.ForeColor = Color.FromArgb(15, 35, 80);
-            lblRoomTitle.Text = "No room selected";
-            ctrlBar.Controls.Add(lblRoomTitle);
+            lblLiveScan.Text = "Live WiFi scan (refreshes every 4s):";
+            lblLiveScan.Dock = DockStyle.Top;
+            lblLiveScan.Height = 22;
+            lblLiveScan.TextAlign = ContentAlignment.MiddleLeft;
+            lblLiveScan.Padding = new Padding(8, 0, 0, 0);
+            lblLiveScan.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLiveScan.BackColor = Color.FromArgb(247, 249, 253);
+            lblLiveScan.BorderStyle = BorderStyle.FixedSingle;
+            liveBlock.Controls.Add(lblLiveScan);
 
-            lblGps.Location = new Point(10, 32);
-            lblGps.AutoSize = true;
-            lblGps.ForeColor = Color.FromArgb(100, 110, 130);
-            lblGps.Text = "GPS: not started";
-            ctrlBar.Controls.Add(lblGps);
+            liveWifiList.View = View.Details;
+            liveWifiList.FullRowSelect = true;
+            liveWifiList.GridLines = true;
+            liveWifiList.Dock = DockStyle.Fill;
+            liveWifiList.Columns.Add("SSID", 130);
+            liveWifiList.Columns.Add("BSSID", 130);
+            liveWifiList.Columns.Add("RSSI", 60);
+            liveWifiList.Columns.Add("Signal", 60);
+            liveWifiList.Font = new Font("Segoe UI", 8.5F);
+            liveBlock.Controls.Add(liveWifiList);
+            liveWifiList.BringToFront();
 
-            lblScan.Location = new Point(10, 52);
-            lblScan.AutoSize = true;
-            lblScan.ForeColor = Color.FromArgb(100, 110, 130);
-            lblScan.Text = "Last scan: —";
-            ctrlBar.Controls.Add(lblScan);
-
-            btnCapture.Text = "⦿ Capture position";
-            btnCapture.Size = new Size(160, 32);
-            btnCapture.Location = new Point(380, 8);
-            btnCapture.BackColor = Color.FromArgb(37, 99, 235);
-            btnCapture.ForeColor = Color.White;
-            btnCapture.FlatStyle = FlatStyle.Flat;
-            btnCapture.FlatAppearance.BorderSize = 0;
-            btnCapture.Font = new Font("MS Sans Serif", 10F, FontStyle.Bold);
-            btnCapture.Click += (s, e) => CapturePosition();
-            ctrlBar.Controls.Add(btnCapture);
-
-            btnAutoMode.Text = "Auto-capture: OFF";
-            btnAutoMode.Size = new Size(160, 28);
-            btnAutoMode.Location = new Point(380, 46);
-            btnAutoMode.Click += (s, e) => ToggleAutoMode();
-            ctrlBar.Controls.Add(btnAutoMode);
-
-            btnDelete.Text = "Delete pos";
-            btnDelete.Size = new Size(100, 26);
-            btnDelete.Location = new Point(550, 8);
-            btnDelete.Click += (s, e) => DeleteSelectedPosition();
-            ctrlBar.Controls.Add(btnDelete);
-
-            var btnStartGps = new Button
-            {
-                Text = "Start GPS",
-                Size = new Size(100, 26),
-                Location = new Point(550, 38),
-            };
-            btnStartGps.Click += (s, e) => StartGps();
-            ctrlBar.Controls.Add(btnStartGps);
-
+            // Top half: saved positions
             lblPositions.Text = "Saved positions:";
-            lblPositions.Location = new Point(10, 105);
-            lblPositions.AutoSize = true;
-            lblPositions.Font = new Font("MS Sans Serif", 9F, FontStyle.Bold);
-            bottomPanel.Controls.Add(lblPositions);
-            lblPositions.BringToFront();
+            lblPositions.Dock = DockStyle.Top;
+            lblPositions.Height = 22;
+            lblPositions.TextAlign = ContentAlignment.MiddleLeft;
+            lblPositions.Padding = new Padding(8, 0, 0, 0);
+            lblPositions.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPositions.BackColor = Color.FromArgb(247, 249, 253);
+            lblPositions.BorderStyle = BorderStyle.FixedSingle;
+            rightCol.Controls.Add(lblPositions);
 
             positionsList.View = View.Details;
             positionsList.FullRowSelect = true;
             positionsList.GridLines = true;
-            positionsList.Dock = DockStyle.Bottom;
-            positionsList.Height = 180;
-            positionsList.Columns.Add("Label", 110);
-            positionsList.Columns.Add("Auto-corner", 90);
-            positionsList.Columns.Add("Readings", 70);
-            positionsList.Columns.Add("GPS", 180);
-            positionsList.Columns.Add("Captured", 130);
-            bottomPanel.Controls.Add(positionsList);
+            positionsList.Dock = DockStyle.Fill;
+            positionsList.Columns.Add("Label", 100);
+            positionsList.Columns.Add("Corner", 50);
+            positionsList.Columns.Add("Beacons", 60);
+            positionsList.Columns.Add("GPS", 150);
+            positionsList.Columns.Add("Captured", 100);
+            positionsList.Font = new Font("Segoe UI", 8.5F);
+            rightCol.Controls.Add(positionsList);
             positionsList.BringToFront();
 
             LoadAll();
+
+            // Auto-start GPS and continuous WiFi scan when the panel is created.
+            // The user doesn't have to click anything — fix appears as soon as
+            // Windows location services hand it over, BSSIDs refresh every 4 s.
+            StartGps();
+            StartContinuousWifiScan();
         }
 
         // ── Data loading ──────────────────────────────────────────────
@@ -1308,7 +1501,67 @@ namespace KsykAdmin
             }));
         }
 
-        // ── WiFi scan ─────────────────────────────────────────────────
+        // ── Continuous WiFi scan ──────────────────────────────────────
+        //
+        // Runs `netsh wlan show networks mode=bssid` on a 4 s timer in the
+        // background and keeps the live BSSID table fresh. Single-shot
+        // scans during Capture re-use the latest cached result so we don't
+        // pay the netsh round-trip twice.
+
+        void StartContinuousWifiScan()
+        {
+            if (wifiTimer != null) return;
+            wifiTimer = new System.Windows.Forms.Timer();
+            wifiTimer.Interval = 4000;
+            wifiTimer.Tick += (s, e) => TriggerWifiScan();
+            wifiTimer.Start();
+            // Kick off an immediate first scan instead of waiting 4 s.
+            TriggerWifiScan();
+        }
+
+        void TriggerWifiScan()
+        {
+            if (wifiScanning) return;
+            wifiScanning = true;
+            new Thread(() =>
+            {
+                List<string[]> nets;
+                try { nets = ScanWifiSync(); }
+                catch { nets = new List<string[]>(); }
+                lastScanRows = nets;
+                lastWifiScan = DateTime.Now;
+                BeginInvoke((Action)(() =>
+                {
+                    lblScan.Text = string.Format("● WiFi: {0} BSSIDs visible (scanned {1:HH:mm:ss})",
+                        nets.Count, lastWifiScan);
+                    lblScan.ForeColor = nets.Count > 0 ? Color.Green : Color.Maroon;
+                    lblLiveScan.Text = string.Format("Live WiFi scan ({0} BSSIDs · auto-refresh every 4s):", nets.Count);
+
+                    // Only repaint when the list actually changed shape so we
+                    // don't flicker every 4 s if the set is stable.
+                    liveWifiList.BeginUpdate();
+                    liveWifiList.Items.Clear();
+                    foreach (var r in nets)
+                    {
+                        var item = new ListViewItem(new[]
+                        {
+                            r[0].Length > 0 ? r[0] : "(hidden)",
+                            r[1], r[2] + " dBm", r[3] + "%"
+                        });
+                        // Colour-code by signal: strong=green, medium=amber, weak=grey
+                        int sig = 0; int.TryParse(r[3], out sig);
+                        if (sig >= 70) item.ForeColor = Color.DarkGreen;
+                        else if (sig >= 40) item.ForeColor = Color.DarkGoldenrod;
+                        else item.ForeColor = Color.Gray;
+                        liveWifiList.Items.Add(item);
+                    }
+                    liveWifiList.EndUpdate();
+                }));
+                wifiScanning = false;
+            }) { IsBackground = true }.Start();
+        }
+
+        // ── WiFi scan helper ──────────────────────────────────────────
 
         List<string[]> ScanWifiSync()
         {
@@ -1359,24 +1612,32 @@ namespace KsykAdmin
         void CapturePosition()
         {
             if (selectedRoom == null) { MessageBox.Show("Pick a room first.", "Capture"); return; }
-            if (!hasGps) { MessageBox.Show("Start GPS first and wait for a fix.", "Capture"); return; }
 
             btnCapture.Enabled = false;
-            lblStatus.Text = "Scanning WiFi...";
+            lblStatus.Text = "Capturing position...";
             lblStatus.ForeColor = Color.Navy;
 
             // Snapshot GPS at the moment the user presses Capture so the
-            // reading travels with the right fix even if GPS moves.
-            var lat = lastLat;
-            var lng = lastLng;
-            var acc = lastAccuracy;
+            // reading travels with the right fix even if GPS moves. GPS is
+            // optional now — captures without a fix are still useful (the
+            // beacon survey itself doesn't strictly need lat/lng).
+            var lat = hasGps ? lastLat : 0;
+            var lng = hasGps ? lastLng : 0;
+            var acc = hasGps ? lastAccuracy : 0;
             var roomId = Api.Str(selectedRoom, "id");
 
             new Thread(() =>
             {
-                List<string[]> scan = null;
-                try { scan = ScanWifiSync(); } catch { scan = new List<string[]>(); }
-                lastScanRows = scan;
+                // Use the latest continuous-scan result if it's <8s old, else
+                // do a fresh scan to make sure the readings are current.
+                List<string[]> scan;
+                if (lastScanRows.Count > 0 && (DateTime.Now - lastWifiScan).TotalSeconds < 8)
+                    scan = lastScanRows;
+                else
+                {
+                    try { scan = ScanWifiSync(); } catch { scan = new List<string[]>(); }
+                    lastScanRows = scan;
+                }
 
                 var readings = new List<object>();
                 foreach (var r in scan)
@@ -2132,6 +2393,7 @@ namespace KsykAdmin
 
     public class SettingsPanel : UserControl
     {
+        // Map defaults (server: /api/map-defaults)
         readonly TextBox txtLat = new TextBox();
         readonly TextBox txtLng = new TextBox();
         readonly TextBox txtZoom = new TextBox();
@@ -2139,26 +2401,58 @@ namespace KsykAdmin
         readonly TextBox txtMaxZoom = new TextBox();
         readonly TextBox txtRotation = new TextBox();
         readonly TextBox txtPitch = new TextBox();
-        readonly TextBox txtTileTheme = new TextBox();
+        readonly ComboBox cmbTileTheme = new ComboBox();
         readonly TextBox txtSpan = new TextBox();
         readonly TextBox txtMatterport = new TextBox();
+        // App settings (server: /api/settings)
+        readonly TextBox txtAppName = new TextBox();
+        readonly TextBox txtAppNameFi = new TextBox();
+        readonly TextBox txtHeaderTitle = new TextBox();
+        readonly TextBox txtHeaderTitleFi = new TextBox();
+        readonly TextBox txtFooterText = new TextBox();
+        readonly TextBox txtContactEmail = new TextBox();
+        readonly TextBox txtContactPhone = new TextBox();
+        readonly TextBox txtPrimaryColor = new TextBox();
+        readonly TextBox txtSecondaryColor = new TextBox();
+        readonly TextBox txtLogoUrl = new TextBox();
+        readonly ComboBox cmbDefaultLang = new ComboBox();
+        readonly CheckBox cbShowStats = new CheckBox { Text = "Show campus stats on home", AutoSize = true };
+        readonly CheckBox cbShowAnnouncements = new CheckBox { Text = "Show announcements ticker", AutoSize = true };
+        readonly CheckBox cbEnableSearch = new CheckBox { Text = "Enable room search", AutoSize = true };
+        // Max-bounds (server: /api/map-defaults)
+        readonly CheckBox cbBoundsEnabled = new CheckBox { Text = "Restrict pan to bounding box", AutoSize = true };
+        readonly TextBox txtBoundsN = new TextBox();
+        readonly TextBox txtBoundsE = new TextBox();
+        readonly TextBox txtBoundsS = new TextBox();
+        readonly TextBox txtBoundsW = new TextBox();
+
         readonly Label lblStatus = new Label();
-        IDictionary<string, object> current;
+        IDictionary<string, object> currentMap;
+        IDictionary<string, object> currentApp;
+
+        static readonly string[] TileThemes = new[] {
+            "default", "voyager", "positron-light", "dark-matter",
+            "stadia-toner-lite", "stadia-alidade-dark", "esri-streets",
+        };
 
         public SettingsPanel()
         {
             BackColor = SystemColors.Control;
             Dock = DockStyle.Fill;
-            Padding = new Padding(14);
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 36 };
-            top.Controls.Add(new Label { Text = "Map defaults & app settings", Location = new Point(0, 10), AutoSize = true });
-            var btnLoad = new Button { Text = "Reload", Location = new Point(180, 6), Size = new Size(75, 24) };
-            btnLoad.Click += (s, e) => Load();
-            top.Controls.Add(btnLoad);
-            var btnSave = new Button { Text = "Save", Location = new Point(260, 6), Size = new Size(75, 24) };
-            btnSave.Click += (s, e) => Save();
-            top.Controls.Add(btnSave);
+            var top = new Panel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
+            top.Controls.Add(new Label
+            {
+                Text = "All app settings — map defaults, branding, language, contact, and feature flags.",
+                Location = new Point(0, 10), AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            });
+            var btnLoad = new Button { Text = "Reload", Location = new Point(top.ClientSize.Width - 180, 6), Size = new Size(80, 26),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnLoad.Click += (s, e) => Load(); top.Controls.Add(btnLoad);
+            var btnSave = new Button { Text = "Save all", Location = new Point(top.ClientSize.Width - 90, 6), Size = new Size(80, 26),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnSave.Click += (s, e) => Save(); top.Controls.Add(btnSave);
             Controls.Add(top);
 
             lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
@@ -2167,99 +2461,208 @@ namespace KsykAdmin
             lblStatus.ForeColor = SystemColors.GrayText;
             Controls.Add(lblStatus);
 
-            var grid = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 4,
-                RowCount = 10,
-                Padding = new Padding(8),
-            };
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
-            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            // Scrollable groups
+            var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12) };
+            Controls.Add(scroll); scroll.BringToFront();
 
-            AddRow(grid, 0, "Center latitude:", txtLat,    "Center longitude:", txtLng);
-            AddRow(grid, 1, "Default zoom:",    txtZoom,   "Min zoom:",         txtMinZoom);
-            AddRow(grid, 2, "Max zoom:",        txtMaxZoom,"Rotation (deg):",   txtRotation);
-            AddRow(grid, 3, "Pitch (deg):",     txtPitch,  "Tile theme:",       txtTileTheme);
-            AddRow(grid, 4, "Campus span (m):", txtSpan,   "Matterport URL:",   txtMatterport);
+            int y = 0;
 
-            Controls.Add(grid);
-            grid.BringToFront();
+            // ── Group 1: Map home ─────────────────────────────────────
+            var g1 = MakeGroup(scroll, "Map default home", 0, ref y, 240);
+            int gy = 18;
+            AddFieldRow(g1, ref gy, "Center latitude:", txtLat, "Center longitude:", txtLng);
+            AddFieldRow(g1, ref gy, "Default zoom:", txtZoom, "Min zoom:", txtMinZoom);
+            AddFieldRow(g1, ref gy, "Max zoom:", txtMaxZoom, "Rotation (deg):", txtRotation);
+            AddFieldRow(g1, ref gy, "Pitch (deg):", txtPitch, "Campus span (m):", txtSpan);
+
+            cmbTileTheme.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var t in TileThemes) cmbTileTheme.Items.Add(t);
+            AddFieldRowDropdown(g1, ref gy, "Tile theme:", cmbTileTheme, "Matterport URL:", txtMatterport);
+
+            // ── Group 2: Pan bounds ──────────────────────────────────
+            var g2 = MakeGroup(scroll, "Pan bounding box (lat/lng box that users can pan inside)", 0, ref y, 150);
+            cbBoundsEnabled.Location = new Point(14, 22);
+            g2.Controls.Add(cbBoundsEnabled);
+            gy = 56;
+            AddFieldRow(g2, ref gy, "North bound:", txtBoundsN, "East bound:", txtBoundsE);
+            AddFieldRow(g2, ref gy, "South bound:", txtBoundsS, "West bound:", txtBoundsW);
+
+            // ── Group 3: Branding ────────────────────────────────────
+            var g3 = MakeGroup(scroll, "Branding & content", 0, ref y, 280);
+            gy = 18;
+            AddFieldRow(g3, ref gy, "App name (EN):", txtAppName, "App name (FI):", txtAppNameFi);
+            AddFieldRow(g3, ref gy, "Header title (EN):", txtHeaderTitle, "Header title (FI):", txtHeaderTitleFi);
+            AddFieldRow(g3, ref gy, "Primary colour:", txtPrimaryColor, "Secondary colour:", txtSecondaryColor);
+            AddFieldRow(g3, ref gy, "Footer text:", txtFooterText, "Logo URL:", txtLogoUrl);
+            AddFieldRow(g3, ref gy, "Contact email:", txtContactEmail, "Contact phone:", txtContactPhone);
+
+            cmbDefaultLang.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbDefaultLang.Items.AddRange(new object[] { "en", "fi" });
+            g3.Controls.Add(new Label { Text = "Default language:", Location = new Point(14, gy + 6), AutoSize = true });
+            cmbDefaultLang.Location = new Point(140, gy + 4); cmbDefaultLang.Size = new Size(120, 22);
+            g3.Controls.Add(cmbDefaultLang);
+
+            // ── Group 4: Feature flags ───────────────────────────────
+            var g4 = MakeGroup(scroll, "Feature flags", 0, ref y, 100);
+            cbShowStats.Location          = new Point(14, 22);
+            cbShowAnnouncements.Location  = new Point(14, 46);
+            cbEnableSearch.Location       = new Point(14, 70);
+            g4.Controls.Add(cbShowStats);
+            g4.Controls.Add(cbShowAnnouncements);
+            g4.Controls.Add(cbEnableSearch);
 
             Load();
         }
 
-        void AddRow(TableLayoutPanel g, int row, string lbl1, TextBox tb1, string lbl2, TextBox tb2)
+        GroupBox MakeGroup(Panel host, string title, int x, ref int y, int height)
         {
-            g.Controls.Add(new Label { Text = lbl1, Anchor = AnchorStyles.Left, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 0, row);
-            tb1.Dock = DockStyle.Top; tb1.Margin = new Padding(0, 3, 8, 3);
-            g.Controls.Add(tb1, 1, row);
-            g.Controls.Add(new Label { Text = lbl2, Anchor = AnchorStyles.Left, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 2, row);
-            tb2.Dock = DockStyle.Top; tb2.Margin = new Padding(0, 3, 0, 3);
-            g.Controls.Add(tb2, 3, row);
+            var g = new GroupBox
+            {
+                Text = title,
+                Location = new Point(x, y),
+                Size = new Size(host.ClientSize.Width - 30, height),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Padding = new Padding(8),
+            };
+            host.Controls.Add(g);
+            y += height + 10;
+            return g;
+        }
+
+        void AddFieldRow(GroupBox g, ref int y, string l1, TextBox t1, string l2, TextBox t2)
+        {
+            g.Controls.Add(new Label { Text = l1, Location = new Point(14, y + 6), AutoSize = true });
+            t1.Location = new Point(140, y + 4); t1.Size = new Size(180, 22);
+            g.Controls.Add(t1);
+            g.Controls.Add(new Label { Text = l2, Location = new Point(340, y + 6), AutoSize = true });
+            t2.Location = new Point(470, y + 4); t2.Size = new Size(180, 22);
+            g.Controls.Add(t2);
+            y += 30;
+        }
+
+        void AddFieldRowDropdown(GroupBox g, ref int y, string l1, ComboBox c1, string l2, TextBox t2)
+        {
+            g.Controls.Add(new Label { Text = l1, Location = new Point(14, y + 6), AutoSize = true });
+            c1.Location = new Point(140, y + 4); c1.Size = new Size(180, 22);
+            g.Controls.Add(c1);
+            g.Controls.Add(new Label { Text = l2, Location = new Point(340, y + 6), AutoSize = true });
+            t2.Location = new Point(470, y + 4); t2.Size = new Size(180, 22);
+            g.Controls.Add(t2);
+            y += 30;
         }
 
         void Load()
         {
-            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            lblStatus.Text = "Loading map + app settings..."; lblStatus.ForeColor = Color.Navy;
             new Thread(() =>
             {
-                try
+                IDictionary<string, object> map = null;
+                IDictionary<string, object> app = null;
+                string err = null;
+                try { map = Api.Request("/map-defaults") as IDictionary<string, object>; }
+                catch (Exception ex) { err = Api.Friendly(ex); }
+                try { app = Api.Request("/settings") as IDictionary<string, object>; }
+                catch (Exception ex) { if (err == null) err = Api.Friendly(ex); }
+                currentMap = map ?? new Dictionary<string, object>();
+                currentApp = app ?? new Dictionary<string, object>();
+                BeginInvoke((Action)(() =>
                 {
-                    var data = Api.Request("/map-defaults") as IDictionary<string, object>;
-                    current = data ?? new Dictionary<string, object>();
-                    BeginInvoke((Action)(() => Render()));
-                }
-                catch (Exception ex)
-                {
-                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
-                }
+                    Render();
+                    if (err != null) { lblStatus.Text = err; lblStatus.ForeColor = Color.Maroon; }
+                    else { lblStatus.Text = "Loaded."; lblStatus.ForeColor = SystemColors.GrayText; }
+                }));
             }) { IsBackground = true }.Start();
         }
 
         void Render()
         {
-            txtLat.Text       = Api.Str(current, "osmCenterLat");
-            txtLng.Text       = Api.Str(current, "osmCenterLng");
-            txtZoom.Text      = Api.Str(current, "osmDefaultZoom");
-            txtMinZoom.Text   = Api.Str(current, "osmMinZoom");
-            txtMaxZoom.Text   = Api.Str(current, "osmMaxZoom");
-            txtRotation.Text  = Api.Str(current, "osmRotationDeg");
-            txtPitch.Text     = Api.Str(current, "osmPitchDeg");
-            txtTileTheme.Text = Api.Str(current, "osmTileTheme");
-            txtSpan.Text      = Api.Str(current, "osmCampusSpanMeters");
-            txtMatterport.Text= Api.Str(current, "matterportTourUrl");
-            lblStatus.Text = "Loaded."; lblStatus.ForeColor = SystemColors.GrayText;
+            // Map defaults
+            txtLat.Text       = Api.Str(currentMap, "osmCenterLat");
+            txtLng.Text       = Api.Str(currentMap, "osmCenterLng");
+            txtZoom.Text      = Api.Str(currentMap, "osmDefaultZoom");
+            txtMinZoom.Text   = Api.Str(currentMap, "osmMinZoom");
+            txtMaxZoom.Text   = Api.Str(currentMap, "osmMaxZoom");
+            txtRotation.Text  = Api.Str(currentMap, "osmRotationDeg");
+            txtPitch.Text     = Api.Str(currentMap, "osmPitchDeg");
+            cmbTileTheme.SelectedItem = Api.Str(currentMap, "osmTileTheme");
+            if (cmbTileTheme.SelectedIndex < 0) cmbTileTheme.SelectedItem = "default";
+            txtSpan.Text      = Api.Str(currentMap, "osmCampusSpanMeters");
+            txtMatterport.Text= Api.Str(currentMap, "matterportTourUrl");
+            cbBoundsEnabled.Checked = Api.Get<bool>(currentMap, "osmMaxBoundsEnabled", false);
+            txtBoundsN.Text   = Api.Str(currentMap, "osmMaxBoundsNorth");
+            txtBoundsE.Text   = Api.Str(currentMap, "osmMaxBoundsEast");
+            txtBoundsS.Text   = Api.Str(currentMap, "osmMaxBoundsSouth");
+            txtBoundsW.Text   = Api.Str(currentMap, "osmMaxBoundsWest");
+
+            // App settings
+            txtAppName.Text        = Api.Str(currentApp, "appNameEn");  if (txtAppName.Text.Length == 0) txtAppName.Text = Api.Str(currentApp, "appName");
+            txtAppNameFi.Text      = Api.Str(currentApp, "appNameFi");
+            txtHeaderTitle.Text    = Api.Str(currentApp, "headerTitleEn"); if (txtHeaderTitle.Text.Length == 0) txtHeaderTitle.Text = Api.Str(currentApp, "headerTitle");
+            txtHeaderTitleFi.Text  = Api.Str(currentApp, "headerTitleFi");
+            txtFooterText.Text     = Api.Str(currentApp, "footerText");
+            txtContactEmail.Text   = Api.Str(currentApp, "contactEmail");
+            txtContactPhone.Text   = Api.Str(currentApp, "contactPhone");
+            txtPrimaryColor.Text   = Api.Str(currentApp, "primaryColor");
+            txtSecondaryColor.Text = Api.Str(currentApp, "secondaryColor");
+            txtLogoUrl.Text        = Api.Str(currentApp, "logoUrl");
+            cmbDefaultLang.SelectedItem = Api.Str(currentApp, "defaultLanguage");
+            if (cmbDefaultLang.SelectedIndex < 0) cmbDefaultLang.SelectedItem = "en";
+            cbShowStats.Checked          = Api.Get<bool>(currentApp, "showStats", true);
+            cbShowAnnouncements.Checked  = Api.Get<bool>(currentApp, "showAnnouncements", true);
+            cbEnableSearch.Checked       = Api.Get<bool>(currentApp, "enableSearch", true);
         }
 
         void Save()
         {
-            var body = new Dictionary<string, object>();
-            AddIfFilled(body, "osmCenterLat", txtLat.Text, true);
-            AddIfFilled(body, "osmCenterLng", txtLng.Text, true);
-            AddIfFilled(body, "osmDefaultZoom", txtZoom.Text, true);
-            AddIfFilled(body, "osmMinZoom", txtMinZoom.Text, true);
-            AddIfFilled(body, "osmMaxZoom", txtMaxZoom.Text, true);
-            AddIfFilled(body, "osmRotationDeg", txtRotation.Text, true);
-            AddIfFilled(body, "osmPitchDeg", txtPitch.Text, true);
-            AddIfFilled(body, "osmTileTheme", txtTileTheme.Text, false);
-            AddIfFilled(body, "osmCampusSpanMeters", txtSpan.Text, true);
-            AddIfFilled(body, "matterportTourUrl", txtMatterport.Text, false);
+            // ── Map defaults ──────────────────────────────────────
+            var mapBody = new Dictionary<string, object>();
+            AddIfFilled(mapBody, "osmCenterLat", txtLat.Text, true);
+            AddIfFilled(mapBody, "osmCenterLng", txtLng.Text, true);
+            AddIfFilled(mapBody, "osmDefaultZoom", txtZoom.Text, true);
+            AddIfFilled(mapBody, "osmMinZoom", txtMinZoom.Text, true);
+            AddIfFilled(mapBody, "osmMaxZoom", txtMaxZoom.Text, true);
+            AddIfFilled(mapBody, "osmRotationDeg", txtRotation.Text, true);
+            AddIfFilled(mapBody, "osmPitchDeg", txtPitch.Text, true);
+            if (cmbTileTheme.SelectedItem != null)
+                mapBody["osmTileTheme"] = cmbTileTheme.SelectedItem.ToString();
+            AddIfFilled(mapBody, "osmCampusSpanMeters", txtSpan.Text, true);
+            AddIfFilled(mapBody, "matterportTourUrl", txtMatterport.Text, false);
+            mapBody["osmMaxBoundsEnabled"] = cbBoundsEnabled.Checked;
+            AddIfFilled(mapBody, "osmMaxBoundsNorth", txtBoundsN.Text, true);
+            AddIfFilled(mapBody, "osmMaxBoundsEast",  txtBoundsE.Text, true);
+            AddIfFilled(mapBody, "osmMaxBoundsSouth", txtBoundsS.Text, true);
+            AddIfFilled(mapBody, "osmMaxBoundsWest",  txtBoundsW.Text, true);
+
+            // ── App settings ──────────────────────────────────────
+            var appBody = new Dictionary<string, object>();
+            if (txtAppName.Text.Length > 0)        { appBody["appNameEn"]    = txtAppName.Text;    appBody["appName"] = txtAppName.Text; }
+            if (txtAppNameFi.Text.Length > 0)      appBody["appNameFi"]    = txtAppNameFi.Text;
+            if (txtHeaderTitle.Text.Length > 0)    { appBody["headerTitleEn"]= txtHeaderTitle.Text; appBody["headerTitle"] = txtHeaderTitle.Text; }
+            if (txtHeaderTitleFi.Text.Length > 0)  appBody["headerTitleFi"]= txtHeaderTitleFi.Text;
+            if (txtFooterText.Text.Length > 0)     appBody["footerText"]   = txtFooterText.Text;
+            if (txtContactEmail.Text.Length > 0)   appBody["contactEmail"] = txtContactEmail.Text;
+            if (txtContactPhone.Text.Length > 0)   appBody["contactPhone"] = txtContactPhone.Text;
+            if (txtPrimaryColor.Text.Length > 0)   appBody["primaryColor"] = txtPrimaryColor.Text;
+            if (txtSecondaryColor.Text.Length > 0) appBody["secondaryColor"]= txtSecondaryColor.Text;
+            if (txtLogoUrl.Text.Length > 0)        appBody["logoUrl"]      = txtLogoUrl.Text;
+            if (cmbDefaultLang.SelectedItem != null) appBody["defaultLanguage"] = cmbDefaultLang.SelectedItem.ToString();
+            appBody["showStats"]         = cbShowStats.Checked;
+            appBody["showAnnouncements"] = cbShowAnnouncements.Checked;
+            appBody["enableSearch"]      = cbEnableSearch.Checked;
 
             lblStatus.Text = "Saving..."; lblStatus.ForeColor = Color.Navy;
             new Thread(() =>
             {
-                try
+                string err = null;
+                try { Api.Request("/map-defaults", "PUT", mapBody); }
+                catch (Exception ex) { err = Api.Friendly(ex); }
+                try { Api.Request("/settings", "PUT", appBody); }
+                catch (Exception ex) { if (err == null) err = Api.Friendly(ex); }
+                BeginInvoke((Action)(() =>
                 {
-                    Api.Request("/map-defaults", "PUT", body);
-                    BeginInvoke((Action)(() => { lblStatus.Text = "Saved."; lblStatus.ForeColor = Color.Green; }));
-                }
-                catch (Exception ex)
-                {
-                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
-                }
+                    if (err == null) { lblStatus.Text = "Saved both map + app settings."; lblStatus.ForeColor = Color.Green; }
+                    else { lblStatus.Text = err; lblStatus.ForeColor = Color.Maroon; }
+                }));
             }) { IsBackground = true }.Start();
         }
 
@@ -2683,8 +3086,9 @@ namespace KsykAdmin
             Session.User = u;
 
             Text = "KSYK Maps Admin — " + Api.Str(u, "email");
-            Size = new Size(1150, 720);
-            MinimumSize = new Size(900, 600);
+            Size = new Size(1480, 900);
+            MinimumSize = new Size(1100, 700);
+            WindowState = FormWindowState.Maximized;
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = SystemColors.Control;
             Font = new Font("MS Sans Serif", 9F);
