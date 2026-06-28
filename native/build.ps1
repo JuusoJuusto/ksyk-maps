@@ -51,6 +51,7 @@ $cmd = @(
     "/reference:System.Drawing.dll",
     "/reference:System.Web.Extensions.dll",
     "/reference:System.Web.dll",
+    "/reference:System.Device.dll",
     "src\Admin.cs"
 )
 if ($iconArg) { $cmd = @($iconArg) + $cmd }

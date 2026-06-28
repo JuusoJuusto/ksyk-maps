@@ -902,188 +902,232 @@ namespace KsykAdmin
         }
     }
 
-    // ── Beacon Survey tab ──────────────────────────────────────────────
+    // ── Smart Beacon Survey tab ────────────────────────────────────────
     //
-    // Combines a native WiFi scan (`netsh wlan show networks mode=bssid`)
-    // with the per-room beacon survey storage at /api/beacons/:roomId/positions.
-    // The whole flow that used to need pasting between a phone tool and the
-    // web BeaconSurveyor is now one panel:
-    //   1. Pick a room from the left list
-    //   2. Pick a position label (NW corner, doorway, centre, ...)
-    //   3. Click Scan — every BSSID in range is listed
-    //   4. Click Save position — uploads to Firestore via the API
+    // The killer feature: pick a room, walk to a spot, hit Capture. The
+    // app does everything else — reads the high-precision GPS from the
+    // Windows Location API, runs `netsh wlan show networks mode=bssid` to
+    // grab every BSSID in range, uploads the reading and a dot appears on
+    // the campus map in real time. When the room has at least 4 captures
+    // that look like corners, the app auto-labels them NW/NE/SW/SE from
+    // the centroid + sign and draws the connecting outline. No manual
+    // corner picking. No paste-from-phone. Same Firestore the web admin
+    // and any phone client read.
 
     public class WifiPanel : UserControl
     {
         readonly ListView roomList = new ListView();
-        readonly ListView netList = new ListView();
-        readonly Label lblStatus = new Label();
         readonly TextBox txtSearch = new TextBox();
-        readonly ComboBox cmbPosition = new ComboBox();
-        readonly Button btnScan = new Button();
-        readonly Button btnSave = new Button();
-        readonly Button btnCopy = new Button();
         readonly Button btnRoomReload = new Button();
+        readonly Button btnCapture = new Button();
+        readonly Button btnDelete = new Button();
+        readonly Button btnAutoMode = new Button();
+        readonly Label lblStatus = new Label();
+        readonly Label lblGps = new Label();
+        readonly Label lblScan = new Label();
+        readonly Label lblRoomTitle = new Label();
+        readonly Label lblPositions = new Label();
+        readonly CampusMapView campusMap = new CampusMapView();
         readonly ListView positionsList = new ListView();
 
-        List<IDictionary<string, object>> rooms = new List<IDictionary<string, object>>();
-        List<string[]> scanRows = new List<string[]>();
-        IDictionary<string, object> selectedRoom;
+        // Background workers
+        System.Device.Location.GeoCoordinateWatcher gpsWatcher;
+        System.Windows.Forms.Timer autoTimer;
+        bool autoMode = false;
+        DateTime lastCapture = DateTime.MinValue;
 
-        static readonly string[] PositionLabels = new[]
-        {
-            "Corner NW", "Corner NE", "Corner SW", "Corner SE",
-            "Centre", "Doorway", "Window side", "Whiteboard", "Other",
-        };
+        // Current state
+        List<IDictionary<string, object>> rooms = new List<IDictionary<string, object>>();
+        List<object> buildings = new List<object>();
+        IDictionary<string, object> selectedRoom;
+        List<IDictionary<string, object>> positions = new List<IDictionary<string, object>>();
+
+        // Latest scan / GPS fix
+        List<string[]> lastScanRows = new List<string[]>();
+        double lastLat = 0, lastLng = 0, lastAccuracy = 0;
+        bool hasGps = false;
 
         public WifiPanel()
         {
             BackColor = SystemColors.Control;
             Dock = DockStyle.Fill;
 
-            // Toolbar
-            var tb = new Panel { Dock = DockStyle.Top, Height = 38, BackColor = SystemColors.Control };
-            tb.Controls.Add(new Label { Text = "Beacon survey — pick a room, scan, save.", Location = new Point(10, 12), AutoSize = true });
-            Controls.Add(tb);
-
-            // Status bar
+            // ── Status bar (bottom) ─────────────────────────────────
             lblStatus.Dock = DockStyle.Bottom;
             lblStatus.Height = 22;
             lblStatus.TextAlign = ContentAlignment.MiddleLeft;
             lblStatus.Padding = new Padding(8, 0, 0, 0);
             lblStatus.ForeColor = SystemColors.GrayText;
-            lblStatus.Text = "Idle.";
+            lblStatus.Text = "Idle. Start GPS to begin.";
             Controls.Add(lblStatus);
 
-            // Split: rooms (left) | scan (centre) | positions (right)
+            // ── Toolbar (top) ───────────────────────────────────────
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = SystemColors.Control };
+            tb.Controls.Add(new Label { Text = "Smart beacon survey — pick a room, walk + capture, the app figures out the rest.", Location = new Point(10, 11), AutoSize = true });
+            Controls.Add(tb);
+
+            // ── Main split: rooms | map+controls ────────────────────
             var split1 = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = 260,
+                SplitterDistance = 240,
                 FixedPanel = FixedPanel.Panel1,
             };
             Controls.Add(split1);
             split1.BringToFront();
 
-            // ── Rooms list (left) ───────────────────────────────────
-            var leftPanel = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
-            split1.Panel1.Controls.Add(leftPanel);
+            // ── Left: room picker ───────────────────────────────────
+            var left = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
+            split1.Panel1.Controls.Add(left);
 
-            var roomBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = SystemColors.Control };
-            roomBar.Controls.Add(new Label { Text = "Room:", Location = new Point(0, 6), AutoSize = true });
-            txtSearch.Location = new Point(48, 4);
-            txtSearch.Size = new Size(160, 22);
+            var leftBar = new Panel { Dock = DockStyle.Top, Height = 30 };
+            leftBar.Controls.Add(new Label { Text = "Room:", Location = new Point(0, 6), AutoSize = true });
+            txtSearch.Location = new Point(46, 4);
+            txtSearch.Size = new Size(140, 22);
             txtSearch.TextChanged += (s, e) => RenderRoomList();
-            roomBar.Controls.Add(txtSearch);
+            leftBar.Controls.Add(txtSearch);
             btnRoomReload.Text = "↻";
             btnRoomReload.Size = new Size(26, 22);
-            btnRoomReload.Location = new Point(212, 3);
-            btnRoomReload.Click += (s, e) => LoadRooms();
-            roomBar.Controls.Add(btnRoomReload);
-            leftPanel.Controls.Add(roomBar);
-            roomBar.BringToFront();
+            btnRoomReload.Location = new Point(190, 3);
+            btnRoomReload.Click += (s, e) => LoadAll();
+            leftBar.Controls.Add(btnRoomReload);
+            left.Controls.Add(leftBar);
+            leftBar.BringToFront();
 
             roomList.View = View.Details;
             roomList.FullRowSelect = true;
-            roomList.GridLines = true;
             roomList.HideSelection = false;
             roomList.MultiSelect = false;
+            roomList.GridLines = true;
             roomList.Dock = DockStyle.Fill;
-            roomList.Columns.Add("Number", 60);
-            roomList.Columns.Add("Name", 130);
-            roomList.Columns.Add("F", 30);
+            roomList.Columns.Add("#", 50);
+            roomList.Columns.Add("Name", 110);
+            roomList.Columns.Add("F", 25);
+            roomList.Columns.Add("●", 25);
             roomList.SelectedIndexChanged += (s, e) => OnRoomPicked();
-            leftPanel.Controls.Add(roomList);
+            left.Controls.Add(roomList);
             roomList.BringToFront();
 
-            // ── Scan + positions (right of room list) ──────────────
+            // ── Right side: top map / bottom controls ────────────────
             var split2 = new SplitContainer
             {
                 Dock = DockStyle.Fill,
-                Orientation = Orientation.Vertical,
-                SplitterDistance = 460,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 380,
             };
             split1.Panel2.Controls.Add(split2);
 
-            // Middle column: scan controls + results
-            var mid = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
-            split2.Panel1.Controls.Add(mid);
+            // ── Top right: campus map ───────────────────────────────
+            campusMap.Dock = DockStyle.Fill;
+            split2.Panel1.Controls.Add(campusMap);
 
-            var midBar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
-            midBar.Controls.Add(new Label { Text = "Position:", Location = new Point(0, 8), AutoSize = true });
-            cmbPosition.Location = new Point(60, 5);
-            cmbPosition.Size = new Size(140, 22);
-            cmbPosition.DropDownStyle = ComboBoxStyle.DropDownList;
-            foreach (var l in PositionLabels) cmbPosition.Items.Add(l);
-            cmbPosition.SelectedIndex = 0;
-            midBar.Controls.Add(cmbPosition);
-            btnScan.Text = "Scan WiFi";
-            btnScan.Size = new Size(80, 24);
-            btnScan.Location = new Point(210, 4);
-            btnScan.Click += (s, e) => Scan();
-            midBar.Controls.Add(btnScan);
-            btnSave.Text = "Save position";
-            btnSave.Size = new Size(95, 24);
-            btnSave.Location = new Point(296, 4);
-            btnSave.Click += (s, e) => SavePosition();
-            midBar.Controls.Add(btnSave);
-            btnCopy.Text = "Copy";
-            btnCopy.Size = new Size(50, 24);
-            btnCopy.Location = new Point(397, 4);
-            btnCopy.Click += (s, e) => CopyToClipboard();
-            midBar.Controls.Add(btnCopy);
-            mid.Controls.Add(midBar);
-            midBar.BringToFront();
+            // ── Bottom right: control bar + positions list ──────────
+            var bottomPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(6) };
+            split2.Panel2.Controls.Add(bottomPanel);
 
-            netList.View = View.Details;
-            netList.FullRowSelect = true;
-            netList.GridLines = true;
-            netList.Dock = DockStyle.Fill;
-            netList.Columns.Add("SSID", 200);
-            netList.Columns.Add("BSSID", 160);
-            netList.Columns.Add("RSSI", 80);
-            netList.Columns.Add("Signal", 80);
-            mid.Controls.Add(netList);
-            netList.BringToFront();
+            var ctrlBar = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.FromArgb(247, 249, 253) };
+            ctrlBar.BorderStyle = BorderStyle.FixedSingle;
+            bottomPanel.Controls.Add(ctrlBar);
+            ctrlBar.BringToFront();
 
-            // Right column: existing survey positions for the picked room
-            var right = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
-            split2.Panel2.Controls.Add(right);
+            lblRoomTitle.Location = new Point(10, 8);
+            lblRoomTitle.AutoSize = true;
+            lblRoomTitle.Font = new Font("MS Sans Serif", 10F, FontStyle.Bold);
+            lblRoomTitle.ForeColor = Color.FromArgb(15, 35, 80);
+            lblRoomTitle.Text = "No room selected";
+            ctrlBar.Controls.Add(lblRoomTitle);
 
-            var posBar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
-            posBar.Controls.Add(new Label { Text = "Saved positions:", Location = new Point(0, 8), AutoSize = true });
-            var btnDel = new Button { Text = "Delete", Size = new Size(60, 24), Location = new Point(140, 4) };
-            btnDel.Click += (s, e) => DeleteSelectedPosition();
-            posBar.Controls.Add(btnDel);
-            right.Controls.Add(posBar);
-            posBar.BringToFront();
+            lblGps.Location = new Point(10, 32);
+            lblGps.AutoSize = true;
+            lblGps.ForeColor = Color.FromArgb(100, 110, 130);
+            lblGps.Text = "GPS: not started";
+            ctrlBar.Controls.Add(lblGps);
+
+            lblScan.Location = new Point(10, 52);
+            lblScan.AutoSize = true;
+            lblScan.ForeColor = Color.FromArgb(100, 110, 130);
+            lblScan.Text = "Last scan: —";
+            ctrlBar.Controls.Add(lblScan);
+
+            btnCapture.Text = "⦿ Capture position";
+            btnCapture.Size = new Size(160, 32);
+            btnCapture.Location = new Point(380, 8);
+            btnCapture.BackColor = Color.FromArgb(37, 99, 235);
+            btnCapture.ForeColor = Color.White;
+            btnCapture.FlatStyle = FlatStyle.Flat;
+            btnCapture.FlatAppearance.BorderSize = 0;
+            btnCapture.Font = new Font("MS Sans Serif", 10F, FontStyle.Bold);
+            btnCapture.Click += (s, e) => CapturePosition();
+            ctrlBar.Controls.Add(btnCapture);
+
+            btnAutoMode.Text = "Auto-capture: OFF";
+            btnAutoMode.Size = new Size(160, 28);
+            btnAutoMode.Location = new Point(380, 46);
+            btnAutoMode.Click += (s, e) => ToggleAutoMode();
+            ctrlBar.Controls.Add(btnAutoMode);
+
+            btnDelete.Text = "Delete pos";
+            btnDelete.Size = new Size(100, 26);
+            btnDelete.Location = new Point(550, 8);
+            btnDelete.Click += (s, e) => DeleteSelectedPosition();
+            ctrlBar.Controls.Add(btnDelete);
+
+            var btnStartGps = new Button
+            {
+                Text = "Start GPS",
+                Size = new Size(100, 26),
+                Location = new Point(550, 38),
+            };
+            btnStartGps.Click += (s, e) => StartGps();
+            ctrlBar.Controls.Add(btnStartGps);
+
+            lblPositions.Text = "Saved positions:";
+            lblPositions.Location = new Point(10, 105);
+            lblPositions.AutoSize = true;
+            lblPositions.Font = new Font("MS Sans Serif", 9F, FontStyle.Bold);
+            bottomPanel.Controls.Add(lblPositions);
+            lblPositions.BringToFront();
 
             positionsList.View = View.Details;
             positionsList.FullRowSelect = true;
             positionsList.GridLines = true;
-            positionsList.Dock = DockStyle.Fill;
-            positionsList.Columns.Add("Position", 110);
+            positionsList.Dock = DockStyle.Bottom;
+            positionsList.Height = 180;
+            positionsList.Columns.Add("Label", 110);
+            positionsList.Columns.Add("Auto-corner", 90);
             positionsList.Columns.Add("Readings", 70);
-            positionsList.Columns.Add("Captured", 110);
-            right.Controls.Add(positionsList);
+            positionsList.Columns.Add("GPS", 180);
+            positionsList.Columns.Add("Captured", 130);
+            bottomPanel.Controls.Add(positionsList);
             positionsList.BringToFront();
 
-            LoadRooms();
+            LoadAll();
         }
 
-        void LoadRooms()
+        // ── Data loading ──────────────────────────────────────────────
+
+        void LoadAll()
         {
-            lblStatus.Text = "Loading rooms..."; lblStatus.ForeColor = Color.Navy;
+            lblStatus.Text = "Loading rooms + buildings...";
             new Thread(() =>
             {
                 try
                 {
-                    var data = Api.Request("/rooms") as object[];
-                    rooms = new List<IDictionary<string, object>>();
-                    if (data != null) foreach (var r in data) rooms.Add(r as IDictionary<string, object>);
-                    Session.CachedRooms = data == null ? new List<object>() : new List<object>(data);
-                    BeginInvoke((Action)(() => { RenderRoomList(); lblStatus.Text = rooms.Count + " rooms"; lblStatus.ForeColor = SystemColors.GrayText; }));
+                    var rd = Api.Request("/rooms") as object[];
+                    var bd = Api.Request("/buildings") as object[];
+                    var rs = new List<IDictionary<string, object>>();
+                    if (rd != null) foreach (var r in rd) rs.Add(r as IDictionary<string, object>);
+                    var bs = new List<object>();
+                    if (bd != null) bs.AddRange(bd);
+                    BeginInvoke((Action)(() =>
+                    {
+                        rooms = rs;
+                        buildings = bs;
+                        campusMap.SetBuildings(bs);
+                        RenderRoomList();
+                        lblStatus.Text = string.Format("{0} rooms, {1} buildings loaded.", rs.Count, bs.Count);
+                    }));
                 }
                 catch (Exception ex)
                 {
@@ -1111,11 +1155,13 @@ namespace KsykAdmin
             filtered.Sort((a, b) => string.Compare(Api.Str(a, "roomNumber"), Api.Str(b, "roomNumber"), StringComparison.Ordinal));
             foreach (var r in filtered)
             {
+                var dotMark = ""; // could indicate how many positions saved
                 var item = new ListViewItem(new[]
                 {
                     Api.Str(r, "roomNumber"),
                     Api.Str(r, "name"),
                     Api.Int(r, "floor").ToString(),
+                    dotMark,
                 });
                 item.Tag = Api.Str(r, "id");
                 roomList.Items.Add(item);
@@ -1128,6 +1174,9 @@ namespace KsykAdmin
             if (roomList.SelectedItems.Count == 0) return;
             var id = roomList.SelectedItems[0].Tag as string;
             selectedRoom = rooms.Find(r => Api.Str(r, "id") == id);
+            if (selectedRoom == null) return;
+            lblRoomTitle.Text = "Room " + Api.Str(selectedRoom, "roomNumber") + "  ·  " + Api.Str(selectedRoom, "name");
+            campusMap.SetRoom(selectedRoom);
             LoadPositions(id);
         }
 
@@ -1138,78 +1187,149 @@ namespace KsykAdmin
                 try
                 {
                     var data = Api.RequestOrNull("/beacons/" + roomId + "/positions") as object[];
-                    BeginInvoke((Action)(() =>
-                    {
-                        positionsList.BeginUpdate();
-                        positionsList.Items.Clear();
-                        if (data != null) foreach (var d in data)
-                        {
-                            var dd = d as IDictionary<string, object>;
-                            var captured = Api.Str(dd, "capturedAt");
-                            if (captured.Length > 19) captured = captured.Substring(0, 19).Replace("T", " ");
-                            var readingsArr = dd != null && dd.ContainsKey("readings") ? dd["readings"] as object[] : null;
-                            var item = new ListViewItem(new[]
-                            {
-                                Api.Str(dd, "positionLabel"),
-                                (readingsArr != null ? readingsArr.Length : 0).ToString(),
-                                captured,
-                            });
-                            item.Tag = Api.Str(dd, "id");
-                            positionsList.Items.Add(item);
-                        }
-                        positionsList.EndUpdate();
-                    }));
+                    var list = new List<IDictionary<string, object>>();
+                    if (data != null) foreach (var d in data) list.Add(d as IDictionary<string, object>);
+                    BeginInvoke((Action)(() => { positions = list; RenderPositions(); campusMap.SetPositions(list); }));
                 }
-                catch { /* no-op — endpoint may be missing */ }
+                catch { /* swallow */ }
             }) { IsBackground = true }.Start();
         }
 
-        void Scan()
+        void RenderPositions()
         {
-            lblStatus.Text = "Scanning all access points..."; lblStatus.ForeColor = Color.Navy;
-            btnScan.Enabled = false;
-
-            new Thread(() =>
+            // Auto-compute corner labels for positions tagged "Corner" or "Auto".
+            var corners = new List<IDictionary<string, object>>();
+            foreach (var p in positions)
             {
-                try
+                if (!p.ContainsKey("lat") || p["lat"] == null) continue;
+                var label = Api.Str(p, "positionLabel").ToLower();
+                if (label.StartsWith("corner") || label.StartsWith("auto")) corners.Add(p);
+            }
+            var labels = new Dictionary<string, string>();
+            if (corners.Count >= 4)
+            {
+                double cLat = 0, cLng = 0;
+                foreach (var c in corners) { cLat += Api.Get<double>(c, "lat", 0); cLng += Api.Get<double>(c, "lng", 0); }
+                cLat /= corners.Count; cLng /= corners.Count;
+                foreach (var c in corners)
                 {
-                    // Ask Windows to refresh the scan list first; otherwise
-                    // netsh returns stale results that may have missed APs.
-                    try
-                    {
-                        var refreshPsi = new ProcessStartInfo("netsh", "wlan disconnect")
-                        {
-                            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true,
-                        };
-                        // skip — disconnecting is rude. Just do the scan.
-                    } catch { }
+                    var lat = Api.Get<double>(c, "lat", 0);
+                    var lng = Api.Get<double>(c, "lng", 0);
+                    var north = lat > cLat;
+                    var east = lng > cLng;
+                    var lab = north ? (east ? "NE" : "NW") : (east ? "SE" : "SW");
+                    labels[Api.Str(c, "id")] = lab;
+                }
+            }
+            campusMap.SetCornerLabels(labels);
 
-                    var psi = new ProcessStartInfo("netsh", "wlan show networks mode=bssid")
-                    {
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.UTF8,
-                    };
-                    var p = Process.Start(psi);
-                    var output = p.StandardOutput.ReadToEnd();
-                    p.WaitForExit(15000);
-                    var parsed = Parse(output);
-                    BeginInvoke((Action)(() => { Render(parsed); btnScan.Enabled = true; }));
-                }
-                catch (Exception ex)
+            positionsList.BeginUpdate();
+            positionsList.Items.Clear();
+            foreach (var p in positions)
+            {
+                var captured = Api.Str(p, "capturedAt");
+                if (captured.Length > 19) captured = captured.Substring(0, 19).Replace("T", " ");
+                var readingsArr = p.ContainsKey("readings") ? p["readings"] as object[] : null;
+                var lat = Api.Get<double>(p, "lat", 0);
+                var lng = Api.Get<double>(p, "lng", 0);
+                var gpsTxt = lat != 0 ? string.Format("{0:F6}, {1:F6}", lat, lng) : "—";
+                var corner = "";
+                var pid = Api.Str(p, "id");
+                if (labels.ContainsKey(pid)) corner = labels[pid];
+                var item = new ListViewItem(new[]
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; btnScan.Enabled = true; }));
-                }
-            }) { IsBackground = true }.Start();
+                    Api.Str(p, "positionLabel"), corner,
+                    (readingsArr != null ? readingsArr.Length : 0).ToString(),
+                    gpsTxt, captured,
+                });
+                item.Tag = pid;
+                positionsList.Items.Add(item);
+            }
+            positionsList.EndUpdate();
+            lblPositions.Text = string.Format("Saved positions ({0}{1}):",
+                positions.Count,
+                corners.Count >= 4 ? " · corners auto-labelled" : "");
         }
 
-        List<string[]> Parse(string text)
+        // ── GPS ──────────────────────────────────────────────────────
+
+        void StartGps()
+        {
+            try
+            {
+                if (gpsWatcher == null)
+                {
+                    gpsWatcher = new System.Device.Location.GeoCoordinateWatcher(System.Device.Location.GeoPositionAccuracy.High);
+                    gpsWatcher.PositionChanged += OnGpsChanged;
+                    gpsWatcher.StatusChanged += OnGpsStatusChanged;
+                    gpsWatcher.MovementThreshold = 1.0;  // metres
+                    gpsWatcher.Start();
+                    lblGps.Text = "GPS: starting...";
+                }
+                else
+                {
+                    gpsWatcher.Start();
+                    lblGps.Text = "GPS: restarted.";
+                }
+            }
+            catch (Exception ex)
+            {
+                lblGps.Text = "GPS error: " + ex.Message;
+                lblGps.ForeColor = Color.Maroon;
+            }
+        }
+
+        void OnGpsStatusChanged(object sender, System.Device.Location.GeoPositionStatusChangedEventArgs e)
+        {
+            BeginInvoke((Action)(() =>
+            {
+                switch (e.Status)
+                {
+                    case System.Device.Location.GeoPositionStatus.Ready:        lblGps.Text = "GPS: ready, waiting for fix..."; break;
+                    case System.Device.Location.GeoPositionStatus.NoData:       lblGps.Text = "GPS: no data (turn on Location in Settings)"; break;
+                    case System.Device.Location.GeoPositionStatus.Disabled:     lblGps.Text = "GPS: disabled (turn on Location Services)"; break;
+                    case System.Device.Location.GeoPositionStatus.Initializing: lblGps.Text = "GPS: initialising..."; break;
+                }
+            }));
+        }
+
+        void OnGpsChanged(object sender, System.Device.Location.GeoPositionChangedEventArgs<System.Device.Location.GeoCoordinate> e)
+        {
+            if (e.Position.Location.IsUnknown) return;
+            lastLat = e.Position.Location.Latitude;
+            lastLng = e.Position.Location.Longitude;
+            lastAccuracy = e.Position.Location.HorizontalAccuracy;
+            hasGps = true;
+            BeginInvoke((Action)(() =>
+            {
+                lblGps.Text = string.Format("GPS: {0:F6}, {1:F6}  ±{2:F1}m", lastLat, lastLng, lastAccuracy);
+                lblGps.ForeColor = lastAccuracy < 20 ? Color.Green : (lastAccuracy < 50 ? Color.DarkGoldenrod : Color.Maroon);
+                campusMap.SetMyLocation(lastLat, lastLng, lastAccuracy);
+            }));
+        }
+
+        // ── WiFi scan ─────────────────────────────────────────────────
+
+        List<string[]> ScanWifiSync()
+        {
+            var psi = new ProcessStartInfo("netsh", "wlan show networks mode=bssid")
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+            };
+            var p = Process.Start(psi);
+            var output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(15000);
+            return ParseNetsh(output);
+        }
+
+        List<string[]> ParseNetsh(string text)
         {
             var nets = new List<string[]>();
             string ssid = "", bssid = "";
             int signal = 0;
-
             Action flush = () =>
             {
                 if (bssid.Length > 0)
@@ -1219,7 +1339,6 @@ namespace KsykAdmin
                 }
                 bssid = ""; signal = 0;
             };
-
             foreach (var rawLine in text.Split('\n'))
             {
                 var line = rawLine.Trim();
@@ -1235,68 +1354,102 @@ namespace KsykAdmin
             return nets;
         }
 
-        void Render(List<string[]> nets)
-        {
-            scanRows = nets;
-            netList.BeginUpdate();
-            netList.Items.Clear();
-            foreach (var r in nets)
-            {
-                var lvi = new ListViewItem(new[]
-                {
-                    r[0].Length > 0 ? r[0] : "(hidden)", r[1], r[2] + " dBm", r[3] + "%"
-                });
-                netList.Items.Add(lvi);
-            }
-            netList.EndUpdate();
-            lblStatus.Text = "Found " + nets.Count + " BSSID(s). " +
-                (selectedRoom == null ? "Pick a room first, then Save position." : "Click Save position to upload.");
-            lblStatus.ForeColor = nets.Count > 0 ? Color.Green : Color.Maroon;
-        }
+        // ── Capture flow ─────────────────────────────────────────────
 
-        void SavePosition()
+        void CapturePosition()
         {
-            if (selectedRoom == null) { MessageBox.Show("Pick a room first.", "Save position"); return; }
-            if (scanRows.Count == 0)  { MessageBox.Show("Scan WiFi first.", "Save position"); return; }
+            if (selectedRoom == null) { MessageBox.Show("Pick a room first.", "Capture"); return; }
+            if (!hasGps) { MessageBox.Show("Start GPS first and wait for a fix.", "Capture"); return; }
 
-            var readings = new List<object>();
-            foreach (var r in scanRows)
-            {
-                readings.Add(new Dictionary<string, object>
-                {
-                    { "bssid", r[1] },
-                    { "rssi", int.Parse(r[2]) },
-                    { "ssid", r[0] },
-                });
-            }
-            var body = new Dictionary<string, object>
-            {
-                { "positionLabel", cmbPosition.SelectedItem.ToString() },
-                { "capturedAt", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
-                { "readings", readings },
-            };
+            btnCapture.Enabled = false;
+            lblStatus.Text = "Scanning WiFi...";
+            lblStatus.ForeColor = Color.Navy;
+
+            // Snapshot GPS at the moment the user presses Capture so the
+            // reading travels with the right fix even if GPS moves.
+            var lat = lastLat;
+            var lng = lastLng;
+            var acc = lastAccuracy;
             var roomId = Api.Str(selectedRoom, "id");
-            lblStatus.Text = "Saving position..."; lblStatus.ForeColor = Color.Navy;
-            btnSave.Enabled = false;
 
             new Thread(() =>
             {
+                List<string[]> scan = null;
+                try { scan = ScanWifiSync(); } catch { scan = new List<string[]>(); }
+                lastScanRows = scan;
+
+                var readings = new List<object>();
+                foreach (var r in scan)
+                {
+                    readings.Add(new Dictionary<string, object>
+                    {
+                        { "bssid", r[1] }, { "rssi", int.Parse(r[2]) }, { "ssid", r[0] },
+                    });
+                }
+
+                // Position label: "Auto" + sequence number. The corner label
+                // is computed client-side after the read-back.
+                var nextIdx = positions.Count + 1;
+                var body = new Dictionary<string, object>
+                {
+                    { "positionLabel", "Auto " + nextIdx },
+                    { "capturedAt", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                    { "readings", readings },
+                    { "lat", lat }, { "lng", lng }, { "accuracyM", acc },
+                };
+
                 try
                 {
                     Api.Request("/beacons/" + roomId + "/positions", "POST", body);
                     BeginInvoke((Action)(() =>
                     {
-                        lblStatus.Text = "Position saved.";
+                        lblStatus.Text = string.Format("Captured: {0} BSSIDs, GPS ±{1:F1}m", scan.Count, acc);
                         lblStatus.ForeColor = Color.Green;
-                        btnSave.Enabled = true;
+                        lblScan.Text = string.Format("Last scan: {0} BSSID(s)", scan.Count);
+                        btnCapture.Enabled = true;
+                        lastCapture = DateTime.Now;
                         LoadPositions(roomId);
                     }));
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; btnSave.Enabled = true; }));
+                    BeginInvoke((Action)(() =>
+                    {
+                        lblStatus.Text = Api.Friendly(ex);
+                        lblStatus.ForeColor = Color.Maroon;
+                        btnCapture.Enabled = true;
+                    }));
                 }
             }) { IsBackground = true }.Start();
+        }
+
+        void ToggleAutoMode()
+        {
+            autoMode = !autoMode;
+            btnAutoMode.Text = autoMode ? "Auto-capture: ON" : "Auto-capture: OFF";
+            btnAutoMode.BackColor = autoMode ? Color.FromArgb(34, 197, 94) : SystemColors.Control;
+            btnAutoMode.ForeColor = autoMode ? Color.White : SystemColors.ControlText;
+
+            if (autoMode && autoTimer == null)
+            {
+                autoTimer = new System.Windows.Forms.Timer();
+                autoTimer.Interval = 6000;  // every 6 seconds while moving
+                autoTimer.Tick += (s, e) =>
+                {
+                    // Capture only if we've moved at least ~3 m since last
+                    // capture (the watcher's MovementThreshold guarantees a
+                    // PositionChanged was raised since then) — avoid duplicates.
+                    if (selectedRoom == null || !hasGps) return;
+                    if ((DateTime.Now - lastCapture).TotalSeconds < 5) return;
+                    CapturePosition();
+                };
+                autoTimer.Start();
+            }
+            else if (!autoMode && autoTimer != null)
+            {
+                autoTimer.Stop();
+                autoTimer = null;
+            }
         }
 
         void DeleteSelectedPosition()
@@ -1304,8 +1457,6 @@ namespace KsykAdmin
             if (positionsList.SelectedItems.Count == 0 || selectedRoom == null) return;
             var posId = positionsList.SelectedItems[0].Tag as string;
             var roomId = Api.Str(selectedRoom, "id");
-            if (MessageBox.Show("Delete this saved position?", "Confirm",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
             new Thread(() =>
             {
                 try
@@ -1315,20 +1466,226 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete position")));
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete")));
                 }
             }) { IsBackground = true }.Start();
         }
+    }
 
-        void CopyToClipboard()
+    // ── Campus map view ────────────────────────────────────────────────
+    //
+    // Draws building outlines, captured positions (as coloured dots) and
+    // the user's own GPS fix. All in pure GDI+ — no third-party plotting
+    // lib. The view auto-scales to fit the loaded building polygons.
+    // When 4+ positions look like room corners the app connects them so
+    // the surveyor sees the room outline take shape as they walk.
+
+    public class CampusMapView : Panel
+    {
+        List<object> buildings = new List<object>();
+        List<IDictionary<string, object>> positions = new List<IDictionary<string, object>>();
+        Dictionary<string, string> cornerLabels = new Dictionary<string, string>();
+        IDictionary<string, object> activeRoom;
+        double myLat = 0, myLng = 0, myAccuracyM = 0;
+        bool haveMyLoc = false;
+
+        double minLat = 60.18, maxLat = 60.19, minLng = 25.04, maxLng = 25.06; // sane KSYK defaults
+        bool boundsComputed = false;
+
+        public CampusMapView()
         {
-            if (scanRows.Count == 0) return;
-            var sb = new StringBuilder();
-            foreach (var r in scanRows)
-                sb.AppendLine(r[1] + " " + r[2] + " " + r[0]);
-            Clipboard.SetText(sb.ToString());
-            lblStatus.Text = "Copied " + scanRows.Count + " line(s) to clipboard.";
-            lblStatus.ForeColor = Color.Green;
+            DoubleBuffered = true;
+            BackColor = Color.FromArgb(245, 246, 249);
+            BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        public void SetBuildings(List<object> bs)
+        {
+            buildings = bs ?? new List<object>();
+            ComputeBounds();
+            Invalidate();
+        }
+
+        public void SetRoom(IDictionary<string, object> r)
+        {
+            activeRoom = r;
+            Invalidate();
+        }
+
+        public void SetPositions(List<IDictionary<string, object>> p)
+        {
+            positions = p ?? new List<IDictionary<string, object>>();
+            ComputeBounds();
+            Invalidate();
+        }
+
+        public void SetCornerLabels(Dictionary<string, string> l)
+        {
+            cornerLabels = l ?? new Dictionary<string, string>();
+            Invalidate();
+        }
+
+        public void SetMyLocation(double lat, double lng, double accuracyM)
+        {
+            myLat = lat; myLng = lng; myAccuracyM = accuracyM;
+            haveMyLoc = true;
+            ComputeBounds();
+            Invalidate();
+        }
+
+        void ComputeBounds()
+        {
+            // Union all sources of coordinates so the auto-fit shows them all.
+            var lats = new List<double>();
+            var lngs = new List<double>();
+            // From positions
+            foreach (var p in positions)
+            {
+                var lat = Api.Get<double>(p, "lat", 0);
+                var lng = Api.Get<double>(p, "lng", 0);
+                if (lat != 0 && lng != 0) { lats.Add(lat); lngs.Add(lng); }
+            }
+            // From my GPS
+            if (haveMyLoc) { lats.Add(myLat); lngs.Add(myLng); }
+            // From buildings (lat/lng centroid if available)
+            foreach (var b in buildings)
+            {
+                var d = b as IDictionary<string, object>;
+                var lat = Api.Get<double>(d, "centerLat", 0);
+                var lng = Api.Get<double>(d, "centerLng", 0);
+                if (lat != 0) { lats.Add(lat); lngs.Add(lng); }
+            }
+            if (lats.Count >= 2)
+            {
+                lats.Sort(); lngs.Sort();
+                minLat = lats[0]; maxLat = lats[lats.Count - 1];
+                minLng = lngs[0]; maxLng = lngs[lngs.Count - 1];
+                // Add a little padding so points aren't at the edge
+                var latSpan = Math.Max(0.00005, maxLat - minLat);
+                var lngSpan = Math.Max(0.00005, maxLng - minLng);
+                minLat -= latSpan * 0.25; maxLat += latSpan * 0.25;
+                minLng -= lngSpan * 0.25; maxLng += lngSpan * 0.25;
+                boundsComputed = true;
+            }
+        }
+
+        Point Project(double lat, double lng)
+        {
+            var w = ClientSize.Width - 20;
+            var h = ClientSize.Height - 20;
+            var x = 10 + (int)((lng - minLng) / Math.Max(0.0000001, maxLng - minLng) * w);
+            // Flip Y so north is up
+            var y = 10 + (int)((maxLat - lat) / Math.Max(0.0000001, maxLat - minLat) * h);
+            return new Point(x, y);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            // Header strip
+            g.FillRectangle(Brushes.White, 0, 0, ClientSize.Width, 24);
+            using (var f = new Font("MS Sans Serif", 8.5F, FontStyle.Bold))
+                g.DrawString("Campus map · live", f, Brushes.DimGray, 8, 4);
+            if (activeRoom != null)
+            {
+                using (var f = new Font("MS Sans Serif", 8.5F))
+                    g.DrawString("Room " + Api.Str(activeRoom, "roomNumber"), f, Brushes.SteelBlue, ClientSize.Width - 100, 4);
+            }
+            g.DrawLine(Pens.LightGray, 0, 24, ClientSize.Width, 24);
+
+            if (!boundsComputed)
+            {
+                using (var f = new Font("MS Sans Serif", 9F))
+                {
+                    var s = "Start GPS or save a position to populate the map.";
+                    var sz = g.MeasureString(s, f);
+                    g.DrawString(s, f, Brushes.Gray,
+                        (ClientSize.Width - sz.Width) / 2,
+                        (ClientSize.Height - sz.Height) / 2);
+                }
+                return;
+            }
+
+            // Building dots (centroids only since we don't have polygon coords here)
+            foreach (var b in buildings)
+            {
+                var d = b as IDictionary<string, object>;
+                var lat = Api.Get<double>(d, "centerLat", 0);
+                var lng = Api.Get<double>(d, "centerLng", 0);
+                if (lat == 0) continue;
+                var p = Project(lat, lng);
+                using (var br = new SolidBrush(Color.FromArgb(60, 100, 116, 139)))
+                    g.FillEllipse(br, p.X - 10, p.Y - 10, 20, 20);
+                using (var br = new SolidBrush(Color.FromArgb(30, 41, 59)))
+                using (var f = new Font("MS Sans Serif", 8F, FontStyle.Bold))
+                    g.DrawString(Api.Str(d, "name"), f, br, p.X + 8, p.Y - 6);
+            }
+
+            // Corners polygon — connect labelled corners NW→NE→SE→SW→NW
+            var corners = new Dictionary<string, Point>();
+            foreach (var p in positions)
+            {
+                var pid = Api.Str(p, "id");
+                if (!cornerLabels.ContainsKey(pid)) continue;
+                var lat = Api.Get<double>(p, "lat", 0);
+                var lng = Api.Get<double>(p, "lng", 0);
+                if (lat == 0) continue;
+                corners[cornerLabels[pid]] = Project(lat, lng);
+            }
+            if (corners.Count >= 4 && corners.ContainsKey("NW") && corners.ContainsKey("NE")
+                && corners.ContainsKey("SE") && corners.ContainsKey("SW"))
+            {
+                var path = new Point[] { corners["NW"], corners["NE"], corners["SE"], corners["SW"], corners["NW"] };
+                using (var pen = new Pen(Color.FromArgb(180, 37, 99, 235), 2.5f))
+                    g.DrawLines(pen, path);
+                using (var br = new SolidBrush(Color.FromArgb(35, 37, 99, 235)))
+                    g.FillPolygon(br, new Point[] { corners["NW"], corners["NE"], corners["SE"], corners["SW"] });
+            }
+
+            // Captured positions
+            foreach (var p in positions)
+            {
+                var lat = Api.Get<double>(p, "lat", 0);
+                var lng = Api.Get<double>(p, "lng", 0);
+                if (lat == 0) continue;
+                var pt = Project(lat, lng);
+                var pid = Api.Str(p, "id");
+                var isCorner = cornerLabels.ContainsKey(pid);
+                var color = isCorner ? Color.FromArgb(37, 99, 235) : Color.FromArgb(168, 85, 247);
+                using (var br = new SolidBrush(color))
+                    g.FillEllipse(br, pt.X - 5, pt.Y - 5, 10, 10);
+                g.DrawEllipse(Pens.White, pt.X - 5, pt.Y - 5, 10, 10);
+                if (isCorner)
+                {
+                    using (var f = new Font("MS Sans Serif", 7.5F, FontStyle.Bold))
+                    using (var br = new SolidBrush(Color.FromArgb(15, 35, 80)))
+                        g.DrawString(cornerLabels[pid], f, br, pt.X + 7, pt.Y - 6);
+                }
+            }
+
+            // My GPS — pulsing blue dot with accuracy ring
+            if (haveMyLoc)
+            {
+                var pt = Project(myLat, myLng);
+                // Accuracy ring (rough — convert metres to pixels using current bounds)
+                var degPerM = 1 / 111320.0;
+                var accDeg = myAccuracyM * degPerM;
+                var ringR = (int)(accDeg / Math.Max(0.0000001, maxLat - minLat) * (ClientSize.Height - 20));
+                ringR = Math.Min(ringR, 80);
+                if (ringR > 4)
+                {
+                    using (var br = new SolidBrush(Color.FromArgb(30, 59, 130, 246)))
+                        g.FillEllipse(br, pt.X - ringR, pt.Y - ringR, ringR * 2, ringR * 2);
+                    using (var pen = new Pen(Color.FromArgb(180, 59, 130, 246), 1f))
+                        g.DrawEllipse(pen, pt.X - ringR, pt.Y - ringR, ringR * 2, ringR * 2);
+                }
+                using (var br = new SolidBrush(Color.FromArgb(59, 130, 246)))
+                    g.FillEllipse(br, pt.X - 7, pt.Y - 7, 14, 14);
+                g.DrawEllipse(new Pen(Color.White, 2), pt.X - 7, pt.Y - 7, 14, 14);
+            }
         }
     }
 
