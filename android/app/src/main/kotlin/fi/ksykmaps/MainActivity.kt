@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Megaphone
-import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,7 +59,7 @@ private fun AppShell() {
     val tabs = listOf(
         Triple("rooms",         "Rooms",        Icons.Outlined.AccountCircle),
         Triple("beacons",       "Beacons",      Icons.Outlined.Wifi),
-        Triple("announcements", "Announcements", Icons.Outlined.Megaphone),
+        Triple("announcements", "Announcements", Icons.Outlined.Campaign),
         Triple("account",       "Account",      Icons.Outlined.AccountCircle),
     )
 

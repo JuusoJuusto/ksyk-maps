@@ -2700,8 +2700,12 @@ namespace KsykAdmin
             bReload.Click += (s, e) => Load(); tb.Controls.Add(bReload);
             var bNew = new Button { Text = "Create", Location = new Point(190, 6), Size = new Size(75, 24) };
             bNew.Click += (s, e) => CreateNew(); tb.Controls.Add(bNew);
-            var bDel = new Button { Text = "Delete", Location = new Point(270, 6), Size = new Size(75, 24) };
+            var bEdit = new Button { Text = "Edit", Location = new Point(270, 6), Size = new Size(75, 24) };
+            bEdit.Click += (s, e) => EditSelected(); tb.Controls.Add(bEdit);
+            var bDel = new Button { Text = "Delete", Location = new Point(350, 6), Size = new Size(75, 24) };
             bDel.Click += (s, e) => DeleteSelected(); tb.Controls.Add(bDel);
+            // Double-click on a row also opens edit
+            list.DoubleClick += (s, e) => EditSelected();
             Controls.Add(tb);
 
             lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
@@ -2756,23 +2760,38 @@ namespace KsykAdmin
 
         void CreateNew()
         {
-            var title = InputBox.Show("Title:", "New announcement", "");
-            if (string.IsNullOrEmpty(title)) return;
-            var content = InputBox.Show("Content:", "New announcement", "");
-            if (content == null) return;
-            var type = InputBox.Show("Type (info, warning, urgent):", "New announcement", "info");
-            new Thread(() =>
+            using (var f = new AnnouncementEditor(null))
             {
-                try
+                if (f.ShowDialog() == DialogResult.OK)
                 {
-                    Api.Request("/announcements", "POST", new Dictionary<string, object>
+                    var body = f.GetBody();
+                    new Thread(() =>
                     {
-                        { "title", title }, { "content", content }, { "type", type ?? "info" },
-                    });
-                    BeginInvoke((Action)(() => Load()));
+                        try { Api.Request("/announcements", "POST", body); BeginInvoke((Action)(() => Load())); }
+                        catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Create"))); }
+                    }) { IsBackground = true }.Start();
                 }
-                catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Create"))); }
-            }) { IsBackground = true }.Start();
+            }
+        }
+
+        void EditSelected()
+        {
+            if (list.SelectedItems.Count == 0) return;
+            var id = list.SelectedItems[0].Tag as string;
+            var ann = items.Find(a => Api.Str(a, "id") == id);
+            if (ann == null) return;
+            using (var f = new AnnouncementEditor(ann))
+            {
+                if (f.ShowDialog() == DialogResult.OK)
+                {
+                    var body = f.GetBody();
+                    new Thread(() =>
+                    {
+                        try { Api.Request("/announcements/" + id, "PUT", body); BeginInvoke((Action)(() => Load())); }
+                        catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Edit"))); }
+                    }) { IsBackground = true }.Start();
+                }
+            }
         }
 
         void DeleteSelected()
@@ -2785,6 +2804,81 @@ namespace KsykAdmin
                 try { Api.Request("/announcements/" + id, "DELETE"); BeginInvoke((Action)(() => Load())); }
                 catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete"))); }
             }) { IsBackground = true }.Start();
+        }
+    }
+
+    /// <summary>Modal editor for creating + editing announcements.</summary>
+    public class AnnouncementEditor : Form
+    {
+        readonly TextBox txtTitle = new TextBox();
+        readonly TextBox txtBody = new TextBox();
+        readonly ComboBox cmbType = new ComboBox();
+        readonly CheckBox cbActive = new CheckBox { Text = "Active (visible on the site)", AutoSize = true };
+
+        public AnnouncementEditor(IDictionary<string, object> existing)
+        {
+            Text = existing == null ? "New announcement" : "Edit announcement";
+            Size = new Size(560, 420);
+            MinimumSize = new Size(560, 420);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = SystemColors.Control;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false; MinimizeBox = false;
+
+            var pad = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16) };
+            Controls.Add(pad);
+
+            pad.Controls.Add(new Label { Text = "Title:", Location = new Point(0, 6), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            txtTitle.Location = new Point(0, 24); txtTitle.Size = new Size(528, 22);
+            pad.Controls.Add(txtTitle);
+
+            pad.Controls.Add(new Label { Text = "Type:", Location = new Point(0, 54), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            cmbType.Location = new Point(0, 72); cmbType.Size = new Size(200, 22);
+            cmbType.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbType.Items.AddRange(new object[] { "info", "warning", "urgent", "event" });
+            pad.Controls.Add(cmbType);
+
+            cbActive.Location = new Point(220, 73);
+            cbActive.Checked = true;
+            pad.Controls.Add(cbActive);
+
+            pad.Controls.Add(new Label { Text = "Content:", Location = new Point(0, 102), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            txtBody.Location = new Point(0, 120); txtBody.Size = new Size(528, 200);
+            txtBody.Multiline = true; txtBody.ScrollBars = ScrollBars.Vertical;
+            txtBody.Font = new Font("Segoe UI", 9.5F);
+            pad.Controls.Add(txtBody);
+
+            var btnOk = new Button { Text = "Save", DialogResult = DialogResult.OK, Size = new Size(90, 30), Location = new Point(348, 330) };
+            var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Size = new Size(90, 30), Location = new Point(444, 330) };
+            pad.Controls.Add(btnOk); pad.Controls.Add(btnCancel);
+            AcceptButton = btnOk; CancelButton = btnCancel;
+
+            // Pre-fill if editing.
+            if (existing != null)
+            {
+                txtTitle.Text = Api.Str(existing, "title");
+                txtBody.Text = Api.Str(existing, "content");
+                if (txtBody.Text.Length == 0) txtBody.Text = Api.Str(existing, "body");
+                var t = Api.Str(existing, "type");
+                cmbType.SelectedItem = (t.Length > 0 ? t : "info");
+                cbActive.Checked = Api.Get<bool>(existing, "active", true);
+            }
+            else
+            {
+                cmbType.SelectedItem = "info";
+            }
+        }
+
+        public Dictionary<string, object> GetBody()
+        {
+            return new Dictionary<string, object>
+            {
+                { "title", txtTitle.Text.Trim() },
+                { "content", txtBody.Text.Trim() },
+                { "body", txtBody.Text.Trim() },  // some callers read 'body'
+                { "type", cmbType.SelectedItem == null ? "info" : cmbType.SelectedItem.ToString() },
+                { "active", cbActive.Checked },
+            };
         }
     }
 
