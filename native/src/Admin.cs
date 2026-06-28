@@ -2278,6 +2278,398 @@ namespace KsykAdmin
         }
     }
 
+    // ── Announcements tab ──────────────────────────────────────────────
+
+    public class AnnouncementsPanel : UserControl
+    {
+        readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+        List<IDictionary<string, object>> items = new List<IDictionary<string, object>>();
+
+        public AnnouncementsPanel()
+        {
+            BackColor = SystemColors.Control;
+            Dock = DockStyle.Fill;
+
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "Announcements", Location = new Point(8, 10), AutoSize = true });
+            var bReload = new Button { Text = "Reload", Location = new Point(110, 6), Size = new Size(75, 24) };
+            bReload.Click += (s, e) => Load(); tb.Controls.Add(bReload);
+            var bNew = new Button { Text = "Create", Location = new Point(190, 6), Size = new Size(75, 24) };
+            bNew.Click += (s, e) => CreateNew(); tb.Controls.Add(bNew);
+            var bDel = new Button { Text = "Delete", Location = new Point(270, 6), Size = new Size(75, 24) };
+            bDel.Click += (s, e) => DeleteSelected(); tb.Controls.Add(bDel);
+            Controls.Add(tb);
+
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText;
+            Controls.Add(lblStatus);
+
+            list.View = View.Details; list.FullRowSelect = true; list.GridLines = true; list.Dock = DockStyle.Fill;
+            list.Columns.Add("Title", 280);
+            list.Columns.Add("Type", 100);
+            list.Columns.Add("Created", 140);
+            list.Columns.Add("Content", 400);
+            Controls.Add(list); list.BringToFront();
+            Load();
+        }
+
+        void Load()
+        {
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/announcements?limit=100") as object[];
+                    items = new List<IDictionary<string, object>>();
+                    if (data != null) foreach (var d in data) items.Add(d as IDictionary<string, object>);
+                    BeginInvoke((Action)(() => { Render(); lblStatus.Text = items.Count + " announcement(s)"; lblStatus.ForeColor = SystemColors.GrayText; }));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; })); }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Render()
+        {
+            list.BeginUpdate(); list.Items.Clear();
+            foreach (var a in items)
+            {
+                var created = Api.Str(a, "createdAt");
+                if (created.Length > 19) created = created.Substring(0, 19).Replace("T", " ");
+                var body = Api.Str(a, "content"); if (body.Length == 0) body = Api.Str(a, "body");
+                var item = new ListViewItem(new[]
+                {
+                    Api.Str(a, "title"), Api.Str(a, "type"), created,
+                    body.Length > 80 ? body.Substring(0, 80) + "…" : body,
+                });
+                item.Tag = Api.Str(a, "id");
+                list.Items.Add(item);
+            }
+            list.EndUpdate();
+        }
+
+        void CreateNew()
+        {
+            var title = InputBox.Show("Title:", "New announcement", "");
+            if (string.IsNullOrEmpty(title)) return;
+            var content = InputBox.Show("Content:", "New announcement", "");
+            if (content == null) return;
+            var type = InputBox.Show("Type (info, warning, urgent):", "New announcement", "info");
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/announcements", "POST", new Dictionary<string, object>
+                    {
+                        { "title", title }, { "content", content }, { "type", type ?? "info" },
+                    });
+                    BeginInvoke((Action)(() => Load()));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Create"))); }
+            }) { IsBackground = true }.Start();
+        }
+
+        void DeleteSelected()
+        {
+            if (list.SelectedItems.Count == 0) return;
+            var id = list.SelectedItems[0].Tag as string;
+            if (MessageBox.Show("Delete this announcement?", "Confirm", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            new Thread(() =>
+            {
+                try { Api.Request("/announcements/" + id, "DELETE"); BeginInvoke((Action)(() => Load())); }
+                catch (Exception ex) { BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete"))); }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Staff tab ──────────────────────────────────────────────────────
+
+    public class StaffPanel : UserControl
+    {
+        readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+        public StaffPanel()
+        {
+            BackColor = SystemColors.Control; Dock = DockStyle.Fill;
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "School staff directory", Location = new Point(8, 10), AutoSize = true });
+            var b = new Button { Text = "Reload", Location = new Point(160, 6), Size = new Size(75, 24) };
+            b.Click += (s, e) => Load(); tb.Controls.Add(b);
+            Controls.Add(tb);
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft; lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText; Controls.Add(lblStatus);
+            list.View = View.Details; list.FullRowSelect = true; list.GridLines = true; list.Dock = DockStyle.Fill;
+            list.Columns.Add("Name", 220); list.Columns.Add("Role", 130); list.Columns.Add("Email", 200);
+            list.Columns.Add("Phone", 130); list.Columns.Add("Subject", 130);
+            Controls.Add(list); list.BringToFront();
+            Load();
+        }
+        void Load()
+        {
+            lblStatus.Text = "Loading...";
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/staff") as object[];
+                    BeginInvoke((Action)(() =>
+                    {
+                        list.BeginUpdate(); list.Items.Clear();
+                        if (data != null) foreach (var s in data)
+                        {
+                            var d = s as IDictionary<string, object>;
+                            list.Items.Add(new ListViewItem(new[]
+                            {
+                                Api.Str(d, "name"), Api.Str(d, "role"), Api.Str(d, "email"),
+                                Api.Str(d, "phone"), Api.Str(d, "subject"),
+                            }));
+                        }
+                        list.EndUpdate();
+                        lblStatus.Text = (data == null ? 0 : data.Length) + " staff entries"; lblStatus.ForeColor = SystemColors.GrayText;
+                    }));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; })); }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Logs tab ───────────────────────────────────────────────────────
+
+    public class LogsPanel : UserControl
+    {
+        readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+        public LogsPanel()
+        {
+            BackColor = SystemColors.Control; Dock = DockStyle.Fill;
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "Server logs & admin sign-in events", Location = new Point(8, 10), AutoSize = true });
+            var b = new Button { Text = "Reload", Location = new Point(220, 6), Size = new Size(75, 24) };
+            b.Click += (s, e) => Load(); tb.Controls.Add(b);
+            Controls.Add(tb);
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft; lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText; Controls.Add(lblStatus);
+            list.View = View.Details; list.FullRowSelect = true; list.GridLines = true; list.Dock = DockStyle.Fill;
+            list.Columns.Add("Time", 150); list.Columns.Add("Level", 70); list.Columns.Add("Source", 110);
+            list.Columns.Add("Message", 600);
+            Controls.Add(list); list.BringToFront();
+            Load();
+        }
+        void Load()
+        {
+            lblStatus.Text = "Loading...";
+            new Thread(() =>
+            {
+                try
+                {
+                    // Combine /logs and /admin-login-logs into one view.
+                    var serverLogs = Api.RequestOrNull("/logs") as object[];
+                    var adminLogs = Api.RequestOrNull("/admin-login-logs?limit=50") as object[];
+                    var rows = new List<string[]>();
+                    if (serverLogs != null) foreach (var l in serverLogs)
+                    {
+                        var d = l as IDictionary<string, object>;
+                        var ts = Api.Str(d, "timestamp");
+                        if (ts.Length > 19) ts = ts.Substring(0, 19).Replace("T", " ");
+                        rows.Add(new[] { ts, Api.Str(d, "level").ToUpper(), Api.Str(d, "source"), Api.Str(d, "message") });
+                    }
+                    if (adminLogs != null) foreach (var l in adminLogs)
+                    {
+                        var d = l as IDictionary<string, object>;
+                        var ts = Api.Str(d, "timestamp"); if (ts.Length == 0) ts = Api.Str(d, "createdAt");
+                        if (ts.Length > 19) ts = ts.Substring(0, 19).Replace("T", " ");
+                        var success = Api.Get<bool>(d, "success", true);
+                        rows.Add(new[] { ts, success ? "LOGIN" : "FAIL", "auth", Api.Str(d, "email") + " from " + Api.Str(d, "ipAddress") });
+                    }
+                    rows.Sort((a, b) => string.Compare(b[0], a[0], StringComparison.Ordinal));
+                    BeginInvoke((Action)(() =>
+                    {
+                        list.BeginUpdate(); list.Items.Clear();
+                        foreach (var r in rows)
+                        {
+                            var item = new ListViewItem(r);
+                            if (r[1] == "ERROR" || r[1] == "FAIL") item.ForeColor = Color.Maroon;
+                            else if (r[1] == "LOGIN") item.ForeColor = Color.DarkGreen;
+                            list.Items.Add(item);
+                        }
+                        list.EndUpdate();
+                        lblStatus.Text = rows.Count + " log entries"; lblStatus.ForeColor = SystemColors.GrayText;
+                    }));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; })); }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Email tab ──────────────────────────────────────────────────────
+    //
+    // Sends test emails through the same /api/test-email endpoint the web
+    // admin uses. Doubles as a quick sanity-check that the SMTP setup is
+    // healthy without leaving the desktop app.
+
+    public class EmailPanel : UserControl
+    {
+        readonly TextBox txtTo = new TextBox();
+        readonly TextBox txtLog = new TextBox();
+        readonly Label lblStatus = new Label();
+
+        public EmailPanel()
+        {
+            BackColor = SystemColors.Control; Dock = DockStyle.Fill;
+            Padding = new Padding(14);
+
+            var top = new Panel { Dock = DockStyle.Top, Height = 36 };
+            top.Controls.Add(new Label { Text = "Test recipient:", Location = new Point(0, 10), AutoSize = true });
+            txtTo.Location = new Point(100, 8); txtTo.Size = new Size(280, 22);
+            txtTo.Text = "juusojuusto112@gmail.com";
+            top.Controls.Add(txtTo);
+            var bSend = new Button { Text = "Send test email", Location = new Point(390, 6), Size = new Size(120, 24) };
+            bSend.Click += (s, e) => Send();
+            top.Controls.Add(bSend);
+            var bDiag = new Button { Text = "Email diagnostic", Location = new Point(518, 6), Size = new Size(130, 24) };
+            bDiag.Click += (s, e) => Diagnose();
+            top.Controls.Add(bDiag);
+            Controls.Add(top);
+
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft; lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText;
+            Controls.Add(lblStatus);
+
+            txtLog.Dock = DockStyle.Fill; txtLog.Multiline = true; txtLog.ScrollBars = ScrollBars.Vertical;
+            txtLog.Font = new Font("Consolas", 9F); txtLog.ReadOnly = true;
+            txtLog.BackColor = Color.White;
+            Controls.Add(txtLog); txtLog.BringToFront();
+        }
+
+        void Send()
+        {
+            var to = txtTo.Text.Trim(); if (to.Length == 0) return;
+            lblStatus.Text = "Sending..."; lblStatus.ForeColor = Color.Navy;
+            txtLog.AppendText("→ POST /test-email to " + to + Environment.NewLine);
+            new Thread(() =>
+            {
+                try
+                {
+                    var r = Api.Request("/test-email", "POST", new Dictionary<string, object>
+                    {
+                        { "email", to }, { "name", Api.SessionEmail }
+                    });
+                    var json = new JavaScriptSerializer().Serialize(r);
+                    BeginInvoke((Action)(() =>
+                    {
+                        txtLog.AppendText("← " + json + Environment.NewLine + Environment.NewLine);
+                        lblStatus.Text = "Sent."; lblStatus.ForeColor = Color.Green;
+                    }));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() =>
+                {
+                    txtLog.AppendText("ERROR: " + Api.Friendly(ex) + Environment.NewLine + Environment.NewLine);
+                    lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon;
+                })); }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Diagnose()
+        {
+            lblStatus.Text = "Probing email config..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var r = Api.Request("/email-diagnostic");
+                    var json = new JavaScriptSerializer().Serialize(r);
+                    BeginInvoke((Action)(() =>
+                    {
+                        txtLog.AppendText("=== Email diagnostic ===" + Environment.NewLine + json + Environment.NewLine + Environment.NewLine);
+                        lblStatus.Text = "Done."; lblStatus.ForeColor = Color.Green;
+                    }));
+                }
+                catch (Exception ex) { BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; })); }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Cloudflare diagnostic tab ──────────────────────────────────────
+    //
+    // Specifically helps the 429 / bot-fight situation: shows whether
+    // basic API calls go through, prints recommended Cloudflare WAF rule.
+
+    public class DiagnosticsPanel : UserControl
+    {
+        readonly TextBox text = new TextBox();
+        public DiagnosticsPanel()
+        {
+            BackColor = SystemColors.Control; Dock = DockStyle.Fill;
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "Bot-protection + connectivity diagnostic", Location = new Point(8, 10), AutoSize = true });
+            var b = new Button { Text = "Run all checks", Location = new Point(260, 6), Size = new Size(120, 24) };
+            b.Click += (s, e) => Run();
+            tb.Controls.Add(b);
+            Controls.Add(tb);
+
+            text.Dock = DockStyle.Fill; text.Multiline = true; text.ScrollBars = ScrollBars.Vertical;
+            text.Font = new Font("Consolas", 9F); text.ReadOnly = true; text.BackColor = Color.White;
+            Controls.Add(text); text.BringToFront();
+            Run();
+        }
+
+        void Run()
+        {
+            text.Text = "Running checks...";
+            new Thread(() =>
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("KSYK Maps Admin · Diagnostics");
+                sb.AppendLine("===============================" + Environment.NewLine);
+                sb.AppendLine("API base:  " + Api.Base);
+                sb.AppendLine("Signed in: " + (string.IsNullOrEmpty(Api.SessionEmail) ? "(no)" : Api.SessionEmail));
+                sb.AppendLine();
+
+                Try(sb, "/ (root)", "");
+                Try(sb, "/client-info", "/client-info");
+                Try(sb, "/rooms", "/rooms");
+                Try(sb, "/analytics/external?range=24h", "/analytics/external?range=24h");
+                Try(sb, "/security-settings", "/security-settings");
+                Try(sb, "/map-defaults", "/map-defaults");
+
+                sb.AppendLine();
+                sb.AppendLine("If you saw 429 anywhere:");
+                sb.AppendLine("  • Vercel Bot Protection is blocking the request at the edge.");
+                sb.AppendLine("  • Fix in Vercel dashboard: Project → Firewall → add an allow");
+                sb.AppendLine("    rule for HTTP header 'X-KSYK-Client' contains 'KSYK-Maps'.");
+                sb.AppendLine();
+                sb.AppendLine("If you saw 404 anywhere:");
+                sb.AppendLine("  • Production is running an older api/index.ts.");
+                sb.AppendLine("  • Merge dev → main and push; Vercel auto-deploys main.");
+
+                BeginInvoke((Action)(() => text.Text = sb.ToString()));
+            }) { IsBackground = true }.Start();
+        }
+
+        void Try(StringBuilder sb, string label, string path)
+        {
+            var t0 = DateTime.Now;
+            try
+            {
+                Api.Request(path, "GET", null, 8000);
+                sb.AppendLine(string.Format("  [OK]   {0,-50} ({1} ms)", label, (int)(DateTime.Now - t0).TotalMilliseconds));
+            }
+            catch (Exception ex)
+            {
+                var ae = ex as ApiException;
+                var code = ae == null ? "ERR" : ae.StatusCode.ToString();
+                sb.AppendLine(string.Format("  [{0}]  {1,-50} ({2} ms) — {3}", code, label,
+                    (int)(DateTime.Now - t0).TotalMilliseconds, Api.Friendly(ex)));
+            }
+        }
+    }
+
     // ── Main shell ─────────────────────────────────────────────────────
 
     public class MainForm : Form
@@ -2317,12 +2709,17 @@ namespace KsykAdmin
             tabs.Appearance = TabAppearance.Normal;
             tabs.TabPages.Add(MakeTab("Rooms", new RoomsPanel()));
             tabs.TabPages.Add(MakeTab("Buildings", new BuildingsPanel()));
+            tabs.TabPages.Add(MakeTab("Announcements", new AnnouncementsPanel()));
+            tabs.TabPages.Add(MakeTab("Staff", new StaffPanel()));
             tabs.TabPages.Add(MakeTab("Tickets", new TicketsPanel()));
             tabs.TabPages.Add(MakeTab("Users", new UsersPanel()));
             tabs.TabPages.Add(MakeTab("Security", new SecurityPanel()));
             tabs.TabPages.Add(MakeTab("Settings", new SettingsPanel()));
             tabs.TabPages.Add(MakeTab("Analytics", new AnalyticsPanel()));
             tabs.TabPages.Add(MakeTab("Beacons", new WifiPanel()));
+            tabs.TabPages.Add(MakeTab("Email", new EmailPanel()));
+            tabs.TabPages.Add(MakeTab("Logs", new LogsPanel()));
+            tabs.TabPages.Add(MakeTab("Diagnostics", new DiagnosticsPanel()));
             tabs.TabPages.Add(MakeTab("System", new SystemPanel()));
             Controls.Add(tabs);
             tabs.BringToFront();

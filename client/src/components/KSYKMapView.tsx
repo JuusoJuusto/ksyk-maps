@@ -16,6 +16,7 @@ import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
 import AccessLockoutScreen from "@/components/AccessLockoutScreen";
 import MatterportTour from "@/components/MatterportTour";
+import CampusThreeDView from "@/components/CampusThreeDView";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
@@ -163,6 +164,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
    * the admin has configured matterportTourUrl AND the user has tapped
    * the Tour button. */
   const [tourOpen, setTourOpen] = useState(false);
+  const [campus3DOpen, setCampus3DOpen] = useState(false);
   const tourUrl = (settings.matterportTourUrl || "").trim();
 
   // Leaflet plumbing
@@ -792,6 +794,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     return <MatterportTour rawUrl={tourUrl} isFi={isFi} onClose={() => setTourOpen(false)} />;
   }
 
+  // Native 3D scene — extruded campus rooms with orbit + walk modes.
+  if (campus3DOpen) {
+    return <CampusThreeDView onClose={() => setCampus3DOpen(false)} />;
+  }
+
   return (
     <div
       ref={wrapRef}
@@ -948,6 +955,25 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             </span>
           </button>
         )}
+
+        {/* Native in-browser 3D — extrudes every mapped room into a real
+         *  Three.js scene with orbit + first-person walk modes. Replaces
+         *  the dependency on Matterport for the inside-the-school view. */}
+        <button
+          type="button"
+          aria-label={isFi ? "Avaa 3D-kartta" : "Open 3D campus view"}
+          onClick={() => setCampus3DOpen(true)}
+          title={isFi ? "3D-kampuskartta" : "3D campus view"}
+          className={cn(
+            "w-11 h-11 p-0 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
+            "bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700 shadow-indigo-600/30",
+          )}
+        >
+          <Mountain className="h-4 w-4" />
+          <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums tracking-wider">
+            3D
+          </span>
+        </button>
 
         {/* Rotation — click compass to open a rotation slider popover.
          *   Compass needle reflects current angle. Long-press / shift-click
