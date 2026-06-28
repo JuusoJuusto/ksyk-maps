@@ -273,6 +273,29 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
       setStats((s) => ({ ...s, rooms: roomGroup.children.length / 2 }));
 
+      // Collidable AABBs harvested from the room cubes so the walk camera
+      // can't phase through walls. We expand each box by 6 world units so
+      // the user keeps a comfortable buffer.
+      const collidables: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[] = [];
+      roomGroup.traverse((o: any) => {
+        if (o.isMesh && o.userData?.room) {
+          const box = new THREE.Box3().setFromObject(o);
+          collidables.push({
+            minX: box.min.x - 6, maxX: box.max.x + 6,
+            minY: box.min.y,     maxY: box.max.y,
+            minZ: box.min.z - 6, maxZ: box.max.z + 6,
+          });
+        }
+      });
+      function blocked(nx: number, ny: number, nz: number): boolean {
+        for (const b of collidables) {
+          if (nx >= b.minX && nx <= b.maxX && ny >= b.minY && ny <= b.maxY && nz >= b.minZ && nz <= b.maxZ) {
+            return true;
+          }
+        }
+        return false;
+      }
+
       // ── Cameras ──────────────────────────────────────────────
       // Orbit camera state
       let yaw = -Math.PI / 4, pitch = Math.PI / 3, dist = 800;
@@ -356,13 +379,19 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
         if (mode === "orbit") updateCameraOrbit();
         else {
-          // WASD / arrows movement, relative to walk yaw.
+          // WASD / arrows movement, relative to walk yaw. Each axis is
+          // committed independently so a wall blocking forward motion
+          // doesn't also stop strafing — feels less stuck.
           const speed = 90 * dt * (keys.has("shift") ? 2.5 : 1);
           const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
-          if (keys.has("w") || keys.has("arrowup"))    { walkPos.x += cy * speed; walkPos.z += sy * speed; }
-          if (keys.has("s") || keys.has("arrowdown"))  { walkPos.x -= cy * speed; walkPos.z -= sy * speed; }
-          if (keys.has("a") || keys.has("arrowleft"))  { walkPos.x += sy * speed; walkPos.z -= cy * speed; }
-          if (keys.has("d") || keys.has("arrowright")) { walkPos.x -= sy * speed; walkPos.z += cy * speed; }
+          let dx = 0, dz = 0;
+          if (keys.has("w") || keys.has("arrowup"))    { dx += cy * speed; dz += sy * speed; }
+          if (keys.has("s") || keys.has("arrowdown"))  { dx -= cy * speed; dz -= sy * speed; }
+          if (keys.has("a") || keys.has("arrowleft"))  { dx += sy * speed; dz -= cy * speed; }
+          if (keys.has("d") || keys.has("arrowright")) { dx -= sy * speed; dz += cy * speed; }
+          // Try the X step alone, then the Z step alone — sliding along walls.
+          if (dx !== 0 && !blocked(walkPos.x + dx, walkPos.y, walkPos.z)) walkPos.x += dx;
+          if (dz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + dz)) walkPos.z += dz;
           if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed; }
           if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(2, walkPos.y - speed); }
           updateCameraWalk();
