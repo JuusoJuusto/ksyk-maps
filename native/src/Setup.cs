@@ -112,100 +112,215 @@ namespace KsykSetup
     }
 
     // ── Wizard pages ───────────────────────────────────────────────────
+    //
+    // The wizard uses a docked layout with a TableLayoutPanel as the
+    // footer so buttons auto-right-align and never clip regardless of
+    // form size or DPI. Sidebar carries the KSYK Maps logo bitmap; the
+    // header strip has a coloured rule under it for a modern feel.
 
     public class WizardForm : Form
     {
-        readonly Panel content = new Panel { Dock = DockStyle.Fill };
-        readonly Button btnBack = new Button { Text = "< Back", Size = new Size(85, 28) };
-        readonly Button btnNext = new Button { Text = "Next >", Size = new Size(85, 28) };
-        readonly Button btnCancel = new Button { Text = "Cancel", Size = new Size(85, 28) };
-        readonly Label banner = new Label();
-        readonly Panel sidebar = new Panel { BackColor = Color.FromArgb(0, 51, 102), Dock = DockStyle.Left, Width = 160 };
+        readonly Panel content = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control };
+        readonly Button btnBack = new Button { Text = "Back", Size = new Size(96, 32), FlatStyle = FlatStyle.System };
+        readonly Button btnNext = new Button { Text = "Next", Size = new Size(96, 32), FlatStyle = FlatStyle.System };
+        readonly Button btnCancel = new Button { Text = "Cancel", Size = new Size(96, 32), FlatStyle = FlatStyle.System };
+        readonly Label headerTitle = new Label();
+        readonly Label headerSub = new Label();
+        readonly Panel headerBar = new Panel { BackColor = Color.White, Dock = DockStyle.Top, Height = 72 };
+        readonly Panel sidebar = new Panel { BackColor = Color.FromArgb(15, 35, 80), Dock = DockStyle.Left, Width = 200 };
+
+        // KSYK accent
+        static readonly Color Accent = Color.FromArgb(37, 99, 235);
+        static readonly Color AccentDark = Color.FromArgb(29, 78, 216);
 
         int page = 0;
         string installDir = Paths.DefaultInstallDir;
+        bool installAdmin = true;
+        bool installQuick = true;
         bool createDesktop = true;
         bool launchAfter = true;
+        bool pinStartMenu = true;
         bool installing = false;
         bool installFailed = false;
         string installError = "";
 
         public WizardForm()
         {
-            Text = Manifest.ProductName + " " + Manifest.Version + " Setup";
-            Size = new Size(560, 420);
-            MinimumSize = new Size(560, 420);
-            MaximumSize = new Size(560, 420);
+            Text = Manifest.ProductName + " Setup";
+            ClientSize = new Size(720, 500);
+            MinimumSize = new Size(720, 500);
+            MaximumSize = new Size(720, 500);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = SystemColors.Control;
-            Font = new Font("MS Sans Serif", 9F);
-            Icon = SystemIcons.Application;
-
-            // Footer
-            var foot = new Panel { Dock = DockStyle.Bottom, Height = 48, BackColor = SystemColors.Control };
-            var rule = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = SystemColors.ControlDark };
-            foot.Controls.Add(rule);
-            btnCancel.Location = new Point(450, 10);
-            btnNext.Location   = new Point(360, 10);
-            btnBack.Location   = new Point(270, 10);
-            btnCancel.Click += (s, e) => CancelInstall();
-            btnNext.Click += (s, e) => Next();
-            btnBack.Click += (s, e) => Back();
-            foot.Controls.Add(btnCancel);
-            foot.Controls.Add(btnNext);
-            foot.Controls.Add(btnBack);
-            Controls.Add(foot);
-
-            // Sidebar logo
-            Controls.Add(sidebar);
-            var sl = new Label
+            Font = new Font(SystemFonts.MessageBoxFont.FontFamily, 9F);
+            try
             {
-                Text = "KSYK\nMaps",
-                Font = new Font("MS Sans Serif", 22F, FontStyle.Bold),
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Location = new Point(18, 24),
-                Size = new Size(140, 80),
-            };
-            sidebar.Controls.Add(sl);
-            var sv = new Label
-            {
-                Text = "v" + Manifest.Version,
-                ForeColor = Color.FromArgb(180, 200, 230),
-                BackColor = Color.Transparent,
-                Location = new Point(20, 100),
-                AutoSize = true,
-            };
-            sidebar.Controls.Add(sv);
-            var spub = new Label
-            {
-                Text = Manifest.Publisher,
-                ForeColor = Color.FromArgb(180, 200, 230),
-                BackColor = Color.Transparent,
-                Location = new Point(20, 320),
-                AutoSize = true,
-                Font = new Font("MS Sans Serif", 8F),
-            };
-            sidebar.Controls.Add(spub);
+                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("icon.ico"))
+                    if (s != null) Icon = new Icon(s);
+            }
+            catch { }
+            if (Icon == null) Icon = SystemIcons.Application;
 
-            // Banner
-            banner.Dock = DockStyle.Top;
-            banner.Height = 38;
-            banner.Font = new Font("MS Sans Serif", 11F, FontStyle.Bold);
-            banner.TextAlign = ContentAlignment.MiddleLeft;
-            banner.Padding = new Padding(20, 0, 0, 0);
-            banner.BackColor = Color.White;
-            content.Controls.Add(banner);
+            BuildFooter();
+            BuildSidebar();
+            BuildHeader();
 
-            // Content
-            content.BackColor = SystemColors.Control;
-            content.Padding = new Padding(20, 50, 20, 10);
+            content.Padding = new Padding(28, 88, 28, 16);
             Controls.Add(content);
             content.BringToFront();
 
             ShowPage();
+        }
+
+        // ── Chrome ───────────────────────────────────────────────────────
+
+        void BuildFooter()
+        {
+            // TableLayoutPanel auto-handles spacing; no x-coordinate math
+            // means no clipping at any DPI or form size.
+            var foot = new Panel { Dock = DockStyle.Bottom, Height = 56, BackColor = Color.FromArgb(245, 246, 249) };
+            var rule = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = Color.FromArgb(220, 224, 232) };
+            foot.Controls.Add(rule);
+
+            var row = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 5,
+                RowCount = 1,
+                Padding = new Padding(20, 10, 20, 10),
+                BackColor = Color.Transparent,
+            };
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));        // spacer (push right)
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));             // Cancel
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12));         // gap
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));             // Back
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));             // Next/Install/Finish
+
+            btnCancel.Margin = new Padding(0);
+            btnBack.Margin = new Padding(0);
+            btnNext.Margin = new Padding(0, 0, 0, 0);
+            btnCancel.Click += (s, e) => CancelInstall();
+            btnBack.Click += (s, e) => Back();
+            btnNext.Click += (s, e) => Next();
+
+            // Primary (Next) gets a coloured fill so users notice it.
+            btnNext.FlatStyle = FlatStyle.Flat;
+            btnNext.BackColor = Accent;
+            btnNext.ForeColor = Color.White;
+            btnNext.FlatAppearance.BorderSize = 0;
+            btnNext.FlatAppearance.MouseOverBackColor = AccentDark;
+            btnNext.Font = new Font(Font, FontStyle.Bold);
+
+            row.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }, 0, 0);
+            row.Controls.Add(btnCancel, 1, 0);
+            row.Controls.Add(new Panel { Width = 12, BackColor = Color.Transparent }, 2, 0);
+            row.Controls.Add(btnBack, 3, 0);
+            row.Controls.Add(btnNext, 4, 0);
+            foot.Controls.Add(row);
+            row.BringToFront();
+            Controls.Add(foot);
+        }
+
+        void BuildSidebar()
+        {
+            Controls.Add(sidebar);
+
+            // Try to draw the KSYK Maps logo bitmap embedded as a resource.
+            // Falls back to "KSYK Maps" text if the image can't be loaded.
+            PictureBox logo = null;
+            try
+            {
+                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo.png"))
+                {
+                    if (s != null)
+                    {
+                        logo = new PictureBox
+                        {
+                            Image = Image.FromStream(s),
+                            SizeMode = PictureBoxSizeMode.Zoom,
+                            Location = new Point(28, 40),
+                            Size = new Size(144, 144),
+                            BackColor = Color.Transparent,
+                        };
+                    }
+                }
+            }
+            catch { }
+
+            if (logo != null) sidebar.Controls.Add(logo);
+            else
+            {
+                sidebar.Controls.Add(new Label
+                {
+                    Text = "KSYK\nMaps",
+                    Font = new Font(Font.FontFamily, 28F, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    BackColor = Color.Transparent,
+                    Location = new Point(24, 60),
+                    Size = new Size(160, 110),
+                });
+            }
+
+            sidebar.Controls.Add(new Label
+            {
+                Text = "Setup",
+                Font = new Font(Font.FontFamily, 18F, FontStyle.Bold),
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Location = new Point(28, 210),
+                AutoSize = true,
+            });
+            sidebar.Controls.Add(new Label
+            {
+                Text = "Version " + Manifest.Version,
+                ForeColor = Color.FromArgb(170, 195, 240),
+                BackColor = Color.Transparent,
+                Location = new Point(28, 244),
+                AutoSize = true,
+            });
+
+            sidebar.Controls.Add(new Label
+            {
+                Text = Manifest.Publisher,
+                ForeColor = Color.FromArgb(150, 175, 220),
+                BackColor = Color.Transparent,
+                Location = new Point(28, 400),
+                AutoSize = true,
+                Font = new Font(Font.FontFamily, 8F),
+            });
+            sidebar.Controls.Add(new Label
+            {
+                Text = "ksykmaps.fi",
+                ForeColor = Color.FromArgb(150, 175, 220),
+                BackColor = Color.Transparent,
+                Location = new Point(28, 416),
+                AutoSize = true,
+                Font = new Font(Font.FontFamily, 8F),
+            });
+        }
+
+        void BuildHeader()
+        {
+            headerBar.Padding = new Padding(28, 14, 28, 0);
+            var accent = new Panel { Dock = DockStyle.Bottom, Height = 2, BackColor = Accent };
+            headerBar.Controls.Add(accent);
+
+            headerTitle.Font = new Font(Font.FontFamily, 14F, FontStyle.Bold);
+            headerTitle.ForeColor = Color.FromArgb(15, 35, 80);
+            headerTitle.AutoSize = true;
+            headerTitle.Location = new Point(28, 12);
+
+            headerSub.Font = new Font(Font.FontFamily, 9F);
+            headerSub.ForeColor = Color.FromArgb(100, 110, 130);
+            headerSub.AutoSize = true;
+            headerSub.Location = new Point(28, 42);
+
+            headerBar.Controls.Add(headerTitle);
+            headerBar.Controls.Add(headerSub);
+            Controls.Add(headerBar);
+            headerBar.BringToFront();
         }
 
         // ── Page rendering ───────────────────────────────────────────────
@@ -213,10 +328,7 @@ namespace KsykSetup
         void ShowPage()
         {
             content.SuspendLayout();
-            // Remove everything except the banner.
-            var toRemove = new List<Control>();
-            foreach (Control c in content.Controls) if (c != banner) toRemove.Add(c);
-            foreach (var c in toRemove) content.Controls.Remove(c);
+            content.Controls.Clear();
 
             switch (page)
             {
@@ -227,105 +339,209 @@ namespace KsykSetup
                 case 4: BuildDone(); break;
             }
 
-            // Buttons
             btnBack.Enabled = page > 0 && page < 3;
+            btnBack.Visible = page < 4;
             btnNext.Enabled = page < 4 && !installing;
-            btnCancel.Enabled = page < 3;
-            btnNext.Text = page == 2 ? "Install" : page == 4 ? "Finish" : "Next >";
-
+            btnCancel.Visible = page < 3;
+            btnNext.Text = page == 2 ? "Install" : page == 4 ? "Finish" : "Next";
             content.ResumeLayout();
         }
 
         void BuildWelcome()
         {
-            banner.Text = "  Welcome";
+            headerTitle.Text = "Welcome to " + Manifest.ProductName;
+            headerSub.Text = "This wizard will guide you through the installation.";
+
+            int y = 16;
             content.Controls.Add(new Label
             {
-                Text = "This wizard will install " + Manifest.ProductName + " "
-                       + Manifest.Version + " on your computer.",
-                Location = new Point(20, 50),
-                Size = new Size(360, 40),
-                AutoSize = false,
-                Font = new Font("MS Sans Serif", 9F),
-            });
-            content.Controls.Add(new Label
-            {
-                Text = "Two applications will be installed:\r\n\r\n"
-                     + "   • KSYK Maps  — student utility (room finder, lunch, news)\r\n"
-                     + "   • KSYK Maps Admin  — admin tool (rooms, tickets, analytics, WiFi)\r\n\r\n"
-                     + "Both are native Windows apps. They talk directly to ksykmaps.fi "
-                     + "over HTTPS — no web view, no Electron.",
-                Location = new Point(20, 100),
-                Size = new Size(360, 160),
-                Font = new Font("MS Sans Serif", 9F),
-            });
-            content.Controls.Add(new Label
-            {
-                Text = "Click Next to continue, or Cancel to exit Setup.",
-                Location = new Point(20, 280),
+                Text = "What's included",
+                Font = new Font(Font.FontFamily, 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(30, 40, 60),
+                Location = new Point(0, y),
                 AutoSize = true,
             });
+            y += 28;
+
+            content.Controls.Add(MakeFeatureCard(
+                0, y, 460, 78,
+                "KSYK Maps",
+                "Find a classroom, see the lunch menu, read the latest school announcements."));
+            y += 86;
+
+            content.Controls.Add(MakeFeatureCard(
+                0, y, 460, 78,
+                "KSYK Maps Admin",
+                "Manage rooms, buildings, tickets, analytics and WiFi survey data."));
+            y += 100;
+
+            content.Controls.Add(new Label
+            {
+                Text = "Click Next to continue.",
+                ForeColor = Color.FromArgb(100, 110, 130),
+                Location = new Point(0, y),
+                AutoSize = true,
+            });
+        }
+
+        Panel MakeFeatureCard(int x, int y, int w, int h, string title, string sub)
+        {
+            var card = new Panel
+            {
+                Location = new Point(x, y),
+                Size = new Size(w, h),
+                BackColor = Color.FromArgb(247, 249, 253),
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            var accent = new Panel { Dock = DockStyle.Left, Width = 4, BackColor = Accent };
+            card.Controls.Add(accent);
+            card.Controls.Add(new Label
+            {
+                Text = title,
+                Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 35, 80),
+                Location = new Point(18, 14),
+                AutoSize = true,
+            });
+            content.Controls.Add(card);
+            card.Controls.Add(new Label
+            {
+                Text = sub,
+                ForeColor = Color.FromArgb(80, 90, 110),
+                Location = new Point(18, 38),
+                Size = new Size(w - 30, 36),
+                AutoSize = false,
+            });
+            return card;
         }
 
         TextBox txtDir;
         CheckBox cbDesktop;
         CheckBox cbLaunch;
+        CheckBox cbStartMenu;
+        CheckBox cbInstallAdmin;
+        CheckBox cbInstallQuick;
+        Label lblSpace;
 
         void BuildOptions()
         {
-            banner.Text = "  Choose install location";
+            headerTitle.Text = "Installation options";
+            headerSub.Text = "Choose what to install, where, and which shortcuts to create.";
 
-            content.Controls.Add(new Label
+            // ── Component selection group ────────────────────────────
+            var grpComp = new GroupBox
             {
-                Text = "Setup will install " + Manifest.ProductName + " into the following folder. "
-                     + "To install in a different folder, click Browse and select one.",
-                Location = new Point(20, 50),
-                Size = new Size(360, 40),
-                AutoSize = false,
-            });
+                Text = "Components",
+                Location = new Point(0, 6),
+                Size = new Size(460, 86),
+                Padding = new Padding(10),
+            };
+            cbInstallQuick = new CheckBox
+            {
+                Text = "KSYK Maps  — student utility (recommended)",
+                Checked = installQuick,
+                Location = new Point(14, 22),
+                AutoSize = true,
+            };
+            cbInstallAdmin = new CheckBox
+            {
+                Text = "KSYK Maps Admin  — admin tools (rooms, tickets, analytics, WiFi)",
+                Checked = installAdmin,
+                Location = new Point(14, 50),
+                AutoSize = true,
+            };
+            grpComp.Controls.Add(cbInstallQuick);
+            grpComp.Controls.Add(cbInstallAdmin);
+            content.Controls.Add(grpComp);
 
-            content.Controls.Add(new Label { Text = "Install location:", Location = new Point(20, 110), AutoSize = true });
-            txtDir = new TextBox { Text = installDir, Location = new Point(20, 130), Size = new Size(280, 22) };
-            content.Controls.Add(txtDir);
-            var browse = new Button { Text = "Browse...", Location = new Point(305, 129), Size = new Size(75, 24) };
+            // ── Install location ─────────────────────────────────────
+            var grpLoc = new GroupBox
+            {
+                Text = "Install location",
+                Location = new Point(0, 102),
+                Size = new Size(460, 78),
+                Padding = new Padding(10),
+            };
+            txtDir = new TextBox
+            {
+                Text = installDir,
+                Location = new Point(14, 30),
+                Size = new Size(340, 22),
+            };
+            txtDir.TextChanged += (s, e) => UpdateSpace();
+            var browse = new Button
+            {
+                Text = "Browse...",
+                Location = new Point(362, 29),
+                Size = new Size(82, 24),
+                FlatStyle = FlatStyle.System,
+            };
             browse.Click += (s, e) =>
             {
                 using (var fb = new FolderBrowserDialog())
                 {
                     fb.Description = "Choose install folder";
-                    fb.SelectedPath = txtDir.Text;
+                    try { fb.SelectedPath = txtDir.Text; } catch { }
                     if (fb.ShowDialog() == DialogResult.OK) txtDir.Text = fb.SelectedPath;
                 }
             };
-            content.Controls.Add(browse);
+            lblSpace = new Label
+            {
+                Location = new Point(14, 58),
+                Size = new Size(420, 16),
+                ForeColor = Color.FromArgb(100, 110, 130),
+                AutoSize = false,
+                Font = new Font(Font.FontFamily, 8F),
+            };
+            grpLoc.Controls.Add(txtDir);
+            grpLoc.Controls.Add(browse);
+            grpLoc.Controls.Add(lblSpace);
+            content.Controls.Add(grpLoc);
 
+            // ── Shortcuts + post-install ─────────────────────────────
+            var grpExtras = new GroupBox
+            {
+                Text = "Shortcuts",
+                Location = new Point(0, 190),
+                Size = new Size(460, 100),
+                Padding = new Padding(10),
+            };
+            cbStartMenu = new CheckBox
+            {
+                Text = "Create Start Menu shortcuts",
+                Checked = pinStartMenu,
+                Location = new Point(14, 22),
+                AutoSize = true,
+            };
             cbDesktop = new CheckBox
             {
                 Text = "Create a desktop shortcut",
                 Checked = createDesktop,
-                Location = new Point(20, 180),
+                Location = new Point(14, 46),
                 AutoSize = true,
             };
-            content.Controls.Add(cbDesktop);
-
             cbLaunch = new CheckBox
             {
                 Text = "Launch KSYK Maps when finished",
                 Checked = launchAfter,
-                Location = new Point(20, 205),
+                Location = new Point(14, 70),
                 AutoSize = true,
             };
-            content.Controls.Add(cbLaunch);
+            grpExtras.Controls.Add(cbStartMenu);
+            grpExtras.Controls.Add(cbDesktop);
+            grpExtras.Controls.Add(cbLaunch);
+            content.Controls.Add(grpExtras);
 
-            var space = GetFreeSpaceMb(installDir);
-            content.Controls.Add(new Label
-            {
-                Text = "Required disk space:  about 1 MB" + (space > 0 ? "      Available: " + space + " MB" : ""),
-                ForeColor = SystemColors.GrayText,
-                Location = new Point(20, 250),
-                AutoSize = true,
-                Font = new Font("MS Sans Serif", 8F),
-            });
+            UpdateSpace();
+        }
+
+        void UpdateSpace()
+        {
+            if (lblSpace == null || txtDir == null) return;
+            var dir = txtDir.Text;
+            var space = GetFreeSpaceMb(dir);
+            lblSpace.Text = "About 1 MB required."
+                + (space > 0 ? "    Available on this drive: " + space.ToString("N0") + " MB." : "");
         }
 
         long GetFreeSpaceMb(string p)
@@ -342,66 +558,126 @@ namespace KsykSetup
 
         void BuildConfirm()
         {
-            banner.Text = "  Ready to install";
-            content.Controls.Add(new Label
+            headerTitle.Text = "Ready to install";
+            headerSub.Text = "Review your choices, then click Install to begin.";
+
+            int y = 4;
+
+            content.Controls.Add(SummaryRow(0, y, "Install to", installDir));
+            y += 56;
+
+            var comps = new List<string>();
+            if (installQuick) comps.Add("KSYK Maps (student utility)");
+            if (installAdmin) comps.Add("KSYK Maps Admin (admin tools)");
+            content.Controls.Add(SummaryRow(0, y, "Components",
+                comps.Count > 0 ? string.Join("\r\n", comps.ToArray()) : "— none selected —"));
+            y += 80;
+
+            var actions = new List<string>();
+            if (pinStartMenu) actions.Add("Start Menu folder \"" + Manifest.ProductName + "\"");
+            if (createDesktop) actions.Add("Desktop shortcut");
+            actions.Add("Add or Remove Programs entry");
+            if (launchAfter) actions.Add("Launch when finished");
+            content.Controls.Add(SummaryRow(0, y, "Will also create", string.Join("\r\n", actions.ToArray())));
+        }
+
+        Panel SummaryRow(int x, int y, string title, string value)
+        {
+            var p = new Panel
             {
-                Text = "Setup is ready to install " + Manifest.ProductName + ". Review the settings below and click Install to proceed.",
-                Location = new Point(20, 50),
-                Size = new Size(360, 40),
-                AutoSize = false,
-            });
-            content.Controls.Add(new Label
+                Location = new Point(x, y),
+                Size = new Size(460, value.Split('\n').Length * 18 + 30),
+                BackColor = Color.FromArgb(247, 249, 253),
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            p.Controls.Add(new Label
             {
-                Text = "Install location:",
-                Font = new Font("MS Sans Serif", 9F, FontStyle.Bold),
-                Location = new Point(20, 110),
+                Text = title,
+                Font = new Font(Font.FontFamily, 8F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(100, 110, 130),
+                Location = new Point(14, 8),
                 AutoSize = true,
             });
-            content.Controls.Add(new Label
+            p.Controls.Add(new Label
             {
-                Text = installDir,
-                Location = new Point(20, 128),
-                Size = new Size(360, 18),
+                Text = value,
+                ForeColor = Color.FromArgb(20, 30, 50),
+                Location = new Point(14, 24),
+                Size = new Size(430, p.Height - 26),
                 AutoSize = false,
+                Font = new Font(Font.FontFamily, 9F),
             });
-            content.Controls.Add(new Label
-            {
-                Text = "Will create:",
-                Font = new Font("MS Sans Serif", 9F, FontStyle.Bold),
-                Location = new Point(20, 160),
-                AutoSize = true,
-            });
-            var what = new StringBuilder();
-            what.AppendLine("  • Start Menu folder: " + Manifest.ProductName);
-            if (createDesktop) what.AppendLine("  • Desktop shortcut: KSYK Maps");
-            what.AppendLine("  • Uninstall entry in Add/Remove Programs");
-            content.Controls.Add(new Label
-            {
-                Text = what.ToString(),
-                Location = new Point(20, 180),
-                Size = new Size(360, 80),
-                AutoSize = false,
-            });
+            return p;
         }
 
         Label statusLine;
+        Label statusDetail;
         ProgressBar progress;
 
         void BuildInstall()
         {
-            banner.Text = "  Installing";
+            headerTitle.Text = "Installing";
+            headerSub.Text = "Setup is copying files and creating shortcuts. This takes a few seconds.";
             installing = true; installFailed = false; installError = "";
-            content.Controls.Add(new Label
+
+            // Install card — centred block with progress bar + animated status
+            var card = new Panel
             {
-                Text = "Please wait while Setup installs " + Manifest.ProductName + " on your computer.",
-                Location = new Point(20, 50),
-                Size = new Size(360, 40),
-                AutoSize = false,
+                Location = new Point(0, 24),
+                Size = new Size(460, 220),
+                BackColor = Color.FromArgb(247, 249, 253),
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            var accent = new Panel { Dock = DockStyle.Left, Width = 4, BackColor = Accent };
+            card.Controls.Add(accent);
+
+            var iconLbl = new Label
+            {
+                Text = "•",
+                Font = new Font(Font.FontFamily, 32F, FontStyle.Bold),
+                ForeColor = Accent,
+                Location = new Point(24, 18),
+                AutoSize = true,
+            };
+            card.Controls.Add(iconLbl);
+
+            card.Controls.Add(new Label
+            {
+                Text = "Installing " + Manifest.ProductName,
+                Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 35, 80),
+                Location = new Point(60, 26),
+                AutoSize = true,
             });
-            progress = new ProgressBar { Location = new Point(20, 110), Size = new Size(360, 22), Style = ProgressBarStyle.Continuous };
-            content.Controls.Add(progress);
-            statusLine = new Label { Location = new Point(20, 140), Size = new Size(360, 22), AutoSize = false };
-            content.Controls.Add(statusLine);
+
+            progress = new ProgressBar
+            {
+                Location = new Point(24, 90),
+                Size = new Size(420, 20),
+                Style = ProgressBarStyle.Continuous,
+            };
+            card.Controls.Add(progress);
+
+            statusLine = new Label
+            {
+                Location = new Point(24, 120),
+                Size = new Size(420, 20),
+                Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(30, 40, 60),
+                AutoSize = false,
+            };
+            card.Controls.Add(statusLine);
+
+            statusDetail = new Label
+            {
+                Location = new Point(24, 142),
+                Size = new Size(420, 40),
+                ForeColor = Color.FromArgb(100, 110, 130),
+                AutoSize = false,
+            };
+            card.Controls.Add(statusDetail);
+
+            content.Controls.Add(card);
 
             var t = new Thread(() => RunInstall());
             t.IsBackground = true;
@@ -410,42 +686,101 @@ namespace KsykSetup
 
         void BuildDone()
         {
-            banner.Text = installFailed ? "  Setup failed" : "  Setup complete";
             if (installFailed)
             {
-                content.Controls.Add(new Label
+                headerTitle.Text = "Setup failed";
+                headerSub.Text = "Something went wrong during installation.";
+
+                var card = new Panel
                 {
-                    Text = "The installation could not complete.",
-                    Font = new Font("MS Sans Serif", 10F, FontStyle.Bold),
-                    Location = new Point(20, 50),
+                    Location = new Point(0, 24),
+                    Size = new Size(460, 280),
+                    BackColor = Color.FromArgb(254, 242, 242),
+                    BorderStyle = BorderStyle.FixedSingle,
+                };
+                var accent = new Panel { Dock = DockStyle.Left, Width = 4, BackColor = Color.FromArgb(220, 38, 38) };
+                card.Controls.Add(accent);
+                card.Controls.Add(new Label
+                {
+                    Text = "✕",
+                    Font = new Font(Font.FontFamily, 32F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(220, 38, 38),
+                    Location = new Point(24, 14),
                     AutoSize = true,
                 });
-                content.Controls.Add(new Label
+                card.Controls.Add(new Label
+                {
+                    Text = "Installation could not complete",
+                    Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(80, 14, 14),
+                    Location = new Point(64, 24),
+                    AutoSize = true,
+                });
+                card.Controls.Add(new Label
                 {
                     Text = installError,
-                    Location = new Point(20, 90),
-                    Size = new Size(360, 200),
+                    Location = new Point(24, 80),
+                    Size = new Size(420, 180),
+                    ForeColor = Color.FromArgb(60, 10, 10),
+                    Font = new Font("Consolas", 8.5F),
                     AutoSize = false,
-                    ForeColor = Color.Maroon,
                 });
+                content.Controls.Add(card);
             }
             else
             {
-                content.Controls.Add(new Label
+                headerTitle.Text = "All set";
+                headerSub.Text = "Setup finished successfully.";
+
+                var card = new Panel
                 {
-                    Text = "Thank you for installing " + Manifest.ProductName + " " + Manifest.Version + ".",
-                    Font = new Font("MS Sans Serif", 10F, FontStyle.Bold),
-                    Location = new Point(20, 50),
+                    Location = new Point(0, 24),
+                    Size = new Size(460, 280),
+                    BackColor = Color.FromArgb(240, 253, 244),
+                    BorderStyle = BorderStyle.FixedSingle,
+                };
+                var accent = new Panel { Dock = DockStyle.Left, Width = 4, BackColor = Color.FromArgb(34, 197, 94) };
+                card.Controls.Add(accent);
+                card.Controls.Add(new Label
+                {
+                    Text = "✓",
+                    Font = new Font(Font.FontFamily, 32F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(34, 197, 94),
+                    Location = new Point(24, 14),
                     AutoSize = true,
                 });
-                content.Controls.Add(new Label
+                card.Controls.Add(new Label
                 {
-                    Text = "Click Finish to exit the wizard. You can launch the apps from "
-                         + "the Start Menu" + (createDesktop ? " or the desktop shortcut." : "."),
-                    Location = new Point(20, 90),
-                    Size = new Size(360, 50),
+                    Text = Manifest.ProductName + " is installed",
+                    Font = new Font(Font.FontFamily, 14F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(15, 90, 50),
+                    Location = new Point(64, 22),
+                    AutoSize = true,
+                });
+                card.Controls.Add(new Label
+                {
+                    Text = "Version " + Manifest.Version,
+                    Location = new Point(64, 50),
+                    ForeColor = Color.FromArgb(80, 110, 90),
+                    AutoSize = true,
+                });
+
+                var bullets = new StringBuilder();
+                bullets.AppendLine("• Find the apps in the Start Menu (search “KSYK”).");
+                if (createDesktop)
+                    bullets.AppendLine("• A desktop shortcut was created.");
+                bullets.AppendLine("• Uninstall from Add or Remove Programs at any time.");
+                card.Controls.Add(new Label
+                {
+                    Text = bullets.ToString(),
+                    Location = new Point(24, 100),
+                    Size = new Size(420, 120),
+                    ForeColor = Color.FromArgb(30, 80, 50),
+                    Font = new Font(Font.FontFamily, 9.5F),
                     AutoSize = false,
                 });
+
+                content.Controls.Add(card);
             }
         }
 
@@ -458,13 +793,29 @@ namespace KsykSetup
                 installDir = txtDir.Text.Trim();
                 createDesktop = cbDesktop.Checked;
                 launchAfter = cbLaunch.Checked;
-                if (installDir.Length == 0) { MessageBox.Show("Install location is required.", "Setup"); return; }
+                pinStartMenu = cbStartMenu.Checked;
+                installAdmin = cbInstallAdmin.Checked;
+                installQuick = cbInstallQuick.Checked;
+                if (installDir.Length == 0)
+                {
+                    MessageBox.Show("Install location is required.", "Setup");
+                    return;
+                }
+                if (!installAdmin && !installQuick)
+                {
+                    MessageBox.Show("Select at least one component to install.", "Setup");
+                    return;
+                }
             }
             if (page == 4)
             {
-                if (!installFailed && launchAfter)
+                if (!installFailed && launchAfter && installQuick)
                 {
                     try { Process.Start(Path.Combine(installDir, "KSYK-Maps-Quick.exe")); } catch { }
+                }
+                else if (!installFailed && launchAfter && installAdmin)
+                {
+                    try { Process.Start(Path.Combine(installDir, "KSYK-Maps-Admin.exe")); } catch { }
                 }
                 Close();
                 return;
@@ -491,32 +842,44 @@ namespace KsykSetup
         {
             try
             {
-                Step(5, "Creating install folder...");
+                Step(5, "Preparing", "Creating install folder " + installDir);
                 if (!Directory.Exists(installDir)) Directory.CreateDirectory(installDir);
 
-                Step(15, "Extracting application files...");
-                int written = 0;
+                var picked = new List<Payload>();
                 foreach (var p in Manifest.Apps)
                 {
-                    ExtractResource(p.ResourceName, Path.Combine(installDir, p.ExeName));
-                    written++;
-                    Step(15 + (written * 25), "Installed " + p.ExeName);
+                    if (p.ResourceName == "KSYK-Maps-Admin.exe" && !installAdmin) continue;
+                    if (p.ResourceName == "KSYK-Maps-Quick.exe" && !installQuick) continue;
+                    picked.Add(p);
                 }
 
-                Step(70, "Writing uninstaller...");
+                int written = 0;
+                foreach (var p in picked)
+                {
+                    Step(15 + (written * 50 / Math.Max(1, picked.Count)),
+                         "Extracting application files",
+                         "Installing " + p.ShortcutName);
+                    ExtractResource(p.ResourceName, Path.Combine(installDir, p.ExeName));
+                    written++;
+                }
+
+                Step(70, "Writing uninstaller", "Uninstall.exe");
                 var unPath = Path.Combine(installDir, "Uninstall.exe");
-                // We re-use Setup.exe as the uninstaller; passing /uninstall flips
-                // it into uninstall mode. Copying it keeps Add/Remove Programs
-                // working after the user moves or deletes the original.
                 File.Copy(Assembly.GetExecutingAssembly().Location, unPath, true);
 
-                Step(80, "Creating shortcuts...");
-                CreateAllShortcuts();
+                if (pinStartMenu || createDesktop)
+                {
+                    Step(80, "Creating shortcuts",
+                         (pinStartMenu ? "Start Menu" : "")
+                         + (pinStartMenu && createDesktop ? " + " : "")
+                         + (createDesktop ? "desktop" : ""));
+                    CreateAllShortcuts();
+                }
 
-                Step(90, "Registering in Add/Remove Programs...");
+                Step(90, "Registering", "Adding entry to Add or Remove Programs");
                 RegisterUninstall(unPath);
 
-                Step(100, "Done.");
+                Step(100, "Done", "Installation complete.");
             }
             catch (Exception ex)
             {
@@ -530,12 +893,13 @@ namespace KsykSetup
             }
         }
 
-        void Step(int pct, string text)
+        void Step(int pct, string title, string detail)
         {
             BeginInvoke((Action)(() =>
             {
                 if (progress != null) progress.Value = Math.Min(100, pct);
-                if (statusLine != null) statusLine.Text = text;
+                if (statusLine != null) statusLine.Text = title;
+                if (statusDetail != null) statusDetail.Text = detail;
             }));
         }
 
@@ -552,20 +916,24 @@ namespace KsykSetup
 
         void CreateAllShortcuts()
         {
-            var smDir = Paths.StartMenuDir;
-            if (!Directory.Exists(smDir)) Directory.CreateDirectory(smDir);
-
-            foreach (var p in Manifest.Apps)
+            if (pinStartMenu)
             {
-                var target = Path.Combine(installDir, p.ExeName);
-                Shortcuts.Create(Path.Combine(smDir, p.ShortcutName + ".lnk"),
-                                  target, p.ShortcutName, target);
+                var smDir = Paths.StartMenuDir;
+                if (!Directory.Exists(smDir)) Directory.CreateDirectory(smDir);
+
+                foreach (var p in Manifest.Apps)
+                {
+                    if (p.ResourceName == "KSYK-Maps-Admin.exe" && !installAdmin) continue;
+                    if (p.ResourceName == "KSYK-Maps-Quick.exe" && !installQuick) continue;
+                    var target = Path.Combine(installDir, p.ExeName);
+                    Shortcuts.Create(Path.Combine(smDir, p.ShortcutName + ".lnk"),
+                                      target, p.ShortcutName, target);
+                }
+                Shortcuts.Create(Path.Combine(smDir, "Uninstall " + Manifest.ProductName + ".lnk"),
+                                  Path.Combine(installDir, "Uninstall.exe"),
+                                  "Uninstall " + Manifest.ProductName,
+                                  Path.Combine(installDir, "Uninstall.exe"));
             }
-            // Uninstall shortcut in Start Menu
-            Shortcuts.Create(Path.Combine(smDir, "Uninstall " + Manifest.ProductName + ".lnk"),
-                              Path.Combine(installDir, "Uninstall.exe"),
-                              "Uninstall " + Manifest.ProductName,
-                              Path.Combine(installDir, "Uninstall.exe"));
 
             // Desktop shortcut points at the student utility — the most common
             // launch surface; admins know how to find the admin app.

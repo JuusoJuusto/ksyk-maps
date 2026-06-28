@@ -27,26 +27,71 @@ namespace KsykAdmin
 {
     // ── Tiny HTTP/JSON wrapper ─────────────────────────────────────────
 
+    /// <summary>
+    /// HTTP / JSON helper used by every API panel. Carries the auth token
+    /// across requests, mimics a real Chrome browser so Cloudflare's bot
+    /// fight doesn't 429 us, and translates non-2xx + JSON-shaped errors
+    /// into a single <see cref="ApiException"/> the panels can render.
+    /// </summary>
     public static class Api
     {
         public static string Base = "https://ksykmaps.fi/api";
+        public static string SessionEmail = "";
+        public static string SessionPassword = "";
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
+
+        // Modern Chrome on Win10 — Cloudflare Bot Fight Mode whitelists the
+        // exact UA pattern + sec-fetch headers a real Chromium sends.
+        const string ChromeUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                              + "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
         static Api()
         {
             Json.MaxJsonLength = int.MaxValue;
             // TLS 1.2 — .NET 4.0 default is SSL3/TLS1.0 which Cloudflare rejects.
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072
+                                                 | (SecurityProtocolType)12288;  // TLS 1.3 if available
+            ServicePointManager.DefaultConnectionLimit = 16;
         }
 
-        public static object Request(string path, string method = "GET", object body = null, int timeoutMs = 15000)
+        public static object Request(string path, string method = "GET", object body = null, int timeoutMs = 20000)
+        {
+            return RequestRaw(path, method, body, timeoutMs, false);
+        }
+
+        /// <summary>Returns null on 404 instead of throwing — for optional endpoints.</summary>
+        public static object RequestOrNull(string path)
+        {
+            try { return RequestRaw(path, "GET", null, 12000, false); }
+            catch (ApiException e)
+            {
+                if (e.StatusCode == 404 || e.StatusCode == 0) return null;
+                return null;
+            }
+            catch { return null; }
+        }
+
+        static object RequestRaw(string path, string method, object body, int timeoutMs, bool isRetry)
         {
             var req = (HttpWebRequest)WebRequest.Create(Base + path);
             req.Method = method;
-            req.Accept = "application/json";
-            req.UserAgent = "KSYK-Maps-Admin/1.0 (native)";
+            req.Accept = "application/json, text/plain, */*";
+            req.UserAgent = ChromeUA;
             req.Timeout = timeoutMs;
             req.ReadWriteTimeout = timeoutMs;
+            req.KeepAlive = true;
+            // Browser-like headers to defeat over-eager bot detection.
+            req.Headers.Add("Accept-Language", "en-US,en;q=0.9,fi;q=0.8");
+            req.Headers.Add("sec-ch-ua", "\"Chromium\";v=\"130\", \"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"130\"");
+            req.Headers.Add("sec-ch-ua-mobile", "?0");
+            req.Headers.Add("sec-ch-ua-platform", "\"Windows\"");
+            req.Headers.Add("Sec-Fetch-Site", "same-origin");
+            req.Headers.Add("Sec-Fetch-Mode", "cors");
+            req.Headers.Add("Sec-Fetch-Dest", "empty");
+            req.Referer = "https://ksykmaps.fi/admin";
+            // Custom client tag the user can pin a Cloudflare WAF allow-rule
+            // to ("if header X-KSYK-Client present → skip Bot Fight").
+            req.Headers.Add("X-KSYK-Client", "KSYK-Maps-Admin/1.0");
 
             if (body != null)
             {
@@ -68,13 +113,36 @@ namespace KsykAdmin
             }
             catch (WebException ex)
             {
-                string body2 = "";
-                if (ex.Response != null)
+                int status = 0;
+                string raw = "";
+                var hr = ex.Response as HttpWebResponse;
+                if (hr != null)
                 {
-                    using (var sr = new StreamReader(ex.Response.GetResponseStream()))
-                        body2 = sr.ReadToEnd();
+                    status = (int)hr.StatusCode;
+                    try { using (var sr = new StreamReader(ex.Response.GetResponseStream())) raw = sr.ReadToEnd(); }
+                    catch { }
                 }
-                throw new Exception(ex.Message + (body2.Length > 0 ? ": " + body2 : ""));
+
+                // 429 from Cloudflare: pause and retry once with a small backoff.
+                if (status == 429 && !isRetry)
+                {
+                    Thread.Sleep(1500);
+                    return RequestRaw(path, method, body, timeoutMs, true);
+                }
+
+                // Try to surface the server's message field if it's JSON.
+                string nice = ex.Message;
+                if (raw.Length > 0)
+                {
+                    try
+                    {
+                        var parsed = Json.DeserializeObject(raw) as IDictionary<string, object>;
+                        if (parsed != null && parsed.ContainsKey("message"))
+                            nice = parsed["message"].ToString();
+                    }
+                    catch { /* not JSON; fall back to message */ }
+                }
+                throw new ApiException(status, nice, raw);
             }
         }
 
@@ -92,6 +160,46 @@ namespace KsykAdmin
             var d = o as IDictionary<string, object>;
             if (d == null || !d.ContainsKey(key) || d[key] == null) return 0;
             try { return Convert.ToInt32(d[key]); } catch { return 0; }
+        }
+
+        /// <summary>Friendly error message, including hints for common Cloudflare blocks.</summary>
+        public static string Friendly(Exception ex)
+        {
+            var ae = ex as ApiException;
+            if (ae == null) return ex.Message;
+            switch (ae.StatusCode)
+            {
+                case 429:
+                    return "Server is rate-limiting requests (429). Wait a moment and try again. "
+                         + "If this keeps happening, add a Cloudflare WAF allow-rule for header X-KSYK-Client.";
+                case 404:
+                    return "Endpoint not deployed (404). Production might be running an older API build.";
+                case 401:
+                    return "Not signed in (401). Re-open the app to sign in.";
+                case 403:
+                    return "Forbidden (403). Your account doesn't have permission for this action.";
+                case 500:
+                case 502:
+                case 503:
+                case 504:
+                    return "Server error (" + ae.StatusCode + "). Try again in a moment.";
+                case 0:
+                    return "Couldn't reach the server. Check your internet connection.";
+                default:
+                    return ae.Message;
+            }
+        }
+    }
+
+    /// <summary>Carries the HTTP status code so panels can branch on it.</summary>
+    public class ApiException : Exception
+    {
+        public int StatusCode { get; private set; }
+        public string RawBody { get; private set; }
+        public ApiException(int status, string message, string raw) : base(message)
+        {
+            StatusCode = status;
+            RawBody = raw;
         }
     }
 
@@ -209,6 +317,8 @@ namespace KsykAdmin
                         {
                             AuthenticatedUser = result["user"] as IDictionary<string, object>
                                               ?? new Dictionary<string, object> { { "email", email } };
+                            Api.SessionEmail = email;
+                            Api.SessionPassword = password;
                             DialogResult = DialogResult.OK;
                             Close();
                         }
@@ -225,7 +335,7 @@ namespace KsykAdmin
                     Invoke((Action)(() =>
                     {
                         btnSignIn.Enabled = true;
-                        lblStatus.Text = ex.Message;
+                        lblStatus.Text = Api.Friendly(ex);
                         lblStatus.ForeColor = Color.Maroon;
                     }));
                 }
@@ -358,7 +468,7 @@ namespace KsykAdmin
                 {
                     BeginInvoke((Action)(() =>
                     {
-                        lblStatus.Text = ex.Message;
+                        lblStatus.Text = Api.Friendly(ex);
                         lblStatus.ForeColor = Color.Maroon;
                     }));
                 }
@@ -440,7 +550,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = ex.Message; lblStatus.ForeColor = Color.Maroon; }));
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
                 }
             });
             t.IsBackground = true;
@@ -462,7 +572,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = ex.Message; lblStatus.ForeColor = Color.Maroon; }));
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
                 }
             });
             t.IsBackground = true;
@@ -492,7 +602,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = ex.Message; lblStatus.ForeColor = Color.Maroon; }));
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
                 }
             });
             t.IsBackground = true;
@@ -568,7 +678,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => MessageBox.Show(ex.Message, "API error",
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "API error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error)));
                 }
             });
@@ -626,7 +736,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => MessageBox.Show(ex.Message, "API error",
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "API error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error)));
                 }
             });
@@ -754,7 +864,7 @@ namespace KsykAdmin
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => MessageBox.Show(ex.Message, "API error",
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "API error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error)));
                 }
             });
@@ -792,29 +902,51 @@ namespace KsykAdmin
         }
     }
 
-    // ── WiFi scan tab ──────────────────────────────────────────────────
+    // ── Beacon Survey tab ──────────────────────────────────────────────
+    //
+    // Combines a native WiFi scan (`netsh wlan show networks mode=bssid`)
+    // with the per-room beacon survey storage at /api/beacons/:roomId/positions.
+    // The whole flow that used to need pasting between a phone tool and the
+    // web BeaconSurveyor is now one panel:
+    //   1. Pick a room from the left list
+    //   2. Pick a position label (NW corner, doorway, centre, ...)
+    //   3. Click Scan — every BSSID in range is listed
+    //   4. Click Save position — uploads to Firestore via the API
 
     public class WifiPanel : UserControl
     {
-        readonly ListView list = new ListView();
+        readonly ListView roomList = new ListView();
+        readonly ListView netList = new ListView();
         readonly Label lblStatus = new Label();
-        List<string[]> rows = new List<string[]>();
+        readonly TextBox txtSearch = new TextBox();
+        readonly ComboBox cmbPosition = new ComboBox();
+        readonly Button btnScan = new Button();
+        readonly Button btnSave = new Button();
+        readonly Button btnCopy = new Button();
+        readonly Button btnRoomReload = new Button();
+        readonly ListView positionsList = new ListView();
+
+        List<IDictionary<string, object>> rooms = new List<IDictionary<string, object>>();
+        List<string[]> scanRows = new List<string[]>();
+        IDictionary<string, object> selectedRoom;
+
+        static readonly string[] PositionLabels = new[]
+        {
+            "Corner NW", "Corner NE", "Corner SW", "Corner SE",
+            "Centre", "Doorway", "Window side", "Whiteboard", "Other",
+        };
 
         public WifiPanel()
         {
             BackColor = SystemColors.Control;
             Dock = DockStyle.Fill;
 
-            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
-            tb.Controls.Add(new Label { Text = "WiFi scan (for beacon survey)", Location = new Point(8, 10), AutoSize = true });
-            var btnScan = new Button { Text = "Scan", Location = new Point(200, 6), Size = new Size(75, 24) };
-            btnScan.Click += (s, e) => Scan();
-            tb.Controls.Add(btnScan);
-            var btnCopy = new Button { Text = "Copy", Location = new Point(280, 6), Size = new Size(75, 24) };
-            btnCopy.Click += (s, e) => Copy();
-            tb.Controls.Add(btnCopy);
+            // Toolbar
+            var tb = new Panel { Dock = DockStyle.Top, Height = 38, BackColor = SystemColors.Control };
+            tb.Controls.Add(new Label { Text = "Beacon survey — pick a room, scan, save.", Location = new Point(10, 12), AutoSize = true });
             Controls.Add(tb);
 
+            // Status bar
             lblStatus.Dock = DockStyle.Bottom;
             lblStatus.Height = 22;
             lblStatus.TextAlign = ContentAlignment.MiddleLeft;
@@ -823,45 +955,253 @@ namespace KsykAdmin
             lblStatus.Text = "Idle.";
             Controls.Add(lblStatus);
 
-            list.View = View.Details;
-            list.FullRowSelect = true;
-            list.GridLines = true;
-            list.Dock = DockStyle.Fill;
-            list.Columns.Add("SSID", 220);
-            list.Columns.Add("BSSID", 160);
-            list.Columns.Add("RSSI (dBm)", 90);
-            list.Columns.Add("Signal", 80);
-            Controls.Add(list);
-            list.BringToFront();
+            // Split: rooms (left) | scan (centre) | positions (right)
+            var split1 = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterDistance = 260,
+                FixedPanel = FixedPanel.Panel1,
+            };
+            Controls.Add(split1);
+            split1.BringToFront();
+
+            // ── Rooms list (left) ───────────────────────────────────
+            var leftPanel = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
+            split1.Panel1.Controls.Add(leftPanel);
+
+            var roomBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = SystemColors.Control };
+            roomBar.Controls.Add(new Label { Text = "Room:", Location = new Point(0, 6), AutoSize = true });
+            txtSearch.Location = new Point(48, 4);
+            txtSearch.Size = new Size(160, 22);
+            txtSearch.TextChanged += (s, e) => RenderRoomList();
+            roomBar.Controls.Add(txtSearch);
+            btnRoomReload.Text = "↻";
+            btnRoomReload.Size = new Size(26, 22);
+            btnRoomReload.Location = new Point(212, 3);
+            btnRoomReload.Click += (s, e) => LoadRooms();
+            roomBar.Controls.Add(btnRoomReload);
+            leftPanel.Controls.Add(roomBar);
+            roomBar.BringToFront();
+
+            roomList.View = View.Details;
+            roomList.FullRowSelect = true;
+            roomList.GridLines = true;
+            roomList.HideSelection = false;
+            roomList.MultiSelect = false;
+            roomList.Dock = DockStyle.Fill;
+            roomList.Columns.Add("Number", 60);
+            roomList.Columns.Add("Name", 130);
+            roomList.Columns.Add("F", 30);
+            roomList.SelectedIndexChanged += (s, e) => OnRoomPicked();
+            leftPanel.Controls.Add(roomList);
+            roomList.BringToFront();
+
+            // ── Scan + positions (right of room list) ──────────────
+            var split2 = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterDistance = 460,
+            };
+            split1.Panel2.Controls.Add(split2);
+
+            // Middle column: scan controls + results
+            var mid = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
+            split2.Panel1.Controls.Add(mid);
+
+            var midBar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
+            midBar.Controls.Add(new Label { Text = "Position:", Location = new Point(0, 8), AutoSize = true });
+            cmbPosition.Location = new Point(60, 5);
+            cmbPosition.Size = new Size(140, 22);
+            cmbPosition.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var l in PositionLabels) cmbPosition.Items.Add(l);
+            cmbPosition.SelectedIndex = 0;
+            midBar.Controls.Add(cmbPosition);
+            btnScan.Text = "Scan WiFi";
+            btnScan.Size = new Size(80, 24);
+            btnScan.Location = new Point(210, 4);
+            btnScan.Click += (s, e) => Scan();
+            midBar.Controls.Add(btnScan);
+            btnSave.Text = "Save position";
+            btnSave.Size = new Size(95, 24);
+            btnSave.Location = new Point(296, 4);
+            btnSave.Click += (s, e) => SavePosition();
+            midBar.Controls.Add(btnSave);
+            btnCopy.Text = "Copy";
+            btnCopy.Size = new Size(50, 24);
+            btnCopy.Location = new Point(397, 4);
+            btnCopy.Click += (s, e) => CopyToClipboard();
+            midBar.Controls.Add(btnCopy);
+            mid.Controls.Add(midBar);
+            midBar.BringToFront();
+
+            netList.View = View.Details;
+            netList.FullRowSelect = true;
+            netList.GridLines = true;
+            netList.Dock = DockStyle.Fill;
+            netList.Columns.Add("SSID", 200);
+            netList.Columns.Add("BSSID", 160);
+            netList.Columns.Add("RSSI", 80);
+            netList.Columns.Add("Signal", 80);
+            mid.Controls.Add(netList);
+            netList.BringToFront();
+
+            // Right column: existing survey positions for the picked room
+            var right = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(6) };
+            split2.Panel2.Controls.Add(right);
+
+            var posBar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
+            posBar.Controls.Add(new Label { Text = "Saved positions:", Location = new Point(0, 8), AutoSize = true });
+            var btnDel = new Button { Text = "Delete", Size = new Size(60, 24), Location = new Point(140, 4) };
+            btnDel.Click += (s, e) => DeleteSelectedPosition();
+            posBar.Controls.Add(btnDel);
+            right.Controls.Add(posBar);
+            posBar.BringToFront();
+
+            positionsList.View = View.Details;
+            positionsList.FullRowSelect = true;
+            positionsList.GridLines = true;
+            positionsList.Dock = DockStyle.Fill;
+            positionsList.Columns.Add("Position", 110);
+            positionsList.Columns.Add("Readings", 70);
+            positionsList.Columns.Add("Captured", 110);
+            right.Controls.Add(positionsList);
+            positionsList.BringToFront();
+
+            LoadRooms();
+        }
+
+        void LoadRooms()
+        {
+            lblStatus.Text = "Loading rooms..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/rooms") as object[];
+                    rooms = new List<IDictionary<string, object>>();
+                    if (data != null) foreach (var r in data) rooms.Add(r as IDictionary<string, object>);
+                    Session.CachedRooms = data == null ? new List<object>() : new List<object>(data);
+                    BeginInvoke((Action)(() => { RenderRoomList(); lblStatus.Text = rooms.Count + " rooms"; lblStatus.ForeColor = SystemColors.GrayText; }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void RenderRoomList()
+        {
+            var q = txtSearch.Text.Trim().ToLower();
+            roomList.BeginUpdate();
+            roomList.Items.Clear();
+            var filtered = new List<IDictionary<string, object>>();
+            foreach (var r in rooms)
+            {
+                if (q.Length > 0)
+                {
+                    var num = Api.Str(r, "roomNumber").ToLower();
+                    var nm = Api.Str(r, "name").ToLower();
+                    if (!num.Contains(q) && !nm.Contains(q)) continue;
+                }
+                filtered.Add(r);
+            }
+            filtered.Sort((a, b) => string.Compare(Api.Str(a, "roomNumber"), Api.Str(b, "roomNumber"), StringComparison.Ordinal));
+            foreach (var r in filtered)
+            {
+                var item = new ListViewItem(new[]
+                {
+                    Api.Str(r, "roomNumber"),
+                    Api.Str(r, "name"),
+                    Api.Int(r, "floor").ToString(),
+                });
+                item.Tag = Api.Str(r, "id");
+                roomList.Items.Add(item);
+            }
+            roomList.EndUpdate();
+        }
+
+        void OnRoomPicked()
+        {
+            if (roomList.SelectedItems.Count == 0) return;
+            var id = roomList.SelectedItems[0].Tag as string;
+            selectedRoom = rooms.Find(r => Api.Str(r, "id") == id);
+            LoadPositions(id);
+        }
+
+        void LoadPositions(string roomId)
+        {
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.RequestOrNull("/beacons/" + roomId + "/positions") as object[];
+                    BeginInvoke((Action)(() =>
+                    {
+                        positionsList.BeginUpdate();
+                        positionsList.Items.Clear();
+                        if (data != null) foreach (var d in data)
+                        {
+                            var dd = d as IDictionary<string, object>;
+                            var captured = Api.Str(dd, "capturedAt");
+                            if (captured.Length > 19) captured = captured.Substring(0, 19).Replace("T", " ");
+                            var readingsArr = dd != null && dd.ContainsKey("readings") ? dd["readings"] as object[] : null;
+                            var item = new ListViewItem(new[]
+                            {
+                                Api.Str(dd, "positionLabel"),
+                                (readingsArr != null ? readingsArr.Length : 0).ToString(),
+                                captured,
+                            });
+                            item.Tag = Api.Str(dd, "id");
+                            positionsList.Items.Add(item);
+                        }
+                        positionsList.EndUpdate();
+                    }));
+                }
+                catch { /* no-op — endpoint may be missing */ }
+            }) { IsBackground = true }.Start();
         }
 
         void Scan()
         {
-            lblStatus.Text = "Scanning...";
-            lblStatus.ForeColor = Color.Navy;
-            var t = new Thread(() =>
+            lblStatus.Text = "Scanning all access points..."; lblStatus.ForeColor = Color.Navy;
+            btnScan.Enabled = false;
+
+            new Thread(() =>
             {
                 try
                 {
+                    // Ask Windows to refresh the scan list first; otherwise
+                    // netsh returns stale results that may have missed APs.
+                    try
+                    {
+                        var refreshPsi = new ProcessStartInfo("netsh", "wlan disconnect")
+                        {
+                            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true,
+                        };
+                        // skip — disconnecting is rude. Just do the scan.
+                    } catch { }
+
                     var psi = new ProcessStartInfo("netsh", "wlan show networks mode=bssid")
                     {
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         CreateNoWindow = true,
+                        StandardOutputEncoding = Encoding.UTF8,
                     };
                     var p = Process.Start(psi);
                     var output = p.StandardOutput.ReadToEnd();
                     p.WaitForExit(15000);
                     var parsed = Parse(output);
-                    BeginInvoke((Action)(() => Render(parsed)));
+                    BeginInvoke((Action)(() => { Render(parsed); btnScan.Enabled = true; }));
                 }
                 catch (Exception ex)
                 {
-                    BeginInvoke((Action)(() => { lblStatus.Text = ex.Message; lblStatus.ForeColor = Color.Maroon; }));
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; btnScan.Enabled = true; }));
                 }
-            });
-            t.IsBackground = true;
-            t.Start();
+            }) { IsBackground = true }.Start();
         }
 
         List<string[]> Parse(string text)
@@ -875,7 +1215,7 @@ namespace KsykAdmin
                 if (bssid.Length > 0)
                 {
                     int rssi = (int)Math.Round(-100 + signal * 0.5);
-                    nets.Add(new[] { ssid, bssid, rssi.ToString() + " dBm", signal + "%" });
+                    nets.Add(new[] { ssid, bssid, rssi.ToString(), signal.ToString() });
                 }
                 bssid = ""; signal = 0;
             };
@@ -891,41 +1231,103 @@ namespace KsykAdmin
                 if (m.Success && bssid.Length > 0) signal = int.Parse(m.Groups[1].Value);
             }
             flush();
-            nets.Sort((a, b) =>
-            {
-                int sa = int.Parse(a[3].TrimEnd('%'));
-                int sb = int.Parse(b[3].TrimEnd('%'));
-                return sb - sa;
-            });
+            nets.Sort((a, b) => int.Parse(b[3]) - int.Parse(a[3]));
             return nets;
         }
 
         void Render(List<string[]> nets)
         {
-            rows = nets;
-            list.BeginUpdate();
-            list.Items.Clear();
+            scanRows = nets;
+            netList.BeginUpdate();
+            netList.Items.Clear();
             foreach (var r in nets)
             {
-                var lvi = new ListViewItem(new[] { r[0].Length > 0 ? r[0] : "(hidden)", r[1], r[2], r[3] });
-                list.Items.Add(lvi);
+                var lvi = new ListViewItem(new[]
+                {
+                    r[0].Length > 0 ? r[0] : "(hidden)", r[1], r[2] + " dBm", r[3] + "%"
+                });
+                netList.Items.Add(lvi);
             }
-            list.EndUpdate();
-            lblStatus.Text = string.Format("Found {0} BSSID(s). Use Copy to paste into BeaconSurveyor at ksykmaps.fi/admin/beacons.", nets.Count);
-            lblStatus.ForeColor = Color.Green;
+            netList.EndUpdate();
+            lblStatus.Text = "Found " + nets.Count + " BSSID(s). " +
+                (selectedRoom == null ? "Pick a room first, then Save position." : "Click Save position to upload.");
+            lblStatus.ForeColor = nets.Count > 0 ? Color.Green : Color.Maroon;
         }
 
-        void Copy()
+        void SavePosition()
         {
-            if (rows.Count == 0) return;
-            var sb = new StringBuilder();
-            foreach (var r in rows)
+            if (selectedRoom == null) { MessageBox.Show("Pick a room first.", "Save position"); return; }
+            if (scanRows.Count == 0)  { MessageBox.Show("Scan WiFi first.", "Save position"); return; }
+
+            var readings = new List<object>();
+            foreach (var r in scanRows)
             {
-                int rssi = int.Parse(r[2].Split(' ')[0]);
-                sb.AppendLine(string.Format("{0} {1} {2}", r[1], rssi, r[0]).Trim());
+                readings.Add(new Dictionary<string, object>
+                {
+                    { "bssid", r[1] },
+                    { "rssi", int.Parse(r[2]) },
+                    { "ssid", r[0] },
+                });
             }
+            var body = new Dictionary<string, object>
+            {
+                { "positionLabel", cmbPosition.SelectedItem.ToString() },
+                { "capturedAt", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                { "readings", readings },
+            };
+            var roomId = Api.Str(selectedRoom, "id");
+            lblStatus.Text = "Saving position..."; lblStatus.ForeColor = Color.Navy;
+            btnSave.Enabled = false;
+
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/beacons/" + roomId + "/positions", "POST", body);
+                    BeginInvoke((Action)(() =>
+                    {
+                        lblStatus.Text = "Position saved.";
+                        lblStatus.ForeColor = Color.Green;
+                        btnSave.Enabled = true;
+                        LoadPositions(roomId);
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; btnSave.Enabled = true; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void DeleteSelectedPosition()
+        {
+            if (positionsList.SelectedItems.Count == 0 || selectedRoom == null) return;
+            var posId = positionsList.SelectedItems[0].Tag as string;
+            var roomId = Api.Str(selectedRoom, "id");
+            if (MessageBox.Show("Delete this saved position?", "Confirm",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/beacons/" + roomId + "/positions/" + posId, "DELETE");
+                    BeginInvoke((Action)(() => LoadPositions(roomId)));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete position")));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void CopyToClipboard()
+        {
+            if (scanRows.Count == 0) return;
+            var sb = new StringBuilder();
+            foreach (var r in scanRows)
+                sb.AppendLine(r[1] + " " + r[2] + " " + r[0]);
             Clipboard.SetText(sb.ToString());
-            lblStatus.Text = "Copied " + rows.Count + " line(s) to clipboard.";
+            lblStatus.Text = "Copied " + scanRows.Count + " line(s) to clipboard.";
             lblStatus.ForeColor = Color.Green;
         }
     }
@@ -986,9 +1388,536 @@ namespace KsykAdmin
             }
             catch (Exception ex)
             {
-                sb.AppendLine("ERROR — " + ex.Message);
+                sb.AppendLine("ERROR — " + Api.Friendly(ex));
             }
             sb.AppendLine();
+        }
+    }
+
+    // ── Users tab ──────────────────────────────────────────────────────
+    //
+    // Admin user CRUD via /api/users. Lists every admin/owner account,
+    // lets you create new ones (with the "email password" flow that uses
+    // the existing email service), and delete accounts.
+
+    public class UsersPanel : UserControl
+    {
+        readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+        List<IDictionary<string, object>> users = new List<IDictionary<string, object>>();
+
+        public UsersPanel()
+        {
+            BackColor = SystemColors.Control;
+            Dock = DockStyle.Fill;
+
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "Admin user accounts", Location = new Point(8, 10), AutoSize = true });
+            var btnReload = new Button { Text = "Reload", Location = new Point(150, 6), Size = new Size(75, 24) };
+            btnReload.Click += (s, e) => Reload();
+            tb.Controls.Add(btnReload);
+            var btnNew = new Button { Text = "Create user", Location = new Point(230, 6), Size = new Size(95, 24) };
+            btnNew.Click += (s, e) => CreateUser();
+            tb.Controls.Add(btnNew);
+            var btnDel = new Button { Text = "Delete selected", Location = new Point(330, 6), Size = new Size(110, 24) };
+            btnDel.Click += (s, e) => DeleteSelected();
+            tb.Controls.Add(btnDel);
+            Controls.Add(tb);
+
+            lblStatus.Dock = DockStyle.Bottom;
+            lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText;
+            Controls.Add(lblStatus);
+
+            list.View = View.Details;
+            list.FullRowSelect = true;
+            list.GridLines = true;
+            list.Dock = DockStyle.Fill;
+            list.Columns.Add("Email", 280);
+            list.Columns.Add("Name", 200);
+            list.Columns.Add("Role", 90);
+            list.Columns.Add("ID", 240);
+            Controls.Add(list);
+            list.BringToFront();
+
+            Reload();
+        }
+
+        void Reload()
+        {
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/users") as object[];
+                    users = new List<IDictionary<string, object>>();
+                    if (data != null) foreach (var u in data) users.Add(u as IDictionary<string, object>);
+                    BeginInvoke((Action)(() => { Render(); lblStatus.Text = users.Count + " user(s)"; lblStatus.ForeColor = SystemColors.GrayText; }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Render()
+        {
+            list.BeginUpdate();
+            list.Items.Clear();
+            foreach (var u in users)
+            {
+                var fn = Api.Str(u, "firstName");
+                var ln = Api.Str(u, "lastName");
+                var name = (fn + " " + ln).Trim();
+                var item = new ListViewItem(new[]
+                {
+                    Api.Str(u, "email"),
+                    name.Length > 0 ? name : "—",
+                    Api.Str(u, "role"),
+                    Api.Str(u, "id"),
+                });
+                item.Tag = Api.Str(u, "id");
+                list.Items.Add(item);
+            }
+            list.EndUpdate();
+        }
+
+        void CreateUser()
+        {
+            var email = InputBox.Show("Email:", "Create admin user", "");
+            if (string.IsNullOrEmpty(email)) return;
+            var firstName = InputBox.Show("First name:", "Create admin user", "");
+            if (string.IsNullOrEmpty(firstName)) return;
+            var lastName = InputBox.Show("Last name:", "Create admin user", "");
+            if (string.IsNullOrEmpty(lastName)) return;
+            var role = InputBox.Show("Role (admin / owner):", "Create admin user", "admin");
+            if (string.IsNullOrEmpty(role)) role = "admin";
+
+            var body = new Dictionary<string, object>
+            {
+                { "email", email }, { "firstName", firstName }, { "lastName", lastName },
+                { "role", role }, { "passwordOption", "email" },
+            };
+            lblStatus.Text = "Creating user..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var created = Api.Request("/users", "POST", body) as IDictionary<string, object>;
+                    var pw = Api.Str(created, "password");
+                    BeginInvoke((Action)(() =>
+                    {
+                        lblStatus.Text = "User created. Temp password emailed.";
+                        lblStatus.ForeColor = Color.Green;
+                        if (!string.IsNullOrEmpty(pw))
+                            MessageBox.Show("Temporary password: " + pw +
+                                "\r\n\r\n(Also emailed to the user.)", "User created");
+                        Reload();
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void DeleteSelected()
+        {
+            if (list.SelectedItems.Count == 0) return;
+            var id = list.SelectedItems[0].Tag as string;
+            if (MessageBox.Show("Delete this user?", "Confirm",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/users/" + id, "DELETE");
+                    BeginInvoke((Action)(() => Reload()));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => MessageBox.Show(Api.Friendly(ex), "Delete user")));
+                }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Security tab ───────────────────────────────────────────────────
+    //
+    // Mirrors the web admin's Security Settings panel: time-window gate,
+    // IP allow-list, login gate, allowed email domains, and tier choice
+    // for outside-hours / off-network / guests. Everything saves through
+    // /api/security-settings (the same Firestore doc the web uses).
+
+    public class SecurityPanel : UserControl
+    {
+        readonly CheckBox cbEnabled = new CheckBox { Text = "Enable access control gate", AutoSize = true, Location = new Point(0, 0) };
+        readonly CheckBox cbTimeWindow = new CheckBox { Text = "Enforce time window", AutoSize = true, Location = new Point(0, 30) };
+        readonly CheckBox cbIpGate = new CheckBox { Text = "Enforce IP allow-list", AutoSize = true, Location = new Point(0, 60) };
+        readonly CheckBox cbLoginGate = new CheckBox { Text = "Require sign-in", AutoSize = true, Location = new Point(0, 90) };
+        readonly CheckBox cbDryRun = new CheckBox { Text = "Dry run (log, don't block)", AutoSize = true, Location = new Point(0, 120) };
+        readonly TextBox txtAllowlist = new TextBox();
+        readonly TextBox txtDomains = new TextBox();
+        readonly ComboBox cmbGuest = new ComboBox();
+        readonly ComboBox cmbOutside = new ComboBox();
+        readonly ComboBox cmbOff = new ComboBox();
+        readonly TextBox txtLockoutMsg = new TextBox();
+        readonly Label lblStatus = new Label();
+        IDictionary<string, object> current;
+
+        static readonly string[] Tiers = new[] { "full", "restricted", "blocked" };
+
+        public SecurityPanel()
+        {
+            BackColor = SystemColors.Control;
+            Dock = DockStyle.Fill;
+            Padding = new Padding(14);
+
+            var top = new Panel { Dock = DockStyle.Top, Height = 36 };
+            top.Controls.Add(new Label { Text = "Access control & security gates", Location = new Point(0, 10), AutoSize = true });
+            var btnLoad = new Button { Text = "Reload", Location = new Point(200, 6), Size = new Size(75, 24) };
+            btnLoad.Click += (s, e) => Load();
+            top.Controls.Add(btnLoad);
+            var btnSave = new Button { Text = "Save settings", Location = new Point(280, 6), Size = new Size(100, 24) };
+            btnSave.Click += (s, e) => Save();
+            top.Controls.Add(btnSave);
+            Controls.Add(top);
+
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText;
+            Controls.Add(lblStatus);
+
+            var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+            Controls.Add(scroll);
+            scroll.BringToFront();
+
+            var col1 = new GroupBox
+            {
+                Text = "Gates",
+                Location = new Point(0, 0),
+                Size = new Size(360, 180),
+                Padding = new Padding(12),
+            };
+            col1.Controls.Add(cbEnabled);
+            col1.Controls.Add(cbTimeWindow);
+            col1.Controls.Add(cbIpGate);
+            col1.Controls.Add(cbLoginGate);
+            col1.Controls.Add(cbDryRun);
+            scroll.Controls.Add(col1);
+
+            var col2 = new GroupBox
+            {
+                Text = "Tiers",
+                Location = new Point(380, 0),
+                Size = new Size(340, 180),
+                Padding = new Padding(12),
+            };
+            col2.Controls.Add(new Label { Text = "Guest tier:", Location = new Point(0, 4), AutoSize = true });
+            cmbGuest.Location = new Point(110, 0); cmbGuest.Size = new Size(120, 22);
+            cmbGuest.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var t in Tiers) cmbGuest.Items.Add(t);
+            col2.Controls.Add(cmbGuest);
+
+            col2.Controls.Add(new Label { Text = "Outside hours:", Location = new Point(0, 38), AutoSize = true });
+            cmbOutside.Location = new Point(110, 34); cmbOutside.Size = new Size(120, 22);
+            cmbOutside.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var t in Tiers) cmbOutside.Items.Add(t);
+            col2.Controls.Add(cmbOutside);
+
+            col2.Controls.Add(new Label { Text = "Off network:", Location = new Point(0, 72), AutoSize = true });
+            cmbOff.Location = new Point(110, 68); cmbOff.Size = new Size(120, 22);
+            cmbOff.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var t in Tiers) cmbOff.Items.Add(t);
+            col2.Controls.Add(cmbOff);
+            scroll.Controls.Add(col2);
+
+            var col3 = new GroupBox
+            {
+                Text = "IP allow-list (one per line)",
+                Location = new Point(0, 192),
+                Size = new Size(360, 130),
+                Padding = new Padding(12),
+            };
+            txtAllowlist.Multiline = true; txtAllowlist.Dock = DockStyle.Fill;
+            txtAllowlist.ScrollBars = ScrollBars.Vertical;
+            txtAllowlist.Font = new Font("Consolas", 9F);
+            col3.Controls.Add(txtAllowlist);
+            scroll.Controls.Add(col3);
+
+            var col4 = new GroupBox
+            {
+                Text = "Allowed email domains (one per line, no @)",
+                Location = new Point(380, 192),
+                Size = new Size(340, 130),
+                Padding = new Padding(12),
+            };
+            txtDomains.Multiline = true; txtDomains.Dock = DockStyle.Fill;
+            txtDomains.ScrollBars = ScrollBars.Vertical;
+            txtDomains.Font = new Font("Consolas", 9F);
+            col4.Controls.Add(txtDomains);
+            scroll.Controls.Add(col4);
+
+            var col5 = new GroupBox
+            {
+                Text = "Lockout message (shown to blocked visitors)",
+                Location = new Point(0, 332),
+                Size = new Size(720, 100),
+                Padding = new Padding(12),
+            };
+            txtLockoutMsg.Multiline = true; txtLockoutMsg.Dock = DockStyle.Fill;
+            txtLockoutMsg.ScrollBars = ScrollBars.Vertical;
+            col5.Controls.Add(txtLockoutMsg);
+            scroll.Controls.Add(col5);
+
+            Load();
+        }
+
+        void Load()
+        {
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/security-settings") as IDictionary<string, object>;
+                    current = data ?? new Dictionary<string, object>();
+                    BeginInvoke((Action)(() => Render()));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Render()
+        {
+            cbEnabled.Checked    = Api.Get<bool>(current, "enabled", false);
+            cbTimeWindow.Checked = Api.Get<bool>(current, "timeWindowEnabled", false);
+            cbIpGate.Checked     = Api.Get<bool>(current, "ipGateEnabled", false);
+            cbLoginGate.Checked  = Api.Get<bool>(current, "loginGateEnabled", false);
+            cbDryRun.Checked     = Api.Get<bool>(current, "dryRun", false);
+            cmbGuest.SelectedItem    = Api.Str(current, "guestTier");    if (cmbGuest.SelectedItem == null) cmbGuest.SelectedItem = "restricted";
+            cmbOutside.SelectedItem  = Api.Str(current, "outsideHoursTier"); if (cmbOutside.SelectedItem == null) cmbOutside.SelectedItem = "restricted";
+            cmbOff.SelectedItem      = Api.Str(current, "offNetworkTier"); if (cmbOff.SelectedItem == null) cmbOff.SelectedItem = "restricted";
+
+            var ipArr = current != null && current.ContainsKey("ipAllowlist") ? current["ipAllowlist"] as object[] : null;
+            txtAllowlist.Text = ipArr == null ? "" : string.Join("\r\n", Array.ConvertAll(ipArr, x => x == null ? "" : x.ToString()));
+            var domArr = current != null && current.ContainsKey("allowedEmailDomains") ? current["allowedEmailDomains"] as object[] : null;
+            txtDomains.Text = domArr == null ? "" : string.Join("\r\n", Array.ConvertAll(domArr, x => x == null ? "" : x.ToString()));
+            txtLockoutMsg.Text = Api.Str(current, "lockoutMessage");
+
+            lblStatus.Text = "Loaded settings."; lblStatus.ForeColor = SystemColors.GrayText;
+        }
+
+        void Save()
+        {
+            var ipAllowlist = new List<object>();
+            foreach (var l in txtAllowlist.Text.Split('\n'))
+            {
+                var v = l.Trim(); if (v.Length > 0) ipAllowlist.Add(v);
+            }
+            var domains = new List<object>();
+            foreach (var l in txtDomains.Text.Split('\n'))
+            {
+                var v = l.Trim(); if (v.Length > 0) domains.Add(v);
+            }
+            var body = new Dictionary<string, object>
+            {
+                { "enabled", cbEnabled.Checked },
+                { "timeWindowEnabled", cbTimeWindow.Checked },
+                { "ipGateEnabled", cbIpGate.Checked },
+                { "loginGateEnabled", cbLoginGate.Checked },
+                { "dryRun", cbDryRun.Checked },
+                { "guestTier", cmbGuest.SelectedItem ?? "restricted" },
+                { "outsideHoursTier", cmbOutside.SelectedItem ?? "restricted" },
+                { "offNetworkTier", cmbOff.SelectedItem ?? "restricted" },
+                { "ipAllowlist", ipAllowlist },
+                { "allowedEmailDomains", domains },
+                { "lockoutMessage", txtLockoutMsg.Text },
+                // Preserve existing complex fields we don't show here.
+                { "schedule", current != null && current.ContainsKey("schedule") ? current["schedule"] : new Dictionary<string, object>() },
+                { "holidays", current != null && current.ContainsKey("holidays") ? current["holidays"] : new List<object>() },
+                { "restrictedDisabledFeatures", current != null && current.ContainsKey("restrictedDisabledFeatures") ? current["restrictedDisabledFeatures"] : new Dictionary<string, object>() },
+                { "userExceptions", current != null && current.ContainsKey("userExceptions") ? current["userExceptions"] : new List<object>() },
+                { "accessRequests", current != null && current.ContainsKey("accessRequests") ? current["accessRequests"] : new List<object>() },
+                { "loggedInTier", Api.Str(current, "loggedInTier") ?? "full" },
+            };
+
+            lblStatus.Text = "Saving..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/security-settings", "PUT", body);
+                    BeginInvoke((Action)(() => { lblStatus.Text = "Saved."; lblStatus.ForeColor = Color.Green; }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Settings tab ───────────────────────────────────────────────────
+    //
+    // App-wide settings (the web admin's /api/settings + /api/map-defaults).
+    // Lets admins set the OSM map home, default zoom, tile theme, pitch,
+    // rotation, plus the Matterport tour URL and campus span.
+
+    public class SettingsPanel : UserControl
+    {
+        readonly TextBox txtLat = new TextBox();
+        readonly TextBox txtLng = new TextBox();
+        readonly TextBox txtZoom = new TextBox();
+        readonly TextBox txtMinZoom = new TextBox();
+        readonly TextBox txtMaxZoom = new TextBox();
+        readonly TextBox txtRotation = new TextBox();
+        readonly TextBox txtPitch = new TextBox();
+        readonly TextBox txtTileTheme = new TextBox();
+        readonly TextBox txtSpan = new TextBox();
+        readonly TextBox txtMatterport = new TextBox();
+        readonly Label lblStatus = new Label();
+        IDictionary<string, object> current;
+
+        public SettingsPanel()
+        {
+            BackColor = SystemColors.Control;
+            Dock = DockStyle.Fill;
+            Padding = new Padding(14);
+
+            var top = new Panel { Dock = DockStyle.Top, Height = 36 };
+            top.Controls.Add(new Label { Text = "Map defaults & app settings", Location = new Point(0, 10), AutoSize = true });
+            var btnLoad = new Button { Text = "Reload", Location = new Point(180, 6), Size = new Size(75, 24) };
+            btnLoad.Click += (s, e) => Load();
+            top.Controls.Add(btnLoad);
+            var btnSave = new Button { Text = "Save", Location = new Point(260, 6), Size = new Size(75, 24) };
+            btnSave.Click += (s, e) => Save();
+            top.Controls.Add(btnSave);
+            Controls.Add(top);
+
+            lblStatus.Dock = DockStyle.Bottom; lblStatus.Height = 22;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            lblStatus.Padding = new Padding(8, 0, 0, 0);
+            lblStatus.ForeColor = SystemColors.GrayText;
+            Controls.Add(lblStatus);
+
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 10,
+                Padding = new Padding(8),
+            };
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+            AddRow(grid, 0, "Center latitude:", txtLat,    "Center longitude:", txtLng);
+            AddRow(grid, 1, "Default zoom:",    txtZoom,   "Min zoom:",         txtMinZoom);
+            AddRow(grid, 2, "Max zoom:",        txtMaxZoom,"Rotation (deg):",   txtRotation);
+            AddRow(grid, 3, "Pitch (deg):",     txtPitch,  "Tile theme:",       txtTileTheme);
+            AddRow(grid, 4, "Campus span (m):", txtSpan,   "Matterport URL:",   txtMatterport);
+
+            Controls.Add(grid);
+            grid.BringToFront();
+
+            Load();
+        }
+
+        void AddRow(TableLayoutPanel g, int row, string lbl1, TextBox tb1, string lbl2, TextBox tb2)
+        {
+            g.Controls.Add(new Label { Text = lbl1, Anchor = AnchorStyles.Left, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 0, row);
+            tb1.Dock = DockStyle.Top; tb1.Margin = new Padding(0, 3, 8, 3);
+            g.Controls.Add(tb1, 1, row);
+            g.Controls.Add(new Label { Text = lbl2, Anchor = AnchorStyles.Left, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 2, row);
+            tb2.Dock = DockStyle.Top; tb2.Margin = new Padding(0, 3, 0, 3);
+            g.Controls.Add(tb2, 3, row);
+        }
+
+        void Load()
+        {
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var data = Api.Request("/map-defaults") as IDictionary<string, object>;
+                    current = data ?? new Dictionary<string, object>();
+                    BeginInvoke((Action)(() => Render()));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void Render()
+        {
+            txtLat.Text       = Api.Str(current, "osmCenterLat");
+            txtLng.Text       = Api.Str(current, "osmCenterLng");
+            txtZoom.Text      = Api.Str(current, "osmDefaultZoom");
+            txtMinZoom.Text   = Api.Str(current, "osmMinZoom");
+            txtMaxZoom.Text   = Api.Str(current, "osmMaxZoom");
+            txtRotation.Text  = Api.Str(current, "osmRotationDeg");
+            txtPitch.Text     = Api.Str(current, "osmPitchDeg");
+            txtTileTheme.Text = Api.Str(current, "osmTileTheme");
+            txtSpan.Text      = Api.Str(current, "osmCampusSpanMeters");
+            txtMatterport.Text= Api.Str(current, "matterportTourUrl");
+            lblStatus.Text = "Loaded."; lblStatus.ForeColor = SystemColors.GrayText;
+        }
+
+        void Save()
+        {
+            var body = new Dictionary<string, object>();
+            AddIfFilled(body, "osmCenterLat", txtLat.Text, true);
+            AddIfFilled(body, "osmCenterLng", txtLng.Text, true);
+            AddIfFilled(body, "osmDefaultZoom", txtZoom.Text, true);
+            AddIfFilled(body, "osmMinZoom", txtMinZoom.Text, true);
+            AddIfFilled(body, "osmMaxZoom", txtMaxZoom.Text, true);
+            AddIfFilled(body, "osmRotationDeg", txtRotation.Text, true);
+            AddIfFilled(body, "osmPitchDeg", txtPitch.Text, true);
+            AddIfFilled(body, "osmTileTheme", txtTileTheme.Text, false);
+            AddIfFilled(body, "osmCampusSpanMeters", txtSpan.Text, true);
+            AddIfFilled(body, "matterportTourUrl", txtMatterport.Text, false);
+
+            lblStatus.Text = "Saving..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    Api.Request("/map-defaults", "PUT", body);
+                    BeginInvoke((Action)(() => { lblStatus.Text = "Saved."; lblStatus.ForeColor = Color.Green; }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() => { lblStatus.Text = Api.Friendly(ex); lblStatus.ForeColor = Color.Maroon; }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+
+        void AddIfFilled(Dictionary<string, object> body, string key, string val, bool numeric)
+        {
+            val = (val ?? "").Trim();
+            if (val.Length == 0) return;
+            if (numeric)
+            {
+                double n;
+                if (double.TryParse(val, System.Globalization.NumberStyles.Any,
+                                    System.Globalization.CultureInfo.InvariantCulture, out n))
+                    body[key] = n;
+            }
+            else body[key] = val;
         }
     }
 
@@ -1032,8 +1961,11 @@ namespace KsykAdmin
             tabs.TabPages.Add(MakeTab("Rooms", new RoomsPanel()));
             tabs.TabPages.Add(MakeTab("Buildings", new BuildingsPanel()));
             tabs.TabPages.Add(MakeTab("Tickets", new TicketsPanel()));
+            tabs.TabPages.Add(MakeTab("Users", new UsersPanel()));
+            tabs.TabPages.Add(MakeTab("Security", new SecurityPanel()));
+            tabs.TabPages.Add(MakeTab("Settings", new SettingsPanel()));
             tabs.TabPages.Add(MakeTab("Analytics", new AnalyticsPanel()));
-            tabs.TabPages.Add(MakeTab("WiFi Scan", new WifiPanel()));
+            tabs.TabPages.Add(MakeTab("Beacons", new WifiPanel()));
             tabs.TabPages.Add(MakeTab("System", new SystemPanel()));
             Controls.Add(tabs);
             tabs.BringToFront();
