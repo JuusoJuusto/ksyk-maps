@@ -613,6 +613,7 @@ namespace KsykSetup
         Label statusLine;
         Label statusDetail;
         ProgressBar progress;
+        TextBox installLog;
 
         void BuildInstall()
         {
@@ -620,48 +621,67 @@ namespace KsykSetup
             headerSub.Text = "Setup is copying files and creating shortcuts. This takes a few seconds.";
             installing = true; installFailed = false; installError = "";
 
-            // Install card — centred block with progress bar + animated status
+            // Install card — progress bar + animated status + live log
             var card = new Panel
             {
-                Location = new Point(0, 24),
-                Size = new Size(460, 220),
+                Location = new Point(0, 16),
+                Size = new Size(460, 360),
                 BackColor = Color.FromArgb(247, 249, 253),
                 BorderStyle = BorderStyle.FixedSingle,
             };
             var accent = new Panel { Dock = DockStyle.Left, Width = 4, BackColor = Accent };
             card.Controls.Add(accent);
 
-            var iconLbl = new Label
+            // KSYK logo on the install page so it doesn't feel generic.
+            try
             {
-                Text = "•",
-                Font = new Font(Font.FontFamily, 32F, FontStyle.Bold),
-                ForeColor = Accent,
-                Location = new Point(24, 18),
-                AutoSize = true,
-            };
-            card.Controls.Add(iconLbl);
+                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("icon.ico"))
+                {
+                    if (s != null)
+                    {
+                        var pic = new PictureBox
+                        {
+                            Image = new Icon(s, 48, 48).ToBitmap(),
+                            SizeMode = PictureBoxSizeMode.CenterImage,
+                            Location = new Point(20, 16),
+                            Size = new Size(48, 48),
+                            BackColor = Color.Transparent,
+                        };
+                        card.Controls.Add(pic);
+                    }
+                }
+            }
+            catch { }
 
             card.Controls.Add(new Label
             {
                 Text = "Installing " + Manifest.ProductName,
-                Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+                Font = new Font(Font.FontFamily, 13F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 35, 80),
-                Location = new Point(60, 26),
+                Location = new Point(80, 22),
+                AutoSize = true,
+            });
+            card.Controls.Add(new Label
+            {
+                Text = "Version " + Manifest.Version + " · " + Manifest.Publisher,
+                Font = new Font(Font.FontFamily, 8F),
+                ForeColor = Color.FromArgb(110, 120, 140),
+                Location = new Point(80, 46),
                 AutoSize = true,
             });
 
             progress = new ProgressBar
             {
-                Location = new Point(24, 90),
-                Size = new Size(420, 20),
+                Location = new Point(20, 84),
+                Size = new Size(420, 18),
                 Style = ProgressBarStyle.Continuous,
             };
             card.Controls.Add(progress);
 
             statusLine = new Label
             {
-                Location = new Point(24, 120),
-                Size = new Size(420, 20),
+                Location = new Point(20, 110),
+                Size = new Size(420, 18),
                 Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 40, 60),
                 AutoSize = false,
@@ -670,12 +690,36 @@ namespace KsykSetup
 
             statusDetail = new Label
             {
-                Location = new Point(24, 142),
-                Size = new Size(420, 40),
+                Location = new Point(20, 128),
+                Size = new Size(420, 18),
                 ForeColor = Color.FromArgb(100, 110, 130),
                 AutoSize = false,
+                Font = new Font(Font.FontFamily, 8.5F),
             };
             card.Controls.Add(statusDetail);
+
+            // Live installation log — shows what's happening as it happens,
+            // useful when something fails so the user can copy the trace.
+            card.Controls.Add(new Label
+            {
+                Text = "Activity log",
+                Font = new Font(Font.FontFamily, 8F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(110, 120, 140),
+                Location = new Point(20, 156),
+                AutoSize = true,
+            });
+            installLog = new TextBox
+            {
+                Location = new Point(20, 174),
+                Size = new Size(420, 168),
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                Font = new Font("Consolas", 8F),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(60, 70, 90),
+            };
+            card.Controls.Add(installLog);
 
             content.Controls.Add(card);
 
@@ -773,12 +817,73 @@ namespace KsykSetup
                 card.Controls.Add(new Label
                 {
                     Text = bullets.ToString(),
-                    Location = new Point(24, 100),
-                    Size = new Size(420, 120),
+                    Location = new Point(24, 90),
+                    Size = new Size(420, 80),
                     ForeColor = Color.FromArgb(30, 80, 50),
                     Font = new Font(Font.FontFamily, 9.5F),
                     AutoSize = false,
                 });
+
+                // Action buttons — open install folder + launch app now.
+                var btnFolder = new Button
+                {
+                    Text = "📁  Open install folder",
+                    Location = new Point(24, 184),
+                    Size = new Size(200, 36),
+                    BackColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(15, 90, 50),
+                };
+                btnFolder.FlatAppearance.BorderColor = Color.FromArgb(34, 197, 94);
+                btnFolder.FlatAppearance.BorderSize = 1;
+                btnFolder.Click += (s, e) =>
+                {
+                    try { Process.Start("explorer.exe", "\"" + installDir + "\""); }
+                    catch { }
+                };
+                card.Controls.Add(btnFolder);
+
+                if (installAdmin)
+                {
+                    var btnLaunchAdmin = new Button
+                    {
+                        Text = "🚀  Launch Admin",
+                        Location = new Point(234, 184),
+                        Size = new Size(200, 36),
+                        BackColor = Color.FromArgb(15, 90, 50),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                    };
+                    btnLaunchAdmin.FlatAppearance.BorderSize = 0;
+                    btnLaunchAdmin.Click += (s, e) =>
+                    {
+                        try { Process.Start(Path.Combine(installDir, "KSYK-Maps-Admin.exe")); }
+                        catch { }
+                    };
+                    card.Controls.Add(btnLaunchAdmin);
+                }
+                else if (installQuick)
+                {
+                    var btnLaunchQuick = new Button
+                    {
+                        Text = "🚀  Launch KSYK Maps",
+                        Location = new Point(234, 184),
+                        Size = new Size(200, 36),
+                        BackColor = Color.FromArgb(15, 90, 50),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                    };
+                    btnLaunchQuick.FlatAppearance.BorderSize = 0;
+                    btnLaunchQuick.Click += (s, e) =>
+                    {
+                        try { Process.Start(Path.Combine(installDir, "KSYK-Maps-Quick.exe")); }
+                        catch { }
+                    };
+                    card.Controls.Add(btnLaunchQuick);
+                }
 
                 content.Controls.Add(card);
             }
@@ -900,6 +1005,12 @@ namespace KsykSetup
                 if (progress != null) progress.Value = Math.Min(100, pct);
                 if (statusLine != null) statusLine.Text = title;
                 if (statusDetail != null) statusDetail.Text = detail;
+                if (installLog != null)
+                {
+                    var line = string.Format("[{0:HH:mm:ss}] {1,3}%  {2} — {3}",
+                        DateTime.Now, pct, title, detail);
+                    installLog.AppendText(line + Environment.NewLine);
+                }
             }));
         }
 

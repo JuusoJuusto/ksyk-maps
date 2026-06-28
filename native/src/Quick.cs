@@ -397,9 +397,60 @@ namespace KsykQuick
             Controls.Add(tabs);
             tabs.BringToFront();
 
-            var ss = new StatusStrip();
-            ss.Items.Add(new ToolStripStatusLabel("Connected to https://ksykmaps.fi"));
+            // ── Branded footer bar ───────────────────────────────────
+            var ss = new StatusStrip
+            {
+                BackColor = Color.FromArgb(15, 35, 80),
+                ForeColor = Color.White,
+                Padding = new Padding(8, 2, 8, 2),
+                SizingGrip = false,
+            };
+            try
+            {
+                using (var s = System.Reflection.Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("KsykQuick.app.ico"))
+                {
+                    if (s != null)
+                    {
+                        var icoStrip = new ToolStripStatusLabel
+                        {
+                            Image = new Icon(s, 16, 16).ToBitmap(),
+                            ImageScaling = ToolStripItemImageScaling.None,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                        };
+                        ss.Items.Add(icoStrip);
+                    }
+                }
+            }
+            catch { }
+            ss.Items.Add(new ToolStripStatusLabel("KSYK Maps Quick")
+            {
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.White,
+            });
+            ss.Items.Add(new ToolStripStatusLabel("●  ksykmaps.fi")
+            {
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(180, 200, 230),
+            });
+            ss.Items.Add(new ToolStripStatusLabel { Spring = true });
+            ss.Items.Add(new ToolStripStatusLabel("v1.0.0")
+            {
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(180, 200, 230),
+            });
+            ss.Items.Add(new ToolStripStatusLabel("·") { ForeColor = Color.FromArgb(120, 140, 170) });
+            var clockLabel = new ToolStripStatusLabel(DateTime.Now.ToString("HH:mm"))
+            {
+                Font = new Font("Consolas", 8.5F),
+                ForeColor = Color.White,
+            };
+            ss.Items.Add(clockLabel);
             Controls.Add(ss);
+
+            var clock = new System.Windows.Forms.Timer { Interval = 30000 };
+            clock.Tick += (s, e) => clockLabel.Text = DateTime.Now.ToString("HH:mm");
+            clock.Start();
         }
     }
 

@@ -17,6 +17,7 @@ using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Security;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -386,23 +387,30 @@ namespace KsykAdmin
             lblStatus.ForeColor = SystemColors.GrayText;
             tb.Controls.Add(lblStatus);
 
-            // Split: list left, editor right
-            var split = new SplitContainer
+            // ── 2-column responsive layout ────────────────────────────
+            // TableLayoutPanel with the list taking 70% (min 600px) and the
+            // editor a fixed 320px on the right. No SplitContainer = no
+            // chance of squishing the editor off-screen on a narrow window.
+            var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Orientation = Orientation.Vertical,
-                SplitterDistance = 600,
-                FixedPanel = FixedPanel.Panel2,
+                ColumnCount = 2,
+                RowCount = 1,
+                Padding = new Padding(0),
             };
-            Controls.Add(split);
-            split.BringToFront();
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320));
+            Controls.Add(grid);
+            grid.BringToFront();
 
+            // Left: room list
             list.View = View.Details;
             list.FullRowSelect = true;
             list.MultiSelect = false;
             list.HideSelection = false;
             list.Dock = DockStyle.Fill;
             list.GridLines = true;
+            list.Font = new Font("Segoe UI", 9F);
             list.Columns.Add("Number", 70);
             list.Columns.Add("Name", 220);
             list.Columns.Add("Floor", 50);
@@ -412,33 +420,68 @@ namespace KsykAdmin
             list.Columns.Add("W", 50);
             list.Columns.Add("H", 50);
             list.SelectedIndexChanged += (s, e) => OnPick();
-            split.Panel1.Controls.Add(list);
+            grid.Controls.Add(list, 0, 0);
 
+            // Right: editor panel — fully responsive form
             var grp = new GroupBox
             {
                 Text = "Edit room",
                 Dock = DockStyle.Fill,
-                Padding = new Padding(6),
+                Padding = new Padding(10),
+                Margin = new Padding(6, 0, 0, 0),
             };
-            split.Panel2.Controls.Add(grp);
+            grid.Controls.Add(grp, 1, 0);
 
-            int y = 22;
+            var formGrid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                RowCount = keys.Length,
+                AutoSize = true,
+                Padding = new Padding(4),
+            };
+            formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+            formGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            grp.Controls.Add(formGrid);
+
             for (int i = 0; i < keys.Length; i++)
             {
-                grp.Controls.Add(new Label { Text = labels[i] + ":", Location = new Point(10, y), AutoSize = true });
-                var tx = new TextBox { Location = new Point(10, y + 18), Size = new Size(240, 22) };
-                grp.Controls.Add(tx);
+                formGrid.Controls.Add(new Label
+                {
+                    Text = labels[i] + ":",
+                    Anchor = AnchorStyles.Left,
+                    AutoSize = true,
+                    Padding = new Padding(0, 6, 0, 0),
+                }, 0, i);
+                var tx = new TextBox
+                {
+                    Dock = DockStyle.Top,
+                    Margin = new Padding(0, 3, 0, 3),
+                };
                 fields[keys[i]] = tx;
-                y += 46;
+                formGrid.Controls.Add(tx, 1, i);
             }
 
-            var btnSave = new Button { Text = "Save", Location = new Point(10, y + 4), Size = new Size(75, 26) };
+            // Button row at the bottom of the editor.
+            var btnRow = new Panel { Dock = DockStyle.Bottom, Height = 44, Padding = new Padding(4) };
+            grp.Controls.Add(btnRow);
+            var btnSave = new Button
+            {
+                Text = "Save",
+                Size = new Size(90, 30),
+                Location = new Point(0, 6),
+                BackColor = Color.FromArgb(37, 99, 235),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            };
+            btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += (s, e) => Save();
-            grp.Controls.Add(btnSave);
+            btnRow.Controls.Add(btnSave);
 
-            var btnDelete = new Button { Text = "Delete", Location = new Point(95, y + 4), Size = new Size(75, 26) };
+            var btnDelete = new Button { Text = "Delete", Size = new Size(80, 30), Location = new Point(98, 6) };
             btnDelete.Click += (s, e) => Delete();
-            grp.Controls.Add(btnDelete);
+            btnRow.Controls.Add(btnDelete);
 
             Reload();
         }
@@ -2419,6 +2462,11 @@ namespace KsykAdmin
         readonly CheckBox cbShowStats = new CheckBox { Text = "Show campus stats on home", AutoSize = true };
         readonly CheckBox cbShowAnnouncements = new CheckBox { Text = "Show announcements ticker", AutoSize = true };
         readonly CheckBox cbEnableSearch = new CheckBox { Text = "Enable room search", AutoSize = true };
+        // Maintenance mode
+        readonly CheckBox cbMaintenance = new CheckBox { Text = "Maintenance mode (block visitors site-wide)", AutoSize = true };
+        readonly TextBox txtMaintenanceMessage = new TextBox();
+        readonly TextBox txtMaintenanceEta = new TextBox();
+        readonly CheckBox cbMaintenanceAllowAdmin = new CheckBox { Text = "Allow signed-in admins through", AutoSize = true };
         // Max-bounds (server: /api/map-defaults)
         readonly CheckBox cbBoundsEnabled = new CheckBox { Text = "Restrict pan to bounding box", AutoSize = true };
         readonly TextBox txtBoundsN = new TextBox();
@@ -2510,6 +2558,41 @@ namespace KsykAdmin
             g4.Controls.Add(cbShowStats);
             g4.Controls.Add(cbShowAnnouncements);
             g4.Controls.Add(cbEnableSearch);
+
+            // ── Group 5: Maintenance mode ────────────────────────────
+            // Toggle the whole site to a maintenance page. Stores in
+            // /api/settings under maintenanceMode + maintenanceMessage +
+            // maintenanceEta. The site reads these flags and shows the
+            // editorial holding screen instead of the map for visitors.
+            var g5 = MakeGroup(scroll, "Maintenance mode (visitor-facing site lockdown)", 0, ref y, 165);
+            cbMaintenance.Location = new Point(14, 22);
+            cbMaintenance.Font = new Font(cbMaintenance.Font, FontStyle.Bold);
+            cbMaintenance.ForeColor = Color.FromArgb(220, 38, 38);
+            g5.Controls.Add(cbMaintenance);
+
+            g5.Controls.Add(new Label
+            {
+                Text = "Message shown to visitors:",
+                Location = new Point(14, 50), AutoSize = true,
+            });
+            txtMaintenanceMessage.Location = new Point(14, 68);
+            txtMaintenanceMessage.Size = new Size(g5.ClientSize.Width - 30, 22);
+            txtMaintenanceMessage.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            g5.Controls.Add(txtMaintenanceMessage);
+
+            g5.Controls.Add(new Label
+            {
+                Text = "Estimated back-online time (free-form, e.g. \"~16:00\"):",
+                Location = new Point(14, 98), AutoSize = true,
+            });
+            txtMaintenanceEta.Location = new Point(14, 116);
+            txtMaintenanceEta.Size = new Size(g5.ClientSize.Width - 30, 22);
+            txtMaintenanceEta.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            g5.Controls.Add(txtMaintenanceEta);
+
+            cbMaintenanceAllowAdmin.Location = new Point(14, 144);
+            cbMaintenanceAllowAdmin.Checked = true;
+            g5.Controls.Add(cbMaintenanceAllowAdmin);
 
             Load();
         }
@@ -2610,6 +2693,10 @@ namespace KsykAdmin
             cbShowStats.Checked          = Api.Get<bool>(currentApp, "showStats", true);
             cbShowAnnouncements.Checked  = Api.Get<bool>(currentApp, "showAnnouncements", true);
             cbEnableSearch.Checked       = Api.Get<bool>(currentApp, "enableSearch", true);
+            cbMaintenance.Checked        = Api.Get<bool>(currentApp, "maintenanceMode", false);
+            txtMaintenanceMessage.Text   = Api.Str(currentApp, "maintenanceMessage");
+            txtMaintenanceEta.Text       = Api.Str(currentApp, "maintenanceEta");
+            cbMaintenanceAllowAdmin.Checked = Api.Get<bool>(currentApp, "maintenanceAllowAdmin", true);
         }
 
         void Save()
@@ -2649,6 +2736,10 @@ namespace KsykAdmin
             appBody["showStats"]         = cbShowStats.Checked;
             appBody["showAnnouncements"] = cbShowAnnouncements.Checked;
             appBody["enableSearch"]      = cbEnableSearch.Checked;
+            appBody["maintenanceMode"]   = cbMaintenance.Checked;
+            appBody["maintenanceMessage"] = txtMaintenanceMessage.Text;
+            appBody["maintenanceEta"]    = txtMaintenanceEta.Text;
+            appBody["maintenanceAllowAdmin"] = cbMaintenanceAllowAdmin.Checked;
 
             lblStatus.Text = "Saving..."; lblStatus.ForeColor = Color.Navy;
             new Thread(() =>
@@ -2814,12 +2905,16 @@ namespace KsykAdmin
         readonly TextBox txtBody = new TextBox();
         readonly ComboBox cmbType = new ComboBox();
         readonly CheckBox cbActive = new CheckBox { Text = "Active (visible on the site)", AutoSize = true };
+        readonly DateTimePicker dpStart = new DateTimePicker();
+        readonly DateTimePicker dpEnd   = new DateTimePicker();
+        readonly CheckBox cbHasStart = new CheckBox { Text = "Start date", AutoSize = true };
+        readonly CheckBox cbHasEnd   = new CheckBox { Text = "End date", AutoSize = true };
 
         public AnnouncementEditor(IDictionary<string, object> existing)
         {
             Text = existing == null ? "New announcement" : "Edit announcement";
-            Size = new Size(560, 420);
-            MinimumSize = new Size(560, 420);
+            Size = new Size(620, 540);
+            MinimumSize = new Size(620, 540);
             StartPosition = FormStartPosition.CenterParent;
             BackColor = SystemColors.Control;
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -2829,27 +2924,56 @@ namespace KsykAdmin
             Controls.Add(pad);
 
             pad.Controls.Add(new Label { Text = "Title:", Location = new Point(0, 6), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
-            txtTitle.Location = new Point(0, 24); txtTitle.Size = new Size(528, 22);
+            txtTitle.Location = new Point(0, 24); txtTitle.Size = new Size(588, 22);
             pad.Controls.Add(txtTitle);
 
             pad.Controls.Add(new Label { Text = "Type:", Location = new Point(0, 54), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
-            cmbType.Location = new Point(0, 72); cmbType.Size = new Size(200, 22);
+            cmbType.Location = new Point(0, 72); cmbType.Size = new Size(180, 22);
             cmbType.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbType.Items.AddRange(new object[] { "info", "warning", "urgent", "event" });
             pad.Controls.Add(cmbType);
 
-            cbActive.Location = new Point(220, 73);
+            cbActive.Location = new Point(210, 73);
             cbActive.Checked = true;
             pad.Controls.Add(cbActive);
 
-            pad.Controls.Add(new Label { Text = "Content:", Location = new Point(0, 102), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
-            txtBody.Location = new Point(0, 120); txtBody.Size = new Size(528, 200);
+            // ── Date range ────────────────────────────────────────────
+            pad.Controls.Add(new Label
+            {
+                Text = "Visibility window (leave dates off for always-on):",
+                Location = new Point(0, 105),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            });
+            cbHasStart.Location = new Point(0, 130);
+            cbHasStart.CheckedChanged += (s, e) => dpStart.Enabled = cbHasStart.Checked;
+            pad.Controls.Add(cbHasStart);
+            dpStart.Location = new Point(110, 128);
+            dpStart.Size = new Size(180, 22);
+            dpStart.Format = DateTimePickerFormat.Custom;
+            dpStart.CustomFormat = "yyyy-MM-dd HH:mm";
+            dpStart.Enabled = false;
+            pad.Controls.Add(dpStart);
+
+            cbHasEnd.Location = new Point(310, 130);
+            cbHasEnd.CheckedChanged += (s, e) => dpEnd.Enabled = cbHasEnd.Checked;
+            pad.Controls.Add(cbHasEnd);
+            dpEnd.Location = new Point(410, 128);
+            dpEnd.Size = new Size(180, 22);
+            dpEnd.Format = DateTimePickerFormat.Custom;
+            dpEnd.CustomFormat = "yyyy-MM-dd HH:mm";
+            dpEnd.Enabled = false;
+            pad.Controls.Add(dpEnd);
+
+            // ── Body ───────────────────────────────────────────────────
+            pad.Controls.Add(new Label { Text = "Content:", Location = new Point(0, 165), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            txtBody.Location = new Point(0, 184); txtBody.Size = new Size(588, 230);
             txtBody.Multiline = true; txtBody.ScrollBars = ScrollBars.Vertical;
             txtBody.Font = new Font("Segoe UI", 9.5F);
             pad.Controls.Add(txtBody);
 
-            var btnOk = new Button { Text = "Save", DialogResult = DialogResult.OK, Size = new Size(90, 30), Location = new Point(348, 330) };
-            var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Size = new Size(90, 30), Location = new Point(444, 330) };
+            var btnOk = new Button { Text = "Save", DialogResult = DialogResult.OK, Size = new Size(95, 32), Location = new Point(396, 430) };
+            var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Size = new Size(95, 32), Location = new Point(497, 430) };
             pad.Controls.Add(btnOk); pad.Controls.Add(btnCancel);
             AcceptButton = btnOk; CancelButton = btnCancel;
 
@@ -2862,6 +2986,23 @@ namespace KsykAdmin
                 var t = Api.Str(existing, "type");
                 cmbType.SelectedItem = (t.Length > 0 ? t : "info");
                 cbActive.Checked = Api.Get<bool>(existing, "active", true);
+
+                var startStr = Api.Str(existing, "startDate");
+                if (string.IsNullOrEmpty(startStr)) startStr = Api.Str(existing, "startsAt");
+                DateTime parsedStart;
+                if (DateTime.TryParse(startStr, out parsedStart))
+                {
+                    cbHasStart.Checked = true; dpStart.Enabled = true;
+                    dpStart.Value = parsedStart;
+                }
+                var endStr = Api.Str(existing, "endDate");
+                if (string.IsNullOrEmpty(endStr)) endStr = Api.Str(existing, "endsAt");
+                DateTime parsedEnd;
+                if (DateTime.TryParse(endStr, out parsedEnd))
+                {
+                    cbHasEnd.Checked = true; dpEnd.Enabled = true;
+                    dpEnd.Value = parsedEnd;
+                }
             }
             else
             {
@@ -2871,14 +3012,25 @@ namespace KsykAdmin
 
         public Dictionary<string, object> GetBody()
         {
-            return new Dictionary<string, object>
+            var body = new Dictionary<string, object>
             {
                 { "title", txtTitle.Text.Trim() },
                 { "content", txtBody.Text.Trim() },
-                { "body", txtBody.Text.Trim() },  // some callers read 'body'
+                { "body", txtBody.Text.Trim() },
                 { "type", cmbType.SelectedItem == null ? "info" : cmbType.SelectedItem.ToString() },
                 { "active", cbActive.Checked },
             };
+            if (cbHasStart.Checked)
+            {
+                var iso = dpStart.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+                body["startDate"] = iso; body["startsAt"] = iso;
+            }
+            if (cbHasEnd.Checked)
+            {
+                var iso = dpEnd.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+                body["endDate"] = iso; body["endsAt"] = iso;
+            }
+            return body;
         }
     }
 
@@ -3222,10 +3374,73 @@ namespace KsykAdmin
             Controls.Add(tabs);
             tabs.BringToFront();
 
-            // Status strip
-            var ss = new StatusStrip();
-            ss.Items.Add(new ToolStripStatusLabel("Connected to " + Api.Base));
+            // ── Branded footer bar ──────────────────────────────────
+            // Custom-painted status strip with the KSYK Maps icon, signed-in
+            // email, connection target, version, and a live clock. Mirrors
+            // the editorial admin shell on the website.
+            var ss = new StatusStrip
+            {
+                BackColor = Color.FromArgb(15, 35, 80),
+                ForeColor = Color.White,
+                Padding = new Padding(8, 2, 8, 2),
+                SizingGrip = false,
+            };
+            try
+            {
+                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("icon.ico"))
+                {
+                    if (s != null)
+                    {
+                        var icoStrip = new ToolStripStatusLabel
+                        {
+                            Image = new Icon(s, 16, 16).ToBitmap(),
+                            ImageScaling = ToolStripItemImageScaling.None,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                        };
+                        ss.Items.Add(icoStrip);
+                    }
+                }
+            }
+            catch { }
+            ss.Items.Add(new ToolStripStatusLabel("KSYK Maps Admin")
+            {
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.White,
+            });
+            ss.Items.Add(new ToolStripSeparator { ForeColor = Color.White });
+            ss.Items.Add(new ToolStripStatusLabel("●  " + Api.Base)
+            {
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(180, 200, 230),
+            });
+            // Right-aligned spring
+            ss.Items.Add(new ToolStripStatusLabel { Spring = true });
+            var sessionLabel = new ToolStripStatusLabel("Signed in: " + Api.Str(u, "email"))
+            {
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(180, 200, 230),
+            };
+            ss.Items.Add(sessionLabel);
+            ss.Items.Add(new ToolStripStatusLabel("·") { ForeColor = Color.FromArgb(120, 140, 170) });
+            ss.Items.Add(new ToolStripStatusLabel("v1.0.0")
+            {
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(180, 200, 230),
+            });
+            ss.Items.Add(new ToolStripStatusLabel("·") { ForeColor = Color.FromArgb(120, 140, 170) });
+            var clockLabel = new ToolStripStatusLabel(DateTime.Now.ToString("HH:mm:ss"))
+            {
+                Font = new Font("Consolas", 8.5F),
+                ForeColor = Color.White,
+            };
+            ss.Items.Add(clockLabel);
             Controls.Add(ss);
+
+            // Tick the clock once a second — cheap and removes any "dead
+            // taskbar" feel.
+            var clock = new System.Windows.Forms.Timer { Interval = 1000 };
+            clock.Tick += (s, e) => clockLabel.Text = DateTime.Now.ToString("HH:mm:ss");
+            clock.Start();
         }
 
         TabPage MakeTab(string title, UserControl uc)

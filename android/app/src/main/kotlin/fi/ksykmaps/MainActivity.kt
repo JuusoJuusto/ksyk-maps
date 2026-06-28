@@ -3,51 +3,64 @@ package fi.ksykmaps
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavType
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.data.Session
+import fi.ksykmaps.ui.AccountScreen
+import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.LoginScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.theme.KsykTheme
 
 /**
- * Single-activity Compose host. Four tabs reachable via the bottom bar:
- *   Rooms · Beacons · Announcements · Account
+ * Single-activity Compose host with a Material-3 bottom nav bar.
  *
- * Login is the first destination unless we already have a stored email
- * in DataStore (TODO — for now sessionEmail is in-memory).
+ * Routes:
+ *   rooms         · Room finder (search the campus)
+ *   beacons       · WiFi survey + GPS capture
+ *   announcements · Latest school notices
+ *   account       · Sign-in info + sign out
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Session.load(this)
         setContent {
             KsykTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AppShell()
-                }
+                AppShell()
             }
         }
     }
 }
 
+private data class Tab(val route: String, val label: String, val icon: ImageVector)
+
+private val TABS = listOf(
+    Tab("rooms",         "Rooms",        Icons.Outlined.Map),
+    Tab("beacons",       "Beacons",      Icons.Outlined.Wifi),
+    Tab("announcements", "News",         Icons.Outlined.Campaign),
+    Tab("account",       "Account",      Icons.Outlined.Person),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppShell() {
+    val ctx = LocalContext.current
     val nav = rememberNavController()
     var loggedIn by remember { mutableStateOf(Api.sessionEmail != null) }
 
@@ -56,23 +69,23 @@ private fun AppShell() {
         return
     }
 
-    val tabs = listOf(
-        Triple("rooms",         "Rooms",        Icons.Outlined.AccountCircle),
-        Triple("beacons",       "Beacons",      Icons.Outlined.Wifi),
-        Triple("announcements", "Announcements", Icons.Outlined.Campaign),
-        Triple("account",       "Account",      Icons.Outlined.AccountCircle),
-    )
-
     Scaffold(
         bottomBar = {
             val current = nav.currentBackStackEntryAsState().value?.destination?.route
             NavigationBar {
-                tabs.forEach { (route, label, icon) ->
+                TABS.forEach { tab ->
                     NavigationBarItem(
-                        selected = current == route,
-                        onClick = { nav.navigate(route) { launchSingleTop = true } },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label) },
+                        selected = current == tab.route,
+                        onClick = {
+                            if (current != tab.route) {
+                                nav.navigate(tab.route) {
+                                    launchSingleTop = true
+                                    popUpTo(nav.graph.startDestinationId)
+                                }
+                            }
+                        },
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label) },
                     )
                 }
             }
@@ -82,11 +95,12 @@ private fun AppShell() {
             NavHost(navController = nav, startDestination = "rooms") {
                 composable("rooms")         { RoomFinderScreen() }
                 composable("beacons")       { BeaconScreen() }
-                composable("announcements") { Text("Announcements (TODO)") }
+                composable("announcements") { AnnouncementsScreen() }
                 composable("account")       {
-                    TextButton(onClick = { Api.sessionEmail = null; loggedIn = false }) {
-                        Text("Sign out (${Api.sessionEmail})")
-                    }
+                    AccountScreen(onSignOut = {
+                        Session.clear(ctx)
+                        loggedIn = false
+                    })
                 }
             }
         }

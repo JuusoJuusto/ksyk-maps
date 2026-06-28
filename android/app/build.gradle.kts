@@ -19,10 +19,30 @@ android {
     buildFeatures { compose = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.8" }
 
+    signingConfigs {
+        create("release") {
+            // Stand-in self-signed keystore so we can ship a release APK
+            // from a clean machine. For Play Store distribution swap to the
+            // production keystore via env vars (KSYK_KEYSTORE_FILE etc).
+            val ksFile = System.getenv("KSYK_KEYSTORE_FILE") ?: "ksyk-release.jks"
+            val ksPath = file(ksFile)
+            if (ksPath.exists()) {
+                storeFile = ksPath
+                storePassword = System.getenv("KSYK_KEYSTORE_PASSWORD") ?: "ksyk1234"
+                keyAlias = System.getenv("KSYK_KEY_ALIAS") ?: "ksyk"
+                keyPassword = System.getenv("KSYK_KEY_PASSWORD") ?: "ksyk1234"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false   // Keep symbols readable; turn on for store builds.
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            val ksFile = file(System.getenv("KSYK_KEYSTORE_FILE") ?: "ksyk-release.jks")
+            if (ksFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -52,6 +72,7 @@ dependencies {
 
     // Location + maps
     implementation("com.google.android.gms:play-services-location:21.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Storage
     implementation("androidx.datastore:datastore-preferences:1.0.0")
