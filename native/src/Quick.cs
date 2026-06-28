@@ -370,13 +370,20 @@ namespace KsykQuick
             BackColor = SystemColors.Control;
             Font = new Font("MS Sans Serif", 9F);
 
-            try
-            {
-                using (var s = System.Reflection.Assembly.GetExecutingAssembly()
-                            .GetManifestResourceStream("KsykQuick.app.ico"))
-                    if (s != null) Icon = new Icon(s);
-            }
+            // Pull the .exe's own embedded Win32 icon at runtime so the
+            // taskbar and alt-tab switcher show the KSYK Maps logo.
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
+            if (Icon == null)
+            {
+                try
+                {
+                    using (var s = System.Reflection.Assembly.GetExecutingAssembly()
+                                .GetManifestResourceStream("KsykQuick.app.ico"))
+                        if (s != null) Icon = new Icon(s);
+                }
+                catch { }
+            }
 
             var menu = new MenuStrip();
             var file = new ToolStripMenuItem("&File");

@@ -151,16 +151,36 @@ namespace KsykAdmin
         {
             var d = o as IDictionary<string, object>;
             if (d == null || !d.ContainsKey(key) || d[key] == null) return fallback;
-            try { return (T)Convert.ChangeType(d[key], typeof(T)); }
+            try { return (T)Convert.ChangeType(d[key], typeof(T), System.Globalization.CultureInfo.InvariantCulture); }
             catch { return fallback; }
         }
 
-        public static string Str(object o, string key) { return Get<string>(o, key, ""); }
+        /// <summary>Render any field as a string using the invariant culture
+        /// so a number like 60.187148 round-trips exactly — without getting
+        /// turned into "60,187148" by a Finnish/German locale and then
+        /// reparsed as 60 187 148 on save (this exact bug broke the map).</summary>
+        public static string Str(object o, string key)
+        {
+            var d = o as IDictionary<string, object>;
+            if (d == null || !d.ContainsKey(key) || d[key] == null) return "";
+            var v = d[key];
+            // Numeric types always serialise in invariant.
+            if (v is double || v is float || v is decimal || v is int || v is long || v is short)
+            {
+                try
+                {
+                    return ((IConvertible)v).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+                catch { /* fall through */ }
+            }
+            return v.ToString();
+        }
+
         public static int Int(object o, string key)
         {
             var d = o as IDictionary<string, object>;
             if (d == null || !d.ContainsKey(key) || d[key] == null) return 0;
-            try { return Convert.ToInt32(d[key]); } catch { return 0; }
+            try { return Convert.ToInt32(d[key], System.Globalization.CultureInfo.InvariantCulture); } catch { return 0; }
         }
 
         /// <summary>Friendly error message, including hints for common Cloudflare blocks.</summary>
@@ -2763,10 +2783,36 @@ namespace KsykAdmin
             if (val.Length == 0) return;
             if (numeric)
             {
+                // Accept both "60.187148" AND "60,187148". Try invariant first,
+                // then current culture, and reject any value that's clearly
+                // a stripped-decimal artefact (lat>90, lng>180, etc.).
                 double n;
-                if (double.TryParse(val, System.Globalization.NumberStyles.Any,
-                                    System.Globalization.CultureInfo.InvariantCulture, out n))
-                    body[key] = n;
+                bool ok = double.TryParse(
+                    val,
+                    System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowLeadingSign,
+                    System.Globalization.CultureInfo.InvariantCulture, out n);
+                if (!ok)
+                {
+                    ok = double.TryParse(
+                        val.Replace(',', '.'),
+                        System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowLeadingSign,
+                        System.Globalization.CultureInfo.InvariantCulture, out n);
+                }
+                if (!ok) return;
+                if (key.Contains("Lat") && (n > 90 || n < -90))
+                {
+                    // Almost certainly a decimal-stripping bug — undo by /1e6.
+                    n = n / 1_000_000.0;
+                }
+                else if (key.Contains("Lng") && (n > 180 || n < -180))
+                {
+                    n = n / 1_000_000.0;
+                }
+                else if ((key.Contains("Bounds")) && Math.Abs(n) > 1_000)
+                {
+                    n = n / 1_000_000.0;
+                }
+                body[key] = n;
             }
             else body[key] = val;
         }
@@ -3455,10 +3501,26 @@ namespace KsykAdmin
 
     public static class Native
     {
+        /// <summary>
+        /// Get the embedded Win32 icon out of our own .exe at runtime so the
+        /// taskbar, alt-tab switcher and window title all show the proper
+        /// KSYK Maps logo — not the generic blue Windows app icon. The
+        /// icon was embedded via /win32icon:icon.ico at compile time.
+        /// </summary>
         public static Icon LoadAppIcon()
         {
             try
             {
+                // ExtractAssociatedIcon pulls the .exe's main 32x32 icon. It
+                // matches what Explorer shows when browsing the file.
+                var exe = Application.ExecutablePath;
+                var ico = Icon.ExtractAssociatedIcon(exe);
+                if (ico != null) return ico;
+            }
+            catch { }
+            try
+            {
+                // Fallback to the managed resource path (used by older builds).
                 using (var s = System.Reflection.Assembly.GetExecutingAssembly()
                             .GetManifestResourceStream("KsykAdmin.app.ico"))
                 {

@@ -155,12 +155,19 @@ namespace KsykSetup
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = SystemColors.Control;
             Font = new Font(SystemFonts.MessageBoxFont.FontFamily, 9F);
-            try
-            {
-                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("icon.ico"))
-                    if (s != null) Icon = new Icon(s);
-            }
+            // Pull the embedded Win32 icon out of Setup.exe at runtime so
+            // the wizard shows the KSYK Maps logo in the taskbar / title bar.
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
+            if (Icon == null)
+            {
+                try
+                {
+                    using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("icon.ico"))
+                        if (s != null) Icon = new Icon(s);
+                }
+                catch { }
+            }
             if (Icon == null) Icon = SystemIcons.Application;
 
             BuildFooter();
@@ -1151,7 +1158,8 @@ namespace KsykSetup
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = SystemColors.Control;
             Font = new Font("MS Sans Serif", 9F);
-            Icon = SystemIcons.Application;
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
+            if (Icon == null) Icon = SystemIcons.Application;
 
             var lbl = new Label
             {
