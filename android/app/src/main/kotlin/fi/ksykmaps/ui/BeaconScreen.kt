@@ -320,7 +320,23 @@ fun BeaconScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 80.dp),
             ) {
-                items(savedPositions) { p -> PositionRow(p) }
+                items(savedPositions) { p ->
+                    PositionRow(p, onDelete = {
+                        val posId = (p["id"] as? JsonPrimitive)?.contentOrNull ?: return@PositionRow
+                        val roomId = (selectedRoom?.get("id") as? JsonPrimitive)?.contentOrNull ?: return@PositionRow
+                        scope.launch {
+                            try {
+                                withContext(Dispatchers.IO) {
+                                    Api.delete("/beacons/$roomId/positions/$posId")
+                                }
+                                reloadPositions(roomId)
+                                status = "Position deleted."; statusColor = Color(0xFF16A34A)
+                            } catch (e: Exception) {
+                                status = Api.friendly(e); statusColor = Color.Red
+                            }
+                        }
+                    })
+                }
             }
         }
     }
@@ -360,7 +376,8 @@ private fun StatusChip(
 }
 
 @Composable
-private fun PositionRow(p: JsonObject) {
+private fun PositionRow(p: JsonObject, onDelete: () -> Unit) {
+    var confirmingDelete by remember { mutableStateOf(false) }
     val label = (p["positionLabel"] as? JsonPrimitive)?.contentOrNull ?: "—"
     val captured = (p["capturedAt"] as? JsonPrimitive)?.contentOrNull?.take(19)?.replace("T", " ") ?: ""
     val n = (p["readings"] as? JsonArray)?.size ?: 0
@@ -393,7 +410,30 @@ private fun PositionRow(p: JsonObject) {
                     )
                 }
             }
+            IconButton(onClick = { confirmingDelete = true }) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = "Delete position",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
+    }
+
+    if (confirmingDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmingDelete = false },
+            title = { Text("Delete position?") },
+            text = { Text("This removes the saved beacon reading from Firestore. It also disappears from the desktop admin and the website.") },
+            confirmButton = {
+                TextButton(onClick = { confirmingDelete = false; onDelete() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

@@ -48,6 +48,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Backport java.time.* to API 26+ minSdk. Without this
+        // LocalDate.parse crashes on real devices below API 26 even
+        // though our minSdk = 26 — it's a compiler soft-guard.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions { jvmTarget = "17" }
 }
@@ -60,7 +64,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.compose.ui:ui:$compose")
     implementation("androidx.compose.ui:ui-tooling-preview:$compose")
-    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material3:material3:1.3.0")
     implementation("androidx.compose.material:material-icons-extended:$compose")
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
@@ -78,4 +82,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling:$compose")
+
+    // Backport for java.time.* — activated by isCoreLibraryDesugaringEnabled above.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
