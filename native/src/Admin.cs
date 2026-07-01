@@ -2802,15 +2802,15 @@ namespace KsykAdmin
                 if (key.Contains("Lat") && (n > 90 || n < -90))
                 {
                     // Almost certainly a decimal-stripping bug — undo by /1e6.
-                    n = n / 1_000_000.0;
+                    n = n / 1000000.0;
                 }
                 else if (key.Contains("Lng") && (n > 180 || n < -180))
                 {
-                    n = n / 1_000_000.0;
+                    n = n / 1000000.0;
                 }
-                else if ((key.Contains("Bounds")) && Math.Abs(n) > 1_000)
+                else if ((key.Contains("Bounds")) && Math.Abs(n) > 1000)
                 {
-                    n = n / 1_000_000.0;
+                    n = n / 1000000.0;
                 }
                 body[key] = n;
             }
@@ -3365,11 +3365,421 @@ namespace KsykAdmin
         }
     }
 
+    // ── Dashboard tab ──────────────────────────────────────────────────
+    //
+    // Landing page. Shows headline counts (buildings, rooms, tickets,
+    // announcements), server + email health, a "recent activity" log,
+    // and quick-action buttons that jump to the relevant tab. Auto-
+    // refreshes every 60 s so admins don't have to babysit it.
+
+    public class DashboardPanel : UserControl
+    {
+        readonly MainForm shell;
+        readonly Label lblGreeting = new Label();
+        readonly Label lblStatus = new Label();
+        readonly FlowLayoutPanel cardsRow = new FlowLayoutPanel();
+        readonly Panel healthCard = new Panel();
+        readonly Label lblCfHealth = new Label();
+        readonly Label lblApiHealth = new Label();
+        readonly Label lblEmailHealth = new Label();
+        readonly Label lblMaintenance = new Label();
+        readonly Label lblLastRefresh = new Label();
+        System.Windows.Forms.Timer refresher;
+
+        // The stat cards we mutate on each refresh.
+        readonly Dictionary<string, Label> stats = new Dictionary<string, Label>();
+
+        public DashboardPanel(MainForm mainShell)
+        {
+            shell = mainShell;
+            BackColor = Color.FromArgb(245, 246, 249);
+            Dock = DockStyle.Fill;
+            AutoScroll = true;
+            Padding = new Padding(20);
+
+            // ── Greeting header ────────────────────────────────────
+            lblGreeting.Text = "Overview";
+            lblGreeting.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
+            lblGreeting.ForeColor = Color.FromArgb(15, 35, 80);
+            lblGreeting.AutoSize = true;
+            lblGreeting.Location = new Point(0, 0);
+            Controls.Add(lblGreeting);
+
+            lblStatus.Text = "Live snapshot of the KSYK Maps campus and server.";
+            lblStatus.Font = new Font("Segoe UI", 9.5F);
+            lblStatus.ForeColor = Color.FromArgb(100, 110, 130);
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(2, 38);
+            Controls.Add(lblStatus);
+
+            lblLastRefresh.Location = new Point(2, 58);
+            lblLastRefresh.AutoSize = true;
+            lblLastRefresh.ForeColor = Color.FromArgb(140, 150, 170);
+            lblLastRefresh.Font = new Font("Segoe UI", 8F);
+            Controls.Add(lblLastRefresh);
+
+            // ── Stat cards row ────────────────────────────────────
+            cardsRow.Location = new Point(0, 92);
+            cardsRow.Size = new Size(1200, 130);
+            cardsRow.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cardsRow.FlowDirection = FlowDirection.LeftToRight;
+            cardsRow.WrapContents = true;
+            cardsRow.BackColor = Color.Transparent;
+            Controls.Add(cardsRow);
+            AddCard("BUILDINGS",     "0", Color.FromArgb(37, 99, 235),  "Buildings",     "buildings");
+            AddCard("ROOMS",         "0", Color.FromArgb(139, 92, 246), "Rooms",         "rooms");
+            AddCard("OPEN TICKETS",  "0", Color.FromArgb(239, 68, 68),  "Tickets",       "openTickets");
+            AddCard("ANNOUNCEMENTS", "0", Color.FromArgb(16, 185, 129), "Announcements", "announcements");
+            AddCard("ADMIN USERS",   "0", Color.FromArgb(245, 158, 11), "Users",         "users");
+            AddCard("BEACON POS.",   "0", Color.FromArgb(6, 182, 212),  "Beacons",       "beacons");
+
+            // ── Health card ───────────────────────────────────────
+            healthCard.Location = new Point(0, 234);
+            healthCard.Size = new Size(600, 200);
+            healthCard.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            healthCard.BackColor = Color.White;
+            healthCard.BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(healthCard);
+
+            healthCard.Controls.Add(new Label
+            {
+                Text = "Health",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 35, 80),
+                Location = new Point(20, 16), AutoSize = true,
+            });
+            lblCfHealth.Location = new Point(20, 50); lblCfHealth.AutoSize = true;
+            lblApiHealth.Location = new Point(20, 76); lblApiHealth.AutoSize = true;
+            lblEmailHealth.Location = new Point(20, 102); lblEmailHealth.AutoSize = true;
+            lblMaintenance.Location = new Point(20, 128); lblMaintenance.AutoSize = true;
+            foreach (var l in new[] { lblCfHealth, lblApiHealth, lblEmailHealth, lblMaintenance })
+            {
+                l.Font = new Font("Segoe UI", 9.5F);
+                l.ForeColor = Color.FromArgb(100, 110, 130);
+                healthCard.Controls.Add(l);
+            }
+
+            // ── Quick actions card ────────────────────────────────
+            var actionsCard = new Panel
+            {
+                Location = new Point(620, 234), Size = new Size(560, 200),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle,
+            };
+            Controls.Add(actionsCard);
+            actionsCard.Controls.Add(new Label
+            {
+                Text = "Quick actions",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 35, 80),
+                Location = new Point(20, 16), AutoSize = true,
+            });
+            AddAction(actionsCard, 20, 50, "📢  New announcement", () => shell.JumpToTab("Announcements"));
+            AddAction(actionsCard, 20, 92, "🚪  Add a room",        () => shell.JumpToTab("Rooms"));
+            AddAction(actionsCard, 20, 134, "🔒  Security gates",   () => shell.JumpToTab("Security"));
+            AddAction(actionsCard, 280, 50, "📡  Beacon survey",    () => shell.JumpToTab("Beacons"));
+            AddAction(actionsCard, 280, 92, "⚙️  App settings",     () => shell.JumpToTab("Settings"));
+            AddAction(actionsCard, 280, 134,"🧰  Diagnostics",       () => shell.JumpToTab("Diagnostics"));
+
+            // Kick off first refresh and start auto-timer.
+            Reload();
+            refresher = new System.Windows.Forms.Timer { Interval = 60000 };
+            refresher.Tick += (s, e) => Reload();
+            refresher.Start();
+        }
+
+        void AddCard(string caption, string value, Color accent, string jumpTo, string statKey)
+        {
+            var card = new Panel
+            {
+                Size = new Size(180, 120),
+                Margin = new Padding(0, 0, 12, 0),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Cursor = Cursors.Hand,
+            };
+            var stripe = new Panel { Dock = DockStyle.Top, Height = 4, BackColor = accent };
+            card.Controls.Add(stripe);
+
+            var lblValue = new Label
+            {
+                Text = value,
+                Font = new Font("Segoe UI", 26F, FontStyle.Bold),
+                ForeColor = accent,
+                Location = new Point(14, 18), AutoSize = true,
+            };
+            card.Controls.Add(lblValue);
+            stats[statKey] = lblValue;
+
+            card.Controls.Add(new Label
+            {
+                Text = caption,
+                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(100, 110, 130),
+                Location = new Point(16, 72), AutoSize = true,
+            });
+            card.Controls.Add(new Label
+            {
+                Text = "Open →",
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = accent,
+                Location = new Point(16, 92), AutoSize = true,
+            });
+
+            card.Click += (s, e) => shell.JumpToTab(jumpTo);
+            foreach (Control c in card.Controls) c.Click += (s, e) => shell.JumpToTab(jumpTo);
+
+            cardsRow.Controls.Add(card);
+        }
+
+        void AddAction(Panel host, int x, int y, string text, Action onClick)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(240, 34),
+                BackColor = Color.FromArgb(247, 249, 253),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 35, 80),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(12, 0, 0, 0),
+                Cursor = Cursors.Hand,
+            };
+            btn.FlatAppearance.BorderColor = Color.FromArgb(220, 224, 232);
+            btn.FlatAppearance.BorderSize = 1;
+            btn.Click += (s, e) => onClick();
+            host.Controls.Add(btn);
+        }
+
+        void Reload()
+        {
+            new Thread(() =>
+            {
+                var buildings = Api.RequestOrNull("/buildings") as object[];
+                var rooms = Api.RequestOrNull("/rooms") as object[];
+                var tickets = Api.RequestOrNull("/tickets") as object[];
+                var announcements = Api.RequestOrNull("/announcements?limit=1000") as object[];
+                var users = Api.RequestOrNull("/users") as object[];
+
+                int openTickets = 0;
+                if (tickets != null) foreach (var t in tickets)
+                {
+                    var st = Api.Str(t as IDictionary<string, object>, "status").ToLower();
+                    if (st == "pending" || st == "in_progress" || st == "open") openTickets++;
+                }
+
+                // Beacon count: sum positions across every room.
+                int beacons = 0;
+                if (rooms != null)
+                {
+                    // Limit to first 25 rooms so we don't hammer the API on
+                    // every refresh — dashboard is a snapshot, not exact.
+                    int i = 0;
+                    foreach (var r in rooms)
+                    {
+                        if (i++ > 25) break;
+                        var id = Api.Str(r as IDictionary<string, object>, "id");
+                        if (string.IsNullOrEmpty(id)) continue;
+                        var positions = Api.RequestOrNull("/beacons/" + id + "/positions") as object[];
+                        if (positions != null) beacons += positions.Length;
+                    }
+                }
+
+                var settings = Api.RequestOrNull("/settings") as IDictionary<string, object>;
+                var maintenanceOn = settings != null && Api.Get<bool>(settings, "maintenanceMode", false);
+                var email = Api.RequestOrNull("/email-diagnostic") as IDictionary<string, object>;
+                var emailOk = email != null && Api.Get<bool>(email, "emailConfigured", false);
+
+                bool apiOk = buildings != null || rooms != null;
+
+                BeginInvoke((Action)(() =>
+                {
+                    stats["buildings"].Text     = (buildings != null ? buildings.Length : 0).ToString("N0");
+                    stats["rooms"].Text         = (rooms != null ? rooms.Length : 0).ToString("N0");
+                    stats["openTickets"].Text   = openTickets.ToString("N0");
+                    stats["announcements"].Text = (announcements != null ? announcements.Length : 0).ToString("N0");
+                    stats["users"].Text         = (users != null ? users.Length : 0).ToString("N0");
+                    stats["beacons"].Text       = beacons.ToString("N0");
+
+                    lblApiHealth.Text = "●  API: " + (apiOk ? "OK" : "unreachable");
+                    lblApiHealth.ForeColor = apiOk ? Color.FromArgb(22, 163, 74) : Color.FromArgb(220, 38, 38);
+
+                    lblEmailHealth.Text = "●  Email: " + (emailOk ? "OK" : "not configured");
+                    lblEmailHealth.ForeColor = emailOk ? Color.FromArgb(22, 163, 74) : Color.FromArgb(245, 158, 11);
+
+                    lblCfHealth.Text = "●  Cloudflare: allow-rule active if X-KSYK-Client header succeeded";
+                    lblCfHealth.ForeColor = apiOk ? Color.FromArgb(22, 163, 74) : Color.FromArgb(140, 150, 170);
+
+                    lblMaintenance.Text = maintenanceOn
+                        ? "●  Maintenance mode: ON — visitors see the maintenance page"
+                        : "●  Maintenance mode: OFF";
+                    lblMaintenance.ForeColor = maintenanceOn ? Color.FromArgb(220, 38, 38) : Color.FromArgb(22, 163, 74);
+
+                    lblLastRefresh.Text = "Last refresh: " + DateTime.Now.ToString("HH:mm:ss") + " · auto-refreshes every 60 s";
+                }));
+            }) { IsBackground = true }.Start();
+        }
+    }
+
+    // ── Floors tab ─────────────────────────────────────────────────────
+    //
+    // Manages the campus floor definitions (level 0 basement, 1 ground,
+    // 2 first, etc.) via /api/floors. Uses buildingId to scope floors to
+    // a specific building — the site UI shows the right set per-building.
+
+    public class FloorsPanel : UserControl
+    {
+        readonly ListView list = new ListView();
+        readonly Label lblStatus = new Label();
+
+        public FloorsPanel()
+        {
+            BackColor = SystemColors.Control;
+            Dock = DockStyle.Fill;
+
+            var tb = new Panel { Dock = DockStyle.Top, Height = 36 };
+            tb.Controls.Add(new Label { Text = "Campus floors", Location = new Point(8, 10), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) });
+            var bReload = new Button { Text = "Reload", Location = new Point(120, 6), Size = new Size(75, 24) };
+            bReload.Click += (s, e) => Load(); tb.Controls.Add(bReload);
+            lblStatus.Location = new Point(200, 10);
+            lblStatus.AutoSize = true;
+            lblStatus.ForeColor = SystemColors.GrayText;
+            tb.Controls.Add(lblStatus);
+            Controls.Add(tb);
+
+            list.View = View.Details;
+            list.FullRowSelect = true;
+            list.GridLines = true;
+            list.Dock = DockStyle.Fill;
+            list.Columns.Add("Level", 60);
+            list.Columns.Add("Name", 200);
+            list.Columns.Add("Building", 200);
+            list.Columns.Add("Rooms", 60);
+            list.Font = new Font("Segoe UI", 9F);
+            Controls.Add(list);
+            list.BringToFront();
+
+            Load();
+        }
+
+        void Load()
+        {
+            lblStatus.Text = "Loading..."; lblStatus.ForeColor = Color.Navy;
+            new Thread(() =>
+            {
+                try
+                {
+                    var floors = Api.RequestOrNull("/floors") as object[];
+                    var buildings = Session.CachedBuildings.Count > 0
+                        ? Session.CachedBuildings.ToArray()
+                        : Api.RequestOrNull("/buildings") as object[];
+                    var rooms = Session.CachedRooms.Count > 0
+                        ? Session.CachedRooms.ToArray()
+                        : Api.RequestOrNull("/rooms") as object[];
+
+                    // If /floors is missing, derive from rooms:
+                    // group rooms by (buildingId, floor).
+                    var derived = new List<IDictionary<string, object>>();
+                    var roomCountsByFloor = new Dictionary<string, int>();
+                    if (rooms != null) foreach (var r in rooms)
+                    {
+                        var d = r as IDictionary<string, object>;
+                        var bid = Api.Str(d, "buildingId");
+                        var lvl = Api.Int(d, "floor");
+                        var key = bid + "|" + lvl;
+                        roomCountsByFloor[key] = (roomCountsByFloor.ContainsKey(key) ? roomCountsByFloor[key] : 0) + 1;
+                    }
+
+                    if (floors == null || floors.Length == 0)
+                    {
+                        // Derive floors from rooms.
+                        var seen = new HashSet<string>();
+                        if (rooms != null) foreach (var r in rooms)
+                        {
+                            var d = r as IDictionary<string, object>;
+                            var bid = Api.Str(d, "buildingId");
+                            var lvl = Api.Int(d, "floor");
+                            var key = bid + "|" + lvl;
+                            if (!seen.Add(key)) continue;
+                            derived.Add(new Dictionary<string, object>
+                            {
+                                { "level", lvl }, { "buildingId", bid }, { "name", "Floor " + lvl },
+                                { "derived", true },
+                            });
+                        }
+                    }
+                    else
+                    {
+                        foreach (var f in floors) derived.Add(f as IDictionary<string, object>);
+                    }
+
+                    var buildingNames = new Dictionary<string, string>();
+                    if (buildings != null) foreach (var b in buildings)
+                    {
+                        var d = b as IDictionary<string, object>;
+                        buildingNames[Api.Str(d, "id")] = Api.Str(d, "name");
+                    }
+
+                    BeginInvoke((Action)(() =>
+                    {
+                        list.BeginUpdate(); list.Items.Clear();
+                        derived.Sort((a, b) =>
+                        {
+                            var ba = buildingNames.ContainsKey(Api.Str(a, "buildingId"))
+                                ? buildingNames[Api.Str(a, "buildingId")] : "";
+                            var bb = buildingNames.ContainsKey(Api.Str(b, "buildingId"))
+                                ? buildingNames[Api.Str(b, "buildingId")] : "";
+                            var c = string.Compare(ba, bb, StringComparison.OrdinalIgnoreCase);
+                            if (c != 0) return c;
+                            return Api.Int(a, "level").CompareTo(Api.Int(b, "level"));
+                        });
+                        foreach (var f in derived)
+                        {
+                            var bid = Api.Str(f, "buildingId");
+                            var lvl = Api.Int(f, "level");
+                            var key = bid + "|" + lvl;
+                            var rc = roomCountsByFloor.ContainsKey(key) ? roomCountsByFloor[key] : 0;
+                            var item = new ListViewItem(new[]
+                            {
+                                lvl.ToString(),
+                                Api.Str(f, "name"),
+                                buildingNames.ContainsKey(bid) ? buildingNames[bid] : "—",
+                                rc.ToString(),
+                            });
+                            if (Api.Get<bool>(f, "derived", false))
+                                item.ForeColor = Color.FromArgb(100, 110, 130);
+                            list.Items.Add(item);
+                        }
+                        list.EndUpdate();
+                        lblStatus.Text = derived.Count + " floors";
+                        lblStatus.ForeColor = SystemColors.GrayText;
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    BeginInvoke((Action)(() =>
+                    {
+                        lblStatus.Text = Api.Friendly(ex);
+                        lblStatus.ForeColor = Color.Maroon;
+                    }));
+                }
+            }) { IsBackground = true }.Start();
+        }
+    }
+
     // ── Main shell ─────────────────────────────────────────────────────
 
     public class MainForm : Form
     {
         readonly TabControl tabs = new TabControl();
+        /// <summary>Jump the tab strip to a named page (used by Dashboard quick-actions).</summary>
+        public void JumpToTab(string title)
+        {
+            foreach (TabPage p in tabs.TabPages)
+                if (p.Text == title) { tabs.SelectedTab = p; return; }
+        }
         readonly IDictionary<string, object> user;
 
         public MainForm(IDictionary<string, object> u)
@@ -3403,7 +3813,9 @@ namespace KsykAdmin
             // Tabs
             tabs.Dock = DockStyle.Fill;
             tabs.Appearance = TabAppearance.Normal;
+            tabs.TabPages.Add(MakeTab("Dashboard", new DashboardPanel(this)));
             tabs.TabPages.Add(MakeTab("Rooms", new RoomsPanel()));
+            tabs.TabPages.Add(MakeTab("Floors", new FloorsPanel()));
             tabs.TabPages.Add(MakeTab("Buildings", new BuildingsPanel()));
             tabs.TabPages.Add(MakeTab("Announcements", new AnnouncementsPanel()));
             tabs.TabPages.Add(MakeTab("Staff", new StaffPanel()));

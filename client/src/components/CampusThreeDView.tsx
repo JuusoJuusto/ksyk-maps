@@ -87,6 +87,7 @@ const STATUS_TINT: Record<string, number> = {
 export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   const { darkMode } = useDarkMode();
   const canvasHostRef = useRef<HTMLDivElement | null>(null);
+  const minimapRef = useRef<HTMLCanvasElement | null>(null);
   const [mode, setMode] = useState<CameraMode>("orbit");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +201,28 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
       const FLOOR_HEIGHT = 30;       // metres per floor in the scene
       const SCALE = 1;               // svg→world unit ratio
+
+      // Pre-computed room rectangles for the minimap, in scene-centred coords.
+      const miniRooms = rooms
+        .filter((r) => r.mapPositionX != null && r.mapPositionY != null)
+        .map((r) => ({
+          x: (r.mapPositionX! + (r.width ?? 56) / 2) - sceneCentre.x,
+          z: (r.mapPositionY! + (r.height ?? 40) / 2) - sceneCentre.y,
+          w: r.width ?? 56,
+          h: r.height ?? 40,
+          color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
+          floor: r.floor ?? 1,
+        }));
+      // Compute mini bounds once — the minimap fits everything in.
+      const miniBounds = (() => {
+        if (miniRooms.length === 0) return { minX: -100, maxX: 100, minZ: -100, maxZ: 100 };
+        return {
+          minX: Math.min(...miniRooms.map(r => r.x - r.w / 2)),
+          maxX: Math.max(...miniRooms.map(r => r.x + r.w / 2)),
+          minZ: Math.min(...miniRooms.map(r => r.z - r.h / 2)),
+          maxZ: Math.max(...miniRooms.map(r => r.z + r.h / 2)),
+        };
+      })();
 
       const roomGroup = new THREE.Group();
       scene.add(roomGroup);
@@ -377,6 +400,58 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         frames++;
         if (frames % 30 === 0) setStats((s) => ({ ...s, fps: Math.round(1 / Math.max(0.001, dt)) }));
 
+        // Minimap paint — always fresh, cheap enough per frame.
+        const mm = minimapRef.current;
+        if (mm) {
+          const ctx = mm.getContext("2d");
+          if (ctx) {
+            const W = mm.width, H = mm.height;
+            ctx.clearRect(0, 0, W, H);
+            // Sky-ish background so it reads as a top-down blueprint
+            ctx.fillStyle = darkMode ? "rgba(15,25,45,0.9)" : "rgba(240,246,255,0.95)";
+            ctx.fillRect(0, 0, W, H);
+            // Room boxes projected into the minimap
+            const bw = miniBounds.maxX - miniBounds.minX;
+            const bh = miniBounds.maxZ - miniBounds.minZ;
+            const scale = Math.min((W - 8) / Math.max(1, bw), (H - 8) / Math.max(1, bh));
+            const cx = W / 2, cy = H / 2;
+            const bcx = (miniBounds.minX + miniBounds.maxX) / 2;
+            const bcz = (miniBounds.minZ + miniBounds.maxZ) / 2;
+            for (const r of miniRooms) {
+              const px = cx + (r.x - bcx) * scale;
+              const py = cy + (r.z - bcz) * scale;
+              const pw = r.w * scale;
+              const ph = r.h * scale;
+              ctx.fillStyle = "#" + r.color.toString(16).padStart(6, "0");
+              ctx.globalAlpha = 0.75;
+              ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
+              ctx.globalAlpha = 1;
+              ctx.strokeStyle = darkMode ? "rgba(15,25,45,0.5)" : "rgba(255,255,255,0.7)";
+              ctx.lineWidth = 0.5;
+              ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
+            }
+            // Walker arrow (in walk mode) — position + heading
+            if (mode === "walk") {
+              const px = cx + (walkPos.x - bcx) * scale;
+              const py = cy + (walkPos.z - bcz) * scale;
+              ctx.save();
+              ctx.translate(px, py);
+              ctx.rotate(walkLook.yaw + Math.PI / 2);
+              ctx.fillStyle = "#3b82f6";
+              ctx.strokeStyle = "white";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.moveTo(0, -8);
+              ctx.lineTo(-5, 6);
+              ctx.lineTo(5, 6);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+
         if (mode === "orbit") updateCameraOrbit();
         else {
           // WASD / arrows movement, relative to walk yaw. Each axis is
@@ -462,6 +537,27 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         >
           <X className="h-4 w-4" />
         </button>
+
+        {/* Minimap — top-right, below the close button. Always visible so
+         *  users have a fixed reference point; the walker triangle only
+         *  appears when in walk mode (in orbit the whole scene rotates). */}
+        <div className={cn(
+          "absolute top-16 right-3 z-10 p-1 rounded-lg shadow-lg backdrop-blur-md border",
+          darkMode ? "bg-gray-900/90 border-gray-700" : "bg-white/95 border-gray-200",
+        )}>
+          <canvas
+            ref={minimapRef}
+            width={168}
+            height={168}
+            className="rounded-md block"
+          />
+          <p className={cn(
+            "text-[9px] font-bold tracking-widest uppercase text-center mt-1",
+            darkMode ? "text-gray-400" : "text-gray-500",
+          )}>
+            Campus minimap
+          </p>
+        </div>
 
         {/* Mode toggle (bottom centre) */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 p-1 rounded-xl shadow-lg backdrop-blur-md bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700">

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -102,7 +102,7 @@ fun AccountScreen(onSignOut: () -> Unit) {
                     contentColor = MaterialTheme.colorScheme.error,
                 ),
             ) {
-                Icon(Icons.Outlined.Logout, null)
+                Icon(Icons.AutoMirrored.Outlined.Logout, null)
                 Spacer(Modifier.width(10.dp))
                 Text("Sign out", fontWeight = FontWeight.SemiBold)
             }
