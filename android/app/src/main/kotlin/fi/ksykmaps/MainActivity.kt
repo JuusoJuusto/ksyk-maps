@@ -3,16 +3,16 @@ package fi.ksykmaps
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,23 +26,25 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
-import fi.ksykmaps.ui.AccountScreen
 import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
+import fi.ksykmaps.ui.BuildingsScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LoginScreen
 import fi.ksykmaps.ui.RoomFinderScreen
+import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.theme.KsykTheme
 
 /**
- * Single-activity Compose host.
+ * Single-activity Compose host with a Material-3 bottom nav bar.
  *
  * Routes:
- *   home          · Landing dashboard
- *   rooms         · Room finder
- *   beacons       · WiFi survey + GPS capture
- *   announcements · Latest school notices
- *   account       · Sign-in info + sign out
+ *   home          · Landing dashboard with live stats
+ *   rooms         · Searchable room finder
+ *   beacons       · WiFi + GPS survey
+ *   buildings     · Campus buildings directory
+ *   announcements · School announcements
+ *   settings      · App preferences + about
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,11 +59,11 @@ class MainActivity : ComponentActivity() {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab("home",          "Home",     Icons.Outlined.Home),
-    Tab("rooms",         "Rooms",    Icons.Outlined.Map),
-    Tab("beacons",       "Beacons",  Icons.Outlined.Wifi),
-    Tab("announcements", "News",     Icons.Outlined.Campaign),
-    Tab("account",       "Account",  Icons.Outlined.Person),
+    Tab("home",     "Home",     Icons.Outlined.Home),
+    Tab("rooms",    "Rooms",    Icons.Outlined.Map),
+    Tab("beacons",  "Beacons",  Icons.Outlined.Wifi),
+    Tab("news",     "News",     Icons.Outlined.Campaign),
+    Tab("settings", "Settings", Icons.Outlined.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,15 +92,17 @@ private fun AppShell() {
                     HomeScreen(
                         onOpenRooms         = { navigate(nav, "rooms") },
                         onOpenBeacons       = { navigate(nav, "beacons") },
-                        onOpenAnnouncements = { navigate(nav, "announcements") },
-                        onOpenAccount       = { navigate(nav, "account") },
+                        onOpenAnnouncements = { navigate(nav, "news") },
+                        onOpenAccount       = { navigate(nav, "settings") },
+                        onOpenBuildings     = { navigate(nav, "buildings") },
                     )
                 }
-                composable("rooms")         { RoomFinderScreen() }
-                composable("beacons")       { BeaconScreen() }
-                composable("announcements") { AnnouncementsScreen() }
-                composable("account") {
-                    AccountScreen(onSignOut = {
+                composable("rooms")     { RoomFinderScreen() }
+                composable("beacons")   { BeaconScreen() }
+                composable("buildings") { BuildingsScreen() }
+                composable("news")      { AnnouncementsScreen() }
+                composable("settings")  {
+                    SettingsScreen(onSignOut = {
                         Session.clear(ctx)
                         loggedIn = false
                     })
@@ -122,9 +126,7 @@ private fun BottomBar(nav: NavHostController) {
         TABS.forEach { tab ->
             NavigationBarItem(
                 selected = current == tab.route,
-                onClick = {
-                    if (current != tab.route) navigate(nav, tab.route)
-                },
+                onClick = { if (current != tab.route) navigate(nav, tab.route) },
                 icon = { Icon(tab.icon, contentDescription = tab.label) },
                 label = { Text(tab.label) },
             )

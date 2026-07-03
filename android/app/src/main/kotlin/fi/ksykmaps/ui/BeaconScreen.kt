@@ -60,6 +60,7 @@ fun BeaconScreen() {
 
     // Live state
     var liveBssidCount by remember { mutableStateOf(0) }
+    var liveTopSignals by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
     var liveLat by remember { mutableStateOf(0.0) }
     var liveLng by remember { mutableStateOf(0.0) }
     var liveAcc by remember { mutableStateOf(0.0) }
@@ -100,7 +101,14 @@ fun BeaconScreen() {
                 @SuppressLint("MissingPermission")
                 val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
                 @Suppress("DEPRECATION") wifi.startScan()
-                liveBssidCount = wifi.scanResults.size
+                val results = wifi.scanResults
+                liveBssidCount = results.size
+                // Top 5 strongest access points for the live signal preview.
+                @Suppress("DEPRECATION")
+                liveTopSignals = results
+                    .sortedByDescending { it.level }
+                    .take(5)
+                    .map { Triple(it.SSID ?: "", it.BSSID ?: "", it.level) }
             } catch (_: Exception) { /* permission not yet granted */ }
             // Best-effort fresh GPS — silent fail if perms not yet granted.
             try {
@@ -310,6 +318,36 @@ fun BeaconScreen() {
                 )
             }
 
+            // Live top-5 WiFi signal preview — refreshes every 4s from the
+            // continuous background scan
+            if (liveTopSignals.isNotEmpty()) {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    ),
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(
+                            "TOP 5 SIGNALS · LIVE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        liveTopSignals.forEach { (ssid, bssid, rssi) ->
+                            SignalRow(
+                                ssid = ssid.ifBlank { "(hidden)" },
+                                bssid = bssid,
+                                rssi = rssi,
+                            )
+                        }
+                    }
+                }
+            }
+
             HorizontalDivider()
             Text(
                 "Saved positions (${savedPositions.size})",
@@ -350,6 +388,48 @@ fun BeaconScreen() {
                 roomSheetOpen = false
                 scope.launch { reloadPositions((r["id"] as? JsonPrimitive)?.contentOrNull ?: "") }
             },
+        )
+    }
+}
+
+@Composable
+private fun SignalRow(ssid: String, bssid: String, rssi: Int) {
+    // Convert dBm (-30 strong … -95 weak) to a 0..1 progress value.
+    val ratio = ((rssi + 100).coerceAtLeast(0)) / 70f
+    val safeRatio = ratio.coerceIn(0f, 1f)
+    val color = when {
+        rssi >= -55 -> Color(0xFF16A34A)   // strong
+        rssi >= -70 -> Color(0xFFF59E0B)   // moderate
+        else        -> Color(0xFFDC2626)   // weak
+    }
+    Column(Modifier.padding(vertical = 3.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                ssid,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "$rssi dBm",
+                fontSize = 11.sp,
+                color = color,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Text(
+            bssid,
+            fontSize = 9.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(2.dp))
+        LinearProgressIndicator(
+            progress = { safeRatio },
+            modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+            color = color,
+            trackColor = color.copy(alpha = 0.18f),
         )
     }
 }

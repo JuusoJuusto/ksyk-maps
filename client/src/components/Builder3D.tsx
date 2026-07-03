@@ -1019,6 +1019,21 @@ export default function Builder3D() {
           </div>
         </div>
 
+        {/* Live stats — total rooms + rooms placed on the map + selection count */}
+        <div className={cn(
+          "hidden md:flex items-center gap-4 pl-4 pr-4 h-9 rounded-lg border",
+          darkMode ? "border-gray-800 bg-gray-900/40" : "border-gray-200 bg-gray-50",
+        )}>
+          <StatChip label="Total" value={rooms.length} accent="text-blue-600 dark:text-blue-400" />
+          <StatChip label="Placed" value={floorRooms.length} accent="text-emerald-600 dark:text-emerald-400" />
+          {selectedIds.size > 0 && (
+            <StatChip label="Selected" value={selectedIds.size} accent="text-amber-600 dark:text-amber-400" />
+          )}
+          {(canUndo || canRedo) && (
+            <StatChip label="History" value={historyRef.current.length} accent="text-purple-600 dark:text-purple-400" />
+          )}
+        </div>
+
         <div className="flex-1" />
 
         {/* Undo / redo */}
@@ -1624,6 +1639,21 @@ function FieldPair({ label, input }: { label: string; input: React.ReactNode }) 
         {label}
       </Label>
       {input}
+    </div>
+  );
+}
+
+/* ── Live-stats chip used in the top bar ───────────────────────────── */
+
+function StatChip({ label, value, accent }: { label: string; value: number; accent: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-gray-400">
+        {label}
+      </span>
+      <span className={cn("text-sm font-bold tabular-nums", accent)}>
+        {value}
+      </span>
     </div>
   );
 }

@@ -42,6 +42,7 @@ fun HomeScreen(
     onOpenBeacons: () -> Unit,
     onOpenAnnouncements: () -> Unit,
     onOpenAccount: () -> Unit,
+    onOpenBuildings: () -> Unit = onOpenRooms,
 ) {
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf(0) }
@@ -138,6 +139,7 @@ fun HomeScreen(
                         value = buildings.toString(),
                         label = "BUILDINGS",
                         accent = Color(0xFF8B5CF6),
+                        onClick = onOpenBuildings,
                     )
                 }
             }
