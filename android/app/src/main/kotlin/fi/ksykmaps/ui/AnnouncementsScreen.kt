@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.ui.components.SkeletonLine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,7 +79,24 @@ fun AnnouncementsScreen() {
         ) {
             Column(Modifier.fillMaxSize()) {
                 if (loading && items.isEmpty()) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        repeat(4) {
+                            Card(
+                                Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            ) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SkeletonLine(fraction = 0.55f, heightDp = 14.dp)
+                                    SkeletonLine(fraction = 0.95f, heightDp = 10.dp)
+                                    SkeletonLine(fraction = 0.75f, heightDp = 10.dp)
+                                }
+                            }
+                        }
+                    }
                 }
                 error?.let {
                     Card(

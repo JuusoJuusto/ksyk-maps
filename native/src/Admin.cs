@@ -3397,8 +3397,19 @@ namespace KsykAdmin
             AutoScroll = true;
             Padding = new Padding(20);
 
-            // ── Greeting header ────────────────────────────────────
-            lblGreeting.Text = "Overview";
+            // ── Greeting header — time-aware + shows signed-in email ─
+            var hour = DateTime.Now.Hour;
+            var timeGreeting =
+                hour < 5  ? "Working late" :
+                hour < 12 ? "Good morning" :
+                hour < 18 ? "Good afternoon" :
+                hour < 22 ? "Good evening" :
+                            "Working late";
+            var signedInEmail = Api.SessionEmail;
+            if (string.IsNullOrEmpty(signedInEmail))
+                signedInEmail = Api.Str(Session.User, "email");
+            lblGreeting.Text = timeGreeting +
+                (string.IsNullOrEmpty(signedInEmail) ? "" : ", " + signedInEmail.Split('@')[0]);
             lblGreeting.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
             lblGreeting.ForeColor = Color.FromArgb(15, 35, 80);
             lblGreeting.AutoSize = true;

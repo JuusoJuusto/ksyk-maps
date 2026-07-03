@@ -3,6 +3,7 @@ package fi.ksykmaps
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,6 +49,8 @@ import fi.ksykmaps.ui.theme.KsykTheme
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must be BEFORE super.onCreate — installs the splash screen shim.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         Session.load(this)
         setContent {

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.ui.components.SkeletonRoomCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -146,7 +147,14 @@ fun RoomFinderScreen() {
                 }
 
                 if (loading && rooms.isEmpty()) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    // Skeleton list instead of a progress bar — feels
+                    // more like content is on the way.
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        repeat(6) { SkeletonRoomCard() }
+                    }
                 }
                 error?.let {
                     Card(

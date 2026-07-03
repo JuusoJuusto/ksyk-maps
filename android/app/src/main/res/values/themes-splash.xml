@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Splash-screen theme applied to MainActivity in the manifest. The
+      SplashScreen compat library reads these attributes and shows the
+      KSYK Maps launcher icon over a solid KSYK-blue background before
+      the Compose UI is ready.
+    -->
+    <style name="Theme.KSYKMaps.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ksyk_blue</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="postSplashScreenTheme">@style/Theme.KSYKMaps</item>
+    </style>
+</resources>
