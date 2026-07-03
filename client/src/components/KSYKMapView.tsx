@@ -16,7 +16,6 @@ import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
 import AccessLockoutScreen from "@/components/AccessLockoutScreen";
 import MatterportTour from "@/components/MatterportTour";
-import CampusThreeDView from "@/components/CampusThreeDView";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
@@ -164,7 +163,6 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
    * the admin has configured matterportTourUrl AND the user has tapped
    * the Tour button. */
   const [tourOpen, setTourOpen] = useState(false);
-  const [campus3DOpen, setCampus3DOpen] = useState(false);
   const tourUrl = (settings.matterportTourUrl || "").trim();
 
   // Leaflet plumbing
@@ -789,14 +787,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     return <AccessLockoutScreen decision={accessDecision} />;
   }
 
-  // Matterport overlay — when open it covers the map entirely.
+  // Room-level Matterport walkthrough — only opens when the user
+  // explicitly taps the 3D-walkthrough link inside a room detail sheet.
+  // The map-edge control stack no longer has a tour button.
   if (tourOpen && tourUrl) {
     return <MatterportTour rawUrl={tourUrl} isFi={isFi} onClose={() => setTourOpen(false)} />;
-  }
-
-  // Native 3D scene — extruded campus rooms with orbit + walk modes.
-  if (campus3DOpen) {
-    return <CampusThreeDView onClose={() => setCampus3DOpen(false)} />;
   }
 
   return (
@@ -928,173 +923,60 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Map-edge control stack — visible on ALL screen sizes now.
-       *   Previously there was a hamburger drawer here too, but the
-       *   correct mobile menu lives in the top Header bar; this stack
-       *   only carries the map-specific controls (3D, rotate, locate,
-       *   home, tour). Sits clear of the header at the top and the
-       *   safe-area at the bottom. */}
+      {/* ── Simplified map controls — only 4 buttons, per user request:
+       *   Zoom in / Zoom out / 3D toggle / Center. Rotation, locate,
+       *   Matterport-tour and fullscreen-3D buttons all removed.
+       *   Sits clear of the header at the top and the safe area below. */}
       <div className="absolute right-3 z-40 flex flex-col gap-2"
            style={{ bottom: 'max(2rem, calc(1.25rem + env(safe-area-inset-bottom)))' }}>
 
-        {/* Matterport tour — admin-configured. */}
-        {tourUrl && (
-          <button
-            type="button"
-            aria-label={isFi ? "Avaa virtuaalikierros" : "Open virtual tour"}
-            onClick={() => setTourOpen(true)}
-            title={isFi ? "3D virtuaalikierros (Matterport)" : "3D virtual tour (Matterport)"}
-            className={cn(
-              "w-11 h-11 p-0 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
-              "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30",
-            )}
-          >
-            <Mountain className="h-4 w-4" />
-            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums tracking-wider">
-              TOUR
-            </span>
-          </button>
-        )}
-
-        {/* Native in-browser 3D — extrudes every mapped room into a real
-         *  Three.js scene with orbit + first-person walk modes. Replaces
-         *  the dependency on Matterport for the inside-the-school view. */}
+        {/* Zoom in */}
         <button
           type="button"
-          aria-label={isFi ? "Avaa 3D-kartta" : "Open 3D campus view"}
-          onClick={() => setCampus3DOpen(true)}
-          title={isFi ? "3D-kampuskartta" : "3D campus view"}
+          aria-label={isFi ? "Lähennä" : "Zoom in"}
+          onClick={() => {
+            const m = mapRef.current;
+            if (m) m.zoomIn(1);
+          }}
+          title={isFi ? "Lähennä" : "Zoom in"}
           className={cn(
-            "w-11 h-11 p-0 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
-            "bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700 shadow-indigo-600/30",
+            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+            darkMode
+              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
           )}
         >
-          <Mountain className="h-4 w-4" />
-          <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums tracking-wider">
-            3D
-          </span>
+          <Plus className="h-4 w-4" />
         </button>
 
-        {/* Rotation — click compass to open a rotation slider popover.
-         *   Compass needle reflects current angle. Long-press / shift-click
-         *   resets to 0. Always visible so users can find rotation. */}
-        <div className="relative">
-          <button
-            type="button"
-            aria-label={isFi ? "Kierrä karttaa" : "Rotate map"}
-            onClick={(e) => {
-              if (e.shiftKey || Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5 && e.altKey) {
-                update("osmRotationDeg", 0);
-              } else {
-                setRotateOpen((v) => !v);
-              }
-            }}
-            title={isFi ? "Kierrä · pidä Shift nollataksesi" : "Rotate · Shift-click to reset"}
-            className={cn(
-              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
-              Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5
-                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
-                : darkMode
-                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-            )}
-          >
-            <Compass
-              className="h-4 w-4 transition-transform"
-              style={{ transform: `rotate(${-safeNum(settings.osmRotationDeg, 0)}deg)` }}
-            />
-          </button>
-          {rotateOpen && (
-            <div
-              className={cn(
-                "absolute right-full mr-2 top-1/2 -translate-y-1/2 z-50 rounded-xl shadow-xl border backdrop-blur-md p-3 w-48 animate-in fade-in slide-in-from-right-1 duration-150",
-                darkMode ? "bg-gray-900/95 border-gray-700/70" : "bg-white/95 border-gray-200",
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase text-gray-500">
-                  {isFi ? "Kierto" : "Rotation"}
-                </span>
-                <span className="text-xs font-mono tabular-nums font-bold text-blue-600 dark:text-blue-400">
-                  {Math.round(safeNum(settings.osmRotationDeg, 0))}°
-                </span>
-              </div>
-              <input
-                type="range"
-                min={-180}
-                max={180}
-                step={1}
-                value={safeNum(settings.osmRotationDeg, 0)}
-                onChange={(e) => update("osmRotationDeg", Number(e.target.value))}
-                className="w-full accent-blue-600"
-                aria-label="Map rotation"
-              />
-              <div className="flex items-center justify-between mt-2 gap-1">
-                {[-90, 0, 90, 180].map((deg) => (
-                  <button
-                    key={deg}
-                    type="button"
-                    onClick={() => update("osmRotationDeg", deg)}
-                    className={cn(
-                      "h-7 flex-1 text-[10px] font-bold rounded-md transition-colors tabular-nums",
-                      Math.abs(safeNum(settings.osmRotationDeg, 0) - deg) < 0.5
-                        ? "bg-blue-600 text-white"
-                        : darkMode
-                          ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200",
-                    )}
-                  >
-                    {deg > 0 ? `+${deg}` : deg}°
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Zoom out */}
+        <button
+          type="button"
+          aria-label={isFi ? "Loitonna" : "Zoom out"}
+          onClick={() => {
+            const m = mapRef.current;
+            if (m) m.zoomOut(1);
+          }}
+          title={isFi ? "Loitonna" : "Zoom out"}
+          className={cn(
+            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+            darkMode
+              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
           )}
-        </div>
+        >
+          <Minus className="h-4 w-4" />
+        </button>
 
-        {/* 3D pitch stepper — visible when 3D is on */}
-        {is3DMode && canUse3D && (
-          <div className={cn(
-            "w-11 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center gap-1 py-2 px-0",
-            darkMode ? "bg-gray-900/92 border-gray-700/70" : "bg-white/95 border-gray-200",
-          )}>
-            <button
-              type="button"
-              aria-label="Increase pitch"
-              onClick={() => update("osmPitchDeg", Math.min(45, safeNum(settings.osmPitchDeg, 32) + 4))}
-              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 transition-colors"
-            >
-              <ChevronUp className="h-3.5 w-3.5" />
-            </button>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] font-bold font-mono text-blue-600 dark:text-blue-400 tabular-nums leading-none">
-                {Math.round(safeNum(settings.osmPitchDeg, 32))}°
-              </span>
-              <div className="h-14 w-1.5 rounded-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
-                <div
-                  className="absolute bottom-0 left-0 right-0 rounded-full bg-blue-600 transition-all duration-200"
-                  style={{ height: `${(safeNum(settings.osmPitchDeg, 32) / 45) * 100}%` }}
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              aria-label="Decrease pitch"
-              onClick={() => update("osmPitchDeg", Math.max(5, safeNum(settings.osmPitchDeg, 32) - 4))}
-              className="w-9 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 transition-colors"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-
-        {/* 3D toggle */}
+        {/* 3D toggle — opens the 3D view inline via osmPitchDeg on the
+         *  live Leaflet map (CSS perspective + extruded rooms). Same
+         *  button reverts to 2D on next tap. */}
         {canUse3D && (
           <button
             type="button"
             aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
             onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
-            title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D perspektiivinäkymä" : "3D perspective view")}
+            title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D-näkymä" : "3D view")}
             className={cn(
               "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
               is3DMode
@@ -1111,32 +993,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </button>
         )}
 
-        {navigator?.geolocation && canUseGeolocation && (
-          <button
-            type="button"
-            aria-label={isFi ? "Paikanna" : "Locate me"}
-            onClick={handleLocate}
-            title={isFi ? "Näytä oma sijaintisi" : "Show my location"}
-            className={cn(
-              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
-              userLocation
-                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
-                : darkMode
-                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-            )}
-          >
-            {locating
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Crosshair className="h-4 w-4" />
-            }
-          </button>
-        )}
+        {/* Center / reset view */}
         <button
           type="button"
-          aria-label={isFi ? "Palauta näkymä" : "Reset view"}
+          aria-label={isFi ? "Keskitä" : "Center"}
           onClick={resetView}
-          title={isFi ? "Palauta näkymä (0)" : "Reset view (0)"}
+          title={isFi ? "Palauta näkymä" : "Center map"}
           className={cn(
             "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
             darkMode
@@ -1144,7 +1006,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
               : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
           )}
         >
-          <Home className="h-4 w-4" />
+          <Crosshair className="h-4 w-4" />
         </button>
       </div>
 

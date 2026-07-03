@@ -1579,20 +1579,44 @@ function RoomPropertiesPanel({
               <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
               3D
             </span>
-            Matterport scan
+            Matterport walkthrough
           </Label>
-          <input type="url" inputMode="url" placeholder="https://my.matterport.com/show/?m=…"
+          <input type="text" inputMode="url"
+            placeholder="Paste Matterport link, embed code, or model ID…"
             value={draft.virtualTourUrl ?? ""}
-            onChange={(e) => setDraft({ ...draft, virtualTourUrl: e.target.value })}
+            onChange={(e) => {
+              // Extract the model ID from any of these formats:
+              //   https://my.matterport.com/show/?m=XyZ1234abcd
+              //   <iframe src="https://my.matterport.com/show?m=XyZ1234abcd"…>
+              //   XyZ1234abcd (bare ID)
+              const raw = e.target.value.trim();
+              const match = raw.match(/(?:[?&]m=)([A-Za-z0-9]+)/)
+                ?? raw.match(/matterport\.com\/(?:show|models)\/([A-Za-z0-9]+)/)
+                ?? raw.match(/^([A-Za-z0-9]{6,20})$/);
+              const normalized = match
+                ? `https://my.matterport.com/show/?m=${match[1]}`
+                : raw;
+              setDraft({ ...draft, virtualTourUrl: normalized });
+            }}
             className="w-full h-9 rounded-lg text-xs font-mono border border-input bg-background px-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
           {(draft.virtualTourUrl ?? "").trim() && (
-            <a href={(draft.virtualTourUrl ?? "").trim()} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-              Open in new tab →
-            </a>
+            <div className="flex items-center gap-3">
+              <a href={(draft.virtualTourUrl ?? "").trim()} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                Preview walkthrough →
+              </a>
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, virtualTourUrl: "" })}
+                className="text-[10px] text-red-600 hover:text-red-700 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
           )}
           <p className="text-[11px] text-gray-400 leading-snug">
-            Paste a tour URL or bare model ID. Students see a "3D walkthrough" button on this room.
+            Accepts a Matterport share link, embed code, or the 11-character
+            model ID. Students see a "3D walkthrough" button on this room.
           </p>
         </div>
 

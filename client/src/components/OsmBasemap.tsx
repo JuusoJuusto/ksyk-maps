@@ -563,13 +563,12 @@ export default function OsmBasemap({
 
     container.style.position = "absolute";
     container.style.transformOrigin = "50% 50%";
-    container.style.transition = [
-      "width 300ms ease",
-      "height 300ms ease",
-      "left 300ms ease",
-      "top 300ms ease",
-      "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
-    ].join(", ");
+    // GPU-composite the transformed container so rotation + pitch don't
+    // re-lay-out the whole tile grid every frame. Only the transform
+    // property gets a transition — layout metrics jump straight to the
+    // new size, avoiding a 300 ms reflow storm on every button press.
+    container.style.willChange = "transform";
+    container.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
     container.style.width = `${sizePct}%`;
     container.style.height = `${sizePct}%`;
     container.style.left = `${offsetPct}%`;
@@ -589,24 +588,18 @@ export default function OsmBasemap({
       // Do NOT set pane.style.transform — Leaflet owns this for pan translation
     }
 
-    // Debounced reflow — wait for the CSS transition to finish before telling
-    // Leaflet to re-measure its container and reload edge tiles. Three kicks:
-    // early (before transition ends), at transition end, and a long tail for
-    // edge cases where the browser paints later (e.g. heavy workloads).
+    // Two reflow kicks: one after the CSS transition ends, one long-tail
+    // fallback for slow devices. Was four — three of them fired within
+    // the transition window and caused jank on mid-range phones.
     const reflow = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false });
-      map.setView(map.getCenter(), map.getZoom(), { animate: false });
     };
-    const t1 = window.setTimeout(reflow, 150);
-    const t2 = window.setTimeout(reflow, 320);
-    const t3 = window.setTimeout(reflow, 750);
-    const t4 = window.setTimeout(reflow, 1400);
+    const t1 = window.setTimeout(reflow, 320);
+    const t2 = window.setTimeout(reflow, 900);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
-      window.clearTimeout(t3);
-      window.clearTimeout(t4);
     };
   }, [settings.osmRotationDeg, settings.osmPitchDeg]);
 
