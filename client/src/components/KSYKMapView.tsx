@@ -1010,24 +1010,9 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </button>
       </div>
 
-      {/* ── 3D mode info chip ──────────────────────────────────────── */}
-      {is3DMode && !selectedRoom && !selectedBuilding && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="flex items-center gap-1.5 bg-blue-600 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-lg whitespace-nowrap">
-            <Mountain className="h-3 w-3" />
-            3D · {Math.round(safeNum(settings.osmPitchDeg, 32))}° pitch
-          </div>
-        </div>
-      )}
-
-      {/* ── Nav hint — shown when nothing selected yet ─────────────── */}
-      {canUseRouting && !navFrom && !navTo && !searchQuery.trim() && !selectedRoom && !selectedBuilding && (
-        <div className="absolute bottom-[max(10rem,calc(5rem+env(safe-area-inset-bottom)))] sm:bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="bg-black/40 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm hidden sm:block whitespace-nowrap">
-            {isFi ? "Shift+klikkaus = reitti lähtöpiste · Alt+klikkaus = kohde" : "Shift+click room = route start · Alt+click = destination"}
-          </div>
-        </div>
-      )}
+      {/* 3D mode info chip + desktop nav hint removed — the user asked
+       *  for a clean canvas: 4 controls + floor selector only. The 3D
+       *  button colour already reflects the toggle state. */}
 
       {/* ── Nav bar — hidden if routing is disabled ──────────────── */}
       {canUseRouting && (navFrom || navTo) && (

@@ -634,10 +634,12 @@ export default function OsmBasemap({
     >
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* North compass indicator — visible when bearing ≠ 0 */}
+      {/* North compass — hidden on mobile to keep the canvas clean per
+       *  the user's "4 buttons only" rule; still shown on desktop where
+       *  the extra chrome doesn't crowd the view. */}
       {bearing !== 0 && (
         <div
-          className="absolute top-3 left-3 z-[500] pointer-events-none"
+          className="hidden sm:block absolute top-3 left-3 z-[500] pointer-events-none"
           aria-label={`Map bearing ${bearing}°`}
         >
           <div className="flex flex-col items-center gap-0.5 p-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-md border border-white/60 dark:border-gray-700/60 backdrop-blur-sm">
@@ -689,9 +691,12 @@ export default function OsmBasemap({
         </button>
       </div>
 
-      {/* ── React-based scale bar (bottom-left) ──────────────────── */}
+      {/* Scale bar removed on mobile — the user requested a clean map
+       *  canvas with only the 4 control buttons + floor selector. Kept
+       *  visible on desktop where the extra chrome doesn't get in the
+       *  way; hidden below sm breakpoint. */}
       <div
-        className="absolute left-3 z-[500] pointer-events-none"
+        className="hidden sm:block absolute left-3 z-[500] pointer-events-none"
         style={{ bottom: 'max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))' }}
       >
         <div className="flex flex-col items-start gap-0.5">
