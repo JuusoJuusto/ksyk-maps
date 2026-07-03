@@ -1,9 +1,11 @@
 // KSYK Map Service Worker - Advanced PWA Capabilities
 // Bump these version strings whenever you ship breaking client changes —
 // older caches get evicted on the next page load (see activate handler).
-const CACHE_NAME = 'ksyk-map-v1.2.0';
-const STATIC_CACHE_NAME = 'ksyk-static-v2';
-const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v2';
+// Bumped to force every returning visitor to fetch fresh JS + tiles —
+// old workers were pinning users to the pre-simplified control stack.
+const CACHE_NAME = 'ksyk-map-v1.5.0';
+const STATIC_CACHE_NAME = 'ksyk-static-v6';
+const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v6';
 
 // Cache strategies for different resource types
 const CACHE_STRATEGIES = {
@@ -77,8 +79,15 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.includes('/icons/') || url.pathname.includes('/screenshots/')) {
     // Static assets - Cache First
     event.respondWith(cacheFirstStrategy(request));
+  } else if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')
+             || url.pathname.endsWith('.html') || url.pathname === '/'
+             || url.pathname.startsWith('/assets/')) {
+    // App shell + hashed JS/CSS bundles — network first so users don't
+    // sit on old bundles after a deploy. Was stale-while-revalidate,
+    // which pinned people to old builds for one full refresh cycle.
+    event.respondWith(networkFirstStrategy(request));
   } else {
-    // HTML pages - Stale While Revalidate
+    // Everything else — stale-while-revalidate (safe for images, fonts).
     event.respondWith(staleWhileRevalidateStrategy(request));
   }
 });
