@@ -96,43 +96,53 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   return (
     <div
       className={cn(
-        "min-h-full pb-24 animate-in fade-in duration-300",
+        "min-h-full pb-[max(6rem,calc(4rem+env(safe-area-inset-bottom)))] animate-in fade-in duration-300",
         darkMode ? "bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950" : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30"
       )}
     >
-      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          {onBack && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              className="rounded-xl shrink-0 hover:scale-105 transition-transform"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
+        {/* Header — compact on mobile, full-size on desktop.
+         *  Sticky so the back button + title stay reachable while the
+         *  panel body scrolls; matches MazeMap-style modal chrome. */}
+        <div
+          className={cn(
+            "sticky top-0 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 sm:py-4 mb-4 sm:mb-6 z-20 backdrop-blur-xl",
+            darkMode ? "bg-gray-900/85 border-b border-gray-800" : "bg-white/85 border-b border-gray-100",
           )}
-          <div className="flex items-center gap-4 min-w-0">
-            <KSYKLogo size="xl" className="drop-shadow-lg" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                {isFi ? "Asetukset" : "Settings"}
-              </h1>
-              <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-600")}>
-                KSYK Maps · Nordbyte Studio
-              </p>
+        >
+          <div className="max-w-5xl mx-auto flex items-center gap-3">
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                className="rounded-xl shrink-0 h-10 w-10 active:scale-95 transition-transform"
+                aria-label={isFi ? "Takaisin" : "Back"}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <KSYKLogo size="md" className="drop-shadow-md hidden sm:block" />
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                  {isFi ? "Asetukset" : "Settings"}
+                </h1>
+                <p className={cn("text-[11px] sm:text-sm truncate", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  KSYK Maps · Nordbyte Studio
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+        <div className="flex flex-col lg:flex-row gap-3 lg:gap-6">
           <nav
             className={cn(
-              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0",
-              "sticky top-0 lg:top-4 z-10 lg:self-start",
-              "scrollbar-none -mx-1 px-1 p-1.5 rounded-2xl backdrop-blur-xl",
-              darkMode ? "bg-gray-800/60 lg:bg-gray-800/40" : "bg-white/70 lg:bg-white/50 shadow-sm"
+              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-0.5 lg:pb-0",
+              "sticky top-[4.75rem] sm:top-[5.5rem] lg:top-24 z-10 lg:self-start",
+              "scrollbar-none -mx-3 sm:-mx-1 px-3 sm:px-1 p-1.5 rounded-none lg:rounded-2xl backdrop-blur-xl",
+              darkMode ? "bg-gray-900/75 lg:bg-gray-800/40" : "bg-white/85 lg:bg-white/60 shadow-sm"
             )}
           >
             {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
@@ -141,16 +151,17 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200",
+                  "flex items-center gap-1.5 px-3 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0 active:scale-95",
                   tab === id
                     ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
                     : darkMode
                     ? "text-gray-300 hover:bg-gray-800"
                     : "text-gray-700 hover:bg-white hover:shadow-sm"
                 )}
+                aria-pressed={tab === id}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {isFi ? labelFi : labelEn}
+                <span>{isFi ? labelFi : labelEn}</span>
               </button>
             ))}
           </nav>

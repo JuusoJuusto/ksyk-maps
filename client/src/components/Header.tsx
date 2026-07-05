@@ -257,148 +257,177 @@ export default function Header({
         )}
       </header>
 
-      {/* ── Mobile drawer (rendered outside <header> to avoid clip) ─────── */}
+      {/* ── Mobile dropdown menu (was a full-height side drawer).
+       *   Anchored top-right below the hamburger button. Half the size,
+       *   quicker to open/close, and doesn't feel like a modal. */}
 
-      {/* Backdrop */}
-      <div
-        aria-hidden="true"
-        onClick={() => setShowMobileMenu(false)}
-        className="fixed inset-0 z-[60] lg:hidden bg-black/50 backdrop-blur-[2px]"
-        style={{
-          opacity: showMobileMenu ? 1 : 0,
-          pointerEvents: showMobileMenu ? "auto" : "none",
-          transition: "opacity 240ms ease",
-        }}
-      />
+      {/* Invisible click-away scrim — no backdrop tint, keeps the map
+       *  visible behind the dropdown so users don't lose spatial context. */}
+      {showMobileMenu && (
+        <div
+          aria-hidden="true"
+          onClick={() => setShowMobileMenu(false)}
+          className="fixed inset-0 z-[60] lg:hidden"
+        />
+      )}
 
-      {/* Drawer panel */}
+      {/* Dropdown panel */}
       <div
         id="mobile-drawer"
         role="dialog"
-        aria-modal="true"
+        aria-modal="false"
         aria-label="Navigation menu"
-        className="fixed top-0 right-0 bottom-0 z-[70] lg:hidden w-[min(82vw,320px)] flex flex-col bg-white dark:bg-gray-900 shadow-2xl border-l border-gray-200 dark:border-gray-800"
+        className={cn(
+          "fixed z-[70] lg:hidden right-3 top-16 w-[min(88vw,300px)]",
+          "rounded-2xl border shadow-2xl overflow-hidden",
+          "origin-top-right",
+          darkMode
+            ? "bg-gray-900/98 border-gray-800 backdrop-blur-lg"
+            : "bg-white/98 border-gray-200 backdrop-blur-lg",
+        )}
         style={{
-          transform: showMobileMenu ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 260ms cubic-bezier(0.22,1,0.36,1)",
+          opacity: showMobileMenu ? 1 : 0,
+          transform: showMobileMenu
+            ? "translateY(0) scale(1)"
+            : "translateY(-8px) scale(0.96)",
+          pointerEvents: showMobileMenu ? "auto" : "none",
+          transition: "opacity 180ms ease, transform 200ms cubic-bezier(0.22,1,0.36,1)",
+          maxHeight: "min(560px, calc(100dvh - 5rem))",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {/* Drawer header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <KSYKLogo size="sm" />
-            <span className="font-semibold text-sm text-gray-900 dark:text-white">KSYK Maps</span>
-          </div>
-          <button
-            onClick={() => setShowMobileMenu(false)}
-            className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Close menu"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Scrollable drawer content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-5">
+        <div className="flex flex-col max-h-full overflow-y-auto">
           {!isInAdminPanel ? (
             <>
-              {/* Theme section */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+              {/* Actions — biggest, most tap-worthy items first */}
+              <div className="p-2 space-y-1">
+                {onOpenSettings && (
+                  <button
+                    onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors",
+                      darkMode
+                        ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
+                        : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                    )}
+                  >
+                    <Settings className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span className="text-sm font-medium">
+                      {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
+                    </span>
+                  </button>
+                )}
+                <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
+                  <div className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    darkMode
+                      ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
+                      : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                  )}>
+                    <UtensilsCrossed className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span className="text-sm font-medium">{t('quickActions.lunch')}</span>
+                  </div>
+                </Link>
+                <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
+                  <div className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    darkMode
+                      ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
+                      : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                  )}>
+                    <Bus className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                    <span className="text-sm font-medium">{t('quickActions.transport')}</span>
+                  </div>
+                </Link>
+              </div>
+
+              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+
+              {/* Theme picker — compact icon row */}
+              <div className="p-3">
+                <p className={cn(
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  darkMode ? "text-gray-500" : "text-gray-400",
+                )}>
                   {t('mobile.theme')}
                 </p>
-                <div className={`grid gap-2 ${neonUnlocked ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-5 w-5" />} />
-                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-5 w-5" />} />
-                  <ThemeBtn value="system" label="System" icon={<span className="text-lg leading-none">💻</span>} />
-                  {neonUnlocked && <ThemeBtn value="neon" label="Neon" icon={<span className="text-lg leading-none">🌈</span>} />}
+                <div className={`grid gap-1.5 ${neonUnlocked ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-4 w-4" />} />
+                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-4 w-4" />} />
+                  <ThemeBtn value="system" label="Auto" icon={<span className="text-base leading-none">💻</span>} />
+                  {neonUnlocked && <ThemeBtn value="neon" label="Neon" icon={<span className="text-base leading-none">🌈</span>} />}
                 </div>
-              </section>
+              </div>
 
-              {/* Language section */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+
+              {/* Language picker — compact row */}
+              <div className="p-3">
+                <p className={cn(
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  darkMode ? "text-gray-500" : "text-gray-400",
+                )}>
                   {t('mobile.language')}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <LangBtn value="en" label="English" />
                   <LangBtn value="fi" label="Suomi" />
                   {localStorage.getItem('ksyk_british_unlocked') === 'true' && (
                     <LangBtn value="en-GB" label="British" />
                   )}
                 </div>
-              </section>
-
-              {/* Quick actions */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                  {t('mobile.quickActions')}
-                </p>
-                <div className="space-y-2">
-                  <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 text-orange-700 dark:text-orange-400 active:scale-[0.98] transition-transform">
-                      <UtensilsCrossed className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-sm">{t('quickActions.lunch')}</span>
-                    </div>
-                  </Link>
-                  <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-400 active:scale-[0.98] transition-transform">
-                      <Bus className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-sm">{t('quickActions.transport')}</span>
-                    </div>
-                  </Link>
-                  {onOpenSettings && (
-                    <button
-                      onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
-                      className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-400 active:scale-[0.98] transition-transform"
-                    >
-                      <Settings className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-sm">{currentLang === 'fi' ? 'Asetukset' : 'Map Settings'}</span>
-                    </button>
-                  )}
-                </div>
-              </section>
+              </div>
             </>
           ) : (
+            // Admin-panel variant — smaller set, only theme + logout.
             <>
-              {/* Admin panel mobile */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+              <div className="p-2 space-y-1">
+                <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
+                  <div className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    darkMode ? "text-gray-200 hover:bg-gray-800" : "text-gray-800 hover:bg-gray-100",
+                  )}>
+                    <UtensilsCrossed className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span className="text-sm font-medium">{t('quickActions.lunch')}</span>
+                  </div>
+                </Link>
+                <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
+                  <div className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    darkMode ? "text-gray-200 hover:bg-gray-800" : "text-gray-800 hover:bg-gray-100",
+                  )}>
+                    <Bus className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                    <span className="text-sm font-medium">{t('quickActions.transport')}</span>
+                  </div>
+                </Link>
+                <button
+                  onClick={() => { handleLogout(); setShowMobileMenu(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors",
+                    darkMode
+                      ? "text-red-400 hover:bg-red-950/40"
+                      : "text-red-600 hover:bg-red-50",
+                  )}
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  <span className="text-sm font-medium">{t('logout')}</span>
+                </button>
+              </div>
+
+              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+
+              <div className="p-3">
+                <p className={cn(
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  darkMode ? "text-gray-500" : "text-gray-400",
+                )}>
                   {t('mobile.theme')}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-5 w-5" />} />
-                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-5 w-5" />} />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-4 w-4" />} />
+                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-4 w-4" />} />
                 </div>
-              </section>
-
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                  {t('mobile.quickActions')}
-                </p>
-                <div className="space-y-2">
-                  <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 text-orange-700 dark:text-orange-400 active:scale-[0.98] transition-transform">
-                      <UtensilsCrossed className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-sm">{t('quickActions.lunch')}</span>
-                    </div>
-                  </Link>
-                  <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-400 active:scale-[0.98] transition-transform">
-                      <Bus className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-sm">{t('quickActions.transport')}</span>
-                    </div>
-                  </Link>
-                  <button
-                    onClick={() => { handleLogout(); setShowMobileMenu(false); }}
-                    className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 active:scale-[0.98] transition-transform"
-                  >
-                    <LogOut className="h-5 w-5 shrink-0" />
-                    <span className="font-medium text-sm">{t('logout')}</span>
-                  </button>
-                </div>
-              </section>
+              </div>
             </>
           )}
         </div>

@@ -923,53 +923,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Simplified map controls — MazeMap-style tight pill stack.
-       *   Zoom+/- grouped in one pill, 3D + Center as separate pills.
-       *   Moved higher on mobile (6rem clearance) so the buttons don't
-       *   crash into Leaflet's attribution row or any bottom safe-area. */}
+      {/* ── Map controls — 3D + Center only. Zoom in/out buttons removed
+       *   at the user's request (their liquid-glass style was
+       *   overlapping other UI). Users can pinch-zoom or double-tap
+       *   to zoom on touch, Ctrl+scroll on desktop. */}
       <div className="absolute right-3 z-40 flex flex-col gap-2"
            style={{ bottom: 'max(6rem, calc(4rem + env(safe-area-inset-bottom)))' }}>
-
-        {/* Zoom pill — plus + minus grouped as one connected control,
-         *  the way Google Maps and MazeMap do it. Feels calmer than
-         *  two separate floating pills. */}
-        <div className={cn(
-          "flex flex-col rounded-xl shadow-md border backdrop-blur-md overflow-hidden",
-          darkMode ? "bg-gray-900/92 border-gray-700/70" : "bg-white/95 border-gray-200",
-        )}>
-          <button
-            type="button"
-            aria-label={isFi ? "Lähennä" : "Zoom in"}
-            onClick={() => { const m = mapRef.current; if (m) m.zoomIn(1); }}
-            title={isFi ? "Lähennä" : "Zoom in"}
-            className={cn(
-              "w-10 h-10 flex items-center justify-center transition-colors",
-              darkMode
-                ? "text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-                : "text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-            )}
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <div className={cn(
-            "h-px",
-            darkMode ? "bg-gray-700/60" : "bg-gray-200",
-          )} />
-          <button
-            type="button"
-            aria-label={isFi ? "Loitonna" : "Zoom out"}
-            onClick={() => { const m = mapRef.current; if (m) m.zoomOut(1); }}
-            title={isFi ? "Loitonna" : "Zoom out"}
-            className={cn(
-              "w-10 h-10 flex items-center justify-center transition-colors",
-              darkMode
-                ? "text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-                : "text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-            )}
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-        </div>
 
         {/* 3D toggle — flips osmPitchDeg. Toggles inline extrusion on
          *  the live Leaflet map (perspective + walled rooms). */}
