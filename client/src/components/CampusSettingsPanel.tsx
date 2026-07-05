@@ -97,52 +97,65 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
     <div
       className={cn(
         "min-h-full pb-[max(6rem,calc(4rem+env(safe-area-inset-bottom)))] animate-in fade-in duration-300",
-        darkMode ? "bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950" : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30"
+        darkMode ? "bg-gray-950" : "bg-gray-50",
       )}
     >
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
-        {/* Header — compact on mobile, full-size on desktop.
-         *  Sticky so the back button + title stay reachable while the
-         *  panel body scrolls; matches MazeMap-style modal chrome. */}
+        {/* Editorial header — bold black type, no gradient text.
+         *  Sticky so back button + wordmark stay reachable while
+         *  the panel body scrolls. */}
         <div
           className={cn(
-            "sticky top-0 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 sm:py-4 mb-4 sm:mb-6 z-20 backdrop-blur-xl",
-            darkMode ? "bg-gray-900/85 border-b border-gray-800" : "bg-white/85 border-b border-gray-100",
+            "sticky top-0 -mx-3 sm:-mx-4 px-4 sm:px-6 py-3 sm:py-5 mb-4 sm:mb-6 z-20 backdrop-blur-xl border-b",
+            darkMode ? "bg-gray-950/85 border-gray-800/70" : "bg-white/85 border-gray-200/70",
           )}
         >
           <div className="max-w-5xl mx-auto flex items-center gap-3">
             {onBack && (
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
+                type="button"
                 onClick={onBack}
-                className="rounded-xl shrink-0 h-10 w-10 active:scale-95 transition-transform"
+                className={cn(
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center active:scale-90 transition-all",
+                  darkMode
+                    ? "text-gray-300 hover:text-white hover:bg-gray-800/70"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+                )}
                 aria-label={isFi ? "Takaisin" : "Back"}
               >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
+                <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+              </button>
             )}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <KSYKLogo size="md" className="drop-shadow-md hidden sm:block" />
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
-                  {isFi ? "Asetukset" : "Settings"}
-                </h1>
-                <p className={cn("text-[11px] sm:text-sm truncate", darkMode ? "text-gray-400" : "text-gray-500")}>
-                  KSYK Maps · Nordbyte Studio
-                </p>
-              </div>
+            <div className="flex items-baseline gap-2.5 min-w-0 flex-1">
+              {/* Editorial label */}
+              <span className={cn(
+                "text-[10px] font-bold tracking-[0.18em] uppercase hidden sm:inline shrink-0 pt-2",
+                darkMode ? "text-gray-500" : "text-gray-400",
+              )}>
+                KSYK Maps
+              </span>
+              <span className={cn(
+                "hidden sm:inline w-px h-4 self-center shrink-0",
+                darkMode ? "bg-gray-800" : "bg-gray-300",
+              )} />
+              <h1 className={cn(
+                "text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-none truncate",
+                darkMode ? "text-white" : "text-gray-900",
+              )}>
+                {isFi ? "Asetukset" : "Settings"}
+              </h1>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-3 lg:gap-6">
+          {/* Tab bar — pill segmented control, sticky under header */}
           <nav
             className={cn(
               "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-0.5 lg:pb-0",
-              "sticky top-[4.75rem] sm:top-[5.5rem] lg:top-24 z-10 lg:self-start",
-              "scrollbar-none -mx-3 sm:-mx-1 px-3 sm:px-1 p-1.5 rounded-none lg:rounded-2xl backdrop-blur-xl",
-              darkMode ? "bg-gray-900/75 lg:bg-gray-800/40" : "bg-white/85 lg:bg-white/60 shadow-sm"
+              "sticky top-[3.75rem] sm:top-[5.75rem] lg:top-28 z-10 lg:self-start",
+              "scrollbar-none -mx-3 sm:-mx-1 px-3 sm:px-1 p-1 rounded-none lg:rounded-2xl backdrop-blur-xl",
+              darkMode ? "bg-gray-950/85 lg:bg-gray-900/60 lg:ring-1 lg:ring-gray-800/70" : "bg-gray-50/85 lg:bg-white lg:ring-1 lg:ring-gray-200/70 lg:shadow-sm",
             )}
           >
             {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
@@ -151,16 +164,18 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0 active:scale-95",
+                  "flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.96]",
                   tab === id
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                    ? darkMode
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "bg-gray-900 text-white shadow-md shadow-gray-900/10"
                     : darkMode
-                    ? "text-gray-300 hover:bg-gray-800"
-                    : "text-gray-700 hover:bg-white hover:shadow-sm"
+                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800/60"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
                 )}
                 aria-pressed={tab === id}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
                 <span>{isFi ? labelFi : labelEn}</span>
               </button>
             ))}
