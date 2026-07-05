@@ -923,54 +923,56 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Simplified map controls — only 4 buttons, per user request:
-       *   Zoom in / Zoom out / 3D toggle / Center. Rotation, locate,
-       *   Matterport-tour and fullscreen-3D buttons all removed.
-       *   Sits clear of the header at the top and the safe area below. */}
+      {/* ── Simplified map controls — MazeMap-style tight pill stack.
+       *   Zoom+/- grouped in one pill, 3D + Center as separate pills.
+       *   Moved higher on mobile (6rem clearance) so the buttons don't
+       *   crash into Leaflet's attribution row or any bottom safe-area. */}
       <div className="absolute right-3 z-40 flex flex-col gap-2"
-           style={{ bottom: 'max(2rem, calc(1.25rem + env(safe-area-inset-bottom)))' }}>
+           style={{ bottom: 'max(6rem, calc(4rem + env(safe-area-inset-bottom)))' }}>
 
-        {/* Zoom in */}
-        <button
-          type="button"
-          aria-label={isFi ? "Lähennä" : "Zoom in"}
-          onClick={() => {
-            const m = mapRef.current;
-            if (m) m.zoomIn(1);
-          }}
-          title={isFi ? "Lähennä" : "Zoom in"}
-          className={cn(
-            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
-            darkMode
-              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-          )}
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        {/* Zoom pill — plus + minus grouped as one connected control,
+         *  the way Google Maps and MazeMap do it. Feels calmer than
+         *  two separate floating pills. */}
+        <div className={cn(
+          "flex flex-col rounded-xl shadow-md border backdrop-blur-md overflow-hidden",
+          darkMode ? "bg-gray-900/92 border-gray-700/70" : "bg-white/95 border-gray-200",
+        )}>
+          <button
+            type="button"
+            aria-label={isFi ? "Lähennä" : "Zoom in"}
+            onClick={() => { const m = mapRef.current; if (m) m.zoomIn(1); }}
+            title={isFi ? "Lähennä" : "Zoom in"}
+            className={cn(
+              "w-10 h-10 flex items-center justify-center transition-colors",
+              darkMode
+                ? "text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+                : "text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+            )}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <div className={cn(
+            "h-px",
+            darkMode ? "bg-gray-700/60" : "bg-gray-200",
+          )} />
+          <button
+            type="button"
+            aria-label={isFi ? "Loitonna" : "Zoom out"}
+            onClick={() => { const m = mapRef.current; if (m) m.zoomOut(1); }}
+            title={isFi ? "Loitonna" : "Zoom out"}
+            className={cn(
+              "w-10 h-10 flex items-center justify-center transition-colors",
+              darkMode
+                ? "text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+                : "text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+            )}
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+        </div>
 
-        {/* Zoom out */}
-        <button
-          type="button"
-          aria-label={isFi ? "Loitonna" : "Zoom out"}
-          onClick={() => {
-            const m = mapRef.current;
-            if (m) m.zoomOut(1);
-          }}
-          title={isFi ? "Loitonna" : "Zoom out"}
-          className={cn(
-            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
-            darkMode
-              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
-          )}
-        >
-          <Minus className="h-4 w-4" />
-        </button>
-
-        {/* 3D toggle — opens the 3D view inline via osmPitchDeg on the
-         *  live Leaflet map (CSS perspective + extruded rooms). Same
-         *  button reverts to 2D on next tap. */}
+        {/* 3D toggle — flips osmPitchDeg. Toggles inline extrusion on
+         *  the live Leaflet map (perspective + walled rooms). */}
         {canUse3D && (
           <button
             type="button"
@@ -978,16 +980,15 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
             title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D-näkymä" : "3D view")}
             className={cn(
-              "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex flex-col items-center justify-center gap-0 transition-all hover:scale-[1.04] active:scale-95",
+              "w-10 h-10 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all active:scale-95",
               is3DMode
-                ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-700 shadow-blue-600/30"
+                ? "bg-blue-600 text-white border-blue-700 shadow-blue-600/30"
                 : darkMode
                   ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800"
                   : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
             )}
           >
-            <Mountain className="h-4 w-4" />
-            <span className="text-[8px] font-bold leading-none mt-0.5 tabular-nums">
+            <span className="text-[10px] font-bold tabular-nums">
               {is3DMode ? "3D" : "2D"}
             </span>
           </button>
@@ -1000,7 +1001,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           onClick={resetView}
           title={isFi ? "Palauta näkymä" : "Center map"}
           className={cn(
-            "w-11 h-11 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all hover:scale-[1.04] active:scale-95",
+            "w-10 h-10 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all active:scale-95",
             darkMode
               ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
               : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
