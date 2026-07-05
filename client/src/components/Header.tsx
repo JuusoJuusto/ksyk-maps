@@ -257,119 +257,166 @@ export default function Header({
         )}
       </header>
 
-      {/* ── Mobile dropdown menu (was a full-height side drawer).
-       *   Anchored top-right below the hamburger button. Half the size,
-       *   quicker to open/close, and doesn't feel like a modal. */}
+      {/* ── Mobile dropdown menu — full-width sheet dropping from the
+       *   header, with its own close button and a soft backdrop scrim.
+       *   Rendered outside <header> to escape the sticky positioning. */}
 
-      {/* Invisible click-away scrim — no backdrop tint, keeps the map
-       *  visible behind the dropdown so users don't lose spatial context. */}
-      {showMobileMenu && (
-        <div
-          aria-hidden="true"
-          onClick={() => setShowMobileMenu(false)}
-          className="fixed inset-0 z-[60] lg:hidden"
-        />
-      )}
+      {/* Backdrop — soft dim + blur, click to close */}
+      <div
+        aria-hidden="true"
+        onClick={() => setShowMobileMenu(false)}
+        className="fixed inset-0 z-[60] lg:hidden bg-black/30 backdrop-blur-[2px]"
+        style={{
+          opacity: showMobileMenu ? 1 : 0,
+          pointerEvents: showMobileMenu ? "auto" : "none",
+          transition: "opacity 220ms ease",
+        }}
+      />
 
-      {/* Dropdown panel */}
+      {/* Full-width dropdown sheet */}
       <div
         id="mobile-drawer"
         role="dialog"
-        aria-modal="false"
+        aria-modal="true"
         aria-label="Navigation menu"
         className={cn(
-          "fixed z-[70] lg:hidden right-3 top-16 w-[min(88vw,300px)]",
-          "rounded-2xl border shadow-2xl overflow-hidden",
-          "origin-top-right",
+          "fixed z-[70] lg:hidden left-0 right-0 top-14 sm:top-16",
+          "border-b shadow-2xl overflow-hidden",
           darkMode
-            ? "bg-gray-900/98 border-gray-800 backdrop-blur-lg"
-            : "bg-white/98 border-gray-200 backdrop-blur-lg",
+            ? "bg-gray-900/98 border-gray-800 backdrop-blur-xl"
+            : "bg-white/98 border-gray-200 backdrop-blur-xl",
         )}
         style={{
           opacity: showMobileMenu ? 1 : 0,
           transform: showMobileMenu
-            ? "translateY(0) scale(1)"
-            : "translateY(-8px) scale(0.96)",
+            ? "translateY(0)"
+            : "translateY(-12px)",
           pointerEvents: showMobileMenu ? "auto" : "none",
-          transition: "opacity 180ms ease, transform 200ms cubic-bezier(0.22,1,0.36,1)",
-          maxHeight: "min(560px, calc(100dvh - 5rem))",
+          transition: "opacity 200ms ease, transform 240ms cubic-bezier(0.22,1,0.36,1)",
+          maxHeight: "min(80dvh, calc(100dvh - 4rem))",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
+        {/* Sheet toolbar — title + close button */}
+        <div className={cn(
+          "flex items-center justify-between px-4 py-3 border-b",
+          darkMode ? "border-gray-800" : "border-gray-100",
+        )}>
+          <div className="flex items-center gap-2 min-w-0">
+            <KSYKLogo size="sm" />
+            <span className={cn(
+              "font-semibold text-sm truncate",
+              darkMode ? "text-gray-100" : "text-gray-900",
+            )}>
+              {currentLang === 'fi' ? 'Valikko' : 'Menu'}
+            </span>
+          </div>
+          <button
+            onClick={() => setShowMobileMenu(false)}
+            className={cn(
+              "p-2 rounded-xl active:scale-95 transition-transform",
+              darkMode
+                ? "text-gray-400 hover:text-white hover:bg-gray-800"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+            )}
+            aria-label={currentLang === 'fi' ? 'Sulje valikko' : 'Close menu'}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
         <div className="flex flex-col max-h-full overflow-y-auto">
+          {/* Constrain content on tablets so the sheet doesn't look sparse */}
+          <div className="w-full max-w-2xl mx-auto">
           {!isInAdminPanel ? (
             <>
-              {/* Actions — biggest, most tap-worthy items first */}
-              <div className="p-2 space-y-1">
+              {/* Actions — biggest, most tap-worthy items first.
+                *  Uses full width so each row is a big tap target. */}
+              <div className="p-3 space-y-1.5">
                 {onOpenSettings && (
                   <button
                     onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors",
+                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.99]",
                       darkMode
-                        ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
-                        : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                        ? "text-gray-100 hover:bg-gray-800 active:bg-gray-800/80"
+                        : "text-gray-900 hover:bg-gray-100 active:bg-gray-100/80",
                     )}
                   >
-                    <Settings className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <span className="text-sm font-medium">
+                    <span className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      darkMode ? "bg-blue-950/60 text-blue-300" : "bg-blue-50 text-blue-600",
+                    )}>
+                      <Settings className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium flex-1">
                       {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
                     </span>
                   </button>
                 )}
                 <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
                   <div className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors active:scale-[0.99]",
                     darkMode
-                      ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
-                      : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                      ? "text-gray-100 hover:bg-gray-800 active:bg-gray-800/80"
+                      : "text-gray-900 hover:bg-gray-100 active:bg-gray-100/80",
                   )}>
-                    <UtensilsCrossed className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
-                    <span className="text-sm font-medium">{t('quickActions.lunch')}</span>
+                    <span className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      darkMode ? "bg-orange-950/60 text-orange-300" : "bg-orange-50 text-orange-600",
+                    )}>
+                      <UtensilsCrossed className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium flex-1">{t('quickActions.lunch')}</span>
                   </div>
                 </Link>
                 <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
                   <div className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors active:scale-[0.99]",
                     darkMode
-                      ? "text-gray-200 hover:bg-gray-800 active:bg-gray-800/80"
-                      : "text-gray-800 hover:bg-gray-100 active:bg-gray-100/80",
+                      ? "text-gray-100 hover:bg-gray-800 active:bg-gray-800/80"
+                      : "text-gray-900 hover:bg-gray-100 active:bg-gray-100/80",
                   )}>
-                    <Bus className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-                    <span className="text-sm font-medium">{t('quickActions.transport')}</span>
+                    <span className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      darkMode ? "bg-green-950/60 text-green-300" : "bg-green-50 text-green-600",
+                    )}>
+                      <Bus className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium flex-1">{t('quickActions.transport')}</span>
                   </div>
                 </Link>
               </div>
 
-              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+              <div className={cn("h-px mx-4", darkMode ? "bg-gray-800" : "bg-gray-100")} />
 
-              {/* Theme picker — compact icon row */}
-              <div className="p-3">
+              {/* Theme picker — spacious buttons */}
+              <div className="p-4">
                 <p className={cn(
-                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2.5",
                   darkMode ? "text-gray-500" : "text-gray-400",
                 )}>
                   {t('mobile.theme')}
                 </p>
-                <div className={`grid gap-1.5 ${neonUnlocked ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-4 w-4" />} />
-                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-4 w-4" />} />
-                  <ThemeBtn value="system" label="Auto" icon={<span className="text-base leading-none">💻</span>} />
-                  {neonUnlocked && <ThemeBtn value="neon" label="Neon" icon={<span className="text-base leading-none">🌈</span>} />}
+                <div className={`grid gap-2 ${neonUnlocked ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-5 w-5" />} />
+                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-5 w-5" />} />
+                  <ThemeBtn value="system" label="Auto" icon={<span className="text-lg leading-none">💻</span>} />
+                  {neonUnlocked && <ThemeBtn value="neon" label="Neon" icon={<span className="text-lg leading-none">🌈</span>} />}
                 </div>
               </div>
 
-              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+              <div className={cn("h-px mx-4", darkMode ? "bg-gray-800" : "bg-gray-100")} />
 
-              {/* Language picker — compact row */}
-              <div className="p-3">
+              {/* Language picker — spacious pills */}
+              <div className="p-4">
                 <p className={cn(
-                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2.5",
                   darkMode ? "text-gray-500" : "text-gray-400",
                 )}>
                   {t('mobile.language')}
                 </p>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   <LangBtn value="en" label="English" />
                   <LangBtn value="fi" label="Suomi" />
                   {localStorage.getItem('ksyk_british_unlocked') === 'true' && (
@@ -381,55 +428,71 @@ export default function Header({
           ) : (
             // Admin-panel variant — smaller set, only theme + logout.
             <>
-              <div className="p-2 space-y-1">
+              <div className="p-3 space-y-1.5">
                 <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
                   <div className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
-                    darkMode ? "text-gray-200 hover:bg-gray-800" : "text-gray-800 hover:bg-gray-100",
+                    "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors",
+                    darkMode ? "text-gray-100 hover:bg-gray-800" : "text-gray-900 hover:bg-gray-100",
                   )}>
-                    <UtensilsCrossed className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
-                    <span className="text-sm font-medium">{t('quickActions.lunch')}</span>
+                    <span className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      darkMode ? "bg-orange-950/60 text-orange-300" : "bg-orange-50 text-orange-600",
+                    )}>
+                      <UtensilsCrossed className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium flex-1">{t('quickActions.lunch')}</span>
                   </div>
                 </Link>
                 <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
                   <div className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
-                    darkMode ? "text-gray-200 hover:bg-gray-800" : "text-gray-800 hover:bg-gray-100",
+                    "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors",
+                    darkMode ? "text-gray-100 hover:bg-gray-800" : "text-gray-900 hover:bg-gray-100",
                   )}>
-                    <Bus className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-                    <span className="text-sm font-medium">{t('quickActions.transport')}</span>
+                    <span className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      darkMode ? "bg-green-950/60 text-green-300" : "bg-green-50 text-green-600",
+                    )}>
+                      <Bus className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium flex-1">{t('quickActions.transport')}</span>
                   </div>
                 </Link>
                 <button
                   onClick={() => { handleLogout(); setShowMobileMenu(false); }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors",
+                    "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left transition-colors",
                     darkMode
                       ? "text-red-400 hover:bg-red-950/40"
                       : "text-red-600 hover:bg-red-50",
                   )}
                 >
-                  <LogOut className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium">{t('logout')}</span>
+                  <span className={cn(
+                    "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                    darkMode ? "bg-red-950/60" : "bg-red-50",
+                  )}>
+                    <LogOut className="h-5 w-5" />
+                  </span>
+                  <span className="text-base font-medium flex-1">{t('logout')}</span>
                 </button>
               </div>
 
-              <div className={cn("h-px mx-3", darkMode ? "bg-gray-800" : "bg-gray-100")} />
+              <div className={cn("h-px mx-4", darkMode ? "bg-gray-800" : "bg-gray-100")} />
 
-              <div className="p-3">
+              <div className="p-4">
                 <p className={cn(
-                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2",
+                  "text-[10px] font-bold tracking-[0.14em] uppercase mb-2.5",
                   darkMode ? "text-gray-500" : "text-gray-400",
                 )}>
                   {t('mobile.theme')}
                 </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-4 w-4" />} />
-                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-4 w-4" />} />
+                <div className="grid grid-cols-2 gap-2">
+                  <ThemeBtn value="light" label={t('theme.light')} icon={<Sun className="h-5 w-5" />} />
+                  <ThemeBtn value="dark" label={t('theme.dark')} icon={<Moon className="h-5 w-5" />} />
                 </div>
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
 

@@ -3,9 +3,9 @@
 // older caches get evicted on the next page load (see activate handler).
 // Bumped to force every returning visitor to fetch fresh JS + tiles —
 // old workers were pinning users to the pre-simplified control stack.
-const CACHE_NAME = 'ksyk-map-v1.7.0';
-const STATIC_CACHE_NAME = 'ksyk-static-v8';
-const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v8';
+const CACHE_NAME = 'ksyk-map-v1.8.0';
+const STATIC_CACHE_NAME = 'ksyk-static-v9';
+const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v9';
 
 // Cache strategies for different resource types
 const CACHE_STRATEGIES = {
