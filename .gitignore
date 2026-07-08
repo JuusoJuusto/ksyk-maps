@@ -5,6 +5,9 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
+# Claude Code local state — agent worktrees, task scratch, plan drafts
+.claude/
+
 # Environment variables - NEVER COMMIT!
 .env
 .env.local
