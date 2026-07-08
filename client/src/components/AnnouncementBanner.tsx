@@ -117,6 +117,7 @@ export default function AnnouncementBanner() {
             ? "bg-white dark:bg-gray-950 border-black/5 dark:border-white/5"
             : "bg-white dark:bg-gray-950 border-black/5 dark:border-white/5",
         )}
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 flex items-center gap-1.5 sm:gap-2">
           <button

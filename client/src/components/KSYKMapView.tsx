@@ -846,7 +846,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           className="absolute left-3 right-16 sm:right-20 z-30 max-w-lg sm:max-w-md mx-auto sm:mx-0"
           style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
         >
-          <div className={cn(panel, "max-h-[60vh] overflow-y-auto overscroll-contain shadow-2xl")}>
+          <div
+            className={cn(panel, "max-h-[60vh] overflow-y-auto overscroll-contain shadow-2xl")}
+            role="listbox"
+            aria-label={isFi ? "Hakutulokset" : "Search results"}
+          >
             {searchHits.length === 0 ? (
               <div className="px-4 py-5 text-center text-sm text-muted-foreground">
                 {isFi ? "Ei tuloksia haulla " : "No results for "}
@@ -857,6 +861,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 <button
                   key={`${hit.type}-${hit.id}`}
                   type="button"
+                  role="option"
+                  aria-selected={false}
+                  aria-label={`${hit.type === "building"
+                    ? isFi ? "Rakennus" : "Building"
+                    : isFi ? "Huone" : "Room"}: ${hit.label}${hit.sub ? ` — ${hit.sub}` : ""}`}
                   className={cn(
                     "w-full px-4 py-3 text-left border-b last:border-0 flex items-center gap-3 transition-colors",
                     darkMode ? "border-gray-700/80 hover:bg-blue-950/40" : "border-gray-100 hover:bg-blue-50/80"
@@ -868,6 +877,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                       "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
                       darkMode ? "bg-blue-500/15" : "bg-blue-50",
                     )}
+                    aria-hidden="true"
                   >
                     {hit.type === "building" ? (
                       <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -1030,7 +1040,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {selectedBuilding && (
         <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-auto sm:top-3 sm:left-3 sm:right-auto sm:max-w-sm pointer-events-none map-room-sheet"
              style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4rem)' }}>
-          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl max-h-[60dvh] sm:max-h-none overflow-y-auto overscroll-contain")}>
+          <Card className={cn(panel, "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 border-blue-500 shadow-2xl overflow-y-auto overscroll-contain sm:max-h-none")}
+                style={{ maxHeight: 'min(60dvh, calc(100vh - 7rem))' }}>
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />
             <CardContent className="p-5 pt-3 sm:pt-5">
               <div className="flex justify-between gap-2 mb-3">
@@ -1062,7 +1073,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           <Card
             className={cn(
               panel,
-              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl max-h-[78dvh] sm:max-h-none overflow-y-auto overscroll-contain",
+              "pointer-events-auto rounded-t-3xl sm:rounded-2xl border-t-4 shadow-2xl sm:max-h-none overflow-y-auto overscroll-contain",
               selectedRoom.currentStatus === "free"
                 ? "border-emerald-500"
                 : selectedRoom.currentStatus === "occupied"
@@ -1071,6 +1082,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                 ? "border-purple-500"
                 : "border-amber-500"
             )}
+            style={{ maxHeight: 'min(78dvh, calc(100vh - 7rem))' }}
           >
             {/* Drag handle */}
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden" />

@@ -101,8 +101,10 @@ const resources = {
       'mobile.quickActions': 'Quick Actions',
       'theme.light': 'Light',
       'theme.dark': 'Dark',
+      'theme.system': 'Auto',
       'theme.light.desc': 'Clean & bright interface',
       'theme.dark.desc': 'Easy on the eyes',
+      'theme.system.desc': 'Follow device setting',
       'theme.current': 'Current theme',
       'theme.clickToCycle': 'Click to cycle themes',
       
@@ -226,8 +228,10 @@ const resources = {
       'mobile.quickActions': 'Pikatoiminnot',
       'theme.light': 'Vaalea',
       'theme.dark': 'Tumma',
+      'theme.system': 'Auto',
       'theme.light.desc': 'Puhdas ja kirkas käyttöliittymä',
       'theme.dark.desc': 'Hellävarainen silmille',
+      'theme.system.desc': 'Seuraa laitteen asetusta',
       'theme.current': 'Nykyinen teema',
       'theme.clickToCycle': 'Klikkaa vaihtaaksesi teemoja',
       
@@ -351,8 +355,10 @@ const resources = {
       'mobile.quickActions': 'Quick Actions (speedy like)',
       'theme.light': 'Light (bright as the Queen\'s crown, mate)',
       'theme.dark': 'Dark (like a proper British winter, innit)',
+      'theme.system': 'Auto (whatever your telly says)',
       'theme.light.desc': 'Proper bright, innit (easy to see)',
       'theme.dark.desc': 'Easy on the eyes, mate (nice and dark)',
+      'theme.system.desc': 'Follows your device, dead clever',
       'theme.current': 'Current theme (what you got now)',
       'theme.clickToCycle': 'Click to cycle themes (change it up, bruv)',
       

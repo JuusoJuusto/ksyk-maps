@@ -532,7 +532,7 @@ export default function Header({
                       ariaLabel="System"
                     >
                       <Monitor className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{currentLang === 'fi' ? 'Auto' : 'Auto'}</span>
+                      <span>{t('theme.system')}</span>
                     </SegBtn>
                     {neonUnlocked && (
                       <SegBtn
