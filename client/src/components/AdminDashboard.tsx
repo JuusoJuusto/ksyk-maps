@@ -995,10 +995,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
       {/* ── Main content area ────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
         {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
-        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           {currentUser && (
-            <div className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-between px-4 h-12 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2 min-w-0">
                 <img
                   src="/favicon-128.png"
                   alt="KSYK Maps"
@@ -1006,45 +1006,58 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   height={24}
                   className="h-6 w-6 object-contain shrink-0"
                 />
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold">
-                  {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
-                </span>
-                <span className="text-xs font-semibold truncate max-w-[18ch] text-gray-900 dark:text-white">
-                  {currentUser.name || currentUser.email}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-gray-500 hidden sm:inline">
+                <div className="flex flex-col min-w-0 leading-tight">
+                  <span className="text-[9px] font-bold tracking-[0.28em] text-gray-400 dark:text-gray-500 uppercase leading-none">
+                    KSYK · Admin
+                  </span>
+                  <span className="text-xs font-semibold truncate text-gray-900 dark:text-white mt-0.5">
+                    {currentUser.name || currentUser.email}
+                  </span>
+                </div>
+                <span className={cn(
+                  "hidden xs:inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1",
+                  "bg-blue-50 border border-blue-200 text-blue-900",
+                  "dark:bg-blue-950/40 dark:border-blue-900/40 dark:text-blue-100",
+                )}>
                   {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <a href="/" className="text-[11px] text-gray-500 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">← Map</a>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2.5 text-[10px] font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg"
-                  onClick={logoutFn}
+              <div className="flex items-center gap-1 shrink-0">
+                <a
+                  href="/"
+                  className="inline-flex items-center justify-center h-9 min-w-9 px-2 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors active:scale-[0.98]"
+                  title="Back to Map"
                 >
-                  Sign out
-                </Button>
+                  <Home className="h-4 w-4" />
+                </a>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-9 min-w-9 px-2 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors active:scale-[0.98]"
+                  onClick={logoutFn}
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             </div>
           )}
           <div className="relative overflow-hidden">
             <div className="overflow-x-auto scrollbar-none px-3 py-2">
-              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl border border-gray-200 dark:border-gray-800">
+              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl ring-1 ring-black/5 dark:ring-white/5 h-auto">
                 {NAV_ITEMS.map(({ value, label, Icon }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/30 rounded-lg px-3 py-1.5 text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-150 whitespace-nowrap"
+                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/30 rounded-lg px-3.5 min-h-[38px] text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
                   >
-                    <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>{label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </div>
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white dark:from-gray-900 to-transparent" />
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white dark:from-gray-900 to-transparent" />
           </div>
         </div>
 
@@ -1078,15 +1091,19 @@ export default function AdminDashboard({ section }: { section?: string }) {
           if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d") return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/50">
-                <Icon className="h-4.5 w-4.5" />
+            <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-6 pb-4 sm:pb-5 border-b border-gray-100 dark:border-gray-800">
+              <div className={cn(
+                "flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl mt-0.5",
+                "bg-blue-50 border border-blue-200 text-blue-900",
+                "dark:bg-blue-950/40 dark:border-blue-900/40 dark:text-blue-100",
+              )}>
+                <Icon className="h-5 w-5 sm:h-5.5 sm:w-5.5" strokeWidth={2.25} />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-base sm:text-lg font-semibold tracking-tight leading-tight text-gray-900 dark:text-white">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-tight text-gray-900 dark:text-white">
                   {meta.title}
                 </h2>
-                <p className="text-xs text-muted-foreground leading-snug">
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-snug">
                   {meta.description}
                 </p>
               </div>
@@ -1125,18 +1142,18 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, accent: "from-rose-500 to-pink-500", icon: Megaphone, tab: "announcements", sub: "active" },
                   ].map(({ label, value, accent, icon: Icon, tab, sub }) => (
                     <button key={label} type="button" onClick={() => navigate(tab)}
-                      className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-xl"
+                      className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-2xl active:scale-[0.98] transition-transform"
                       aria-label={`Go to ${label} tab`}>
-                      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                      <Card className="relative overflow-hidden border-0 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 hover:ring-blue-200 dark:hover:ring-blue-900/50 transition-all duration-200 cursor-pointer">
                         <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
                         <CardContent className="p-4 md:p-5">
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-                              <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums">{value}</p>
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+                              <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
                               {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
                             </div>
-                            <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm shrink-0`}>
+                            <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shrink-0`}>
                               <Icon className="h-5 w-5" />
                             </div>
                           </div>
