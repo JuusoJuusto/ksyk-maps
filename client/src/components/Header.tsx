@@ -357,152 +357,79 @@ export default function Header({
           </button>
         </div>
 
-        {/* Scrollable content — constrained to max-w-2xl on tablets */}
+        {/* Scrollable content — simple, single-column list.
+         *  KSYK colors are back: blue for settings, orange for lunch,
+         *  green for transport. No subtitles, no stagger — just clean
+         *  colored rows. */}
         <div className="flex flex-col max-h-full overflow-y-auto">
-          <div className="w-full max-w-2xl mx-auto px-5 py-4 space-y-6">
+          <div className="w-full max-w-2xl mx-auto px-4 py-4 space-y-5">
             {!isInAdminPanel ? (
               <>
-                {/* ── QUICK ACCESS section ─────────────────────────── */}
-                <section
-                  className="space-y-1.5"
-                  style={{
-                    animation: showMobileMenu ? "menuItem 380ms cubic-bezier(0.16,1,0.3,1) both" : "none",
-                    animationDelay: "80ms",
-                  }}
-                >
-                  <div className={cn(
-                    "text-[10px] font-bold tracking-[0.18em] uppercase pl-1 mb-2.5",
-                    darkMode ? "text-gray-500" : "text-gray-400",
-                  )}>
-                    {currentLang === 'fi' ? 'Pikavalinnat' : 'Quick access'}
-                  </div>
-
-                  {/* Row: Map settings */}
+                {/* ── Quick access — flat colored rows ────────────── */}
+                <section className="space-y-2">
+                  {/* Row: Map settings — KSYK blue */}
                   {onOpenSettings && (
                     <button
                       onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
                       className={cn(
-                        "group w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all active:scale-[0.99]",
+                        "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-colors active:scale-[0.98]",
                         darkMode
-                          ? "bg-gray-900/60 hover:bg-gray-800 border border-gray-800/60"
-                          : "bg-white hover:bg-gray-50 border border-gray-200/70 hover:border-gray-300 shadow-sm hover:shadow",
+                          ? "bg-blue-950/40 hover:bg-blue-900/50 border border-blue-900/40 text-blue-100"
+                          : "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900",
                       )}
                     >
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode
-                          ? "bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20"
-                          : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
-                      )}>
-                        <Settings className="h-5 w-5" strokeWidth={2} />
+                      <Settings className={cn(
+                        "h-5 w-5 shrink-0",
+                        darkMode ? "text-blue-300" : "text-blue-600",
+                      )} strokeWidth={2} />
+                      <span className="text-[15px] font-semibold flex-1">
+                        {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={cn(
-                          "text-[15px] font-semibold tracking-tight",
-                          darkMode ? "text-gray-100" : "text-gray-900",
-                        )}>
-                          {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
-                        </div>
-                        <div className={cn(
-                          "text-[12px] leading-tight mt-0.5",
-                          darkMode ? "text-gray-500" : "text-gray-500",
-                        )}>
-                          {currentLang === 'fi' ? 'Karttatyyli ja saavutettavuus' : 'Map style & accessibility'}
-                        </div>
-                      </div>
-                      <ChevronRight className={cn(
-                        "h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-                        darkMode ? "text-gray-600" : "text-gray-400",
-                      )} />
                     </button>
                   )}
 
-                  {/* Row: Lunch */}
+                  {/* Row: Lunch — KSYK orange */}
                   <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "group w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all active:scale-[0.99] cursor-pointer",
+                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
                       darkMode
-                        ? "bg-gray-900/60 hover:bg-gray-800 border border-gray-800/60"
-                        : "bg-white hover:bg-gray-50 border border-gray-200/70 hover:border-gray-300 shadow-sm hover:shadow",
+                        ? "bg-orange-950/40 hover:bg-orange-900/50 border border-orange-900/40 text-orange-100"
+                        : "bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900",
                     )}>
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode
-                          ? "bg-gray-800 text-gray-300 ring-1 ring-gray-700"
-                          : "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
-                      )}>
-                        <UtensilsCrossed className="h-5 w-5" strokeWidth={2} />
+                      <UtensilsCrossed className={cn(
+                        "h-5 w-5 shrink-0",
+                        darkMode ? "text-orange-300" : "text-orange-600",
+                      )} strokeWidth={2} />
+                      <span className="text-[15px] font-semibold flex-1">
+                        {t('quickActions.lunch')}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={cn(
-                          "text-[15px] font-semibold tracking-tight",
-                          darkMode ? "text-gray-100" : "text-gray-900",
-                        )}>
-                          {t('quickActions.lunch')}
-                        </div>
-                        <div className={cn(
-                          "text-[12px] leading-tight mt-0.5",
-                          darkMode ? "text-gray-500" : "text-gray-500",
-                        )}>
-                          {currentLang === 'fi' ? 'Päivän ateriat ja koulun ruokala' : "Today's meals & cafeteria"}
-                        </div>
-                      </div>
-                      <ChevronRight className={cn(
-                        "h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-                        darkMode ? "text-gray-600" : "text-gray-400",
-                      )} />
                     </div>
                   </Link>
 
-                  {/* Row: Transport */}
+                  {/* Row: Transport — KSYK green */}
                   <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "group w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all active:scale-[0.99] cursor-pointer",
+                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
                       darkMode
-                        ? "bg-gray-900/60 hover:bg-gray-800 border border-gray-800/60"
-                        : "bg-white hover:bg-gray-50 border border-gray-200/70 hover:border-gray-300 shadow-sm hover:shadow",
+                        ? "bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-900/40 text-emerald-100"
+                        : "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900",
                     )}>
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode
-                          ? "bg-gray-800 text-gray-300 ring-1 ring-gray-700"
-                          : "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
-                      )}>
-                        <Bus className="h-5 w-5" strokeWidth={2} />
+                      <Bus className={cn(
+                        "h-5 w-5 shrink-0",
+                        darkMode ? "text-emerald-300" : "text-emerald-600",
+                      )} strokeWidth={2} />
+                      <span className="text-[15px] font-semibold flex-1">
+                        {t('quickActions.transport')}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={cn(
-                          "text-[15px] font-semibold tracking-tight",
-                          darkMode ? "text-gray-100" : "text-gray-900",
-                        )}>
-                          {t('quickActions.transport')}
-                        </div>
-                        <div className={cn(
-                          "text-[12px] leading-tight mt-0.5",
-                          darkMode ? "text-gray-500" : "text-gray-500",
-                        )}>
-                          {currentLang === 'fi' ? 'HSL-aikataulut ja pysäkit' : 'HSL schedules & stops'}
-                        </div>
-                      </div>
-                      <ChevronRight className={cn(
-                        "h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-                        darkMode ? "text-gray-600" : "text-gray-400",
-                      )} />
                     </div>
                   </Link>
                 </section>
 
-                {/* ── APPEARANCE section — segmented control ────────────── */}
-                <section
-                  className="space-y-2.5"
-                  style={{
-                    animation: showMobileMenu ? "menuItem 380ms cubic-bezier(0.16,1,0.3,1) both" : "none",
-                    animationDelay: "160ms",
-                  }}
-                >
+                {/* ── Appearance — segmented control ────────────── */}
+                <section className="space-y-2">
                   <div className={cn(
-                    "text-[10px] font-bold tracking-[0.18em] uppercase pl-1",
-                    darkMode ? "text-gray-500" : "text-gray-400",
+                    "text-xs font-semibold pl-1",
+                    darkMode ? "text-gray-400" : "text-gray-600",
                   )}>
                     {currentLang === 'fi' ? 'Ulkoasu' : 'Appearance'}
                   </div>
@@ -547,17 +474,11 @@ export default function Header({
                   </div>
                 </section>
 
-                {/* ── LANGUAGE section — segmented control ──────────────── */}
-                <section
-                  className="space-y-2.5"
-                  style={{
-                    animation: showMobileMenu ? "menuItem 380ms cubic-bezier(0.16,1,0.3,1) both" : "none",
-                    animationDelay: "240ms",
-                  }}
-                >
+                {/* ── Language — segmented control ────────────── */}
+                <section className="space-y-2">
                   <div className={cn(
-                    "text-[10px] font-bold tracking-[0.18em] uppercase pl-1",
-                    darkMode ? "text-gray-500" : "text-gray-400",
+                    "text-xs font-semibold pl-1",
+                    darkMode ? "text-gray-400" : "text-gray-600",
                   )}>
                     {currentLang === 'fi' ? 'Kieli' : 'Language'}
                   </div>
@@ -593,103 +514,76 @@ export default function Header({
                   </div>
                 </section>
 
-                {/* Footer — version + attribution */}
-                <div
-                  className={cn(
-                    "flex items-center justify-between text-[10px] font-medium tracking-wide pt-2 pb-1",
-                    darkMode ? "text-gray-600" : "text-gray-400",
-                  )}
-                  style={{
-                    animation: showMobileMenu ? "menuItem 380ms cubic-bezier(0.16,1,0.3,1) both" : "none",
-                    animationDelay: "320ms",
-                  }}
-                >
-                  <span>v1.8.0</span>
-                  <span className="uppercase tracking-[0.14em]">Nordbyte Studio</span>
+                {/* Footer — attribution */}
+                <div className={cn(
+                  "flex items-center justify-between text-[11px] pt-1 pb-1",
+                  darkMode ? "text-gray-600" : "text-gray-500",
+                )}>
+                  <span>KSYK Maps</span>
+                  <span>Nordbyte Studio</span>
                 </div>
               </>
             ) : (
-              // ─── Admin-panel variant ───
+              // ─── Admin-panel variant — same simple KSYK-color rows ───
               <>
-                <section className="space-y-1.5">
-                  <div className={cn(
-                    "text-[10px] font-bold tracking-[0.18em] uppercase pl-1 mb-2.5",
-                    darkMode ? "text-gray-500" : "text-gray-400",
-                  )}>
-                    {currentLang === 'fi' ? 'Pikavalinnat' : 'Quick access'}
-                  </div>
-
+                <section className="space-y-2">
                   <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer",
+                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
                       darkMode
-                        ? "bg-gray-900/60 hover:bg-gray-800 border border-gray-800/60"
-                        : "bg-white hover:bg-gray-50 border border-gray-200/70 shadow-sm",
+                        ? "bg-orange-950/40 hover:bg-orange-900/50 border border-orange-900/40 text-orange-100"
+                        : "bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900",
                     )}>
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode ? "bg-gray-800 text-gray-300 ring-1 ring-gray-700" : "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
-                      )}>
-                        <UtensilsCrossed className="h-5 w-5" strokeWidth={2} />
-                      </span>
-                      <span className={cn(
-                        "text-[15px] font-semibold flex-1 tracking-tight",
-                        darkMode ? "text-gray-100" : "text-gray-900",
-                      )}>
+                      <UtensilsCrossed className={cn(
+                        "h-5 w-5 shrink-0",
+                        darkMode ? "text-orange-300" : "text-orange-600",
+                      )} strokeWidth={2} />
+                      <span className="text-[15px] font-semibold flex-1">
                         {t('quickActions.lunch')}
                       </span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-600" : "text-gray-400")} />
                     </div>
                   </Link>
 
                   <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer",
+                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
                       darkMode
-                        ? "bg-gray-900/60 hover:bg-gray-800 border border-gray-800/60"
-                        : "bg-white hover:bg-gray-50 border border-gray-200/70 shadow-sm",
+                        ? "bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-900/40 text-emerald-100"
+                        : "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900",
                     )}>
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode ? "bg-gray-800 text-gray-300 ring-1 ring-gray-700" : "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
-                      )}>
-                        <Bus className="h-5 w-5" strokeWidth={2} />
-                      </span>
-                      <span className={cn(
-                        "text-[15px] font-semibold flex-1 tracking-tight",
-                        darkMode ? "text-gray-100" : "text-gray-900",
-                      )}>
+                      <Bus className={cn(
+                        "h-5 w-5 shrink-0",
+                        darkMode ? "text-emerald-300" : "text-emerald-600",
+                      )} strokeWidth={2} />
+                      <span className="text-[15px] font-semibold flex-1">
                         {t('quickActions.transport')}
                       </span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-600" : "text-gray-400")} />
                     </div>
                   </Link>
 
                   <button
                     onClick={() => { handleLogout(); setShowMobileMenu(false); }}
                     className={cn(
-                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all",
+                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-colors active:scale-[0.98]",
                       darkMode
-                        ? "bg-red-950/30 hover:bg-red-950/50 border border-red-900/40 text-red-300"
-                        : "bg-red-50/70 hover:bg-red-50 border border-red-200/70 text-red-700",
+                        ? "bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-100"
+                        : "bg-red-50 hover:bg-red-100 border border-red-200 text-red-900",
                     )}
                   >
-                    <span className={cn(
-                      "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                      darkMode ? "bg-red-500/10 ring-1 ring-red-900/40" : "bg-red-100 ring-1 ring-red-200",
-                    )}>
-                      <LogOut className="h-5 w-5" strokeWidth={2} />
-                    </span>
-                    <span className="text-[15px] font-semibold flex-1 tracking-tight">
+                    <LogOut className={cn(
+                      "h-5 w-5 shrink-0",
+                      darkMode ? "text-red-300" : "text-red-600",
+                    )} strokeWidth={2} />
+                    <span className="text-[15px] font-semibold flex-1">
                       {t('logout')}
                     </span>
                   </button>
                 </section>
 
-                <section className="space-y-2.5">
+                <section className="space-y-2">
                   <div className={cn(
-                    "text-[10px] font-bold tracking-[0.18em] uppercase pl-1",
-                    darkMode ? "text-gray-500" : "text-gray-400",
+                    "text-xs font-semibold pl-1",
+                    darkMode ? "text-gray-400" : "text-gray-600",
                   )}>
                     {currentLang === 'fi' ? 'Ulkoasu' : 'Appearance'}
                   </div>

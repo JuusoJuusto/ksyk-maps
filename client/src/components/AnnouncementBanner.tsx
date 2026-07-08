@@ -2,11 +2,22 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Pause, Play } from "lucide-react";
+import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Info, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+
+// Helper function to convert Firebase Timestamp to Date
+const convertFirebaseDate = (timestamp: any): Date => {
+  if (!timestamp) return new Date();
+  if (timestamp._seconds) {
+    return new Date(timestamp._seconds * 1000);
+  }
+  return new Date(timestamp);
+};
 
 interface Announcement {
   id: string;
@@ -22,7 +33,7 @@ interface Announcement {
 }
 
 export default function AnnouncementBanner() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -42,11 +53,11 @@ export default function AnnouncementBanner() {
   // Auto-scroll every 10 seconds
   useEffect(() => {
     if (activeAnnouncements.length <= 1 || isPaused || isDialogOpen) return;
-
+    
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
-    }, 10000);
-
+    }, 10000); // 10 seconds
+    
     return () => clearInterval(interval);
   }, [activeAnnouncements.length, isPaused, isDialogOpen]);
 
@@ -55,7 +66,7 @@ export default function AnnouncementBanner() {
   }
 
   const currentAnnouncement = activeAnnouncements[currentIndex];
-
+  
   // Get localized content
   const getLocalizedTitle = (announcement: Announcement) => {
     if (i18n.language === 'fi' && announcement.titleFi) {
@@ -63,7 +74,7 @@ export default function AnnouncementBanner() {
     }
     return announcement.titleEn || announcement.title;
   };
-
+  
   const getLocalizedContent = (announcement: Announcement) => {
     let content = '';
     if (i18n.language === 'fi' && announcement.contentFi) {
@@ -71,31 +82,29 @@ export default function AnnouncementBanner() {
     } else {
       content = announcement.contentEn || announcement.content;
     }
-
+    
     // Fix bullet points for all languages
     return content.replace(/^[•-]\s*/gm, '• ');
   };
 
-  const isUrgent = currentAnnouncement.priority === "urgent";
-  const isHigh = currentAnnouncement.priority === "high";
-  const isElevated = isUrgent || isHigh;
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700";
+      case "high":
+        return "bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700";
+      case "normal":
+        return "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700";
+      default:
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600";
+    }
+  };
 
   const getPriorityIcon = (priority: string) => {
     if (priority === "urgent" || priority === "high") {
-      return <AlertTriangle className="h-4 w-4" strokeWidth={2.25} />;
+      return <AlertTriangle className="h-5 w-5" />;
     }
-    return <Megaphone className="h-4 w-4" strokeWidth={2.25} />;
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    if (i18n.language === "fi") {
-      if (priority === "urgent") return "Kiireellinen";
-      if (priority === "high") return "Tärkeä";
-      return "Tiedote";
-    }
-    if (priority === "urgent") return "Urgent";
-    if (priority === "high") return "Important";
-    return "Announcement";
+    return <Megaphone className="h-5 w-5" />;
   };
 
   const nextAnnouncement = () => {
@@ -106,161 +115,147 @@ export default function AnnouncementBanner() {
     setCurrentIndex((prev) => (prev - 1 + activeAnnouncements.length) % activeAnnouncements.length);
   };
 
+  const priorityBg =
+    currentAnnouncement.priority === "urgent"
+      ? "bg-red-600 hover:bg-red-700"
+      : currentAnnouncement.priority === "high"
+      ? "bg-orange-500 hover:bg-orange-600"
+      : "bg-blue-600 hover:bg-blue-700";
+
   return (
     <>
       <div
         role="region"
         aria-label="Site announcement"
-        className={cn(
-          "relative z-40 border-b transition-colors duration-300",
-          isElevated
-            ? "bg-white dark:bg-gray-950 border-black/5 dark:border-white/5"
-            : "bg-white dark:bg-gray-950 border-black/5 dark:border-white/5",
-        )}
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        className={`relative z-40 ${priorityBg} shadow-sm transition-colors duration-300 cursor-pointer`}
+        onClick={() => setIsDialogOpen(true)}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 flex items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => setIsDialogOpen(true)}
-            className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 py-2 sm:py-2.5 text-left active:scale-[0.99] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg"
-            aria-label={`${getPriorityLabel(currentAnnouncement.priority)}: ${getLocalizedTitle(currentAnnouncement)}`}
-          >
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentAnnouncement.id}
-                initial={{ opacity: 0, x: 8 }}
+                initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0"
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
               >
-                <div
-                  className={cn(
-                    "flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center ring-1",
-                    isUrgent
-                      ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 ring-red-200 dark:ring-red-900/50"
-                      : isHigh
-                      ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-900/50"
-                      : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 ring-blue-200 dark:ring-blue-900/50",
-                  )}
-                >
+                <div className="flex-shrink-0 bg-white/20 p-1 sm:p-1.5 rounded-full">
                   {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
                 <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-gray-400 dark:text-gray-500 mb-0.5">
-                    {getPriorityLabel(currentAnnouncement.priority)}
-                  </p>
-                  <p className="text-[13px] sm:text-sm font-semibold tracking-tight text-gray-900 dark:text-white truncate">
+                  <p className="text-white font-bold text-xs sm:text-sm truncate">
                     {getLocalizedTitle(currentAnnouncement)}
+                  </p>
+                  <p className="text-white/85 text-[10px] sm:text-xs truncate hidden sm:block">
+                    {getLocalizedContent(currentAnnouncement)}
                   </p>
                 </div>
               </motion.div>
             </AnimatePresence>
-          </button>
 
-          <div className="flex-shrink-0 flex items-center gap-0.5 sm:gap-1">
-            {activeAnnouncements.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsPaused(!isPaused);
-                  }}
-                  className="h-9 w-9 p-0 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors hidden sm:inline-flex active:scale-[0.9]"
-                  title={isPaused ? "Resume" : "Pause"}
-                  aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
-                >
-                  {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prevAnnouncement();
-                  }}
-                  className="h-9 w-9 p-0 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-[0.9]"
-                  aria-label="Previous announcement"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="hidden sm:flex px-1.5 h-5 items-center text-[10px] font-semibold tracking-wider text-gray-500 dark:text-gray-400 tabular-nums">
-                  {currentIndex + 1}/{activeAnnouncements.length}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nextAnnouncement();
-                  }}
-                  className="h-9 w-9 p-0 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-[0.9]"
-                  aria-label="Next announcement"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsVisible(false);
-              }}
-              className="h-9 w-9 p-0 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-[0.9]"
-              aria-label="Dismiss announcement"
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {activeAnnouncements.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPaused(!isPaused);
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors hidden sm:inline-flex"
+                    title={isPaused ? "Resume" : "Pause"}
+                    aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
+                  >
+                    {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevAnnouncement();
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    aria-label="Previous announcement"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <div className="px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded">
+                    {currentIndex + 1}/{activeAnnouncements.length}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextAnnouncement();
+                    }}
+                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    aria-label="Next announcement"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsVisible(false);
+                }}
+                className="h-7 w-7 p-0 text-white hover:bg-black/30 transition-colors"
+                aria-label="Dismiss announcement"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-
+      
       {/* Announcement Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl ring-1 ring-black/5 dark:ring-white/5">
-          <DialogHeader className="space-y-3">
-            <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-gray-400 dark:text-gray-500">
-              {getPriorityLabel(currentAnnouncement.priority)}
-            </p>
-            <div className="flex items-start gap-3">
-              <div
-                className={cn(
-                  "flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ring-1",
-                  isUrgent
-                    ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 ring-red-200 dark:ring-red-900/50"
-                    : isHigh
-                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-900/50"
-                    : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 ring-blue-200 dark:ring-blue-900/50",
-                )}
-              >
-                {getPriorityIcon(currentAnnouncement.priority)}
-              </div>
-              <DialogTitle className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-tight text-gray-900 dark:text-white flex-1 pt-1">
-                {getLocalizedTitle(currentAnnouncement)}
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between mb-2">
+              <DialogTitle className="text-2xl flex items-center">
+                <div className={cn(
+                  "p-2 rounded-full mr-3",
+                  currentAnnouncement.priority === "urgent"
+                    ? "bg-red-100 dark:bg-red-900/40"
+                    : currentAnnouncement.priority === "high"
+                    ? "bg-orange-100 dark:bg-orange-900/40"
+                    : "bg-blue-100 dark:bg-blue-900/40"
+                )}>
+                  {getPriorityIcon(currentAnnouncement.priority)}
+                </div>
+                <span>{getLocalizedTitle(currentAnnouncement)}</span>
               </DialogTitle>
+              <Badge className={getPriorityColor(currentAnnouncement.priority)}>
+                {currentAnnouncement.priority}
+              </Badge>
             </div>
-            <DialogDescription className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
+            <DialogDescription className="text-sm text-gray-500 flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
               {(() => {
                 try {
                   const timestamp = currentAnnouncement.createdAt;
                   let date: Date;
-
+                  
                   if (!timestamp) return 'Recently';
-
-                  if (typeof timestamp === 'object' && (timestamp as any)._seconds) {
-                    date = new Date((timestamp as any)._seconds * 1000);
+                  
+                  if (typeof timestamp === 'object' && timestamp._seconds) {
+                    date = new Date(timestamp._seconds * 1000);
                   } else {
                     date = new Date(timestamp);
                   }
-
+                  
                   if (isNaN(date.getTime())) return 'Recently';
-
+                  
                   return formatDistanceToNow(date, { addSuffix: true });
                 } catch {
                   return 'Recently';
@@ -268,10 +263,10 @@ export default function AnnouncementBanner() {
               })()}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="mt-5 space-y-4">
+          
+          <div className="mt-4 space-y-4">
             <div className="prose max-w-none">
-              <div className="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                 {getLocalizedContent(currentAnnouncement).split('\n').map((line, index) => {
                   if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
                     return (
@@ -291,14 +286,14 @@ export default function AnnouncementBanner() {
                   }
 
                   if (line.trim().startsWith('---') || line.trim().startsWith('━━━')) {
-                    return <hr key={index} className="my-4 border-gray-200 dark:border-white/10" />;
+                    return <hr key={index} className="my-4 border-gray-300 dark:border-gray-600" />;
                   }
-
+                  
                   // Empty lines
                   if (line.trim() === '') {
                     return <div key={index} className="mb-2"></div>;
                   }
-
+                  
                   // Regular text
                   return (
                     <div key={index} className="mb-2">
@@ -308,30 +303,40 @@ export default function AnnouncementBanner() {
                 })}
               </div>
             </div>
-
-            {isUrgent && (
-              <div className="rounded-2xl ring-1 ring-red-200 dark:ring-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 flex items-center gap-2.5">
-                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
-                <p className="text-[13px] text-red-700 dark:text-red-300 font-semibold">
-                  {i18n.language === "fi" ? "Kiireellinen tiedote" : "Urgent announcement"}
-                </p>
+            
+            {currentAnnouncement.priority === 'urgent' && (
+              <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 dark:border-red-600 p-4 rounded">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400 mr-2" />
+                  <p className="text-sm text-red-700 dark:text-red-300 font-semibold">
+                    Urgent Announcement
+                  </p>
+                </div>
               </div>
             )}
 
-            {isHigh && (
-              <div className="rounded-2xl ring-1 ring-amber-200 dark:ring-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 flex items-center gap-2.5">
-                <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400 flex-shrink-0" />
-                <p className="text-[13px] text-amber-800 dark:text-amber-300 font-semibold">
-                  {i18n.language === "fi" ? "Tärkeä tiedote" : "High priority"}
-                </p>
+            {currentAnnouncement.priority === 'high' && (
+              <div className="bg-orange-50 dark:bg-orange-950/30 border-l-4 border-orange-500 dark:border-orange-600 p-4 rounded">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-orange-500 dark:text-orange-400 mr-2" />
+                  <p className="text-sm text-orange-700 dark:text-orange-300 font-semibold">
+                    High Priority
+                  </p>
+                </div>
               </div>
             )}
           </div>
-
+          
           <div className="mt-6 flex justify-end">
             <Button
               onClick={() => setIsDialogOpen(false)}
-              className="h-11 px-5 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-white font-semibold text-sm active:scale-[0.97]"
+              className={
+                currentAnnouncement.priority === "urgent"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : currentAnnouncement.priority === "high"
+                  ? "bg-orange-500 hover:bg-orange-600"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
             >
               {i18n.language === "fi" ? "Sulje" : "Close"}
             </Button>
