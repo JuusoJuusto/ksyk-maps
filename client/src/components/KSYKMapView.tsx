@@ -10,7 +10,6 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Link } from "wouter";
 import { createPortal } from "react-dom";
 import type L from "leaflet";
 import OsmBasemap from "@/components/OsmBasemap";
@@ -19,10 +18,9 @@ import MatterportTour from "@/components/MatterportTour";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
-import { safeLatLng, safeNum, safeZoom, KSYK_FALLBACK_LAT, KSYK_FALLBACK_LNG, KSYK_FALLBACK_ZOOM } from "@/lib/safeNum";
+import { safeLatLng, safeNum, safeZoom, KSYK_FALLBACK_LAT, KSYK_FALLBACK_LNG } from "@/lib/safeNum";
 import { t as track } from "@/lib/telemetry";
 import {
-  parseBuildingShape,
   getLabelAnchor,
   computeCampusViewBox,
   parseViewBox,
@@ -45,27 +43,11 @@ import {
   MapPin,
   Building2,
   Users,
-  Home,
   Clock,
   BookOpen,
   Crosshair,
-  Loader2,
-  Layers,
   Navigation,
   Mountain,
-  ChevronDown,
-  ChevronUp,
-  Menu,
-  Compass,
-  RotateCcw,
-  Plus,
-  Minus,
-  UtensilsCrossed,
-  Bus,
-  Search,
-  Settings,
-  LogIn,
-  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -801,8 +783,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     >
       {/* Restricted-tier banner — explains why the user can't see everything. */}
       {accessDecision.tier === "restricted" && (
-        <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none flex justify-center">
-          <div className="mt-1.5 px-3 py-1 rounded-full bg-amber-500/95 text-white text-[10px] font-semibold shadow-lg pointer-events-auto flex items-center gap-1.5">
+        <div
+          className="absolute top-0 left-0 right-0 z-50 pointer-events-none flex justify-center"
+          style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}
+        >
+          <div className="px-3 py-1 rounded-full bg-amber-500/95 text-white text-[10px] font-semibold shadow-lg pointer-events-auto flex items-center gap-1.5">
             🔒 {accessDecision.reason}
           </div>
         </div>
@@ -857,8 +842,11 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Search results dropdown — gated by access tier ───────── */}
       {canUseSearch && searchQuery.trim() && (
-        <div className="absolute top-3 left-3 right-16 sm:right-20 z-30 max-w-lg sm:max-w-md mx-auto sm:mx-0">
-          <div className={cn(panel, "max-h-[60vh] overflow-y-auto shadow-2xl")}>
+        <div
+          className="absolute left-3 right-16 sm:right-20 z-30 max-w-lg sm:max-w-md mx-auto sm:mx-0"
+          style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
+        >
+          <div className={cn(panel, "max-h-[60vh] overflow-y-auto overscroll-contain shadow-2xl")}>
             {searchHits.length === 0 ? (
               <div className="px-4 py-5 text-center text-sm text-muted-foreground">
                 {isFi ? "Ei tuloksia haulla " : "No results for "}
@@ -875,15 +863,18 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
                   )}
                   onClick={() => onPickSearchHit(hit)}
                 >
-                  {hit.type === "building" ? (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+                  <span
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                      darkMode ? "bg-blue-500/15" : "bg-blue-50",
+                    )}
+                  >
+                    {hit.type === "building" ? (
                       <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </span>
-                  ) : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
-                      <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </span>
-                  )}
+                    ) : (
+                      <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold truncate">{highlight(hit.label, searchQuery)}</p>
                     <p className="text-xs text-muted-foreground truncate">{hit.sub}</p>
@@ -895,9 +886,20 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         </div>
       )}
 
-      {/* ── Floor selector (top-right) ─────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl shadow-xl border border-gray-200/80 dark:border-gray-700/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md"
-           aria-label="Floor selector">
+      {/* ── Floor selector (top-right) — segmented pill matching the
+       *   hamburger sheet aesthetic: rounded-2xl container, ring-1 for
+       *   depth (no heavy shadow), flat KSYK blue for the active floor,
+       *   40px tap targets. */}
+      <div
+        className={cn(
+          "absolute right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl ring-1 backdrop-blur-md",
+          darkMode
+            ? "bg-gray-900/90 ring-white/10"
+            : "bg-white/92 ring-black/5 shadow-sm",
+        )}
+        style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
+        aria-label="Floor selector"
+      >
         <p
           className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-0.5"
           style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -912,10 +914,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             aria-pressed={selectedFloor === floor}
             onClick={() => setSelectedFloor(floor)}
             className={cn(
-              "w-9 h-8 rounded-xl text-sm font-bold transition-all duration-150 leading-none tabular-nums",
+              "min-w-[40px] h-10 px-1 rounded-xl text-sm font-bold transition-colors duration-150 leading-none tabular-nums flex items-center justify-center",
               selectedFloor === floor
-                ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                ? "bg-blue-600 text-white"
+                : darkMode
+                  ? "text-gray-300 hover:bg-blue-500/10 hover:text-white active:bg-blue-500/15"
+                  : "text-gray-600 hover:bg-blue-50 hover:text-blue-700 active:bg-blue-100",
             )}
           >
             {floor}
@@ -923,31 +927,32 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Map controls — 3D + Center only. Zoom in/out buttons removed
-       *   at the user's request (their liquid-glass style was
-       *   overlapping other UI). Users can pinch-zoom or double-tap
-       *   to zoom on touch, Ctrl+scroll on desktop. */}
-      <div className="absolute right-3 z-40 flex flex-col gap-2"
-           style={{ bottom: 'max(6rem, calc(4rem + env(safe-area-inset-bottom)))' }}>
-
+      {/* ── Map controls — 3D + Center only. Matches the hamburger
+       *   sheet aesthetic: rounded-2xl, ring-1 depth, single blue
+       *   accent. 44x44px tap targets clear Apple/Google guidance. */}
+      <div
+        className="absolute right-3 z-40 flex flex-col gap-2"
+        style={{ bottom: 'max(6rem, calc(5rem + env(safe-area-inset-bottom)))' }}
+      >
         {/* 3D toggle — flips osmPitchDeg. Toggles inline extrusion on
          *  the live Leaflet map (perspective + walled rooms). */}
         {canUse3D && (
           <button
             type="button"
             aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
+            aria-pressed={is3DMode}
             onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
             title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D-näkymä" : "3D view")}
             className={cn(
-              "w-10 h-10 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all active:scale-95",
+              "w-11 h-11 rounded-2xl ring-1 backdrop-blur-md flex items-center justify-center transition-colors active:scale-[0.97]",
               is3DMode
-                ? "bg-blue-600 text-white border-blue-700 shadow-blue-600/30"
+                ? "bg-blue-600 text-white ring-blue-700/40"
                 : darkMode
-                  ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800"
-                  : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+                  ? "bg-gray-900/90 ring-white/10 text-gray-200 hover:bg-blue-500/10 hover:text-blue-300"
+                  : "bg-white/95 ring-black/5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 shadow-sm",
             )}
           >
-            <span className="text-[10px] font-bold tabular-nums">
+            <span className="text-[11px] font-bold tabular-nums">
               {is3DMode ? "3D" : "2D"}
             </span>
           </button>
@@ -960,13 +965,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           onClick={resetView}
           title={isFi ? "Palauta näkymä" : "Center map"}
           className={cn(
-            "w-10 h-10 rounded-xl shadow-md border backdrop-blur-md flex items-center justify-center transition-all active:scale-95",
+            "w-11 h-11 rounded-2xl ring-1 backdrop-blur-md flex items-center justify-center transition-colors active:scale-[0.97]",
             darkMode
-              ? "bg-gray-900/92 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-blue-400"
-              : "bg-white/95 border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700",
+              ? "bg-gray-900/90 ring-white/10 text-gray-200 hover:bg-blue-500/10 hover:text-blue-300"
+              : "bg-white/95 ring-black/5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 shadow-sm",
           )}
         >
-          <Crosshair className="h-4 w-4" />
+          <Crosshair className="h-[18px] w-[18px]" />
         </button>
       </div>
 
@@ -976,7 +981,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
       {/* ── Nav bar — hidden if routing is disabled ──────────────── */}
       {canUseRouting && (navFrom || navTo) && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-md w-[min(95%,28rem)] pointer-events-auto">
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-30 max-w-md w-[min(95%,28rem)] pointer-events-auto"
+          style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
+        >
           <div className={cn(panel, "p-3 flex items-center gap-2 shadow-2xl")}>
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
               <div className="flex items-center gap-2">
