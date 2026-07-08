@@ -240,8 +240,8 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
   }) => (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 py-3 px-3.5 rounded-xl transition-colors",
-        darkMode ? "bg-gray-800/50 hover:bg-gray-800/70" : "bg-slate-50/90 hover:bg-white"
+        "flex items-center justify-between gap-4 py-3 px-3.5 rounded-xl transition-colors ring-1 ring-black/5 dark:ring-white/5",
+        darkMode ? "bg-gray-900/40 hover:bg-gray-900/60" : "bg-white hover:bg-slate-50"
       )}
     >
       <div className="min-w-0 flex-1">
@@ -256,26 +256,40 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
     </div>
   );
 
+  // Editorial section label — matches the Nordic Editorial pattern used in
+  // the hamburger sheet: tiny uppercase w/ heavy tracking.
+  const sectionLabel = "text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400";
+  // Section wrapper — swap the flat slate tint for a subtle ringed card that
+  // reads well in both light and dark modes. Kept as a constant so we can
+  // tweak it once instead of six times.
+  const sectionWrap =
+    "p-3.5 rounded-2xl bg-white dark:bg-gray-900/40 ring-1 ring-black/5 dark:ring-white/5";
+  // Larger tap padding for touch — wraps <Slider> so the whole strip is
+  // grabbable, not just the 20px thumb.
+  const sliderTouchPad = "py-2 -my-1";
+
   const body = (
     <div className="space-y-4">
       {/* ── Live preview + center/bounds editor ────────────────────── */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Label className="text-xs font-semibold flex items-center gap-1.5">
-            <MapIcon className="h-3.5 w-3.5 text-blue-500" />
+          <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+            <MapIcon className="h-3 w-3 text-blue-500" />
             {isFi ? "Esikatselu" : "Live preview"}
           </Label>
-          <div className="flex gap-1 rounded-lg bg-gray-200/60 dark:bg-gray-800/60 p-0.5">
+          {/* Segmented pill — matches hamburger's SegBtn look. Larger tap
+              targets (min-h-8) so a thumb hits reliably on 375px screens. */}
+          <div className="inline-flex gap-0.5 rounded-full bg-gray-100 dark:bg-gray-800/70 p-0.5 ring-1 ring-black/5 dark:ring-white/5">
             {(["center", "bounds"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setPreviewMode(m)}
                 className={cn(
-                  "px-2.5 py-1 text-[10px] font-semibold rounded-md transition-colors",
+                  "px-3.5 min-h-8 text-[11px] font-semibold rounded-full transition-all",
                   previewMode === m
-                    ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300 ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 )}
                 aria-pressed={previewMode === m}
               >
@@ -328,11 +342,11 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
       </div>
 
       {/* ── Tile theme ────────────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
+      <div className={cn(sectionWrap, "space-y-3")}>
         <div>
-          <Label className="mb-2 text-xs flex items-center gap-1.5">
+          <Label className={cn("mb-2 flex items-center gap-1.5", sectionLabel)}>
             <span>{isFi ? "Karttatyyli" : "Tile theme"}</span>
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 tracking-normal font-medium normal-case">
               {isFi ? "Vaihtuu teeman mukaan" : "Auto light/dark"}
             </Badge>
           </Label>
@@ -407,16 +421,17 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
       </div>
 
       {/* ── Center coordinates ─────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
-        <Label className="text-xs font-semibold flex items-center gap-1.5">
-          <Compass className="h-3.5 w-3.5 text-blue-500" />
+      <div className={cn(sectionWrap, "space-y-3")}>
+        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+          <Compass className="h-3 w-3 text-blue-500" />
           {isFi ? "Sijainti ja zoomi" : "Position & zoom"}
         </Label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="mb-1 block text-xs">Lat</Label>
+            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Lat</Label>
             <Input
               type="number"
+              inputMode="decimal"
               step="0.0001"
               min={-90}
               max={90}
@@ -432,13 +447,14 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
                   update("osmMaxBoundsSouth", +(settings.osmMaxBoundsSouth + d).toFixed(6));
                 }
               }}
-              className="h-9 text-sm font-mono"
+              className="h-10 text-sm font-mono tabular-nums"
             />
           </div>
           <div>
-            <Label className="mb-1 block text-xs">Lng</Label>
+            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Lng</Label>
             <Input
               type="number"
+              inputMode="decimal"
               step="0.0001"
               min={-180}
               max={180}
@@ -454,84 +470,98 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
                   update("osmMaxBoundsWest", +(settings.osmMaxBoundsWest + d).toFixed(6));
                 }
               }}
-              className="h-9 text-sm font-mono"
+              className="h-10 text-sm font-mono tabular-nums"
             />
           </div>
         </div>
 
         <div>
           <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs">{isFi ? "Oletuszoomi" : "Default zoom"}</Label>
-            <span className="text-xs font-mono">{settings.osmDefaultZoom}</span>
+            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Oletuszoomi" : "Default zoom"}</Label>
+            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmDefaultZoom}</span>
           </div>
-          <Slider
-            value={[settings.osmDefaultZoom]}
-            min={settings.osmMinZoom}
-            max={settings.osmMaxZoom}
-            step={0.5}
-            onValueChange={([v]) => update("osmDefaultZoom", v)}
-          />
+          <div className={sliderTouchPad}>
+            <Slider
+              value={[settings.osmDefaultZoom]}
+              min={settings.osmMinZoom}
+              max={settings.osmMaxZoom}
+              step={0.5}
+              onValueChange={([v]) => update("osmDefaultZoom", v)}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="mb-1 block text-xs">{isFi ? "Min zoom" : "Min zoom"}</Label>
+            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">{isFi ? "Min zoom" : "Min zoom"}</Label>
             <Input
               type="number"
+              inputMode="numeric"
               min={1}
               max={22}
               value={settings.osmMinZoom}
               onChange={(e) =>
                 update("osmMinZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 1)))
               }
-              className="h-9 text-sm font-mono"
+              className="h-10 text-sm font-mono tabular-nums"
             />
           </div>
           <div>
-            <Label className="mb-1 block text-xs">{isFi ? "Max zoom" : "Max zoom"}</Label>
+            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">{isFi ? "Max zoom" : "Max zoom"}</Label>
             <Input
               type="number"
+              inputMode="numeric"
               min={1}
               max={22}
               value={settings.osmMaxZoom}
               onChange={(e) =>
                 update("osmMaxZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 19)))
               }
-              className="h-9 text-sm font-mono"
+              className="h-10 text-sm font-mono tabular-nums"
             />
           </div>
         </div>
       </div>
 
       {/* ── Orientation ───────────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-4">
-        <Label className="text-xs font-semibold flex items-center gap-1.5">
-          <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
+      <div className={cn(sectionWrap, "space-y-4")}>
+        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+          <RotateCcw className="h-3 w-3 text-blue-500" />
           {isFi ? "Suunta ja kallistus" : "Orientation & Bearing"}
         </Label>
 
-        {/* Compass rose + bearing controls */}
-        <div className="flex items-center gap-4">
-          {/* Compass dial — drag or click to set bearing */}
-          <CompassDial
-            value={settings.osmRotationDeg}
-            onChange={(v) => update("osmRotationDeg", v)}
-            darkMode={darkMode}
-          />
+        {/* Compass rose + bearing controls.
+            The right column has min-w-[180px]. When the container is wide
+            enough to fit dial (112) + gap (16) + 180 = ~308px it sits
+            side-by-side (fine on 375px). Below that it wraps into a stack
+            with the dial centred above the controls. */}
+        <div className="flex items-start gap-4 flex-wrap">
+          {/* Compass dial — drag or click to set bearing.
+              mx-auto so it centres itself when it wraps on its own row. */}
+          <div className="mx-auto shrink-0">
+            <CompassDial
+              value={settings.osmRotationDeg}
+              onChange={(v) => update("osmRotationDeg", v)}
+              darkMode={darkMode}
+            />
+          </div>
 
-          {/* Bearing readout + cardinal snaps */}
-          <div className="flex-1 space-y-3">
+          {/* Bearing readout + cardinal snaps.
+              min-w-0 lets the flex child shrink below its content width so
+              the slider ticks don't push the layout wider than 375px. */}
+          <div className="flex-1 min-w-[180px] space-y-3">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400">
                 {isFi ? "Suuntakulma" : "Bearing"}
               </span>
-              <span className="text-sm font-mono font-bold tabular-nums">
+              <span className="text-base font-mono font-bold tabular-nums">
                 {((settings.osmRotationDeg % 360) + 360) % 360}°
               </span>
             </div>
 
-            {/* Cardinal quick-snap buttons */}
-            <div className="grid grid-cols-4 gap-1">
+            {/* Cardinal quick-snap buttons — bigger tap targets for thumbs.
+                min-h-9 (36px) meets the WCAG touch minimum. */}
+            <div className="grid grid-cols-4 gap-1.5">
               {([
                 { label: "N", value: 0 },
                 { label: "E", value: 90 },
@@ -543,10 +573,10 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
                   type="button"
                   onClick={() => update("osmRotationDeg", value)}
                   className={cn(
-                    "py-1 rounded-lg text-xs font-semibold transition-all border",
+                    "min-h-9 rounded-lg text-sm font-semibold transition-all border",
                     Math.abs(((settings.osmRotationDeg % 360) + 360) % 360 - ((value % 360) + 360) % 360) < 2
-                      ? "bg-blue-500 text-white border-blue-600 shadow-sm"
-                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 hover:text-blue-600"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 hover:text-blue-600 active:scale-[0.97]"
                   )}
                 >
                   {label}
@@ -556,14 +586,16 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
 
             {/* Bearing slider for fine control */}
             <div>
-              <Slider
-                value={[settings.osmRotationDeg]}
-                min={-180}
-                max={180}
-                step={1}
-                onValueChange={([v]) => update("osmRotationDeg", v)}
-              />
-              <div className="flex justify-between text-[9px] text-muted-foreground mt-1 font-mono">
+              <div className={sliderTouchPad}>
+                <Slider
+                  value={[settings.osmRotationDeg]}
+                  min={-180}
+                  max={180}
+                  step={1}
+                  onValueChange={([v]) => update("osmRotationDeg", v)}
+                />
+              </div>
+              <div className="flex justify-between text-[9px] text-muted-foreground mt-1 font-mono tabular-nums">
                 <span>-180°</span>
                 <span>0°</span>
                 <span>+180°</span>
@@ -572,56 +604,60 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           </div>
         </div>
 
-        {/* Reset to north */}
+        {/* Reset to north — bumped to min-h-9 for touch */}
         {settings.osmRotationDeg !== 0 && (
           <button
             type="button"
             onClick={() => update("osmRotationDeg", 0)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 min-h-9 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors active:scale-[0.98]"
           >
-            <RotateCcw className="h-3 w-3" />
+            <RotateCcw className="h-3.5 w-3.5" />
             {isFi ? "Palauta pohjoiseen" : "Reset to North"}
           </button>
         )}
 
         {/* Pitch slider */}
-        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-700/40">
+        <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
           <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs">{isFi ? "Kallistus (pitch)" : "Tilt / pitch"}</Label>
-            <span className="text-xs font-mono">{settings.osmPitchDeg ?? 0}°</span>
+            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kallistus (pitch)" : "Tilt / pitch"}</Label>
+            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmPitchDeg ?? 0}°</span>
           </div>
-          <Slider
-            value={[settings.osmPitchDeg ?? 0]}
-            min={0}
-            max={45}
-            step={1}
-            onValueChange={([v]) => update("osmPitchDeg", v)}
-          />
+          <div className={sliderTouchPad}>
+            <Slider
+              value={[settings.osmPitchDeg ?? 0]}
+              min={0}
+              max={45}
+              step={1}
+              onValueChange={([v]) => update("osmPitchDeg", v)}
+            />
+          </div>
           <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
             {isFi ? "Kokeellinen — yli 25° voi vääristää tarttumakohtia." : "Experimental — over 25° may misalign hits."}
           </p>
         </div>
 
         {/* Campus span */}
-        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-700/40">
+        <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
           <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs">{isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}</Label>
-            <span className="text-xs font-mono">{settings.osmCampusSpanMeters} m</span>
+            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}</Label>
+            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmCampusSpanMeters} m</span>
           </div>
-          <Slider
-            value={[settings.osmCampusSpanMeters]}
-            min={50}
-            max={500}
-            step={10}
-            onValueChange={([v]) => update("osmCampusSpanMeters", v)}
-          />
+          <div className={sliderTouchPad}>
+            <Slider
+              value={[settings.osmCampusSpanMeters]}
+              min={50}
+              max={500}
+              step={10}
+              onValueChange={([v]) => update("osmCampusSpanMeters", v)}
+            />
+          </div>
         </div>
       </div>
 
       {/* ── Bounds restriction ─────────────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-gray-900/50 space-y-3">
-        <Label className="text-xs font-semibold flex items-center gap-1.5">
-          <Maximize2 className="h-3.5 w-3.5 text-blue-500" />
+      <div className={cn(sectionWrap, "space-y-3")}>
+        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+          <Maximize2 className="h-3 w-3 text-blue-500" />
           {isFi ? "Panoroinnin rajat" : "Pan bounds"}
         </Label>
         <SettingRow
@@ -646,16 +682,17 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
               ["osmMaxBoundsWest", "W"],
             ] as const).map(([k, lbl]) => (
               <div key={k}>
-                <Label className="mb-1 block text-[10px] font-mono">{lbl}</Label>
+                <Label className="mb-1 block text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400">{lbl}</Label>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   step="0.0001"
                   value={settings[k]}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
                     if (Number.isFinite(v)) update(k, v);
                   }}
-                  className="h-8 text-xs font-mono"
+                  className="h-10 text-xs font-mono tabular-nums"
                 />
               </div>
             ))}
@@ -666,13 +703,13 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
       <Separator />
 
       {/* ── Matterport 3D virtual tour ─────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+      <div className="p-3.5 rounded-2xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 space-y-2 ring-1 ring-cyan-500/5">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
             3D
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-cyan-900 dark:text-cyan-200">
+            <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 truncate">
               {isFi ? "Matterport virtuaalikierros" : "Matterport virtual tour"}
             </div>
             <p className="text-[10px] text-cyan-700 dark:text-cyan-300 leading-tight">
@@ -686,7 +723,7 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           placeholder="https://my.matterport.com/show/?m=…"
           value={settings.matterportTourUrl || ""}
           onChange={(e) => update("matterportTourUrl", e.target.value)}
-          className="w-full h-9 px-3 text-xs font-mono rounded-lg border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+          className="w-full h-10 px-3 text-xs font-mono rounded-lg border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
         />
         <p className="text-[10px] text-cyan-700/80 dark:text-cyan-300/70 leading-relaxed">
           {isFi
@@ -722,8 +759,8 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
       </div>
 
       {/* ── Publish to server ──────────────────────────────────────── */}
-      {showPublish && <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2">
-        <div className="text-xs font-semibold text-blue-900 dark:text-blue-200">
+      {showPublish && <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2 ring-1 ring-blue-500/5">
+        <div className="text-sm font-semibold text-blue-900 dark:text-blue-200">
           {isFi ? "Tallenna kaikille käyttäjille" : "Publish for all users"}
         </div>
         <p className="text-[10px] text-blue-700 dark:text-blue-300 leading-relaxed">
@@ -736,7 +773,7 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           onClick={handleSaveToServer}
           disabled={serverSaving}
           className={cn(
-            "w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
+            "w-full flex items-center justify-center gap-2 min-h-10 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.98]",
             serverSaved
               ? "bg-emerald-600 text-white"
               : serverSaveError
@@ -745,11 +782,11 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           )}
         >
           {serverSaving ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : serverSaved ? (
-            <Check className="h-3.5 w-3.5" />
+            <Check className="h-4 w-4" />
           ) : (
-            <Upload className="h-3.5 w-3.5" />
+            <Upload className="h-4 w-4" />
           )}
           {serverSaving
             ? (isFi ? "Tallennetaan…" : "Saving…")
@@ -762,14 +799,15 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
       </div>}
 
       {resetPending ? (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-amber-700 dark:text-amber-400 flex-1">
+        // Reset confirm — wrap on very narrow screens so buttons don't crush.
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-amber-700 dark:text-amber-400 flex-1 min-w-0">
             {isFi ? "Vahvista nollaus?" : "Confirm reset?"}
           </span>
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-2.5 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30"
+            className="h-9 px-3 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30 rounded-lg"
             onClick={() => {
               (["osmCenterLat","osmCenterLng","osmDefaultZoom","osmMinZoom","osmMaxZoom",
                 "osmRotationDeg","osmPitchDeg","osmCampusSpanMeters","osmTileTheme",
@@ -779,7 +817,7 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
               setResetPending(false);
             }}
           >{isFi ? "Nollaa" : "Reset"}</Button>
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+          <Button size="sm" variant="ghost" className="h-9 px-3 text-xs rounded-lg"
             onClick={() => setResetPending(false)}>
             {isFi ? "Peruuta" : "Cancel"}
           </Button>
@@ -788,7 +826,7 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
         <Button
           variant="outline"
           size="sm"
-          className="w-full text-xs rounded-xl"
+          className="w-full text-xs rounded-xl h-10"
           onClick={() => setResetPending(true)}
         >
           {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
