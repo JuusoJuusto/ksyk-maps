@@ -1,12 +1,31 @@
-import { useState, useEffect } from "react";
+/**
+ * KSYK Maps — Lunch menu page.
+ *
+ * Data comes from Amica's RSS feed via /api/lunch-menu. The presentation
+ * follows the Nordic Editorial vocabulary used across the app:
+ *   - Sticky editorial header (small tracked label + bold black title)
+ *   - Single KSYK blue accent, muted neutrals, no rainbow tiles
+ *   - rounded-2xl cards with ring-1 ring-black/5 dark:ring-white/5
+ *   - Segmented iOS-style day picker instead of a 5-way grid
+ *   - Dark-mode aware throughout
+ */
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Header from "@/components/Header";
-import { Calendar, UtensilsCrossed, Leaf, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { cn } from "@/lib/utils";
+import {
+  Calendar,
+  UtensilsCrossed,
+  Leaf,
+  AlertCircle,
+  RefreshCw,
+  ChevronLeft,
+  Cake,
+  Info,
+} from "lucide-react";
 
 interface MenuItem {
   date: string;
@@ -19,7 +38,9 @@ interface MenuItem {
 const translateText = async (text: string, targetLang: string): Promise<string> => {
   if (targetLang === "fi" || !text || text === "Ei saatavilla") return text;
   try {
-    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fi&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=fi&tl=en&dt=t&q=${encodeURIComponent(text)}`,
+    );
     const data = await response.json();
     return data[0][0][0] || text;
   } catch {
@@ -30,11 +51,16 @@ const translateText = async (text: string, targetLang: string): Promise<string> 
 export default function Lunch() {
   const { i18n } = useTranslation();
   const [, setLocation] = useLocation();
+  const { darkMode } = useDarkMode();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayIndex, setTodayIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isWeekend, setIsWeekend] = useState(false);
+
+  const isFi = i18n.language === "fi";
+  const NOT_AVAILABLE = isFi ? "Ei saatavilla" : "Not available";
 
   const fetchMenu = async () => {
     setLoading(true);
@@ -58,89 +84,473 @@ export default function Lunch() {
         const dayName = title.split(",")[0] || "";
         if (dateMatch) {
           const itemDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
-          if (itemDate.toDateString() === today.toDateString()) { foundTodayIndex = index; }
+          if (itemDate.toDateString() === today.toDateString()) {
+            foundTodayIndex = index;
+          }
         }
-        const lines = description.split("<br>").map(line => line.replace(/<[^>]*>/g, "").trim()).filter(line => line.length > 0);
+        const lines = description
+          .split("<br>")
+          .map((line) => line.replace(/<[^>]*>/g, "").trim())
+          .filter((line) => line.length > 0);
         let vegetarian = "";
         let regular = "";
         let dessert = "";
-        lines.forEach(line => {
-          if (line.includes("Kasvislounas:")) { vegetarian = line.replace("Kasvislounas:", "").trim(); }
-          else if (line.includes("Lounas:")) { regular = line.replace("Lounas:", "").trim(); }
-          else if (line.includes("Jälkiruoka:")) { dessert = line.replace("Jälkiruoka:", "").trim(); }
+        lines.forEach((line) => {
+          if (line.includes("Kasvislounas:")) {
+            vegetarian = line.replace("Kasvislounas:", "").trim();
+          } else if (line.includes("Lounas:")) {
+            regular = line.replace("Lounas:", "").trim();
+          } else if (line.includes("Jälkiruoka:")) {
+            dessert = line.replace("Jälkiruoka:", "").trim();
+          }
         });
         if (i18n.language === "en") {
           vegetarian = await translateText(vegetarian, "en");
           regular = await translateText(regular, "en");
           if (dessert) dessert = await translateText(dessert, "en");
         }
-        parsedMenu.push({ date: title, dayName, vegetarian: vegetarian || "Ei saatavilla", regular: regular || "Ei saatavilla", dessert });
+        parsedMenu.push({
+          date: title,
+          dayName,
+          vegetarian: vegetarian || "Ei saatavilla",
+          regular: regular || "Ei saatavilla",
+          dessert,
+        });
       }
       setMenuItems(parsedMenu);
       setTodayIndex(foundTodayIndex);
+      setSelectedIndex(foundTodayIndex);
     } catch (err) {
       console.error("Failed to fetch menu:", err);
-      setError("Ruokalistan lataaminen epäonnistui.");
+      setError(isFi ? "Ruokalistan lataaminen epäonnistui." : "Failed to load the menu.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchMenu(); }, [i18n.language]);
+  useEffect(() => {
+    fetchMenu();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.language]);
 
-  const getDayColor = (index: number) => {
-    const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500"];
-    return colors[index % colors.length];
+  const selected = menuItems[selectedIndex];
+  const dateText = useMemo(() => {
+    if (!selected) return "";
+    const parts = selected.date.split(",");
+    return (parts[1] || "").trim();
+  }, [selected]);
+
+  // Short two-letter labels for the segmented control keep the row from
+  // wrapping on 320-375px viewports even when the RSS returns long day names.
+  const shortDay = (name: string) => {
+    if (!name) return "";
+    // Finnish "Maanantai" / English "Monday" — keep the first 2 letters
+    return name.slice(0, 2);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div
+      className={cn(
+        "min-h-screen",
+        darkMode
+          ? "bg-gradient-to-b from-gray-950 via-gray-900 to-slate-900 text-gray-100"
+          : "bg-gradient-to-b from-slate-50 via-white to-blue-50/40 text-gray-900",
+      )}
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <Header />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <Button onClick={() => setLocation("/")} variant="outline" className="mb-4 gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          {i18n.language === "fi" ? "Takaisin" : "Back"}
-        </Button>
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <UtensilsCrossed className="h-12 w-12 text-orange-600" />
-            <h1 className="text-4xl md:text-5xl font-black text-gray-900">{i18n.language === "fi" ? "Ruokalista" : "Lunch Menu"}</h1>
-          </div>
-          <p className="text-lg text-gray-600 mb-4">Amica - Kulis</p>
-          <Button onClick={fetchMenu} variant="outline" size="sm" className="gap-2"><RefreshCw className="h-4 w-4" />{i18n.language === "fi" ? "Päivitä" : "Refresh"}</Button>
-        </div>
-        {loading && <LoadingSpinner fullScreen={false} message={i18n.language === "fi" ? "Ladataan ruokalistaa..." : "Loading menu..."} />}
-        {error && <Card className="border-red-200 bg-red-50"><CardContent className="pt-6"><div className="flex items-center gap-3 text-red-700"><AlertCircle className="h-6 w-6" /><p className="font-semibold">{error}</p></div></CardContent></Card>}
-        {isWeekend && !loading && (
-          <Card className="border-blue-200 bg-blue-50"><CardContent className="pt-6"><div className="text-center"><p className="text-lg font-semibold text-blue-700">{i18n.language === "fi" ? "Ravintola on suljettu viikonloppuisin" : "Restaurant is closed on weekends"}</p><p className="text-sm text-blue-600 mt-2">{i18n.language === "fi" ? "Ruokalista on saatavilla maanantaista perjantaihin" : "Menu is available Monday to Friday"}</p></div></CardContent></Card>
+
+      {/* Editorial header — sticky so the back button + wordmark stay reachable */}
+      <div
+        className={cn(
+          "sticky top-0 z-20 backdrop-blur-xl border-b",
+          darkMode ? "bg-gray-950/85 border-gray-800/70" : "bg-white/85 border-gray-200/70",
         )}
-        {!loading && !error && !isWeekend && menuItems.length > 0 && (
-          <>
-            <Card className="mb-8 border-4 border-orange-500 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
-              <CardHeader className="bg-orange-500 text-white"><CardTitle className="flex items-center justify-between"><span className="flex items-center gap-2"><Calendar className="h-6 w-6" />{i18n.language === "fi" ? "Tänään" : "Today"}</span><Badge className="bg-white text-orange-600 text-lg px-4 py-1">{menuItems[todayIndex]?.dayName}</Badge></CardTitle></CardHeader>
-              <CardContent className="pt-6 space-y-4">
-                <div className="bg-white rounded-lg p-4 shadow-md border-2 border-green-200"><div className="flex items-center gap-2 mb-2"><Leaf className="h-5 w-5 text-green-600" /><h3 className="font-bold text-lg text-green-700">{i18n.language === "fi" ? "Kasvislounas" : "Vegetarian"}</h3></div><p className="text-gray-800 text-base leading-relaxed">{menuItems[todayIndex]?.vegetarian}</p></div>
-                <div className="bg-white rounded-lg p-4 shadow-md border-2 border-blue-200"><div className="flex items-center gap-2 mb-2"><UtensilsCrossed className="h-5 w-5 text-blue-600" /><h3 className="font-bold text-lg text-blue-700">{i18n.language === "fi" ? "Lounas" : "Regular"}</h3></div><p className="text-gray-800 text-base leading-relaxed">{menuItems[todayIndex]?.regular}</p></div>
-                {menuItems[todayIndex]?.dessert && <div className="bg-white rounded-lg p-4 shadow-md border-2 border-pink-200"><div className="flex items-center gap-2 mb-2"><span className="text-2xl">🍰</span><h3 className="font-bold text-lg text-pink-700">{i18n.language === "fi" ? "Jälkiruoka" : "Dessert"}</h3></div><p className="text-gray-800 text-base leading-relaxed">{menuItems[todayIndex]?.dessert}</p></div>}
-              </CardContent>
-            </Card>
-            <div className="mb-8"><h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2"><Calendar className="h-6 w-6 text-blue-600" />{i18n.language === "fi" ? "Viikon ruokalista" : "Weekly Menu"}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{menuItems.map((item, index) => (
-                <Card key={index} className={`transition-all hover:shadow-xl ${index === todayIndex ? "ring-4 ring-orange-400 shadow-lg" : "hover:scale-105"}`}>
-                  <CardHeader className={`${getDayColor(index)} text-white`}><CardTitle className="text-lg flex items-center justify-between"><span>{item.dayName}</span>{index === todayIndex && <Badge className="bg-white text-orange-600">{i18n.language === "fi" ? "Tänään" : "Today"}</Badge>}</CardTitle><p className="text-sm text-white/90">{item.date.split(",")[1]?.trim()}</p></CardHeader>
-                  <CardContent className="pt-4 space-y-3">
-                    <div><p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1"><Leaf className="h-3 w-3" />{i18n.language === "fi" ? "Kasvis" : "Vegetarian"}</p><p className="text-sm text-gray-700">{item.vegetarian}</p></div>
-                    <div><p className="text-xs font-bold text-blue-700 mb-1 flex items-center gap-1"><UtensilsCrossed className="h-3 w-3" />{i18n.language === "fi" ? "Lounas" : "Regular"}</p><p className="text-sm text-gray-700">{item.regular}</p></div>
-                    {item.dessert && <div><p className="text-xs font-bold text-pink-700 mb-1">🍰 {i18n.language === "fi" ? "Jälkiruoka" : "Dessert"}</p><p className="text-sm text-gray-700">{item.dessert}</p></div>}
-                  </CardContent>
-                </Card>
-              ))}</div>
+      >
+        <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4">
+          <button
+            type="button"
+            onClick={() => setLocation("/")}
+            className={cn(
+              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center active:scale-90 transition-all",
+              darkMode
+                ? "text-gray-300 hover:text-white hover:bg-gray-800/70"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+            )}
+            aria-label={isFi ? "Takaisin" : "Back"}
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+          <div className="flex items-baseline gap-2.5 min-w-0 flex-1">
+            <span
+              className={cn(
+                "text-[10px] font-bold tracking-[0.18em] uppercase hidden sm:inline shrink-0 pt-2",
+                darkMode ? "text-gray-500" : "text-gray-400",
+              )}
+            >
+              Amica · Kulis
+            </span>
+            <span
+              className={cn(
+                "hidden sm:inline w-px h-4 self-center shrink-0",
+                darkMode ? "bg-gray-800" : "bg-gray-300",
+              )}
+            />
+            <h1
+              className={cn(
+                "text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-none truncate",
+                darkMode ? "text-white" : "text-gray-900",
+              )}
+            >
+              {isFi ? "Ruokalista" : "Lunch menu"}
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={fetchMenu}
+            disabled={loading}
+            className={cn(
+              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50",
+              darkMode
+                ? "text-gray-300 hover:text-white hover:bg-gray-800/70"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+            )}
+            aria-label={isFi ? "Päivitä" : "Refresh"}
+          >
+            <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} strokeWidth={2.25} />
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 space-y-4">
+        {/* Mobile-only subtitle — the sm+ header has the divider so this
+            keeps the small-screen layout from feeling context-free. */}
+        <p
+          className={cn(
+            "sm:hidden text-[11px] font-bold tracking-[0.18em] uppercase",
+            darkMode ? "text-gray-500" : "text-gray-400",
+          )}
+        >
+          Amica · Kulis
+        </p>
+
+        {loading && (
+          <div className="py-16">
+            <LoadingSpinner
+              fullScreen={false}
+              message={isFi ? "Ladataan ruokalistaa..." : "Loading menu..."}
+            />
+          </div>
+        )}
+
+        {error && !loading && (
+          <div
+            className={cn(
+              "rounded-2xl ring-1 p-4 flex items-start gap-3",
+              darkMode
+                ? "bg-red-950/40 ring-red-900/60 text-red-200"
+                : "bg-red-50 ring-red-100 text-red-800",
+            )}
+            role="alert"
+          >
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2.25} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{error}</p>
+              <button
+                type="button"
+                onClick={fetchMenu}
+                className={cn(
+                  "mt-2 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors active:scale-95",
+                  darkMode
+                    ? "bg-red-900/50 hover:bg-red-900/70 text-red-100"
+                    : "bg-white hover:bg-red-100 text-red-700 ring-1 ring-red-200",
+                )}
+              >
+                <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
+                {isFi ? "Yritä uudelleen" : "Try again"}
+              </button>
             </div>
-            <Card className="bg-blue-50 border-blue-200"><CardContent className="pt-6"><div className="text-center space-y-2"><p className="text-sm text-gray-600">{i18n.language === "fi" ? "Ruokalista tarjoaa Amica / Compass Group Finland" : "Menu provided by Amica / Compass Group Finland"}</p><p className="text-xs text-gray-500">{i18n.language === "fi" ? "Ruokalista voi muuttua ilman ennakkoilmoitusta" : "Menu subject to change without notice"}</p></div></CardContent></Card>
+          </div>
+        )}
+
+        {isWeekend && !loading && !error && (
+          <div
+            className={cn(
+              "rounded-2xl ring-1 p-5 sm:p-6 text-center",
+              darkMode
+                ? "bg-blue-950/40 ring-blue-900/60"
+                : "bg-blue-50 ring-blue-100",
+            )}
+          >
+            <div
+              className={cn(
+                "mx-auto h-12 w-12 rounded-2xl flex items-center justify-center mb-3",
+                darkMode ? "bg-blue-900/60 text-blue-200" : "bg-white text-blue-600 ring-1 ring-blue-100",
+              )}
+            >
+              <Calendar className="h-6 w-6" strokeWidth={2.25} />
+            </div>
+            <p
+              className={cn(
+                "text-base font-bold tracking-[-0.01em]",
+                darkMode ? "text-blue-100" : "text-blue-900",
+              )}
+            >
+              {isFi ? "Ravintola on suljettu viikonloppuisin" : "Closed on weekends"}
+            </p>
+            <p
+              className={cn(
+                "text-sm mt-1.5 leading-relaxed",
+                darkMode ? "text-blue-200/80" : "text-blue-700/90",
+              )}
+            >
+              {isFi ? "Ruokalista on saatavilla ma – pe." : "Menu available Monday – Friday."}
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && !isWeekend && menuItems.length > 0 && selected && (
+          <>
+            {/* Segmented day picker — iOS-style white active pill. Scrollable
+                on very narrow screens but usually fits 5 days at 375px. */}
+            <div
+              className={cn(
+                "flex gap-1 p-1 rounded-2xl ring-1 backdrop-blur-xl",
+                "sticky top-[3.75rem] sm:top-[4.5rem] z-10",
+                darkMode
+                  ? "bg-gray-900/70 ring-white/5"
+                  : "bg-white/85 ring-black/5 shadow-sm shadow-black/[0.03]",
+              )}
+              role="tablist"
+              aria-label={isFi ? "Viikonpäivät" : "Weekdays"}
+            >
+              {menuItems.map((item, index) => {
+                const isSel = index === selectedIndex;
+                const isToday = index === todayIndex;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSel}
+                    onClick={() => setSelectedIndex(index)}
+                    className={cn(
+                      "flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl transition-all active:scale-[0.97]",
+                      isSel
+                        ? darkMode
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "bg-gray-900 text-white shadow-md shadow-gray-900/10"
+                        : darkMode
+                          ? "text-gray-400 hover:text-gray-200"
+                          : "text-gray-500 hover:text-gray-900",
+                    )}
+                  >
+                    <span className="text-[11px] font-bold tracking-[0.14em] uppercase leading-none">
+                      {shortDay(item.dayName)}
+                    </span>
+                    {isToday && (
+                      <span
+                        className={cn(
+                          "h-1 w-1 rounded-full",
+                          isSel
+                            ? darkMode ? "bg-gray-900" : "bg-white"
+                            : "bg-blue-600 dark:bg-blue-400",
+                        )}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected-day card — one refined card, no rainbow borders. */}
+            <div
+              className={cn(
+                "rounded-2xl ring-1 overflow-hidden",
+                darkMode ? "bg-gray-900/70 ring-white/5" : "bg-white ring-black/5 shadow-sm shadow-black/[0.03]",
+              )}
+            >
+              <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+                <div className="min-w-0">
+                  <p
+                    className={cn(
+                      "text-[10px] font-bold tracking-[0.18em] uppercase",
+                      darkMode ? "text-gray-500" : "text-gray-400",
+                    )}
+                  >
+                    {selectedIndex === todayIndex
+                      ? isFi ? "Tänään" : "Today"
+                      : dateText || (isFi ? "Ruokalista" : "Menu")}
+                  </p>
+                  <h2
+                    className={cn(
+                      "text-lg sm:text-xl font-bold tracking-[-0.01em] leading-tight mt-1 truncate",
+                      darkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    {selected.dayName}
+                  </h2>
+                  {selectedIndex === todayIndex && dateText && (
+                    <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-400" : "text-gray-500")}>
+                      {dateText}
+                    </p>
+                  )}
+                </div>
+                {selectedIndex === todayIndex && (
+                  <span
+                    className={cn(
+                      "shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.1em] uppercase",
+                      darkMode
+                        ? "bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/30"
+                        : "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
+                    )}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden />
+                    {isFi ? "Tänään" : "Today"}
+                  </span>
+                )}
+              </div>
+
+              <div className={cn("mx-5 h-px", darkMode ? "bg-white/5" : "bg-black/5")} />
+
+              <div className="px-3 sm:px-4 py-2 sm:py-3 space-y-1">
+                <DishRow
+                  icon={<UtensilsCrossed className="h-4 w-4" strokeWidth={2.25} />}
+                  label={isFi ? "Lounas" : "Main"}
+                  value={selected.regular}
+                  emptyLabel={NOT_AVAILABLE}
+                  darkMode={darkMode}
+                />
+                <DishRow
+                  icon={<Leaf className="h-4 w-4" strokeWidth={2.25} />}
+                  label={isFi ? "Kasvislounas" : "Vegetarian"}
+                  value={selected.vegetarian}
+                  emptyLabel={NOT_AVAILABLE}
+                  darkMode={darkMode}
+                />
+                {selected.dessert && (
+                  <DishRow
+                    icon={<Cake className="h-4 w-4" strokeWidth={2.25} />}
+                    label={isFi ? "Jälkiruoka" : "Dessert"}
+                    value={selected.dessert}
+                    emptyLabel={NOT_AVAILABLE}
+                    darkMode={darkMode}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Attribution footer — muted, editorial */}
+            <div
+              className={cn(
+                "rounded-2xl ring-1 px-4 py-3.5 flex items-start gap-3",
+                darkMode ? "bg-gray-900/50 ring-white/5" : "bg-slate-50/80 ring-black/5",
+              )}
+            >
+              <Info
+                className={cn("h-4 w-4 shrink-0 mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}
+                strokeWidth={2.25}
+              />
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    "text-[11px] leading-relaxed",
+                    darkMode ? "text-gray-400" : "text-gray-500",
+                  )}
+                >
+                  {isFi
+                    ? "Ruokalista Amica / Compass Group Finland."
+                    : "Menu by Amica / Compass Group Finland."}
+                  <span className={cn("mx-1.5", darkMode ? "text-gray-700" : "text-gray-300")}>·</span>
+                  {isFi ? "Voi muuttua ilman ennakkoilmoitusta." : "Subject to change without notice."}
+                </p>
+              </div>
+            </div>
           </>
+        )}
+
+        {/* Empty state — RSS returned zero items and we're not weekend / errored. */}
+        {!loading && !error && !isWeekend && menuItems.length === 0 && (
+          <div
+            className={cn(
+              "rounded-2xl ring-1 p-6 sm:p-8 text-center",
+              darkMode ? "bg-gray-900/50 ring-white/5" : "bg-white ring-black/5",
+            )}
+          >
+            <div
+              className={cn(
+                "mx-auto h-12 w-12 rounded-2xl flex items-center justify-center mb-3",
+                darkMode ? "bg-gray-800 text-gray-400" : "bg-slate-100 text-gray-500",
+              )}
+            >
+              <UtensilsCrossed className="h-6 w-6" strokeWidth={2.25} />
+            </div>
+            <p className={cn("text-base font-bold tracking-[-0.01em]", darkMode ? "text-gray-100" : "text-gray-900")}>
+              {isFi ? "Ruokalistaa ei ole vielä julkaistu" : "No menu published yet"}
+            </p>
+            <p className={cn("text-sm mt-1.5", darkMode ? "text-gray-400" : "text-gray-500")}>
+              {isFi ? "Kokeile päivittää hetken kuluttua." : "Try refreshing in a moment."}
+            </p>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
+// Icon-in-square + label + description row — matches the vocabulary of
+// SettingRow but styled for menu content (multi-line, larger body copy).
+function DishRow({
+  icon,
+  label,
+  value,
+  emptyLabel,
+  darkMode,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  emptyLabel: string;
+  darkMode: boolean;
+}) {
+  const isEmpty = !value || value === "Ei saatavilla" || value === emptyLabel;
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 py-3 px-3 rounded-xl transition-colors",
+        darkMode ? "hover:bg-gray-800/40" : "hover:bg-slate-50/80",
+      )}
+    >
+      <span
+        className={cn(
+          "shrink-0 h-9 w-9 rounded-xl flex items-center justify-center mt-0.5",
+          darkMode ? "bg-blue-500/15 text-blue-300" : "bg-blue-50 text-blue-600",
+        )}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "text-[10px] font-bold tracking-[0.18em] uppercase",
+            darkMode ? "text-gray-500" : "text-gray-400",
+          )}
+        >
+          {label}
+        </p>
+        <p
+          className={cn(
+            "text-[15px] leading-[1.45] mt-1",
+            isEmpty
+              ? darkMode ? "text-gray-500 italic" : "text-gray-400 italic"
+              : darkMode ? "text-gray-100" : "text-gray-800",
+          )}
+        >
+          {isEmpty ? emptyLabel : value}
+        </p>
+      </div>
+    </div>
+  );
+}
