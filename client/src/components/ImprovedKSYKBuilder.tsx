@@ -943,23 +943,29 @@ export default function ImprovedKSYKBuilder() {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-[#eef1f6] dark:bg-gray-950 font-sans">
+    <div className="h-screen flex flex-col bg-slate-100 dark:bg-gray-950 font-sans">
+      {/* Best-on-desktop hint for phones */}
+      <div className="md:hidden shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100 text-[11px]">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        <span>Campus Builder is optimised for desktop — pinch-zoom and precise editing work best on a larger screen.</span>
+      </div>
+
       {/* ── Header ───────────────────────────────────────────────── */}
-      <header className="h-13 shrink-0 flex items-center justify-between px-4 gap-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 gap-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3 min-w-0">
           <KSYKLogo size="sm" />
           <div>
-            <p className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Campus Builder</p>
-            <p className="text-[10px] text-muted-foreground leading-tight">KSYK Maps</p>
+            <p className="font-bold text-sm leading-tight tracking-[-0.01em] text-gray-900 dark:text-white">Campus Builder</p>
+            <p className="text-[10px] text-muted-foreground leading-tight uppercase tracking-[0.1em]">KSYK Maps</p>
           </div>
           {unsavedChanges && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200 text-[10px] font-semibold">
               <AlertCircle className="h-3 w-3" />
               Unsaved
             </span>
           )}
           {saveMutation.isSuccess && !unsavedChanges && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-[10px] font-semibold">
               <CheckCircle2 className="h-3 w-3" />
               Saved
             </span>
@@ -969,7 +975,7 @@ export default function ImprovedKSYKBuilder() {
         <div className="flex items-center gap-2 shrink-0">
           {/* Wing template */}
           <Select value={activeWingLetter} onValueChange={loadWingOutline}>
-            <SelectTrigger className="h-8 w-36 text-xs rounded-lg">
+            <SelectTrigger className="h-10 w-40 text-xs rounded-xl">
               <SelectValue placeholder="Wing template" />
             </SelectTrigger>
             <SelectContent>
@@ -982,13 +988,19 @@ export default function ImprovedKSYKBuilder() {
           </Select>
 
           {/* Export */}
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 rounded-lg" onClick={exportJson} title="Export JSON">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 text-xs gap-1.5 rounded-xl active:scale-[0.98] transition-transform"
+            onClick={exportJson}
+            title="Export JSON"
+          >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </Button>
 
           {/* Import */}
-          <label className="inline-flex items-center gap-1 h-8 text-xs px-3 rounded-lg border bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+          <label className="inline-flex items-center gap-1.5 h-10 text-xs px-3 rounded-xl border border-input bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all active:scale-[0.98]">
             <Upload className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Import</span>
             <input type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
@@ -998,10 +1010,10 @@ export default function ImprovedKSYKBuilder() {
           <Button
             size="sm"
             className={cn(
-              "h-8 gap-1.5 rounded-lg font-semibold transition-all",
+              "h-10 gap-1.5 rounded-xl font-semibold transition-all active:scale-[0.98]",
               unsavedChanges
-                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             )}
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
@@ -1014,7 +1026,8 @@ export default function ImprovedKSYKBuilder() {
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* ── Tool Sidebar ─────────────────────────────────────────── */}
-        <aside className="w-14 shrink-0 flex flex-col items-center gap-1 py-3 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <aside className="w-16 shrink-0 flex flex-col items-center gap-1.5 py-3 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500 mb-1">Tools</p>
           {TOOLS.map(({ id, icon, label, shortcut }) => (
             <button
               key={id}
@@ -1022,18 +1035,23 @@ export default function ImprovedKSYKBuilder() {
               onClick={() => setActiveTool(id)}
               title={`${label} (${shortcut})`}
               className={cn(
-                "w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all",
+                "w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all active:scale-[0.94]",
                 activeTool === id
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
                   : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
             >
               {icon}
-              <span className="text-[8px] font-bold opacity-70 leading-none">{shortcut}</span>
+              <span className={cn(
+                "text-[8px] font-bold leading-none tracking-wider",
+                activeTool === id ? "opacity-80" : "opacity-60"
+              )}>{shortcut}</span>
             </button>
           ))}
 
           <div className="flex-1" />
+
+          <div className="w-8 h-px bg-gray-200 dark:bg-gray-800 my-1" />
 
           {/* Snap toggle */}
           <button
@@ -1041,69 +1059,98 @@ export default function ImprovedKSYKBuilder() {
             onClick={() => setSnapEnabled((s) => !s)}
             title={snapEnabled ? "Snap to grid: ON" : "Snap to grid: OFF"}
             className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              snapEnabled ? "text-blue-600 bg-blue-50 dark:bg-blue-950/40" : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              "w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-[0.94]",
+              snapEnabled
+                ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-900/40"
+                : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             )}
           >
             <Grid3x3 className="h-4 w-4" />
           </button>
 
           {/* Undo / Redo */}
-          <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 transition-all">
+          <button
+            type="button"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 disabled:hover:bg-transparent transition-all active:scale-[0.94]"
+          >
             <Undo className="h-4 w-4" />
           </button>
-          <button type="button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 transition-all mb-1">
+          <button
+            type="button"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-25 disabled:hover:bg-transparent transition-all active:scale-[0.94] mb-1"
+          >
             <Redo className="h-4 w-4" />
           </button>
         </aside>
 
         {/* ── Properties / Add-Room Panel ──────────────────────────── */}
-        <div className="w-64 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
+        <div className="w-72 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
           {/* Panel header */}
-          <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="px-4 pt-3 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500 mb-1.5">
+              {selectedRoom ? "Editing" : "New room"}
+            </p>
             <div className="flex items-center gap-2">
-              <div className={cn("w-2.5 h-2.5 rounded-full", selectedRoom ? "bg-amber-400" : "bg-blue-500")} />
-              <p className="text-xs font-bold text-gray-900 dark:text-white">
+              <div className={cn(
+                "w-2.5 h-2.5 rounded-full",
+                selectedRoom ? "bg-amber-400 ring-4 ring-amber-400/20" : "bg-blue-500 ring-4 ring-blue-500/20"
+              )} />
+              <p className="text-sm font-bold text-gray-900 dark:text-white flex-1 min-w-0">
                 {selectedRoom ? (
                   <span className="flex items-center gap-1.5">
-                    <Pencil className="h-3 w-3" />
-                    Editing <span className="text-blue-600">{selectedRoom.roomNumber}</span>
+                    <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                    <span className="text-blue-600 font-mono">{selectedRoom.roomNumber}</span>
                   </span>
-                ) : "Add Room"}
+                ) : "Add a room"}
               </p>
               {selectedRoom && (
-                <button type="button" onClick={() => { setSelectedRoom(null); setSelectedRoomIds(new Set()); }}
-                  className="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                  <X className="h-3.5 w-3.5" />
+                <button
+                  type="button"
+                  onClick={() => { setSelectedRoom(null); setSelectedRoomIds(new Set()); }}
+                  className="ml-auto h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-[0.94]"
+                  title="Close editor"
+                >
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
 
           {/* Form */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
             <div>
-              <Label className="text-xs mb-1 block">Room Number *</Label>
+              <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">
+                Room number <span className="text-blue-600">*</span>
+              </Label>
               <Input
                 placeholder="A32, U205, K15…"
                 value={roomData.roomNumber}
                 onChange={(e) => setRoomData({ ...roomData, roomNumber: e.target.value.toUpperCase() })}
-                className="h-9 text-sm font-mono"
+                className="h-10 text-sm font-mono rounded-lg"
               />
-              <p className="text-[10px] text-muted-foreground mt-0.5">A / U / K / L / R + digits, or M1–M2</p>
+              <p className="text-[10px] text-muted-foreground mt-1">A / U / K / L / R + digits, or M1–M2</p>
             </div>
 
             <div>
-              <Label className="text-xs mb-1 block">Room Name</Label>
-              <Input placeholder="Physics Lab, A-sali…" value={roomData.name} onChange={(e) => setRoomData({ ...roomData, name: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Room name</Label>
+              <Input
+                placeholder="Physics Lab, A-sali…"
+                value={roomData.name}
+                onChange={(e) => setRoomData({ ...roomData, name: e.target.value })}
+                className="h-10 text-sm rounded-lg"
+              />
             </div>
 
             <div>
-              <Label className="text-xs mb-1 block">Type</Label>
+              <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Type</Label>
               <Select value={roomData.type} onValueChange={(v) => setRoomData({ ...roomData, type: v })}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-10 text-sm rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1129,53 +1176,72 @@ export default function ImprovedKSYKBuilder() {
                 </SelectContent>
               </Select>
               {/* Color preview chip */}
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-md border" style={{ background: getRoomFillColor(roomData.type, undefined) }} />
+              <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/60">
+                <span
+                  className="w-3.5 h-3.5 rounded-sm ring-1 ring-black/10 dark:ring-white/10"
+                  style={{ background: getRoomFillColor(roomData.type, undefined) }}
+                />
                 <span className="text-[10px] text-muted-foreground capitalize">{roomData.type.replace(/_/g, " ")}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs mb-1 block">Floor</Label>
-                <Input type="number" min="0" max="5" value={roomData.floor}
-                  onChange={(e) => { const f = parseInt(e.target.value) || 0; setRoomData({ ...roomData, floor: f }); setBuilderFloor(f); }}
-                  className="h-9 text-sm font-mono" />
-              </div>
-              <div>
-                <Label className="text-xs mb-1 block">Capacity</Label>
-                <Input type="number" min="1" value={roomData.capacity}
-                  onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 1 })}
-                  className="h-9 text-sm font-mono" />
+            <div className="pt-1">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500 mb-2">Placement</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Floor</Label>
+                  <Input type="number" min="0" max="5" value={roomData.floor}
+                    onChange={(e) => { const f = parseInt(e.target.value) || 0; setRoomData({ ...roomData, floor: f }); setBuilderFloor(f); }}
+                    className="h-10 text-sm font-mono rounded-lg" />
+                </div>
+                <div>
+                  <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Capacity</Label>
+                  <Input type="number" min="1" value={roomData.capacity}
+                    onChange={(e) => setRoomData({ ...roomData, capacity: parseInt(e.target.value) || 1 })}
+                    className="h-10 text-sm font-mono rounded-lg" />
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs mb-1 block">Width px</Label>
+                <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Width (px)</Label>
                 <Input type="number" min="50" value={roomData.width}
                   onChange={(e) => setRoomData({ ...roomData, width: parseInt(e.target.value) })}
-                  className="h-9 text-sm font-mono" />
+                  className="h-10 text-sm font-mono rounded-lg" />
               </div>
               <div>
-                <Label className="text-xs mb-1 block">Height px</Label>
+                <Label className="text-[11px] font-semibold mb-1 block text-gray-700 dark:text-gray-300">Height (px)</Label>
                 <Input type="number" min="50" value={roomData.height}
                   onChange={(e) => setRoomData({ ...roomData, height: parseInt(e.target.value) })}
-                  className="h-9 text-sm font-mono" />
+                  className="h-10 text-sm font-mono rounded-lg" />
               </div>
             </div>
 
             {!selectedRoom ? (
-              <Button onClick={addRoom} className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+              <Button
+                onClick={addRoom}
+                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-600/25 active:scale-[0.98] transition-transform"
+              >
                 <Plus className="h-4 w-4 mr-1.5" />
-                Add Room to canvas
+                Add room to canvas
               </Button>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs" onClick={duplicateSelected}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 rounded-xl text-xs font-semibold active:scale-[0.98] transition-transform"
+                  onClick={duplicateSelected}
+                >
                   <CopyIcon className="h-3.5 w-3.5 mr-1" />Duplicate
                 </Button>
-                <Button variant="destructive" size="sm" className="h-9 rounded-xl text-xs" onClick={() => deleteRoom(selectedRoom.id)}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-11 rounded-xl text-xs font-semibold active:scale-[0.98] transition-transform"
+                  onClick={() => deleteRoom(selectedRoom.id)}
+                >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />Delete
                 </Button>
               </div>
@@ -1184,32 +1250,40 @@ export default function ImprovedKSYKBuilder() {
 
           {/* Rooms browser */}
           <div className="border-t border-gray-100 dark:border-gray-800 shrink-0">
-            <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                Rooms <span className="text-blue-600 font-bold">{rooms.length}</span>
-              </p>
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500">Rooms</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="text-blue-600">{rooms.length}</span>
+                  <span className="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">on canvas</span>
+                </p>
+              </div>
               {selectedRoomIds.size > 0 && (
-                <button type="button" onClick={deleteSelected}
-                  className="text-[10px] text-red-500 hover:text-red-700 font-medium">
+                <button
+                  type="button"
+                  onClick={deleteSelected}
+                  className="h-8 px-2.5 rounded-lg text-[11px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-semibold transition-colors active:scale-[0.96] flex items-center gap-1"
+                >
+                  <Trash2 className="h-3 w-3" />
                   Delete {selectedRoomIds.size}
                 </button>
               )}
             </div>
-            <div className="px-3 pb-2">
+            <div className="px-4 pb-3">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
                 <input
                   type="search"
                   placeholder="Search rooms…"
                   value={roomSearch}
                   onChange={(e) => setRoomSearch(e.target.value)}
-                  className="w-full h-7 pl-7 pr-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
           </div>
 
-          <div className="overflow-y-auto max-h-48 px-3 pb-3 space-y-0.5">
+          <div className="overflow-y-auto max-h-56 px-3 pb-3 space-y-1.5">
             {(Object.entries(groupedRooms) as [string, any[]][]).map(([building, bRooms]) => {
               const visible = bRooms.filter(
                 (r) => !roomSearch.trim() ||
@@ -1218,11 +1292,14 @@ export default function ImprovedKSYKBuilder() {
               );
               if (visible.length === 0) return null;
               return (
-                <div key={building}>
-                  <div className="flex items-center gap-1.5 py-0.5 sticky top-0 bg-white dark:bg-gray-900 z-10">
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: getColorForBuilding(building) }} />
-                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{building} wing</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{visible.length}</span>
+                <div key={building} className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 px-1 py-1 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <span
+                      className="w-2.5 h-2.5 rounded-sm shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                      style={{ background: getColorForBuilding(building) }}
+                    />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-gray-400">{building} wing</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">{visible.length}</span>
                   </div>
                   {visible.map((room) => (
                     <button
@@ -1235,68 +1312,129 @@ export default function ImprovedKSYKBuilder() {
                         setBuilderFloor(room.floor ?? 1);
                       }}
                       className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left transition-colors text-xs",
+                        "w-full flex items-center gap-2 px-2 h-10 rounded-lg text-left transition-all text-xs active:scale-[0.98]",
                         selectedRoomIds.has(room.id)
-                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                          ? "bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 text-blue-900 dark:text-blue-100"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-transparent"
                       )}
                     >
-                      <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: getRoomFillColor(room.type, undefined) }} />
+                      <span
+                        className="w-2.5 h-2.5 rounded-sm shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                        style={{ background: getRoomFillColor(room.type, undefined) }}
+                      />
                       <span className="font-mono font-semibold">{room.roomNumber}</span>
                       <span className="truncate text-muted-foreground text-[10px]">{room.name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto shrink-0">F{room.floor}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto shrink-0 font-mono">F{room.floor}</span>
                     </button>
                   ))}
                 </div>
               );
             })}
             {filteredRooms.length === 0 && roomSearch && (
-              <p className="text-xs text-muted-foreground text-center py-4">No rooms match "{roomSearch}"</p>
+              <p className="text-xs text-muted-foreground text-center py-6">No rooms match "{roomSearch}"</p>
+            )}
+            {rooms.length === 0 && !roomSearch && (
+              <p className="text-xs text-muted-foreground text-center py-6">No rooms yet — add your first one above.</p>
             )}
           </div>
         </div>
 
         <div className="flex-1 relative overflow-hidden min-w-0 bg-[radial-gradient(ellipse_at_center,#e8ecf1_0%,#d4dae4_100%)] dark:bg-[radial-gradient(ellipse_at_center,#111827_0%,#030712_100%)]">
           {/* Floor selector — Aalto Space style */}
-          <div className="absolute top-3 right-3 z-20 flex flex-col rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95">
-            <Button variant="ghost" size="sm" className="w-11 h-9 rounded-none" onClick={() => setBuilderFloor((f) => Math.min(f + 1, maxBuilderFloor))} disabled={builderFloor >= maxBuilderFloor}>
+          <div className="absolute top-3 right-3 z-20 flex flex-col rounded-2xl overflow-hidden bg-white/95 dark:bg-gray-900/95 ring-1 ring-black/5 dark:ring-white/10 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setBuilderFloor((f) => Math.min(f + 1, maxBuilderFloor))}
+              disabled={builderFloor >= maxBuilderFloor}
+              className="w-11 h-11 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors active:scale-[0.94]"
+              title="Floor up"
+            >
               <Plus className="h-4 w-4" />
-            </Button>
-            <div className="w-11 h-10 flex items-center justify-center font-bold text-sm bg-blue-600 text-white border-y border-blue-700">
+            </button>
+            <div className="w-11 h-11 flex items-center justify-center font-bold text-sm bg-blue-600 text-white border-y border-blue-700 tabular-nums shadow-inner">
               {builderFloor}
             </div>
-            <Button variant="ghost" size="sm" className="w-11 h-9 rounded-none" onClick={() => setBuilderFloor((f) => Math.max(f - 1, 0))} disabled={builderFloor <= 0}>
+            <button
+              type="button"
+              onClick={() => setBuilderFloor((f) => Math.max(f - 1, 0))}
+              disabled={builderFloor <= 0}
+              className="w-11 h-11 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors active:scale-[0.94]"
+              title="Floor down"
+            >
               <Minus className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
 
-          <div className="absolute top-2 left-2 z-10 flex gap-1 p-1 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-md border border-gray-200/80 dark:border-gray-700">
-            <Button variant={showGrid ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setShowGrid(!showGrid)} title="Grid">
-              <Grid3x3 className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant={showReferenceOutlines ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setShowReferenceOutlines(!showReferenceOutlines)} title="Reference">
-              <Layers className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.min(zoom + 0.2, 3))}>
-              <ZoomIn className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}>
-              <ZoomOut className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => zoomToFit(selectedRoomIds.size > 0 ? "selection" : "all")} title="Zoom to fit (F)">
-              <Maximize2 className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setZoom(1); setPanX(0); setPanY(0); }}>
-              <RotateCcw className="h-3.5 w-3.5" />
-            </Button>
+          {/* View toolbar — grid/refs/zoom */}
+          <div className="absolute top-3 left-3 z-10 flex gap-0.5 p-1 rounded-xl bg-white/95 dark:bg-gray-900/95 ring-1 ring-black/5 dark:ring-white/10 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setShowGrid(!showGrid)}
+              title="Toggle grid"
+              className={cn(
+                "h-10 w-10 rounded-lg flex items-center justify-center transition-all active:scale-[0.94]",
+                showGrid
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReferenceOutlines(!showReferenceOutlines)}
+              title="Toggle reference outlines"
+              className={cn(
+                "h-10 w-10 rounded-lg flex items-center justify-center transition-all active:scale-[0.94]",
+                showReferenceOutlines
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
+            >
+              <Layers className="h-4 w-4" />
+            </button>
+            <div className="w-px h-6 my-2 bg-gray-200 dark:bg-gray-700" />
+            <button
+              type="button"
+              onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
+              title="Zoom in"
+              className="h-10 w-10 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-[0.94]"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
+              title="Zoom out"
+              className="h-10 w-10 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-[0.94]"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomToFit(selectedRoomIds.size > 0 ? "selection" : "all")}
+              title="Zoom to fit (F)"
+              className="h-10 w-10 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-[0.94]"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setZoom(1); setPanX(0); setPanY(0); }}
+              title="Reset view"
+              className="h-10 w-10 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-[0.94]"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Alignment toolbar — appears when 2+ rooms are selected */}
           {selectedRoomIds.size >= 2 && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex gap-0.5 p-1 rounded-xl bg-white/95 dark:bg-gray-900/95 shadow-lg border border-gray-200/80 dark:border-gray-700">
-              <span className="px-2 text-xs font-bold flex items-center text-blue-600 dark:text-blue-400">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-0.5 p-1 rounded-xl bg-white/95 dark:bg-gray-900/95 ring-1 ring-black/5 dark:ring-white/10 backdrop-blur-sm">
+              <span className="px-3 h-10 flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.08em]">
                 {selectedRoomIds.size}× align
               </span>
+              <div className="w-px h-6 my-2 bg-gray-200 dark:bg-gray-700" />
               {[
                 { dir: "left" as const, label: "⫷", title: "Align left" },
                 { dir: "centerX" as const, label: "⫵", title: "Align center X" },
@@ -1307,16 +1445,15 @@ export default function ImprovedKSYKBuilder() {
                 { dir: "distX" as const, label: "↔", title: "Distribute X (≥3)" },
                 { dir: "distY" as const, label: "↕", title: "Distribute Y (≥3)" },
               ].map(({ dir, label, title }) => (
-                <Button
+                <button
                   key={dir}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 font-mono text-base"
+                  type="button"
+                  className="h-10 w-10 p-0 rounded-lg font-mono text-base text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all active:scale-[0.94]"
                   onClick={() => alignSelected(dir)}
                   title={title}
                 >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
           )}
@@ -1493,54 +1630,76 @@ export default function ImprovedKSYKBuilder() {
 
           {/* Selected room properties panel */}
           {selectedRoom && (
-            <div className="absolute bottom-0 left-0 right-0 z-30 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
-              <Card className="rounded-t-2xl sm:rounded-2xl shadow-2xl border-t-4 border-blue-500 bg-white/98 dark:bg-gray-900/98">
+            <div className="absolute bottom-8 left-0 right-0 z-30 sm:bottom-10 sm:left-4 sm:right-auto sm:max-w-xs px-3 sm:px-0">
+              <Card className="rounded-2xl bg-white/98 dark:bg-gray-900/98 ring-1 ring-black/5 dark:ring-white/10 backdrop-blur-sm border-0 shadow-xl shadow-black/5">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <span
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white text-xs font-bold shadow ring-1 ring-black/10 shrink-0"
                         style={{ backgroundColor: getRoomFillColor(selectedRoom.type, selectedRoom.currentStatus) }}
                       >
                         {selectedRoom.roomNumber.slice(0, 3)}
                       </span>
-                      <div>
-                        <p className="font-bold leading-tight">{selectedRoom.roomNumber}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[10rem]">{selectedRoom.name || selectedRoom.type}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold leading-tight font-mono">{selectedRoom.roomNumber}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[11rem]">{selectedRoom.name || selectedRoom.type}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setSelectedRoom(null)}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRoom(null)}
+                      className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-[0.94]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
+                  <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-lg p-2.5">
                     <span className="text-muted-foreground">Floor</span>
-                    <span className="col-span-2 font-medium">{selectedRoom.floor}</span>
+                    <span className="col-span-2 font-medium font-mono">{selectedRoom.floor}</span>
                     <span className="text-muted-foreground">Type</span>
                     <span className="col-span-2 font-medium capitalize">{selectedRoom.type?.replace(/_/g, ' ')}</span>
                     <span className="text-muted-foreground">Capacity</span>
-                    <span className="col-span-2 font-medium">{selectedRoom.capacity ?? '—'}</span>
+                    <span className="col-span-2 font-medium font-mono">{selectedRoom.capacity ?? '—'}</span>
                     <span className="text-muted-foreground">Size</span>
-                    <span className="col-span-2 font-medium tabular-nums">{selectedRoom.width} × {selectedRoom.height}</span>
+                    <span className="col-span-2 font-medium tabular-nums font-mono">{selectedRoom.width} × {selectedRoom.height}</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm" className="text-xs" onClick={() => setActiveTool("select")} title="Drag on canvas to move (Select tool)">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10 text-xs rounded-lg active:scale-[0.98] transition-transform"
+                      onClick={() => setActiveTool("select")}
+                      title="Drag on canvas to move (Select tool)"
+                    >
                       <Move className="h-3.5 w-3.5 mr-1" />
                       Move
                     </Button>
-                    <Button variant="outline" size="sm" className="text-xs" onClick={duplicateSelected} title="Duplicate (Ctrl+D)">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10 text-xs rounded-lg active:scale-[0.98] transition-transform"
+                      onClick={duplicateSelected}
+                      title="Duplicate (Ctrl+D)"
+                    >
                       <CopyIcon className="h-3.5 w-3.5 mr-1" />
                       Copy
                     </Button>
-                    <Button variant="destructive" size="sm" className="text-xs" onClick={() => deleteRoom(selectedRoom.id)} title="Delete (Del)">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-10 text-xs rounded-lg active:scale-[0.98] transition-transform"
+                      onClick={() => deleteRoom(selectedRoom.id)}
+                      title="Delete (Del)"
+                    >
                       <Trash2 className="h-3.5 w-3.5 mr-1" />
                       Del
                     </Button>
                   </div>
                   {selectedRoomIds.size > 1 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 rounded-lg px-2.5 py-1.5">
                       {selectedRoomIds.size} rooms selected — drag any to move all
                     </p>
                   )}
@@ -1550,36 +1709,43 @@ export default function ImprovedKSYKBuilder() {
           )}
 
           {/* Status bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-6 z-10 flex items-center px-3 gap-4 text-xs text-gray-500 dark:text-gray-400 bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border-t border-gray-200/60 dark:border-gray-700/60 pointer-events-none select-none">
-            <span>{(zoom * 100).toFixed(0)}%</span>
-            <span>{floorRooms.length} rooms · floor {builderFloor}</span>
-            {selectedRoomIds.size > 0 && <span className="text-blue-600 dark:text-blue-400 font-medium">{selectedRoomIds.size} selected</span>}
-            <span className="ml-auto opacity-50 hidden sm:block">[F] Fit · [V] Select · [H] Pan · [R] Room · Del · Ctrl+Z Undo</span>
+          <div className="absolute bottom-0 left-0 right-0 h-7 z-10 flex items-center px-3 gap-3 text-[11px] text-gray-600 dark:text-gray-400 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-t border-gray-200/60 dark:border-gray-700/60 pointer-events-none select-none">
+            <span className="font-mono tabular-nums">{(zoom * 100).toFixed(0)}%</span>
+            <span className="text-gray-300 dark:text-gray-700">·</span>
+            <span><span className="font-mono tabular-nums">{floorRooms.length}</span> rooms · floor <span className="font-mono">{builderFloor}</span></span>
+            {selectedRoomIds.size > 0 && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold"><span className="font-mono tabular-nums">{selectedRoomIds.size}</span> selected</span>
+              </>
+            )}
+            <span className="ml-auto opacity-60 hidden md:block font-mono text-[10px]">[F] Fit · [V] Select · [H] Pan · [R] Room · Del · Ctrl+Z Undo</span>
           </div>
 
           {/* Drawing Instructions */}
           {isDrawing && (activeTool === "wall" || activeTool === "outline") && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-              {activeTool === "outline" 
-                ? "Click to add campus outline points. Press 'Finish Outline' when done."
-                : "Click to add wall points. Press 'Finish Wall' when done."
-              }
+            <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-blue-600 text-white pl-4 pr-1.5 py-1.5 rounded-xl shadow-xl shadow-blue-600/30 ring-1 ring-blue-500/50">
+              <span className="text-xs font-medium">
+                {activeTool === "outline"
+                  ? "Click to add outline points"
+                  : "Click to add wall points"}
+              </span>
               <Button
                 size="sm"
                 variant="secondary"
-                className="ml-4"
+                className="h-8 text-xs rounded-lg font-semibold active:scale-[0.98] transition-transform"
                 onClick={activeTool === "outline" ? finishOutline : finishWall}
               >
-                {activeTool === "outline" ? "Finish Outline" : "Finish Wall"}
+                {activeTool === "outline" ? "Finish outline" : "Finish wall"}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="ml-2"
+              <button
+                type="button"
                 onClick={cancelDrawing}
+                title="Cancel drawing"
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors active:scale-[0.94]"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           )}
         </div>
