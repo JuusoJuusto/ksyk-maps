@@ -330,26 +330,45 @@ export default function Header({
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {/* Colored banner strip — mirrors the announcement banner's
-         *  solid-color header. Puts KSYK blue up top so the sheet
-         *  reads as part of the same visual family. */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 bg-blue-600 text-white">
+        {/* Identity strip — clean and white to match the top bar.
+         *  Colored icon tile provides a subtle KSYK-blue accent
+         *  without a full colored banner. */}
+        <div className={cn(
+          "flex items-center justify-between px-4 sm:px-5 py-3 border-b",
+          darkMode ? "border-gray-800/70" : "border-gray-100",
+        )}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-white/15 ring-1 ring-white/20">
+            <div className={cn(
+              "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+              darkMode
+                ? "bg-blue-950/40 text-blue-300 ring-1 ring-blue-900/40"
+                : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+            )}>
               <KSYKLogo size="sm" />
             </div>
             <div className="min-w-0">
-              <div className="text-[15px] font-bold tracking-tight leading-tight text-white">
+              <div className={cn(
+                "text-[15px] font-bold tracking-tight leading-tight",
+                darkMode ? "text-white" : "text-gray-900",
+              )}>
                 KSYK Maps
               </div>
-              <div className="text-[11px] leading-tight text-blue-100">
+              <div className={cn(
+                "text-[11px] leading-tight",
+                darkMode ? "text-gray-500" : "text-gray-500",
+              )}>
                 {currentLang === 'fi' ? 'Kampusnavigointi' : 'Campus navigation'}
               </div>
             </div>
           </div>
           <button
             onClick={() => setShowMobileMenu(false)}
-            className="h-9 w-9 rounded-full flex items-center justify-center text-white bg-white/10 hover:bg-white/20 active:scale-90 transition-all"
+            className={cn(
+              "h-9 w-9 rounded-full flex items-center justify-center active:scale-90 transition-all",
+              darkMode
+                ? "text-gray-400 hover:text-white hover:bg-gray-800"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+            )}
             aria-label={currentLang === 'fi' ? 'Sulje valikko' : 'Close menu'}
           >
             <X className="h-5 w-5" strokeWidth={2.5} />
