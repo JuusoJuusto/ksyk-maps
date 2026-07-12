@@ -133,9 +133,11 @@ export default function Header({
     <>
       {/* Header — floating rounded card on every screen size.
        *  Side padding wraps a rounded-2xl inner element so the header
-       *  looks like a chip, matching the announcement banner. */}
+       *  looks like a chip, matching the announcement banner.
+       *  overflow-hidden clips the inner search-row border-t against
+       *  the rounded corners. */}
       <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
-        <header className="bg-card border border-border shadow-sm rounded-2xl">
+        <header className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
