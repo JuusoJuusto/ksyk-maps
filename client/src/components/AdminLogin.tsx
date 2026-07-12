@@ -36,7 +36,9 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        // Belt-and-suspenders: lowercase again on submit so a paste
+        // that bypasses the onChange handler still normalises.
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -144,10 +146,18 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                // Normalise the input to lowercase on the way in so users
+                // can type "User@KSYK.fi" or "USER@KSYK.FI" and still
+                // match the record on file — auth matching is
+                // case-insensitive on the domain, but we normalise here
+                // so the value round-trips cleanly through validation.
+                onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 placeholder="you@ksyk.fi"
                 required
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
                 className={cn(
                   "h-10 rounded-lg text-sm",

@@ -131,7 +131,11 @@ export default function Header({
 
   return (
     <>
-      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+      {/* Header — floating rounded card on every screen size.
+       *  Side padding wraps a rounded-2xl inner element so the header
+       *  looks like a chip, matching the announcement banner. */}
+      <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
+        <header className="bg-card border border-border shadow-sm rounded-2xl">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
@@ -258,7 +262,8 @@ export default function Header({
             </div>
           </div>
         )}
-      </header>
+        </header>
+      </div>
 
       {/* ── Mobile menu — "Nordic Editorial" sheet.
        *   Full-width drop-down from the header. Single KSYK-blue accent,
@@ -286,7 +291,10 @@ export default function Header({
         aria-modal="true"
         aria-label="Navigation menu"
         className={cn(
-          "fixed z-[70] lg:hidden left-0 right-0 top-14 sm:top-16",
+          // Header is a floating rounded card now — top-14 + 8px pt-2 wrap
+          // = 64px on mobile; sm+ header is h-16 = 72px total. Add another
+          // 8px breathing room so the dropdown doesn't overlap the header.
+          "fixed z-[70] lg:hidden left-0 right-0 top-[4.5rem] sm:top-[5rem]",
           "overflow-hidden",
           "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]",
           "border-b",

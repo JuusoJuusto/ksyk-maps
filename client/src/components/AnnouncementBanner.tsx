@@ -124,12 +124,19 @@ export default function AnnouncementBanner() {
 
   return (
     <>
-      <div
-        role="region"
-        aria-label="Site announcement"
-        className={`relative z-40 ${priorityBg} shadow-sm transition-colors duration-300 cursor-pointer`}
-        onClick={() => setIsDialogOpen(true)}
-      >
+      {/* Outer strip — solid colored strip runs edge to edge but the
+       *  inner card floats with side margin + all-corner rounding so the
+       *  banner looks like a chip at every screen size (mobile → desktop). */}
+      <div className="relative z-40 pt-2 px-2 sm:px-3 md:px-4">
+        <div
+          role="region"
+          aria-label="Site announcement"
+          className={cn(
+            "relative rounded-2xl shadow-lg transition-colors duration-300 cursor-pointer overflow-hidden",
+            priorityBg,
+          )}
+          onClick={() => setIsDialogOpen(true)}
+        >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
           <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
             <AnimatePresence mode="wait">
@@ -215,8 +222,9 @@ export default function AnnouncementBanner() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-      
+
       {/* Announcement Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
