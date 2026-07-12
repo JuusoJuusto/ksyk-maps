@@ -255,6 +255,17 @@ export default function Header({
                   darkMode ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500" : "bg-white border-gray-200"
                 )}
                 aria-label={currentLang === "fi" ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
+                // Combobox pattern — pairs with the KSYKMapView results
+                // dropdown (id="search-results-listbox") so screen readers
+                // announce results as the user types.
+                role="combobox"
+                aria-controls="search-results-listbox"
+                aria-expanded={!!(searchQuery && searchQuery.trim())}
+                aria-autocomplete="list"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
               />
               {searchQuery && (
                 <button type="button" onClick={() => onSearchChange("")} className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Clear search">
@@ -286,23 +297,13 @@ export default function Header({
         }}
       />
 
-      {/* Full-width sheet */}
+      {/* Floating rounded sheet — matches the top-bar + banner design.
+       *  Wrapped in horizontal padding + full rounded-2xl corners so the
+       *  sheet looks like a floating card, not an edge-to-edge modal. */}
       <div
-        id="mobile-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
         className={cn(
-          // Header is a floating rounded card now — top-14 + 8px pt-2 wrap
-          // = 64px on mobile; sm+ header is h-16 = 72px total. Add another
-          // 8px breathing room so the dropdown doesn't overlap the header.
           "fixed z-[70] lg:hidden left-0 right-0 top-[4.5rem] sm:top-[5rem]",
-          "overflow-hidden",
-          "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]",
-          "border-b",
-          darkMode
-            ? "bg-gray-950/98 border-gray-800/80 backdrop-blur-2xl"
-            : "bg-white/98 border-gray-200/70 backdrop-blur-2xl",
+          "px-2 sm:px-3 md:px-4",
         )}
         style={{
           opacity: showMobileMenu ? 1 : 0,
@@ -311,56 +312,44 @@ export default function Header({
             : "translateY(-16px)",
           pointerEvents: showMobileMenu ? "auto" : "none",
           transition: "opacity 260ms ease, transform 320ms cubic-bezier(0.16,1,0.3,1)",
-          maxHeight: "min(85dvh, calc(100dvh - 4rem))",
-          paddingBottom: "env(safe-area-inset-bottom)",
-          borderRadius: "0 0 24px 24px",
         }}
       >
-        {/* Grab handle — visual affordance that this is a sheet */}
-        <div className="flex justify-center pt-2 pb-1">
-          <div className={cn(
-            "h-1 w-9 rounded-full",
-            darkMode ? "bg-gray-700" : "bg-gray-300",
-          )} />
-        </div>
-
-        {/* Identity strip — big, editorial */}
-        <div className={cn(
-          "flex items-center justify-between px-5 py-3 border-b",
-          darkMode ? "border-gray-800/70" : "border-gray-100",
-        )}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={cn(
-              "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ring-1",
-              darkMode
-                ? "bg-blue-950/40 ring-blue-900/40 text-blue-300"
-                : "bg-blue-50 ring-blue-100 text-blue-600",
-            )}>
+      <div
+        id="mobile-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        className={cn(
+          "overflow-hidden rounded-2xl border shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]",
+          darkMode
+            ? "bg-gray-950/98 border-gray-800/80 backdrop-blur-2xl"
+            : "bg-white/98 border-gray-200/70 backdrop-blur-2xl",
+        )}
+        style={{
+          maxHeight: "min(85dvh, calc(100dvh - 6rem))",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {/* Colored banner strip — mirrors the announcement banner's
+         *  solid-color header. Puts KSYK blue up top so the sheet
+         *  reads as part of the same visual family. */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 bg-blue-600 text-white">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-white/15 ring-1 ring-white/20">
               <KSYKLogo size="sm" />
             </div>
             <div className="min-w-0">
-              <div className={cn(
-                "text-base font-bold tracking-tight leading-tight",
-                darkMode ? "text-white" : "text-gray-900",
-              )}>
+              <div className="text-[15px] font-bold tracking-tight leading-tight text-white">
                 KSYK Maps
               </div>
-              <div className={cn(
-                "text-[11px] leading-tight",
-                darkMode ? "text-gray-500" : "text-gray-500",
-              )}>
+              <div className="text-[11px] leading-tight text-blue-100">
                 {currentLang === 'fi' ? 'Kampusnavigointi' : 'Campus navigation'}
               </div>
             </div>
           </div>
           <button
             onClick={() => setShowMobileMenu(false)}
-            className={cn(
-              "h-10 w-10 rounded-full flex items-center justify-center active:scale-90 transition-all",
-              darkMode
-                ? "text-gray-400 hover:text-white hover:bg-gray-800/70"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
-            )}
+            className="h-9 w-9 rounded-full flex items-center justify-center text-white bg-white/10 hover:bg-white/20 active:scale-90 transition-all"
             aria-label={currentLang === 'fi' ? 'Sulje valikko' : 'Close menu'}
           >
             <X className="h-5 w-5" strokeWidth={2.5} />
@@ -621,6 +610,7 @@ export default function Header({
             )}
           </div>
         </div>
+      </div>
       </div>
 
     </>

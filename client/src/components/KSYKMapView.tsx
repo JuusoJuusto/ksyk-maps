@@ -844,9 +844,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       {canUseSearch && searchQuery.trim() && (
         <div
           className="absolute left-3 right-16 sm:right-20 z-30 max-w-lg sm:max-w-md mx-auto sm:mx-0"
-          style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
+          style={{
+            top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))',
+            maxWidth: 'min(28rem, calc(100vw - 5rem))',
+          }}
         >
           <div
+            id="search-results-listbox"
             className={cn(panel, "max-h-[60vh] overflow-y-auto overscroll-contain shadow-2xl")}
             role="listbox"
             aria-label={isFi ? "Hakutulokset" : "Search results"}
