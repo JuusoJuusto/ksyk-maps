@@ -1781,21 +1781,23 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent forceMount value="ksyk-builder" className={cn("mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0", activeTab !== "ksyk-builder" && "hidden")}>
-          {/* Builder sub-tabs — rooms / map defaults */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 self-start mb-3 shadow-sm shrink-0">
+          {/* Builder sub-tabs — rooms / map defaults. Bumped to
+           *  proper 40px tap targets and KSYK-blue active state. */}
+          <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-100 dark:bg-gray-900/60 ring-1 ring-black/5 dark:ring-white/10 self-start mb-4 shrink-0">
             {([
               { id: "rooms" as const, label: "Rooms & Floors" },
-              { id: "map" as const, label: "Map Defaults" },
+              { id: "map" as const, label: "Map Defaults & Rotation" },
             ]).map(({ id, label }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setBuilderSubtab(id)}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                className={cn(
+                  "px-4 py-2 min-h-10 text-sm font-semibold rounded-xl transition-all active:scale-[0.97]",
                   builderSubtab === id
-                    ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                }`}
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-800/60",
+                )}
                 aria-pressed={builderSubtab === id}
               >
                 {label}

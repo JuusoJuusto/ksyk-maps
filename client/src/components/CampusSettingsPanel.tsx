@@ -149,12 +149,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
         </div>
 
         <div className="flex flex-col lg:flex-row gap-3 lg:gap-6">
-          {/* Tab bar — pill segmented control, sticky under header */}
+          {/* Tab bar — KSYK-blue active pill, sticky under header.
+           *  On mobile: horizontal scrolling row.
+           *  On desktop (lg+): vertical sidebar with big rows. */}
           <nav
             className={cn(
-              "lg:w-56 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-0.5 lg:pb-0",
+              "lg:w-64 shrink-0 flex lg:flex-col gap-1.5 lg:gap-1 overflow-x-auto pb-0.5 lg:pb-0",
               "sticky top-[3.75rem] sm:top-[5.75rem] lg:top-28 z-10 lg:self-start",
-              "scrollbar-none -mx-3 sm:-mx-1 px-3 sm:px-1 p-1 rounded-none lg:rounded-2xl backdrop-blur-xl",
+              "scrollbar-none -mx-3 sm:-mx-1 px-3 sm:px-1 p-1.5 rounded-none lg:rounded-2xl backdrop-blur-xl",
               darkMode ? "bg-gray-950/85 lg:bg-gray-900/60 lg:ring-1 lg:ring-gray-800/70" : "bg-gray-50/85 lg:bg-white lg:ring-1 lg:ring-gray-200/70 lg:shadow-sm",
             )}
           >
@@ -164,14 +166,12 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.96]",
+                  "flex items-center gap-2.5 px-3.5 py-2.5 lg:py-3 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.97] min-h-10",
                   tab === id
-                    ? darkMode
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "bg-gray-900 text-white shadow-md shadow-gray-900/10"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
                     : darkMode
-                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800/60"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+                    ? "text-gray-400 hover:text-gray-100 hover:bg-gray-800/60"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
                 )}
                 aria-pressed={tab === id}
               >
