@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, ChevronRight, Monitor, Sparkles } from "lucide-react";
+import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Monitor, Sparkles } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 

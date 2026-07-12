@@ -109,6 +109,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             "sticky top-0 -mx-3 sm:-mx-4 px-4 sm:px-6 py-3 sm:py-5 mb-4 sm:mb-6 z-20 backdrop-blur-xl border-b",
             darkMode ? "bg-gray-950/85 border-gray-800/70" : "bg-white/85 border-gray-200/70",
           )}
+          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
         >
           <div className="max-w-5xl mx-auto flex items-center gap-3">
             {onBack && (
@@ -153,6 +154,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
            *  On mobile: horizontal scrolling row.
            *  On desktop (lg+): vertical sidebar with big rows. */}
           <nav
+            role="tablist"
+            aria-label={isFi ? "Asetusten välilehdet" : "Settings tabs"}
             className={cn(
               "lg:w-64 shrink-0 flex lg:flex-col gap-1.5 lg:gap-1 overflow-x-auto pb-0.5 lg:pb-0",
               "sticky top-[3.75rem] sm:top-[5.75rem] lg:top-28 z-10 lg:self-start",
@@ -164,6 +167,11 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               <button
                 key={id}
                 type="button"
+                role="tab"
+                id={`tab-${id}`}
+                aria-controls={`tabpanel-${id}`}
+                aria-selected={tab === id}
+                tabIndex={tab === id ? 0 : -1}
                 onClick={() => setTab(id)}
                 className={cn(
                   "flex items-center gap-2.5 px-3.5 py-2.5 lg:py-3 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.97] min-h-10",
@@ -173,7 +181,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     ? "text-gray-400 hover:text-gray-100 hover:bg-gray-800/60"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
                 )}
-                aria-pressed={tab === id}
               >
                 <Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
                 <span>{isFi ? labelFi : labelEn}</span>
@@ -181,8 +188,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             ))}
           </nav>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0 space-y-4">
+          {/* Content — each tab panel is its own aria-labelled region so
+           *  screen readers pair the right panel with the active tab. */}
+          <div
+            className="flex-1 min-w-0 space-y-4"
+            role="tabpanel"
+            id={`tabpanel-${tab}`}
+            aria-labelledby={`tab-${tab}`}
+          >
             {tab === "appearance" && (
               <div className="space-y-4">
                 {/* Theme card — big, tap-friendly cards with icons */}

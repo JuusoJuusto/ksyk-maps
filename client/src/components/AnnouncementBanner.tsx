@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Info, Pause, Play } from "lucide-react";
+import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -190,7 +190,12 @@ export default function AnnouncementBanner() {
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  <div className="px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded">
+                  <div
+                    className="px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    aria-label={`Announcement ${currentIndex + 1} of ${activeAnnouncements.length}`}
+                  >
                     {currentIndex + 1}/{activeAnnouncements.length}
                   </div>
                   <Button

@@ -994,8 +994,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
       {/* ── Main content area ────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={navigate} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
-        {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+) */}
-        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+).
+         *  Wraps the mobile chrome in a padded container + rounded-2xl card
+         *  so it matches the floating banner + header used on the main app. */}
+        <div className="lg:hidden shrink-0 px-2 sm:px-3 pt-2 pb-1">
+          <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900">
           {currentUser && (
             <div className="flex items-center justify-between px-4 h-12 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-2 min-w-0">
@@ -1058,6 +1061,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
             </div>
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white dark:from-gray-900 to-transparent" />
             <div className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white dark:from-gray-900 to-transparent" />
+          </div>
           </div>
         </div>
 
