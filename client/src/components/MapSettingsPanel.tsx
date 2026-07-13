@@ -5,9 +5,14 @@
  *
  * Reads/writes through useAppSettings, which is backed by a shared store
  * (see hooks/useAppSettings) — every change is applied to the live map.
+ *
+ * Layout: on desktop a two-column grid — the live preview map takes the
+ * spotlight on the left with real-time coord badge, north-arrow overlay
+ * and dashed bounds hint; every editor control lives in the right column.
+ * On mobile the two columns stack (preview on top).
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings, saveMapDefaultsToServer } from "@/hooks/useAppSettings";
@@ -23,7 +28,7 @@ import { OSM_TILE_PROVIDERS, OSM_TILE_THEMES, DEFAULT_APP_SETTINGS } from "@/lib
 import type { OsmTileTheme } from "@/lib/appSettings";
 import OsmPreviewMap from "@/components/OsmPreviewMap";
 import { cn } from "@/lib/utils";
-import { Map as MapIcon, Compass, Maximize2, RotateCcw, Check, Upload, Loader2 } from "lucide-react";
+import { Map as MapIcon, Compass, Maximize2, RotateCcw, Check, Upload, Loader2, Navigation } from "lucide-react";
 
 // ── Compass dial widget ──────────────────────────────────────────────────────
 // Interactive SVG compass rose. Drag or click to set map bearing. The red
@@ -179,7 +184,33 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
   const [serverSaving, setServerSaving] = useState(false);
   const [serverSaved, setServerSaved] = useState(false);
   const [serverSaveError, setServerSaveError] = useState<string | null>(null);
+  const [publishedFlash, setPublishedFlash] = useState(false);
   const [resetPending, setResetPending] = useState(false);
+
+  // Track a serialised snapshot of the last known "published" (or reset) state
+  // so we can show a "unsaved changes" pulsing dot next to the Publish button.
+  // Only the fields that Publish actually pushes to the server are compared —
+  // matches saveMapDefaultsToServer's payload keys.
+  const publishedSignatureKeys = [
+    settings.osmCenterLat,
+    settings.osmCenterLng,
+    settings.osmDefaultZoom,
+    settings.osmMinZoom,
+    settings.osmMaxZoom,
+    settings.osmRotationDeg,
+    settings.osmPitchDeg,
+    settings.osmTileTheme,
+    settings.osmCampusSpanMeters,
+    settings.osmMaxBoundsEnabled,
+    settings.osmMaxBoundsNorth,
+    settings.osmMaxBoundsEast,
+    settings.osmMaxBoundsSouth,
+    settings.osmMaxBoundsWest,
+    settings.matterportTourUrl,
+  ];
+  const currentSignature = JSON.stringify(publishedSignatureKeys);
+  const publishedSignatureRef = useRef<string>(currentSignature);
+  const hasUnsavedChanges = currentSignature !== publishedSignatureRef.current;
 
   const handleSaveToServer = async () => {
     setServerSaving(true);
@@ -187,6 +218,9 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
     try {
       await saveMapDefaultsToServer(settings);
       setServerSaved(true);
+      publishedSignatureRef.current = currentSignature;
+      setPublishedFlash(true);
+      setTimeout(() => setPublishedFlash(false), 3000);
       setTimeout(() => setServerSaved(false), 2500);
     } catch (e: any) {
       setServerSaveError(e.message || "Save failed");
@@ -258,59 +292,71 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
 
   // Editorial section label — matches the Nordic Editorial pattern used in
   // the hamburger sheet: tiny uppercase w/ heavy tracking.
-  const sectionLabel = "text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400";
+  const sectionLabel = "text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground";
   // Section wrapper — swap the flat slate tint for a subtle ringed card that
   // reads well in both light and dark modes. Kept as a constant so we can
-  // tweak it once instead of six times.
+  // tweak it once instead of six times. Uses bg-card so it matches the top
+  // bar / dashboard chrome exactly.
   const sectionWrap =
-    "p-3.5 rounded-2xl bg-white dark:bg-gray-900/40 ring-1 ring-black/5 dark:ring-white/5";
+    "p-3.5 rounded-2xl bg-card ring-1 ring-black/5 dark:ring-white/5";
   // Larger tap padding for touch — wraps <Slider> so the whole strip is
   // grabbable, not just the 20px thumb.
   const sliderTouchPad = "py-2 -my-1";
 
-  const body = (
-    <div className="space-y-4">
-      {/* ── Live preview + center/bounds editor ────────────────────── */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
-            <MapIcon className="h-3 w-3 text-blue-500" />
-            {isFi ? "Esikatselu" : "Live preview"}
-          </Label>
-          {/* Segmented pill — matches hamburger's SegBtn look. Larger tap
-              targets (min-h-8) so a thumb hits reliably on 375px screens. */}
-          <div className="inline-flex gap-0.5 rounded-full bg-gray-100 dark:bg-gray-800/70 p-0.5 ring-1 ring-black/5 dark:ring-white/5">
-            {(["center", "bounds"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setPreviewMode(m)}
-                className={cn(
-                  "px-3.5 min-h-8 text-[11px] font-semibold rounded-full transition-all",
-                  previewMode === m
-                    ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300 ring-1 ring-black/5 dark:ring-white/10"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                )}
-                aria-pressed={previewMode === m}
-              >
-                {m === "center"
-                  ? isFi ? "Keskipiste" : "Center"
-                  : isFi ? "Rajat" : "Bounds"}
-              </button>
-            ))}
-          </div>
+  const normalisedBearing = useMemo(
+    () => ((settings.osmRotationDeg % 360) + 360) % 360,
+    [settings.osmRotationDeg]
+  );
+
+  // ── Live preview HERO: framed map with real-time overlays ─────────────────
+  // Overlays live in an absolutely-positioned layer above <OsmPreviewMap>
+  // so we don't have to touch its internals. Pointer events pass through
+  // to the underlying Leaflet canvas via pointer-events-none.
+  const previewHero = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+          <MapIcon className="h-3 w-3 text-blue-500" />
+          {isFi ? "Esikatselu" : "Live preview"}
+        </Label>
+        {/* Segmented pill — matches hamburger's SegBtn look. Larger tap
+            targets (min-h-8) so a thumb hits reliably on 375px screens. */}
+        <div className="inline-flex gap-0.5 rounded-full bg-muted p-0.5 ring-1 ring-black/5 dark:ring-white/5">
+          {(["center", "bounds"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setPreviewMode(m)}
+              className={cn(
+                "px-3.5 min-h-8 text-[11px] font-semibold rounded-full transition-all",
+                previewMode === m
+                  ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-300 ring-1 ring-black/5 dark:ring-white/10"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-pressed={previewMode === m}
+            >
+              {m === "center"
+                ? isFi ? "Keskipiste" : "Center"
+                : isFi ? "Rajat" : "Bounds"}
+            </button>
+          ))}
         </div>
-        <p className="text-[10px] text-muted-foreground px-1 leading-relaxed">
-          {previewMode === "center"
-            ? isFi
-              ? "Napauta karttaa asettaaksesi keskipisteen."
-              : "Click the map to set the centre."
-            : isFi
-            ? "Vedä karttaa rajataksesi alueen, johon käyttäjät voivat panoroida."
-            : "Drag a rectangle to define where users are allowed to pan."}
-        </p>
+      </div>
+      <p className="text-[10px] text-muted-foreground px-1 leading-relaxed">
+        {previewMode === "center"
+          ? isFi
+            ? "Napauta karttaa asettaaksesi keskipisteen."
+            : "Click the map to set the centre."
+          : isFi
+          ? "Vedä karttaa rajataksesi alueen, johon käyttäjät voivat panoroida."
+          : "Drag a rectangle to define where users are allowed to pan."}
+      </p>
+
+      {/* Framed preview stage. min-h-[380px] on all viewports; 16:10 hint
+          on wider stages keeps it feeling like a hero. */}
+      <div className="relative rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 shadow-sm">
         <OsmPreviewMap
-          height={260}
+          height={380}
           mode={previewMode}
           onPick={(lat, lng) => {
             // Shift the maxBounds box so it stays centred on the new
@@ -335,413 +381,52 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
             update("osmMaxBoundsEnabled", true);
           }}
         />
-        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground px-1">
-          <span className="w-2 h-2 rounded-full bg-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shrink-0" />
-          {settings.osmCenterLat.toFixed(5)}, {settings.osmCenterLng.toFixed(5)}
-        </div>
-      </div>
 
-      {/* ── Tile theme ────────────────────────────────────────────── */}
-      <div className={cn(sectionWrap, "space-y-3")}>
-        <div>
-          <Label className={cn("mb-2 flex items-center gap-1.5", sectionLabel)}>
-            <span>{isFi ? "Karttatyyli" : "Tile theme"}</span>
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 tracking-normal font-medium normal-case">
-              {isFi ? "Vaihtuu teeman mukaan" : "Auto light/dark"}
-            </Badge>
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            {(Object.entries(OSM_TILE_THEMES) as [OsmTileTheme, typeof OSM_TILE_THEMES[OsmTileTheme]][]).map(([id, pack]) => {
-              const z = 14;
-              const lat = settings.osmCenterLat;
-              const lng = settings.osmCenterLng;
-              const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
-              const tileY = Math.floor(
-                ((1 -
-                  Math.log(
-                    Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
-                  ) / Math.PI) / 2) * Math.pow(2, z)
-              );
-              const thumb = (key: typeof pack.light) =>
-                OSM_TILE_PROVIDERS[key].url
-                  .replace("{z}", String(z))
-                  .replace("{x}", String(tileX))
-                  .replace("{y}", String(tileY))
-                  .replace("{r}", "")
-                  .replace("{s}", "a");
-              const selected = settings.osmTileTheme === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => update("osmTileTheme", id)}
-                  className={cn(
-                    "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
-                    selected
-                      ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
-                      : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
-                  )}
-                  aria-pressed={selected}
-                  title={pack.description}
-                >
-                  <div className="grid grid-cols-2 aspect-[4/3]">
-                    <img
-                      src={thumb(pack.light)}
-                      alt=""
-                      loading="lazy"
-                      crossOrigin="anonymous"
-                      className="block w-full h-full object-cover"
-                      onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-                    />
-                    <img
-                      src={thumb(pack.dark)}
-                      alt=""
-                      loading="lazy"
-                      crossOrigin="anonymous"
-                      className="block w-full h-full object-cover"
-                      onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-                    />
-                  </div>
-                  <div className="px-2 py-1 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100 truncate">
-                    {isFi ? pack.nameFi : pack.name}
-                  </div>
-                  {selected && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed px-1">
-            {isFi
-              ? "Vasen puoli näyttää vaalean tilan, oikea tumman."
-              : "Left half is the light variant, right is the dark."}
-          </p>
-        </div>
-      </div>
-
-      {/* ── Center coordinates ─────────────────────────────────────── */}
-      <div className={cn(sectionWrap, "space-y-3")}>
-        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
-          <Compass className="h-3 w-3 text-blue-500" />
-          {isFi ? "Sijainti ja zoomi" : "Position & zoom"}
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Lat</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.0001"
-              min={-90}
-              max={90}
-              value={settings.osmCenterLat}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                if (!Number.isFinite(v)) return;
-                const next = Math.max(-90, Math.min(90, v));
-                const d = next - settings.osmCenterLat;
-                update("osmCenterLat", next);
-                if (settings.osmMaxBoundsEnabled) {
-                  update("osmMaxBoundsNorth", +(settings.osmMaxBoundsNorth + d).toFixed(6));
-                  update("osmMaxBoundsSouth", +(settings.osmMaxBoundsSouth + d).toFixed(6));
-                }
-              }}
-              className="h-10 text-sm font-mono tabular-nums"
-            />
-          </div>
-          <div>
-            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Lng</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.0001"
-              min={-180}
-              max={180}
-              value={settings.osmCenterLng}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                if (!Number.isFinite(v)) return;
-                const next = Math.max(-180, Math.min(180, v));
-                const d = next - settings.osmCenterLng;
-                update("osmCenterLng", next);
-                if (settings.osmMaxBoundsEnabled) {
-                  update("osmMaxBoundsEast", +(settings.osmMaxBoundsEast + d).toFixed(6));
-                  update("osmMaxBoundsWest", +(settings.osmMaxBoundsWest + d).toFixed(6));
-                }
-              }}
-              className="h-10 text-sm font-mono tabular-nums"
-            />
-          </div>
+        {/* Coord + zoom badge — monospaced, tabular-nums, top-left. */}
+        <div className="pointer-events-none absolute top-3 left-3 z-[400] flex items-center gap-2 rounded-full bg-black/70 dark:bg-black/60 text-white backdrop-blur-md px-2.5 py-1 text-[10px] font-mono tabular-nums ring-1 ring-white/10 shadow-lg">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-300/40" aria-hidden />
+          <span>
+            {settings.osmCenterLat.toFixed(5)}, {settings.osmCenterLng.toFixed(5)}
+          </span>
+          <span className="opacity-60">·</span>
+          <span>z{settings.osmDefaultZoom.toFixed(1)}</span>
         </div>
 
-        <div>
-          <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Oletuszoomi" : "Default zoom"}</Label>
-            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmDefaultZoom}</span>
-          </div>
-          <div className={sliderTouchPad}>
-            <Slider
-              value={[settings.osmDefaultZoom]}
-              min={settings.osmMinZoom}
-              max={settings.osmMaxZoom}
-              step={0.5}
-              onValueChange={([v]) => update("osmDefaultZoom", v)}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">{isFi ? "Min zoom" : "Min zoom"}</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={22}
-              value={settings.osmMinZoom}
-              onChange={(e) =>
-                update("osmMinZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 1)))
-              }
-              className="h-10 text-sm font-mono tabular-nums"
-            />
-          </div>
-          <div>
-            <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">{isFi ? "Max zoom" : "Max zoom"}</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={22}
-              value={settings.osmMaxZoom}
-              onChange={(e) =>
-                update("osmMaxZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 19)))
-              }
-              className="h-10 text-sm font-mono tabular-nums"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Orientation ───────────────────────────────────────────── */}
-      <div className={cn(sectionWrap, "space-y-4")}>
-        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
-          <RotateCcw className="h-3 w-3 text-blue-500" />
-          {isFi ? "Suunta ja kallistus" : "Orientation & Bearing"}
-        </Label>
-
-        {/* Compass rose + bearing controls.
-            The right column has min-w-[180px]. When the container is wide
-            enough to fit dial (112) + gap (16) + 180 = ~308px it sits
-            side-by-side (fine on 375px). Below that it wraps into a stack
-            with the dial centred above the controls. */}
-        <div className="flex items-start gap-4 flex-wrap">
-          {/* Compass dial — drag or click to set bearing.
-              mx-auto so it centres itself when it wraps on its own row. */}
-          <div className="mx-auto shrink-0">
-            <CompassDial
-              value={settings.osmRotationDeg}
-              onChange={(v) => update("osmRotationDeg", v)}
-              darkMode={darkMode}
-            />
-          </div>
-
-          {/* Bearing readout + cardinal snaps.
-              min-w-0 lets the flex child shrink below its content width so
-              the slider ticks don't push the layout wider than 375px. */}
-          <div className="flex-1 min-w-[180px] space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400">
-                {isFi ? "Suuntakulma" : "Bearing"}
-              </span>
-              <span className="text-base font-mono font-bold tabular-nums">
-                {((settings.osmRotationDeg % 360) + 360) % 360}°
-              </span>
-            </div>
-
-            {/* Cardinal quick-snap buttons — bigger tap targets for thumbs.
-                min-h-9 (36px) meets the WCAG touch minimum. */}
-            <div className="grid grid-cols-4 gap-1.5">
-              {([
-                { label: "N", value: 0 },
-                { label: "E", value: 90 },
-                { label: "S", value: 180 },
-                { label: "W", value: -90 },
-              ] as const).map(({ label, value }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => update("osmRotationDeg", value)}
-                  className={cn(
-                    "min-h-9 rounded-lg text-sm font-semibold transition-all border",
-                    Math.abs(((settings.osmRotationDeg % 360) + 360) % 360 - ((value % 360) + 360) % 360) < 2
-                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 hover:text-blue-600 active:scale-[0.97]"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Bearing slider for fine control */}
-            <div>
-              <div className={sliderTouchPad}>
-                <Slider
-                  value={[settings.osmRotationDeg]}
-                  min={-180}
-                  max={180}
-                  step={1}
-                  onValueChange={([v]) => update("osmRotationDeg", v)}
-                />
-              </div>
-              <div className="flex justify-between text-[9px] text-muted-foreground mt-1 font-mono tabular-nums">
-                <span>-180°</span>
-                <span>0°</span>
-                <span>+180°</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reset to north — bumped to min-h-9 for touch */}
-        {settings.osmRotationDeg !== 0 && (
-          <button
-            type="button"
-            onClick={() => update("osmRotationDeg", 0)}
-            className="w-full flex items-center justify-center gap-1.5 min-h-9 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors active:scale-[0.98]"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            {isFi ? "Palauta pohjoiseen" : "Reset to North"}
-          </button>
-        )}
-
-        {/* Pitch slider */}
-        <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
-          <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kallistus (pitch)" : "Tilt / pitch"}</Label>
-            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmPitchDeg ?? 0}°</span>
-          </div>
-          <div className={sliderTouchPad}>
-            <Slider
-              value={[settings.osmPitchDeg ?? 0]}
-              min={0}
-              max={45}
-              step={1}
-              onValueChange={([v]) => update("osmPitchDeg", v)}
-            />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-            {isFi ? "Kokeellinen — yli 25° voi vääristää tarttumakohtia." : "Experimental — over 25° may misalign hits."}
-          </p>
-        </div>
-
-        {/* Campus span */}
-        <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
-          <div className="flex justify-between items-baseline mb-2">
-            <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}</Label>
-            <span className="text-sm font-mono tabular-nums font-semibold">{settings.osmCampusSpanMeters} m</span>
-          </div>
-          <div className={sliderTouchPad}>
-            <Slider
-              value={[settings.osmCampusSpanMeters]}
-              min={50}
-              max={500}
-              step={10}
-              onValueChange={([v]) => update("osmCampusSpanMeters", v)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bounds restriction ─────────────────────────────────────── */}
-      <div className={cn(sectionWrap, "space-y-3")}>
-        <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
-          <Maximize2 className="h-3 w-3 text-blue-500" />
-          {isFi ? "Panoroinnin rajat" : "Pan bounds"}
-        </Label>
-        <SettingRow
-          label={isFi ? "Rajoita panorointi" : "Restrict panning"}
-          description={
-            isFi
-              ? "Estä käyttäjiä panoroimasta määritettyjen rajojen ulkopuolelle"
-              : "Stop users from panning outside the defined bounds"
-          }
+        {/* North arrow — spins with rotation. Sits top-right. */}
+        <div
+          className="pointer-events-none absolute top-3 right-3 z-[400] w-9 h-9 rounded-full bg-white/95 dark:bg-gray-900/90 backdrop-blur-md ring-1 ring-black/10 dark:ring-white/10 shadow-lg flex items-center justify-center"
+          aria-hidden
         >
-          <Switch
-            checked={settings.osmMaxBoundsEnabled}
-            onCheckedChange={(v) => update("osmMaxBoundsEnabled", v)}
+          <Navigation
+            className="h-4 w-4 text-red-500 transition-transform duration-300"
+            style={{ transform: `rotate(${-settings.osmRotationDeg}deg)` }}
+            strokeWidth={2.5}
+            fill="currentColor"
           />
-        </SettingRow>
+        </div>
+
+        {/* Bounds hint — small dashed chip bottom-left when maxBounds is on.
+            The actual dashed rectangle is drawn by Leaflet inside the map
+            already; this is just a status pill telling the admin why it's
+            visible. */}
         {settings.osmMaxBoundsEnabled && (
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              ["osmMaxBoundsNorth", "N"],
-              ["osmMaxBoundsEast", "E"],
-              ["osmMaxBoundsSouth", "S"],
-              ["osmMaxBoundsWest", "W"],
-            ] as const).map(([k, lbl]) => (
-              <div key={k}>
-                <Label className="mb-1 block text-[10px] font-bold tracking-[0.18em] uppercase text-gray-500 dark:text-gray-400">{lbl}</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.0001"
-                  value={settings[k]}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (Number.isFinite(v)) update(k, v);
-                  }}
-                  className="h-10 text-xs font-mono tabular-nums"
-                />
-              </div>
-            ))}
+          <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded-full bg-blue-600/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-white ring-1 ring-white/20 shadow-lg flex items-center gap-1.5">
+            <span
+              className="inline-block w-3 h-2 border border-dashed border-white/90 rounded-[2px]"
+              aria-hidden
+            />
+            {isFi ? "Rajat käytössä" : "Bounds active"}
           </div>
         )}
       </div>
 
-      <Separator />
-
-      {/* ── Matterport 3D virtual tour ─────────────────────────────── */}
-      <div className="p-3.5 rounded-2xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 space-y-2 ring-1 ring-cyan-500/5">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-            3D
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 truncate">
-              {isFi ? "Matterport virtuaalikierros" : "Matterport virtual tour"}
-            </div>
-            <p className="text-[10px] text-cyan-700 dark:text-cyan-300 leading-tight">
-              {isFi ? "Liitä Matterport-tilausosoite tai mallin ID" : "Paste a Matterport share URL or model ID"}
-            </p>
-          </div>
-        </div>
-        <input
-          type="url"
-          inputMode="url"
-          placeholder="https://my.matterport.com/show/?m=…"
-          value={settings.matterportTourUrl || ""}
-          onChange={(e) => update("matterportTourUrl", e.target.value)}
-          className="w-full h-10 px-3 text-xs font-mono rounded-lg border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-        />
-        <p className="text-[10px] text-cyan-700/80 dark:text-cyan-300/70 leading-relaxed">
-          {isFi
-            ? "Kun täytetty, käyttäjille ilmestyy ”Tour”-painike kartan oikealle reunalle ja hamburger-valikkoon."
-            : "When set, users see a Tour button on the map's right edge and a hero card in the hamburger menu."}
-        </p>
-      </div>
-
-      <Separator />
-
-      {/* ── Live-applied + save indicator ──────────────────────────── */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/40">
+      {/* Live-applied save chip lives under the hero so it stays in the
+          left column and doesn't crowd the publish button on the right. */}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200/70 dark:ring-emerald-800/40">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-            {isFi
-              ? "Muutokset tallentuvat heti."
-              : "Changes save live."}
+            {isFi ? "Muutokset tallentuvat heti." : "Changes save live."}
           </span>
         </div>
         <div
@@ -757,23 +442,447 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           {isFi ? "Tallennettu" : "Saved"}
         </div>
       </div>
+    </div>
+  );
 
-      {/* ── Publish to server ──────────────────────────────────────── */}
-      {showPublish && <div className="p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-2 ring-1 ring-blue-500/5">
-        <div className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-          {isFi ? "Tallenna kaikille käyttäjille" : "Publish for all users"}
+  // ── Tile theme picker ─────────────────────────────────────────────────────
+  const tileThemeCard = (
+    <div className={cn(sectionWrap, "space-y-3")}>
+      <Label className={cn("flex items-center gap-1.5", sectionLabel)}>
+        <span>{isFi ? "Karttatyyli" : "Tile theme"}</span>
+        <Badge variant="outline" className="text-[9px] px-1.5 py-0 tracking-normal font-medium normal-case">
+          {isFi ? "Vaihtuu teeman mukaan" : "Auto light/dark"}
+        </Badge>
+      </Label>
+      <div className="grid grid-cols-2 gap-2">
+        {(Object.entries(OSM_TILE_THEMES) as [OsmTileTheme, typeof OSM_TILE_THEMES[OsmTileTheme]][]).map(([id, pack]) => {
+          const z = 14;
+          const lat = settings.osmCenterLat;
+          const lng = settings.osmCenterLng;
+          const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, z));
+          const tileY = Math.floor(
+            ((1 -
+              Math.log(
+                Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
+              ) / Math.PI) / 2) * Math.pow(2, z)
+          );
+          const thumb = (key: typeof pack.light) =>
+            OSM_TILE_PROVIDERS[key].url
+              .replace("{z}", String(z))
+              .replace("{x}", String(tileX))
+              .replace("{y}", String(tileY))
+              .replace("{r}", "")
+              .replace("{s}", "a");
+          const selected = settings.osmTileTheme === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => update("osmTileTheme", id)}
+              className={cn(
+                "group relative overflow-hidden rounded-xl border-2 transition-all duration-200 text-left",
+                selected
+                  ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
+                  : "border-gray-200/70 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-500/50"
+              )}
+              aria-pressed={selected}
+              title={pack.description}
+            >
+              <div className="grid grid-cols-2 aspect-[4/3]">
+                <img
+                  src={thumb(pack.light)}
+                  alt=""
+                  loading="lazy"
+                  crossOrigin="anonymous"
+                  className="block w-full h-full object-cover"
+                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                />
+                <img
+                  src={thumb(pack.dark)}
+                  alt=""
+                  loading="lazy"
+                  crossOrigin="anonymous"
+                  className="block w-full h-full object-cover"
+                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                />
+              </div>
+              <div className="px-2 py-1 text-[10px] font-semibold bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-gray-100 truncate">
+                {isFi ? pack.nameFi : pack.name}
+              </div>
+              {selected && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-900" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-relaxed px-1">
+        {isFi
+          ? "Vasen puoli näyttää vaalean tilan, oikea tumman."
+          : "Left half is the light variant, right is the dark."}
+      </p>
+    </div>
+  );
+
+  // ── Position + zoom ───────────────────────────────────────────────────────
+  const positionCard = (
+    <div className={cn(sectionWrap, "space-y-3")}>
+      <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+        <Compass className="h-3 w-3 text-blue-500" />
+        {isFi ? "Sijainti ja zoomi" : "Position & zoom"}
+      </Label>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">Lat</Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.0001"
+            min={-90}
+            max={90}
+            value={settings.osmCenterLat}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!Number.isFinite(v)) return;
+              const next = Math.max(-90, Math.min(90, v));
+              const d = next - settings.osmCenterLat;
+              update("osmCenterLat", next);
+              if (settings.osmMaxBoundsEnabled) {
+                update("osmMaxBoundsNorth", +(settings.osmMaxBoundsNorth + d).toFixed(6));
+                update("osmMaxBoundsSouth", +(settings.osmMaxBoundsSouth + d).toFixed(6));
+              }
+            }}
+            className="h-11 text-sm font-mono tabular-nums"
+          />
         </div>
-        <p className="text-[10px] text-blue-700 dark:text-blue-300 leading-relaxed">
-          {isFi
-            ? "Tallentaa nykyiset sijainti-, zoomi- ja rotaatioasetukset palvelimelle. Kaikki käyttäjät näkevät nämä oletukset seuraavan latauksen yhteydessä."
-            : "Saves the current center, zoom, rotation, tile theme and bounds to the server. All users will load these as their starting view."}
+        <div>
+          <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">Lng</Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.0001"
+            min={-180}
+            max={180}
+            value={settings.osmCenterLng}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!Number.isFinite(v)) return;
+              const next = Math.max(-180, Math.min(180, v));
+              const d = next - settings.osmCenterLng;
+              update("osmCenterLng", next);
+              if (settings.osmMaxBoundsEnabled) {
+                update("osmMaxBoundsEast", +(settings.osmMaxBoundsEast + d).toFixed(6));
+                update("osmMaxBoundsWest", +(settings.osmMaxBoundsWest + d).toFixed(6));
+              }
+            }}
+            className="h-11 text-sm font-mono tabular-nums"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-baseline mb-2">
+          <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Oletuszoomi" : "Default zoom"}</Label>
+          <span className="text-base font-mono tabular-nums font-bold">{settings.osmDefaultZoom.toFixed(1)}</span>
+        </div>
+        <div className={sliderTouchPad}>
+          <Slider
+            value={[settings.osmDefaultZoom]}
+            min={settings.osmMinZoom}
+            max={settings.osmMaxZoom}
+            step={0.5}
+            onValueChange={([v]) => update("osmDefaultZoom", v)}
+            className="h-11"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">{isFi ? "Min zoom" : "Min zoom"}</Label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={22}
+            value={settings.osmMinZoom}
+            onChange={(e) =>
+              update("osmMinZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 1)))
+            }
+            className="h-11 text-sm font-mono tabular-nums"
+          />
+        </div>
+        <div>
+          <Label className="mb-1 block text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">{isFi ? "Max zoom" : "Max zoom"}</Label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={22}
+            value={settings.osmMaxZoom}
+            onChange={(e) =>
+              update("osmMaxZoom", Math.max(1, Math.min(22, parseInt(e.target.value) || 19)))
+            }
+            className="h-11 text-sm font-mono tabular-nums"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Orientation card (compass + snaps + slider + pitch + campus span) ─────
+  const orientationCard = (
+    <div className={cn(sectionWrap, "space-y-4")}>
+      <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+        <RotateCcw className="h-3 w-3 text-blue-500" />
+        {isFi ? "Suunta ja kallistus" : "Orientation & Bearing"}
+      </Label>
+
+      {/* Compass rose + bearing controls. Right column has min-w-[180px]. */}
+      <div className="flex items-start gap-4 flex-wrap">
+        <div className="mx-auto shrink-0">
+          <CompassDial
+            value={settings.osmRotationDeg}
+            onChange={(v) => update("osmRotationDeg", v)}
+            darkMode={darkMode}
+          />
+        </div>
+
+        <div className="flex-1 min-w-[180px] space-y-3">
+          <div className="flex items-baseline justify-between">
+            <span className={sectionLabel}>{isFi ? "Suuntakulma" : "Bearing"}</span>
+            <span className="text-lg font-mono font-bold tabular-nums">
+              {normalisedBearing}°
+            </span>
+          </div>
+
+          {/* Cardinal quick-snap buttons — 44px tap targets. */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {([
+              { label: "N", value: 0 },
+              { label: "E", value: 90 },
+              { label: "S", value: 180 },
+              { label: "W", value: -90 },
+            ] as const).map(({ label, value }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => update("osmRotationDeg", value)}
+                className={cn(
+                  "min-h-11 rounded-lg text-sm font-semibold transition-all border",
+                  Math.abs(((settings.osmRotationDeg % 360) + 360) % 360 - ((value % 360) + 360) % 360) < 2
+                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-blue-400 hover:text-blue-600 active:scale-[0.97]"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <div className={sliderTouchPad}>
+              <Slider
+                value={[settings.osmRotationDeg]}
+                min={-180}
+                max={180}
+                step={1}
+                onValueChange={([v]) => update("osmRotationDeg", v)}
+                className="h-11"
+              />
+            </div>
+            <div className="flex justify-between text-[9px] text-muted-foreground mt-1 font-mono tabular-nums">
+              <span>-180°</span>
+              <span>0°</span>
+              <span>+180°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {settings.osmRotationDeg !== 0 && (
+        <button
+          type="button"
+          onClick={() => update("osmRotationDeg", 0)}
+          className="w-full flex items-center justify-center gap-1.5 min-h-11 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors active:scale-[0.98]"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          {isFi ? "Palauta pohjoiseen" : "Reset to North"}
+        </button>
+      )}
+
+      {/* Pitch slider */}
+      <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
+        <div className="flex justify-between items-baseline mb-2">
+          <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kallistus (pitch)" : "Tilt / pitch"}</Label>
+          <span className="text-base font-mono tabular-nums font-bold">{settings.osmPitchDeg ?? 0}°</span>
+        </div>
+        <div className={sliderTouchPad}>
+          <Slider
+            value={[settings.osmPitchDeg ?? 0]}
+            min={0}
+            max={45}
+            step={1}
+            onValueChange={([v]) => update("osmPitchDeg", v)}
+            className="h-11"
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+          {isFi ? "Kokeellinen — yli 25° voi vääristää tarttumakohtia." : "Experimental — over 25° may misalign hits."}
         </p>
+      </div>
+
+      {/* Campus span */}
+      <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/40">
+        <div className="flex justify-between items-baseline mb-2">
+          <Label className="text-xs font-medium text-gray-600 dark:text-gray-300">{isFi ? "Kampuksen leveys (m)" : "Campus span (m)"}</Label>
+          <span className="text-base font-mono tabular-nums font-bold">{settings.osmCampusSpanMeters} m</span>
+        </div>
+        <div className={sliderTouchPad}>
+          <Slider
+            value={[settings.osmCampusSpanMeters]}
+            min={50}
+            max={500}
+            step={10}
+            onValueChange={([v]) => update("osmCampusSpanMeters", v)}
+            className="h-11"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Bounds card ───────────────────────────────────────────────────────────
+  const boundsCard = (
+    <div className={cn(sectionWrap, "space-y-3")}>
+      <Label className={cn(sectionLabel, "flex items-center gap-1.5")}>
+        <Maximize2 className="h-3 w-3 text-blue-500" />
+        {isFi ? "Panoroinnin rajat" : "Pan bounds"}
+      </Label>
+      <SettingRow
+        label={isFi ? "Rajoita panorointi" : "Restrict panning"}
+        description={
+          isFi
+            ? "Estä käyttäjiä panoroimasta määritettyjen rajojen ulkopuolelle"
+            : "Stop users from panning outside the defined bounds"
+        }
+      >
+        <Switch
+          checked={settings.osmMaxBoundsEnabled}
+          onCheckedChange={(v) => update("osmMaxBoundsEnabled", v)}
+        />
+      </SettingRow>
+      {settings.osmMaxBoundsEnabled && (
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            ["osmMaxBoundsNorth", "N"],
+            ["osmMaxBoundsEast", "E"],
+            ["osmMaxBoundsSouth", "S"],
+            ["osmMaxBoundsWest", "W"],
+          ] as const).map(([k, lbl]) => (
+            <div key={k}>
+              <Label className="mb-1 block text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">{lbl}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.0001"
+                value={settings[k]}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (Number.isFinite(v)) update(k, v);
+                }}
+                className="h-11 text-xs font-mono tabular-nums"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Matterport card ───────────────────────────────────────────────────────
+  const matterportCard = (
+    <div className="p-3.5 rounded-2xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 space-y-2 ring-1 ring-cyan-500/5">
+      <div className="flex items-center gap-2.5">
+        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+          3D
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 truncate">
+            {isFi ? "Matterport virtuaalikierros" : "Matterport virtual tour"}
+          </div>
+          <p className="text-[10px] text-cyan-700 dark:text-cyan-300 leading-tight">
+            {isFi ? "Liitä Matterport-tilausosoite tai mallin ID" : "Paste a Matterport share URL or model ID"}
+          </p>
+        </div>
+      </div>
+      <input
+        type="url"
+        inputMode="url"
+        placeholder="https://my.matterport.com/show/?m=…"
+        value={settings.matterportTourUrl || ""}
+        onChange={(e) => update("matterportTourUrl", e.target.value)}
+        className="w-full h-11 px-3 text-xs font-mono rounded-lg border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+      />
+      <p className="text-[10px] text-cyan-700/80 dark:text-cyan-300/70 leading-relaxed">
+        {isFi
+          ? "Kun täytetty, käyttäjille ilmestyy ”Tour”-painike kartan oikealle reunalle ja hamburger-valikkoon."
+          : "When set, users see a Tour button on the map's right edge and a hero card in the hamburger menu."}
+      </p>
+    </div>
+  );
+
+  // ── Publish card (prominent) + reset button ───────────────────────────────
+  const publishCard = showPublish ? (
+    <div className="space-y-2">
+      {/* Post-publish success banner — full-width emerald, 3 second flash. */}
+      {publishedFlash && (
+        <div
+          className="w-full flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-500/40 text-emerald-800 dark:text-emerald-200 font-semibold text-sm shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+            <Check className="h-4 w-4 text-white" strokeWidth={3} />
+          </div>
+          <span className="flex-1">
+            {isFi
+              ? "Julkaistu — kaikki käyttäjät näkevät tämän seuraavassa latauksessa."
+              : "Published — all users will see this on next load."}
+          </span>
+        </div>
+      )}
+
+      <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 space-y-3 ring-1 ring-blue-500/10">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+            <Upload className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                {isFi ? "Julkaise kaikille" : "Publish for everyone"}
+              </div>
+              {hasUnsavedChanges && (
+                <span className="relative flex h-2 w-2" aria-label={isFi ? "Tallentamattomia muutoksia" : "Unsaved changes"}>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-blue-700/90 dark:text-blue-300/90 leading-relaxed mt-0.5">
+              {isFi
+                ? "Tallentaa nykyiset sijainti-, zoomi- ja rotaatioasetukset palvelimelle. Kaikki käyttäjät näkevät nämä oletukset seuraavan latauksen yhteydessä."
+                : "Saves the current center, zoom, rotation, tile theme and bounds to the server. All users will load these as their starting view."}
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={handleSaveToServer}
           disabled={serverSaving}
           className={cn(
-            "w-full flex items-center justify-center gap-2 min-h-10 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.98]",
+            "w-full flex items-center justify-center gap-2 min-h-12 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.98] shadow-sm",
             serverSaved
               ? "bg-emerald-600 text-white"
               : serverSaveError
@@ -794,44 +903,68 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
             ? (isFi ? "Tallennettu!" : "Saved!")
             : serverSaveError
             ? serverSaveError
+            : hasUnsavedChanges
+            ? (isFi ? "Julkaise muutokset" : "Publish changes")
             : (isFi ? "Tallenna palvelimelle" : "Save to server")}
         </button>
-      </div>}
+      </div>
+    </div>
+  ) : null;
 
-      {resetPending ? (
-        // Reset confirm — wrap on very narrow screens so buttons don't crush.
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-amber-700 dark:text-amber-400 flex-1 min-w-0">
-            {isFi ? "Vahvista nollaus?" : "Confirm reset?"}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 px-3 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30 rounded-lg"
-            onClick={() => {
-              (["osmCenterLat","osmCenterLng","osmDefaultZoom","osmMinZoom","osmMaxZoom",
-                "osmRotationDeg","osmPitchDeg","osmCampusSpanMeters","osmTileTheme",
-                "osmTileProvider","osmTileProviderDark","osmMaxBoundsEnabled",
-                "osmMaxBoundsNorth","osmMaxBoundsEast","osmMaxBoundsSouth","osmMaxBoundsWest",
-              ] as const).forEach((k) => update(k, DEFAULT_APP_SETTINGS[k] as never));
-              setResetPending(false);
-            }}
-          >{isFi ? "Nollaa" : "Reset"}</Button>
-          <Button size="sm" variant="ghost" className="h-9 px-3 text-xs rounded-lg"
-            onClick={() => setResetPending(false)}>
-            {isFi ? "Peruuta" : "Cancel"}
-          </Button>
-        </div>
-      ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs rounded-xl h-10"
-          onClick={() => setResetPending(true)}
-        >
-          {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
-        </Button>
-      )}
+  // ── Reset button (or confirm) ────────────────────────────────────────────
+  const resetButton = resetPending ? (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-amber-700 dark:text-amber-400 flex-1 min-w-0">
+        {isFi ? "Vahvista nollaus?" : "Confirm reset?"}
+      </span>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-11 px-3 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30 rounded-lg"
+        onClick={() => {
+          (["osmCenterLat","osmCenterLng","osmDefaultZoom","osmMinZoom","osmMaxZoom",
+            "osmRotationDeg","osmPitchDeg","osmCampusSpanMeters","osmTileTheme",
+            "osmTileProvider","osmTileProviderDark","osmMaxBoundsEnabled",
+            "osmMaxBoundsNorth","osmMaxBoundsEast","osmMaxBoundsSouth","osmMaxBoundsWest",
+          ] as const).forEach((k) => update(k, DEFAULT_APP_SETTINGS[k] as never));
+          setResetPending(false);
+        }}
+      >{isFi ? "Nollaa" : "Reset"}</Button>
+      <Button size="sm" variant="ghost" className="h-11 px-3 text-xs rounded-lg"
+        onClick={() => setResetPending(false)}>
+        {isFi ? "Peruuta" : "Cancel"}
+      </Button>
+    </div>
+  ) : (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full text-xs rounded-xl h-11"
+      onClick={() => setResetPending(true)}
+    >
+      {isFi ? "Palauta KSYK-oletukset" : "Reset to KSYK defaults"}
+    </Button>
+  );
+
+  // ── Body: two-column desktop, stacked mobile ─────────────────────────────
+  const body = (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-4">
+      {/* Left column: hero preview + tile theme */}
+      <div className="space-y-4 min-w-0">
+        {previewHero}
+        {tileThemeCard}
+      </div>
+
+      {/* Right column: all editors + publish */}
+      <div className="space-y-4 min-w-0">
+        {positionCard}
+        {orientationCard}
+        {boundsCard}
+        <Separator />
+        {matterportCard}
+        {publishCard}
+        {resetButton}
+      </div>
     </div>
   );
 
