@@ -3860,15 +3860,125 @@ https://ksykmaps.vercel.app
     }
   });
 
+  // POST /api/analytics/feature — named-counter sink. Client helper
+  // trackFeature() hits this on every feature use (settings opened, floor
+  // change, 3D toggle, etc). We keep it in a dedicated collection so the
+  // Overview panel can top-N without scanning the raw events blob.
+  app.post('/api/analytics/feature', async (req, res) => {
+    try {
+      const { name, meta, sessionId, userId } = req.body || {};
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: 'name is required' });
+      }
+      await db.collection('analytics_features').add({
+        name: name.slice(0, 80),
+        meta: meta && typeof meta === 'object' ? meta : null,
+        sessionId: (sessionId || '').toString().slice(0, 60),
+        userId: (userId || '').toString().slice(0, 60),
+        createdAt: new Date(),
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('feature POST error:', error);
+      res.json({ success: false });
+    }
+  });
+
+  // GET /api/analytics/overview — small aggregation for the admin Overview
+  // panel. Returns today's counters + top-N slices in one roundtrip.
+  app.get('/api/analytics/overview', async (req, res) => {
+    try {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const [pvSnap, featSnap, searchSnap, eggSnap] = await Promise.all([
+        db.collection('analytics_pageviews').where('createdAt', '>=', startOfToday).limit(2000).get()
+          .catch(() => ({ docs: [] as any[] })),
+        db.collection('analytics_features').where('createdAt', '>=', startOfToday).limit(2000).get()
+          .catch(() => ({ docs: [] as any[] })),
+        db.collection('searchAnalytics').where('createdAt', '>=', startOfToday).limit(2000).get()
+          .catch(() => ({ docs: [] as any[] })),
+        db.collection('easterEggs').doc('counters').get()
+          .catch(() => ({ exists: false, data: () => ({}) } as any)),
+      ]);
+      const featureCounts: Record<string, number> = {};
+      featSnap.docs.forEach((d: any) => {
+        const n = (d.data() as any)?.name || 'unknown';
+        featureCounts[n] = (featureCounts[n] || 0) + 1;
+      });
+      const topFeatures = Object.entries(featureCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count).slice(0, 5);
+      const searchCounts: Record<string, number> = {};
+      searchSnap.docs.forEach((d: any) => {
+        const q = ((d.data() as any)?.query || '').toString().trim().toLowerCase();
+        if (!q) return;
+        searchCounts[q] = (searchCounts[q] || 0) + 1;
+      });
+      const topSearches = Object.entries(searchCounts)
+        .map(([query, count]) => ({ query, count }))
+        .sort((a, b) => b.count - a.count).slice(0, 10);
+      const eggData = (eggSnap.exists ? eggSnap.data() : {}) as any;
+      const eggCounts = {
+        secretEasterEgg: eggData.secretEasterEgg || 0,
+        konamiCode: eggData.konamiCode || 0,
+        devMode: eggData.devMode || 0,
+        ksykTyped: eggData.ksykTyped || 0,
+        logoClicks: eggData.logoClicks || 0,
+        debugCombo: eggData.debugCombo || 0,
+      };
+      const totalEggs = Object.values(eggCounts).reduce((s: number, n: number) => s + n, 0);
+      res.json({
+        today: {
+          pageviews: pvSnap.docs.length,
+          featureUses: featSnap.docs.length,
+          searches: searchSnap.docs.length,
+        },
+        topFeatures,
+        topSearches,
+        easterEggs: { ...eggCounts, total: totalEggs },
+        fetchedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('analytics overview error:', error);
+      res.json({
+        today: { pageviews: 0, featureUses: 0, searches: 0 },
+        topFeatures: [],
+        topSearches: [],
+        easterEggs: { secretEasterEgg: 0, konamiCode: 0, devMode: 0, ksykTyped: 0, logoClicks: 0, debugCombo: 0, total: 0 },
+        fetchedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  // GET /api/easter-eggs/recent — recent discoveries feed for Overview.
+  app.get('/api/easter-eggs/recent', async (req, res) => {
+    try {
+      const doc = await db.collection('easterEggs').doc('recent').get();
+      const entries = (doc.exists ? (doc.data() as any)?.entries : []) || [];
+      res.json(entries.slice(-50).reverse());
+    } catch {
+      res.json([]);
+    }
+  });
+
   // Analytics endpoints
   app.post('/api/analytics/pageview', async (req, res) => {
     try {
-      const { sessionId, userId, url, referrer, userAgent, ipAddress, country, city, browser, browserVersion, os, deviceType, screenResolution, language, timeZone, duration, isBounce } = req.body;
-      
-      await storage.createPageView({
+      const { sessionId, userId, url, page, referrer, userAgent, ipAddress, country, city, browser, browserVersion, os, deviceType, screenResolution, language, timeZone, duration, isBounce } = req.body;
+      // Client sends `page`, older callers send `url`. Accept both so we
+      // don't lose events during the transition. The stored value keys the
+      // Overview panel's "pageviews today" counter, so having something
+      // beats having nothing.
+      const path = (url || page || '/').toString();
+
+      // Fire-and-forget dual-write: legacy storage.createPageView (used by
+      // AppLogsManager's rich charts) + analytics_pageviews (used by the
+      // Overview counter). Each is wrapped so one failure doesn't kill the
+      // other.
+      storage.createPageView({
         sessionId,
         userId,
-        url,
+        url: path,
         referrer,
         userAgent,
         ipAddress: ipAddress || req.ip,
@@ -3883,17 +3993,28 @@ https://ksykmaps.vercel.app
         timeZone,
         duration,
         isBounce
-      });
+      }).catch(() => { /* legacy sink may be off in some envs — ignore */ });
+
+      try {
+        await db.collection('analytics_pageviews').add({
+          page: path.slice(0, 200),
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          referrer: (referrer || '').toString().slice(0, 200),
+          userAgent: (userAgent || req.get('user-agent') || '').toString().slice(0, 300),
+          createdAt: new Date(),
+        });
+      } catch { /* firestore transient — client will retry on next nav */ }
 
       // Also log to app logs for debugging
       await storage.createAppLog({
         level: 'info',
-        message: `Page view: ${url}`,
+        message: `Page view: ${path}`,
         userId,
         userAgent,
-        url,
+        url: path,
         ipAddress: ipAddress || req.ip
-      });
+      }).catch(() => { /* app logs sink may be off */ });
 
       res.json({ success: true });
     } catch (error) {

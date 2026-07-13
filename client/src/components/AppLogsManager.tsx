@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3, Trophy } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3, Trophy, Filter } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import EasterEggStats from '@/components/EasterEggStats';
 import { useDarkMode } from '@/contexts/DarkModeContext';
@@ -137,11 +138,71 @@ export default function AppLogsManager() {
     refetchInterval: 60000,
   });
 
-  const allLogs: LogEntry[] = [...loginLogs, ...appLogs].sort((a, b) => {
-    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // ── Log filters ────────────────────────────────────────────────────
+  // The unfiltered stream can be firehose-loud on a busy day, so we surface
+  // three cheap controls: level (info/warn/error), date range (24h/7d/30d/
+  // all), and a free-text search. All filters compose. Defaults to 24h so
+  // the panel opens focused on the most recent activity.
+  const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warning' | 'error'>('all');
+  const [rangeFilter, setRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const rawAllLogs: LogEntry[] = useMemo(() => (
+    [...loginLogs, ...appLogs].sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    })
+  ), [loginLogs, appLogs]);
+
+  const rangeCutoff = useMemo(() => {
+    const ms = { '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000 } as const;
+    if (rangeFilter === 'all') return 0;
+    return Date.now() - ms[rangeFilter];
+  }, [rangeFilter]);
+
+  const allLogs: LogEntry[] = useMemo(() => rawAllLogs.filter((log) => {
+    // Range
+    const raw = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+    if (rangeCutoff && raw.getTime() < rangeCutoff) return false;
+    // Level (login logs pass through only when 'all' is selected)
+    if (levelFilter !== 'all') {
+      if (log.type !== 'app') return false;
+      const lvl = (log as AppLog).level;
+      if (levelFilter === 'info' && !(lvl === 'info' || lvl === 'success')) return false;
+      if (levelFilter === 'warning' && lvl !== 'warning') return false;
+      if (levelFilter === 'error' && lvl !== 'error') return false;
+    }
+    // Search — cheap contains match on message + email + userName
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const hay = log.type === 'login'
+        ? `${(log as LoginLog).email || ''} ${(log as LoginLog).userName || ''} ${(log as LoginLog).failureReason || ''}`
+        : `${(log as AppLog).message || ''} ${(log as AppLog).details || ''} ${(log as AppLog).action || ''}`;
+      if (!hay.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  // Show newest first, capped to 100 to keep the DOM light for large
+  // datasets — the filters are the escape hatch to see more.
+  }).slice(0, 100), [rawAllLogs, rangeCutoff, levelFilter, searchQuery]);
+
+  // Sparkline data — bucket the last 24h of raw logs into hour-of-day
+  // slots for a "log volume" strip at the top of the panel.
+  const sparkline24h = useMemo(() => {
+    const cutoff = Date.now() - 86_400_000;
+    const buckets = Array.from({ length: 24 }, () => 0);
+    for (const log of rawAllLogs) {
+      const raw = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+      const t = raw.getTime();
+      if (t < cutoff) continue;
+      // Bucket by hour offset from cutoff (0=oldest, 23=newest).
+      const hourOffset = Math.min(23, Math.max(0, Math.floor((t - cutoff) / 3_600_000)));
+      buckets[hourOffset] += 1;
+    }
+    return buckets;
+  }, [rawAllLogs]);
+  const sparklineMax = Math.max(1, ...sparkline24h);
+  const sparklineTotal = sparkline24h.reduce((a, b) => a + b, 0);
 
   const formatDate = (date: any) => {
     if (!date) return 'N/A';
@@ -380,12 +441,134 @@ export default function AppLogsManager() {
         </Card>
       </div>
 
+      {/* Sparkline — 24h log volume in a compact strip so the admin can
+          spot bursts at a glance without reading the full stream. */}
+      <Card className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+                Log volume · last 24h
+              </p>
+              <p className="text-lg font-semibold tabular-nums mt-0.5">
+                {sparklineTotal}
+                <span className="text-xs text-muted-foreground ml-1.5">events</span>
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              peak {sparklineMax}/hr
+            </div>
+          </div>
+          {/* Inline SVG sparkline — no extra deps, matches KSYK blue accent. */}
+          <svg viewBox="0 0 240 40" className="w-full h-10" preserveAspectRatio="none">
+            <polyline
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              points={sparkline24h.map((v, i) => {
+                const x = (i / (sparkline24h.length - 1)) * 240;
+                const y = 40 - (v / sparklineMax) * 34 - 3;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              }).join(' ')}
+            />
+            {/* Bar chips under the line for a bit of depth. */}
+            {sparkline24h.map((v, i) => {
+              const w = 240 / sparkline24h.length - 1;
+              const x = (i / sparkline24h.length) * 240;
+              const h = (v / sparklineMax) * 34;
+              return (
+                <rect
+                  key={i}
+                  x={x}
+                  y={40 - h - 3}
+                  width={w}
+                  height={h}
+                  fill="#2563eb"
+                  opacity="0.15"
+                />
+              );
+            })}
+          </svg>
+        </CardContent>
+      </Card>
+
+      {/* Filter bar — three composable controls above the tabs. Filters
+          persist while the panel is open but reset on remount. */}
+      <Card className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+                Filters
+              </span>
+            </div>
+            {/* Level pills */}
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+              {(['all', 'info', 'warning', 'error'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setLevelFilter(lvl)}
+                  className={cn(
+                    'text-xs px-2.5 py-1 rounded-md active:scale-[0.98] transition-all capitalize',
+                    levelFilter === lvl
+                      ? 'bg-white dark:bg-gray-700 shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+            {/* Range pills */}
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+              {(['24h', '7d', '30d', 'all'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRangeFilter(r)}
+                  className={cn(
+                    'text-xs px-2.5 py-1 rounded-md active:scale-[0.98] transition-all',
+                    rangeFilter === r
+                      ? 'bg-white dark:bg-gray-700 shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            {/* Search */}
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search messages, emails, actions…"
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            {(levelFilter !== 'all' || rangeFilter !== '24h' || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => { setLevelFilter('all'); setRangeFilter('24h'); setSearchQuery(''); }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Logs Tabs */}
       <Card>
         <CardHeader>
           <CardTitle>Application Logs</CardTitle>
           <CardDescription>
-            Track all system activity, logins, and events
+            Track all system activity, logins, and events (latest 100 · filters apply)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -487,11 +670,17 @@ export default function AppLogsManager() {
                   {allLogs.length === 0 ? (
                     <div className="text-center py-12">
                       <Activity className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Logs Yet</h3>
-                      <p className="text-gray-500 dark:text-gray-400">Activity will appear here</p>
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        No logs yet
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        {searchQuery || levelFilter !== 'all' || rangeFilter !== '24h'
+                          ? 'No logs match the current filters. Try widening the range or clearing the search.'
+                          : 'Actions will show up here as users use the app.'}
+                      </p>
                     </div>
                   ) : (
-                    allLogs.map((log) => 
+                    allLogs.map((log) =>
                       log.type === 'login' ? renderLoginLog(log as LoginLog) : renderAppLog(log as AppLog)
                     )
                   )}

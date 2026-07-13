@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
+import { trackFeature } from "@/lib/analytics";
 import {
   Calendar,
   UtensilsCrossed,
@@ -131,6 +132,7 @@ export default function Lunch() {
 
   useEffect(() => {
     fetchMenu();
+    trackFeature("lunch_page_viewed", { lang: i18n.language });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
 

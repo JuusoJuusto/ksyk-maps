@@ -447,21 +447,178 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // POST /api/easter-eggs/found — record an egg discovery. Body: { egg: "secretEasterEgg" | ... }
+    // The whitelist mirrors the client-side egg IDs; adding new eggs here
+    // is the only place a discovery starts being counted.
     if (apiPath === '/easter-eggs/found' && req.method === 'POST') {
       try {
         const { db } = await import('../server/firebaseStorage.js');
         const { FieldValue } = await import('firebase-admin/firestore');
         const egg = (req.body?.egg || '').toString();
-        const allowed = ['secretEasterEgg', 'konamiCode', 'devMode'];
+        const who = (req.body?.userId || '').toString().slice(0, 60) || 'anonymous';
+        const allowed = [
+          'secretEasterEgg', 'konamiCode', 'devMode',
+          'ksykTyped', 'logoClicks', 'debugCombo',
+        ];
         if (!allowed.includes(egg)) return res.status(400).json({ message: 'Invalid egg id' });
         await db.collection('easterEggs').doc('counters').set({
           [egg]: FieldValue.increment(1),
           [`${egg}LastAt`]: new Date(),
         }, { merge: true });
+        // Add to recent discoveries feed (bounded to last 50, oldest wins
+        // trimmed on next write) so the Overview panel can render "who".
+        try {
+          await db.collection('easterEggs').doc('recent').set({
+            entries: FieldValue.arrayUnion({
+              egg,
+              userId: who,
+              at: new Date().toISOString(),
+            }),
+          }, { merge: true });
+        } catch { /* non-fatal — counters are the source of truth */ }
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('easter-eggs POST error:', err);
         return res.status(500).json({ message: 'Failed' });
+      }
+    }
+
+    // GET /api/easter-eggs/recent — recent discoveries, capped to 50. Used
+    // by the admin Overview panel to render the "who found what" strip.
+    if (apiPath === '/easter-eggs/recent' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const doc = await db.collection('easterEggs').doc('recent').get();
+        const entries = (doc.exists ? (doc.data() as any)?.entries : []) || [];
+        // Return newest first
+        return res.status(200).json(entries.slice(-50).reverse());
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // POST /api/analytics/pageview — visitor-facing pageview beacon. Writes
+    // to analytics_pageviews so the Overview panel can count today's traffic.
+    if (apiPath === '/analytics/pageview' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { page, sessionId, userId, referrer } = req.body || {};
+        await db.collection('analytics_pageviews').add({
+          page: (page || '/').toString().slice(0, 200),
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          referrer: (referrer || '').toString().slice(0, 200),
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          createdAt: new Date(),
+        });
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('pageview POST error:', err);
+        return res.status(200).json({ success: false });
+      }
+    }
+
+    // POST /api/analytics/feature — named-counter feature usage. Kept in a
+    // separate collection from raw events so the top-N aggregation is a
+    // simple limit+groupBy instead of a scan of the events blob.
+    if (apiPath === '/analytics/feature' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { name, meta, sessionId, userId } = req.body || {};
+        if (!name || typeof name !== 'string') {
+          return res.status(400).json({ message: 'name is required' });
+        }
+        await db.collection('analytics_features').add({
+          name: name.slice(0, 80),
+          meta: meta && typeof meta === 'object' ? meta : null,
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          createdAt: new Date(),
+        });
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('feature POST error:', err);
+        return res.status(200).json({ success: false });
+      }
+    }
+
+    // GET /api/analytics/overview — small aggregation for the admin Overview
+    // panel. Returns today's counters and top-N slices in a single roundtrip.
+    if (apiPath === '/analytics/overview' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        // Pull each slice in parallel — all bounded to today, capped so
+        // even a spammy day can't OOM the serverless function.
+        const [pvSnap, featSnap, searchSnap, eggSnap] = await Promise.all([
+          db.collection('analytics_pageviews')
+            .where('createdAt', '>=', startOfToday).limit(2000).get()
+            .catch(() => ({ docs: [] as any[] })),
+          db.collection('analytics_features')
+            .where('createdAt', '>=', startOfToday).limit(2000).get()
+            .catch(() => ({ docs: [] as any[] })),
+          db.collection('searchAnalytics')
+            .where('createdAt', '>=', startOfToday).limit(2000).get()
+            .catch(() => ({ docs: [] as any[] })),
+          db.collection('easterEggs').doc('counters').get()
+            .catch(() => ({ exists: false, data: () => ({}) } as any)),
+        ]);
+
+        const pageviewsCount = pvSnap.docs.length;
+        const featureCounts: Record<string, number> = {};
+        featSnap.docs.forEach((d: any) => {
+          const n = (d.data() as any)?.name || 'unknown';
+          featureCounts[n] = (featureCounts[n] || 0) + 1;
+        });
+        const topFeatures = Object.entries(featureCounts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        const searchCounts: Record<string, number> = {};
+        searchSnap.docs.forEach((d: any) => {
+          const q = ((d.data() as any)?.query || '').toString().trim().toLowerCase();
+          if (!q) return;
+          searchCounts[q] = (searchCounts[q] || 0) + 1;
+        });
+        const topSearches = Object.entries(searchCounts)
+          .map(([query, count]) => ({ query, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        const eggData = (eggSnap.exists ? eggSnap.data() : {}) as any;
+        const eggCounts = {
+          secretEasterEgg: eggData.secretEasterEgg || 0,
+          konamiCode: eggData.konamiCode || 0,
+          devMode: eggData.devMode || 0,
+          ksykTyped: eggData.ksykTyped || 0,
+          logoClicks: eggData.logoClicks || 0,
+          debugCombo: eggData.debugCombo || 0,
+        };
+        const totalEggs =
+          Object.values(eggCounts).reduce((sum: number, n: number) => sum + n, 0);
+
+        return res.status(200).json({
+          today: {
+            pageviews: pageviewsCount,
+            featureUses: featSnap.docs.length,
+            searches: searchSnap.docs.length,
+          },
+          topFeatures,
+          topSearches,
+          easterEggs: { ...eggCounts, total: totalEggs },
+          fetchedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('analytics overview error:', err);
+        return res.status(200).json({
+          today: { pageviews: 0, featureUses: 0, searches: 0 },
+          topFeatures: [],
+          topSearches: [],
+          easterEggs: { secretEasterEgg: 0, konamiCode: 0, devMode: 0, ksykTyped: 0, logoClicks: 0, debugCombo: 0, total: 0 },
+          fetchedAt: new Date().toISOString(),
+        });
       }
     }
 
