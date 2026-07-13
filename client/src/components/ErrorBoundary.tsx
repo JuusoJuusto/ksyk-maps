@@ -1,5 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
 
@@ -124,74 +123,104 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <AlertTriangle className="h-16 w-16 text-red-500" />
-              </div>
-              <CardTitle className="text-2xl">Oops! Something went wrong</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-red-800 mb-2">Error Reference ID:</p>
-                <p className="text-lg font-mono text-red-900 bg-white px-3 py-2 rounded border border-red-300">
-                  {this.state.errorReferenceId}
-                </p>
-                <p className="text-xs text-red-600 mt-2">
-                  Save this ID for support reference
-                </p>
-              </div>
+        <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-50 dark:from-red-950/40 dark:via-orange-950/30 dark:to-red-950/40 flex items-center justify-center p-4">
+          <div className="max-w-lg w-full">
+            {/* Alarm card — matches app chrome (bg-card border-border rounded-2xl)
+             *  with a red/orange gradient accent bar up top for alarm. */}
+            <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+              {/* Alarm bar — pulsing red→orange gradient */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse" />
 
-              <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Error Details:</p>
-                <p className="text-sm text-gray-900 font-mono">
-                  {this.state.error?.message}
-                </p>
-              </div>
+              <div className="p-6 sm:p-8">
+                {/* Big alarm icon in a red ring */}
+                <div className="flex justify-center mb-5">
+                  <div className="h-16 w-16 rounded-2xl bg-red-100 dark:bg-red-950/60 ring-1 ring-red-200 dark:ring-red-900/60 flex items-center justify-center">
+                    <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" strokeWidth={2.25} />
+                  </div>
+                </div>
 
-              {this.state.ticketSubmitted && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-800">
-                    ✓ Error report submitted successfully! Our team will investigate.
+                {/* Editorial "ERROR" kicker + bold title */}
+                <div className="text-center mb-6">
+                  <div className="text-[10px] font-bold tracking-[0.22em] uppercase text-red-600 dark:text-red-400 mb-2">
+                    Fatal error
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-tight mb-2">
+                    Something broke.
+                  </h1>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    The app hit an error we didn't expect. Our team gets an
+                    automatic report every time this happens.
                   </p>
                 </div>
-              )}
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  onClick={this.handleReload}
-                  className="flex-1 flex items-center justify-center gap-2"
-                  variant="default"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Reload Page
-                </Button>
-                <Button
-                  onClick={this.handleGoHome}
-                  className="flex-1 flex items-center justify-center gap-2"
-                  variant="outline"
-                >
-                  <Home className="h-4 w-4" />
-                  Go Home
-                </Button>
-                {!this.state.ticketSubmitted && (
-                  <Button
-                    onClick={this.handleSubmitTicket}
-                    className="flex-1 flex items-center justify-center gap-2"
-                    variant="secondary"
-                  >
-                    <Send className="h-4 w-4" />
-                    Report Error
-                  </Button>
+                {/* Error reference ID — alarming red card */}
+                <div className="rounded-2xl ring-1 ring-red-200 dark:ring-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-600 dark:text-red-400 mb-1.5">
+                    Error reference
+                  </p>
+                  <p className="text-sm font-mono font-bold text-red-900 dark:text-red-200 bg-white/70 dark:bg-red-950/50 px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/60 break-all">
+                    {this.state.errorReferenceId}
+                  </p>
+                  <p className="text-[11px] text-red-700/80 dark:text-red-300/80 mt-2">
+                    Share this ID with support if you're stuck.
+                  </p>
+                </div>
+
+                {/* Error message — muted card */}
+                {this.state.error?.message && (
+                  <div className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-muted p-3 mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
+                      Details
+                    </p>
+                    <p className="text-[13px] font-mono text-foreground break-all">
+                      {this.state.error.message}
+                    </p>
+                  </div>
                 )}
-              </div>
 
-              <p className="text-xs text-center text-gray-500">
-                This error has been automatically logged. If the problem persists, please contact support with the reference ID above.
-              </p>
-            </CardContent>
-          </Card>
+                {/* Success banner */}
+                {this.state.ticketSubmitted && (
+                  <div className="rounded-2xl ring-1 ring-emerald-200 dark:ring-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 p-3 mb-4 text-sm text-emerald-800 dark:text-emerald-300">
+                    ✓ Report submitted. We'll investigate.
+                  </div>
+                )}
+
+                {/* Actions — KSYK-blue primary, neutral secondary */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={this.handleReload}
+                    className="flex-1 h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98]"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reload
+                  </Button>
+                  <Button
+                    onClick={this.handleGoHome}
+                    variant="outline"
+                    className="flex-1 h-11 rounded-xl font-semibold active:scale-[0.98]"
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Go home
+                  </Button>
+                  {!this.state.ticketSubmitted && (
+                    <Button
+                      onClick={this.handleSubmitTicket}
+                      variant="outline"
+                      className="flex-1 h-11 rounded-xl font-semibold active:scale-[0.98] border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Report
+                    </Button>
+                  )}
+                </div>
+
+                {/* Footer — subtle attribution */}
+                <p className="text-[11px] text-center text-muted-foreground mt-5">
+                  KSYK Maps · Auto-logged. Contact support if it keeps happening.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }

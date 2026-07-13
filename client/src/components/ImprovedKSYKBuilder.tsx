@@ -79,7 +79,10 @@ export default function ImprovedKSYKBuilder() {
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [showGrid, setShowGrid] = useState(true);
-  const [showReferenceOutlines, setShowReferenceOutlines] = useState(true);
+  // Default OFF — reference outlines were showing hardcoded KSYK
+  // A/U/K/M/R/B wing shapes over the empty canvas. Admin can toggle
+  // them back on from the view toolbar when they need a template.
+  const [showReferenceOutlines, setShowReferenceOutlines] = useState(false);
   const [activeWingLetter, setActiveWingLetter] = useState<string>("K");
   const [history, setHistory] = useState<Point[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
