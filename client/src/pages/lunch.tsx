@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Header from "@/components/Header";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import {
@@ -158,6 +159,7 @@ export default function Lunch() {
       )}
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
+      <AnnouncementBanner />
       <Header />
 
       {/* Editorial header — sticky so the back button + wordmark stay reachable */}

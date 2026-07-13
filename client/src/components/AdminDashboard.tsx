@@ -870,11 +870,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
-    // ksyk-builder retired — the map-based Builder below covers everything.
-    // Deep links to /admin/ksyk-builder still resolve via the TabsContent
-    // mounted with that value (so old bookmarks don't 404), but it isn't
-    // shown in the nav anymore.
-    { value: "builder-3d", label: "Builder", Icon: Box },
+    // Builder nav item now points to ksyk-builder — the map builder
+    // with "Rooms & Floors" and "Map Defaults & Rotation" subtabs.
+    // Deep links to /admin/builder-3d still resolve to the old
+    // 3D-preview view but it's no longer surfaced in the nav.
+    { value: "ksyk-builder", label: "Builder", Icon: Box },
     { value: "schedules", label: "Schedules", Icon: Calendar },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },

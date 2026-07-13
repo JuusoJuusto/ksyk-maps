@@ -687,7 +687,9 @@ export default function OsmBasemap({
   const barPx = Math.round(niceM / mpp);
   const barLabel = niceM >= 1000 ? `${niceM / 1000} km` : `${niceM} m`;
 
-  const ctrlBase = "pointer-events-auto flex items-center justify-center bg-white/92 dark:bg-gray-900/92 backdrop-blur-sm border border-gray-200/80 dark:border-gray-700/70 shadow-md text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors select-none";
+  // Uses the same theme vars as the top-bar Header + map controls so
+  // every button on the map matches: bg-card, border-border, no opacity.
+  const ctrlBase = "pointer-events-auto flex items-center justify-center bg-card border border-border text-foreground hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors select-none";
 
   return (
     <div
@@ -732,7 +734,7 @@ export default function OsmBasemap({
           can't push them off-screen. Uses safe-area-inset to stay above
           iOS home bar on all devices. */}
       <div
-        className="absolute right-3 z-[500] flex flex-col overflow-hidden rounded-xl shadow-lg border border-gray-200/80 dark:border-gray-700"
+        className="absolute right-3 z-[500] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
         style={{ bottom: 'max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))' }}
       >
         <button
@@ -740,7 +742,7 @@ export default function OsmBasemap({
           aria-label="Zoom in"
           disabled={!canZoomIn}
           onClick={() => mapRef.current?.zoomIn()}
-          className={`${ctrlBase} w-9 h-9 text-lg font-light border-b border-gray-200/80 dark:border-gray-700/70 rounded-t-xl rounded-b-none disabled:opacity-35 disabled:cursor-default disabled:hover:bg-transparent`}
+          className={`${ctrlBase} w-11 h-11 text-xl font-light border-0 border-b border-border rounded-none disabled:opacity-35 disabled:cursor-default disabled:hover:bg-card disabled:hover:text-foreground`}
         >
           +
         </button>
@@ -749,7 +751,7 @@ export default function OsmBasemap({
           aria-label="Zoom out"
           disabled={!canZoomOut}
           onClick={() => mapRef.current?.zoomOut()}
-          className={`${ctrlBase} w-9 h-9 text-lg font-light rounded-t-none rounded-b-xl disabled:opacity-35 disabled:cursor-default disabled:hover:bg-transparent`}
+          className={`${ctrlBase} w-11 h-11 text-xl font-light border-0 rounded-none disabled:opacity-35 disabled:cursor-default disabled:hover:bg-card disabled:hover:text-foreground`}
         >
           −
         </button>
