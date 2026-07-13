@@ -482,7 +482,14 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   // right-side parallelogram (sun from upper-left at ≈ 30°), front wall
   // face with a baked vertical gradient + thin highlight strip. The
   // pitch CSS transform on the container does the perspective foreshorten.
-  const campusBody = (
+  //
+  // Memoized aggressively: without useMemo, EVERY React render
+  // (hoveredRoomId change, scheduleLoading tick, tile-load, panel toggle,
+  // even mouse-move on unrelated UI) re-built this entire SVG subtree —
+  // hundreds of <g> elements per floor. Now the tree is only rebuilt
+  // when the inputs it actually reads change.
+  const metersPerSvgUnit = settings.osmCampusSpanMeters / baseViewBox.w;
+  const campusBody = useMemo(() => (
     <>
       <defs>
         <filter id="roomGlow">
@@ -540,7 +547,6 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
 
           const isHallway = room.type === "hallway" || room.type === "corridor";
 
-          const metersPerSvgUnit = settings.osmCampusSpanMeters / baseViewBox.w;
           const roomMinPx =
             leafletMetersPerPx && leafletMetersPerPx > 0
               ? (Math.min(w, h) * metersPerSvgUnit) / leafletMetersPerPx
@@ -735,7 +741,20 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           );
         })}
     </>
-  );
+  ), [
+    layers.rooms,
+    floorRooms,
+    selectedRoom?.id,
+    hoveredRoomId,
+    darkMode,
+    is3DMode,
+    settings.osmPitchDeg,
+    leafletMetersPerPx,
+    metersPerSvgUnit,
+    userLocation,
+    lngLatToSvg,
+    focusRoom,
+  ]);
 
   const onPickSearchHit = (hit: SearchHit) => {
     // Dismiss mobile keyboard when a result is selected

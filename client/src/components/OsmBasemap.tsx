@@ -431,14 +431,26 @@ export default function OsmBasemap({
     overlayRef.current?.setBounds(L.latLngBounds(campusBounds));
   }, [campusBounds]);
 
+  // Latest rotation snapshot — read in gesture handlers without re-binding
+  // listeners every degree change. Used by both desktop and touch rotation.
+  const rotationRef = useRef(settings.osmRotationDeg ?? 0);
+  useEffect(() => {
+    rotationRef.current = settings.osmRotationDeg ?? 0;
+  }, [settings.osmRotationDeg]);
+
   // Desktop rotation — Shift + drag rotates the map around its centre.
-  // Same write path as the touch gesture below (setSettings on the
-  // shared store) so the rotation persists once the gesture ends.
+  // We paint the CSS transform imperatively on every pointer move (via
+  // rAF) so the map tracks the cursor smoothly, and only commit to the
+  // shared settings store when the gesture ends. That keeps React
+  // re-renders out of the hot path entirely — pointer moves used to spam
+  // setSettings on every pixel, forcing every subscriber to re-render.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     let startAngleDeg: number | null = null;
     let startSettingsDeg = 0;
+    let currentDeg = 0;
+    let rafId = 0;
 
     const angleTo = (e: MouseEvent): number => {
       const rect = container.getBoundingClientRect();
@@ -447,12 +459,27 @@ export default function OsmBasemap({
       return (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI;
     };
 
+    // Paint the container transform without touching React state.
+    // Mid-gesture we keep the pre-gesture size/offset (which is oversized
+    // enough for the eventual rotation up to any degree), so no reflow.
+    const paint = () => {
+      rafId = 0;
+      const pitch = Math.max(0, Math.min(45, safeNum(settings.osmPitchDeg, 0)));
+      container.style.transform =
+        pitch > 0
+          ? `perspective(1600px) translateZ(0) rotateX(${pitch}deg) rotate(${currentDeg}deg)`
+          : `translateZ(0) rotate(${currentDeg}deg)`;
+    };
+
     const onDown = (e: MouseEvent) => {
       if (!e.shiftKey) return;
       e.preventDefault();
       e.stopPropagation();
       startAngleDeg = angleTo(e);
-      startSettingsDeg = settings.osmRotationDeg ?? 0;
+      startSettingsDeg = rotationRef.current;
+      currentDeg = startSettingsDeg;
+      // Kill the CSS transition so drag feels 1-to-1 with the cursor.
+      container.style.transition = "none";
       // Pause Leaflet panning during the gesture.
       mapRef.current?.dragging?.disable();
       document.body.style.cursor = "grabbing";
@@ -464,36 +491,49 @@ export default function OsmBasemap({
       let next = startSettingsDeg + delta;
       while (next > 180) next -= 360;
       while (next < -180) next += 360;
-      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(next * 10) / 10 }));
+      currentDeg = next;
+      if (!rafId) rafId = requestAnimationFrame(paint);
     };
     const onUp = () => {
       if (startAngleDeg === null) return;
       startAngleDeg = null;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
       mapRef.current?.dragging?.enable();
       document.body.style.cursor = "";
+      // Commit once when the gesture ends — this is the only React state
+      // update the whole drag produces. The rotation effect below will
+      // then re-apply the transition + reflow-and-invalidate cycle.
+      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(currentDeg * 10) / 10 }));
     };
 
     container.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       container.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
     };
-  }, [settings.osmRotationDeg, setSettings]);
+    // Intentionally only bind once — pointer handlers read rotationRef +
+    // settings.osmPitchDeg via closure snapshot; pitch changes are rare
+    // enough that a stale closure would only miss a fresh pitch value
+    // mid-drag, which is a non-issue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setSettings]);
 
-  // Two-finger touch rotation — listen on the wrapper element and translate
-  // the angle delta between two fingers into osmRotationDeg updates. Held
-  // through the gesture (Leaflet's pinch zoom still works in parallel
-  // because Leaflet eats the pinch separately). Rotation persists when the
-  // gesture ends because we write to the shared settings store.
+  // Two-finger touch rotation — same pattern as desktop: paint the CSS
+  // transform imperatively during the gesture (rAF-throttled), commit to
+  // React state only on touchend. Keeps mid-gesture pointer moves off
+  // React's re-render path.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     let startAngleDeg: number | null = null;
     let startSettingsDeg = 0;
+    let currentDeg = 0;
+    let rafId = 0;
 
     const twoFingerAngleDeg = (e: TouchEvent): number | null => {
       if (e.touches.length !== 2) return null;
@@ -502,11 +542,22 @@ export default function OsmBasemap({
       return (Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180) / Math.PI;
     };
 
+    const paint = () => {
+      rafId = 0;
+      const pitch = Math.max(0, Math.min(45, safeNum(settings.osmPitchDeg, 0)));
+      container.style.transform =
+        pitch > 0
+          ? `perspective(1600px) translateZ(0) rotateX(${pitch}deg) rotate(${currentDeg}deg)`
+          : `translateZ(0) rotate(${currentDeg}deg)`;
+    };
+
     const onStart = (e: TouchEvent) => {
       const ang = twoFingerAngleDeg(e);
       if (ang === null) return;
       startAngleDeg = ang;
-      startSettingsDeg = settings.osmRotationDeg ?? 0;
+      startSettingsDeg = rotationRef.current;
+      currentDeg = startSettingsDeg;
+      container.style.transition = "none";
     };
     const onMove = (e: TouchEvent) => {
       if (startAngleDeg === null) return;
@@ -517,21 +568,29 @@ export default function OsmBasemap({
       let next = startSettingsDeg + delta;
       while (next > 180) next -= 360;
       while (next < -180) next += 360;
-      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(next * 10) / 10 }));
+      currentDeg = next;
+      if (!rafId) rafId = requestAnimationFrame(paint);
     };
-    const onEnd = () => { startAngleDeg = null; };
+    const onEnd = () => {
+      if (startAngleDeg === null) return;
+      startAngleDeg = null;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      setSettings((s) => ({ ...s, osmRotationDeg: Math.round(currentDeg * 10) / 10 }));
+    };
 
     container.addEventListener("touchstart", onStart, { passive: true });
     container.addEventListener("touchmove", onMove, { passive: true });
     container.addEventListener("touchend", onEnd, { passive: true });
     container.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       container.removeEventListener("touchstart", onStart);
       container.removeEventListener("touchmove", onMove);
       container.removeEventListener("touchend", onEnd);
       container.removeEventListener("touchcancel", onEnd);
     };
-  }, [settings.osmRotationDeg, setSettings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setSettings]);
 
   // CSS rotation + optional pitch (tilt).
   //
@@ -567,18 +626,23 @@ export default function OsmBasemap({
     // re-lay-out the whole tile grid every frame. Only the transform
     // property gets a transition — layout metrics jump straight to the
     // new size, avoiding a 300 ms reflow storm on every button press.
+    // `backface-visibility: hidden` + a translateZ(0) in the transform
+    // chain force the browser to promote the element to its own GPU
+    // layer, matching what Chrome/Safari do for accelerated animations.
     container.style.willChange = "transform";
+    container.style.backfaceVisibility = "hidden";
     container.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
     container.style.width = `${sizePct}%`;
     container.style.height = `${sizePct}%`;
     container.style.left = `${offsetPct}%`;
     container.style.top = `${offsetPct}%`;
+    // translateZ(0) forces a compositor layer even when rotation is 0.
     container.style.transform =
       pitch > 0
-        ? `perspective(1600px) rotateX(${pitch}deg) rotate(${rotation}deg)`
+        ? `perspective(1600px) translateZ(0) rotateX(${pitch}deg) rotate(${rotation}deg)`
         : rotation !== 0
-        ? `rotate(${rotation}deg)`
-        : "";
+        ? `translateZ(0) rotate(${rotation}deg)`
+        : "translateZ(0)";
 
     // Ensure mapPane has no stale rotation left over from old code.
     const pane = map.getPane("mapPane");
