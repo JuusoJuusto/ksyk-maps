@@ -13,6 +13,7 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   AlignVerticalJustifyCenter, AlignStartHorizontal, AlignEndHorizontal,
   MoveHorizontal, MoveVertical,
+  Waypoints,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getRoomFillColor } from "@/lib/campusSpace";
@@ -26,8 +27,37 @@ import {
 
 interface Point { x: number; y: number; }
 
-type Tool = "outline" | "wall" | "room" | "select" | "pan";
+type Tool = "outline" | "wall" | "room" | "select" | "pan" | "building" | "hallway";
 type PropertyTab = "identity" | "position" | "style";
+
+// Locally-drawn buildings (before publish) — MazeMap-style rectangular shells.
+interface LocalBuilding {
+  id: string;
+  name: string;
+  nameEn: string;
+  nameFi: string;
+  letter: string;
+  color: string;
+  floors: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  _isLocalNew?: boolean;
+}
+
+// Client-side hallway — polyline of waypoints. Persisted as one hallway per
+// segment via /api/hallways (start/end schema on the server).
+interface LocalHallway {
+  id: string;
+  buildingId?: string;
+  floor: number;
+  name: string;
+  width: number;
+  color: string;
+  points: Point[];
+  _isLocalNew?: boolean;
+}
 
 // ── Editorial section label used everywhere ────────────────────────
 const KICKER = "text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground";
@@ -70,6 +100,18 @@ export default function ImprovedKSYKBuilder() {
   const [campusOutline, setCampusOutline] = useState<Point[]>([]);
   const [walls, setWalls] = useState<Point[][]>([]);
   const [currentWall, setCurrentWall] = useState<Point[]>([]);
+
+  // ── New: buildings drawn on the canvas (persisted via /api/buildings). ──
+  const [buildings, setBuildings] = useState<LocalBuilding[]>([]);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  // Rectangle-drag state for the Building tool.
+  const [buildingDraft, setBuildingDraft] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const buildingDraftStart = useRef<Point | null>(null);
+
+  // ── New: hallways drawn as multi-waypoint polylines (persisted via /api/hallways). ──
+  const [hallways, setHallways] = useState<LocalHallway[]>([]);
+  const [currentHallway, setCurrentHallway] = useState<Point[]>([]);
+  const [selectedHallwayId, setSelectedHallwayId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
@@ -179,6 +221,15 @@ export default function ImprovedKSYKBuilder() {
     } else if (activeTool === "wall") {
       setIsDrawing(true);
       setCurrentWall([...currentWall, point]);
+    } else if (activeTool === "building") {
+      // Start a drag-rectangle for the building shell.
+      setIsDrawing(true);
+      buildingDraftStart.current = point;
+      setBuildingDraft({ x0: point.x, y0: point.y, x1: point.x, y1: point.y });
+    } else if (activeTool === "hallway") {
+      // Click to append a waypoint. Double-click / Enter finishes.
+      setIsDrawing(true);
+      setCurrentHallway((wp) => [...wp, point]);
     } else if (activeTool === "room") {
       // Click-to-place: if room number filled, immediately add room at cursor
       if (roomData.roomNumber && validateRoomNumber(roomData.roomNumber)) {
@@ -228,6 +279,17 @@ export default function ImprovedKSYKBuilder() {
     if (rubberBandStartRef.current) {
       const pt = getSVGPoint(e);
       setRubberBand({ x0: rubberBandStartRef.current.x, y0: rubberBandStartRef.current.y, x1: pt.x, y1: pt.y });
+    }
+
+    // Live-update building drag rectangle while the Building tool is held down.
+    if (activeTool === "building" && buildingDraftStart.current && buildingDraft) {
+      const pt = getSVGPoint(e);
+      setBuildingDraft({
+        x0: buildingDraftStart.current.x,
+        y0: buildingDraftStart.current.y,
+        x1: pt.x,
+        y1: pt.y,
+      });
     }
 
     if (!drag) return;
@@ -283,6 +345,38 @@ export default function ImprovedKSYKBuilder() {
 
   const handleMouseUp = () => {
     setIsPanningCanvas(false);
+
+    // Finalise a building shell drawn by drag-rectangle.
+    if (activeTool === "building" && buildingDraft) {
+      const x = Math.min(buildingDraft.x0, buildingDraft.x1);
+      const y = Math.min(buildingDraft.y0, buildingDraft.y1);
+      const w = Math.abs(buildingDraft.x1 - buildingDraft.x0);
+      const h = Math.abs(buildingDraft.y1 - buildingDraft.y0);
+      // Require a minimum drag distance so a stray click doesn't spawn a shell.
+      if (w >= gridSize && h >= gridSize) {
+        const nextLetter = suggestBuildingLetter();
+        const nb: LocalBuilding = {
+          id: `bld-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: `${nextLetter} wing`,
+          nameEn: `${nextLetter} Building`,
+          nameFi: `${nextLetter}-rakennus`,
+          letter: nextLetter,
+          color: getColorForBuilding(nextLetter),
+          floors: 1,
+          x, y, width: w, height: h,
+          _isLocalNew: true,
+        };
+        setBuildings((bs) => [...bs, nb]);
+        setSelectedBuildingId(nb.id);
+        setSelectedRoom(null);
+        setSelectedRoomIds(new Set());
+        setUnsavedChanges(true);
+      }
+      setBuildingDraft(null);
+      buildingDraftStart.current = null;
+      setIsDrawing(false);
+    }
+
     if (drag) {
       pushRoomHistory(rooms);
       setDrag(null);
@@ -441,9 +535,14 @@ export default function ImprovedKSYKBuilder() {
         setSelectedRoom(null);
         setSelectedRoomIds(new Set());
       } else if (e.key === "v") setActiveTool("select");
-      else if (e.key === "h") setActiveTool("pan");
+      else if (e.key === "h") setActiveTool("hallway");
+      else if (e.key === " ") { e.preventDefault(); setActiveTool("pan"); }
+      else if (e.key === "b") setActiveTool("building");
       else if (e.key === "r") setActiveTool("room");
-      else if ((e.key === "f" || e.key === "F") && !e.ctrlKey) {
+      else if (e.key === "Enter" && activeTool === "hallway" && currentHallway.length >= 2) {
+        e.preventDefault();
+        finishHallway();
+      } else if ((e.key === "f" || e.key === "F") && !e.ctrlKey) {
         e.preventDefault();
         zoomToFit(selectedRoomIds.size > 0 ? "selection" : "all");
       } else if (e.key.startsWith("Arrow") && selectedRoomIds.size > 0) {
@@ -481,13 +580,58 @@ export default function ImprovedKSYKBuilder() {
     setIsDrawing(false);
   };
 
+  const finishHallway = () => {
+    if (currentHallway.length >= 2) {
+      const nh: LocalHallway = {
+        id: `hall-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        buildingId: undefined,
+        floor: builderFloor,
+        name: `Hallway ${hallways.length + 1}`,
+        width: 12,
+        color: "#2563eb",
+        points: currentHallway,
+        _isLocalNew: true,
+      };
+      setHallways((hs) => [...hs, nh]);
+      setSelectedHallwayId(nh.id);
+      setUnsavedChanges(true);
+      toast({
+        title: "Hallway added",
+        description: `${currentHallway.length} waypoints · will publish with the map.`,
+      });
+    }
+    setCurrentHallway([]);
+    setIsDrawing(false);
+  };
+
   const cancelDrawing = () => {
     if (activeTool === "outline") {
       setCampusOutline([]);
     } else if (activeTool === "wall") {
       setCurrentWall([]);
+    } else if (activeTool === "hallway") {
+      setCurrentHallway([]);
+    } else if (activeTool === "building") {
+      setBuildingDraft(null);
+      buildingDraftStart.current = null;
     }
     setIsDrawing(false);
+  };
+
+  // Suggest the next building letter — first free letter in the KSYK set.
+  const suggestBuildingLetter = (): string => {
+    const used = new Set([
+      ...buildings.map((b) => b.letter.toUpperCase()),
+      ...rooms.map((r) => extractBuilding(r.roomNumber)),
+    ]);
+    const preferred = ["A", "K", "L", "M", "R", "U"];
+    for (const l of preferred) if (!used.has(l)) return l;
+    // Fallback: next unused single letter.
+    for (let i = 0; i < 26; i++) {
+      const l = String.fromCharCode(65 + i);
+      if (!used.has(l)) return l;
+    }
+    return "X";
   };
 
   const autoIncrementRoomNumber = (num: string): string => {
@@ -726,12 +870,88 @@ export default function ImprovedKSYKBuilder() {
           fetch(`/api/rooms/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" })
         )
       );
+
+      // Persist locally-drawn buildings that aren't already server-side.
+      // (Reuses the same /api/buildings endpoint used for the auto-derived shells above.)
+      const bldSnapshot = await fetch("/api/buildings", { credentials: "include" });
+      const currentServerBuildings = bldSnapshot.ok ? await bldSnapshot.json() : [];
+      const knownLetters = new Set(
+        currentServerBuildings.map((b: { name?: string }) => (b.name || "").toUpperCase())
+      );
+      const createdBuildings: Record<string, { id: string }> = {};
+      await Promise.all(
+        buildings.map(async (b) => {
+          if (knownLetters.has(b.letter.toUpperCase())) return;
+          const res = await fetch("/api/buildings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: b.letter,
+              nameEn: b.nameEn,
+              nameFi: b.nameFi,
+              floors: b.floors,
+              colorCode: b.color,
+              mapPositionX: b.x,
+              mapPositionY: b.y,
+              description: JSON.stringify({
+                customShape: [
+                  { x: b.x, y: b.y },
+                  { x: b.x + b.width, y: b.y },
+                  { x: b.x + b.width, y: b.y + b.height },
+                  { x: b.x, y: b.y + b.height },
+                ],
+              }),
+            }),
+          });
+          if (res.ok) createdBuildings[b.id] = await res.json();
+        })
+      );
+
+      // Persist hallways as one server row per polyline segment.
+      // Server schema is start/end line segments, so we chunk each polyline.
+      if (hallways.length > 0) {
+        const bldAfter = await fetch("/api/buildings", { credentials: "include" });
+        const buildingsAfter = bldAfter.ok ? await bldAfter.json() : [];
+        const fallbackBuildingId = buildingsAfter[0]?.id;
+        if (fallbackBuildingId) {
+          await Promise.all(
+            hallways.flatMap((h) => {
+              const targetBuildingId = h.buildingId || fallbackBuildingId;
+              return h.points.slice(0, -1).map((p, i) => {
+                const q = h.points[i + 1];
+                return fetch("/api/hallways", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    buildingId: targetBuildingId,
+                    name: `${h.name}${h.points.length > 2 ? ` seg${i + 1}` : ""}`,
+                    startX: Math.round(p.x),
+                    startY: Math.round(p.y),
+                    endX: Math.round(q.x),
+                    endY: Math.round(q.y),
+                    width: h.width,
+                    colorCode: h.color,
+                  }),
+                });
+              });
+            })
+          );
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["hallways"] });
       setDataLoaded(false);
       setUnsavedChanges(false);
+      // Buildings + hallways now live server-side — clear the local staging.
+      setBuildings([]);
+      setHallways([]);
+      setSelectedBuildingId(null);
+      setSelectedHallwayId(null);
       toast({ title: "Published", description: "Map data has been updated." });
     },
     onError: (error) => {
@@ -921,6 +1141,8 @@ export default function ImprovedKSYKBuilder() {
       title: "Draw",
       items: [
         { id: "room" as Tool, icon: <Plus className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Place room", shortcut: "R" },
+        { id: "building" as Tool, icon: <Building2 className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Draw building", shortcut: "B" },
+        { id: "hallway" as Tool, icon: <Waypoints className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Draw hallway", shortcut: "H" },
         { id: "wall" as Tool, icon: <Square className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Draw wall", shortcut: "W" },
         { id: "outline" as Tool, icon: <Layers className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Wing outline", shortcut: "O" },
       ],
@@ -929,7 +1151,7 @@ export default function ImprovedKSYKBuilder() {
       title: "Edit",
       items: [
         { id: "select" as Tool, icon: <MousePointer className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Select", shortcut: "V" },
-        { id: "pan" as Tool, icon: <Hand className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Pan", shortcut: "H" },
+        { id: "pan" as Tool, icon: <Hand className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Pan", shortcut: "Space" },
         { id: "snap", icon: <Grid3x3 className="h-[18px] w-[18px]" strokeWidth={2} />, label: "Snap to grid" },
       ],
     },
@@ -1098,11 +1320,20 @@ export default function ImprovedKSYKBuilder() {
           <div className="shrink-0 p-3 border-b border-border">
             <p className={cn(KICKER, "px-1 mb-2")}>Tools</p>
             <div className="flex flex-col gap-3">
-              {TOOL_GROUPS.map((group) => (
+              {TOOL_GROUPS.map((group, gi) => (
                 <div key={group.title}>
-                  <div className="flex items-center gap-1.5">
+                  {gi > 0 && <div className="h-px bg-border -mx-3 mb-3" />}
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {group.items.map((item) => {
-                      const isActiveTool = (item.id === "select" || item.id === "pan" || item.id === "room" || item.id === "wall" || item.id === "outline") && activeTool === item.id;
+                      const isActiveTool =
+                        (item.id === "select" ||
+                          item.id === "pan" ||
+                          item.id === "room" ||
+                          item.id === "wall" ||
+                          item.id === "outline" ||
+                          item.id === "building" ||
+                          item.id === "hallway") &&
+                        activeTool === item.id;
                       const isSnapOn = item.id === "snap" && snapEnabled;
                       const isDisabled =
                         (item.id === "undo" && !canUndo) ||
@@ -1316,10 +1547,10 @@ export default function ImprovedKSYKBuilder() {
                 variant="outline"
                 className="h-9 rounded-xl text-[11px] gap-1 active:scale-[0.98] transition-all border-border font-semibold"
                 onClick={() => {
-                  setActiveTool("outline");
+                  setActiveTool("building");
                   setPropertyTab("identity");
                 }}
-                title="Draw a new building outline"
+                title="Drag a rectangle to add a building"
               >
                 <Building2 className="h-3 w-3" strokeWidth={2} />
                 Building
@@ -1327,11 +1558,11 @@ export default function ImprovedKSYKBuilder() {
               <Button
                 variant="outline"
                 className="h-9 rounded-xl text-[11px] gap-1 active:scale-[0.98] transition-all border-border font-semibold"
-                onClick={() => setActiveTool("wall")}
-                title="Draw a wall"
+                onClick={() => setActiveTool("hallway")}
+                title="Click to place hallway waypoints; Enter to finish"
               >
-                <Square className="h-3 w-3" strokeWidth={2} />
-                Wall
+                <Waypoints className="h-3 w-3" strokeWidth={2} />
+                Hallway
               </Button>
             </div>
           </div>
@@ -1357,19 +1588,18 @@ export default function ImprovedKSYKBuilder() {
                   </p>
                   <Button
                     onClick={() => {
-                      setActiveTool("room");
+                      setActiveTool("building");
                       setSelectedRoom(null);
                       setSelectedRoomIds(new Set());
                       setPropertyTab("identity");
-                      setRoomData((rd) => ({ ...rd, x: 800, y: 450 }));
                     }}
                     className="mt-5 h-11 rounded-xl bg-[#2563eb] hover:bg-[#1e4fd8] text-white font-semibold gap-1.5 active:scale-[0.98] transition-all px-6"
                   >
-                    <Plus className="h-4 w-4" strokeWidth={2.25} />
+                    <Building2 className="h-4 w-4" strokeWidth={2.25} />
                     Add first building
                   </Button>
                   <p className="text-[10px] text-muted-foreground mt-4 font-mono">
-                    Press R to place · V to select · H to pan
+                    Drag to draw a building · V select · Space pan
                   </p>
                 </div>
               </div>
@@ -1594,6 +1824,124 @@ export default function ImprovedKSYKBuilder() {
                 />
               )}
 
+              {/* Buildings — colored outlines under everything with a letter chip. */}
+              {buildings.map((b) => {
+                const isSel = selectedBuildingId === b.id;
+                return (
+                  <g
+                    key={b.id}
+                    onMouseDown={(e) => {
+                      if (activeTool !== "select") return;
+                      e.stopPropagation();
+                      setSelectedBuildingId(b.id);
+                      setSelectedRoom(null);
+                      setSelectedRoomIds(new Set());
+                    }}
+                    style={{ cursor: activeTool === "select" ? "pointer" : undefined }}
+                  >
+                    <rect
+                      x={b.x}
+                      y={b.y}
+                      width={b.width}
+                      height={b.height}
+                      fill={b.color}
+                      fillOpacity={0.08}
+                      stroke={b.color}
+                      strokeWidth={isSel ? 4 : 3}
+                      strokeDasharray="12,6"
+                      strokeLinejoin="round"
+                      rx={10}
+                    />
+                    <text
+                      x={b.x + b.width / 2}
+                      y={b.y + b.height / 2}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={b.color}
+                      fontSize={Math.min(b.width, b.height) * 0.5}
+                      fontWeight={900}
+                      opacity={0.35}
+                      style={{ pointerEvents: "none", letterSpacing: "-0.02em" }}
+                    >
+                      {b.letter}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* In-progress building drag rectangle. */}
+              {buildingDraft && (
+                <rect
+                  x={Math.min(buildingDraft.x0, buildingDraft.x1)}
+                  y={Math.min(buildingDraft.y0, buildingDraft.y1)}
+                  width={Math.abs(buildingDraft.x1 - buildingDraft.x0)}
+                  height={Math.abs(buildingDraft.y1 - buildingDraft.y0)}
+                  fill="#2563eb"
+                  fillOpacity={0.08}
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  strokeDasharray="12,6"
+                  rx={10}
+                  pointerEvents="none"
+                />
+              )}
+
+              {/* Hallways — fat rounded corridor strokes under rooms. */}
+              {hallways
+                .filter((h) => h.floor === builderFloor)
+                .map((h) => {
+                  const isSel = selectedHallwayId === h.id;
+                  return (
+                    <g
+                      key={h.id}
+                      onMouseDown={(e) => {
+                        if (activeTool !== "select") return;
+                        e.stopPropagation();
+                        setSelectedHallwayId(h.id);
+                        setSelectedRoom(null);
+                        setSelectedRoomIds(new Set());
+                      }}
+                      style={{ cursor: activeTool === "select" ? "pointer" : undefined }}
+                    >
+                      <polyline
+                        points={h.points.map((p) => `${p.x},${p.y}`).join(" ")}
+                        fill="none"
+                        stroke={h.color}
+                        strokeOpacity={isSel ? 0.85 : 0.6}
+                        strokeWidth={h.width}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </g>
+                  );
+                })}
+
+              {/* In-progress hallway polyline (current waypoints). */}
+              {currentHallway.length > 0 && (
+                <>
+                  <polyline
+                    points={currentHallway.map((p) => `${p.x},${p.y}`).join(" ")}
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeOpacity={0.55}
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {currentHallway.map((p, i) => (
+                    <circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={5}
+                      fill="white"
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                    />
+                  ))}
+                </>
+              )}
+
               {walls.map((wall, idx) => (
                 <polyline
                   key={`wall-${idx}`}
@@ -1697,31 +2045,174 @@ export default function ImprovedKSYKBuilder() {
             </svg>
 
             {/* Drawing instructions floating pill */}
-            {isDrawing && (activeTool === "wall" || activeTool === "outline") && (
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-[#2563eb] text-white pl-4 pr-1.5 py-1.5 rounded-2xl shadow-sm">
-                <span className="text-xs font-semibold">
-                  {activeTool === "outline"
-                    ? "Click to add outline points"
-                    : "Click to add wall points"}
-                </span>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 text-xs rounded-xl font-semibold active:scale-[0.98] transition-transform"
-                  onClick={activeTool === "outline" ? finishOutline : finishWall}
-                >
-                  {activeTool === "outline" ? "Finish outline" : "Finish wall"}
-                </Button>
-                <button
-                  type="button"
-                  onClick={cancelDrawing}
-                  title="Cancel drawing"
-                  className="h-8 w-8 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors active:scale-[0.94]"
-                >
-                  <X className="h-4 w-4" strokeWidth={2} />
-                </button>
-              </div>
-            )}
+            {(isDrawing || activeTool === "building" || activeTool === "hallway") &&
+              (activeTool === "wall" ||
+                activeTool === "outline" ||
+                activeTool === "building" ||
+                activeTool === "hallway") && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-[#2563eb] text-white pl-4 pr-1.5 py-1.5 rounded-2xl shadow-sm">
+                  <span className="text-xs font-semibold">
+                    {activeTool === "outline" && "Click to add outline points"}
+                    {activeTool === "wall" && "Click to add wall points"}
+                    {activeTool === "building" && "Drag a rectangle to draw the building shell"}
+                    {activeTool === "hallway" &&
+                      `Click to place waypoints · Enter to finish (${currentHallway.length})`}
+                  </span>
+                  {(activeTool === "outline" || activeTool === "wall" || activeTool === "hallway") && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 text-xs rounded-xl font-semibold active:scale-[0.98] transition-transform"
+                      onClick={
+                        activeTool === "outline"
+                          ? finishOutline
+                          : activeTool === "wall"
+                          ? finishWall
+                          : finishHallway
+                      }
+                    >
+                      {activeTool === "outline" && "Finish outline"}
+                      {activeTool === "wall" && "Finish wall"}
+                      {activeTool === "hallway" && "Finish hallway"}
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={cancelDrawing}
+                    title="Cancel drawing"
+                    className="h-8 w-8 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors active:scale-[0.94]"
+                  >
+                    <X className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+
+            {/* Selected building/hallway inline editor — bottom-left floating card. */}
+            {selectedBuildingId && (() => {
+              const b = buildings.find((x) => x.id === selectedBuildingId);
+              if (!b) return null;
+              const update = (patch: Partial<LocalBuilding>) => {
+                setBuildings((bs) => bs.map((x) => (x.id === b.id ? { ...x, ...patch } : x)));
+                setUnsavedChanges(true);
+              };
+              return (
+                <div className="absolute bottom-14 left-4 z-10 w-[260px] bg-card border border-border shadow-sm rounded-2xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="w-6 h-6 rounded-md ring-1 ring-black/10 text-white text-[12px] font-bold flex items-center justify-center"
+                      style={{ background: b.color }}
+                    >
+                      {b.letter}
+                    </span>
+                    <p className={cn(KICKER, "flex-1")}>Building</p>
+                    <button
+                      type="button"
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
+                      onClick={() => {
+                        setBuildings((bs) => bs.filter((x) => x.id !== b.id));
+                        setSelectedBuildingId(null);
+                        setUnsavedChanges(true);
+                      }}
+                      title="Delete building"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 mb-2">
+                    <Input
+                      value={b.letter}
+                      onChange={(e) => update({ letter: e.target.value.toUpperCase().slice(0, 1) })}
+                      className="h-9 text-sm font-mono font-bold rounded-lg text-center"
+                      maxLength={1}
+                    />
+                    <Input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={b.floors}
+                      onChange={(e) => update({ floors: Math.min(5, Math.max(1, parseInt(e.target.value) || 1)) })}
+                      className="h-9 text-sm font-mono rounded-lg text-center"
+                      title="Floors"
+                    />
+                    <Input
+                      value={b.color}
+                      onChange={(e) => update({ color: e.target.value })}
+                      className="h-9 text-[10px] font-mono rounded-lg"
+                      title="Color"
+                    />
+                  </div>
+                  <Input
+                    value={b.nameEn}
+                    onChange={(e) => update({ nameEn: e.target.value, name: e.target.value })}
+                    placeholder="Name (EN)"
+                    className="h-9 text-xs rounded-lg mb-1.5"
+                  />
+                  <Input
+                    value={b.nameFi}
+                    onChange={(e) => update({ nameFi: e.target.value })}
+                    placeholder="Nimi (FI)"
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+              );
+            })()}
+
+            {selectedHallwayId && (() => {
+              const h = hallways.find((x) => x.id === selectedHallwayId);
+              if (!h) return null;
+              const update = (patch: Partial<LocalHallway>) => {
+                setHallways((hs) => hs.map((x) => (x.id === h.id ? { ...x, ...patch } : x)));
+                setUnsavedChanges(true);
+              };
+              return (
+                <div className="absolute bottom-14 left-4 z-10 w-[260px] bg-card border border-border shadow-sm rounded-2xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Waypoints className="h-4 w-4 text-[#2563eb]" strokeWidth={2} />
+                    <p className={cn(KICKER, "flex-1")}>Hallway</p>
+                    <button
+                      type="button"
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
+                      onClick={() => {
+                        setHallways((hs) => hs.filter((x) => x.id !== h.id));
+                        setSelectedHallwayId(null);
+                        setUnsavedChanges(true);
+                      }}
+                      title="Delete hallway"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                    </button>
+                  </div>
+                  <Input
+                    value={h.name}
+                    onChange={(e) => update({ name: e.target.value })}
+                    placeholder="Name"
+                    className="h-9 text-xs rounded-lg mb-1.5"
+                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={h.floor}
+                      onChange={(e) => update({ floor: parseInt(e.target.value) || 0 })}
+                      className="h-9 text-sm font-mono rounded-lg text-center"
+                      title="Floor"
+                    />
+                    <Input
+                      type="number"
+                      min={2}
+                      max={40}
+                      value={h.width}
+                      onChange={(e) => update({ width: Math.min(40, Math.max(2, parseInt(e.target.value) || 12)) })}
+                      className="h-9 text-sm font-mono rounded-lg text-center"
+                      title="Width (px)"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">
+                    {h.points.length} waypoints
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Status bar */}
             <div className="absolute bottom-0 left-0 right-0 h-8 z-10 flex items-center px-4 gap-3 text-[11px] text-muted-foreground bg-card/90 backdrop-blur-md border-t border-border pointer-events-none select-none">
@@ -1732,6 +2223,24 @@ export default function ImprovedKSYKBuilder() {
                 <span className="ml-1">rooms · floor</span>
                 <span className="font-mono font-semibold ml-1 text-foreground">{builderFloor}</span>
               </span>
+              {buildings.length > 0 && (
+                <>
+                  <span className="opacity-40">·</span>
+                  <span>
+                    <span className="font-mono tabular-nums font-semibold text-foreground">{buildings.length}</span>
+                    <span className="ml-1">new bld.</span>
+                  </span>
+                </>
+              )}
+              {hallways.length > 0 && (
+                <>
+                  <span className="opacity-40">·</span>
+                  <span>
+                    <span className="font-mono tabular-nums font-semibold text-foreground">{hallways.length}</span>
+                    <span className="ml-1">hallways</span>
+                  </span>
+                </>
+              )}
               {selectedRoomIds.size > 0 && (
                 <>
                   <span className="opacity-40">·</span>
@@ -1741,7 +2250,7 @@ export default function ImprovedKSYKBuilder() {
                 </>
               )}
               <span className="ml-auto opacity-60 hidden md:block font-mono text-[10px]">
-                [F] Fit · [V] Select · [H] Pan · [R] Room · Del · Ctrl+Z
+                [V] Select · [R] Room · [B] Building · [H] Hallway · [W] Wall · [Space] Pan · [F] Fit · [Del] · Ctrl+Z
               </span>
             </div>
           </div>
