@@ -15,11 +15,18 @@ function getDb() {
   return db;
 }
 
+// Firestore returns Timestamps (with a toDate() method), not JS Dates.
+// Local instances that were just written back can be Dates. Runtime does
+// `instanceof Date ? … : .toDate()` so the type has to allow both shapes.
+interface FirestoreTimestamp {
+  toDate: () => Date;
+}
+
 interface LoginAttempt {
   email: string;
   attempts: number;
-  lastAttempt: Date;
-  lockedUntil?: Date;
+  lastAttempt: Date | FirestoreTimestamp;
+  lockedUntil?: Date | FirestoreTimestamp;
   ipAddress?: string;
 }
 

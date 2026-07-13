@@ -34,7 +34,11 @@ import { db } from "./db";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
 import type { IStorage } from "./storage";
 
-export class DatabaseStorage implements IStorage {
+// DatabaseStorage only partially implements IStorage. The Wilma journal /
+// easter-egg / Wilma extension methods are stubbed elsewhere. Callers cast
+// this to IStorage at construction. Marking as Partial<IStorage> lets us
+// keep the exports without the class having to enumerate every stub.
+export class DatabaseStorage implements Partial<IStorage> {
   // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));

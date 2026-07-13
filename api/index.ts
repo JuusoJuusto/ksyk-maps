@@ -1474,10 +1474,13 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           return res.status(400).json({ message: 'Invalid events data' });
         }
         
-        // Get real IP address
-        const realIP = req.headers['cf-connecting-ip'] || 
-                       req.headers['x-real-ip'] || 
-                       req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+        // Get real IP address. x-forwarded-for can be string | string[] per
+        // Express types — normalise before splitting on comma.
+        const xff = req.headers['x-forwarded-for'];
+        const xffFirst = Array.isArray(xff) ? xff[0] : xff;
+        const realIP = req.headers['cf-connecting-ip'] ||
+                       req.headers['x-real-ip'] ||
+                       xffFirst?.split(',')[0]?.trim() ||
                        'Unknown';
         
         // Try to store events, but don't fail if storage method doesn't exist
