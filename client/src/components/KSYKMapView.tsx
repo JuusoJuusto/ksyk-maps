@@ -923,7 +923,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
        *   chrome: bg-card, border, shadow-sm, rounded-2xl. Same visual
        *   family as the header + announcement banner. */}
       <div
-        className="absolute right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl border border-border bg-card/95 shadow-sm backdrop-blur-md"
+        className="absolute right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl border border-border bg-card shadow-sm"
         style={{ top: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))' }}
         aria-label="Floor selector"
       >
@@ -971,10 +971,10 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
             title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D-näkymä" : "3D view")}
             className={cn(
-              "w-11 h-11 rounded-2xl border shadow-sm backdrop-blur-md flex items-center justify-center transition-colors active:scale-[0.97]",
+              "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
               is3DMode
                 ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
-                : "bg-card/95 border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+                : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
             )}
           >
             <span className="text-[11px] font-bold tabular-nums">
@@ -989,7 +989,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           aria-label={isFi ? "Keskitä" : "Center"}
           onClick={resetView}
           title={isFi ? "Palauta näkymä" : "Center map"}
-          className="w-11 h-11 rounded-2xl border border-border bg-card/95 text-foreground shadow-sm backdrop-blur-md flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+          className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
         >
           <Crosshair className="h-[18px] w-[18px]" />
         </button>

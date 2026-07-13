@@ -319,56 +319,32 @@ export default function Header({
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className={cn(
-          "overflow-hidden rounded-2xl border shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]",
-          darkMode
-            ? "bg-gray-950/98 border-gray-800/80 backdrop-blur-2xl"
-            : "bg-white/98 border-gray-200/70 backdrop-blur-2xl",
-        )}
+        // Uses the same bg-card + border-border + shadow-sm vocab as
+        // the top bar Header so the sheet reads as an extension of it.
+        className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
         style={{
           maxHeight: "min(85dvh, calc(100dvh - 6rem))",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {/* Identity strip — clean and white to match the top bar.
-         *  Colored icon tile provides a subtle KSYK-blue accent
-         *  without a full colored banner. */}
-        <div className={cn(
-          "flex items-center justify-between px-4 sm:px-5 py-3 border-b",
-          darkMode ? "border-gray-800/70" : "border-gray-100",
-        )}>
+        {/* Identity strip — theme-var driven, matches the top bar. */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn(
-              "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-              darkMode
-                ? "bg-blue-950/40 text-blue-300 ring-1 ring-blue-900/40"
-                : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
-            )}>
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/40">
               <KSYKLogo size="sm" />
             </div>
             <div className="min-w-0">
-              <div className={cn(
-                "text-[15px] font-bold tracking-tight leading-tight",
-                darkMode ? "text-white" : "text-gray-900",
-              )}>
+              <div className="text-[15px] font-bold tracking-tight leading-tight text-foreground">
                 KSYK Maps
               </div>
-              <div className={cn(
-                "text-[11px] leading-tight",
-                darkMode ? "text-gray-500" : "text-gray-500",
-              )}>
+              <div className="text-[11px] leading-tight text-muted-foreground">
                 {currentLang === 'fi' ? 'Kampusnavigointi' : 'Campus navigation'}
               </div>
             </div>
           </div>
           <button
             onClick={() => setShowMobileMenu(false)}
-            className={cn(
-              "h-9 w-9 rounded-full flex items-center justify-center active:scale-90 transition-all",
-              darkMode
-                ? "text-gray-400 hover:text-white hover:bg-gray-800"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
-            )}
+            className="h-9 w-9 rounded-full flex items-center justify-center active:scale-90 transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
             aria-label={currentLang === 'fi' ? 'Sulje valikko' : 'Close menu'}
           >
             <X className="h-5 w-5" strokeWidth={2.5} />

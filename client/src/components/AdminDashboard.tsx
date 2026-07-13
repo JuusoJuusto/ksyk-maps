@@ -1785,32 +1785,63 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent forceMount value="ksyk-builder" className={cn("mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0", activeTab !== "ksyk-builder" && "hidden")}>
-          {/* Builder sub-tabs — rooms / map defaults. Bumped to
-           *  proper 40px tap targets and KSYK-blue active state. */}
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-100 dark:bg-gray-900/60 ring-1 ring-black/5 dark:ring-white/10 self-start mb-4 shrink-0">
+          {/* Builder sub-tabs — much more prominent so admins can find
+           *  the Map Defaults section. Big rows with icons + subtitles,
+           *  KSYK-blue active state, works on mobile + desktop. */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 self-stretch mb-4 shrink-0">
             {([
-              { id: "rooms" as const, label: "Rooms & Floors" },
-              { id: "map" as const, label: "Map Defaults & Rotation" },
-            ]).map(({ id, label }) => (
+              {
+                id: "rooms" as const,
+                icon: Box,
+                label: "Rooms & Floors",
+                desc: "Draw + edit every room, building, and floor",
+              },
+              {
+                id: "map" as const,
+                icon: MapPin,
+                label: "Map Defaults & Rotation",
+                desc: "Home location, zoom, tile theme, rotation — publish to all users",
+              },
+            ]).map(({ id, icon: Icon, label, desc }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setBuilderSubtab(id)}
                 className={cn(
-                  "px-4 py-2 min-h-10 text-sm font-semibold rounded-xl transition-all active:scale-[0.97]",
+                  "text-left px-4 py-3 rounded-2xl border transition-all active:scale-[0.98] flex items-start gap-3",
                   builderSubtab === id
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
-                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-800/60",
+                    ? "border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+                    : "border-border bg-card text-foreground hover:border-blue-300 dark:hover:border-blue-500/60",
                 )}
                 aria-pressed={builderSubtab === id}
               >
-                {label}
+                <span
+                  className={cn(
+                    "h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center shrink-0",
+                    builderSubtab === id
+                      ? "bg-white/15 ring-1 ring-white/20"
+                      : "bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/40",
+                  )}
+                >
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm sm:text-[15px] font-bold tracking-tight leading-tight">
+                    {label}
+                  </div>
+                  <div className={cn(
+                    "text-[11px] sm:text-xs leading-tight mt-0.5",
+                    builderSubtab === id ? "text-blue-100" : "text-muted-foreground",
+                  )}>
+                    {desc}
+                  </div>
+                </div>
               </button>
             ))}
           </div>
 
           {builderSubtab === "rooms" ? (
-            <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-border">
               <ImprovedKSYKBuilder />
             </div>
           ) : (
