@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 // Helper function to convert Firebase Timestamp to Date
 const convertFirebaseDate = (timestamp: any): Date => {
@@ -33,6 +34,7 @@ interface Announcement {
 
 export default function AnnouncementBanner() {
   const { t, i18n } = useTranslation();
+  const { darkMode } = useDarkMode();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
