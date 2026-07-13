@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Monitor, Sparkles } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
+import { trackFeature } from "@/lib/analytics";
 
 type HeaderProps = {
   largeLogo?: boolean;
@@ -69,6 +70,7 @@ export default function Header({
 
   const handleLanguageChange = (lang: string) => {
     localStorage.setItem('ksyk_language', lang);
+    trackFeature('language_change', { lang });
     i18n.changeLanguage(lang).then(() => {
       window.location.reload();
     });
@@ -76,6 +78,7 @@ export default function Header({
 
   const handleThemeChange = async (newTheme: 'light' | 'dark' | 'neon' | 'system') => {
     setTheme(newTheme);
+    trackFeature('theme_change', { theme: newTheme });
     try {
       await fetch('/api/settings', {
         method: 'PUT',

@@ -20,6 +20,7 @@ import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
 import { safeLatLng, safeNum, safeZoom, KSYK_FALLBACK_LAT, KSYK_FALLBACK_LNG } from "@/lib/safeNum";
 import { t as track } from "@/lib/telemetry";
+import { trackFeature } from "@/lib/analytics";
 import {
   getLabelAnchor,
   computeCampusViewBox,
@@ -939,7 +940,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             type="button"
             aria-label={`${isFi ? "Kerros" : "Floor"} ${floor}`}
             aria-pressed={selectedFloor === floor}
-            onClick={() => setSelectedFloor(floor)}
+            onClick={() => { setSelectedFloor(floor); trackFeature('floor_change', { floor }); }}
             className={cn(
               "min-w-[40px] h-10 px-1 rounded-xl text-sm font-bold transition-colors duration-150 leading-none tabular-nums flex items-center justify-center",
               selectedFloor === floor
@@ -968,7 +969,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
             type="button"
             aria-label={is3DMode ? (isFi ? "Vaihda 2D-näkymään" : "Switch to flat 2D") : (isFi ? "Vaihda 3D-näkymään" : "Switch to 3D view")}
             aria-pressed={is3DMode}
-            onClick={() => update("osmPitchDeg", is3DMode ? 0 : 32)}
+            onClick={() => { update("osmPitchDeg", is3DMode ? 0 : 32); trackFeature('3d_toggle', { on: !is3DMode }); }}
             title={is3DMode ? (isFi ? "2D-tasanäkymä" : "Flat 2D view") : (isFi ? "3D-näkymä" : "3D view")}
             className={cn(
               "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
