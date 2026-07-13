@@ -43,6 +43,9 @@ export const trackPageView = async (page: string) => {
       sessionId: getSessionId(),
     };
 
+    // Both endpoints — /track is the batched sink read by AppLogsManager;
+    // /pageview is the dedicated counter the Overview panel reads for its
+    // "pageviews today" card. Both are fire-and-forget and never throw.
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,9 +56,19 @@ export const trackPageView = async (page: string) => {
           userId: getUserId(),
         }
       }),
-    }).catch(() => {
-      // Silently fail - analytics shouldn't break the app
-    });
+    }).catch(() => { /* Silently fail - analytics shouldn't break the app */ });
+
+    await fetch('/api/analytics/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page,
+        timestamp: event.timestamp,
+        sessionId: getSessionId(),
+        userId: getUserId(),
+        referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+      }),
+    }).catch(() => { /* Silently fail */ });
   } catch (error) {
     // Silently fail - analytics shouldn't break the app
   }
@@ -99,7 +112,7 @@ export const trackEasterEgg = async (eggType: string) => {
 };
 
 // Track feature usage
-export const trackFeatureUse = async (feature: string) => {
+export const trackFeatureUse = async (feature: string, meta?: Record<string, unknown>) => {
   try {
     const event: AnalyticsEvent = {
       type: 'feature_use',
@@ -109,6 +122,10 @@ export const trackFeatureUse = async (feature: string) => {
       sessionId: getSessionId(),
     };
 
+    // Fire-and-forget writes to both endpoints — the /track path is the
+    // legacy sink (goes through Firestore's analyticsEvents), and /feature
+    // is a lightweight named-counter sink used by the Overview panel to
+    // build "top features today" without scanning the raw events blob.
     await fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,10 +137,27 @@ export const trackFeatureUse = async (feature: string) => {
         }
       }),
     }).catch(() => {});
+
+    await fetch('/api/analytics/feature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: feature,
+        meta: meta || null,
+        sessionId: getSessionId(),
+        userId: getUserId(),
+        timestamp: event.timestamp,
+      }),
+    }).catch(() => {});
   } catch (error) {
     // Silently fail
   }
 };
+
+// Convenience alias — new call sites should use trackFeature() to keep
+// the intent obvious (mirrors the same shape as trackSearch/trackEasterEgg).
+export const trackFeature = (name: string, meta?: Record<string, unknown>) =>
+  trackFeatureUse(name, meta);
 
 // Track search
 export const trackSearch = async (query: string) => {
@@ -202,6 +236,7 @@ export const useAnalytics = () => {
     trackPageView,
     trackEasterEgg,
     trackFeatureUse,
+    trackFeature,
     trackSearch,
     trackNavigation,
   };

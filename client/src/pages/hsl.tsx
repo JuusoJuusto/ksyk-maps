@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { ChevronLeft } from "lucide-react";
+import { trackFeature } from "@/lib/analytics";
 
 /**
  * HSL kiosk display — full-screen iframe of the school's pre-configured
@@ -17,6 +18,7 @@ export default function HSL() {
 
   useEffect(() => {
     document.title = "Ksyk HSL Näyttö";
+    trackFeature("hsl_page_viewed");
 
     // Full-screen kiosk mode — remember the previous body styles so we
     // can restore them when the user navigates away.

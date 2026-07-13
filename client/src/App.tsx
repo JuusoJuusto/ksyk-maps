@@ -22,6 +22,7 @@ import { initAnalytics } from "@/lib/analytics";
 import { initTelemetry } from "@/lib/telemetry";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
+import { useKsykEasterEggs } from "@/hooks/useKsykEasterEggs";
 import { useLocation } from "wouter";
 
 import KSYKMapsHome from "@/pages/ksykmaps-home";
@@ -59,6 +60,7 @@ function Router() {
   const [, setLocation] = useLocation();
 
   useKonamiCode(() => setLocation("/konami-code-activated"));
+  useKsykEasterEggs();
 
   const { data: appSettings } = useQuery({
     queryKey: ["app-settings"],

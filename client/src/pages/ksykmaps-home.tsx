@@ -7,7 +7,7 @@
  * settings overlay opening and closing.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import Header from "@/components/Header";
@@ -15,11 +15,24 @@ import KSYKMapView from "@/components/KSYKMapView";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
 import StudentLoginGate from "@/components/StudentLoginGate";
 import { cn } from "@/lib/utils";
+import { trackFeature } from "@/lib/analytics";
 
 export default function KSYKMapsHome() {
   const { darkMode } = useDarkMode();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Debounced search feature-usage tracking. We fire only after the user
+  // has paused typing for ~500 ms so we don't count every keystroke as a
+  // "search used" event — the goal is to know when someone actually used
+  // the search bar, not how fast they type.
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const t = setTimeout(() => {
+      trackFeature("home_search_used", { len: searchQuery.length });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   return (
     <div
@@ -39,7 +52,10 @@ export default function KSYKMapsHome() {
       <Header
         searchQuery={settingsOpen ? undefined : searchQuery}
         onSearchChange={settingsOpen ? undefined : setSearchQuery}
-        onOpenSettings={settingsOpen ? undefined : () => setSettingsOpen(true)}
+        onOpenSettings={settingsOpen ? undefined : () => {
+          trackFeature("campus_settings_opened");
+          setSettingsOpen(true);
+        }}
       />
 
       {/* Map container — full-bleed. No bottom-nav padding needed; the map

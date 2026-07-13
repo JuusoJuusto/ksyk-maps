@@ -16,6 +16,7 @@ import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import Builder3D from "@/components/Builder3D";
 import BeaconSurveyor from "@/components/BeaconSurveyor";
 import AnalyticsExternalPanel from "@/components/AnalyticsExternalPanel";
+import OverviewInsightsCards from "@/components/OverviewInsightsCards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1361,6 +1362,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
               </CardContent>
             </Card>
           </div>
+
+          {/* Today's analytics — pageviews, top features, top searches,
+              easter eggs. Data comes from /api/analytics/overview; each
+              section renders its own empty state when there's nothing yet. */}
+          <OverviewInsightsCards />
         </TabsContent>
 
         <TabsContent value="security" className="mt-0 space-y-5">
