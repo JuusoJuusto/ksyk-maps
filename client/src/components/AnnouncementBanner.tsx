@@ -180,13 +180,12 @@ export default function AnnouncementBanner() {
                   </Button>
                   <div
                     // Hidden below 360px so the 5 controls don't crush the
-                    // announcement title on iPhone SE 1st gen and other
-                    // 320-360px phones. Screen readers still announce via
-                    // aria-live on parent.
+                    // announcement title. Screen readers get the "N of M"
+                    // via the aria-live region + the current text
+                    // ("1/5") — no aria-label to avoid double-announcing.
                     className="hidden min-[360px]:block px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded"
                     aria-live="polite"
                     aria-atomic="true"
-                    aria-label={`Announcement ${currentIndex + 1} of ${activeAnnouncements.length}`}
                   >
                     {currentIndex + 1}/{activeAnnouncements.length}
                   </div>

@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import KSYKLogo from "@/components/KSYKLogo";
 import { useTranslation } from "react-i18next";
 import { MapPin, Users, Globe, ArrowRight } from "lucide-react";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { cn } from "@/lib/utils";
 
 /**
  * Landing page — shown to unauthenticated users. Clean KSYK-blue
@@ -11,13 +13,14 @@ import { MapPin, Users, Globe, ArrowRight } from "lucide-react";
  */
 export default function Landing() {
   const { t } = useTranslation();
+  const { darkMode } = useDarkMode();
 
   const handleLogin = () => {
     window.location.href = "/api/login";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
+    <div className={cn("min-h-screen flex flex-col", darkMode ? "dark bg-gray-950" : "bg-gray-50")}>
       {/* Header — floating rounded card, matches the main app chrome. */}
       <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
         <header className="bg-white dark:bg-gray-900 border border-gray-200/70 dark:border-gray-800/70 shadow-sm rounded-2xl overflow-hidden">
