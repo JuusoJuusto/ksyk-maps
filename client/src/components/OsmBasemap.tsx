@@ -164,12 +164,13 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
-      // Aggressive keepBuffer for rotation. Each tile is 256px, so
-      // buffer 12 = ~3072px on each side beyond the visible viewport,
-      // which comfortably covers the 200% enlarged rotation container
-      // even during fast drag gestures. Bumped from 6 (which left
-      // corner tiles half-loaded on real rotation gestures).
-      keepBuffer: 12,
+      // Very aggressive keepBuffer — Leaflet caches 20 tiles beyond the
+      // visible viewport (each tile 256px = ~5120px on each side).
+      // Combined with the 240% enlarged rotation container, tiles are
+      // pre-loaded far outside what's visible so rotation + panning
+      // never blanks a corner. Extra cost: a few dozen 256px images on
+      // mobile — negligible on modern devices.
+      keepBuffer: 20,
       updateWhenIdle: false,
       updateWhenZooming: false,
       crossOrigin: true,
@@ -318,12 +319,13 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
-      // Aggressive keepBuffer for rotation. Each tile is 256px, so
-      // buffer 12 = ~3072px on each side beyond the visible viewport,
-      // which comfortably covers the 200% enlarged rotation container
-      // even during fast drag gestures. Bumped from 6 (which left
-      // corner tiles half-loaded on real rotation gestures).
-      keepBuffer: 12,
+      // Very aggressive keepBuffer — Leaflet caches 20 tiles beyond the
+      // visible viewport (each tile 256px = ~5120px on each side).
+      // Combined with the 240% enlarged rotation container, tiles are
+      // pre-loaded far outside what's visible so rotation + panning
+      // never blanks a corner. Extra cost: a few dozen 256px images on
+      // mobile — negligible on modern devices.
+      keepBuffer: 20,
       updateWhenIdle: false,
       updateWhenZooming: false,
       crossOrigin: true,
@@ -633,8 +635,12 @@ export default function OsmBasemap({
     // slightly conservatively. Bumped to 200%/250% for a generous safety
     // margin: tiles fill in for any rotation angle AND for pitched views
     // where the perspective "horizon" pushes the top tiles further out.
-    const widthPct = 200;
-    const heightPct = pitch > 0 ? 250 : 200;
+    // Very generous — 240% width covers √2 rotation with room to spare
+    // AND leaves buffer for panning during a rotated view without
+    // exposing empty edges. 300% height when pitched — perspective
+    // distortion pushes the top of the tilted plane much further out.
+    const widthPct = 240;
+    const heightPct = pitch > 0 ? 300 : 240;
     // Symmetric expansion around viewport → left/top = -(size - 100) / 2.
     const leftPct = -(widthPct - 100) / 2;
     const topPct = -(heightPct - 100) / 2;
