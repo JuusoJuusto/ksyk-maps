@@ -36,7 +36,7 @@ import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
 import NordbyteStudio from "@/pages/owlapps";
 import NotFound from "@/pages/not-found";
-import BuilderPage from "@/pages/builder";
+// BuilderPage removed — map + builder gutted for clean-slate rebuild.
 import "./lib/i18n";
 
 /** Sends visitors at legacy admin URLs to the single canonical /admin. */
@@ -97,10 +97,7 @@ function Router() {
       <Route path="/admin-ksyk-management-portal/:section" component={LegacyAdminRedirect} />
       <Route path="/admin-ksyk-management-portal" component={LegacyAdminRedirect} />
 
-      {/* Builder — top-level route so users hit /builder directly
-       *  (also linked from the admin nav). Admin-only auth gate lives
-       *  inside the BuilderPage component itself. */}
-      <Route path="/builder" component={BuilderPage} />
+      {/* /builder route removed — builder deleted pending rebuild. */}
 
       {/* Public info pages */}
       <Route path="/hsl" component={HSL} />
