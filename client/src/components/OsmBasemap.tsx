@@ -592,7 +592,7 @@ export default function OsmBasemap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setSettings]);
 
-  // CSS rotation + optional pitch (tilt).
+  // CSS rotation + optional pitch (tilt) — Google-Maps-style continuous coverage.
   //
   // IMPORTANT: rotation is applied to the Leaflet CONTAINER div, NOT to
   // .leaflet-map-pane. Leaflet overrides mapPane.style.transform on every
@@ -600,9 +600,20 @@ export default function OsmBasemap({
   // The container's transform is never touched by Leaflet, so rotation now
   // survives all pan/zoom operations.
   //
-  // Oversizing the container forces Leaflet to think its viewport is larger
-  // than the visible area, so it loads tiles for the rotated corners that
-  // would otherwise be blank.
+  // Coverage strategy: container is oversized to a FIXED 150 % of the visible
+  // viewport in both axes (30 % more when pitched). Rotating a rectangle by
+  // any angle θ grows its axis-aligned bbox by up to √2 (≈ 141 %), so 150 %
+  // gives comfortable margin at every angle without any per-frame reflow.
+  //
+  //   viewport width  = W                container width  = 1.50 * W
+  //   viewport height = H                container height = 1.50 * H  (+ 30 % if pitched)
+  //   container left  = -0.25 * W        container top    = -0.25 * H (- 15 % if pitched)
+  //   → viewport center in container coords = (0.25 W + 0.5 W) / 1.5 W = 50 %
+  //   → transform-origin: 50 % 50 %  (symmetric expansion keeps viewport centered)
+  //
+  // Because the size never depends on rotation, we don't have to reflow / re-
+  // request tiles every degree — Leaflet renders the full 1.5×1.5 tile grid
+  // once and the transform rotates the whole GPU layer.
   useEffect(() => {
     const map = mapRef.current;
     const container = containerRef.current;
@@ -613,14 +624,21 @@ export default function OsmBasemap({
     const rotation = safeNum(settings.osmRotationDeg, 0);
     const pitch = Math.max(0, Math.min(45, safeNum(settings.osmPitchDeg, 0)));
 
-    // Rotated bounding box scale — for any rotation θ of a 1×1 rect,
-    // bbox edges grow to |cos θ| + |sin θ|. Max √2 at 45°.
-    const rad = (rotation * Math.PI) / 180;
-    const scale = Math.abs(Math.cos(rad)) + Math.abs(Math.sin(rad));
-    const sizePct = Math.max(100, scale * 100 + 4);
-    const offsetPct = -(sizePct - 100) / 2;
+    // Fixed oversize factors — see comment above. Width is always 150 %.
+    // Height gets an extra 30 % when pitched so tiles at the perspective
+    // "horizon" (the top of the tilted plane, which visually extends further
+    // than an un-tilted top edge) still load.
+    const widthPct = 150;
+    const heightPct = pitch > 0 ? 180 : 150;
+    // Symmetric expansion around viewport → left/top = -(size - 100) / 2.
+    const leftPct = -(widthPct - 100) / 2;
+    const topPct = -(heightPct - 100) / 2;
 
     container.style.position = "absolute";
+    // Container is symmetric around the viewport, so 50 %/50 % of container
+    // == geographic centre of viewport. This is the whole point of the
+    // symmetric expansion: rotation pivots on the visible centre, not on
+    // some off-screen point.
     container.style.transformOrigin = "50% 50%";
     // GPU-composite the transformed container so rotation + pitch don't
     // re-lay-out the whole tile grid every frame. Only the transform
@@ -632,10 +650,10 @@ export default function OsmBasemap({
     container.style.willChange = "transform";
     container.style.backfaceVisibility = "hidden";
     container.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
-    container.style.width = `${sizePct}%`;
-    container.style.height = `${sizePct}%`;
-    container.style.left = `${offsetPct}%`;
-    container.style.top = `${offsetPct}%`;
+    container.style.width = `${widthPct}%`;
+    container.style.height = `${heightPct}%`;
+    container.style.left = `${leftPct}%`;
+    container.style.top = `${topPct}%`;
     // translateZ(0) forces a compositor layer even when rotation is 0.
     container.style.transform =
       pitch > 0
@@ -652,12 +670,24 @@ export default function OsmBasemap({
       // Do NOT set pane.style.transform — Leaflet owns this for pan translation
     }
 
-    // Two reflow kicks: one after the CSS transition ends, one long-tail
-    // fallback for slow devices. Was four — three of them fired within
-    // the transition window and caused jank on mid-range phones.
+    // After the geometry changes (pitch toggled between 0 and >0 changes the
+    // container height, and initial mount sets the size from scratch),
+    // invalidateSize + a hard re-request of tiles for the new bounds. This
+    // is the "keep loading the map" behaviour — Leaflet only asks for tiles
+    // covering the un-rotated viewport, so once the container grows we have
+    // to tell it "the visible area is bigger now, please fetch more tiles".
+    // A second kick at 900 ms catches slow devices where the CSS transition
+    // finishes late.
     const reflow = () => {
       if (!mapRef.current) return;
-      map.invalidateSize({ animate: false });
+      map.invalidateSize({ animate: false, pan: false });
+      // Re-check what tiles are needed for the (now larger) viewport.
+      // setView with animate:false is idempotent when centre/zoom didn't
+      // change, but it kicks Leaflet's _update() which requests missing
+      // tiles. Cheaper than _resetView (no full re-layout of panes).
+      try {
+        map.setView(map.getCenter(), map.getZoom(), { animate: false });
+      } catch { /* map may have been torn down between the timeout being scheduled and firing */ }
     };
     const t1 = window.setTimeout(reflow, 320);
     const t2 = window.setTimeout(reflow, 900);
