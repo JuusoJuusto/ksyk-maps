@@ -624,12 +624,13 @@ export default function OsmBasemap({
     const rotation = safeNum(settings.osmRotationDeg, 0);
     const pitch = Math.max(0, Math.min(45, safeNum(settings.osmPitchDeg, 0)));
 
-    // Fixed oversize factors — see comment above. Width is always 150 %.
-    // Height gets an extra 30 % when pitched so tiles at the perspective
-    // "horizon" (the top of the tilted plane, which visually extends further
-    // than an un-tilted top edge) still load.
-    const widthPct = 150;
-    const heightPct = pitch > 0 ? 180 : 150;
+    // Fixed oversize factors — 150% barely covered the √2 diagonal at 45°,
+    // leaving corners under-buffered on real devices where Leaflet fetches
+    // slightly conservatively. Bumped to 200%/250% for a generous safety
+    // margin: tiles fill in for any rotation angle AND for pitched views
+    // where the perspective "horizon" pushes the top tiles further out.
+    const widthPct = 200;
+    const heightPct = pitch > 0 ? 250 : 200;
     // Symmetric expansion around viewport → left/top = -(size - 100) / 2.
     const leftPct = -(widthPct - 100) / 2;
     const topPct = -(heightPct - 100) / 2;
@@ -670,28 +671,36 @@ export default function OsmBasemap({
       // Do NOT set pane.style.transform — Leaflet owns this for pan translation
     }
 
-    // After the geometry changes (pitch toggled between 0 and >0 changes the
-    // container height, and initial mount sets the size from scratch),
-    // invalidateSize + a hard re-request of tiles for the new bounds. This
-    // is the "keep loading the map" behaviour — Leaflet only asks for tiles
-    // covering the un-rotated viewport, so once the container grows we have
-    // to tell it "the visible area is bigger now, please fetch more tiles".
-    // A second kick at 900 ms catches slow devices where the CSS transition
-    // finishes late.
+    // After the geometry changes (rotation, pitch toggle, initial mount)
+    // we need to tell Leaflet "your visible viewport is bigger now, go
+    // fetch tiles for it". The reflow function runs invalidateSize +
+    // setView which kicks Leaflet's _update() to prefetch tiles for the
+    // enlarged container. Also force-nudges the tile layer's _update to
+    // request tiles at the container's true bounds even before the CSS
+    // transition finishes.
     const reflow = () => {
       if (!mapRef.current) return;
       map.invalidateSize({ animate: false, pan: false });
-      // Re-check what tiles are needed for the (now larger) viewport.
-      // setView with animate:false is idempotent when centre/zoom didn't
-      // change, but it kicks Leaflet's _update() which requests missing
-      // tiles. Cheaper than _resetView (no full re-layout of panes).
       try {
         map.setView(map.getCenter(), map.getZoom(), { animate: false });
+        // Additionally ping every tile layer to prefetch anything the
+        // enlarged viewport now needs — invalidateSize alone doesn't
+        // always trigger tile requests on rotated maps.
+        map.eachLayer((layer: any) => {
+          if (layer && typeof layer._update === "function") {
+            try { layer._update(); } catch { /* noop */ }
+          }
+        });
       } catch { /* map may have been torn down between the timeout being scheduled and firing */ }
     };
+    // Fire IMMEDIATELY so tiles start loading before the CSS transition
+    // finishes, then again at 320 ms and 900 ms to catch slow devices +
+    // any tiles that didn't finish rendering during the transition.
+    const t0 = window.setTimeout(reflow, 0);
     const t1 = window.setTimeout(reflow, 320);
     const t2 = window.setTimeout(reflow, 900);
     return () => {
+      window.clearTimeout(t0);
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
