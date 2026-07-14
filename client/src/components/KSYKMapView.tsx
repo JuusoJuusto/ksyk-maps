@@ -47,6 +47,7 @@ import {
   Clock,
   BookOpen,
   Crosshair,
+  LocateFixed,
   Navigation,
   Mountain,
 } from "lucide-react";
@@ -955,12 +956,12 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
         ))}
       </div>
 
-      {/* ── Map controls — 3D + Center only. Matches the hamburger
-       *   sheet aesthetic: rounded-2xl, ring-1 depth, single blue
-       *   accent. 44x44px tap targets clear Apple/Google guidance. */}
+      {/* ── Map controls — 3D + Center. Bumped up so they clear the
+       *   zoom stack rendered inside OsmBasemap (zoom stack ends ~104px
+       *   from bottom on iOS). At ~10rem/160px this leaves a clean gap. */}
       <div
         className="absolute right-3 z-40 flex flex-col gap-2"
-        style={{ bottom: 'max(6rem, calc(5rem + env(safe-area-inset-bottom)))' }}
+        style={{ bottom: 'max(10rem, calc(9rem + env(safe-area-inset-bottom)))' }}
       >
         {/* 3D toggle — matches the top bar / banner chrome:
          *  bg-card, border, shadow-sm, rounded-2xl. */}
@@ -984,7 +985,8 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           </button>
         )}
 
-        {/* Center / reset view */}
+        {/* Center / reset view — LocateFixed reads as "target/recenter"
+         *  more clearly than Crosshair, matches Google Maps' recenter. */}
         <button
           type="button"
           aria-label={isFi ? "Keskitä" : "Center"}
@@ -992,7 +994,7 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
           title={isFi ? "Palauta näkymä" : "Center map"}
           className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
         >
-          <Crosshair className="h-[18px] w-[18px]" />
+          <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
         </button>
       </div>
 

@@ -391,7 +391,9 @@ function BuilderWorkspace() {
           />
 
           {isLoading && <LoadingCurtain />}
-          {emptyCampus && <EmptyStateOverlay onStart={() => setActiveTool("building")} />}
+          {/* Empty-state "Get started" popup removed at user request —
+           *  the sidebar Directory already shows an empty state and the
+           *  toolbar itself is discoverable. */}
           {activeTool !== "select" && activeTool !== "pan" && (
             <ToolCoachOverlay tool={activeTool} />
           )}

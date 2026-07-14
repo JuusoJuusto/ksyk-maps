@@ -352,11 +352,12 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
           : "Drag a rectangle to define where users are allowed to pan."}
       </p>
 
-      {/* Framed preview stage. min-h-[380px] on all viewports; 16:10 hint
-          on wider stages keeps it feeling like a hero. */}
+      {/* Framed preview stage. Shorter (220px) in the embed variant so
+       *  it doesn't dominate the narrow builder sidebar; hero-sized
+       *  (380px) in the standalone card variant. */}
       <div className="relative rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 shadow-sm">
         <OsmPreviewMap
-          height={380}
+          height={variant === "embed" ? 220 : 380}
           mode={previewMode}
           onPick={(lat, lng) => {
             // Shift the maxBounds box so it stays centred on the new
@@ -946,9 +947,15 @@ export default function MapSettingsPanel({ variant = "card", className, showPubl
     </Button>
   );
 
-  // ── Body: two-column desktop, stacked mobile ─────────────────────────────
+  // ── Body ──────────────────────────────────────────────────────────────────
+  // Two-column at desktop widths for the standalone card variant, but the
+  // embed variant (used inside the 280px builder sidebar) forces a single
+  // column so the right column doesn't overflow a narrow container.
+  const gridClass = variant === "embed"
+    ? "flex flex-col gap-3"
+    : "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-4";
   const body = (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-4">
+    <div className={gridClass}>
       {/* Left column: hero preview + tile theme */}
       <div className="space-y-4 min-w-0">
         {previewHero}
