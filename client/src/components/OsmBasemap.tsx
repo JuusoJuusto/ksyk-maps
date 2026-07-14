@@ -655,6 +655,12 @@ export default function OsmBasemap({
     container.style.willChange = "transform";
     container.style.backfaceVisibility = "hidden";
     container.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
+    // CRITICAL: null out right/bottom so width/height take priority.
+    // Without this, ancestor CSS (or Tailwind's inset-0) sets right:0
+    // which CSS resolves BEFORE width — leaving the container clipped
+    // to the viewport instead of being 200% wide.
+    container.style.right = "auto";
+    container.style.bottom = "auto";
     container.style.width = `${widthPct}%`;
     container.style.height = `${heightPct}%`;
     container.style.left = `${leftPct}%`;
@@ -741,7 +747,11 @@ export default function OsmBasemap({
       aria-label="OpenStreetMap campus view"
       style={{ width: "100%", height: "100%" }}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* No inset-0 here — the rotation effect owns every position
+       *  property (top/left/width/height/right/bottom) so Tailwind's
+       *  right:0/bottom:0 from inset-0 can't fight with our width:200%
+       *  and clip the container back to the viewport. */}
+      <div ref={containerRef} className="absolute" />
 
       {/* North compass — hidden on mobile to keep the canvas clean per
        *  the user's "4 buttons only" rule; still shown on desktop where
