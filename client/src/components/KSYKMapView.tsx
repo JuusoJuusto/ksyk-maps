@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSettings";
-import { LocateFixed, Plus, Minus, Navigation } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KSYKMapViewProps {
@@ -116,6 +116,24 @@ export default function KSYKMapView(_props: KSYKMapViewProps = {}) {
           />
         </button>
       )}
+
+      {/* Rotate button — click to rotate 30° CW; long-press or shift-click
+       *  rotates CCW. Makes rotation obvious for users who don't know
+       *  MapLibre's right-click drag. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          const dir = e.shiftKey ? -30 : 30;
+          handleRef.current?.setBearing(bearing + dir);
+          setBearing(bearing + dir);
+        }}
+        aria-label="Rotate 30° (shift-click to rotate the other way)"
+        title="Rotate 30° · shift-click to reverse · right-click drag to free-rotate"
+        className="absolute right-3 z-30 w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+        style={{ bottom: "max(12rem, calc(11.5rem + env(safe-area-inset-bottom)))" }}
+      >
+        <RotateCw className="h-[19px] w-[19px]" strokeWidth={2.25} />
+      </button>
 
       {/* Zoom in / out — bottom-right, above 3D/Center */}
       <div

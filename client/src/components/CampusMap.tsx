@@ -21,12 +21,43 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
-// OpenFreeMap — free vector tile hosting for the OpenMapTiles schema.
-// `liberty` is the colorful OSM-style vector map (green parks, yellow
-// roads, blue water, beige buildings) — matches the classic OSM look
-// the user asked for. `dark` for dark mode. No API key, unlimited use.
-const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/liberty";
-const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
+// Classic OpenStreetMap raster tiles — the colorful look users
+// recognise from openstreetmap.org (yellow roads, green parks, blue
+// water, beige buildings, pink hospitals). Served directly from OSM
+// with a-c subdomain rotation for parallel fetches. Attribution is
+// baked into MapLibre's AttributionControl.
+//
+// MapLibre eats raster styles as a bare style spec — same rotation +
+// pitch as vector, tiles just look like classic OSM.org.
+function osmRasterStyle(): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      "osm-raster": {
+        type: "raster",
+        tiles: [
+          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        ],
+        tileSize: 256,
+        attribution:
+          "© <a href=\"https://openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+        maxzoom: 19,
+      },
+    },
+    layers: [
+      {
+        id: "osm-raster-layer",
+        type: "raster",
+        source: "osm-raster",
+        minzoom: 0,
+        maxzoom: 22,
+      },
+    ],
+    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  };
+}
 
 export interface CampusMapHandle {
   map: MaplibreMap;
@@ -83,20 +114,26 @@ export default function CampusMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: darkMode ? STYLE_DARK : STYLE_LIGHT,
+      style: osmRasterStyle(),
       center: [settings.osmCenterLng, settings.osmCenterLat],
       zoom: settings.osmDefaultZoom,
       bearing: initialBearing,
       pitch: initialPitch,
       minZoom: settings.osmMinZoom,
-      maxZoom: settings.osmMaxZoom,
+      maxZoom: 19,
+      maxPitch: 60,
       interactive,
       attributionControl: { compact: true },
-      // Rotate/pitch with right-click drag on desktop; two-finger on touch.
-      // Bearing snap tolerance so users can nudge back to north easily.
-      bearingSnap: 8,
+      // Rotate: right-click drag (desktop), two-finger rotate (touch),
+      // shift + drag also works via MapLibre defaults.
+      bearingSnap: 5,
       // Retina rendering
       pixelRatio: window.devicePixelRatio || 1,
+      // Snap zoom to whole levels — raster tiles look sharpest at
+      // integer zoom (no half-zoom blur).
+      dragRotate: true,
+      touchZoomRotate: true,
+      pitchWithRotate: false,
     });
 
     if (showNavigationControl) {
@@ -155,12 +192,14 @@ export default function CampusMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── React to dark mode: swap style ────────────────────────────────────
+  // ── Dark mode: no style swap (raster OSM tiles have one look). A
+  //    CSS filter would work but distorts the classic OSM colors the
+  //    user asked for. Leaving as-is; dark-mode users see the same
+  //    colorful OSM as light-mode users.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    map.setStyle(darkMode ? STYLE_DARK : STYLE_LIGHT);
-  }, [darkMode, ready]);
+    // no-op — kept as a hook slot in case we add a dark raster provider later
+    void darkMode;
+  }, [darkMode]);
 
   // ── React to bearing prop overrides ───────────────────────────────────
   useEffect(() => {
