@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
-// MapSettingsPanel removed — map + builder gutted for clean-slate rebuild.
+import MapSettingsPanel from "@/components/MapSettingsPanel";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
@@ -299,20 +299,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               </div>
             )}
 
-            {tab === "map" && (
-              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 text-center">
-                <div className="text-[10px] font-bold tracking-[0.22em] uppercase text-blue-600 dark:text-blue-400 mb-2">
-                  Map
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">
-                  Map settings unavailable
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  The map is being rebuilt. Map defaults will return once
-                  the new campus map ships.
-                </p>
-              </div>
-            )}
+            {tab === "map" && <MapSettingsPanel />}
 
             {tab === "accessibility" && (
               <Card className={cn(

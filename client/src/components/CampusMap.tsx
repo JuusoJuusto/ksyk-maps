@@ -22,10 +22,11 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
 // OpenFreeMap — free vector tile hosting for the OpenMapTiles schema.
-// Two styles: liberty (colored, OSM-styled) + positron (light neutral).
-// Bright variant works well in dark mode; positron in light.
-const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/positron";
-const STYLE_DARK = "https://tiles.openfreemap.org/styles/liberty";
+// `liberty` is the colorful OSM-style vector map (green parks, yellow
+// roads, blue water, beige buildings) — matches the classic OSM look
+// the user asked for. `dark` for dark mode. No API key, unlimited use.
+const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/liberty";
+const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 
 export interface CampusMapHandle {
   map: MaplibreMap;
@@ -38,6 +39,9 @@ export interface CampusMapHandle {
   setBearing: (deg: number) => void;
   setPitch: (deg: number) => void;
   recenter: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  getBearing: () => number;
 }
 
 interface CampusMapProps {
@@ -134,6 +138,9 @@ export default function CampusMap({
             essential: true,
           });
         },
+        zoomIn: () => map.zoomIn({ duration: 250 }),
+        zoomOut: () => map.zoomOut({ duration: 250 }),
+        getBearing: () => map.getBearing(),
       };
       onReady?.(handle);
     });

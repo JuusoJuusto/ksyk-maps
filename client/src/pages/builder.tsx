@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import MapSettingsPanel from "@/components/MapSettingsPanel";
 
 type BuilderTool = "select" | "building" | "room" | "hallway";
 
@@ -555,6 +556,14 @@ function BuilderWorkspace() {
                   ))}
                 </ul>
               )}
+            </ToolGroup>
+
+            {/* Map defaults & rotation — inline so admins don't have to
+             *  leave the Builder to tweak center, zoom, bearing, pitch. */}
+            <ToolGroup label="Map defaults">
+              <div className="-mx-1">
+                <MapSettingsPanel variant="embed" showPublish />
+              </div>
             </ToolGroup>
           </div>
         </aside>
