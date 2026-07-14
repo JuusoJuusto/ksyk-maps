@@ -36,7 +36,7 @@ import DevModeEasterEgg from "@/pages/dev-mode";
 import DebugBuildings from "@/pages/debug-buildings";
 import NordbyteStudio from "@/pages/owlapps";
 import NotFound from "@/pages/not-found";
-// BuilderPage removed — map + builder gutted for clean-slate rebuild.
+import BuilderPage from "@/pages/builder";
 import "./lib/i18n";
 
 /** Sends visitors at legacy admin URLs to the single canonical /admin. */
@@ -97,7 +97,8 @@ function Router() {
       <Route path="/admin-ksyk-management-portal/:section" component={LegacyAdminRedirect} />
       <Route path="/admin-ksyk-management-portal" component={LegacyAdminRedirect} />
 
-      {/* /builder route removed — builder deleted pending rebuild. */}
+      {/* Builder — MapLibre-based campus editor with admin auth gate. */}
+      <Route path="/builder" component={BuilderPage} />
 
       {/* Public info pages */}
       <Route path="/hsl" component={HSL} />
