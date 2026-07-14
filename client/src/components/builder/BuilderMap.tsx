@@ -195,7 +195,12 @@ export default function BuilderMap({
         setDrawStart(svgPt);
         setDrawEnd(svgPt);
         mapRef.current?.dragging.disable();
-      } else if (activeTool === "hallway") {
+      } else if (activeTool === "hallway" || activeTool === "polygon") {
+        // Polygon shares the waypoint-collection state with hallway —
+        // both accumulate clicks into hallwayPoints and finalize on
+        // Enter / double-click. Polygon then creates a building whose
+        // bounding rect covers the polygon; the polygon coords can be
+        // stored later once the schema supports polygon buildings.
         e.preventDefault();
         setHallwayPoints((pts) => [...pts, svgPt]);
       } else if (activeTool === "wall") {
@@ -273,6 +278,28 @@ export default function BuilderMap({
       }
     };
 
+    const finalizePolygon = (pts: { x: number; y: number }[]) => {
+      // Polygon → building: compute the axis-aligned bounding rect of
+      // the clicked corners and post as a new building. The current
+      // buildings schema is rectangular, so a polygon's silhouette is
+      // approximated by its bbox. A future migration could add a
+      // `points` field to store the true polygon.
+      if (pts.length < 3) return;
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      onDrawBuilding({
+        mapPositionX: minX,
+        mapPositionY: minY,
+        width: Math.max(1, maxX - minX),
+        height: Math.max(1, maxY - minY),
+      });
+      setHallwayPoints([]);
+    };
+
     const onDoubleClick = (e: MouseEvent) => {
       if (activeTool === "hallway" && hallwayPoints.length >= 2) {
         const buildingId =
@@ -293,10 +320,24 @@ export default function BuilderMap({
           e.preventDefault();
           e.stopPropagation();
         }
+      } else if (activeTool === "polygon" && hallwayPoints.length >= 3) {
+        finalizePolygon(hallwayPoints);
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // Escape cancels any in-flight polygon/hallway/wall waypoints.
+      if (e.key === "Escape" && hallwayPoints.length > 0) {
+        setHallwayPoints([]);
+        return;
+      }
+      // Enter finalizes polygon (min 3 corners) → building bbox.
+      if (e.key === "Enter" && activeTool === "polygon" && hallwayPoints.length >= 3) {
+        finalizePolygon(hallwayPoints);
+        return;
+      }
       if (e.key === "Enter" && activeTool === "hallway" && hallwayPoints.length >= 2) {
         const buildingId =
           selection?.kind === "building"

@@ -164,10 +164,12 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
-      // Larger keepBuffer so rotation/pitch don't blank the corners that
-      // poke outside Leaflet's axis-aligned viewport. Cheap on mobile too —
-      // a few extra 256 px tiles.
-      keepBuffer: 6,
+      // Aggressive keepBuffer for rotation. Each tile is 256px, so
+      // buffer 12 = ~3072px on each side beyond the visible viewport,
+      // which comfortably covers the 200% enlarged rotation container
+      // even during fast drag gestures. Bumped from 6 (which left
+      // corner tiles half-loaded on real rotation gestures).
+      keepBuffer: 12,
       updateWhenIdle: false,
       updateWhenZooming: false,
       crossOrigin: true,
@@ -316,10 +318,12 @@ export default function OsmBasemap({
       // high-DPR phones at max zoom. The `{r}` placeholder in the tile
       // URL gives us @2x crispness without bumping zoom.
       detectRetina: false,
-      // Larger keepBuffer so rotation/pitch don't blank the corners that
-      // poke outside Leaflet's axis-aligned viewport. Cheap on mobile too —
-      // a few extra 256 px tiles.
-      keepBuffer: 6,
+      // Aggressive keepBuffer for rotation. Each tile is 256px, so
+      // buffer 12 = ~3072px on each side beyond the visible viewport,
+      // which comfortably covers the 200% enlarged rotation container
+      // even during fast drag gestures. Bumped from 6 (which left
+      // corner tiles half-loaded on real rotation gestures).
+      keepBuffer: 12,
       updateWhenIdle: false,
       updateWhenZooming: false,
       crossOrigin: true,

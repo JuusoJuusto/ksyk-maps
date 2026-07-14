@@ -321,6 +321,7 @@ function BuilderWorkspace() {
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (e.key === "v" || e.key === "V") setActiveTool("select");
       else if (e.key === "b" || e.key === "B") setActiveTool("building");
+      else if (e.key === "g" || e.key === "G") setActiveTool("polygon");
       else if (e.key === "r" || e.key === "R") setActiveTool("room");
       else if (e.key === "h" || e.key === "H") setActiveTool("hallway");
       else if (e.key === "w" || e.key === "W") setActiveTool("wall");

@@ -369,8 +369,24 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   // snap to the hard-coded school coords. This is the user's "escape
   // hatch" — if anything else is broken (corrupt settings, wrong saved
   // center), hitting Home must ALWAYS recover the KSYK view.
-  const resetView = useCallback(() => {
-    const KM_THRESHOLD_DEG = 0.05; // ~5.5km in latitude
+  // "Center" button — snaps the map back to the ADMIN-CONFIGURED
+  // defaults from /api/map-defaults. If the admin has set a custom
+  // rotation via /admin/builder → Map Defaults & Rotation, that
+  // rotation IS restored here (was being wiped to 0 before, which was
+  // the whole bug). We re-fetch defaults from the server every time so
+  // the admin can update them and Center immediately reflects the new
+  // config without a page reload.
+  const resetView = useCallback(async () => {
+    // Re-fetch admin defaults from the server, apply to store. Silent
+    // failure on network error — we fall back to whatever's in settings.
+    try {
+      await loadMapDefaultsFromServer();
+    } catch { /* keep whatever we already have */ }
+
+    // Read the newly-refreshed values from the same store snapshot the
+    // effect will pick up on next render. Safety-clamp coords to KSYK
+    // area if the admin's data is corrupt (KSYK is our escape hatch).
+    const KM_THRESHOLD_DEG = 0.05;
     let [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
     const drift =
       Math.abs(lat - KSYK_FALLBACK_LAT) + Math.abs(lng - KSYK_FALLBACK_LNG);
@@ -380,17 +396,17 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
     }
     const zoom = safeZoom(settings.osmDefaultZoom);
     flyTo(lat, lng, zoom);
-    // Also clear rotation if it's drifted, so "Home" feels like a true reset.
-    if (Math.abs(safeNum(settings.osmRotationDeg, 0)) > 0.5) {
-      update("osmRotationDeg", 0);
-    }
+    // No manual rotation reset — loadMapDefaultsFromServer already
+    // wrote osmRotationDeg from the admin config, and Leaflet picks
+    // up the change via its own effect. Explicitly setting to 0 (like
+    // the old code did) is what was breaking custom admin rotations.
     setSelectedBuilding(null);
     setSelectedRoom(null);
     setNavFrom(null);
     setNavTo(null);
     setRotateOpen(false);
     track.reset();
-  }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom, settings.osmRotationDeg, update]);
+  }, [flyTo, settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom]);
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) return;

@@ -18,6 +18,7 @@ import {
   Trash2,
   Hand,
   Maximize,
+  PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ export type BuilderTool =
   | "select"
   | "pan"
   | "building"
+  | "polygon"
   | "room"
   | "hallway"
   | "wall";
@@ -46,7 +48,8 @@ interface ToolMeta {
 }
 
 const DRAW_TOOLS: ToolMeta[] = [
-  { id: "building", label: "Building", hint: "Drag to draw building footprint", Icon: Building2, hotkey: "B" },
+  { id: "building", label: "Building", hint: "Drag to draw a rectangular building", Icon: Building2, hotkey: "B" },
+  { id: "polygon",  label: "Polygon",  hint: "Click corners, Enter to finish (arbitrary shape)", Icon: PenTool, hotkey: "G" },
   { id: "room",     label: "Room",     hint: "Drag inside a building to draw a room", Icon: DoorOpen, hotkey: "R" },
   { id: "hallway",  label: "Hallway",  hint: "Click waypoints, Enter to finish", Icon: Route, hotkey: "H" },
   { id: "wall",     label: "Wall",     hint: "Click two points to draw a wall", Icon: Minus, hotkey: "W" },
