@@ -35,17 +35,13 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 
+import type { Building as SharedBuilding } from "@ksyk/shared";
+
 type BuilderTool = "select" | "building" | "room" | "hallway";
 
-interface FeatureBuilding {
-  id: string;
-  name: string;
-  nameEn?: string | null;
-  nameFi?: string | null;
-  colorCode?: string | null;
-  floors?: number | null;
-  points?: Array<{ lng: number; lat: number }>; // polygon corners
-}
+// Local extension of the shared Building for the builder — everything in
+// the shared type plus whatever this file needs beyond it.
+type FeatureBuilding = SharedBuilding;
 
 // ─── Auth gate ────────────────────────────────────────────────────────────
 function useAdminAuth() {
@@ -583,6 +579,22 @@ function BuilderWorkspace() {
             </div>
           )}
 
+          {/* Property panel — shows when a building is selected. Floating
+           *  on the right, matches app card chrome. Edit name/floors/color
+           *  and delete from here. */}
+          {selectedId && (() => {
+            const b = buildings.find((x) => x.id === selectedId);
+            if (!b) return null;
+            return (
+              <BuildingPropertyPanel
+                key={b.id}
+                building={b}
+                onDelete={onDeleteSelected}
+                onClose={() => setSelectedId(null)}
+              />
+            );
+          })()}
+
           {/* Mobile fallback message */}
           <div className="md:hidden absolute inset-0 bg-card/95 flex items-center justify-center p-4 z-40">
             <div className="max-w-sm text-center bg-card border border-border rounded-2xl shadow-sm p-6">
@@ -667,5 +679,130 @@ function ToolButton({
         </span>
       )}
     </button>
+  );
+}
+
+// ─── BuildingPropertyPanel ────────────────────────────────────────────────
+// Compact floating editor for the selected building. Live-syncs edits to
+// /api/buildings/:id via PATCH and hides itself on close.
+const BUILDING_COLORS = [
+  "#2563eb", "#dc2626", "#7c3aed", "#059669",
+  "#f59e0b", "#ec4899", "#06b6d4", "#6b7280",
+];
+
+function BuildingPropertyPanel({
+  building,
+  onDelete,
+  onClose,
+}: {
+  building: FeatureBuilding;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(building.name);
+  const [color, setColor] = useState(building.colorCode ?? "#2563eb");
+  const [floors, setFloors] = useState(building.floors ?? 1);
+
+  const patch = useMutation({
+    mutationFn: async (body: Partial<FeatureBuilding>) => {
+      const res = await apiRequest("PATCH", `/api/buildings/${building.id}`, body);
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/buildings"] }),
+  });
+
+  const isDirty =
+    name !== building.name ||
+    color !== (building.colorCode ?? "#2563eb") ||
+    floors !== (building.floors ?? 1);
+
+  return (
+    <div className="absolute top-3 right-3 z-30 w-72 rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="inline-block w-3 h-3 rounded-full shrink-0"
+            style={{ background: color }}
+          />
+          <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+            Building
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+          aria-label="Close property panel"
+        >
+          ×
+        </button>
+      </div>
+      <div className="p-4 space-y-3">
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full mt-1 h-10 px-3 rounded-lg border border-border bg-background text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Floors
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={floors}
+            onChange={(e) => setFloors(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full mt-1 h-10 px-3 rounded-lg border border-border bg-background text-sm font-mono tabular-nums text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Color
+          </label>
+          <div className="grid grid-cols-8 gap-1.5 mt-1.5">
+            {BUILDING_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                aria-label={`Color ${c}`}
+                className={cn(
+                  "h-7 rounded-lg border-2 transition-all",
+                  color === c ? "border-blue-500 scale-110" : "border-transparent hover:border-border",
+                )}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button
+            type="button"
+            onClick={() => patch.mutate({ name, colorCode: color, floors })}
+            disabled={!isDirty || patch.isPending}
+            className="flex-1 h-10 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] disabled:opacity-40"
+          >
+            {patch.isPending ? "Saving…" : "Save"}
+          </Button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="h-10 px-3 rounded-xl text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            aria-label="Delete building"
+            title="Delete building"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

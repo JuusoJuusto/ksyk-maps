@@ -21,6 +21,10 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // Monorepo-ready aliases for packages/ workspace. Milestone 2:
+      // types + geo helpers live here now. Milestones 3-6 will add
+      // renderer, routing, api under the same @ksyk/* namespace.
+      "@ksyk/shared": path.resolve(import.meta.dirname, "packages", "shared", "src"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),

@@ -1,0 +1,14 @@
+{
+  "name": "@ksyk/shared",
+  "version": "0.1.0",
+  "description": "Shared domain types, schemas, and pure geometry helpers for KSYK Maps",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./geo": "./src/geo/index.ts"
+  }
+}

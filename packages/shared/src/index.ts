@@ -1,0 +1,9 @@
+/**
+ * @ksyk/shared — barrel export.
+ *
+ * Import everything from the package root:
+ *   import type { Building, Room, LatLng } from "@ksyk/shared";
+ *   import { haversineMeters, polygonBounds } from "@ksyk/shared";
+ */
+export * from "./types";
+export * from "./geo";
