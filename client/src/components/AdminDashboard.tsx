@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementManager from "@/components/AnnouncementManager";
-import ImprovedKSYKBuilder from "@/components/ImprovedKSYKBuilder";
-import MapSettingsPanel from "@/components/MapSettingsPanel";
+// Builder components (ImprovedKSYKBuilder, Builder3D) removed — the
+// Builder is now a top-level /builder route with its own admin gate.
+// Admin sidebar links out to /builder instead of embedding the editor.
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
@@ -13,7 +14,6 @@ import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
 import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
-import Builder3D from "@/components/Builder3D";
 import BeaconSurveyor from "@/components/BeaconSurveyor";
 import AnalyticsExternalPanel from "@/components/AnalyticsExternalPanel";
 import OverviewInsightsCards from "@/components/OverviewInsightsCards";
@@ -555,22 +555,22 @@ const ADMIN_BASE = "/admin";
 
 // Canonical tab slugs — also used as URL path segments
 const TAB_SLUGS = [
-  "overview","security","users","campus-map","ksyk-builder","builder-3d",
+  "overview","security","users","campus-map",
   "schedules","tickets","logs","analytics","staff","announcements","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
 // Short URL aliases for the /admin/* route family.
-// e.g. /admin/builder  →  ksyk-builder
+// /admin/builder is no longer handled here — Builder is a top-level
+// route (/builder) with its own auth gate. Old bookmarks redirect
+// via LegacyAdminRedirect.
 const URL_TO_TAB: Record<string, TabSlug> = {
-  builder: "ksyk-builder",
   "map-settings": "campus-map",
   map: "campus-map",
   "2fa-setup": "2fa",
 };
 // Reverse: canonical slug → preferred short URL segment (when on /admin/* base)
 const TAB_TO_SHORT: Partial<Record<TabSlug, string>> = {
-  "ksyk-builder": "builder",
   "campus-map": "map-settings",
 };
 
@@ -609,7 +609,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     const path = tab === "overview" ? adminBase : `${adminBase}/${tab}`;
     setLocation(path);
   };
-  const [builderSubtab, setBuilderSubtab] = useState<"rooms" | "map">("rooms");
+  // builderSubtab retired — Builder moved to /builder.
   // User management state
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({
@@ -871,11 +871,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
-    // Builder nav item now points to ksyk-builder — the map builder
-    // with "Rooms & Floors" and "Map Defaults & Rotation" subtabs.
-    // Deep links to /admin/builder-3d still resolve to the old
-    // 3D-preview view but it's no longer surfaced in the nav.
-    { value: "ksyk-builder", label: "Builder", Icon: Box },
+    // Builder is a top-level /builder route now — the sidebar entry
+    // navigates out via window.location so it opens the full-screen
+    // editor instead of being embedded in the admin frame.
+    { value: "__builder", label: "Builder", Icon: Box, href: "/builder" as const },
     { value: "schedules", label: "Schedules", Icon: Calendar },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
@@ -920,23 +919,32 @@ export default function AdminDashboard({ section }: { section?: string }) {
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
           <div className="space-y-0.5">
-            {NAV_ITEMS.filter(({ value }) => value !== "2fa" && value !== "settings").map(({ value, label, Icon }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => navigate(value)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                  activeTab === value
-                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/50 dark:ring-blue-900/50"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="truncate flex-1 text-left">{label}</span>
-                {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
-              </button>
-            ))}
+            {NAV_ITEMS.filter(({ value }) => value !== "2fa" && value !== "settings").map((item) => {
+              const { value, label, Icon } = item;
+              const href = (item as { href?: string }).href;
+              // External-nav items (e.g. Builder → /builder) navigate the
+              // browser instead of switching the internal tab.
+              const onClick = href
+                ? () => setLocation(href)
+                : () => navigate(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={onClick}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                    activeTab === value
+                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/50 dark:ring-blue-900/50"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate flex-1 text-left">{label}</span>
+                  {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
+                </button>
+              );
+            })}
           </div>
           {isOwner && (
             <>
@@ -1067,8 +1075,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </div>
 
         {/* Scrollable content — full-bleed for map/builder, padded for everything else */}
-        <div className={`flex-1 min-h-0 ${activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d" ? "overflow-hidden" : "overflow-y-auto"}`}>
-          <div className={activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d" ? "h-full" : "p-4 sm:p-6 pb-8"}>
+        <div className={`flex-1 min-h-0 ${activeTab === "campus-map" ? "overflow-hidden" : "overflow-y-auto"}`}>
+          <div className={activeTab === "campus-map" ? "h-full" : "p-4 sm:p-6 pb-8"}>
 
         {/* Section header — auto-rendered from the current tab so every
            section gets a consistent title + description without touching
@@ -1079,8 +1087,6 @@ export default function AdminDashboard({ section }: { section?: string }) {
             security: { title: "Security & Access", description: "Time, IP, login, and per-user access controls.", Icon: Shield },
             users: { title: "Users", description: "Manage admin accounts and per-user access rules.", Icon: Users },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
-            "ksyk-builder": { title: "Map Defaults", description: "Set the home location, default zoom, and tile theme for everyone.", Icon: Box },
-            "builder-3d": { title: "Builder", description: "Place, drag, and edit every room on the live campus map. Toggle 2D / 3D in the toolbar.", Icon: Box },
             schedules: { title: "Room Schedules", description: "Manage classroom timetables shown on the map.", Icon: Calendar },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
             logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
@@ -1093,7 +1099,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
           };
           const meta = sectionMeta[activeTab];
           // Full-height tabs get no header — they need every pixel
-          if (!meta || activeTab === "campus-map" || activeTab === "ksyk-builder" || activeTab === "builder-3d") return null;
+          if (!meta || activeTab === "campus-map") return null;
           const Icon = meta.Icon;
           return (
             <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-6 pb-4 sm:pb-5 border-b border-gray-100 dark:border-gray-800">
@@ -1141,12 +1147,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, accent: "from-blue-500 to-indigo-500", icon: Building, tab: "ksyk-builder", sub: null },
-                    { label: "Rooms", value: total || (rooms as any[]).length, accent: "from-emerald-500 to-teal-500", icon: MapPin, tab: "ksyk-builder", sub: total > 0 ? `${availPct}% available` : null },
+                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, accent: "from-blue-500 to-indigo-500", icon: Building, tab: "__builder", sub: null },
+                    { label: "Rooms", value: total || (rooms as any[]).length, accent: "from-emerald-500 to-teal-500", icon: MapPin, tab: "__builder", sub: total > 0 ? `${availPct}% available` : null },
                     { label: "Staff", value: (staff as any[])?.length ?? 0, accent: "from-amber-500 to-orange-500", icon: IdCard, tab: "staff", sub: null },
                     { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, accent: "from-rose-500 to-pink-500", icon: Megaphone, tab: "announcements", sub: "active" },
                   ].map(({ label, value, accent, icon: Icon, tab, sub }) => (
-                    <button key={label} type="button" onClick={() => navigate(tab)}
+                    <button key={label} type="button"
+                      onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
                       className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-2xl active:scale-[0.98] transition-transform"
                       aria-label={`Go to ${label} tab`}>
                       <Card className="relative overflow-hidden border-0 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 hover:ring-blue-200 dark:hover:ring-blue-900/50 transition-all duration-200 cursor-pointer">
@@ -1246,12 +1253,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
             {[
               { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements", accent: "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-400" },
               { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff", accent: "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800 dark:text-violet-400" },
-              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "ksyk-builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400" },
+              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "__builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400" },
               { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-400" },
               { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400" },
               { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "logs", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800 dark:text-slate-400" },
             ].map(({ label, desc, icon: Icon, tab, accent }) => (
-              <button key={label} type="button" onClick={() => navigate(tab)}
+              <button key={label} type="button"
+                onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
                 className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all hover:-translate-y-px ${accent}`}>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
                   <Icon className="h-4 w-4" />
@@ -1276,7 +1284,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   </CardTitle>
                   <button
                     type="button"
-                    onClick={() => navigate("ksyk-builder")}
+                    onClick={() => setLocation("/builder")}
                     className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
                   >
                     {(buildings as any[]).length > 0 ? "Manage →" : "Add first →"}
@@ -1288,7 +1296,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                   <div className="flex flex-col items-center gap-2 py-6 text-center">
                     <Building className="h-8 w-8 text-gray-300 dark:text-gray-700" />
                     <p className="text-xs text-muted-foreground">No buildings yet — open the Builder to add rooms and floors.</p>
-                    <Button size="sm" variant="outline" className="h-7 text-xs mt-1" onClick={() => navigate("ksyk-builder")}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs mt-1" onClick={() => setLocation("/builder")}>
                       Open Builder
                     </Button>
                   </div>
@@ -1790,78 +1798,8 @@ export default function AdminDashboard({ section }: { section?: string }) {
           <KSYKMapView />
         </TabsContent>
 
-        <TabsContent forceMount value="ksyk-builder" className={cn("mt-0 h-full flex flex-col overflow-hidden p-4 sm:p-6 pb-0", activeTab !== "ksyk-builder" && "hidden")}>
-          {/* Builder sub-tabs — much more prominent so admins can find
-           *  the Map Defaults section. Big rows with icons + subtitles,
-           *  KSYK-blue active state, works on mobile + desktop. */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 self-stretch mb-4 shrink-0">
-            {([
-              {
-                id: "rooms" as const,
-                icon: Box,
-                label: "Rooms & Floors",
-                desc: "Draw + edit every room, building, and floor",
-              },
-              {
-                id: "map" as const,
-                icon: MapPin,
-                label: "Map Defaults & Rotation",
-                desc: "Home location, zoom, tile theme, rotation — publish to all users",
-              },
-            ]).map(({ id, icon: Icon, label, desc }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setBuilderSubtab(id)}
-                className={cn(
-                  "text-left px-4 py-3 rounded-2xl border transition-all active:scale-[0.98] flex items-start gap-3",
-                  builderSubtab === id
-                    ? "border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-600/25"
-                    : "border-border bg-card text-foreground hover:border-blue-300 dark:hover:border-blue-500/60",
-                )}
-                aria-pressed={builderSubtab === id}
-              >
-                <span
-                  className={cn(
-                    "h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center shrink-0",
-                    builderSubtab === id
-                      ? "bg-white/15 ring-1 ring-white/20"
-                      : "bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/40",
-                  )}
-                >
-                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm sm:text-[15px] font-bold tracking-tight leading-tight">
-                    {label}
-                  </div>
-                  <div className={cn(
-                    "text-[11px] sm:text-xs leading-tight mt-0.5",
-                    builderSubtab === id ? "text-blue-100" : "text-muted-foreground",
-                  )}>
-                    {desc}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {builderSubtab === "rooms" ? (
-            <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-border">
-              <ImprovedKSYKBuilder />
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="max-w-3xl pb-6">
-                <MapSettingsPanel showPublish />
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent forceMount value="builder-3d" className={cn("mt-0 h-full overflow-hidden", activeTab !== "builder-3d" && "hidden")}>
-          <Builder3D />
-        </TabsContent>
+        {/* Builder + Builder3D tabs removed — the Builder is now a
+         *  top-level /builder route. Sidebar link "Builder" opens it. */}
 
         <TabsContent value="logs" className="mt-0 space-y-6">
           <AppLogsManager />
