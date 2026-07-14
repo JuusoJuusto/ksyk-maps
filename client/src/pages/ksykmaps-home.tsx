@@ -58,10 +58,14 @@ export default function KSYKMapsHome() {
         }}
       />
 
-      {/* Map container — full-bleed. No bottom-nav padding needed; the map
-          gets the entire remaining viewport, which is what users actually
-          want when navigating campus on a phone. */}
-      <div className="flex-1 overflow-hidden relative min-h-0">
+      {/* Map container — full-bleed. Note: NO overflow-hidden on this
+       *  wrapper. The parent `.ksykmaps-app` already has overflow-hidden
+       *  so nothing leaks outside the viewport, and having a second
+       *  overflow-hidden here was clipping the 240% enlarged map
+       *  container inside OsmBasemap — leaving tile gaps at corners
+       *  during rotation on the main page (Builder didn't have this
+       *  issue because its main wrapper isn't overflow-hidden). */}
+      <div className="flex-1 relative min-h-0">
         <KSYKMapView searchQuery={searchQuery} />
 
         {settingsOpen && (

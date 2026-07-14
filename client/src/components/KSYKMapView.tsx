@@ -202,14 +202,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
   });
 
   const campusBuildings = useMemo(() => {
-    const apiByLetter = new Map<string, Building>();
-    for (const b of buildings as Building[]) {
-      if (b?.name) apiByLetter.set(b.name.toUpperCase(), b);
-    }
-    return (outlinesAsMapBuildings() as Building[]).map((stub) => {
-      const real = apiByLetter.get(stub.name.toUpperCase());
-      return real ? { ...stub, ...real, name: stub.name } : stub;
-    });
+    // ONLY show real buildings from the API. Previously this used the
+    // hardcoded A/U/K/M/R/B wing outlines as a fallback template — but
+    // that leaked into the search bar even when the DB was empty
+    // ("A Wing" showing up when there are 0 buildings).
+    // Wings that admins want on the map are created through the Builder;
+    // no more hidden hardcoded stubs.
+    return (buildings as Building[]).filter((b) => b?.name);
   }, [buildings]);
 
   const maxFloor = useMemo(() => {
@@ -383,17 +382,13 @@ export default function KSYKMapView({ searchQuery = "", highlightLetter = null }
       await loadMapDefaultsFromServer();
     } catch { /* keep whatever we already have */ }
 
-    // Read the newly-refreshed values from the same store snapshot the
-    // effect will pick up on next render. Safety-clamp coords to KSYK
-    // area if the admin's data is corrupt (KSYK is our escape hatch).
-    const KM_THRESHOLD_DEG = 0.05;
-    let [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
-    const drift =
-      Math.abs(lat - KSYK_FALLBACK_LAT) + Math.abs(lng - KSYK_FALLBACK_LNG);
-    if (drift > KM_THRESHOLD_DEG) {
-      lat = KSYK_FALLBACK_LAT;
-      lng = KSYK_FALLBACK_LNG;
-    }
+    // Use exactly what the admin published — no more "5.5km sanity
+    // clamp" back to KSYK Helsinki fallback coords. That clamp was
+    // silently overriding legitimate admin settings whenever the map
+    // center drifted from Helsinki, making the Center button feel
+    // wrong ("I set center to X in admin, why does it go to Y?").
+    // safeLatLng still filters NaN / non-finite values.
+    const [lat, lng] = safeLatLng(settings.osmCenterLat, settings.osmCenterLng);
     const zoom = safeZoom(settings.osmDefaultZoom);
     flyTo(lat, lng, zoom);
     // No manual rotation reset — loadMapDefaultsFromServer already
