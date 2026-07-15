@@ -242,11 +242,41 @@ export async function cleanupOldLoginAttempts(): Promise<number> {
 }
 
 /**
- * Express middleware for rate limiting
- * These are no-op middleware that pass through all requests
- * The actual rate limiting is done in the login endpoints using checkRateLimit()
+ * Express-level rate limiters via `express-rate-limit`.
+ *
+ * Endpoint-level auth throttling is still done in the login handlers
+ * via `checkRateLimit()` (Firestore-backed, per-account). These
+ * limiters are the per-IP first line of defence: they stop credential
+ * spraying, script-driven abuse, and CPU-heavy calls (routing) from
+ * eating the server.
+ *
+ * Tunables live at the top of each factory. Defaults chosen to be
+ * comfortable for normal users on flaky mobile networks (bursts of
+ * ~30 requests / 10 s should never trigger anything below).
  */
+import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
+
+const makeLimiter = (windowMs: number, max: number, message: string): RateLimitRequestHandler =>
+  rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message },
+    // Skip trusted upstream health checks so k8s / uptime probes
+    // don't get 429'd.
+    skip: (req) => req.get("User-Agent")?.includes("HealthCheck") === true,
+  });
+
 export const rateLimiters = {
-  auth: (req: any, res: any, next: any) => next(),
-  passwordReset: (req: any, res: any, next: any) => next(),
+  /** 20 login attempts / 15 min / IP. Pairs with the Firestore per-
+   *  account counter for defence-in-depth. */
+  auth: makeLimiter(15 * 60 * 1000, 20, "Too many auth attempts. Try again later."),
+  /** 6 password-reset requests / hour / IP. */
+  passwordReset: makeLimiter(60 * 60 * 1000, 6, "Too many password reset attempts."),
+  /** 120 general API calls / min / IP. Meant for anything the app
+   *  fires in bulk (search-as-you-type triggers 5-10 hits easily). */
+  general: makeLimiter(60 * 1000, 120, "Rate limit exceeded — slow down."),
+  /** 30 writes / min / IP. Applied to POST/PATCH/DELETE. */
+  mutation: makeLimiter(60 * 1000, 30, "Too many write requests."),
 };

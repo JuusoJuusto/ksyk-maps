@@ -134,7 +134,7 @@ export default function StaffDirectory() {
                         {member.positionEn || member.position}
                       </p>
                       <p className="text-xs text-muted-foreground" data-testid={`text-staff-location-${member.id}`}>
-                        {member.department || 'Main Building'}
+                        {member.department || t('staff.locationUnknown', 'Location TBD')}
                       </p>
                     </div>
                   </div>

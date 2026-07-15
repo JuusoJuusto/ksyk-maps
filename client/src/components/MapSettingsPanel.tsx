@@ -79,12 +79,31 @@ export default function MapSettingsPanel({
     }
   }, [settings]);
 
-  const onResetToKSYK = useCallback(() => {
-    update("osmCenterLat", 60.1859);
-    update("osmCenterLng", 25.0289);
-    update("osmDefaultZoom", 17);
-    update("osmRotationDeg", 0);
-    update("osmPitchDeg", 0);
+  /** Fetch the published Map Defaults and use them as the reset target.
+   *  No hardcoded coordinates: the source of truth is /api/map-defaults,
+   *  which the admin publishes from the Builder. */
+  const onResetToKSYK = useCallback(async () => {
+    try {
+      const res = await fetch("/api/map-defaults");
+      if (res.ok) {
+        const defaults = await res.json() as {
+          center?: { lat: number; lng: number };
+          zoom?: number;
+          bearing?: number;
+          pitch?: number;
+        };
+        if (defaults.center) {
+          update("osmCenterLat", defaults.center.lat);
+          update("osmCenterLng", defaults.center.lng);
+        }
+        if (typeof defaults.zoom === "number") update("osmDefaultZoom", defaults.zoom);
+        if (typeof defaults.bearing === "number") update("osmRotationDeg", defaults.bearing);
+        if (typeof defaults.pitch === "number") update("osmPitchDeg", defaults.pitch);
+      }
+    } catch {
+      // Network / parse error — leave the current settings alone rather
+      // than overwrite with a hardcoded fallback.
+    }
   }, [update]);
 
   const body = (

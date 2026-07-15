@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  X, 
-  Navigation, 
-  MapPin, 
-  ArrowRight, 
+import { buildRoomSearchIndex } from "@ksyk/shared";
+import type { Room as SharedRoom, Building as SharedBuilding } from "@ksyk/shared";
+import {
+  X,
+  Navigation,
+  MapPin,
+  ArrowRight,
   Clock,
   Route,
   Zap
@@ -42,8 +44,9 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
   const [selectedFrom, setSelectedFrom] = useState<Room | null>(null);
   const [selectedTo, setSelectedTo] = useState<Room | null>(null);
 
-  // Fetch rooms for search
-  const { data: rooms = [] } = useQuery({
+  // Fetch rooms + buildings for search — buildings feed the subtitle
+  // in the search index so the user can filter by building name too.
+  const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["rooms"],
     queryFn: async () => {
       const response = await fetch("/api/rooms");
@@ -51,37 +54,39 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       return response.json();
     },
   });
+  const { data: buildings = [] } = useQuery<SharedBuilding[]>({
+    queryKey: ["buildings"],
+    queryFn: async () => {
+      const response = await fetch("/api/buildings");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
 
-  // Handle search for starting point
-  const handleFromSearch = (query: string) => {
-    setFromQuery(query);
-    if (query.trim()) {
-      const filtered = rooms.filter((room: Room) =>
-        room.roomNumber.toLowerCase().includes(query.toLowerCase()) ||
-        room.name?.toLowerCase().includes(query.toLowerCase()) ||
-        room.nameEn?.toLowerCase().includes(query.toLowerCase()) ||
-        room.type.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 5);
-      setFromResults(filtered);
-    } else {
-      setFromResults([]);
-    }
+  // Build the search index once per rooms/buildings snapshot. The index
+  // is a strict superset of the previous `toLowerCase().includes()`
+  // logic: adds fuzzy tolerance, prefix, Finnish-name support, and
+  // building/floor cross-field matching, but every previous hit is
+  // still guaranteed to score.
+  const searchIndex = useMemo(
+    () => buildRoomSearchIndex(rooms as unknown as SharedRoom[], buildings),
+    [rooms, buildings],
+  );
+
+  const runSearch = (query: string): Room[] => {
+    if (!query.trim()) return [];
+    return searchIndex
+      .search(query, { limit: 5 })
+      .map((hit) => hit.doc.data!.room as unknown as Room);
   };
 
-  // Handle search for destination
+  const handleFromSearch = (query: string) => {
+    setFromQuery(query);
+    setFromResults(runSearch(query));
+  };
   const handleToSearch = (query: string) => {
     setToQuery(query);
-    if (query.trim()) {
-      const filtered = rooms.filter((room: Room) =>
-        room.roomNumber.toLowerCase().includes(query.toLowerCase()) ||
-        room.name?.toLowerCase().includes(query.toLowerCase()) ||
-        room.nameEn?.toLowerCase().includes(query.toLowerCase()) ||
-        room.type.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 5);
-      setToResults(filtered);
-    } else {
-      setToResults([]);
-    }
+    setToResults(runSearch(query));
   };
 
   // Enhanced pathfinding algorithm with distance-based routing and multi-floor support

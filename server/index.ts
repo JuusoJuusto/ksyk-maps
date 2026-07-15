@@ -4,9 +4,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { setupAuth } from "./simpleAuth";
+import { rateLimiters } from "./rateLimiter";
 // import { createOwnerAdmin } from "./createOwnerAdmin"; // TODO: Re-enable when file exists
 
 const app = express();
+
+// Trust the first reverse proxy (Vercel/Replit/nginx). Required for
+// `express-rate-limit` + `express-session` `secure` cookies to use the
+// client IP rather than the proxy's IP. Set to `1` because we assume
+// exactly one trusted proxy in front — set higher when running behind
+// e.g. Cloudflare → Vercel (a chain of two).
+app.set("trust proxy", 1);
 
 // ── Security headers ──────────────────────────────────────────────────
 // Inline middleware so we don't introduce a helmet dependency. Covers
@@ -47,6 +55,32 @@ app.use((_req, res, next) => {
 // runaway payloads and a class of cheap DoS attacks.
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+// ── Route-parameter validation ────────────────────────────────────
+// Every `/api/…/:id` handler expects an alphanumeric-dash-underscore
+// id. Enforce that at the router layer so no handler can be tricked
+// into forwarding "'; DROP TABLE …" (or a path-traversal fragment) to
+// storage, cache keys, or log lines. Rejects with 400 before the
+// handler ever runs.
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+app.param("id", (req, res, next, value: string) => {
+  if (typeof value !== "string" || !ID_PATTERN.test(value)) {
+    res.status(400).json({ message: "invalid id" });
+    return;
+  }
+  next();
+});
+
+// ── Global write rate-limit ──────────────────────────────────────
+// Per-IP throttle applied to every mutating request. Individual
+// endpoints can layer stricter limits (e.g. rateLimiters.auth on
+// /api/auth/*). Applied inside the /api scope only — Vite dev asset
+// requests are exempt.
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/api")) return next();
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+  return rateLimiters.mutation(req, res, next);
+});
 
 // Tiny NoSQL-injection guard for body / params / query — strips any
 // MongoDB-style operator keys ($where, $ne, $gt, …) that snuck in. We
@@ -151,7 +185,7 @@ app.use((req, res, next) => {
         });
         console.log("✅ Sample data created");
       } catch (error) {
-        console.log("ℹ️ Sample data already exists or error:", error.message);
+        console.log("ℹ️ Sample data already exists or error:", error instanceof Error ? error.message : error);
       }
     }
   });

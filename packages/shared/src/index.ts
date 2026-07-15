@@ -7,3 +7,7 @@
  */
 export * from "./types";
 export * from "./geo";
+export * from "./search";
+export * from "./search/rooms";
+export * from "./spatial";
+export * as schema from "./schema";

@@ -8,6 +8,7 @@ import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
 import { registerCampusRoutes } from "./campusRoutes";
+import { registerMapRoutes } from "./mapRoutes";
 import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = 12;
@@ -5134,6 +5135,9 @@ https://ksykmaps.vercel.app
   // ============================================
   console.log('🏫 Registering KSYK Maps campus routes...');
   registerCampusRoutes(app);
+
+  console.log('🗺️  Registering nav-graph + route + map-package routes...');
+  registerMapRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

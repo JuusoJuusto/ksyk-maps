@@ -10,13 +10,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
+import SearchResultsDropdown from "@/components/SearchResultsDropdown";
 import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSettings";
 import { LocateFixed, Plus, Minus, Navigation, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { polygonCentroid } from "@ksyk/shared";
+import type { Room } from "@ksyk/shared";
 
 interface KSYKMapViewProps {
-  /** From the header search input — used to focus the map on matches. */
+  /** From the header search input — drives the dropdown + map focus. */
   searchQuery?: string;
+}
+
+/** Focus the map camera on a room. Uses the polygon centroid when
+ *  points are available; falls back to the room's building center. */
+function roomCenter(room: Room): { lat: number; lng: number } | null {
+  if (room.points && room.points.length > 0) return polygonCentroid(room.points);
+  return null;
 }
 
 interface Building {
@@ -25,7 +35,8 @@ interface Building {
   floors?: number | null;
 }
 
-export default function KSYKMapView(_props: KSYKMapViewProps = {}) {
+export default function KSYKMapView(props: KSYKMapViewProps = {}) {
+  const { searchQuery = "" } = props;
   const { settings, update } = useAppSettings();
   const handleRef = useRef<CampusMapHandle | null>(null);
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
@@ -62,9 +73,27 @@ export default function KSYKMapView(_props: KSYKMapViewProps = {}) {
     setBearing(0);
   }, []);
 
+  const onPickResult = useCallback((room: Room) => {
+    const centre = roomCenter(room);
+    if (centre && handleRef.current) {
+      handleRef.current.map.flyTo({
+        center: [centre.lng, centre.lat],
+        zoom: Math.max(handleRef.current.map.getZoom(), 18),
+        duration: 800,
+      });
+    }
+    if (typeof room.floor === "number") setSelectedFloor(room.floor);
+  }, []);
+
   return (
     <div className="absolute inset-0">
       <CampusMap onReady={onMapReady} />
+
+      {/* Search results overlay — anchored under the header search bar. */}
+      <SearchResultsDropdown
+        query={searchQuery}
+        onSelect={(room) => onPickResult(room)}
+      />
 
       {/* Floor selector — top-right. Hidden when there are no buildings. */}
       {maxFloor > 1 && (

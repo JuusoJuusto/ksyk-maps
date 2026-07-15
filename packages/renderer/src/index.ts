@@ -9,6 +9,7 @@ import type {
 import { createMaplibreRenderer } from "./adapters/maplibre";
 
 export * from "./types";
+export * from "./scene";
 
 /** Factory — creates a `RendererHandle` backed by the requested adapter. */
 export function createRenderer(

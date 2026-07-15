@@ -211,10 +211,37 @@ export async function generateStructuredOutput<T>(
 // 5. SMART FEATURES FOR KSYK MAPS
 // ============================================
 
-// AI-powered room finder
+/** AI-powered room finder. Pulls the live building/room inventory from
+ *  the API so Gemini gets grounded on the real campus instead of the
+ *  hallucinated "A101-A305" placeholders we used to seed the prompt.
+ *  If the network call fails, the prompt still runs — Gemini just
+ *  doesn't get a room list. */
 export async function findRoomWithAI(query: string): Promise<any> {
+  let corpus = "";
+  try {
+    const [bRes, rRes] = await Promise.all([
+      fetch("/api/buildings").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/rooms").then((r) => (r.ok ? r.json() : [])),
+    ]);
+    const buildings = (bRes as Array<{ id: string; name: string }>) ?? [];
+    const rooms = (rRes as Array<{ roomNumber: string; name?: string; floor?: number; buildingId?: string; type?: string }>) ?? [];
+    if (buildings.length || rooms.length) {
+      const bLine = buildings.map((b) => `- ${b.name} (id=${b.id})`).join("\n");
+      // Cap rooms in the prompt at 200 to stay under token budget; the
+      // most useful ones are the classrooms + labs + special areas, so
+      // dedupe by type first if needed. For now truncate deterministically.
+      const rLine = rooms
+        .slice(0, 200)
+        .map((r) => `- ${r.roomNumber} ${r.name ?? ""}${r.floor !== undefined ? ` (floor ${r.floor})` : ""}${r.type ? ` [${r.type}]` : ""}`)
+        .join("\n");
+      corpus = `Buildings on campus:\n${bLine}\n\nRooms:\n${rLine}`;
+    }
+  } catch {
+    // Network / parse error — proceed with an unseeded prompt.
+  }
+
   const prompt = `You are a helpful assistant for KSYK Maps, a school navigation system.
-  
+
 User query: "${query}"
 
 Based on this query, provide a JSON response with:
@@ -224,11 +251,7 @@ Based on this query, provide a JSON response with:
 - confidence: confidence level (0-1)
 - reasoning: brief explanation
 
-Example rooms in the school:
-- A101-A305 (Building A, floors 1-3)
-- B201-B410 (Building B, floors 2-4)
-- C101-C205 (Building C, floors 1-2)
-- Gym, Cafeteria, Library, Office
+${corpus || "(No campus inventory available — infer from the user query alone.)"}
 
 Respond ONLY with valid JSON.`;
 

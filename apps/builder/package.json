@@ -1,0 +1,12 @@
+{
+  "name": "@ksyk/builder-app",
+  "version": "0.1.0",
+  "description": "KSYK Map Builder (admins). CAD-style editor that publishes MapPackage JSON.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite --config ../../vite.config.ts",
+    "build": "vite build --config ../../vite.config.ts"
+  }
+}

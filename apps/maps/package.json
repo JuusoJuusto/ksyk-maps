@@ -1,0 +1,12 @@
+{
+  "name": "@ksyk/maps-app",
+  "version": "0.1.0",
+  "description": "Public campus map (students). Consumes @ksyk/renderer + @ksyk/routing + @ksyk/api + @ksyk/shared.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite --config ../../vite.config.ts",
+    "build": "vite build --config ../../vite.config.ts"
+  }
+}
