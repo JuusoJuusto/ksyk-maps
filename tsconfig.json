@@ -30,7 +30,11 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"],
       "@ksyk/shared": ["./packages/shared/src/index.ts"],
-      "@ksyk/shared/*": ["./packages/shared/src/*"]
+      "@ksyk/shared/*": ["./packages/shared/src/*"],
+      "@ksyk/renderer": ["./packages/renderer/src/index.ts"],
+      "@ksyk/renderer/*": ["./packages/renderer/src/*"],
+      "@ksyk/routing": ["./packages/routing/src/index.ts"],
+      "@ksyk/api": ["./packages/api/src/index.ts"]
     }
   }
 }

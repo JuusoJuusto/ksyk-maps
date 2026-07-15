@@ -1,0 +1,13 @@
+{
+  "name": "@ksyk/renderer",
+  "version": "0.1.0",
+  "description": "Rendering engine interface + adapters (MapLibre GL, SVG, PixiJS planned)",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapters/maplibre": "./src/adapters/maplibre.ts"
+  }
+}

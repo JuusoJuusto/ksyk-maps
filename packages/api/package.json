@@ -1,0 +1,9 @@
+{
+  "name": "@ksyk/api",
+  "version": "0.1.0",
+  "description": "Typed HTTP client + Prisma-backed server types for KSYK Maps",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

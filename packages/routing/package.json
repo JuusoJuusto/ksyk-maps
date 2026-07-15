@@ -1,0 +1,9 @@
+{
+  "name": "@ksyk/routing",
+  "version": "0.1.0",
+  "description": "Indoor navigation graph + A*/Dijkstra pathfinding for KSYK Maps",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
