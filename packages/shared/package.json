@@ -13,6 +13,8 @@
     "./search": "./src/search/index.ts",
     "./search/rooms": "./src/search/rooms.ts",
     "./spatial": "./src/spatial/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./validation": "./src/validation/index.ts",
+    "./io": "./src/io/index.ts"
   }
 }

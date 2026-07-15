@@ -10,4 +10,6 @@ export * from "./geo";
 export * from "./search";
 export * from "./search/rooms";
 export * from "./spatial";
+export * from "./validation";
+export * from "./io";
 export * as schema from "./schema";
