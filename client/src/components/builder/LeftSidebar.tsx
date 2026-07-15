@@ -1,0 +1,377 @@
+/**
+ * LeftSidebar — Builder left panel with entity lists.
+ *
+ * Tabbed by entity kind. Each tab shows a scrollable list bound to
+ * live React Query data. Clicking an entity selects it (parent
+ * decides what "select" means — usually focus map + open
+ * PropertyPanel on the right).
+ *
+ * Tabs:
+ *   - Buildings — every building on campus, coloured swatch + name.
+ *   - Rooms     — flat list; the search bar filters by number/name.
+ *   - Hallways  — id + width; helpful for graph-editing.
+ *   - Layers    — visibility + lock toggles, drag to reorder (M14.1).
+ *   - History   — version list from /api/map-package/versions.
+ *
+ * The parent supplies `selection` so the highlighted row stays in
+ * sync with the map canvas. Search box lives inside this component;
+ * queries are debounced 120 ms and use `@ksyk/shared`'s indexed
+ * search for the Rooms tab.
+ */
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { buildRoomSearchIndex } from "@ksyk/shared";
+import type { Building, Room, Hallway, MapLayer, MapVersion } from "@ksyk/shared";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+
+export type LeftSidebarTab = "buildings" | "rooms" | "hallways" | "layers" | "history";
+
+export interface LeftSidebarSelection {
+  kind: "building" | "room" | "hallway";
+  id: string;
+}
+
+export interface LeftSidebarProps {
+  activeTab: LeftSidebarTab;
+  onTabChange: (tab: LeftSidebarTab) => void;
+  selection: LeftSidebarSelection | null;
+  onSelect: (sel: LeftSidebarSelection) => void;
+  /** Callback when the user clicks a version — parent restores it. */
+  onRestoreVersion?: (versionId: string) => void;
+}
+
+const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
+  { id: "buildings", label: "Buildings", Icon: Building2 },
+  { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
+  { id: "hallways",  label: "Hallways",  Icon: RouteIcon },
+  { id: "layers",    label: "Layers",    Icon: Layers },
+  { id: "history",   label: "History",   Icon: History },
+];
+
+export default function LeftSidebar({
+  activeTab, onTabChange, selection, onSelect, onRestoreVersion,
+}: LeftSidebarProps) {
+  const { darkMode } = useDarkMode();
+  const [query, setQuery] = useState("");
+
+  return (
+    <aside
+      className={cn(
+        "w-72 shrink-0 flex flex-col border-r overflow-hidden",
+        darkMode ? "bg-gray-900/95 border-gray-800 text-gray-200" : "bg-white border-gray-200 text-gray-800",
+      )}
+    >
+      {/* Tabs */}
+      <div className={cn("grid grid-cols-5 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+        {TABS.map((t) => {
+          const Icon = t.Icon;
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onTabChange(t.id)}
+              aria-pressed={active}
+              title={t.label}
+              className={cn(
+                "flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors border-b-2",
+                active
+                  ? "border-blue-600 text-blue-700 dark:text-blue-300"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className={cn("px-3 py-2 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+        <label className="relative block">
+          <Search className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5", darkMode ? "text-gray-500" : "text-gray-400")} />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Filter ${activeTab}…`}
+            className={cn(
+              "w-full h-8 pl-8 pr-2 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+              darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200",
+            )}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+        </label>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "hallways"  && <HallwayList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "layers"    && <LayerList query={query} />}
+        {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
+      </div>
+    </aside>
+  );
+}
+
+// ── Buildings ─────────────────────────────────────────────────────
+
+function BuildingList({
+  query, selection, onSelect,
+}: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
+  const { data: buildings = [], isLoading } = useQuery<Building[]>({
+    queryKey: ["/api/buildings"],
+    queryFn: async () => {
+      const r = await fetch("/api/buildings");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? buildings.filter((b) => b.name.toLowerCase().includes(q) || (b.nameFi ?? "").toLowerCase().includes(q))
+    : buildings;
+
+  if (isLoading) return <Loading />;
+  if (buildings.length === 0) return <EmptyState message="No buildings yet." hint="Click the Building tool then place 3+ corners on the map." />;
+
+  return (
+    <ul className="p-1.5 space-y-0.5">
+      {filtered.map((b) => (
+        <li key={b.id}>
+          <Row
+            active={selection?.kind === "building" && selection.id === b.id}
+            onClick={() => onSelect({ kind: "building", id: b.id })}
+            leading={<Swatch color={b.colorCode ?? "#2563eb"} />}
+            title={b.name}
+            subtitle={`${b.floors ?? 1} floor${(b.floors ?? 1) === 1 ? "" : "s"}${b.address ? ` · ${b.address}` : ""}`}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────
+
+function RoomList({
+  query, selection, onSelect,
+}: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
+  const { data: rooms = [] } = useQuery<Room[]>({
+    queryKey: ["/api/rooms"],
+    queryFn: async () => {
+      const r = await fetch("/api/rooms");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const { data: buildings = [] } = useQuery<Building[]>({
+    queryKey: ["/api/buildings"],
+    queryFn: async () => {
+      const r = await fetch("/api/buildings");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
+
+  const list = useMemo(() => {
+    if (!query.trim()) {
+      return rooms.map((room) => ({ room, score: 0 }));
+    }
+    return index.search(query, { limit: 200 }).map((hit) => ({
+      room: hit.doc.data!.room as Room,
+      score: hit.score,
+    }));
+  }, [query, index, rooms]);
+
+  if (rooms.length === 0) return <EmptyState message="No rooms yet." hint="Draw a room inside a building using the Room tool." />;
+
+  return (
+    <ul className="p-1.5 space-y-0.5">
+      {list.map(({ room }) => (
+        <li key={room.id}>
+          <Row
+            active={selection?.kind === "room" && selection.id === room.id}
+            onClick={() => onSelect({ kind: "room", id: room.id })}
+            leading={<Swatch color={room.colorCode ?? "#059669"} />}
+            title={`${room.roomNumber}${room.name ? ` · ${room.name}` : ""}`}
+            subtitle={[room.type, room.floor !== undefined ? `Floor ${room.floor}` : null].filter(Boolean).join(" · ")}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── Hallways ──────────────────────────────────────────────────────
+
+function HallwayList({
+  query, selection, onSelect,
+}: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
+  const { data: hallways = [] } = useQuery<Hallway[]>({
+    queryKey: ["/api/hallways"],
+    queryFn: async () => {
+      const r = await fetch("/api/hallways");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const q = query.trim().toLowerCase();
+  const filtered = q ? hallways.filter((h) => h.id.toLowerCase().includes(q)) : hallways;
+
+  if (hallways.length === 0) return <EmptyState message="No hallways yet." hint="Draw a corridor between rooms with the Hallway tool." />;
+
+  return (
+    <ul className="p-1.5 space-y-0.5">
+      {filtered.map((h) => (
+        <li key={h.id}>
+          <Row
+            active={selection?.kind === "hallway" && selection.id === h.id}
+            onClick={() => onSelect({ kind: "hallway", id: h.id })}
+            leading={<Swatch color="#f59e0b" />}
+            title={`Hallway ${h.id.slice(0, 8)}`}
+            subtitle={`${h.width ?? "?"} m${h.surface ? ` · ${h.surface}` : ""}${h.floor !== undefined && h.floor !== null ? ` · Floor ${h.floor}` : ""}`}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── Layers ────────────────────────────────────────────────────────
+
+function LayerList({ query }: { query: string }) {
+  const { data: layers = [] } = useQuery<MapLayer[]>({
+    queryKey: ["/api/layers"],
+    queryFn: async () => {
+      const r = await fetch("/api/layers");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const q = query.trim().toLowerCase();
+  const filtered = q ? layers.filter((l) => l.name.toLowerCase().includes(q)) : layers;
+
+  if (layers.length === 0) return <EmptyState message="No custom layers yet." hint="Layers land in the next Builder update." />;
+
+  return (
+    <ul className="p-1.5 space-y-0.5">
+      {filtered.map((l) => (
+        <li key={l.id}>
+          <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60">
+            {l.visible ? <Eye className="h-3.5 w-3.5 text-blue-600" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+            {l.locked ? <Lock className="h-3.5 w-3.5 text-muted-foreground" /> : <Unlock className="h-3.5 w-3.5 text-muted-foreground" />}
+            <span className="text-sm flex-1 truncate">{l.name}</span>
+            <span className="text-[10px] tabular-nums text-muted-foreground">z{l.z}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── History ───────────────────────────────────────────────────────
+
+function HistoryList({
+  query, onRestore,
+}: { query: string; onRestore?: (id: string) => void }) {
+  const { data: versions = [] } = useQuery<MapVersion[]>({
+    queryKey: ["/api/map-package/versions"],
+    queryFn: async () => {
+      const r = await fetch("/api/map-package/versions");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? versions.filter((v) => (v.message ?? "").toLowerCase().includes(q) || String(v.version).includes(q))
+    : versions;
+
+  if (versions.length === 0) {
+    return <EmptyState message="No versions yet." hint="Every publish creates a version. Save a draft to see it here." />;
+  }
+
+  return (
+    <ul className="p-1.5 space-y-0.5">
+      {filtered.map((v) => (
+        <li key={v.id}>
+          <button
+            type="button"
+            onClick={() => onRestore?.(v.id)}
+            className="w-full text-left rounded-lg px-2 py-2 hover:bg-muted/60 transition-colors"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold">v{v.version}</span>
+              <span className={cn(
+                "text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider",
+                v.published ? "bg-emerald-500/15 text-emerald-600" : "bg-gray-500/15 text-gray-500",
+              )}>
+                {v.published ? "Published" : "Draft"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              {new Date(v.savedAt).toLocaleString()} {v.message ? `· ${v.message}` : ""}
+            </p>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── Row primitive ─────────────────────────────────────────────────
+
+function Row({
+  active, onClick, leading, title, subtitle,
+}: {
+  active: boolean;
+  onClick: () => void;
+  leading?: React.ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors",
+        active
+          ? "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+          : "hover:bg-muted/60 text-foreground",
+      )}
+    >
+      {leading}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{title}</p>
+        {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
+      </div>
+    </button>
+  );
+}
+
+function Swatch({ color }: { color: string }) {
+  return <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />;
+}
+
+function EmptyState({ message, hint }: { message: string; hint?: string }) {
+  return (
+    <div className="p-6 text-center text-muted-foreground">
+      <p className="text-sm font-medium">{message}</p>
+      {hint && <p className="text-xs mt-1 opacity-80">{hint}</p>}
+    </div>
+  );
+}
+
+function Loading() {
+  return <div className="p-6 text-center text-muted-foreground text-sm">Loading…</div>;
+}

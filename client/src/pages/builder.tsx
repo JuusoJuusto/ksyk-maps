@@ -19,6 +19,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import maplibregl, { Map as MaplibreMap, LngLat, MapMouseEvent } from "maplibre-gl";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import PropertyPanel, { type SelectedEntity } from "@/components/builder/PropertyPanel";
+import LeftSidebar, { type LeftSidebarTab, type LeftSidebarSelection } from "@/components/builder/LeftSidebar";
+import StatusBar, { type StatusBarState } from "@/components/builder/StatusBar";
+import TopToolbar from "@/components/builder/TopToolbar";
+import ValidationDrawer from "@/components/builder/ValidationDrawer";
+import ImportExportDialog from "@/components/builder/ImportExportDialog";
 import { Button } from "@/components/ui/button";
 import {
   Building2,
@@ -28,15 +33,15 @@ import {
   Trash2,
   Loader2,
   ShieldAlert,
-  ChevronLeft,
-  Save,
-  Home,
+  Hand,
+  Ruler,
+  Type,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
-import MapSettingsPanel from "@/components/MapSettingsPanel";
-
-import type { Building as SharedBuilding } from "@ksyk/shared";
+import { validateMap } from "@ksyk/shared";
+import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Elevator, MapPackage, ValidationEntityKind } from "@ksyk/shared";
+import { useAutosave } from "@/hooks/useAutosave";
 
 type BuilderTool = "select" | "building" | "room" | "hallway";
 
@@ -113,8 +118,32 @@ function BuilderWorkspace() {
   const qc = useQueryClient();
   const [activeTool, setActiveTool] = useState<BuilderTool>("select");
   const [waypoints, setWaypoints] = useState<LngLat[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<LeftSidebarSelection | null>(null);
   const handleRef = useRef<CampusMapHandle | null>(null);
+
+  // Legacy `selectedId` shim — many downstream effects still key off a
+  // single string. New code uses `selection`.
+  const selectedId = selection?.kind === "building" ? selection.id : null;
+  const setSelectedId = useCallback((id: string | null) => {
+    setSelection(id ? { kind: "building", id } : null);
+  }, []);
+
+  // ── Chrome state ─────────────────────────────────────────────────────
+  const [sidebarTab, setSidebarTab] = useState<LeftSidebarTab>("buildings");
+  const [showValidation, setShowValidation] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [gridEnabled, setGridEnabled] = useState(true);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
+  const [cameraState, setCameraState] = useState({
+    zoom: 17,
+    bearingDeg: 0,
+    activeFloor: 1 as number | null,
+  });
+  const [cursor, setCursor] = useState<{ lat: number; lng: number } | null>(null);
+  const [fps, setFps] = useState<number | null>(null);
 
   const buildingsQ = useQuery<FeatureBuilding[]>({
     queryKey: ["/api/buildings"],
@@ -123,6 +152,56 @@ function BuilderWorkspace() {
     () => buildingsQ.data ?? [],
     [buildingsQ.data],
   );
+
+  // ── Live data for validation + autosave (deduped by React Query) ────
+  const roomsQ = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: async () => (await fetch("/api/rooms")).json().catch(() => []) });
+  const hallwaysQ = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: async () => (await fetch("/api/hallways")).json().catch(() => []) });
+  const floorsQ = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: async () => (await fetch("/api/floors")).json().catch(() => []) });
+  const doorsQ = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: async () => (await fetch("/api/doors")).json().catch(() => []) });
+  const stairsQ = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: async () => (await fetch("/api/stairs")).json().catch(() => []) });
+  const elevatorsQ = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: async () => (await fetch("/api/elevators")).json().catch(() => []) });
+
+  const validation = useMemo(() => validateMap({
+    buildings,
+    rooms: roomsQ.data ?? [],
+    hallways: hallwaysQ.data ?? [],
+    floors: floorsQ.data ?? [],
+    doors: doorsQ.data ?? [],
+    stairs: stairsQ.data ?? [],
+    elevators: elevatorsQ.data ?? [],
+  }), [buildings, roomsQ.data, hallwaysQ.data, floorsQ.data, doorsQ.data, stairsQ.data, elevatorsQ.data]);
+
+  // ── Autosave (M11) — every 30s writes a MapPackage snapshot to
+  //    localStorage + optionally to /api/map-package/draft. ──────────
+  const buildSnapshot = useCallback((): MapPackage => ({
+    manifest: {
+      version: "1.0.0",
+      title: "KSYK Campus (draft)",
+      publishedAt: new Date().toISOString(),
+    },
+    mapDefaults: {
+      center: { lat: 0, lng: 0 }, zoom: 17, bearing: 0, pitch: 0,
+      minZoom: 12, maxZoom: 22,
+    },
+    buildings,
+    floors: floorsQ.data ?? [],
+    rooms: roomsQ.data ?? [],
+    hallways: hallwaysQ.data ?? [],
+    doors: doorsQ.data ?? [],
+    stairs: stairsQ.data ?? [],
+    elevators: elevatorsQ.data ?? [],
+  }), [buildings, floorsQ.data, roomsQ.data, hallwaysQ.data, doorsQ.data, stairsQ.data, elevatorsQ.data]);
+
+  const autosave = useAutosave<MapPackage>({
+    key: "builder-main",
+    snapshot: buildSnapshot,
+    // Remote persist is best-effort — swallow errors so the local copy
+    // still wins.
+    remoteSaver: async () => {
+      try { await apiRequest("POST", "/api/map-package/draft", buildSnapshot()); }
+      catch { /* offline — local save still happened */ }
+    },
+  });
 
   // ── Draw waypoints layer sync ───────────────────────────────────────────
   useEffect(() => {
@@ -425,151 +504,180 @@ function BuilderWorkspace() {
   const isDirty =
     createBuilding.isPending || createHallway.isPending || deleteBuilding.isPending;
 
+  // ── Camera + cursor + FPS wire-up ────────────────────────────────
+  useEffect(() => {
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+    const onMove = () => {
+      setCameraState((s) => ({ ...s, zoom: map.getZoom(), bearingDeg: map.getBearing() }));
+    };
+    const onMouse = (e: MapMouseEvent) => setCursor({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+    map.on("move", onMove);
+    map.on("mousemove", onMouse);
+    onMove();
+    return () => { map.off("move", onMove); map.off("mousemove", onMouse); };
+  }, [handleRef.current]);
+
+  useEffect(() => {
+    let frames = 0;
+    let running = true;
+    let lastReport = performance.now();
+    const tick = (now: number) => {
+      if (!running) return;
+      frames++;
+      const elapsed = now - lastReport;
+      if (elapsed >= 500) {
+        setFps((frames * 1000) / elapsed);
+        frames = 0;
+        lastReport = now;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return () => { running = false; };
+  }, []);
+
+  // ── Import applier — replaces the campus with a MapPackage ─────
+  const applyImport = useCallback(async (pkg: MapPackage) => {
+    // Post buildings first, then rooms, then hallways. Server-side
+    // duplicate ids are rejected — the user is warned by the import
+    // dialog first.
+    for (const b of pkg.buildings) {
+      await apiRequest("POST", "/api/buildings", b).catch(() => { /* skip dups */ });
+    }
+    for (const r of pkg.rooms) {
+      await apiRequest("POST", "/api/rooms", r).catch(() => { /* skip dups */ });
+    }
+    for (const h of pkg.hallways) {
+      await apiRequest("POST", "/api/hallways", h).catch(() => { /* skip dups */ });
+    }
+    qc.invalidateQueries();
+  }, [qc]);
+
+  // ── Publish handler ──────────────────────────────────────────────
+  const onPublish = useCallback(async () => {
+    if (!validation.publishable) {
+      setShowValidation(true);
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      await autosave.forceSave();
+      await apiRequest("POST", "/api/map-package/publish", { versionId: "current" });
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [validation.publishable, autosave]);
+
+  // ── Focus-issue callback for the validation drawer ───────────────
+  const focusIssue = useCallback((kind: ValidationEntityKind, id: string) => {
+    if (kind === "building" || kind === "room" || kind === "hallway") {
+      setSelection({ kind, id });
+      const nextTab: LeftSidebarTab = kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways";
+      setSidebarTab(nextTab);
+    }
+  }, []);
+
+  // ── Save state pill ───────────────────────────────────────────────
+  const saveState: StatusBarState["saveState"] =
+    autosave.status === "saving" ? "saving" :
+    autosave.status === "error"  ? "error" :
+    isDirty || autosave.pendingDraft ? "dirty" :
+    "saved";
+
+  const statusState: StatusBarState = {
+    cursorLat: cursor?.lat ?? null,
+    cursorLng: cursor?.lng ?? null,
+    zoom: cameraState.zoom,
+    bearingDeg: cameraState.bearingDeg,
+    activeFloor: cameraState.activeFloor,
+    activeLayer: null,
+    selectionCount: selection ? 1 : 0,
+    fps,
+    errorCount: validation.errorCount,
+    warningCount: validation.warningCount,
+    saveState,
+  };
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
-      {/* Top bar */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-3 sm:px-4 border-b border-border bg-card">
-        <div className="flex items-center gap-2 min-w-0">
-          <button
-            type="button"
-            onClick={() => setLocation("/")}
-            className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95"
-            aria-label="Back to map"
-            title="Back to map"
-          >
-            <ChevronLeft className="h-5 w-5" strokeWidth={2.25} />
-          </button>
-          <div className="flex items-baseline gap-2.5 min-w-0">
-            <span className="text-[10px] font-bold tracking-[0.22em] uppercase text-blue-600 dark:text-blue-400">
-              KSYK Maps
-            </span>
-            <span className="text-lg font-bold tracking-tight text-foreground hidden sm:inline">
-              Builder
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-full text-[11px] font-semibold",
-              isDirty
-                ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-            )}
-          >
-            <span
-              className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                isDirty ? "bg-amber-500 animate-pulse" : "bg-emerald-500",
-              )}
-            />
-            {isDirty ? "Saving…" : "Saved"}
-          </div>
-          <button
-            type="button"
-            onClick={() => setLocation("/")}
-            className="h-9 px-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
-            title="View public map"
-          >
-            <Home className="h-4 w-4 inline mr-1.5" />
-            <span className="hidden sm:inline">View map</span>
-          </button>
-        </div>
-      </header>
+    <div className="h-screen w-screen flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden relative">
+      {/* Top toolbar */}
+      <div className="relative h-11 shrink-0">
+        <TopToolbar
+          canUndo={false}
+          canRedo={false}
+          isPublishing={isPublishing}
+          hasErrors={validation.errorCount > 0}
+          snapEnabled={snapEnabled}
+          gridEnabled={gridEnabled}
+          onBack={() => setLocation("/")}
+          onSave={() => void autosave.forceSave()}
+          onUndo={() => {/* M14.1 */}}
+          onRedo={() => {/* M14.1 */}}
+          onImport={() => setShowImportExport(true)}
+          onExport={() => setShowImportExport(true)}
+          onToggleGrid={() => setGridEnabled((g) => !g)}
+          onToggleSnap={() => setSnapEnabled((s) => !s)}
+          onZoomIn={() => handleRef.current?.map.zoomIn()}
+          onZoomOut={() => handleRef.current?.map.zoomOut()}
+          onRotateCW={() => handleRef.current?.map.rotateTo(handleRef.current.map.getBearing() + 30)}
+          onPreview={() => setLocation("/")}
+          onValidate={() => setShowValidation(true)}
+          onPublish={() => void onPublish()}
+        />
+      </div>
 
+      {/* Main content — flex row with ToolPalette, LeftSidebar, Canvas */}
       <div className="flex-1 flex min-h-0">
-        {/* Sidebar */}
-        <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card overflow-y-auto">
-          <div className="p-3 space-y-4">
-            <ToolGroup label="Draw">
-              <ToolButton
-                Icon={Building2}
-                label="Building"
-                hotkey="B"
-                active={activeTool === "building"}
-                onClick={() => { setActiveTool("building"); setWaypoints([]); }}
-              />
-              <ToolButton
-                Icon={DoorOpen}
-                label="Room"
-                hotkey="R"
-                active={activeTool === "room"}
-                onClick={() => { setActiveTool("room"); setWaypoints([]); }}
-              />
-              <ToolButton
-                Icon={RouteIcon}
-                label="Hallway"
-                hotkey="H"
-                active={activeTool === "hallway"}
-                onClick={() => { setActiveTool("hallway"); setWaypoints([]); }}
-              />
-            </ToolGroup>
+        {/* Narrow tool palette — icon column at the far left. */}
+        <ToolPalette
+          activeTool={activeTool}
+          selectionCount={selection ? 1 : 0}
+          onTool={(t) => { setActiveTool(t); setWaypoints([]); }}
+          onDelete={onDeleteSelected}
+        />
 
-            <ToolGroup label="Edit">
-              <ToolButton
-                Icon={MousePointer2}
-                label="Select"
-                hotkey="V"
-                active={activeTool === "select"}
-                onClick={() => setActiveTool("select")}
-              />
-              <ToolButton
-                Icon={Trash2}
-                label="Delete"
-                hotkey="Del"
-                active={false}
-                onClick={onDeleteSelected}
-                disabled={!selectedId}
-                variant="danger"
-              />
-            </ToolGroup>
+        {/* Tabbed entity lists — Buildings/Rooms/Hallways/Layers/History. */}
+        <LeftSidebar
+          activeTab={sidebarTab}
+          onTabChange={setSidebarTab}
+          selection={selection}
+          onSelect={(sel) => {
+            setSelection(sel);
+            // Focus the map on the picked entity when possible.
+            const h = handleRef.current;
+            if (sel.kind === "building" && h) {
+              const b = buildings.find((x) => x.id === sel.id);
+              if (b?.points && b.points.length) {
+                const lats = b.points.map((p) => p.lat);
+                const lngs = b.points.map((p) => p.lng);
+                h.map.fitBounds(
+                  [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+                  { padding: 80, duration: 500 },
+                );
+              }
+            } else if (sel.kind === "room" && h) {
+              const r = (roomsQ.data ?? []).find((x) => x.id === sel.id);
+              if (r?.points && r.points.length) {
+                const lats = r.points.map((p) => p.lat);
+                const lngs = r.points.map((p) => p.lng);
+                h.map.fitBounds(
+                  [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+                  { padding: 120, duration: 500 },
+                );
+              }
+            }
+          }}
+          onRestoreVersion={(id) => { void apiRequest("POST", `/api/map-package/versions/${id}/restore`); }}
+        />
 
-            <ToolGroup label="Directory">
-              {buildings.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground px-1">
-                  No buildings yet. Click Building, then click 3+ corners on the map and press Enter.
-                </p>
-              ) : (
-                <ul className="space-y-1">
-                  {buildings.map((b) => (
-                    <li key={b.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(b.id)}
-                        className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                          selectedId === b.id
-                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                            : "hover:bg-muted text-foreground",
-                        )}
-                      >
-                        <span
-                          className="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle"
-                          style={{ background: b.colorCode ?? "#2563eb" }}
-                        />
-                        {b.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </ToolGroup>
-
-            {/* Map defaults & rotation — inline so admins don't have to
-             *  leave the Builder to tweak center, zoom, bearing, pitch. */}
-            <ToolGroup label="Map defaults">
-              <div className="-mx-1">
-                <MapSettingsPanel variant="embed" showPublish />
-              </div>
-            </ToolGroup>
-          </div>
-        </aside>
-
-        {/* Canvas */}
+        {/* Canvas + floating overlays */}
         <main className="flex-1 min-w-0 relative">
           <CampusMap onReady={(h) => (handleRef.current = h)} />
 
-          {/* In-flight coach */}
+          {/* In-flight coach — appears while the user is placing polygon
+           *  corners. Sits above the canvas but below the property panel. */}
           {(activeTool === "building" || activeTool === "room" || activeTool === "hallway") && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none">
               {activeTool === "hallway" ? (
@@ -580,26 +688,59 @@ function BuilderWorkspace() {
             </div>
           )}
 
-          {/* Property panel — full tabbed editor (Properties / Style /
-           *  Transform / Custom) for the selected entity. Building
-           *  selection is the only kind wired today; room/hallway
-           *  selection land as the canvas grows their selection hit
-           *  paths (tracked in M1.1). */}
-          {selectedId && (() => {
-            const b = buildings.find((x) => x.id === selectedId);
-            if (!b) return null;
-            const entity: SelectedEntity = { kind: "building", data: b };
+          {/* Property panel — full tabbed editor. Building selection is
+           *  wired via the canvas click handler; room/hallway selection
+           *  reach here via the LeftSidebar rows above. */}
+          {selection && (() => {
+            let entity: SelectedEntity | null = null;
+            if (selection.kind === "building") {
+              const b = buildings.find((x) => x.id === selection.id);
+              if (b) entity = { kind: "building", data: b };
+            } else if (selection.kind === "room") {
+              const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
+              if (r) entity = { kind: "room", data: r };
+            } else if (selection.kind === "hallway") {
+              const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
+              if (h) entity = { kind: "hallway", data: h };
+            }
+            if (!entity) return null;
             return (
               <PropertyPanel
-                key={b.id}
+                key={selection.id}
                 entity={entity}
                 onDelete={onDeleteSelected}
-                onClose={() => setSelectedId(null)}
+                onClose={() => setSelection(null)}
               />
             );
           })()}
 
-          {/* Mobile fallback message */}
+          {/* Autosave restore banner */}
+          {autosave.pendingDraft && (
+            <div className="absolute top-3 right-3 z-40 max-w-sm bg-blue-500/95 text-white rounded-xl shadow-lg p-3">
+              <p className="text-xs font-semibold mb-1">Unsaved draft found</p>
+              <p className="text-[11px] opacity-90 mb-2">
+                Autosaved {new Date(autosave.pendingDraft.savedAt).toLocaleTimeString()}.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => autosave.discardDraft()}
+                  className="text-[11px] font-semibold px-2 py-1 rounded-md bg-white/15 hover:bg-white/25"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autosave.discardDraft()}
+                  className="text-[11px] font-semibold px-2 py-1 rounded-md bg-white text-blue-700 hover:bg-blue-50"
+                >
+                  Keep working
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile fallback — the editor really is desktop-only. */}
           <div className="md:hidden absolute inset-0 bg-card/95 flex items-center justify-center p-4 z-40">
             <div className="max-w-sm text-center bg-card border border-border rounded-2xl shadow-sm p-6">
               <div className="text-[10px] font-bold tracking-[0.22em] uppercase text-blue-600 dark:text-blue-400 mb-2">
@@ -621,71 +762,116 @@ function BuilderWorkspace() {
           </div>
         </main>
       </div>
+
+      {/* Bottom status bar */}
+      <StatusBar state={statusState} onOpenValidation={() => setShowValidation(true)} />
+
+      {/* Drawers + dialogs */}
+      <ValidationDrawer
+        open={showValidation}
+        onClose={() => setShowValidation(false)}
+        onFocusIssue={focusIssue}
+      />
+      <ImportExportDialog
+        open={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        onImport={applyImport}
+      />
     </div>
   );
 }
 
-// ─── UI helpers ───────────────────────────────────────────────────────────
-function ToolGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground pl-1 mb-2">
-        {label}
-      </div>
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-function ToolButton({
-  Icon,
-  label,
-  hotkey,
-  active,
-  onClick,
-  disabled,
-  variant = "default",
+// ─── Narrow tool palette (icon column, far left) ─────────────────────────
+function ToolPalette({
+  activeTool, selectionCount, onTool, onDelete,
 }: {
-  Icon: typeof Building2;
-  label: string;
-  hotkey?: string;
-  active: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  variant?: "default" | "danger";
+  activeTool: BuilderTool;
+  selectionCount: number;
+  onTool: (t: BuilderTool) => void;
+  onDelete: () => void;
 }) {
+  const tools: Array<{ id: BuilderTool; Icon: typeof MousePointer2; label: string; hotkey: string }> = [
+    { id: "select",   Icon: MousePointer2, label: "Select",   hotkey: "V" },
+    { id: "building", Icon: Building2,     label: "Building", hotkey: "B" },
+    { id: "room",     Icon: DoorOpen,      label: "Room",     hotkey: "R" },
+    { id: "hallway",  Icon: RouteIcon,     label: "Hallway",  hotkey: "H" },
+  ];
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "w-full h-10 rounded-xl px-3 flex items-center gap-2 text-sm font-semibold transition-colors active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none",
-        active
-          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
-          : variant === "danger"
-          ? "text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
-          : "text-foreground hover:bg-muted",
-      )}
-    >
-      <Icon className="h-4 w-4" strokeWidth={2} />
-      <span className="flex-1 text-left">{label}</span>
-      {hotkey && (
-        <span
-          className={cn(
-            "text-[10px] font-mono px-1.5 py-0.5 rounded",
-            active
-              ? "bg-white/20 text-white"
-              : "bg-muted text-muted-foreground",
-          )}
-        >
-          {hotkey}
-        </span>
-      )}
-    </button>
+    <div className="w-12 shrink-0 flex flex-col items-center py-2 gap-1 bg-white/95 dark:bg-gray-900/95 border-r border-gray-200 dark:border-gray-800 backdrop-blur">
+      {tools.map((t) => {
+        const Icon = t.Icon;
+        const active = activeTool === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onTool(t.id)}
+            title={`${t.label} (${t.hotkey})`}
+            aria-label={t.label}
+            aria-pressed={active}
+            className={cn(
+              "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
+              active
+                ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+            )}
+          >
+            <Icon className="h-4 w-4" strokeWidth={2} />
+          </button>
+        );
+      })}
+
+      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
+
+      {/* Placeholder icons for tools we haven't implemented yet — kept
+       *  visible so admins can see the roadmap. Clicking is a no-op. */}
+      <button
+        type="button"
+        disabled
+        title="Pan / Hand (planned)"
+        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
+      >
+        <Hand className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled
+        title="Measure (planned)"
+        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
+      >
+        <Ruler className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled
+        title="Text (planned)"
+        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
+      >
+        <Type className="h-4 w-4" />
+      </button>
+
+      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
+
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={selectionCount === 0}
+        title="Delete selection (Del)"
+        aria-label="Delete selection"
+        className={cn(
+          "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
+          selectionCount === 0
+            ? "text-gray-400 opacity-40 cursor-not-allowed"
+            : "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30",
+        )}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 
-// The old inline BuildingPropertyPanel was extracted into
-// `components/builder/PropertyPanel.tsx` (M1) and now supports rooms +
-// hallways + a tabbed Style/Transform/Custom UX.
+// Old inline UI helpers (ToolGroup/ToolButton) were removed when the
+// Builder migrated to the new TopToolbar/LeftSidebar/ToolPalette layout
+// (M14). BuildingPropertyPanel is now in components/builder/PropertyPanel.tsx.
