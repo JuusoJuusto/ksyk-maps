@@ -146,80 +146,81 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         </button>
       )}
 
-      {/* Rotate button — click to rotate 30° CW; long-press or shift-click
-       *  rotates CCW. Makes rotation obvious for users who don't know
-       *  MapLibre's right-click drag. */}
-      <button
-        type="button"
-        onClick={(e) => {
-          const dir = e.shiftKey ? -30 : 30;
-          handleRef.current?.setBearing(bearing + dir);
-          setBearing(bearing + dir);
-        }}
-        aria-label="Rotate 30° (shift-click to rotate the other way)"
-        title="Rotate 30° · shift-click to reverse · right-click drag to free-rotate"
-        className="absolute right-3 z-30 w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-        style={{ bottom: "max(12rem, calc(11.5rem + env(safe-area-inset-bottom)))" }}
-      >
-        <RotateCw className="h-[19px] w-[19px]" strokeWidth={2.25} />
-      </button>
-
-      {/* Zoom in / out — bottom-right, above 3D/Center */}
+      {/* Right-side control rail — single vertical column with consistent
+       *  spacing so buttons can't overlap the way they did when each stack
+       *  had its own hardcoded `bottom` offset. Groups stay visually
+       *  distinct via the border between them; flex-col gap-3 handles
+       *  the between-group breathing room. */}
       <div
-        className="absolute right-3 z-30 flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-        style={{ bottom: "max(8rem, calc(7.5rem + env(safe-area-inset-bottom)))" }}
-      >
-        <button
-          type="button"
-          onClick={() => handleRef.current?.zoomIn()}
-          aria-label="Zoom in"
-          title="Zoom in"
-          className="w-11 h-11 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
-        >
-          <Plus className="h-[19px] w-[19px]" strokeWidth={2.25} />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleRef.current?.zoomOut()}
-          aria-label="Zoom out"
-          title="Zoom out"
-          className="w-11 h-11 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
-        >
-          <Minus className="h-[19px] w-[19px]" strokeWidth={2.25} />
-        </button>
-      </div>
-
-      {/* 3D toggle + Center — bottom-right, above zoom */}
-      <div
-        className="absolute right-3 z-30 flex flex-col gap-2"
+        className="absolute right-3 z-30 flex flex-col-reverse gap-3 items-end"
         style={{ bottom: "max(1.5rem, calc(1rem + env(safe-area-inset-bottom)))" }}
       >
-        <button
-          type="button"
-          aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
-          aria-pressed={is3D}
-          onClick={toggle3D}
-          title={is3D ? "2D flat" : "3D view"}
-          className={cn(
-            "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
-            is3D
-              ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
-              : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
-          )}
-        >
-          <span className="text-[11px] font-bold tabular-nums">
-            {is3D ? "3D" : "2D"}
-          </span>
-        </button>
+        {/* 3D toggle + Center */}
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
+            aria-pressed={is3D}
+            onClick={toggle3D}
+            title={is3D ? "2D flat" : "3D view"}
+            className={cn(
+              "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
+              is3D
+                ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
+                : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+            )}
+          >
+            <span className="text-[11px] font-bold tabular-nums">
+              {is3D ? "3D" : "2D"}
+            </span>
+          </button>
 
+          <button
+            type="button"
+            aria-label="Center"
+            onClick={recenter}
+            title="Recenter to campus defaults"
+            className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+          >
+            <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
+          </button>
+        </div>
+
+        {/* Zoom in / out — attached pair, one rounded chip. */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <button
+            type="button"
+            onClick={() => handleRef.current?.zoomIn()}
+            aria-label="Zoom in"
+            title="Zoom in"
+            className="w-11 h-11 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+          >
+            <Plus className="h-[19px] w-[19px]" strokeWidth={2.25} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRef.current?.zoomOut()}
+            aria-label="Zoom out"
+            title="Zoom out"
+            className="w-11 h-11 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+          >
+            <Minus className="h-[19px] w-[19px]" strokeWidth={2.25} />
+          </button>
+        </div>
+
+        {/* Rotate — click 30° CW, shift-click 30° CCW. */}
         <button
           type="button"
-          aria-label="Center"
-          onClick={recenter}
-          title="Recenter to campus defaults"
+          onClick={(e) => {
+            const dir = e.shiftKey ? -30 : 30;
+            handleRef.current?.setBearing(bearing + dir);
+            setBearing(bearing + dir);
+          }}
+          aria-label="Rotate 30° (shift-click to rotate the other way)"
+          title="Rotate 30° · shift-click to reverse · right-click drag to free-rotate"
           className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
         >
-          <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
+          <RotateCw className="h-[19px] w-[19px]" strokeWidth={2.25} />
         </button>
       </div>
     </div>

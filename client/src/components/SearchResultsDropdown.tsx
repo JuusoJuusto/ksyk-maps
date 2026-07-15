@@ -20,6 +20,7 @@ import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Room, Building, SearchHit } from "@ksyk/shared";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
+import { fetchList } from "@/lib/fetchList";
 
 export interface SearchResultsDropdownProps {
   query: string;
@@ -42,11 +43,7 @@ export default function SearchResultsDropdown({
 
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    queryFn: async () => {
-      const r = await fetch("/api/rooms");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Room>("/api/rooms"),
     // Stale-time: rooms don't change often; refetch only on window
     // focus so the search stays responsive without a network hit on
     // every keystroke.
@@ -54,11 +51,7 @@ export default function SearchResultsDropdown({
   });
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ["/api/buildings"],
-    queryFn: async () => {
-      const r = await fetch("/api/buildings");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Building>("/api/buildings"),
     staleTime: 60_000,
   });
 

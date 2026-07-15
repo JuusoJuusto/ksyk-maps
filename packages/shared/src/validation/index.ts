@@ -60,6 +60,20 @@ export interface ValidateInput {
 
 /** Run every check and return a consolidated result. */
 export function validateMap(input: ValidateInput): ValidationResult {
+  // Defensive normalisation — any array field that arrived as non-array
+  // (e.g. a `{message}` from a 404) becomes `[]` here so the individual
+  // checks never encounter a non-iterable value. Returning `errorCount:1`
+  // would be more honest but would also block publish on stale data.
+  const safe: ValidateInput = {
+    buildings: Array.isArray(input.buildings) ? input.buildings : [],
+    floors:    Array.isArray(input.floors)    ? input.floors    : [],
+    rooms:     Array.isArray(input.rooms)     ? input.rooms     : [],
+    hallways:  Array.isArray(input.hallways)  ? input.hallways  : [],
+    doors:     Array.isArray(input.doors)     ? input.doors     : [],
+    stairs:    Array.isArray(input.stairs)    ? input.stairs    : [],
+    elevators: Array.isArray(input.elevators) ? input.elevators : [],
+  };
+  input = safe;
   const issues: ValidationIssue[] = [];
   issues.push(...checkDuplicateIds(input));
   issues.push(...checkInvalidPolygons(input));

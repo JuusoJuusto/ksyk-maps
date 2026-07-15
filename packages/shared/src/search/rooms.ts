@@ -30,11 +30,17 @@ export function buildRoomSearchIndex(
   rooms: Room[],
   buildings: Building[] = [],
 ): SearchIndex<RoomSearchPayload> {
+  // Defensive — a 404 leaking a {message:"..."} object into either
+  // argument would explode the for-of loop. Skip non-array inputs
+  // gracefully so the caller UI still renders (empty index).
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const safeBuildings = Array.isArray(buildings) ? buildings : [];
+
   const bIdx = new Map<string, Building>();
-  for (const b of buildings) bIdx.set(b.id, b);
+  for (const b of safeBuildings) bIdx.set(b.id, b);
 
   const idx = new SearchIndex<RoomSearchPayload>();
-  for (const room of rooms) {
+  for (const room of safeRooms) {
     const building = bIdx.get(room.buildingId) ?? null;
     idx.add({
       id: `room:${room.id}`,

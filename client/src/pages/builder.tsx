@@ -42,6 +42,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { validateMap } from "@ksyk/shared";
 import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Elevator, MapPackage, ValidationEntityKind } from "@ksyk/shared";
 import { useAutosave } from "@/hooks/useAutosave";
+import { fetchList } from "@/lib/fetchList";
 
 type BuilderTool = "select" | "building" | "room" | "hallway";
 
@@ -154,12 +155,14 @@ function BuilderWorkspace() {
   );
 
   // ── Live data for validation + autosave (deduped by React Query) ────
-  const roomsQ = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: async () => (await fetch("/api/rooms")).json().catch(() => []) });
-  const hallwaysQ = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: async () => (await fetch("/api/hallways")).json().catch(() => []) });
-  const floorsQ = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: async () => (await fetch("/api/floors")).json().catch(() => []) });
-  const doorsQ = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: async () => (await fetch("/api/doors")).json().catch(() => []) });
-  const stairsQ = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: async () => (await fetch("/api/stairs")).json().catch(() => []) });
-  const elevatorsQ = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: async () => (await fetch("/api/elevators")).json().catch(() => []) });
+  // All queryFn's go through fetchList which guarantees T[] back — so
+  // a 404 or auth redirect can't corrupt validateMap / buildRoomSearchIndex.
+  const roomsQ = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms") });
+  const hallwaysQ = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways") });
+  const floorsQ = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: () => fetchList<Floor>("/api/floors") });
+  const doorsQ = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors") });
+  const stairsQ = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: () => fetchList<Stair>("/api/stairs") });
+  const elevatorsQ = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators") });
 
   const validation = useMemo(() => validateMap({
     buildings,
@@ -249,6 +252,10 @@ function BuilderWorkspace() {
         src.setData(data as any);
       } else {
         map.addSource(sourceId, { type: "geojson", data: data as any });
+        // MapLibre's AddLayerObject union rejects the shape we compose
+        // conditionally per-tool (paint keys differ by layer type). The
+        // runtime shape is provably correct because both branches key
+        // off the same `activeTool` value — cast to bypass the union.
         map.addLayer({
           id: layerId,
           source: sourceId,
@@ -265,7 +272,7 @@ function BuilderWorkspace() {
             activeTool === "hallway"
               ? ["==", "$type", "LineString"]
               : ["==", "$type", "Polygon"],
-        });
+        } as maplibregl.AddLayerObject);
         map.addLayer({
           id: pointsLayerId,
           source: sourceId,

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Room as SharedRoom, Building as SharedBuilding } from "@ksyk/shared";
+import { fetchList } from "@/lib/fetchList";
 import {
   X,
   Navigation,
@@ -48,19 +49,11 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
   // in the search index so the user can filter by building name too.
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["rooms"],
-    queryFn: async () => {
-      const response = await fetch("/api/rooms");
-      if (!response.ok) throw new Error("Failed to fetch rooms");
-      return response.json();
-    },
+    queryFn: () => fetchList<Room>("/api/rooms"),
   });
   const { data: buildings = [] } = useQuery<SharedBuilding[]>({
     queryKey: ["buildings"],
-    queryFn: async () => {
-      const response = await fetch("/api/buildings");
-      if (!response.ok) return [];
-      return response.json();
-    },
+    queryFn: () => fetchList<SharedBuilding>("/api/buildings"),
   });
 
   // Build the search index once per rooms/buildings snapshot. The index

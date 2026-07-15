@@ -101,6 +101,20 @@ function profileFor(name: string | undefined): RoutingProfile {
 }
 
 export function registerMapRoutes(app: Express) {
+  // ── Stub endpoints for entity kinds the storage layer doesn't yet
+  //    persist. Every one MUST return an array (never {message}) so
+  //    client for-of loops don't explode on 404 JSON bodies. Once
+  //    storage grows real methods for these kinds, swap the [] for a
+  //    storage call. ──────────────────────────────────────────────
+  const emptyList = (_req: Request, res: Response) => { res.json([]); };
+  app.get("/api/doors",     emptyList);
+  app.get("/api/stairs",    emptyList);
+  app.get("/api/elevators", emptyList);
+  app.get("/api/windows",   emptyList);
+  app.get("/api/layers",    emptyList);
+  // /api/floors is registered by routes.ts already — don't shadow it.
+
+
   // ── Nav graph (Builder / debugging) ───────────────────────────────
   app.get("/api/route/graph", async (_req: Request, res: Response) => {
     try {

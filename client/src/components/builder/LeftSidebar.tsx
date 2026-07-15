@@ -25,6 +25,7 @@ import type { Building, Room, Hallway, MapLayer, MapVersion } from "@ksyk/shared
 import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { fetchList } from "@/lib/fetchList";
 
 export type LeftSidebarTab = "buildings" | "rooms" | "hallways" | "layers" | "history";
 
@@ -128,11 +129,7 @@ function BuildingList({
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const { data: buildings = [], isLoading } = useQuery<Building[]>({
     queryKey: ["/api/buildings"],
-    queryFn: async () => {
-      const r = await fetch("/api/buildings");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Building>("/api/buildings"),
   });
   const q = query.trim().toLowerCase();
   const filtered = q
@@ -166,19 +163,11 @@ function RoomList({
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    queryFn: async () => {
-      const r = await fetch("/api/rooms");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Room>("/api/rooms"),
   });
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ["/api/buildings"],
-    queryFn: async () => {
-      const r = await fetch("/api/buildings");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Building>("/api/buildings"),
   });
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
 
@@ -218,11 +207,7 @@ function HallwayList({
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const { data: hallways = [] } = useQuery<Hallway[]>({
     queryKey: ["/api/hallways"],
-    queryFn: async () => {
-      const r = await fetch("/api/hallways");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<Hallway>("/api/hallways"),
   });
   const q = query.trim().toLowerCase();
   const filtered = q ? hallways.filter((h) => h.id.toLowerCase().includes(q)) : hallways;
@@ -251,11 +236,7 @@ function HallwayList({
 function LayerList({ query }: { query: string }) {
   const { data: layers = [] } = useQuery<MapLayer[]>({
     queryKey: ["/api/layers"],
-    queryFn: async () => {
-      const r = await fetch("/api/layers");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<MapLayer>("/api/layers"),
   });
   const q = query.trim().toLowerCase();
   const filtered = q ? layers.filter((l) => l.name.toLowerCase().includes(q)) : layers;
@@ -285,11 +266,7 @@ function HistoryList({
 }: { query: string; onRestore?: (id: string) => void }) {
   const { data: versions = [] } = useQuery<MapVersion[]>({
     queryKey: ["/api/map-package/versions"],
-    queryFn: async () => {
-      const r = await fetch("/api/map-package/versions");
-      if (!r.ok) return [];
-      return r.json();
-    },
+    queryFn: () => fetchList<MapVersion>("/api/map-package/versions"),
   });
   const q = query.trim().toLowerCase();
   const filtered = q

@@ -23,6 +23,7 @@ import type {
 import { X, AlertTriangle, XOctagon, Info, ShieldCheck, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { fetchList } from "@/lib/fetchList";
 
 export interface ValidationDrawerProps {
   open: boolean;
@@ -42,14 +43,15 @@ export default function ValidationDrawer({ open, onClose, onFocusIssue }: Valida
   const { darkMode } = useDarkMode();
 
   // Live-load the campus data. React Query dedupes with the LeftSidebar
-  // queries so no extra network hits.
-  const { data: buildings = [] } = useQuery<Building[]>({ queryKey: ["/api/buildings"], queryFn: async () => (await fetch("/api/buildings")).json().catch(() => []) });
-  const { data: rooms = [] } = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: async () => (await fetch("/api/rooms")).json().catch(() => []) });
-  const { data: hallways = [] } = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: async () => (await fetch("/api/hallways")).json().catch(() => []) });
-  const { data: floors = [] } = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: async () => (await fetch("/api/floors")).json().catch(() => []) });
-  const { data: doors = [] } = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: async () => (await fetch("/api/doors")).json().catch(() => []) });
-  const { data: stairs = [] } = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: async () => (await fetch("/api/stairs")).json().catch(() => []) });
-  const { data: elevators = [] } = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: async () => (await fetch("/api/elevators")).json().catch(() => []) });
+  // queries so no extra network hits. Every queryFn goes through
+  // fetchList so 404s can't leak a non-array into the validator.
+  const { data: buildings = [] } = useQuery<Building[]>({ queryKey: ["/api/buildings"], queryFn: () => fetchList<Building>("/api/buildings") });
+  const { data: rooms = [] } = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms") });
+  const { data: hallways = [] } = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways") });
+  const { data: floors = [] } = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: () => fetchList<Floor>("/api/floors") });
+  const { data: doors = [] } = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors") });
+  const { data: stairs = [] } = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: () => fetchList<Stair>("/api/stairs") });
+  const { data: elevators = [] } = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators") });
 
   const result: ValidationResult = useMemo(
     () => validateMap({ buildings, rooms, hallways, floors, doors, stairs, elevators }),
