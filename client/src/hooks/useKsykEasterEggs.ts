@@ -148,7 +148,20 @@ export function useKsykEasterEggs() {
     const resetBuf = () => { buf = ""; };
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      // Search inputs are OPT-IN for the trigger watcher: a header
+      // search bar tagged `data-egg-listen` (or aria-label containing
+      // "search") lets the eggs fire while the user types there.
+      // Regular form inputs still short-circuit so people entering
+      // passwords / names don't accidentally trip the eggs.
+      const isSearchInput =
+        !!t &&
+        (t.tagName === "INPUT" || t.tagName === "TEXTAREA") &&
+        ((t as HTMLInputElement).type === "search" ||
+         t.getAttribute("data-egg-listen") === "true" ||
+         (t.getAttribute("aria-label") || "").toLowerCase().includes("search") ||
+         (t.getAttribute("placeholder") || "").toLowerCase().includes("etsi") ||
+         (t.getAttribute("placeholder") || "").toLowerCase().includes("search"));
+      if (t && !isSearchInput && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const k = e.key.toLowerCase();
       if (!/^[a-z0-9]$/.test(k)) { resetBuf(); return; }
       buf = (buf + k).slice(-maxLen);
@@ -163,6 +176,32 @@ export function useKsykEasterEggs() {
       }
     };
     window.addEventListener("keydown", onKey);
+
+    // ── Egg trigger from typed input events too. Mobile on-screen
+    //    keyboards on iOS/Android often bypass `keydown` (they fire
+    //    `input` + composition events instead). Watching the `input`
+    //    event on any search-flagged element makes the typed eggs
+    //    work on phone.
+    const onInput = (e: Event) => {
+      const t = e.target as HTMLInputElement | null;
+      if (!t || (t.tagName !== "INPUT" && t.tagName !== "TEXTAREA")) return;
+      const isSearchInput =
+        (t as HTMLInputElement).type === "search" ||
+        t.getAttribute("data-egg-listen") === "true" ||
+        (t.getAttribute("aria-label") || "").toLowerCase().includes("search") ||
+        (t.getAttribute("placeholder") || "").toLowerCase().includes("etsi") ||
+        (t.getAttribute("placeholder") || "").toLowerCase().includes("search");
+      if (!isSearchInput) return;
+      const val = (t.value || "").toLowerCase();
+      // Check every trigger word as a suffix of the current input.
+      for (const trig of TRIGGERS) {
+        if (val.endsWith(trig.word)) {
+          trig.onFound();
+          break;
+        }
+      }
+    };
+    document.addEventListener("input", onInput, true);
 
     // ── Egg — 10 clicks on the "KSYK Maps" wordmark ──────────────────
     let clicks = 0;
@@ -334,6 +373,7 @@ export function useKsykEasterEggs() {
 
     return () => {
       window.removeEventListener("keydown", onKey);
+      document.removeEventListener("input", onInput, true);
       window.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onDebugCombo);
       window.removeEventListener("keydown", onKonami);

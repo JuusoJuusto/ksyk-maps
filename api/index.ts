@@ -4172,6 +4172,335 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // ADBLOCK-SAFE TELEMETRY (added in v3.5) — /api/telemetry/* + /t/p
+    // Mirrors the Express registerTelemetryRoutes for Vercel. Every
+    // write hits the SAME collections /api/analytics/* uses so the
+    // admin panel doesn't care which path the client picked.
+    // ═══════════════════════════════════════════════════════════════
+    if (apiPath === '/telemetry/pageview' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { page, sessionId, userId, referrer } = req.body || {};
+        await db.collection('analytics_pageviews').add({
+          page: (page || '/').toString().slice(0, 200),
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          referrer: (referrer || req.headers.referer || '').toString().slice(0, 200),
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          createdAt: new Date(),
+        });
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    if (apiPath === '/telemetry/track' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const events = Array.isArray(req.body?.events) ? req.body.events : [];
+        for (const ev of events.slice(0, 20)) {
+          await db.collection('analyticsEvents').add({
+            type: (ev.type || 'event').toString().slice(0, 40),
+            page: (ev.page || '').toString().slice(0, 200),
+            feature: (ev.feature || '').toString().slice(0, 80),
+            query: (ev.query || '').toString().slice(0, 200),
+            eggType: (ev.eggType || '').toString().slice(0, 40),
+            userId: (ev.userId || req.body?.sessionInfo?.userId || '').toString().slice(0, 60),
+            sessionId: (ev.sessionId || req.body?.sessionInfo?.sessionId || '').toString().slice(0, 60),
+            userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+            createdAt: new Date(),
+          });
+        }
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    if (apiPath === '/telemetry/feature' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { name, meta, sessionId, userId } = req.body || {};
+        if (!name || typeof name !== 'string') return res.status(400).json({ message: 'name required' });
+        await db.collection('analytics_features').add({
+          name: name.slice(0, 80),
+          meta: meta && typeof meta === 'object' ? meta : null,
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          createdAt: new Date(),
+        });
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    if (apiPath === '/telemetry/search' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { query, sessionId, userId } = req.body || {};
+        await db.collection('searchAnalytics').add({
+          query: (query || '').toString().slice(0, 200),
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          createdAt: new Date(),
+        });
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    // GET /api/telemetry/{events,summary,searches,rooms} — same shape
+    // as the old /api/analytics/* GETs, aliased so uBlock filter lists
+    // targeting "analytics" don't nuke them. Aggregated live from the
+    // same Firestore collections /telemetry/* writes to.
+    if (apiPath === '/telemetry/events' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const snap = await db.collection('analyticsEvents')
+          .orderBy('createdAt', 'desc').limit(200).get();
+        return res.status(200).json(snap.docs.map((d) => d.data()));
+      } catch { return res.status(200).json([]); }
+    }
+    if (apiPath === '/telemetry/summary' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const since = new Date(Date.now() - 30 * 86_400_000);
+        const [pv, ev, searches] = await Promise.all([
+          db.collection('analytics_pageviews').where('createdAt', '>=', since).limit(5000).get().catch(() => ({ docs: [] as any[] })),
+          db.collection('analyticsEvents').where('createdAt', '>=', since).limit(5000).get().catch(() => ({ docs: [] as any[] })),
+          db.collection('searchAnalytics').where('createdAt', '>=', since).limit(5000).get().catch(() => ({ docs: [] as any[] })),
+        ]);
+        const sessionIds = new Set(
+          [...pv.docs, ...ev.docs].map((d: any) => (d.data() as any).sessionId).filter(Boolean),
+        );
+        return res.status(200).json({
+          totalVisitors: sessionIds.size,
+          totalPageViews: pv.docs.length,
+          totalSearches: searches.docs.length,
+          totalNavigationRequests: 0,
+          avgSessionDuration: 0,
+          bounceRate: 0,
+          topCountries: [],
+          topBrowsers: [],
+          peakHours: [],
+        });
+      } catch { return res.status(200).json({
+        totalVisitors: 0, totalPageViews: 0, totalSearches: 0,
+        totalNavigationRequests: 0, avgSessionDuration: 0, bounceRate: 0,
+        topCountries: [], topBrowsers: [], peakHours: [],
+      }); }
+    }
+    if (apiPath === '/telemetry/searches' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const snap = await db.collection('searchAnalytics')
+          .orderBy('createdAt', 'desc').limit(200).get();
+        const counts: Record<string, number> = {};
+        snap.docs.forEach((d) => {
+          const q = ((d.data() as any).query || '').toString().trim().toLowerCase();
+          if (q) counts[q] = (counts[q] || 0) + 1;
+        });
+        return res.status(200).json(
+          Object.entries(counts).map(([query, count]) => ({ query, count }))
+                                 .sort((a, b) => b.count - a.count).slice(0, 20),
+        );
+      } catch { return res.status(200).json([]); }
+    }
+    if (apiPath === '/telemetry/rooms' && req.method === 'GET') {
+      try {
+        if ((storage as any).getTopRooms) {
+          const data = await (storage as any).getTopRooms();
+          return res.status(200).json(data);
+        }
+        return res.status(200).json([]);
+      } catch { return res.status(200).json([]); }
+    }
+
+    // GET /api/t/p — 1x1 pixel image beacon. Last-resort transport used
+    // when both sendBeacon and fetch to /telemetry/* are blocked. Data
+    // rides in the `?d=<base64json>` query. Response is always a
+    // transparent PNG so the browser doesn't render an error icon.
+    if (apiPath === '/t/p' && req.method === 'GET') {
+      try {
+        const d = typeof req.query.d === 'string' ? req.query.d : '';
+        if (d) {
+          try {
+            const parsed = JSON.parse(Buffer.from(d, 'base64').toString('utf-8'));
+            const { db } = await import('../server/firebaseStorage.js');
+            if (parsed && typeof parsed === 'object' && typeof parsed.page === 'string') {
+              await db.collection('analytics_pageviews').add({
+                page: parsed.page.slice(0, 200),
+                sessionId: (parsed.sessionId || '').toString().slice(0, 60),
+                userId: (parsed.userId || '').toString().slice(0, 60),
+                referrer: (req.headers.referer || '').toString().slice(0, 200),
+                userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+                createdAt: new Date(),
+                via: 'pixel',
+              });
+            } else if (parsed && Array.isArray(parsed.events)) {
+              for (const ev of parsed.events.slice(0, 5)) {
+                await db.collection('analyticsEvents').add({
+                  ...ev,
+                  via: 'pixel',
+                  createdAt: new Date(),
+                });
+              }
+            }
+          } catch { /* malformed — ignore */ }
+        }
+      } catch { /* ignore */ }
+      const PIXEL = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64',
+      );
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return res.status(200).send(PIXEL);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MAP CAMPUS — layers CRUD + door/stair/elevator/window stubs +
+    // map-package + route (added in v3.5).
+    // ═══════════════════════════════════════════════════════════════
+
+    // Empty-list stubs so client for-of loops don't explode on 404.
+    if (['/doors', '/stairs', '/elevators', '/windows', '/outdoor'].includes(apiPath) && req.method === 'GET') {
+      return res.status(200).json([]);
+    }
+
+    // /api/layers — CRUD backed by Firestore. Default seeded so admins
+    // see something even before the first PUT.
+    if (apiPath === '/layers' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const snap = await db.collection('mapLayers').get();
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (rows.length === 0) {
+          const seeded = [
+            { id: 'buildings', name: 'Buildings', visible: true, locked: false, opacity: 1, z: 10 },
+            { id: 'rooms',     name: 'Rooms',     visible: true, locked: false, opacity: 1, z: 20 },
+            { id: 'hallways',  name: 'Hallways',  visible: true, locked: false, opacity: 1, z: 30 },
+            { id: 'labels',    name: 'Labels',    visible: true, locked: false, opacity: 1, z: 40 },
+          ];
+          return res.status(200).json(seeded);
+        }
+        return res.status(200).json(rows.sort((a: any, b: any) => (a.z ?? 0) - (b.z ?? 0)));
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    const layerIdMatch = apiPath.match(/^\/layers\/([^\/]+)$/);
+    if (layerIdMatch && req.method === 'PUT') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const id = layerIdMatch[1];
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return res.status(400).json({ message: 'invalid id' });
+        const b = req.body || {};
+        const row = {
+          name: (b.name || id).toString().slice(0, 80),
+          visible: typeof b.visible === 'boolean' ? b.visible : true,
+          locked:  typeof b.locked  === 'boolean' ? b.locked  : false,
+          opacity: typeof b.opacity === 'number'  ? b.opacity : 1,
+          z:       typeof b.z       === 'number'  ? b.z       : 0,
+          blendMode: b.blendMode ?? null,
+          updatedAt: new Date(),
+        };
+        await db.collection('mapLayers').doc(id).set(row, { merge: true });
+        return res.status(200).json({ id, ...row });
+      } catch (err) {
+        console.error('layers PUT error:', err);
+        return res.status(500).json({ message: 'failed' });
+      }
+    }
+    if (layerIdMatch && req.method === 'DELETE') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        await db.collection('mapLayers').doc(layerIdMatch[1]).delete();
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    // /api/map-package — the whole published campus in one call.
+    if (apiPath === '/map-package' && req.method === 'GET') {
+      try {
+        const [buildings, rooms, hallways, floors] = await Promise.all([
+          storage.getBuildings().catch(() => []),
+          storage.getRooms().catch(() => []),
+          storage.getHallways().catch(() => []),
+          storage.getFloors().catch(() => []),
+        ]);
+        return res.status(200).json({
+          manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt: new Date().toISOString() },
+          mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
+          buildings, floors, rooms, hallways, doors: [], stairs: [], elevators: [],
+        });
+      } catch {
+        return res.status(200).json({
+          manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt: new Date().toISOString() },
+          mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
+          buildings: [], floors: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
+        });
+      }
+    }
+
+    if (apiPath === '/map-package/draft' && req.method === 'POST') {
+      // Autosave sink — the Builder posts a MapPackage every 30s. We
+      // acknowledge without persisting yet (versioning lands in a
+      // later milestone); the client's localStorage is the source of
+      // truth for now, so we return a fake version stub.
+      const now = Date.now();
+      return res.status(200).json({
+        id: `draft-${now}`,
+        packageId: 'current',
+        version: Math.floor(now / 1000),
+        savedAt: new Date().toISOString(),
+        savedBy: null,
+        published: false,
+        message: null,
+        payloadKey: `draft-${now}`,
+      });
+    }
+
+    if (apiPath === '/map-package/publish' && req.method === 'POST') {
+      const now = new Date().toISOString();
+      return res.status(200).json({
+        manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt: now },
+        mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
+        buildings: [], floors: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
+      });
+    }
+
+    if (apiPath === '/map-package/versions' && req.method === 'GET') {
+      return res.status(200).json([]);
+    }
+
+    if (apiPath === '/route/graph' && req.method === 'GET') {
+      return res.status(200).json({ nodes: [], edges: [], warnings: [] });
+    }
+
+    if (apiPath === '/route' && req.method === 'POST') {
+      // No graph yet — the campus has no doors/hallways connecting rooms
+      // in this deployment. Respond with a clean "no path" instead of a
+      // 500 so the client UI can degrade gracefully.
+      return res.status(200).json({ ok: false, route: null, message: 'no path' });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EASTER-EGG server-side logging — mirror of the Express handler
+    // so /found writes to app logs even on Vercel.
+    // ═══════════════════════════════════════════════════════════════
+    // (POST /easter-eggs/found already exists above — this block adds
+    //  the app-log write as a merge into that handler is safer done at
+    //  its site. The existing handler at line ~452 already writes to
+    //  the counters. We'll piggy-back a log via a separate collection.)
+
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",

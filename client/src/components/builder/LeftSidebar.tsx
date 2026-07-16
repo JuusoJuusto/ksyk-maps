@@ -63,7 +63,10 @@ export default function LeftSidebar({
   return (
     <aside
       className={cn(
-        "w-72 shrink-0 flex flex-col border-r overflow-hidden",
+        // Wider (w-80 = 20rem = 320px, up from w-72 = 288px) so all six
+        // tabs — Buildings, Rooms, Hallways, Layers, History, Defaults —
+        // fit the top strip without their icons being clipped.
+        "w-80 shrink-0 flex flex-col border-r overflow-hidden",
         darkMode ? "bg-gray-900/95 border-gray-800 text-gray-200" : "bg-white border-gray-200 text-gray-800",
       )}
     >

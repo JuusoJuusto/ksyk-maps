@@ -92,25 +92,25 @@ export default function AppLogsManager() {
   // sites that were already relying on unchecked shapes.
   const { data: analyticsEvents = [], isLoading: eventsLoading } = useQuery<any[]>({
     queryKey: ['analytics-events'],
-    queryFn: async () => (await fetchList<unknown>('/api/analytics/events')) as any[],
+    queryFn: async () => (await fetchList<unknown>('/api/telemetry/events')) as any[],
     refetchInterval: 10000,
   });
 
   const { data: analyticsSummary, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ['analytics-summary'],
-    queryFn: async () => (await fetchObject<Record<string, unknown>>('/api/analytics/summary')) as any,
+    queryFn: async () => (await fetchObject<Record<string, unknown>>('/api/telemetry/summary')) as any,
     refetchInterval: 60000,
   });
 
   const { data: topSearches, isLoading: searchesLoading } = useQuery<any[]>({
     queryKey: ['analytics-searches'],
-    queryFn: async () => (await fetchList<unknown>('/api/analytics/searches')) as any[],
+    queryFn: async () => (await fetchList<unknown>('/api/telemetry/searches')) as any[],
     refetchInterval: 60000,
   });
 
   const { data: popularRooms, isLoading: roomsLoading } = useQuery<any[]>({
     queryKey: ['analytics-rooms'],
-    queryFn: async () => (await fetchList<unknown>('/api/analytics/rooms')) as any[],
+    queryFn: async () => (await fetchList<unknown>('/api/telemetry/rooms')) as any[],
     refetchInterval: 60000,
   });
 

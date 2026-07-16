@@ -10,4 +10,4 @@
  */
 export { default as BuilderApp } from "../../../client/src/pages/builder";
 
-export const VERSION = "0.5.0-telemetry";
+export const VERSION = "0.5.1-vercel-routes";
