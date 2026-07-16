@@ -33,7 +33,8 @@ import {
 import { db } from "./db";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
 import type { IStorage } from "./storage";
-import { hashPasswordFieldsInPlace } from "./passwordUtils";
+// NOTE: `.js` REQUIRED for Vercel ESM runtime — see firebaseStorage.ts.
+import { hashPasswordFieldsInPlace } from "./passwordUtils.js";
 
 // DatabaseStorage only partially implements IStorage. The Wilma journal /
 // easter-egg / Wilma extension methods are stubbed elsewhere. Callers cast

@@ -1456,8 +1456,19 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
       
       try {
-        const user = await storage.getUserByEmail(email.toLowerCase().trim());
-        
+        const emailNorm = email.trim();
+        const emailLower = emailNorm.toLowerCase();
+        // Try exact case, then lowercased, then a full scan so the
+        // lookup is case-insensitive (owner email is stored mixed-case).
+        let user: any = await storage.getUserByEmail(emailNorm).catch(() => null);
+        if (!user) user = await storage.getUserByEmail(emailLower).catch(() => null);
+        if (!user && typeof (storage as any).getUsers === 'function') {
+          const all = await (storage as any).getUsers().catch(() => []);
+          user = Array.isArray(all)
+            ? all.find((u: any) => (u.email || '').toLowerCase() === emailLower)
+            : null;
+        }
+
         // Always return success to prevent email enumeration
         if (!user) {
           console.log('Password reset requested for non-existent email:', email);

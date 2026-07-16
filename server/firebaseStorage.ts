@@ -2,7 +2,13 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as path from 'path';
 import * as fs from 'fs';
-import { hashPasswordFieldsInPlace } from './passwordUtils';
+// NOTE: the `.js` extension is REQUIRED. Node.js ESM in Vercel's Lambda
+// runtime enforces extension-in-path resolution — omitting it makes the
+// import fail at module-load time with ERR_MODULE_NOT_FOUND, which then
+// cascades through firebaseStorage → storage → every API route and takes
+// the whole site down (that's the 2026-07-16 outage). Do not remove the
+// `.js` even though TS/tsx tolerate it during dev.
+import { hashPasswordFieldsInPlace } from './passwordUtils.js';
 import type { IStorage } from './storage';
 import type {
   User,
