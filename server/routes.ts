@@ -873,6 +873,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH mirrors PUT — the Builder's PropertyPanel sends partial
+  // updates via PATCH which is the semantically correct method for a
+  // partial edit. Kept alongside PUT so nothing else breaks.
+  app.patch('/api/buildings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const validatedData = insertBuildingSchema.partial().parse(req.body);
+      const building = await storage.updateBuilding(req.params.id, validatedData);
+      res.json(building);
+    } catch (error) {
+      await logError(error, 'PATCH /api/buildings/:id', { buildingId: req.params.id });
+      res.status(500).json({ message: "Failed to update building" });
+    }
+  });
+
   app.delete('/api/buildings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -1029,6 +1047,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(room);
     } catch (error) {
       await logError(error, 'PUT /api/rooms/:id', { roomId: req.params.id });
+      res.status(500).json({ message: "Failed to update room" });
+    }
+  });
+
+  // PATCH mirror — same reason as buildings.
+  app.patch('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const validatedData = insertRoomSchema.partial().parse(req.body);
+      const room = await storage.updateRoom(req.params.id, validatedData);
+      res.json(room);
+    } catch (error) {
+      await logError(error, 'PATCH /api/rooms/:id', { roomId: req.params.id });
       res.status(500).json({ message: "Failed to update room" });
     }
   });

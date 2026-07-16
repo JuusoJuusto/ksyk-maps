@@ -57,6 +57,10 @@ export const buildings = pgTable("buildings", {
   descriptionEn: text("description_en"),
   descriptionFi: text("description_fi"),
   floors: integer("floors").default(1),
+  // Explicit floor range. When both are set the map's floor selector
+  // uses these instead of `1..floors`. Nullable — old rows keep working.
+  floorMin: integer("floor_min"),
+  floorMax: integer("floor_max"),
   capacity: integer("capacity"),
   facilities: text("facilities").array(),
   accessInfo: text("access_info"),

@@ -18,7 +18,7 @@
  * queries are debounced 120 ms and use `@ksyk/shared`'s indexed
  * search for the Rooms tab.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, MapLayer, MapVersion } from "@ksyk/shared";
@@ -54,19 +54,66 @@ const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }>
   { id: "settings",  label: "Defaults",  Icon: Settings2 },
 ];
 
+const SIDEBAR_WIDTH_KEY = "ksyk_builder_sidebar_width";
+const SIDEBAR_MIN_WIDTH = 260;
+const SIDEBAR_MAX_WIDTH = 720;
+const SIDEBAR_DEFAULT_WIDTH = 420;
+
 export default function LeftSidebar({
   activeTab, onTabChange, selection, onSelect, onRestoreVersion,
 }: LeftSidebarProps) {
   const { darkMode } = useDarkMode();
   const [query, setQuery] = useState("");
 
+  // Drag-to-resize — user preference persists in localStorage. Reads
+  // once on mount so the sidebar restores to the last size the user
+  // set; new users get SIDEBAR_DEFAULT_WIDTH (bigger than the old 320
+  // so the tabbed list has more breathing room).
+  const [width, setWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
+    const raw = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    const n = raw ? Number(raw) : NaN;
+    if (Number.isFinite(n) && n >= SIDEBAR_MIN_WIDTH && n <= SIDEBAR_MAX_WIDTH) return n;
+    return SIDEBAR_DEFAULT_WIDTH;
+  });
+  const draggingRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width)); } catch { /* quota */ }
+  }, [width]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const next = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, e.clientX));
+      setWidth(next);
+    };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
   return (
     <aside
+      style={{ width: `${width}px` }}
       className={cn(
-        // Wider (w-80 = 20rem = 320px, up from w-72 = 288px) so all six
-        // tabs — Buildings, Rooms, Hallways, Layers, History, Defaults —
-        // fit the top strip without their icons being clipped.
-        "w-80 shrink-0 flex flex-col border-r overflow-hidden",
+        "shrink-0 flex flex-col border-r overflow-hidden relative",
         darkMode ? "bg-gray-900/95 border-gray-800 text-gray-200" : "bg-white border-gray-200 text-gray-800",
       )}
     >
@@ -132,6 +179,23 @@ export default function LeftSidebar({
           </div>
         )}
       </div>
+
+      {/* Drag handle — thin vertical strip on the right edge. Fades in on
+       *  hover so the sidebar doesn't look cluttered at rest. */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        onMouseDown={startResize}
+        onDoubleClick={() => setWidth(SIDEBAR_DEFAULT_WIDTH)}
+        title="Drag to resize · double-click to reset"
+        className={cn(
+          "absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize group",
+          "hover:bg-blue-500/30 active:bg-blue-500/50 transition-colors",
+        )}
+      >
+        <span className="absolute top-1/2 -translate-y-1/2 -right-0.5 h-10 w-1 rounded-full bg-blue-500/0 group-hover:bg-blue-500/70 transition-colors" />
+      </div>
     </aside>
   );
 }
@@ -189,10 +253,11 @@ function RoomList({
     if (!query.trim()) {
       return rooms.map((room) => ({ room, score: 0 }));
     }
-    return index.search(query, { limit: 200 }).map((hit) => ({
-      room: hit.doc.data!.room as Room,
-      score: hit.score,
-    }));
+    // Filter out building hits — the Rooms tab lists rooms only. Building
+    // hits still surface in the header search dropdown.
+    return index.search(query, { limit: 200, kind: "room" })
+      .map((hit) => hit.doc.data?.room ? { room: hit.doc.data.room, score: hit.score } : null)
+      .filter((v): v is { room: Room; score: number } => v !== null);
   }, [query, index, rooms]);
 
   if (rooms.length === 0) return <EmptyState message="No rooms yet." hint="Draw a room inside a building using the Room tool." />;

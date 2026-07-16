@@ -178,9 +178,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <SplashScreen />
       {/* Vercel Analytics widget removed — see top-of-file note. */}
       <QueryClientProvider client={queryClient}>
+        {/* Splash lives INSIDE QueryClientProvider because its boot
+         *  loader uses React Query to detect readiness. */}
+        <SplashScreen />
         <ThemeProvider>
           <DarkModeProvider>
             <TooltipProvider>

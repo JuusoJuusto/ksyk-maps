@@ -240,6 +240,10 @@ function BuildingProps({ building }: { building: Building }) {
   const [nameEn, setNameEn] = useState(building.nameEn ?? "");
   const [nameFi, setNameFi] = useState(building.nameFi ?? "");
   const [floors, setFloors] = useState(building.floors ?? 1);
+  const [floorMin, setFloorMin] = useState<number>(building.floorMin ?? 1);
+  const [floorMax, setFloorMax] = useState<number>(
+    building.floorMax ?? (building.floors ?? 1),
+  );
   const [address, setAddress] = useState(building.address ?? "");
 
   const patch = useMutation({
@@ -255,7 +259,11 @@ function BuildingProps({ building }: { building: Building }) {
     nameEn !== (building.nameEn ?? "") ||
     nameFi !== (building.nameFi ?? "") ||
     floors !== (building.floors ?? 1) ||
+    floorMin !== (building.floorMin ?? 1) ||
+    floorMax !== (building.floorMax ?? (building.floors ?? 1)) ||
     address !== (building.address ?? "");
+
+  const spanValid = floorMax >= floorMin;
 
   return (
     <div className="space-y-3">
@@ -265,11 +273,36 @@ function BuildingProps({ building }: { building: Building }) {
         <TextField label="Name (FI)" value={nameFi} onChange={setNameFi} />
       </div>
       <TextField label="Address" value={address} onChange={setAddress} placeholder="Street 1" />
-      <NumberField label="Floors" value={floors} onChange={setFloors} min={1} max={40} />
+      <NumberField label="Floors (count)" value={floors} onChange={setFloors} min={1} max={40} />
+
+      {/* Explicit floor range — for buildings that don't start at 1.
+       *  Basement -1 to floor 4 supported. */}
+      <div className="rounded-lg border border-border p-2.5 bg-muted/30 space-y-2">
+        <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+          Floor range
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Lowest" value={floorMin} onChange={setFloorMin} min={-3} max={40} />
+          <NumberField label="Highest" value={floorMax} onChange={setFloorMax} min={-3} max={40} />
+        </div>
+        {!spanValid && (
+          <p className="text-[10px] text-red-600 dark:text-red-400">
+            Highest must be ≥ lowest.
+          </p>
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          Buildings can span e.g. −1 to 3. The floor selector on the map
+          takes the union across every building.
+        </p>
+      </div>
+
       <DirtySaveButton
-        isDirty={dirty}
+        isDirty={dirty && spanValid}
         isPending={patch.isPending}
-        onSave={() => patch.mutate({ name, nameEn, nameFi, floors, address: address || null })}
+        onSave={() => patch.mutate({
+          name, nameEn, nameFi, floors, floorMin, floorMax,
+          address: address || null,
+        })}
       />
     </div>
   );

@@ -19,8 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Compass, Loader2, Check, Upload, RotateCcw, MapPin } from "lucide-react";
+import { Compass, Loader2, Check, Upload, RotateCcw, MapPin, ZoomIn, Smartphone, Laptop } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AppSettings } from "@/lib/appSettings";
 
 interface MapSettingsPanelProps {
   /** Set false to hide the "Publish for all users" section. */
@@ -177,6 +178,46 @@ export default function MapSettingsPanel({
         </div>
       </div>
 
+      {/* Zoom bounds — min / max the user can zoom to. Restored so
+       *  admins can lock a range without hunting through Advanced. */}
+      <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
+        <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground flex items-center gap-1.5">
+          <ZoomIn className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+          Zoom range
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="flex justify-between items-baseline mb-1.5">
+              <Label className="text-xs">Min zoom</Label>
+              <span className="text-xs font-mono tabular-nums">{settings.osmMinZoom}</span>
+            </div>
+            <Slider
+              value={[settings.osmMinZoom]}
+              min={1}
+              max={22}
+              step={1}
+              onValueChange={([v]) => update("osmMinZoom", v)}
+            />
+          </div>
+          <div>
+            <div className="flex justify-between items-baseline mb-1.5">
+              <Label className="text-xs">Max zoom</Label>
+              <span className="text-xs font-mono tabular-nums">{settings.osmMaxZoom}</span>
+            </div>
+            <Slider
+              value={[settings.osmMaxZoom]}
+              min={1}
+              max={22}
+              step={1}
+              onValueChange={([v]) => update("osmMaxZoom", v)}
+            />
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          OSM raster tiles cap at 19 — going higher may 404.
+        </p>
+      </div>
+
       {/* Rotation + pitch */}
       <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
         <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground flex items-center gap-1.5">
@@ -223,6 +264,26 @@ export default function MapSettingsPanel({
           />
         </div>
       </div>
+
+      {/* Platform-specific defaults — mobile + laptop. Empty inputs mean
+       *  "inherit the shared value above". Great for tuning a tighter
+       *  zoom on phones without changing the desktop landing view. */}
+      <PlatformOverrides
+        icon={<Smartphone className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+        title="Mobile defaults"
+        subtitle="Applied when the viewport is under 768 px wide."
+        prefix="mobile"
+        settings={settings}
+        update={update}
+      />
+      <PlatformOverrides
+        icon={<Laptop className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+        title="Laptop / desktop defaults"
+        subtitle="Applied when the viewport is 768 px wide or more."
+        prefix="desktop"
+        settings={settings}
+        update={update}
+      />
 
       {/* Publish */}
       {showPublish && (
@@ -282,6 +343,83 @@ export default function MapSettingsPanel({
   return (
     <div className={cn("bg-card border border-border rounded-2xl shadow-sm p-5", className)}>
       {body}
+    </div>
+  );
+}
+
+// ── Platform overrides subcomponent ─────────────────────────────────
+
+interface PlatformOverridesProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  prefix: "mobile" | "desktop";
+  settings: AppSettings;
+  update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+}
+
+/** One collapsible-ish block per platform. Every field is nullable — an
+ *  empty input clears the override and falls back to the shared value. */
+function PlatformOverrides({ icon, title, subtitle, prefix, settings, update }: PlatformOverridesProps) {
+  const k = (suffix: string) => (`${prefix}${suffix}` as keyof AppSettings);
+  const get = (suffix: string) => settings[k(suffix)] as number | null;
+  const set = (suffix: string, v: number | null) => update(k(suffix), v as AppSettings[keyof AppSettings]);
+
+  const NullableNumber = ({ label, suffix, step = 1, min, max, placeholder }: {
+    label: string; suffix: string; step?: number; min?: number; max?: number; placeholder: string;
+  }) => {
+    const v = get(suffix);
+    return (
+      <div>
+        <Label className="text-xs">{label}</Label>
+        <Input
+          type="number"
+          step={step}
+          min={min}
+          max={max}
+          value={v === null ? "" : v}
+          placeholder={placeholder}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === "") { set(suffix, null); return; }
+            const n = parseFloat(raw);
+            if (Number.isFinite(n)) set(suffix, n);
+          }}
+          className="h-9 text-sm font-mono mt-1"
+          inputMode="decimal"
+        />
+      </div>
+    );
+  };
+
+  return (
+    <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground flex items-center gap-1.5">
+          {icon}
+          {title}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <NullableNumber label="Center lat"   suffix="CenterLat"    step={0.000001} placeholder={settings.osmCenterLat.toFixed(5)} />
+        <NullableNumber label="Center lng"   suffix="CenterLng"    step={0.000001} placeholder={settings.osmCenterLng.toFixed(5)} />
+        <NullableNumber label="Default zoom" suffix="DefaultZoom"  step={0.5} min={1} max={22} placeholder={String(settings.osmDefaultZoom)} />
+        <NullableNumber label="Rotation °"   suffix="RotationDeg"  step={1} min={-180} max={180} placeholder={String(settings.osmRotationDeg ?? 0)} />
+        <NullableNumber label="Min zoom"     suffix="MinZoom"      step={1} min={1} max={22} placeholder={String(settings.osmMinZoom)} />
+        <NullableNumber label="Max zoom"     suffix="MaxZoom"      step={1} min={1} max={22} placeholder={String(settings.osmMaxZoom)} />
+        <NullableNumber label="Pitch °"      suffix="PitchDeg"     step={1} min={0} max={60} placeholder={String(settings.osmPitchDeg ?? 0)} />
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          set("CenterLat", null); set("CenterLng", null); set("DefaultZoom", null);
+          set("MinZoom", null); set("MaxZoom", null); set("RotationDeg", null); set("PitchDeg", null);
+        }}
+        className="w-full h-8 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+      >
+        Clear all {prefix} overrides
+      </button>
     </div>
   );
 }

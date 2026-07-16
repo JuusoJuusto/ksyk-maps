@@ -21,11 +21,12 @@
  *   7. `campus-buildings-label`  — building name labels (drawn last so
  *                                  they render on top)
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, Hallway, MapLayer } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
+import { readLayerOverrides } from "@/components/LayersToggle";
 
 const SOURCES = {
   buildings: "campus-buildings",
@@ -78,9 +79,26 @@ export default function CampusOverlay({
     queryFn: () => fetchList<MapLayer>("/api/layers"),
     refetchInterval: 30_000,
   });
+  // Server-side visibility is the default; the client can override per-user
+  // via LayersToggle (stored in localStorage). Listen for the change event
+  // that toggle dispatches so a click takes effect without a reload.
+  const [clientOverrides, setClientOverrides] = useState<Record<string, boolean>>(
+    () => readLayerOverrides(),
+  );
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, boolean>>).detail;
+      if (detail && typeof detail === "object") setClientOverrides({ ...detail });
+    };
+    window.addEventListener("ksyk:layer-visibility", onChange);
+    return () => window.removeEventListener("ksyk:layer-visibility", onChange);
+  }, []);
   const visibilityById = new Map<string, boolean>();
   for (const l of layers) visibilityById.set(l.id, l.visible !== false);
-  const isVisible = (id: string) => visibilityById.get(id) ?? true;
+  const isVisible = (id: string) => {
+    if (id in clientOverrides) return clientOverrides[id];
+    return visibilityById.get(id) ?? true;
+  };
 
   const clickHandlerRef = useRef(onFeatureClick);
   clickHandlerRef.current = onFeatureClick;
@@ -140,7 +158,7 @@ export default function CampusOverlay({
     };
     map.on("click", onClick);
     return () => { map.off("click", onClick); };
-  }, [map, buildings, rooms, hallways, activeFloor, layers]);
+  }, [map, buildings, rooms, hallways, activeFloor, layers, clientOverrides]);
 
   return null;
 }
@@ -188,15 +206,27 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     type: "symbol",
     layout: {
       "text-field": ["get", "name"],
-      "text-size": 13,
+      // Scale up as the user zooms in — hard to read a tiny label on a
+      // big polygon at zoom 19.
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 15, 20, 18],
       "text-font": ["Noto Sans Regular"],
-      "text-allow-overlap": false,
-      "text-optional": true,
+      // Force labels to draw even if they overlap the basemap's street
+      // labels — the user wants building names always visible, not
+      // dropped by MapLibre's collision engine.
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-optional": false,
+      "symbol-placement": "point",
+      "text-anchor": "center",
+      "text-max-width": 10,
     },
     paint: {
       "text-color": ["get", "color"],
+      // Slightly thicker halo so the label reads against the building's
+      // own tinted fill and the tan OSM background alike.
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.5,
+      "text-halo-width": 2,
+      "text-halo-blur": 0.4,
     },
   });
 }

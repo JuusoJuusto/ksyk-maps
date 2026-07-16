@@ -1,31 +1,83 @@
 /**
  * KSYK Maps — boot splash.
  *
- * Production-grade: white background, KSYK Maps logo in the centre with a
- * spinning ring around it. Smooth fade-out, no flicker. The previous
- * version glitched because the "hidden" class fired at the same time as
- * the parent re-render; this one uses a single CSS class toggle and a
- * `display:none` only after the opacity transition has fully ended.
+ * Real loading gate: covers the viewport until every piece of
+ * bootstrap data has arrived. `useBootLoader` starts a set of "readiness
+ * signals" — buildings, rooms, hallways, layers, map defaults, first
+ * map tile — and the splash only fades when they all resolve OR a
+ * safety timeout (BOOT_MAX_MS) fires so a stuck fetch can't lock the
+ * app.
  *
- * Hides itself after 700ms (enough for the brand to register) + 380ms
- * fade. While visible it covers the full viewport above everything else.
+ * Callers can also dispatch `ksyk:boot-ready` to fast-path the fade
+ * once the map itself signals it has painted a first frame.
  */
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchList } from "@/lib/fetchList";
 
-const VISIBLE_MS = 700;
 const FADE_MS = 380;
+/** Absolute cap. A dead API can't hold the splash forever. */
+const BOOT_MAX_MS = 8000;
+/** Minimum time the splash stays up so the logo actually reads. */
+const BOOT_MIN_MS = 450;
+
+/** Fires readiness of every bootstrap resource. Returns true when
+ *  everything the app needs to render its first meaningful frame has
+ *  loaded (or gave up). */
+function useBootReady(): boolean {
+  const startRef = useState(() => performance.now())[0];
+
+  // Any of these failing is fine — the fetchList wrapper returns [] on
+  // 404 / non-JSON so isFetched still flips true. We wait for the
+  // resolutions, not the successes.
+  const buildings   = useQuery<unknown[]>({ queryKey: ["/api/buildings", "boot"],   queryFn: () => fetchList("/api/buildings"),   staleTime: 60_000 });
+  const rooms       = useQuery<unknown[]>({ queryKey: ["/api/rooms", "boot"],       queryFn: () => fetchList("/api/rooms"),       staleTime: 60_000 });
+  const hallways    = useQuery<unknown[]>({ queryKey: ["/api/hallways", "boot"],    queryFn: () => fetchList("/api/hallways"),    staleTime: 60_000 });
+  const layers      = useQuery<unknown[]>({ queryKey: ["/api/layers", "boot"],      queryFn: () => fetchList("/api/layers"),      staleTime: 60_000 });
+  const mapDefaults = useQuery<unknown>  ({ queryKey: ["/api/map-defaults", "boot"], queryFn: async () => {
+    try { const r = await fetch("/api/map-defaults"); return r.ok ? await r.json() : null; }
+    catch { return null; }
+  }, staleTime: 60_000 });
+
+  const [mapPainted, setMapPainted] = useState(false);
+  useEffect(() => {
+    const onReady = () => setMapPainted(true);
+    window.addEventListener("ksyk:map-ready", onReady);
+    return () => window.removeEventListener("ksyk:map-ready", onReady);
+  }, []);
+
+  const [timedOut, setTimedOut] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
+  useEffect(() => {
+    const t1 = window.setTimeout(() => setTimedOut(true), BOOT_MAX_MS);
+    const t2 = window.setTimeout(() => setMinElapsed(true), BOOT_MIN_MS);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, []);
+
+  const dataReady =
+    buildings.isFetched && rooms.isFetched && hallways.isFetched &&
+    layers.isFetched && mapDefaults.isFetched;
+
+  // Keep the map-painted signal advisory — if map fails to fire the
+  // event within the safety cap, we still un-gate the app.
+  const now = performance.now();
+  const elapsed = now - startRef;
+  const naturalReady = dataReady && (mapPainted || elapsed > BOOT_MAX_MS * 0.6);
+  return (naturalReady && minElapsed) || timedOut;
+}
 
 export default function SplashScreen() {
   /** "in"  → fully shown / fading in
    *  "out" → fading out
    *  "gone"→ display:none, removed from accessible tree */
   const [phase, setPhase] = useState<"in" | "out" | "gone">("in");
+  const ready = useBootReady();
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("out"), VISIBLE_MS);
-    return () => clearTimeout(t1);
-  }, []);
+    if (!ready || phase !== "in") return;
+    setPhase("out");
+  }, [ready, phase]);
 
   useEffect(() => {
     if (phase !== "out") return;

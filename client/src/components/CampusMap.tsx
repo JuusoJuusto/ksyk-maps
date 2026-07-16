@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl, { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
@@ -109,18 +109,23 @@ export default function CampusMap({
     if (!containerRef.current) return;
     if (mapRef.current) return; // already inited
 
-    const initialBearing = bearing ?? settings.osmRotationDeg ?? 0;
-    const initialPitch = pitch ?? settings.osmPitchDeg ?? 0;
+    // Platform-aware camera — mobile vs laptop defaults live under
+    // their own keys and fall back to the shared osm* values when unset.
+    const platformDefaults = pickPlatformMapDefaults(settings);
+    const initialBearing = bearing ?? platformDefaults.bearing;
+    const initialPitch = pitch ?? platformDefaults.pitch;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: osmRasterStyle(),
-      center: [settings.osmCenterLng, settings.osmCenterLat],
-      zoom: settings.osmDefaultZoom,
+      center: [platformDefaults.lng, platformDefaults.lat],
+      zoom: platformDefaults.zoom,
       bearing: initialBearing,
       pitch: initialPitch,
-      minZoom: settings.osmMinZoom,
-      maxZoom: 19,
+      // Clamp to the OSM raster's native cap (19). Admin-configured
+      // maxZoom over 19 would produce 404s on tile requests.
+      minZoom: platformDefaults.minZoom,
+      maxZoom: Math.min(19, platformDefaults.maxZoom),
       maxPitch: 60,
       interactive,
       attributionControl: { compact: true },
@@ -146,6 +151,12 @@ export default function CampusMap({
     map.on("load", () => {
       mapRef.current = map;
       setReady(true);
+      // Fire boot-ready once the first frame paints so SplashScreen can
+      // fade even if data queries are already resolved.
+      map.once("idle", () => {
+        try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
+        catch { /* SSR / old browser — non-fatal */ }
+      });
       const handle: CampusMapHandle = {
         map,
         flyTo: (lat, lng, zoom) =>
@@ -166,11 +177,15 @@ export default function CampusMap({
         setBearing: (deg) => map.rotateTo(deg, { duration: 400 }),
         setPitch: (deg) => map.easeTo({ pitch: deg, duration: 400 }),
         recenter: () => {
+          const d = pickPlatformMapDefaults(settings);
           map.flyTo({
-            center: [settings.osmCenterLng, settings.osmCenterLat],
-            zoom: settings.osmDefaultZoom,
-            bearing: settings.osmRotationDeg ?? 0,
-            pitch: settings.osmPitchDeg ?? 0,
+            center: [d.lng, d.lat],
+            zoom: d.zoom,
+            // Preserve current bearing / pitch — the wrapper in
+            // KSYKMapView already does this too; keeping the handle
+            // signature honest for any other caller.
+            bearing: map.getBearing(),
+            pitch: map.getPitch(),
             duration: 800,
             essential: true,
           });

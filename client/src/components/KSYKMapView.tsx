@@ -7,33 +7,28 @@
  *   - 3D toggle + Center button (bottom-right, above zoom)
  *   - North reset (only shows when map is rotated off north)
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import CampusOverlay from "@/components/CampusOverlay";
-import SearchResultsDropdown from "@/components/SearchResultsDropdown";
-import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSettings";
-import { LocateFixed, Plus, Minus, Navigation, RotateCw } from "lucide-react";
+import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResultsDropdown";
+import LayersToggle from "@/components/LayersToggle";
+import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
+import { LocateFixed, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
-import type { Room } from "@ksyk/shared";
+import type { Building as SharedBuilding } from "@ksyk/shared";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
   searchQuery?: string;
 }
 
-/** Focus the map camera on a room. Uses the polygon centroid when
- *  points are available; falls back to the room's building center. */
-function roomCenter(room: Room): { lat: number; lng: number } | null {
-  if (room.points && room.points.length > 0) return polygonCentroid(room.points);
-  return null;
-}
-
-interface Building {
-  id: string;
-  name: string;
-  floors?: number | null;
+/** Local building shape — extends the shared one with just what the
+ *  floor selector needs. Buildings without `floors` fall back to 1. */
+interface Building extends Pick<SharedBuilding, "id" | "name" | "floors" | "points"> {
+  floorMin?: number | null;
+  floorMax?: number | null;
 }
 
 export default function KSYKMapView(props: KSYKMapViewProps = {}) {
@@ -41,18 +36,28 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { settings, update } = useAppSettings();
   const handleRef = useRef<CampusMapHandle | null>(null);
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
-  const [bearing, setBearing] = useState<number>(settings.osmRotationDeg ?? 0);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
 
-  // Buildings from DB — used only to compute max floor for the selector.
+  // Buildings from DB — used to compute the union of floor ranges for
+  // the selector. A building can span floors like -1..3, so the selector
+  // must show every floor that appears in ANY building.
   const buildingsQ = useQuery<Building[]>({ queryKey: ["/api/buildings"] });
   const buildings = buildingsQ.data ?? [];
-  const maxFloor = Math.max(1, ...buildings.map((b) => b.floors ?? 1));
+  const floorList = useMemo(() => {
+    const set = new Set<number>();
+    for (const b of buildings) {
+      const min = typeof b.floorMin === "number" ? b.floorMin : 1;
+      const max = typeof b.floorMax === "number" ? b.floorMax : (b.floors ?? 1);
+      const lo = Math.min(min, max);
+      const hi = Math.max(min, max);
+      for (let f = lo; f <= hi; f++) set.add(f);
+    }
+    if (set.size === 0) set.add(1);
+    return [...set].sort((a, b) => b - a); // top-to-bottom: highest first
+  }, [buildings]);
 
   const onMapReady = useCallback((h: CampusMapHandle) => {
     handleRef.current = h;
-    // Update bearing state when the user rotates the map (drag/right-click).
-    h.map.on("rotate", () => setBearing(h.map.getBearing()));
   }, []);
 
   const toggle3D = useCallback(() => {
@@ -62,28 +67,50 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     update("osmPitchDeg", next);
   }, [is3D, update]);
 
+  /** Center the camera on the platform default (mobile vs laptop) while
+   *  preserving whatever bearing the user has set — clicking Center
+   *  shouldn't rip them out of a rotated view. Pitch is preserved too. */
   const recenter = useCallback(async () => {
     try {
       await loadMapDefaultsFromServer();
     } catch { /* keep current settings */ }
-    handleRef.current?.recenter();
-  }, []);
+    const h = handleRef.current;
+    if (!h) return;
+    const target = pickPlatformMapDefaults(settings);
+    h.map.flyTo({
+      center: [target.lng, target.lat],
+      zoom: target.zoom,
+      // Keep the user's current bearing + pitch — don't slam back to
+      // north-up unless they explicitly hit the north button.
+      bearing: h.map.getBearing(),
+      pitch: h.map.getPitch(),
+      duration: 800,
+      essential: true,
+    });
+  }, [settings]);
 
-  const resetNorth = useCallback(() => {
-    handleRef.current?.setBearing(0);
-    setBearing(0);
-  }, []);
-
-  const onPickResult = useCallback((room: Room) => {
-    const centre = roomCenter(room);
-    if (centre && handleRef.current) {
-      handleRef.current.map.flyTo({
-        center: [centre.lng, centre.lat],
-        zoom: Math.max(handleRef.current.map.getZoom(), 18),
-        duration: 800,
-      });
+  /** Fly the map to whatever the user picked in the search dropdown.
+   *  Rooms + buildings both work — we compute the polygon centroid. */
+  const onPickResult = useCallback((pick: SearchPick) => {
+    const h = handleRef.current;
+    if (!h) return;
+    let centre: { lat: number; lng: number } | null = null;
+    if (pick.kind === "room" && pick.room.points?.length) {
+      centre = polygonCentroid(pick.room.points);
+      if (typeof pick.room.floor === "number") setSelectedFloor(pick.room.floor);
+    } else if (pick.kind === "building" && pick.building.points?.length) {
+      centre = polygonCentroid(pick.building.points);
     }
-    if (typeof room.floor === "number") setSelectedFloor(room.floor);
+    if (!centre) return;
+    h.map.flyTo({
+      center: [centre.lng, centre.lat],
+      zoom: Math.max(h.map.getZoom(), pick.kind === "building" ? 17.5 : 18.5),
+      // Preserve rotation + pitch — the user asked us to keep it.
+      bearing: h.map.getBearing(),
+      pitch: h.map.getPitch(),
+      duration: 800,
+      essential: true,
+    });
   }, []);
 
   return (
@@ -101,11 +128,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {/* Search results overlay — anchored under the header search bar. */}
       <SearchResultsDropdown
         query={searchQuery}
-        onSelect={(room) => onPickResult(room)}
+        onSelect={onPickResult}
       />
 
-      {/* Floor selector — top-right. Hidden when there are no buildings. */}
-      {maxFloor > 1 && (
+      {/* Floor selector — top-right. Hidden when there's only one floor
+       *  in the whole campus. Renders the UNION of every building's
+       *  floor range so a building spanning -1..3 and another at 4 both
+       *  show up. */}
+      {floorList.length > 1 && (
         <div
           className="absolute right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl border border-border bg-card shadow-sm"
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
@@ -114,7 +144,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-0.5">
             FL
           </p>
-          {Array.from({ length: maxFloor }, (_, i) => maxFloor - i).map((floor) => (
+          {floorList.map((floor) => (
             <button
               key={floor}
               type="button"
@@ -132,27 +162,6 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             </button>
           ))}
         </div>
-      )}
-
-      {/* North reset — shows only when map is rotated off north.
-       *  Top-left so it doesn't collide with the floor selector. */}
-      {Math.abs(bearing) > 2 && (
-        <button
-          type="button"
-          onClick={resetNorth}
-          aria-label="Reset north"
-          title="Reset to north-up"
-          className="absolute left-3 z-30 h-11 w-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-          style={{
-            top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))",
-          }}
-        >
-          <Navigation
-            className="h-[19px] w-[19px]"
-            strokeWidth={2}
-            style={{ transform: `rotate(${-bearing}deg)` }}
-          />
-        </button>
       )}
 
       {/* Right-side control rail — single vertical column with consistent
@@ -223,20 +232,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           </button>
         </div>
 
-        {/* Rotate — click 30° CW, shift-click 30° CCW. */}
-        <button
-          type="button"
-          onClick={(e) => {
-            const dir = e.shiftKey ? -30 : 30;
-            handleRef.current?.setBearing(bearing + dir);
-            setBearing(bearing + dir);
-          }}
-          aria-label="Rotate 30° (shift-click to rotate the other way)"
-          title="Rotate 30° · shift-click to reverse · right-click drag to free-rotate"
-          className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-        >
-          <RotateCw className="h-[19px] w-[19px]" strokeWidth={2.25} />
-        </button>
+        {/* Layers — popover with per-layer visibility toggles. Client-only
+         *  overrides on top of whatever the admin publishes.
+         *  Note: standalone Rotate + North-reset buttons removed — the
+         *  user can still free-rotate with right-click drag / two-finger
+         *  gesture, but the redundant chrome buttons cluttered the rail. */}
+        <LayersToggle />
       </div>
     </div>
   );

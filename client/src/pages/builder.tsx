@@ -458,27 +458,48 @@ function BuilderWorkspace() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (created: FeatureBuilding | { id?: string } | undefined) => {
       qc.invalidateQueries({ queryKey: ["/api/buildings"] });
       setWaypoints([]);
+      // Snap back to the Select tool and open the Property panel on the
+      // fresh building so the user can name / colour / configure it
+      // without a second click. The server returns the created row —
+      // fall back to a lookup by-name if the id isn't present.
+      setActiveTool("select");
+      const id = created && typeof (created as { id?: string }).id === "string"
+        ? (created as { id: string }).id
+        : null;
+      if (id) {
+        setSelection({ kind: "building", id });
+        setSidebarTab("buildings");
+      }
     },
   });
 
   const createHallway = useMutation({
     mutationFn: async (payload: { points: Array<{ lng: number; lat: number }> }) => {
       // Chunk polyline into start/end segments — matches the server schema.
+      const created: unknown[] = [];
       for (let i = 0; i < payload.points.length - 1; i++) {
-        await apiRequest("POST", "/api/hallways", {
+        const res = await apiRequest("POST", "/api/hallways", {
           startX: payload.points[i].lng,
           startY: payload.points[i].lat,
           endX: payload.points[i + 1].lng,
           endY: payload.points[i + 1].lat,
         });
+        try { created.push(await res.json()); } catch { /* swallow parse */ }
       }
+      return created;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["/api/hallways"] });
       setWaypoints([]);
+      setActiveTool("select");
+      const first = created[0] as { id?: string } | undefined;
+      if (first?.id) {
+        setSelection({ kind: "hallway", id: first.id });
+        setSidebarTab("hallways");
+      }
     },
   });
 

@@ -22,10 +22,16 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { fetchList } from "@/lib/fetchList";
 
+/** What was clicked in the dropdown — either a room or a building. */
+export type SearchPick =
+  | { kind: "room"; room: Room; building: Building | null }
+  | { kind: "building"; building: Building };
+
 export interface SearchResultsDropdownProps {
   query: string;
-  /** Called when the user clicks a result. */
-  onSelect: (room: Room, building: Building | null) => void;
+  /** Called when the user clicks a result. Receives either a room hit
+   *  or a building hit — the map focuses the polygon centroid for both. */
+  onSelect: (pick: SearchPick) => void;
   /** Max visible results. Default 8. */
   limit?: number;
   /** Optional custom Y offset (px) from the top of the viewport. Falls
@@ -57,7 +63,9 @@ export default function SearchResultsDropdown({
 
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
   const trimmed = query.trim();
-  const hits: Array<SearchHit<{ room: Room; building: Building | null }>> = useMemo(() => {
+  // Index emits both room and building hits — payload.room is nullable
+  // for building hits. Downstream reduces it to a SearchPick union.
+  const hits: Array<SearchHit<{ room: Room | null; building: Building | null }>> = useMemo(() => {
     if (!trimmed) return [];
     return index.search(trimmed, { limit });
   }, [index, trimmed, limit]);
@@ -91,12 +99,15 @@ export default function SearchResultsDropdown({
           {hits.map((hit) => {
             const room = hit.doc.data!.room;
             const building = hit.doc.data!.building;
+            const pick: SearchPick = room
+              ? { kind: "room", room, building }
+              : { kind: "building", building: building! };
             return (
               <li
                 key={hit.id}
                 role="option"
                 aria-selected="false"
-                onClick={() => onSelect(room, building)}
+                onClick={() => onSelect(pick)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors",
                   darkMode

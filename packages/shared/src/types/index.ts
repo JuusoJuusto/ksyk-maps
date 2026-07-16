@@ -80,6 +80,12 @@ export interface Building extends Timestamped {
   /** Number of floors this building has (informational — the source of
    *  truth is the `Floor` table). */
   floors?: number | null;
+  /** Explicit floor range for this building. Set when the building
+   *  spans a non-1-based range (e.g. a wing that only sits on
+   *  floors 2..4, or a basement gym at -1..0). When unset the range
+   *  defaults to `1..(floors ?? 1)`. */
+  floorMin?: number | null;
+  floorMax?: number | null;
   defaultFloor?: number | null;
   campus?: string | null;
   /** Ordered polygon corners defining the building footprint. */

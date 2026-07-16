@@ -67,6 +67,23 @@ export type AppSettings = {
   osmMinZoom: number;
   osmRotationDeg: number;
   osmPitchDeg: number;
+  /** Platform-specific overrides. Fields set here beat the shared ones
+   *  above when the corresponding device breakpoint matches. Anything
+   *  left as `null` falls back to the shared value. */
+  mobileCenterLat: number | null;
+  mobileCenterLng: number | null;
+  mobileDefaultZoom: number | null;
+  mobileMinZoom: number | null;
+  mobileMaxZoom: number | null;
+  mobileRotationDeg: number | null;
+  mobilePitchDeg: number | null;
+  desktopCenterLat: number | null;
+  desktopCenterLng: number | null;
+  desktopDefaultZoom: number | null;
+  desktopMinZoom: number | null;
+  desktopMaxZoom: number | null;
+  desktopRotationDeg: number | null;
+  desktopPitchDeg: number | null;
   osmTileProvider: OsmTileProvider;
   /** Tile provider used when dark mode is active. Falls back to osmTileProvider if unset. */
   osmTileProviderDark: OsmTileProvider;
@@ -115,6 +132,21 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   osmMinZoom: 15,
   osmRotationDeg: 0,
   osmPitchDeg: 0,
+  // Platform overrides — null = "inherit the shared value".
+  mobileCenterLat: null,
+  mobileCenterLng: null,
+  mobileDefaultZoom: null,
+  mobileMinZoom: null,
+  mobileMaxZoom: null,
+  mobileRotationDeg: null,
+  mobilePitchDeg: null,
+  desktopCenterLat: null,
+  desktopCenterLng: null,
+  desktopDefaultZoom: null,
+  desktopMinZoom: null,
+  desktopMaxZoom: null,
+  desktopRotationDeg: null,
+  desktopPitchDeg: null,
   osmTileProvider: "carto-voyager",
   osmTileProviderDark: "carto-dark-matter",
   osmTileTheme: "default",
