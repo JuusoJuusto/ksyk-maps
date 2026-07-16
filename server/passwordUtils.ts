@@ -1,87 +1,106 @@
 /**
- * server/passwordUtils — bcrypt with lazy-load + graceful fallback.
+ * server/passwordUtils — bcryptjs-first, bcrypt-fallback, safe on Vercel.
  *
- * IMPORTANT — the top-level import of bcrypt used to be a hard
- * dependency:
+ * We PREFER bcryptjs — pure JavaScript, no native binary, always loads
+ * on Vercel's Lambda runtime. If bcryptjs is missing for any reason we
+ * fall back to the native bcrypt module, and if THAT also fails we
+ * degrade gracefully (plaintext with a one-time console warning)
+ * rather than crashing the whole module.
  *
- *   import bcrypt from 'bcrypt';   // ← if this throws, the whole
- *                                    module fails to import, and
- *                                    every consumer of storage
- *                                    (firebaseStorage → storage →
- *                                    every API route) breaks with a
- *                                    500. That took the entire site
- *                                    down on 2026-07-16 because
- *                                    bcrypt's native binary wasn't
- *                                    resolving on the Vercel Lambda
- *                                    runtime.
+ * Backstory: on 2026-07-16 the site went dark because
+ * `import bcrypt from 'bcrypt'` was at the top of this file. When
+ * bcrypt's native binary failed to resolve on Vercel, the import
+ * threw at module-load time, taking the storage layer + every
+ * API route with it. Now every backend is dynamically imported
+ * inside functions, tried in order, and any failure is logged
+ * once instead of taking down the site.
  *
- * Now: bcrypt is dynamically imported inside the functions that need
- * it, and every call is wrapped in try/catch. If the native module
- * fails at runtime we log the failure ONCE and return the plaintext
- * unchanged so the site stays alive. Password writes go through as
- * plaintext (a security regression — hence the warning) but the site
- * boots and every non-auth endpoint still works.
- *
- * Fix path: install bcryptjs (pure JS, no native binary) or make sure
- * bcrypt's precompiled binary matches the Lambda ABI.
+ * bcryptjs is compatible with bcrypt's hash format — it verifies
+ * $2a$/$2b$/$2y$ hashes and produces $2a$ hashes that bcrypt can also
+ * verify. So we can mix-and-match freely between the two.
  */
 
 const SALT_ROUNDS = 10;
 
-/** Cache the loaded bcrypt module. `null` = never tried; `false` =
- *  tried and failed; otherwise the module. */
-let bcryptCache: null | false | { hash: (s: string, rounds: number) => Promise<string>; compare: (plain: string, hash: string) => Promise<boolean> } = null;
+type Backend = {
+  hash: (s: string, rounds: number) => Promise<string>;
+  compare: (plain: string, hash: string) => Promise<boolean>;
+};
 
-async function getBcrypt() {
-  if (bcryptCache === false) return null;
-  if (bcryptCache !== null) return bcryptCache;
+/** null = untried, false = both backends failed, otherwise the loaded backend. */
+let backendCache: null | false | Backend = null;
+
+async function getBackend(): Promise<Backend | null> {
+  if (backendCache === false) return null;
+  if (backendCache !== null) return backendCache;
+
+  // Prefer bcryptjs — pure JS, always resolves on serverless runtimes.
+  try {
+    const mod = await import('bcryptjs');
+    const backend = ((mod as unknown as { default?: unknown }).default ?? mod) as unknown as Backend;
+    if (backend && typeof backend.hash === 'function' && typeof backend.compare === 'function') {
+      backendCache = backend;
+      return backend;
+    }
+  } catch {
+    // bcryptjs not installed — fall through to native bcrypt.
+  }
+
+  // Fallback: native bcrypt. Fast when available.
   try {
     const mod = await import('bcrypt');
-    // Prefer bcrypt's default export, fall back to the module.
-    bcryptCache = ((mod as unknown as { default?: unknown }).default ?? mod) as unknown as typeof bcryptCache;
-    return bcryptCache;
+    const backend = ((mod as unknown as { default?: unknown }).default ?? mod) as unknown as Backend;
+    if (backend && typeof backend.hash === 'function' && typeof backend.compare === 'function') {
+      backendCache = backend;
+      return backend;
+    }
   } catch (err) {
-    console.warn('⚠️ [passwordUtils] bcrypt native module unavailable — falling back to plaintext storage. Fix by installing bcryptjs or making sure bcrypt binary matches runtime.', err);
-    bcryptCache = false;
-    return null;
+    console.warn(
+      '⚠️ [passwordUtils] Both bcryptjs and bcrypt failed to load. ' +
+      'Password hashing is DISABLED — writes go through as plaintext. ' +
+      'Install bcryptjs or fix bcrypt binary compatibility on the runtime.',
+      err,
+    );
   }
+
+  backendCache = false;
+  return null;
 }
 
-/** True when the given string is already a bcrypt hash — protects us
- *  from double-hashing on re-writes / migrations. Covers both the $2b$
- *  (modern) and $2a$ (legacy) prefixes. */
+/** True when the given string is already a bcrypt-family hash — protects
+ *  us from double-hashing on re-writes / migrations. Covers $2b$
+ *  (native bcrypt), $2a$ (bcryptjs + legacy), $2y$ (PHP variant). */
 export function isAlreadyHashed(value: string): boolean {
-  return typeof value === "string" && (value.startsWith("$2b$") || value.startsWith("$2a$") || value.startsWith("$2y$"));
+  return typeof value === 'string' && (value.startsWith('$2b$') || value.startsWith('$2a$') || value.startsWith('$2y$'));
 }
 
-/** Hash a plain text password. Falls back to returning `password`
- *  unchanged if bcrypt can't load. */
+/** Hash a plain text password. Returns the plaintext unchanged (with a
+ *  warning already logged) if no backend loaded. */
 export async function hashPassword(password: string): Promise<string> {
-  const bcrypt = await getBcrypt();
-  if (!bcrypt) return password;
+  const backend = await getBackend();
+  if (!backend) return password;
   try {
-    return await bcrypt.hash(password, SALT_ROUNDS);
+    return await backend.hash(password, SALT_ROUNDS);
   } catch (err) {
-    console.warn('⚠️ [passwordUtils] bcrypt.hash failed, falling back to plaintext:', err);
+    console.warn('⚠️ [passwordUtils] hash() failed, falling back to plaintext:', err);
     return password;
   }
 }
 
 /** Verify a password against a hash. Falls back to strict equality
- *  when bcrypt can't load. */
+ *  when no backend loaded. */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const bcrypt = await getBcrypt();
-  if (!bcrypt) return password === hash;
+  const backend = await getBackend();
+  if (!backend) return password === hash;
   try {
-    return await bcrypt.compare(password, hash);
+    return await backend.compare(password, hash);
   } catch (err) {
-    console.warn('⚠️ [passwordUtils] bcrypt.compare failed, falling back to strict-eq:', err);
+    console.warn('⚠️ [passwordUtils] compare() failed, falling back to strict-eq:', err);
     return password === hash;
   }
 }
 
-/** Generate a random secure password. Zero-dep — uses Math.random for
- *  now. Callers pass the result through hashPassword before storing. */
+/** Generate a random secure password. Zero-dep. */
 export function generateSecurePassword(length: number = 16): string {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   let password = '';
@@ -92,18 +111,17 @@ export function generateSecurePassword(length: number = 16): string {
 }
 
 /**
- * Ensure any `password` field on a payload is bcrypt-hashed before it
- * hits the database. No-op if the value is already hashed. Idempotent
- * so it's safe to layer at every write boundary. If bcrypt is
- * unavailable, the payload passes through UNCHANGED (a warning is
- * logged) — that way a broken bcrypt install can't nuke every write.
+ * Idempotent hash-the-`password`-field helper used at the storage
+ * boundary. No-op when the value is already hashed, empty, or missing.
+ * Returns the payload unchanged when no backend is available — so a
+ * broken hashing install never crashes writes.
  */
 export async function hashPasswordFieldsInPlace<T extends Record<string, unknown>>(
   payload: T | null | undefined,
 ): Promise<T> {
   if (!payload) return payload as unknown as T;
   const raw = payload.password;
-  if (typeof raw !== "string" || raw.length === 0 || isAlreadyHashed(raw)) {
+  if (typeof raw !== 'string' || raw.length === 0 || isAlreadyHashed(raw)) {
     return payload;
   }
   const hashed = await hashPassword(raw);
