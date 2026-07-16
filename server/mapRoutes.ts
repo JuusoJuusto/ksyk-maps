@@ -111,8 +111,59 @@ export function registerMapRoutes(app: Express) {
   app.get("/api/stairs",    emptyList);
   app.get("/api/elevators", emptyList);
   app.get("/api/windows",   emptyList);
-  app.get("/api/layers",    emptyList);
   // /api/floors is registered by routes.ts already — don't shadow it.
+
+  // ── /api/layers — CRUD backed by a simple in-memory store. Persists
+  //    across the process lifetime. Once storage grows a layers table
+  //    swap the array below for storage.getLayers/etc. Idempotent PUT
+  //    for `upsert` so the client can create + update via the same
+  //    endpoint. ───────────────────────────────────────────────────
+  interface LayerRow {
+    id: string;
+    name: string;
+    group?: string | null;
+    visible: boolean;
+    locked: boolean;
+    opacity: number;
+    z: number;
+    blendMode?: "normal" | "multiply" | "screen" | "overlay" | null;
+    collapsed?: boolean;
+  }
+  let layerStore: LayerRow[] = [
+    { id: "buildings", name: "Buildings", visible: true, locked: false, opacity: 1, z: 10 },
+    { id: "rooms",     name: "Rooms",     visible: true, locked: false, opacity: 1, z: 20 },
+    { id: "hallways",  name: "Hallways",  visible: true, locked: false, opacity: 1, z: 30 },
+    { id: "labels",    name: "Labels",    visible: true, locked: false, opacity: 1, z: 40 },
+  ];
+  const isLayer = (obj: unknown): obj is LayerRow => {
+    if (!obj || typeof obj !== "object") return false;
+    const o = obj as Record<string, unknown>;
+    return typeof o.id === "string" && typeof o.name === "string" &&
+           typeof o.visible === "boolean" && typeof o.locked === "boolean" &&
+           typeof o.opacity === "number" && typeof o.z === "number";
+  };
+  app.get("/api/layers", (_req, res) => {
+    res.json([...layerStore].sort((a, b) => a.z - b.z));
+  });
+  app.put("/api/layers/:id", isAuthenticated, rateLimiters.general, (req, res) => {
+    if (!isLayer(req.body)) {
+      res.status(400).json({ message: "invalid layer body" });
+      return;
+    }
+    if (req.body.id !== req.params.id) {
+      res.status(400).json({ message: "id mismatch" });
+      return;
+    }
+    const next = req.body;
+    const idx = layerStore.findIndex((l) => l.id === next.id);
+    if (idx >= 0) layerStore[idx] = next;
+    else layerStore.push(next);
+    res.json(next);
+  });
+  app.delete("/api/layers/:id", isAuthenticated, rateLimiters.general, (req, res) => {
+    layerStore = layerStore.filter((l) => l.id !== req.params.id);
+    res.status(204).end();
+  });
 
 
   // ── Nav graph (Builder / debugging) ───────────────────────────────

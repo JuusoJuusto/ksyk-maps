@@ -19,15 +19,17 @@
  * search for the Rooms tab.
  */
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, MapLayer, MapVersion } from "@ksyk/shared";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
+import MapSettingsPanel from "@/components/MapSettingsPanel";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "hallways" | "layers" | "history";
+export type LeftSidebarTab = "buildings" | "rooms" | "hallways" | "layers" | "history" | "settings";
 
 export interface LeftSidebarSelection {
   kind: "building" | "room" | "hallway";
@@ -49,6 +51,7 @@ const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }>
   { id: "hallways",  label: "Hallways",  Icon: RouteIcon },
   { id: "layers",    label: "Layers",    Icon: Layers },
   { id: "history",   label: "History",   Icon: History },
+  { id: "settings",  label: "Defaults",  Icon: Settings2 },
 ];
 
 export default function LeftSidebar({
@@ -65,7 +68,7 @@ export default function LeftSidebar({
       )}
     >
       {/* Tabs */}
-      <div className={cn("grid grid-cols-5 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+      <div className={cn("grid grid-cols-6 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
         {TABS.map((t) => {
           const Icon = t.Icon;
           const active = activeTab === t.id;
@@ -90,25 +93,28 @@ export default function LeftSidebar({
         })}
       </div>
 
-      {/* Search */}
-      <div className={cn("px-3 py-2 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
-        <label className="relative block">
-          <Search className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5", darkMode ? "text-gray-500" : "text-gray-400")} />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Filter ${activeTab}…`}
-            className={cn(
-              "w-full h-8 pl-8 pr-2 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500/40",
-              darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200",
-            )}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-          />
-        </label>
-      </div>
+      {/* Search — hidden on the settings tab since there's nothing to
+       *  filter there. */}
+      {activeTab !== "settings" && (
+        <div className={cn("px-3 py-2 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+          <label className="relative block">
+            <Search className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5", darkMode ? "text-gray-500" : "text-gray-400")} />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Filter ${activeTab}…`}
+              className={cn(
+                "w-full h-8 pl-8 pr-2 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+                darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200",
+              )}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+          </label>
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
@@ -117,6 +123,11 @@ export default function LeftSidebar({
         {activeTab === "hallways"  && <HallwayList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "layers"    && <LayerList query={query} />}
         {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
+        {activeTab === "settings"  && (
+          <div className="p-3">
+            <MapSettingsPanel variant="embed" showPublish />
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -234,28 +245,99 @@ function HallwayList({
 // ── Layers ────────────────────────────────────────────────────────
 
 function LayerList({ query }: { query: string }) {
+  const qc = useQueryClient();
   const { data: layers = [] } = useQuery<MapLayer[]>({
     queryKey: ["/api/layers"],
     queryFn: () => fetchList<MapLayer>("/api/layers"),
   });
+  const upsert = useMutation({
+    mutationFn: async (layer: MapLayer) => {
+      const res = await apiRequest("PUT", `/api/layers/${layer.id}`, layer);
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/layers"] }),
+  });
+  const [newName, setNewName] = useState("");
+
   const q = query.trim().toLowerCase();
   const filtered = q ? layers.filter((l) => l.name.toLowerCase().includes(q)) : layers;
 
-  if (layers.length === 0) return <EmptyState message="No custom layers yet." hint="Layers land in the next Builder update." />;
+  const create = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || `layer-${Date.now()}`;
+    const nextZ = Math.max(0, ...layers.map((l) => l.z)) + 10;
+    upsert.mutate({
+      id, name, visible: true, locked: false, opacity: 1, z: nextZ,
+    });
+    setNewName("");
+  };
 
   return (
-    <ul className="p-1.5 space-y-0.5">
-      {filtered.map((l) => (
-        <li key={l.id}>
-          <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60">
-            {l.visible ? <Eye className="h-3.5 w-3.5 text-blue-600" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
-            {l.locked ? <Lock className="h-3.5 w-3.5 text-muted-foreground" /> : <Unlock className="h-3.5 w-3.5 text-muted-foreground" />}
-            <span className="text-sm flex-1 truncate">{l.name}</span>
-            <span className="text-[10px] tabular-nums text-muted-foreground">z{l.z}</span>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="p-2 space-y-2">
+      {/* Create layer */}
+      <div className="flex gap-1.5">
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && create()}
+          placeholder="New layer name"
+          className="flex-1 h-8 px-2.5 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        />
+        <button
+          type="button"
+          onClick={create}
+          disabled={!newName.trim() || upsert.isPending}
+          className="h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
+
+      {filtered.length === 0 && layers.length > 0 && (
+        <EmptyState message="No layers match your filter." />
+      )}
+      {layers.length === 0 && (
+        <EmptyState message="No layers yet." hint="Type a name and press Enter to create one." />
+      )}
+
+      <ul className="space-y-0.5">
+        {filtered
+          .slice()
+          .sort((a, b) => a.z - b.z)
+          .map((l) => (
+            <li key={l.id}>
+              <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60">
+                <button
+                  type="button"
+                  onClick={() => upsert.mutate({ ...l, visible: !l.visible })}
+                  title={l.visible ? "Hide layer" : "Show layer"}
+                  aria-label={l.visible ? "Hide layer" : "Show layer"}
+                  className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted"
+                >
+                  {l.visible
+                    ? <Eye className="h-3.5 w-3.5 text-blue-600" />
+                    : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => upsert.mutate({ ...l, locked: !l.locked })}
+                  title={l.locked ? "Unlock layer" : "Lock layer"}
+                  aria-label={l.locked ? "Unlock layer" : "Lock layer"}
+                  className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted"
+                >
+                  {l.locked
+                    ? <Lock className="h-3.5 w-3.5 text-orange-500" />
+                    : <Unlock className="h-3.5 w-3.5 text-muted-foreground" />}
+                </button>
+                <span className="text-sm flex-1 truncate">{l.name}</span>
+                <span className="text-[10px] tabular-nums text-muted-foreground">z{l.z}</span>
+              </div>
+            </li>
+          ))}
+      </ul>
+    </div>
   );
 }
 

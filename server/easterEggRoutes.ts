@@ -35,6 +35,16 @@ export function registerEasterEggRoutes(app: Express) {
         userId: userId || "anonymous",
         timestamp: new Date().toISOString(),
       });
+      // Also write an app-log entry so the Admin Logs page counts + shows
+      // egg discoveries in the unified feed. Same shape used by other
+      // routes (level/message/action/userId/userName).
+      await storage.createAppLog({
+        level: "success",
+        message: `🥚 Easter egg discovered: ${egg}`,
+        action: "easter_egg",
+        userId: (userId && userId !== "anonymous") ? userId : null,
+        userName: null,
+      }).catch(() => { /* logging is best-effort */ });
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ message: err instanceof Error ? err.message : String(err) });

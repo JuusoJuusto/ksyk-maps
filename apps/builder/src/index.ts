@@ -10,4 +10,4 @@
  */
 export { default as BuilderApp } from "../../../client/src/pages/builder";
 
-export const VERSION = "0.3.0-eggs";
+export const VERSION = "0.4.0-full-map";

@@ -33,6 +33,7 @@ import {
 import { db } from "./db";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
 import type { IStorage } from "./storage";
+import { hashPasswordFieldsInPlace } from "./passwordUtils";
 
 // DatabaseStorage only partially implements IStorage. The Wilma journal /
 // easter-egg / Wilma extension methods are stubbed elsewhere. Callers cast
@@ -51,6 +52,9 @@ export class DatabaseStorage implements Partial<IStorage> {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Storage-boundary hashing — mirrors FirebaseStorage. Idempotent
+    // so re-inserts don't double-hash.
+    userData = await hashPasswordFieldsInPlace(userData);
     const [user] = await db
       .insert(users)
       .values(userData)

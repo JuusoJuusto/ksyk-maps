@@ -241,6 +241,78 @@ export function useKsykEasterEggs() {
     };
     window.addEventListener("keydown", onKonami);
 
+    // ── Mobile-friendly triggers ─────────────────────────────────────
+    // Keyboard-only eggs are invisible on touch devices. These three
+    // gestures cover mobile parity:
+    //
+    //  - 6 rapid taps anywhere in the KSYK Maps wordmark (mirrors the
+    //    10-click logo egg but with a lower threshold for touch UX).
+    //  - Device shake (via DeviceMotion). Fires the "sisu" egg.
+    //  - 5-finger touch. Fires the "party" egg.
+
+    let mobileTapStreak = 0;
+    let mobileTapTimer: number | null = null;
+    const onTouchStart = (e: TouchEvent) => {
+      // 5-finger touch → party
+      if (e.touches.length >= 5) {
+        if (markAndReport("party-typed")) {
+          confetti({ count: 160, duration: 4000 });
+          eggToast("Party mode!", { emoji: "🎉" });
+        }
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const anc = target.closest("*") as HTMLElement | null;
+      const text = (anc?.textContent ?? "").trim();
+      if (text === "KSYK Maps" || text === "KSYK MAPS") {
+        mobileTapStreak += 1;
+        if (mobileTapTimer !== null) clearTimeout(mobileTapTimer);
+        mobileTapTimer = window.setTimeout(() => { mobileTapStreak = 0; }, 4000);
+        if (mobileTapStreak >= 6) {
+          mobileTapStreak = 0;
+          if (markAndReport("logo-clicks")) {
+            eggToast("Dev Mode unlocked.", { emoji: "🛠️" });
+            setLocation("/dev-mode-secret");
+          }
+        }
+      }
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+
+    // Device motion / shake → sisu. Threshold tuned for a firm shake,
+    // not a walk. Detects a peak acceleration on any axis > 25 m/s².
+    let lastShakeAt = 0;
+    const onMotion = (e: DeviceMotionEvent) => {
+      const a = e.accelerationIncludingGravity;
+      if (!a) return;
+      const mag = Math.sqrt((a.x ?? 0) ** 2 + (a.y ?? 0) ** 2 + (a.z ?? 0) ** 2);
+      const now = Date.now();
+      if (mag > 25 && now - lastShakeAt > 1500) {
+        lastShakeAt = now;
+        if (markAndReport("sisu-typed")) {
+          confetti({ colors: FINNISH_COLORS, count: 120, duration: 3500 });
+          eggToast("Sisu! Finnish grit unlocked.", { emoji: "🇫🇮" });
+        }
+      }
+    };
+    // iOS 13+ needs an explicit permission prompt to enable DeviceMotion,
+    // triggered by a user gesture. We ask on the first tap.
+    const askMotionPermission = () => {
+      const ctor = (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> });
+      if (typeof ctor.requestPermission === "function") {
+        ctor.requestPermission().then((state) => {
+          if (state === "granted") {
+            window.addEventListener("devicemotion", onMotion);
+          }
+        }).catch(() => { /* denied — silent */ });
+      } else {
+        window.addEventListener("devicemotion", onMotion);
+      }
+      window.removeEventListener("touchstart", askMotionPermission);
+    };
+    window.addEventListener("touchstart", askMotionPermission, { once: true, passive: true });
+
     // ── Egg — Zoom Lord (10 zoom-ins in a row) ───────────────────────
     // The zoom-in button dispatches a custom "ksyk:zoomin" event so we
     // don't couple this hook to MapLibre. See KSYKMapView.tsx.
@@ -266,11 +338,15 @@ export function useKsykEasterEggs() {
       window.removeEventListener("keydown", onDebugCombo);
       window.removeEventListener("keydown", onKonami);
       window.removeEventListener("ksyk:zoomin", onZoomIn as EventListener);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("devicemotion", onMotion);
+      window.removeEventListener("touchstart", askMotionPermission);
       if (bufTimer !== null) clearTimeout(bufTimer);
       if (clickTimer !== null) clearTimeout(clickTimer);
       if (comboTimer !== null) clearTimeout(comboTimer);
       if (konamiTimer !== null) clearTimeout(konamiTimer);
       if (zoomTimer !== null) clearTimeout(zoomTimer);
+      if (mobileTapTimer !== null) clearTimeout(mobileTapTimer);
     };
   }, [setLocation]);
 }

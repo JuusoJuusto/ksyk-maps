@@ -18,8 +18,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle } from "lucide-react";
+import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette } from "lucide-react";
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
+import { pickColor } from "@/lib/colorEyedropper";
 
 /** Selection dispatched to the panel. Union so the panel can render
  *  a different form per entity kind. */
@@ -438,6 +439,11 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
 
   const dirty = color !== current;
 
+  const runEyedropper = async () => {
+    const picked = await pickColor();
+    if (picked) setColor(picked.hex);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
@@ -446,12 +452,27 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
       </div>
       <div className="space-y-1">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Hex</label>
-        <input
-          type="text"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="flex-1 h-9 px-3 rounded-lg border border-border bg-background text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          />
+          <button
+            type="button"
+            onClick={runEyedropper}
+            title="Pick a color from the map"
+            aria-label="Pick a color from the map"
+            className="h-9 px-3 rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <Pipette className="h-4 w-4" />
+            Pick
+          </button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Click any spot on the map to sample its colour.
+        </p>
       </div>
       <DirtySaveButton
         isDirty={dirty}

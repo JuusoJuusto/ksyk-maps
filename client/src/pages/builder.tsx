@@ -618,7 +618,7 @@ function BuilderWorkspace() {
           hasErrors={validation.errorCount > 0}
           snapEnabled={snapEnabled}
           gridEnabled={gridEnabled}
-          onBack={() => setLocation("/")}
+          onBack={() => setLocation("/admin")}
           onSave={() => void autosave.forceSave()}
           onUndo={() => {/* M14.1 */}}
           onRedo={() => {/* M14.1 */}}
@@ -629,7 +629,9 @@ function BuilderWorkspace() {
           onZoomIn={() => handleRef.current?.map.zoomIn()}
           onZoomOut={() => handleRef.current?.map.zoomOut()}
           onRotateCW={() => handleRef.current?.map.rotateTo(handleRef.current.map.getBearing() + 30)}
-          onPreview={() => setLocation("/")}
+          // Preview opens the public map in a new tab so the Builder's
+          // draft state doesn't get lost.
+          onPreview={() => window.open("/", "_blank", "noopener,noreferrer")}
           onValidate={() => setShowValidation(true)}
           onPublish={() => void onPublish()}
         />
@@ -760,10 +762,10 @@ function BuilderWorkspace() {
                 The map editor needs a mouse and keyboard. Open KSYK Maps on a laptop or desktop.
               </p>
               <Button
-                onClick={() => setLocation("/")}
+                onClick={() => setLocation("/admin")}
                 className="h-11 px-6 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98]"
               >
-                Back to map
+                Back to admin
               </Button>
             </div>
           </div>

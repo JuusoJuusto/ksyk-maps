@@ -2,6 +2,7 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as path from 'path';
 import * as fs from 'fs';
+import { hashPasswordFieldsInPlace } from './passwordUtils';
 import type { IStorage } from './storage';
 import type {
   User,
@@ -172,13 +173,19 @@ export class FirebaseStorage implements IStorage {
 
   async upsertUser(user: UpsertUser): Promise<User> {
     try {
+      // Belt-and-suspenders password hashing at the storage boundary —
+      // idempotent (no-op if already bcrypt) so it's safe even for
+      // callers that already hashed. Guarantees no plaintext ever
+      // reaches Firestore, regardless of upstream discipline.
+      user = await hashPasswordFieldsInPlace(user);
+
       // Use provided ID or generate a real Firebase ID
       const userId = user.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date();
-      
+
       // Check if user exists
       const existingDoc = await db.collection('users').doc(userId).get();
-      
+
       const userData: any = {
         ...user,
         updatedAt: now,
@@ -779,8 +786,10 @@ export class FirebaseStorage implements IStorage {
 
   async createWilmaUser(wilmaUser: any): Promise<any> {
     try {
-      console.log('🔵 FirebaseStorage.createWilmaUser called with:', JSON.stringify(wilmaUser, null, 2));
-      
+      // Same storage-boundary hashing as upsertUser. Idempotent.
+      wilmaUser = await hashPasswordFieldsInPlace(wilmaUser);
+      console.log('🔵 FirebaseStorage.createWilmaUser called with password field hashed');
+
       // Generate 6-digit studentId if not provided
       if (!wilmaUser.studentId) {
         wilmaUser.studentId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -819,6 +828,9 @@ export class FirebaseStorage implements IStorage {
 
   async updateWilmaUser(id: string, wilmaUser: any): Promise<any> {
     try {
+      // Storage-boundary hashing on updates too — /api/wilma/users/:id
+      // is the primary "change password" pathway for Wilma users.
+      wilmaUser = await hashPasswordFieldsInPlace(wilmaUser);
       const updateData = {
         ...wilmaUser,
         updatedAt: new Date(),

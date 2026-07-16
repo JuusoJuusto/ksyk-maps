@@ -10,6 +10,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import EasterEggStats from '@/components/EasterEggStats';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
+import { fetchList, fetchObject } from '@/lib/fetchList';
 
 interface LoginLog {
   id: string;
@@ -53,88 +54,63 @@ export default function AppLogsManager() {
   const { darkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('all');
 
-  const { data: loginLogs = [], isLoading: loginLogsLoading } = useQuery({
+  // Every list query goes through fetchList so a 404 / auth redirect
+  // can't leak a non-array into the `.map` chains that used to crash
+  // the whole panel.
+  const { data: loginLogs = [], isLoading: loginLogsLoading } = useQuery<LoginLog[]>({
     queryKey: ['admin-login-logs'],
     queryFn: async () => {
-      const response = await fetch('/api/admin-login-logs?limit=100', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch login logs');
-      const data = await response.json();
-      return data.map((log: any) => ({ ...log, type: 'login' as const }));
+      const rows = await fetchList<Omit<LoginLog, 'type'>>('/api/admin-login-logs?limit=100');
+      return rows.map((log) => ({ ...log, type: 'login' as const }));
     },
     refetchInterval: 30000,
   });
 
-  // Fetch app logs from API
-  const { data: appLogs = [], isLoading: appLogsLoading } = useQuery({
+  const { data: appLogs = [], isLoading: appLogsLoading } = useQuery<AppLog[]>({
     queryKey: ['app-logs'],
     queryFn: async () => {
-      const response = await fetch('/api/logs', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch app logs');
-      const data = await response.json();
-      return data.map((log: any) => ({
+      const rows = await fetchList<{
+        id: string; level: AppLog['level']; message: string;
+        source?: string; timestamp: unknown;
+      }>('/api/logs');
+      return rows.map((log) => ({
         id: log.id,
-        level: log.level as 'info' | 'warning' | 'error' | 'success',
+        level: log.level,
         message: log.message,
         details: log.source,
         action: log.source?.toUpperCase() || 'UNKNOWN',
         createdAt: log.timestamp,
-        type: 'app' as const
+        type: 'app' as const,
       }));
     },
     refetchInterval: 30000,
   });
 
-  // Fetch REAL analytics events
-  const { data: analyticsEvents = [], isLoading: eventsLoading } = useQuery({
+  // The analytics queries feed a lot of downstream `any`-typed
+  // recharts + rendering code — cast to `any[]` / `any` at the boundary
+  // so we get the runtime array guarantee without breaking downstream
+  // sites that were already relying on unchecked shapes.
+  const { data: analyticsEvents = [], isLoading: eventsLoading } = useQuery<any[]>({
     queryKey: ['analytics-events'],
-    queryFn: async () => {
-      const response = await fetch('/api/analytics/events', {
-        credentials: 'include'
-      });
-      if (!response.ok) return [];
-      return response.json();
-    },
-    refetchInterval: 10000, // Refresh every 10 seconds for near real-time
+    queryFn: async () => (await fetchList<unknown>('/api/analytics/events')) as any[],
+    refetchInterval: 10000,
   });
 
-  // Fetch analytics data
-  const { data: analyticsSummary, isLoading: analyticsLoading } = useQuery({
+  const { data: analyticsSummary, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ['analytics-summary'],
-    queryFn: async () => {
-      const response = await fetch('/api/analytics/summary', {
-        credentials: 'include'
-      });
-      if (!response.ok) return null;
-      return response.json();
-    },
+    queryFn: async () => (await fetchObject<Record<string, unknown>>('/api/analytics/summary')) as any,
     refetchInterval: 60000,
   });
 
-  const { data: topSearches, isLoading: searchesLoading } = useQuery({
+  const { data: topSearches, isLoading: searchesLoading } = useQuery<any[]>({
     queryKey: ['analytics-searches'],
-    queryFn: async () => {
-      const response = await fetch('/api/analytics/searches', {
-        credentials: 'include'
-      });
-      if (!response.ok) return [];
-      return response.json();
-    },
+    queryFn: async () => (await fetchList<unknown>('/api/analytics/searches')) as any[],
     refetchInterval: 60000,
   });
 
-  const { data: popularRooms, isLoading: roomsLoading } = useQuery({
+  const { data: popularRooms, isLoading: roomsLoading } = useQuery<any[]>({
     queryKey: ['analytics-rooms'],
-    queryFn: async () => {
-      const response = await fetch('/api/analytics/rooms', {
-        credentials: 'include'
-      });
-      if (!response.ok) return [];
-      return response.json();
-    },
+    queryFn: async () => (await fetchList<unknown>('/api/analytics/rooms')) as any[],
     refetchInterval: 60000,
   });
 

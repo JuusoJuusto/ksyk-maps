@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
+import CampusOverlay from "@/components/CampusOverlay";
 import SearchResultsDropdown from "@/components/SearchResultsDropdown";
 import { useAppSettings, loadMapDefaultsFromServer } from "@/hooks/useAppSettings";
 import { LocateFixed, Plus, Minus, Navigation, RotateCw } from "lucide-react";
@@ -88,6 +89,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   return (
     <div className="absolute inset-0">
       <CampusMap onReady={onMapReady} />
+
+      {/* Live campus overlay — draws every published building, room,
+       *  and hallway on top of the OSM basemap. Refetches every 60s so
+       *  Builder publishes show up on the public map without a reload. */}
+      <CampusOverlay
+        map={handleRef.current?.map ?? null}
+        activeFloor={selectedFloor}
+      />
 
       {/* Search results overlay — anchored under the header search bar. */}
       <SearchResultsDropdown
