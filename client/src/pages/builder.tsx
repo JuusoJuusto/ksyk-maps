@@ -383,10 +383,16 @@ function BuilderWorkspace() {
 
     const onClick = (e: MapMouseEvent) => {
       if (activeTool === "select") {
-        // Query rendered features under the click for selection
-        const feats = map.queryRenderedFeatures(e.point, {
-          layers: ["builder-buildings-fill"],
-        });
+        // Only query layers that actually exist on the map — the builder-
+        // buildings source isn't installed until at least one building
+        // is drawn, and MapLibre throws hard on unknown layer ids.
+        const candidateLayers = ["builder-buildings-fill", "campus-buildings-fill", "campus-rooms-fill"];
+        const layers = candidateLayers.filter((id) => map.getLayer(id));
+        if (layers.length === 0) {
+          setSelectedId(null);
+          return;
+        }
+        const feats = map.queryRenderedFeatures(e.point, { layers });
         if (feats.length > 0) {
           setSelectedId(String(feats[0].properties?.id) || null);
         } else {

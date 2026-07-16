@@ -24,7 +24,7 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import type { Building, Room, Hallway } from "@ksyk/shared";
+import type { Building, Room, Hallway, MapLayer } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 
 const SOURCES = {
@@ -70,6 +70,17 @@ export default function CampusOverlay({
     queryFn: () => fetchList<Hallway>("/api/hallways"),
     refetchInterval: 60_000,
   });
+  // Layer visibility from the LeftSidebar Layers tab. Missing / dropped
+  // layers default to visible so overlay never becomes accidentally
+  // blank when the layer table is empty.
+  const { data: layers = [] } = useQuery<MapLayer[]>({
+    queryKey: ["/api/layers", "overlay"],
+    queryFn: () => fetchList<MapLayer>("/api/layers"),
+    refetchInterval: 30_000,
+  });
+  const visibilityById = new Map<string, boolean>();
+  for (const l of layers) visibilityById.set(l.id, l.visible !== false);
+  const isVisible = (id: string) => visibilityById.get(id) ?? true;
 
   const clickHandlerRef = useRef(onFeatureClick);
   clickHandlerRef.current = onFeatureClick;
@@ -81,6 +92,33 @@ export default function CampusOverlay({
       installBuildings(map, buildings);
       installHallways(map, hallways);
       installRooms(map, rooms, activeFloor ?? null);
+      applyVisibility();
+    };
+    /** Apply layer visibility from the /api/layers table.
+     *
+     * Naming matches the LeftSidebar defaults:
+     *   Buildings → id "buildings"  → fill + outline + label
+     *   Rooms     → id "rooms"      → fill + outline + label
+     *   Hallways  → id "hallways"   → line
+     *   Labels    → id "labels"     → toggles JUST the label symbol layers
+     *                                 for both buildings and rooms
+     */
+    const applyVisibility = () => {
+      const setVis = (layerId: string, visible: boolean) => {
+        if (!map.getLayer(layerId)) return;
+        map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+      };
+      const bVis = isVisible("buildings");
+      const rVis = isVisible("rooms");
+      const hVis = isVisible("hallways");
+      const lVis = isVisible("labels");
+      setVis(LAYERS.buildingsFill,    bVis);
+      setVis(LAYERS.buildingsOutline, bVis);
+      setVis(LAYERS.buildingsLabel,   bVis && lVis);
+      setVis(LAYERS.roomsFill,        rVis);
+      setVis(LAYERS.roomsOutline,     rVis);
+      setVis(LAYERS.roomsLabel,       rVis && lVis);
+      setVis(LAYERS.hallwaysLine,     hVis);
     };
     if (map.isStyleLoaded()) install();
     else map.once("load", install);
@@ -91,14 +129,18 @@ export default function CampusOverlay({
       });
       const hit = feats[0];
       if (!hit || typeof hit.properties?.id !== "string") return;
+      // Locked layers block interaction. Check the corresponding
+      // layer's `locked` flag from the /api/layers table.
       const kind = hit.layer.id === LAYERS.buildingsFill ? "building"
                  : hit.layer.id === LAYERS.roomsFill    ? "room"
                  :                                        "hallway";
+      const layerRow = layers.find((l) => l.id === (kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways"));
+      if (layerRow?.locked) return;
       clickHandlerRef.current?.(kind, hit.properties.id);
     };
     map.on("click", onClick);
     return () => { map.off("click", onClick); };
-  }, [map, buildings, rooms, hallways, activeFloor]);
+  }, [map, buildings, rooms, hallways, activeFloor, layers]);
 
   return null;
 }

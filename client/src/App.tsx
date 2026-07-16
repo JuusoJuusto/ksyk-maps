@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
 import { useEffect } from "react";
@@ -164,6 +165,12 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SplashScreen />
+      {/* Vercel Web Analytics — auto-tracks pageviews on the SPA route
+       *  swaps that wouter emits. Zero-config on Vercel deployments;
+       *  no-op locally. Runs in parallel with our own /api/telemetry
+       *  sink so we get numbers even when Vercel Analytics is blocked
+       *  by an adblocker. */}
+      <VercelAnalytics />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <DarkModeProvider>

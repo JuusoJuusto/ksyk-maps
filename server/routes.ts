@@ -10,6 +10,7 @@ import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
 import { registerCampusRoutes } from "./campusRoutes";
 import { registerMapRoutes } from "./mapRoutes";
 import { registerEasterEggRoutes } from "./easterEggRoutes";
+import { registerTelemetryRoutes } from "./telemetryRoutes";
 import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = 12;
@@ -810,13 +811,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development login bypass (for testing only) - REMOVED FOR SECURITY
 
   // Building routes
+  //
+  // NOTE: soft-fail on read. If the storage layer bursts (Firestore
+  // rate limit, network blip, transient config error) we still want the
+  // public map to boot with an empty campus rather than blank-page-500.
+  // The real error is captured via logError so admins can debug from
+  // the Logs panel. Mutating routes (POST/PATCH/DELETE) still 500 —
+  // there we WANT the client to know its write failed.
   app.get('/api/buildings', async (req, res) => {
     try {
       const buildings = await storage.getBuildings();
-      res.json(buildings);
+      res.json(Array.isArray(buildings) ? buildings : []);
     } catch (error) {
       await logError(error, 'GET /api/buildings');
-      res.status(500).json({ message: "Failed to fetch buildings" });
+      res.set('X-Read-Soft-Fail', '1').json([]);
     }
   });
 
@@ -885,10 +893,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildingId = req.query.buildingId as string;
       const floors = await storage.getFloors(buildingId);
-      res.json(floors);
+      res.json(Array.isArray(floors) ? floors : []);
     } catch (error) {
       await logError(error, 'GET /api/floors', { buildingId: req.query.buildingId });
-      res.status(500).json({ message: "Failed to fetch floors" });
+      res.set('X-Read-Soft-Fail', '1').json([]);
     }
   });
 
@@ -959,10 +967,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildingId = req.query.buildingId as string;
       const rooms = await storage.getRooms(buildingId);
-      res.json(rooms);
+      res.json(Array.isArray(rooms) ? rooms : []);
     } catch (error) {
       await logError(error, 'GET /api/rooms', { buildingId: req.query.buildingId });
-      res.status(500).json({ message: "Failed to fetch rooms" });
+      res.set('X-Read-Soft-Fail', '1').json([]);
     }
   });
 
@@ -1133,10 +1141,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildingId = req.query.buildingId as string | undefined;
       const hallways = await storage.getHallways(buildingId);
-      res.json(hallways);
+      res.json(Array.isArray(hallways) ? hallways : []);
     } catch (error) {
       await logError(error, 'GET /api/hallways', { buildingId: req.query.buildingId });
-      res.status(500).json({ message: "Failed to fetch hallways" });
+      res.set('X-Read-Soft-Fail', '1').json([]);
     }
   });
 
@@ -5142,6 +5150,9 @@ https://ksykmaps.vercel.app
 
   console.log('🥚 Registering easter-egg routes...');
   registerEasterEggRoutes(app);
+
+  console.log('📊 Registering adblock-safe telemetry routes...');
+  registerTelemetryRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

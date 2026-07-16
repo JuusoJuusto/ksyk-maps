@@ -1,5 +1,22 @@
-// Real Analytics System for KSYK Maps
-// Tracks page views, user interactions, and easter egg discoveries
+/**
+ * Client-side telemetry — adblock-resistant.
+ *
+ * Every send goes through `sendTelemetry(path, payload)` which picks
+ * the best available transport in this order:
+ *
+ *   1. `/api/telemetry/*` via `navigator.sendBeacon` when available.
+ *      SendBeacon runs after the page starts unloading and is treated
+ *      as a passive UA hint by most filter lists — much rarer to be
+ *      blocked than a JS `fetch` to a URL containing "analytics".
+ *   2. `/api/telemetry/*` via plain fetch — same fresh URL, no
+ *      "analytics" substring in the pathname.
+ *   3. `/api/t/p` (single-letter, image-loaded pixel) — image beacons
+ *      are almost never blocked, and the URL is short + generic. Data
+ *      goes over the query string.
+ *
+ * The old `/api/analytics/*` paths remain as server aliases so any
+ * cached client build continues to work.
+ */
 
 interface AnalyticsEvent {
   type: 'page_view' | 'easter_egg' | 'feature_use' | 'search' | 'navigation';
@@ -12,7 +29,6 @@ interface AnalyticsEvent {
   sessionId: string;
 }
 
-// Generate or get session ID
 const getSessionId = (): string => {
   let sessionId = sessionStorage.getItem('ksyk_session_id');
   if (!sessionId) {
@@ -22,7 +38,6 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-// Get or create user ID
 const getUserId = (): string => {
   let userId = localStorage.getItem('ksyk_user_id');
   if (!userId) {
@@ -32,193 +47,153 @@ const getUserId = (): string => {
   return userId;
 };
 
-// Track page view
+// ── Transport ────────────────────────────────────────────────────
+
+/** Send a payload to a telemetry endpoint. Never throws. Never awaits
+ *  a response body (the server returns 204). */
+function sendTelemetry(path: string, payload: unknown): void {
+  const body = JSON.stringify(payload);
+
+  // 1. sendBeacon — fires even on page-unload and passes past most
+  //    filter lists because the request isn't seen as a "tracking"
+  //    XHR by the network inspector.
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon(path, blob)) return;
+    }
+  } catch { /* ignore */ }
+
+  // 2. Plain fetch.
+  try {
+    void fetch(path, {
+      method: 'POST',
+      keepalive: true,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    }).catch(() => {
+      // 3. Image beacon fallback. The pathname isn't "analytics" or
+      //    "track" (both blocked); it's "/api/t/p", short and generic.
+      pixelBeacon(payload);
+    });
+  } catch {
+    pixelBeacon(payload);
+  }
+}
+
+/** Last-resort transport: encode the payload in the query string of an
+ *  Image() src. Only fires when both sendBeacon and fetch have failed. */
+function pixelBeacon(payload: unknown): void {
+  try {
+    const q = encodeURIComponent(btoa(JSON.stringify(payload)).slice(0, 1500));
+    const url = `/api/t/p?d=${q}&_=${Date.now()}`;
+    const img = new Image();
+    img.src = url;
+  } catch { /* really nothing else we can do */ }
+}
+
+// ── Public API — call sites don't change ─────────────────────────
+
 export const trackPageView = async (page: string) => {
-  try {
-    const event: AnalyticsEvent = {
-      type: 'page_view',
-      page,
-      timestamp: new Date().toISOString(),
-      userId: getUserId(),
-      sessionId: getSessionId(),
-    };
-
-    // Both endpoints — /track is the batched sink read by AppLogsManager;
-    // /pageview is the dedicated counter the Overview panel reads for its
-    // "pageviews today" card. Both are fire-and-forget and never throw.
-    await fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        events: [event],
-        sessionInfo: {
-          sessionId: getSessionId(),
-          userId: getUserId(),
-        }
-      }),
-    }).catch(() => { /* Silently fail - analytics shouldn't break the app */ });
-
-    await fetch('/api/analytics/pageview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        page,
-        timestamp: event.timestamp,
-        sessionId: getSessionId(),
-        userId: getUserId(),
-        referrer: typeof document !== 'undefined' ? document.referrer || null : null,
-      }),
-    }).catch(() => { /* Silently fail */ });
-  } catch (error) {
-    // Silently fail - analytics shouldn't break the app
-  }
+  const event: AnalyticsEvent = {
+    type: 'page_view',
+    page,
+    timestamp: new Date().toISOString(),
+    userId: getUserId(),
+    sessionId: getSessionId(),
+  };
+  sendTelemetry('/api/telemetry/pageview', {
+    page,
+    timestamp: event.timestamp,
+    sessionId: event.sessionId,
+    userId: event.userId,
+    referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+  });
+  sendTelemetry('/api/telemetry/track', {
+    events: [event],
+    sessionInfo: { sessionId: event.sessionId, userId: event.userId },
+  });
 };
 
-// Track easter egg discovery
 export const trackEasterEgg = async (eggType: string) => {
-  try {
-    const event: AnalyticsEvent = {
-      type: 'easter_egg',
-      eggType,
-      timestamp: new Date().toISOString(),
-      userId: getUserId(),
-      sessionId: getSessionId(),
-    };
-
-    await fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        events: [event],
-        sessionInfo: {
-          sessionId: getSessionId(),
-          userId: getUserId(),
-        }
-      }),
-    }).catch(() => {});
-
-    // Also track in easter eggs endpoint
-    await fetch('/api/easter-eggs/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        eggId: eggType,
-        eggName: eggType,
-      }),
-    }).catch(() => {});
-  } catch (error) {
-    // Silently fail
-  }
+  const event: AnalyticsEvent = {
+    type: 'easter_egg',
+    eggType,
+    timestamp: new Date().toISOString(),
+    userId: getUserId(),
+    sessionId: getSessionId(),
+  };
+  sendTelemetry('/api/telemetry/track', {
+    events: [event],
+    sessionInfo: { sessionId: event.sessionId, userId: event.userId },
+  });
+  sendTelemetry('/api/easter-eggs/track', { eggId: eggType, eggName: eggType });
 };
 
-// Track feature usage
 export const trackFeatureUse = async (feature: string, meta?: Record<string, unknown>) => {
-  try {
-    const event: AnalyticsEvent = {
-      type: 'feature_use',
-      feature,
-      timestamp: new Date().toISOString(),
-      userId: getUserId(),
-      sessionId: getSessionId(),
-    };
-
-    // Fire-and-forget writes to both endpoints — the /track path is the
-    // legacy sink (goes through Firestore's analyticsEvents), and /feature
-    // is a lightweight named-counter sink used by the Overview panel to
-    // build "top features today" without scanning the raw events blob.
-    await fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        events: [event],
-        sessionInfo: {
-          sessionId: getSessionId(),
-          userId: getUserId(),
-        }
-      }),
-    }).catch(() => {});
-
-    await fetch('/api/analytics/feature', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: feature,
-        meta: meta || null,
-        sessionId: getSessionId(),
-        userId: getUserId(),
-        timestamp: event.timestamp,
-      }),
-    }).catch(() => {});
-  } catch (error) {
-    // Silently fail
-  }
+  const event: AnalyticsEvent = {
+    type: 'feature_use',
+    feature,
+    timestamp: new Date().toISOString(),
+    userId: getUserId(),
+    sessionId: getSessionId(),
+  };
+  sendTelemetry('/api/telemetry/track', {
+    events: [event],
+    sessionInfo: { sessionId: event.sessionId, userId: event.userId },
+  });
+  sendTelemetry('/api/telemetry/feature', {
+    name: feature,
+    meta: meta ?? null,
+    sessionId: event.sessionId,
+    userId: event.userId,
+    timestamp: event.timestamp,
+  });
 };
 
-// Convenience alias — new call sites should use trackFeature() to keep
-// the intent obvious (mirrors the same shape as trackSearch/trackEasterEgg).
+/** Convenience alias — call sites should use trackFeature() for clarity. */
 export const trackFeature = (name: string, meta?: Record<string, unknown>) =>
   trackFeatureUse(name, meta);
 
-// Track search
 export const trackSearch = async (query: string) => {
-  try {
-    const event: AnalyticsEvent = {
-      type: 'search',
-      query,
-      timestamp: new Date().toISOString(),
-      userId: getUserId(),
-      sessionId: getSessionId(),
-    };
-
-    await fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        events: [event],
-        sessionInfo: {
-          sessionId: getSessionId(),
-          userId: getUserId(),
-        }
-      }),
-    }).catch(() => {});
-  } catch (error) {
-    // Silently fail
-  }
+  const event: AnalyticsEvent = {
+    type: 'search',
+    query,
+    timestamp: new Date().toISOString(),
+    userId: getUserId(),
+    sessionId: getSessionId(),
+  };
+  sendTelemetry('/api/telemetry/track', {
+    events: [event],
+    sessionInfo: { sessionId: event.sessionId, userId: event.userId },
+  });
+  sendTelemetry('/api/telemetry/search', {
+    query,
+    sessionId: event.sessionId,
+    userId: event.userId,
+    timestamp: event.timestamp,
+  });
 };
 
-// Track navigation
 export const trackNavigation = async (from: string, to: string) => {
-  try {
-    const event: AnalyticsEvent = {
-      type: 'navigation',
-      page: `${from} -> ${to}`,
-      timestamp: new Date().toISOString(),
-      userId: getUserId(),
-      sessionId: getSessionId(),
-    };
-
-    await fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        events: [event],
-        sessionInfo: {
-          sessionId: getSessionId(),
-          userId: getUserId(),
-        }
-      }),
-    }).catch(() => {});
-  } catch (error) {
-    // Silently fail
-  }
+  const event: AnalyticsEvent = {
+    type: 'navigation',
+    page: `${from} -> ${to}`,
+    timestamp: new Date().toISOString(),
+    userId: getUserId(),
+    sessionId: getSessionId(),
+  };
+  sendTelemetry('/api/telemetry/track', {
+    events: [event],
+    sessionInfo: { sessionId: event.sessionId, userId: event.userId },
+  });
 };
 
-// Auto-track page views on route changes
+/** Kick off client-side telemetry. Fires the initial pageview and
+ *  polls for pathname changes so SPA route swaps still count. */
 export const initAnalytics = () => {
-  // Track initial page view
   trackPageView(window.location.pathname);
-
-  // Track page views on navigation
   let lastPath = window.location.pathname;
   setInterval(() => {
     const currentPath = window.location.pathname;
@@ -229,15 +204,11 @@ export const initAnalytics = () => {
   }, 1000);
 };
 
-
-// React hook for analytics
-export const useAnalytics = () => {
-  return {
-    trackPageView,
-    trackEasterEgg,
-    trackFeatureUse,
-    trackFeature,
-    trackSearch,
-    trackNavigation,
-  };
-};
+export const useAnalytics = () => ({
+  trackPageView,
+  trackEasterEgg,
+  trackFeatureUse,
+  trackFeature,
+  trackSearch,
+  trackNavigation,
+});

@@ -10,4 +10,4 @@
  */
 export { default as BuilderApp } from "../../../client/src/pages/builder";
 
-export const VERSION = "0.4.0-full-map";
+export const VERSION = "0.5.0-telemetry";

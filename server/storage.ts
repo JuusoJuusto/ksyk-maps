@@ -781,63 +781,41 @@ class MemStorage implements IStorage {
     // Mock implementation - no-op
   }
 
-  async getAnalyticsSummary(days: number = 30): Promise<any> {
-    // Mock analytics data
+  async getAnalyticsSummary(_days: number = 30): Promise<any> {
+    // Fresh-install MemStorage — no persistent analytics yet. Return
+    // ZEROS not made-up numbers so admins can trust what they see.
+    // The real numbers appear once Firestore/Postgres is configured
+    // and the client starts writing via /api/telemetry/*.
     return {
-      totalVisitors: 1250,
-      totalPageViews: 3450,
-      totalSearches: 890,
-      totalNavigationRequests: 234,
-      topCountries: [
-        { country: 'Finland', count: 850 },
-        { country: 'Sweden', count: 120 },
-        { country: 'Norway', count: 95 }
-      ],
-      topBrowsers: [
-        { browser: 'Chrome', count: 780 },
-        { browser: 'Safari', count: 320 },
-        { browser: 'Firefox', count: 150 }
-      ],
-      peakHours: [10, 11, 12, 13, 14],
-      avgSessionDuration: 245 // seconds
+      totalVisitors: 0,
+      totalPageViews: 0,
+      totalSearches: 0,
+      totalNavigationRequests: 0,
+      topCountries: [],
+      topBrowsers: [],
+      peakHours: [],
+      avgSessionDuration: 0,
     };
   }
 
   async getTopSearches(limit: number = 10): Promise<any[]> {
     // Mock top searches
-    return [
-      { query: 'M12', count: 45, type: 'room' },
-      { query: 'music room', count: 32, type: 'room' },
-      { query: 'K15', count: 28, type: 'room' },
-      { query: 'library', count: 25, type: 'room' },
-      { query: 'gym', count: 22, type: 'building' }
-    ];
+    // Fresh install — no persistent search analytics yet.
+    return [];
   }
 
-  async getPopularRooms(limit: number = 10): Promise<any[]> {
-    // Mock popular rooms
-    return [
-      { roomId: '1', roomNumber: 'M12', building: 'Music Building', visits: 95 },
-      { roomId: '2', roomNumber: 'K15', building: 'Central Hall', visits: 87 },
-      { roomId: '3', roomNumber: 'L20', building: 'Gymnasium', visits: 79 },
-      { roomId: '4', roomNumber: 'R12', building: 'R Building', visits: 65 },
-      { roomId: '5', roomNumber: 'A15', building: 'A Building', visits: 58 }
-    ];
+  async getPopularRooms(_limit: number = 10): Promise<any[]> {
+    return [];
   }
 
-  async getVisitorStats(days: number = 30): Promise<any> {
-    // Mock visitor stats
+  async getVisitorStats(_days: number = 30): Promise<any> {
     return {
-      uniqueVisitors: 1250,
-      returningVisitors: 340,
-      newVisitors: 910,
-      bounceRate: 0.23,
-      avgPagesPerSession: 2.8,
-      topReferrers: [
-        { referrer: 'Direct', count: 650 },
-        { referrer: 'Google', count: 280 },
-        { referrer: 'School Website', count: 180 }
-      ]
+      uniqueVisitors: 0,
+      returningVisitors: 0,
+      newVisitors: 0,
+      bounceRate: 0,
+      avgPagesPerSession: 0,
+      topReferrers: [],
     };
   }
 

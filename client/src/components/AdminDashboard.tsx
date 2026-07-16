@@ -553,10 +553,13 @@ function WilmaConfigPanel() {
 
 const ADMIN_BASE = "/admin";
 
-// Canonical tab slugs — also used as URL path segments
+// Canonical tab slugs — also used as URL path segments.
+// "analytics" was folded into the Logs page as a nested tab (matches the
+// data flow: analytics is a lens over the log stream, not a separate
+// concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "schedules","tickets","logs","analytics","staff","announcements","beacons","2fa","settings",
+  "schedules","tickets","logs","staff","announcements","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -878,7 +881,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "schedules", label: "Schedules", Icon: Calendar },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
-    { value: "analytics", label: "Analytics", Icon: TrendingUp },
+    // Analytics is now a tab inside Logs — no top-level sidebar entry.
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
     ...(isOwner ? [{ value: "beacons", label: "Beacons", Icon: Radio }] : []),
@@ -1802,10 +1805,9 @@ export default function AdminDashboard({ section }: { section?: string }) {
          *  top-level /builder route. Sidebar link "Builder" opens it. */}
 
         <TabsContent value="logs" className="mt-0 space-y-6">
+          {/* Logs page now hosts Analytics + Insights + Easter Eggs as
+           *  nested tabs. See AppLogsManager. */}
           <AppLogsManager />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="mt-0 space-y-6">
           <AnalyticsExternalPanel />
         </TabsContent>
 

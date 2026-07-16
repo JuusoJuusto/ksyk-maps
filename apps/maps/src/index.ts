@@ -12,4 +12,4 @@ export { default as MapsApp } from "../../../client/src/App";
 export { default as MapsHome } from "../../../client/src/pages/ksykmaps-home";
 
 /** Version banner for observability. */
-export const VERSION = "0.4.0-full-map";
+export const VERSION = "0.5.0-telemetry";
