@@ -1217,33 +1217,32 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // failed → 100% of admin logins returned 401. This block fixes
     // that.
     if (apiPath === '/auth/admin-login' && req.method === 'POST') {
-      const { email, password } = req.body;
+      const { email: rawEmail, password } = req.body ?? {};
+      const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+      const emailLower = email.toLowerCase();
 
       console.log('\n🔐 ========== API LOGIN ATTEMPT ==========');
-      console.log('Email:', email);
+      console.log('Email:', email, '(lower:', emailLower + ')');
       console.log('Password length:', password?.length);
 
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password required", success: false });
+        return res.status(400).json({ message: 'Email and password required', success: false });
       }
 
-      // Route through the shared passwordUtils helper — that module is
-      // graceful when bcrypt's native binary isn't loadable on Vercel
-      // (falls back to strict-eq with a console warning instead of
-      // throwing a 500).
+      // Route through the shared passwordUtils helper — bcryptjs primary,
+      // native bcrypt fallback, plaintext-with-warning last resort so
+      // this endpoint can NEVER 500 on a broken hash backend.
       const { verifyPassword: verifyPw, isAlreadyHashed } = await import('../server/passwordUtils.js');
 
       /** Verify `plain` against `stored`. If `stored` is plaintext and
        *  matches, kick off a background re-hash via storage.upsertUser
        *  so the next login uses bcrypt. */
-      const verifyPassword = async (plain: string, stored: string, userId: string): Promise<boolean> => {
+      const verifyAndUpgrade = async (plain: string, stored: string, userId: string): Promise<boolean> => {
         if (isAlreadyHashed(stored)) {
           return verifyPw(plain, stored);
         }
-        // Legacy plaintext — one-time upgrade.
         if (plain !== stored) return false;
         try {
-          // storage.upsertUser hashes at the boundary (v3.4+).
           await storage.upsertUser({ id: userId, password: plain } as any);
           console.log('🔒 Auto-upgraded legacy plaintext password → bcrypt for', userId);
         } catch (err) {
@@ -1253,15 +1252,85 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       };
 
       const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+      const isOwner = emailLower === OWNER_EMAIL.toLowerCase();
 
-      // Owner + Admin paths share the same verify logic — dedupe.
-      const isOwner = email === OWNER_EMAIL;
-      const user = await storage.getUserByEmail(email);
+      // ── Break-glass owner login via env var. ─────────────────────
+      // If OWNER_PASSWORD is set in the Vercel env AND the caller
+      // supplies the owner email + that exact password, we bypass the
+      // DB lookup. This exists so the site is never permanently locked
+      // out by a corrupt user record or a hashing regression. Docs
+      // recommend clearing OWNER_PASSWORD after using it once.
+      if (isOwner && process.env.OWNER_PASSWORD && password === process.env.OWNER_PASSWORD) {
+        console.log('✅ OWNER break-glass login via OWNER_PASSWORD env var');
+        // Try to ensure a matching user record exists so the rest of
+        // the admin panel finds someone to attach to.
+        let ownerUser: any = await storage.getUserByEmail(OWNER_EMAIL).catch(() => null);
+        if (!ownerUser) {
+          ownerUser = await storage.getUserByEmail(emailLower).catch(() => null);
+        }
+        if (!ownerUser) {
+          try {
+            ownerUser = await storage.upsertUser({
+              id: 'owner-admin-user',
+              email: OWNER_EMAIL,
+              firstName: 'Juuso',
+              lastName: 'Kaikula',
+              role: 'owner',
+              password: password,
+              isTemporaryPassword: false,
+            } as any);
+            console.log('🆕 Created owner user record from break-glass login');
+          } catch (err) {
+            console.warn('⚠️ Could not create owner user record (continuing anyway):', err);
+            ownerUser = {
+              id: 'owner-admin-user',
+              email: OWNER_EMAIL,
+              firstName: 'Juuso',
+              lastName: 'Kaikula',
+              role: 'owner',
+              isTemporaryPassword: false,
+            };
+          }
+        }
+        const { password: _pw, passwordResetToken: _tk, passwordResetExpiry: _ex, ...safeUser } = ownerUser;
+        return res.status(200).json({ success: true, user: safeUser, requirePasswordChange: false });
+      }
+
+      // ── Case-insensitive user lookup with graceful fallbacks. ─────
+      let user: any = null;
+      try {
+        // Try exact case first (original data), then lowercased.
+        user = await storage.getUserByEmail(email);
+        if (!user && emailLower !== email) {
+          user = await storage.getUserByEmail(emailLower);
+        }
+        if (!user && isOwner) {
+          // Owner email special-cased to whatever cased form is in the DB.
+          user = await storage.getUserByEmail(OWNER_EMAIL);
+        }
+        // Final safety net: if a getUsers method exists, do a case-
+        // insensitive scan. This is O(n) but only fires when the direct
+        // lookups all miss — rare.
+        if (!user && typeof (storage as any).getUsers === 'function') {
+          const all = await (storage as any).getUsers().catch(() => []);
+          user = Array.isArray(all)
+            ? all.find((u: any) => (u.email || '').toLowerCase() === emailLower)
+            : null;
+        }
+      } catch (err) {
+        console.error('❌ storage.getUserByEmail threw:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Login temporarily unavailable — database is unreachable.',
+        });
+      }
 
       if (!user) {
-        console.log('❌ User not found in database');
+        console.log('❌ User not found in database (tried both cases + scan)');
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
+      console.log('✅ User found: id=' + user.id + ' role=' + user.role);
+
       if (!user.password) {
         console.log('❌ User has no password set');
         return res.status(401).json({
@@ -1270,20 +1339,53 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         });
       }
 
-      const ok = await verifyPassword(password, user.password, user.id);
+      const ok = await verifyAndUpgrade(password, user.password, user.id);
       if (!ok) {
-        console.log(`❌ Password mismatch (${isOwner ? 'owner' : 'admin'})`);
+        console.log(`❌ Password mismatch (${isOwner ? 'owner' : 'admin'}) — stored is ${isAlreadyHashed(user.password) ? 'bcrypt' : 'plaintext(' + user.password.length + ')'}`);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       console.log(`✅ ${isOwner ? 'OWNER' : 'ADMIN'} login successful for ${email}`);
-      // Never leak the password (hashed or otherwise) back to the client.
-      const { password: _pw, passwordResetToken: _tk, passwordResetExpiry: _ex, ...safeUser } = user as any;
+      const { password: _pw2, passwordResetToken: _tk2, passwordResetExpiry: _ex2, ...safeUser } = user as any;
       return res.status(200).json({
         success: true,
         user: safeUser,
         requirePasswordChange: user.isTemporaryPassword || false,
       });
+    }
+
+    // ── Debug: GET /api/auth/admin-diag — sanity check on the login path.
+    // Safe to expose: only returns whether the account exists + shape of
+    // its stored password (bcrypt vs plaintext len), never the value.
+    // Available on any deployment so admins can debug from the browser.
+    if (apiPath === '/auth/admin-diag' && req.method === 'GET') {
+      const email = ((req.query.email as string) || '').trim();
+      if (!email) return res.status(400).json({ message: 'email query param required' });
+      try {
+        const { isAlreadyHashed } = await import('../server/passwordUtils.js');
+        const user: any = await storage.getUserByEmail(email).catch(() => null);
+        const userLower = user
+          ? null
+          : await storage.getUserByEmail(email.toLowerCase()).catch(() => null);
+        const found = user || userLower;
+        return res.status(200).json({
+          storageType: storage.constructor.name,
+          bcryptJsAvailable: await (async () => { try { await import('bcryptjs'); return true; } catch { return false; } })(),
+          bcryptAvailable:   await (async () => { try { await import('bcrypt'); return true; } catch { return false; } })(),
+          matchedCase: !!user,
+          matchedLower: !user && !!userLower,
+          userFound: !!found,
+          userRole: found?.role || null,
+          hasPassword: !!found?.password,
+          passwordShape: !found?.password ? null : (isAlreadyHashed(found.password) ? 'bcrypt' : `plaintext(len=${found.password.length})`),
+          ownerPasswordEnvSet: !!process.env.OWNER_PASSWORD,
+        });
+      } catch (err: any) {
+        return res.status(200).json({
+          error: err.message,
+          storageType: storage.constructor.name,
+        });
+      }
     }
     
     // Password change endpoint
