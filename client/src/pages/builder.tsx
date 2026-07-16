@@ -36,6 +36,11 @@ import {
   Hand,
   Ruler,
   Square,
+  StretchHorizontal,
+  StepForward,
+  MoveVertical,
+  DoorClosed,
+  LogIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -44,7 +49,10 @@ import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Ele
 import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 
-type BuilderTool = "select" | "building" | "room" | "hallway" | "rectangle" | "measure" | "pan";
+type BuilderTool =
+  | "select" | "pan"
+  | "building" | "rectangle" | "room" | "hallway" | "wall" | "measure"
+  | "poi-stairs" | "poi-elevator" | "poi-door" | "poi-entrance";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -245,7 +253,7 @@ function BuilderWorkspace() {
         ];
       } else if (activeTool === "measure" && coords.length >= 2) {
         lineCoords = coords;
-      } else if (activeTool === "hallway" && coords.length >= 2) {
+      } else if ((activeTool === "hallway" || activeTool === "wall") && coords.length >= 2) {
         lineCoords = coords;
       } else if (coords.length >= 3) {
         polyCoords = [...coords, coords[0]];
@@ -513,8 +521,31 @@ function BuilderWorkspace() {
         }
         return;
       }
-      if (activeTool === "building" || activeTool === "room" || activeTool === "hallway" || activeTool === "rectangle" || activeTool === "measure") {
+      if (
+        activeTool === "building" || activeTool === "room" ||
+        activeTool === "hallway" || activeTool === "wall" ||
+        activeTool === "rectangle" || activeTool === "measure"
+      ) {
         setWaypoints((prev) => [...prev, e.lngLat]);
+        return;
+      }
+      // POI tools: single-click places, no need for Enter. Fire the
+      // matching mutation with the click position.
+      if (activeTool === "poi-stairs") {
+        createStair.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        return;
+      }
+      if (activeTool === "poi-elevator") {
+        createElevator.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        return;
+      }
+      if (activeTool === "poi-door" || activeTool === "poi-entrance") {
+        createDoor.mutate({
+          lat: e.lngLat.lat,
+          lng: e.lngLat.lng,
+          isEntrance: activeTool === "poi-entrance",
+        });
+        return;
       }
     };
 
@@ -546,8 +577,13 @@ function BuilderWorkspace() {
       else if (e.key === "b" || e.key === "B") { setActiveTool("building"); setWaypoints([]); }
       else if (e.key === "r" || e.key === "R") { setActiveTool("room"); setWaypoints([]); }
       else if (e.key === "h" || e.key === "H") { setActiveTool("hallway"); setWaypoints([]); }
+      else if (e.key === "w" || e.key === "W") { setActiveTool("wall"); setWaypoints([]); }
       else if (e.key === "m" || e.key === "M") { setActiveTool("measure"); setWaypoints([]); }
       else if (e.key === "u" || e.key === "U") { setActiveTool("rectangle"); setWaypoints([]); }
+      else if (e.key === "s" || e.key === "S") { setActiveTool("poi-stairs"); setWaypoints([]); }
+      else if (e.key === "e" || e.key === "E") { setActiveTool("poi-elevator"); setWaypoints([]); }
+      else if (e.key === "d" || e.key === "D") { setActiveTool("poi-door"); setWaypoints([]); }
+      else if (e.key === "n" || e.key === "N") { setActiveTool("poi-entrance"); setWaypoints([]); }
       else if (e.key === " ") { setActiveTool("pan"); setWaypoints([]); }
     };
     window.addEventListener("keydown", onKey);
@@ -593,7 +629,7 @@ function BuilderWorkspace() {
   });
 
   const createHallway = useMutation({
-    mutationFn: async (payload: { points: Array<{ lng: number; lat: number }> }) => {
+    mutationFn: async (payload: { points: Array<{ lng: number; lat: number }>; surface?: string }) => {
       // Chunk polyline into start/end segments — matches the server schema.
       const created: unknown[] = [];
       for (let i = 0; i < payload.points.length - 1; i++) {
@@ -602,6 +638,7 @@ function BuilderWorkspace() {
           startY: payload.points[i].lat,
           endX: payload.points[i + 1].lng,
           endY: payload.points[i + 1].lat,
+          surface: payload.surface,
         });
         try { created.push(await res.json()); } catch { /* swallow parse */ }
       }
@@ -619,6 +656,43 @@ function BuilderWorkspace() {
     },
   });
 
+  const createStair = useMutation({
+    mutationFn: async (p: { lat: number; lng: number }) => {
+      const res = await apiRequest("POST", "/api/stairs", {
+        floor: 1,
+        mapPositionX: p.lng,
+        mapPositionY: p.lat,
+      });
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/stairs"] }); },
+  });
+
+  const createElevator = useMutation({
+    mutationFn: async (p: { lat: number; lng: number }) => {
+      const res = await apiRequest("POST", "/api/elevators", {
+        floor: 1,
+        mapPositionX: p.lng,
+        mapPositionY: p.lat,
+      });
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/elevators"] }); },
+  });
+
+  const createDoor = useMutation({
+    mutationFn: async (p: { lat: number; lng: number; isEntrance: boolean }) => {
+      const res = await apiRequest("POST", "/api/doors", {
+        floor: 1,
+        mapPositionX: p.lng,
+        mapPositionY: p.lat,
+        isEntrance: p.isEntrance,
+      });
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/doors"] }); },
+  });
+
   const deleteBuilding = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/buildings/${id}`);
@@ -633,6 +707,13 @@ function BuilderWorkspace() {
     if (activeTool === "hallway" && waypoints.length >= 2) {
       createHallway.mutate({
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
+      });
+      return;
+    }
+    if (activeTool === "wall" && waypoints.length >= 2) {
+      createHallway.mutate({
+        points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
+        surface: "wall",
       });
       return;
     }
@@ -892,6 +973,7 @@ function BuilderWorkspace() {
           {activeTool !== "select" && activeTool !== "pan" && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none">
               {activeTool === "hallway" && (<>Click waypoints — Enter to finish ({waypoints.length})</>)}
+              {activeTool === "wall" && (<>Click wall endpoints — Enter to finish ({waypoints.length})</>)}
               {activeTool === "rectangle" && (<>Click 2 diagonal corners — Enter to finish ({waypoints.length}/2)</>)}
               {activeTool === "measure" && (
                 <>
@@ -905,6 +987,10 @@ function BuilderWorkspace() {
               {(activeTool === "building" || activeTool === "room") && (
                 <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
               )}
+              {activeTool === "poi-stairs"    && (<>Click to place stairs</>)}
+              {activeTool === "poi-elevator"  && (<>Click to place elevator</>)}
+              {activeTool === "poi-door"      && (<>Click to place door</>)}
+              {activeTool === "poi-entrance"  && (<>Click to place entrance</>)}
             </div>
           )}
 
@@ -1011,13 +1097,19 @@ function ToolPalette({
   onDelete: () => void;
 }) {
   const tools: Array<{ id: BuilderTool; Icon: typeof MousePointer2; label: string; hotkey: string }> = [
-    { id: "select",    Icon: MousePointer2, label: "Select",    hotkey: "V" },
-    { id: "pan",       Icon: Hand,          label: "Pan",       hotkey: "Space" },
-    { id: "building",  Icon: Building2,     label: "Building",  hotkey: "B" },
-    { id: "rectangle", Icon: Square,        label: "Rectangle", hotkey: "U" },
-    { id: "room",      Icon: DoorOpen,      label: "Room",      hotkey: "R" },
-    { id: "hallway",   Icon: RouteIcon,     label: "Hallway",   hotkey: "H" },
-    { id: "measure",   Icon: Ruler,         label: "Measure",   hotkey: "M" },
+    { id: "select",         Icon: MousePointer2,      label: "Select",       hotkey: "V" },
+    { id: "pan",            Icon: Hand,               label: "Pan",          hotkey: "Space" },
+    { id: "building",       Icon: Building2,          label: "Building",     hotkey: "B" },
+    { id: "rectangle",      Icon: Square,             label: "Rectangle",    hotkey: "U" },
+    { id: "room",           Icon: DoorOpen,           label: "Room",         hotkey: "R" },
+    { id: "hallway",        Icon: RouteIcon,          label: "Hallway",      hotkey: "H" },
+    { id: "wall",           Icon: StretchHorizontal,  label: "Wall",         hotkey: "W" },
+    { id: "measure",        Icon: Ruler,              label: "Measure",      hotkey: "M" },
+    // POI tools — placed with a single click, no Enter needed.
+    { id: "poi-stairs",     Icon: StepForward,        label: "Stairs",       hotkey: "S" },
+    { id: "poi-elevator",   Icon: MoveVertical,       label: "Elevator",     hotkey: "E" },
+    { id: "poi-door",       Icon: DoorClosed,         label: "Door",         hotkey: "D" },
+    { id: "poi-entrance",   Icon: LogIn,              label: "Entrance",     hotkey: "N" },
   ];
 
   return (

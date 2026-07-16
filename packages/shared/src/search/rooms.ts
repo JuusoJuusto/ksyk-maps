@@ -53,26 +53,33 @@ export function buildRoomSearchIndex(
 
   // Buildings first — so a naked "A" or "Haavikko" surfaces the parent
   // before a room named "A-101" would. The title packs ALL localised
-  // names so `name / nameEn / nameFi` all count against the heavy
-  // WEIGHT_TITLE weight, not the demoted keywords weight.
+  // names AND uses one variant per index entry too, so a user typing
+  // any of {name, nameEn, nameFi} hits via title-weighted score even
+  // when the map surface renders only one of them.
   for (const building of safeBuildings) {
     const names = [building.name, building.nameEn, building.nameFi]
       .filter((s): s is string => !!s && s.length > 0);
-    // Dedupe so a building with name === nameEn doesn't get 2x weight.
-    const uniqueNames = Array.from(new Set(names));
+    const uniqueNames = Array.from(new Set(names.map((n) => n.trim()))).filter(Boolean);
     if (uniqueNames.length === 0) continue;
     idx.add({
       id: `building:${building.id}`,
       kind: "building",
-      // Concatenated so every language variant scores as title.
-      title: uniqueNames.join(" · "),
+      // Concatenated so every language variant scores as title. Space-
+      // separated (not " · ") so tokenizer sees them as separate tokens
+      // and prefix matching works on each name individually.
+      title: uniqueNames.join(" "),
       subtitle: [
         building.address ?? null,
         typeof building.floors === "number"
           ? `${building.floors} floor${building.floors === 1 ? "" : "s"}`
           : null,
       ].filter(Boolean).join(" · "),
+      // Repeat the names in keywords too so a token like "kulo" hits
+      // both fields — belt-and-suspenders after the earlier weight
+      // rebalance. Even at WEIGHT_KEYWORDS 0.8 this only helps
+      // rank-tie-breaking; the title match dominates.
       keywords: [
+        ...uniqueNames,
         building.address ?? "",
         "building",
       ].filter((k) => k && k.length > 0),
@@ -88,10 +95,10 @@ export function buildRoomSearchIndex(
     // keywords so "912" still finds "Physics Lab" too.
     const nameParts = [room.name, room.nameEn, room.nameFi, room.displayName]
       .filter((s): s is string => !!s && s.length > 0);
-    const uniqueNames = Array.from(new Set(nameParts));
+    const uniqueNames = Array.from(new Set(nameParts.map((n) => n.trim()))).filter(Boolean);
     const primaryTitle =
       uniqueNames.length > 0
-        ? uniqueNames.join(" · ")
+        ? uniqueNames.join(" ")
         : (room.roomNumber || "(unnamed room)");
     idx.add({
       id: `room:${room.id}`,
@@ -105,6 +112,8 @@ export function buildRoomSearchIndex(
       ].filter(Boolean).join(" · "),
       keywords: [
         room.roomNumber,
+        // Include names in keywords too — belt-and-suspenders like buildings.
+        ...uniqueNames,
         room.type ?? "",
         ...(room.tags ?? []),
         ...(room.aliases ?? []),

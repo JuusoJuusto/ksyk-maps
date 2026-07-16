@@ -107,11 +107,18 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
           properties: {},
         }],
       };
+      // Midpoint chip — shows the distance floating on the route line.
+      const midLat = (route.a.lat + route.b.lat) / 2;
+      const midLng = (route.a.lng + route.b.lng) / 2;
+      const distanceLabel = route.distanceMeters < 1000
+        ? `${route.distanceMeters.toFixed(0)} m`
+        : `${(route.distanceMeters / 1000).toFixed(2)} km`;
       const endsData = {
         type: "FeatureCollection" as const,
         features: [
-          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.a.lng, route.a.lat] }, properties: { role: "from" } },
-          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.b.lng, route.b.lat] }, properties: { role: "to" } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.a.lng, route.a.lat] }, properties: { role: "from", label: "A" } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.b.lng, route.b.lat] }, properties: { role: "to",   label: "B" } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [midLng, midLat] },           properties: { role: "mid",  label: distanceLabel } },
         ],
       };
       const srcLine = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
@@ -134,15 +141,49 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
       if (srcEnds) srcEnds.setData(endsData as never);
       else {
         map.addSource(ROUTE_ENDS_SOURCE_ID, { type: "geojson", data: endsData as never });
+        // Circle behind each endpoint / distance chip.
         map.addLayer({
           id: ROUTE_ENDS_LAYER_ID,
           source: ROUTE_ENDS_SOURCE_ID,
           type: "circle",
           paint: {
-            "circle-radius": 9,
-            "circle-color": ["case", ["==", ["get", "role"], "from"], "#10b981", "#dc2626"],
-            "circle-stroke-color": "#ffffff",
+            "circle-radius": ["case",
+              ["==", ["get", "role"], "mid"], 16,
+              10,
+            ],
+            "circle-color": ["case",
+              ["==", ["get", "role"], "from"], "#10b981",
+              ["==", ["get", "role"], "to"],   "#dc2626",
+              "#ffffff",
+            ],
+            "circle-stroke-color": ["case",
+              ["==", ["get", "role"], "mid"], "#2563eb",
+              "#ffffff",
+            ],
             "circle-stroke-width": 3,
+          },
+          filter: ["!=", ["get", "role"], "mid-hidden"],
+        });
+        // Text labels — "A", "B", and the distance figure.
+        map.addLayer({
+          id: `${ROUTE_ENDS_LAYER_ID}-label`,
+          source: ROUTE_ENDS_SOURCE_ID,
+          type: "symbol",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": ["case",
+              ["==", ["get", "role"], "mid"], 11,
+              12,
+            ],
+            "text-font": ["Noto Sans Regular"],
+            "text-allow-overlap": true,
+            "text-anchor": "center",
+          },
+          paint: {
+            "text-color": ["case",
+              ["==", ["get", "role"], "mid"], "#1e3a8a",
+              "#ffffff",
+            ],
           },
         });
       }
@@ -169,6 +210,8 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
   useEffect(() => {
     return () => {
       if (!map) return;
+      const labelId = `${ROUTE_ENDS_LAYER_ID}-label`;
+      if (map.getLayer(labelId)) map.removeLayer(labelId);
       if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
       if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
       if (map.getLayer(ROUTE_ENDS_LAYER_ID)) map.removeLayer(ROUTE_ENDS_LAYER_ID);
@@ -185,9 +228,20 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
   return (
     <div
       className={cn(
-        "absolute top-3 left-3 z-40 w-[min(92vw,22rem)] rounded-2xl border border-border bg-card shadow-lg overflow-hidden",
+        // Mobile: bottom sheet, full width, safe-area padded so the map
+        // controls above it stay reachable. Desktop / sm+: floating
+        // top-left card. z-40 sits below the header (z-50) but above
+        // the right-rail buttons.
+        "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden",
+        "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,24rem)]",
+        // Bottom-anchored on mobile, top-anchored on desktop.
+        "bottom-2 sm:bottom-auto sm:top-24",
       )}
-      style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
+      style={{
+        // Respect safe-area on both edges.
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        maxHeight: "min(70dvh, 34rem)",
+      }}
       role="dialog"
       aria-label="Navigation directions"
     >
@@ -204,7 +258,7 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
         </button>
       </header>
 
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 overflow-y-auto">
         <EndpointField
           label="From"
           color="#10b981"

@@ -14,7 +14,7 @@
  * `onSelect(room)` — the parent can update its selection state, open
  * a room info sheet, etc.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Room, Building, SearchHit } from "@ksyk/shared";
@@ -43,9 +43,47 @@ export default function SearchResultsDropdown({
   query,
   onSelect,
   limit = 8,
-  offsetTop = 128,
+  offsetTop,
 }: SearchResultsDropdownProps) {
   const { darkMode } = useDarkMode();
+
+  // Measure the header dynamically instead of assuming 128px — on
+  // mobile the announcement banner + safe-area inset + stacked search
+  // row push the search input down further, and a hardcoded offset
+  // meant the dropdown overlapped the search input on tall layouts.
+  const [autoOffset, setAutoOffset] = useState<number>(() => offsetTop ?? 128);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const measure = () => {
+      // Header is a sticky div that wraps the whole announcement + top
+      // bar + search row. Grab the LAST search input on the page since
+      // there might be nested search inputs in nav panel etc.
+      const header = document.querySelector<HTMLElement>('header');
+      if (!header) return;
+      const rect = header.getBoundingClientRect();
+      // 6px breathing gap between the input and the dropdown.
+      setAutoOffset(Math.max(0, rect.bottom + 6));
+    };
+    measure();
+    // Recompute on every resize / orientation change so mobile browsers
+    // that grow the viewport when the keyboard closes stay in sync.
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    // Also observe header size — some CSS transitions animate the
+    // announcement banner in/out.
+    const header = document.querySelector<HTMLElement>('header');
+    let ro: ResizeObserver | null = null;
+    if (header && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => measure());
+      ro.observe(header);
+    }
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+      ro?.disconnect();
+    };
+  }, []);
+  const effectiveOffset = offsetTop ?? autoOffset;
 
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -78,12 +116,21 @@ export default function SearchResultsDropdown({
       role="listbox"
       aria-label={`${hits.length} search results`}
       className={cn(
-        "fixed left-1/2 -translate-x-1/2 z-40 w-[min(92vw,42rem)] rounded-2xl border shadow-lg overflow-hidden",
+        // Full-width on mobile with side gutters, capped at 42rem on
+        // larger viewports. Stretches to available viewport height so
+        // long result lists scroll INSIDE the panel instead of pushing
+        // off-screen.
+        "fixed left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 sm:w-[min(92vw,42rem)] rounded-2xl border shadow-lg overflow-hidden",
         darkMode
           ? "bg-gray-900/95 border-gray-800 text-gray-100 backdrop-blur"
           : "bg-white border-gray-200 text-gray-900",
       )}
-      style={{ top: offsetTop }}
+      style={{
+        top: effectiveOffset,
+        // Never taller than the space between the header and the
+        // bottom of the viewport (minus safe-area).
+        maxHeight: `calc(100dvh - ${effectiveOffset}px - env(safe-area-inset-bottom, 0px) - 12px)`,
+      }}
     >
       {hits.length === 0 ? (
         <div
@@ -95,7 +142,7 @@ export default function SearchResultsDropdown({
           No matches for &quot;{trimmed}&quot;.
         </div>
       ) : (
-        <ul className="max-h-[60vh] overflow-y-auto divide-y divide-inherit">
+        <ul className="overflow-y-auto divide-y divide-inherit" style={{ maxHeight: `calc(100dvh - ${effectiveOffset}px - env(safe-area-inset-bottom, 0px) - 12px)` }}>
           {hits.map((hit) => {
             const room = hit.doc.data!.room;
             const building = hit.doc.data!.building;

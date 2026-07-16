@@ -24,7 +24,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import type { Building, Room, Hallway, MapLayer } from "@ksyk/shared";
+import type { Building, Room, Hallway, MapLayer, Stair, Elevator, Door } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides } from "@/components/LayersToggle";
 
@@ -32,6 +32,7 @@ const SOURCES = {
   buildings: "campus-buildings",
   rooms: "campus-rooms",
   hallways: "campus-hallways",
+  pois: "campus-pois",
 } as const;
 
 const LAYERS = {
@@ -42,6 +43,8 @@ const LAYERS = {
   roomsFill: "campus-rooms-fill",
   roomsOutline: "campus-rooms-outline",
   roomsLabel: "campus-rooms-label",
+  poisChip: "campus-pois-chip",
+  poisIcon: "campus-pois-icon",
 } as const;
 
 export interface CampusOverlayProps {
@@ -69,6 +72,21 @@ export default function CampusOverlay({
   const { data: hallways = [] } = useQuery<Hallway[]>({
     queryKey: ["/api/hallways", "overlay"],
     queryFn: () => fetchList<Hallway>("/api/hallways"),
+    refetchInterval: 60_000,
+  });
+  const { data: stairs = [] } = useQuery<Stair[]>({
+    queryKey: ["/api/stairs", "overlay"],
+    queryFn: () => fetchList<Stair>("/api/stairs"),
+    refetchInterval: 60_000,
+  });
+  const { data: elevators = [] } = useQuery<Elevator[]>({
+    queryKey: ["/api/elevators", "overlay"],
+    queryFn: () => fetchList<Elevator>("/api/elevators"),
+    refetchInterval: 60_000,
+  });
+  const { data: doors = [] } = useQuery<Door[]>({
+    queryKey: ["/api/doors", "overlay"],
+    queryFn: () => fetchList<Door>("/api/doors"),
     refetchInterval: 60_000,
   });
   // Layer visibility from the LeftSidebar Layers tab. Missing / dropped
@@ -110,6 +128,7 @@ export default function CampusOverlay({
       installBuildings(map, buildings);
       installHallways(map, hallways);
       installRooms(map, rooms, activeFloor ?? null);
+      installPOIs(map, { stairs, elevators, doors, rooms }, activeFloor ?? null);
       applyVisibility();
     };
     /** Apply layer visibility from the /api/layers table.
@@ -158,7 +177,7 @@ export default function CampusOverlay({
     };
     map.on("click", onClick);
     return () => { map.off("click", onClick); };
-  }, [map, buildings, rooms, hallways, activeFloor, layers, clientOverrides]);
+  }, [map, buildings, rooms, hallways, stairs, elevators, doors, activeFloor, layers, clientOverrides]);
 
   return null;
 }
@@ -244,10 +263,16 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
         id: h.id,
         width: h.width ?? 2,
         floor: h.floor ?? 0,
+        // Walls are stored as hallways with surface="wall". The renderer
+        // uses this to switch to a dark thick line instead of the
+        // walkable amber path.
+        isWall: h.surface === "wall",
       },
     })),
   };
   upsertGeoJSONSource(map, SOURCES.hallways, data);
+  // Walkable hallway paint — amber-orange lane, filtered so walls aren't
+  // matched.
   addLayerIfMissing(map, {
     id: LAYERS.hallwaysLine,
     source: SOURCES.hallways,
@@ -257,6 +282,20 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
       "line-opacity": 0.7,
     },
+    filter: ["!=", ["get", "isWall"], true],
+  });
+  // Walls — dark thick lines drawn on top so they read as solid
+  // barriers, MazeMap-style.
+  addLayerIfMissing(map, {
+    id: "campus-walls-line",
+    source: SOURCES.hallways,
+    type: "line",
+    paint: {
+      "line-color": "#1f2937",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 4],
+      "line-opacity": 0.9,
+    },
+    filter: ["==", ["get", "isWall"], true],
   });
 }
 
@@ -292,19 +331,16 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 17, 0.35, 20, 0.5],
+      // MazeMap-style: rooms are solid fills, no outline. Walls that
+      // separate rooms are drawn from the walls source instead so the
+      // building never looks like a stained-glass window.
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 17, 0.6, 20, 0.85],
     },
   });
-  addLayerIfMissing(map, {
-    id: LAYERS.roomsOutline,
-    source: SOURCES.rooms,
-    type: "line",
-    paint: {
-      "line-color": ["get", "color"],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 20, 2],
-      "line-opacity": 0.9,
-    },
-  });
+  // Room outlines removed by request — see MazeMap-style comment above.
+  // Keeping the layer id in LAYERS.roomsOutline for backwards-compat with
+  // the visibility toggles; installer just skips it now.
+  void LAYERS.roomsOutline;
   addLayerIfMissing(map, {
     id: LAYERS.roomsLabel,
     source: SOURCES.rooms,
@@ -326,6 +362,121 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     // dominate.
     minzoom: 17,
   });
+}
+
+/** Icons for the POI symbol layer. Using Unicode pictographs keeps us
+ *  glyph-only — no image loading, no CORS, no atlas. Rendered by the
+ *  demotiles font which covers Latin-1 + basic pictographs; the black
+ *  square chip behind each icon supplies contrast on any tile theme.
+ *
+ *  Order of poiKind here dictates render priority — later ones sit on
+ *  top when two POIs overlap. */
+const POI_ICON: Record<string, string> = {
+  stairs:    "⇅",
+  elevator:  "⇵",
+  door:      "▯",
+  entrance:  "➜",
+  exit:      "⤴",
+  bathroom:  "⚑", // room-type mapping (rooms named "bathroom" render as this)
+  info:      "ⓘ",
+};
+
+interface POIData {
+  stairs: Stair[];
+  elevators: Elevator[];
+  doors: Door[];
+  rooms: Room[];
+}
+
+function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null) {
+  type PoiFeature = {
+    type: "Feature";
+    geometry: { type: "Point"; coordinates: [number, number] };
+    properties: { id: string; kind: string; icon: string; floor: number | null };
+  };
+  const features: PoiFeature[] = [];
+
+  const push = (id: string, kind: string, floor: number | null, lat: number, lng: number) => {
+    if (activeFloor !== null && floor !== null && floor !== activeFloor) return;
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lng, lat] },
+      properties: { id, kind, icon: POI_ICON[kind] ?? "•", floor },
+    });
+  };
+
+  for (const s of data.stairs) {
+    if (typeof s.position?.lat === "number" && typeof s.position?.lng === "number") {
+      push(s.id, "stairs", s.floors?.[0] ?? null, s.position.lat, s.position.lng);
+    } else {
+      // Legacy shape — position not populated. Skip; the seed script
+      // will re-populate on next publish.
+    }
+  }
+  for (const e of data.elevators) {
+    if (typeof e.position?.lat === "number" && typeof e.position?.lng === "number") {
+      push(e.id, "elevator", e.floors?.[0] ?? null, e.position.lat, e.position.lng);
+    }
+  }
+  for (const d of data.doors) {
+    if (typeof d.position?.lat === "number" && typeof d.position?.lng === "number") {
+      const kind = d.emergencyExit ? "exit" : "door";
+      push(d.id, kind, d.floor ?? null, d.position.lat, d.position.lng);
+    }
+  }
+  // Auto-derive POI markers from typed rooms (bathroom, elevator, stairs).
+  for (const r of data.rooms) {
+    if (!r.points?.length) continue;
+    if (activeFloor !== null && r.floor !== activeFloor) continue;
+    const centre = polygonCenter(r.points);
+    if (!centre) continue;
+    if (r.type === "bathroom") push(`room-${r.id}`, "bathroom", r.floor ?? null, centre.lat, centre.lng);
+    else if (r.type === "elevator") push(`room-${r.id}`, "elevator", r.floor ?? null, centre.lat, centre.lng);
+    else if (r.type === "stairs") push(`room-${r.id}`, "stairs", r.floor ?? null, centre.lat, centre.lng);
+  }
+
+  const fc = { type: "FeatureCollection" as const, features };
+  upsertGeoJSONSource(map, SOURCES.pois, fc);
+
+  addLayerIfMissing(map, {
+    id: LAYERS.poisChip,
+    source: SOURCES.pois,
+    type: "circle",
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 6, 20, 14],
+      "circle-color": "#ffffff",
+      "circle-stroke-color": "#111827",
+      "circle-stroke-width": 1.5,
+      "circle-opacity": 0.95,
+    },
+    minzoom: 16,
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.poisIcon,
+    source: SOURCES.pois,
+    type: "symbol",
+    layout: {
+      "text-field": ["get", "icon"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10, 20, 20],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-anchor": "center",
+    },
+    paint: {
+      "text-color": "#111827",
+    },
+    minzoom: 16,
+  });
+}
+
+/** Simple polygon centroid — average of vertex positions. Good enough
+ *  for icon placement inside a room. */
+function polygonCenter(points: { lat: number; lng: number }[]): { lat: number; lng: number } | null {
+  if (!points.length) return null;
+  let lat = 0, lng = 0;
+  for (const p of points) { lat += p.lat; lng += p.lng; }
+  return { lat: lat / points.length, lng: lng / points.length };
 }
 
 /** Add or update a GeoJSON source in place. */

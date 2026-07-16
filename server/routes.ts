@@ -3712,7 +3712,12 @@ https://ksykmaps.vercel.app
         'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
         'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
         'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
-        'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest'
+        'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
+        // Platform-specific overrides — nullable, added 3.6.x.
+        'mobileCenterLat', 'mobileCenterLng', 'mobileDefaultZoom', 'mobileMinZoom',
+        'mobileMaxZoom', 'mobileRotationDeg', 'mobilePitchDeg',
+        'desktopCenterLat', 'desktopCenterLng', 'desktopDefaultZoom', 'desktopMinZoom',
+        'desktopMaxZoom', 'desktopRotationDeg', 'desktopPitchDeg',
       ];
       const data: Record<string, any> = {};
       for (const key of allowed) {
