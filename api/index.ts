@@ -1227,18 +1227,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(400).json({ message: "Email and password required", success: false });
       }
 
-      // Lazy-load bcrypt so cold-starts don't pay the import unless
-      // there's a login to serve.
-      const bcrypt = (await import('bcrypt')).default;
-      const isBcryptHash = (v: unknown): v is string =>
-        typeof v === 'string' && (v.startsWith('$2b$') || v.startsWith('$2a$') || v.startsWith('$2y$'));
+      // Route through the shared passwordUtils helper — that module is
+      // graceful when bcrypt's native binary isn't loadable on Vercel
+      // (falls back to strict-eq with a console warning instead of
+      // throwing a 500).
+      const { verifyPassword: verifyPw, isAlreadyHashed } = await import('../server/passwordUtils.js');
 
       /** Verify `plain` against `stored`. If `stored` is plaintext and
        *  matches, kick off a background re-hash via storage.upsertUser
        *  so the next login uses bcrypt. */
       const verifyPassword = async (plain: string, stored: string, userId: string): Promise<boolean> => {
-        if (isBcryptHash(stored)) {
-          return bcrypt.compare(plain, stored);
+        if (isAlreadyHashed(stored)) {
+          return verifyPw(plain, stored);
         }
         // Legacy plaintext — one-time upgrade.
         if (plain !== stored) return false;
