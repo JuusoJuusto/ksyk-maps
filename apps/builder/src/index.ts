@@ -10,4 +10,4 @@
  */
 export { default as BuilderApp } from "../../../client/src/pages/builder";
 
-export const VERSION = "0.2.1-hotfix";
+export const VERSION = "0.3.0-eggs";

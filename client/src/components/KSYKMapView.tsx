@@ -190,7 +190,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <button
             type="button"
-            onClick={() => handleRef.current?.zoomIn()}
+            onClick={() => {
+              handleRef.current?.zoomIn();
+              // Announce for the Zoom Lord easter egg watcher (see
+              // useKsykEasterEggs). Custom event keeps the hook
+              // decoupled from MapLibre.
+              window.dispatchEvent(new CustomEvent("ksyk:zoomin"));
+            }}
             aria-label="Zoom in"
             title="Zoom in"
             className="w-11 h-11 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"

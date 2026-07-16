@@ -9,6 +9,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
 import { registerCampusRoutes } from "./campusRoutes";
 import { registerMapRoutes } from "./mapRoutes";
+import { registerEasterEggRoutes } from "./easterEggRoutes";
 import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = 12;
@@ -5138,6 +5139,9 @@ https://ksykmaps.vercel.app
 
   console.log('🗺️  Registering nav-graph + route + map-package routes...');
   registerMapRoutes(app);
+
+  console.log('🥚 Registering easter-egg routes...');
+  registerEasterEggRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
