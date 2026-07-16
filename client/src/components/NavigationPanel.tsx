@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Navigation2, X, ArrowRightLeft, MapPin, Clock } from "lucide-react";
+import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room } from "@ksyk/shared";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
@@ -55,6 +55,29 @@ const ROUTE_ENDS_SOURCE_ID = "nav-route-ends";
 const ROUTE_ENDS_LAYER_ID = "nav-route-ends-layer";
 
 export default function NavigationPanel({ map, onClose }: NavigationPanelProps) {
+  // Measure header height so the panel sits right under it on mobile.
+  const [headerBottom, setHeaderBottom] = useState<number>(120);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const measure = () => {
+      const h = document.querySelector<HTMLElement>('header');
+      if (!h) return;
+      setHeaderBottom(Math.max(0, h.getBoundingClientRect().bottom + 8));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    let ro: ResizeObserver | null = null;
+    const h = document.querySelector<HTMLElement>('header');
+    if (h && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(measure);
+      ro.observe(h);
+    }
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, []);
+
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     queryFn: () => fetchList<Room>("/api/rooms"),
@@ -228,19 +251,17 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
   return (
     <div
       className={cn(
-        // Mobile: bottom sheet, full width, safe-area padded so the map
-        // controls above it stay reachable. Desktop / sm+: floating
-        // top-left card. z-40 sits below the header (z-50) but above
-        // the right-rail buttons.
-        "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden",
+        // Top-anchored on both mobile + desktop, right under the header,
+        // so it never covers the bottom-right control rail. Mobile:
+        // stretches side-to-side; sm+: floating card with fixed width.
+        "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
         "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,24rem)]",
-        // Bottom-anchored on mobile, top-anchored on desktop.
-        "bottom-2 sm:bottom-auto sm:top-24",
       )}
       style={{
-        // Respect safe-area on both edges.
+        top: headerBottom,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        maxHeight: "min(70dvh, 34rem)",
+        // Leave the right-rail buttons + attribution room at the bottom.
+        maxHeight: `min(70dvh, calc(100dvh - ${headerBottom}px - 5rem))`,
       }}
       role="dialog"
       aria-label="Navigation directions"
@@ -306,9 +327,10 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
             </div>
             <div className="flex-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Clock className="h-2.5 w-2.5" /> Walking
+                <Footprints className="h-2.5 w-2.5" /> Walking
               </div>
-              <div className="text-base font-semibold tabular-nums">
+              <div className="text-base font-semibold tabular-nums flex items-center gap-1.5">
+                <Clock className="h-3 w-3 text-muted-foreground" />
                 {formatWalkTime(walkingSeconds)}
               </div>
             </div>
@@ -395,7 +417,7 @@ function EndpointField({ label, color, value, onChange, index }: EndpointFieldPr
       </div>
 
       {open && hits.length > 0 && !value && (
-        <ul className="absolute left-0 right-0 top-full mt-1 rounded-lg border border-border bg-card shadow-lg overflow-hidden z-10 max-h-64 overflow-y-auto">
+        <ul className="absolute left-0 right-0 top-full mt-1 rounded-lg border border-border bg-card shadow-lg overflow-hidden z-50 max-h-56 overflow-y-auto">
           {hits.map((hit) => {
             const room = hit.doc.data?.room ?? null;
             const building = hit.doc.data?.building ?? null;

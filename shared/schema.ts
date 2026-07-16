@@ -578,17 +578,50 @@ export const announcementsRelations = relations(announcements, ({ one }) => ({
   }),
 }));
 
-// Insert schemas
+// Insert schemas.
+//
+// The base drizzle-zod schema strips unknown keys. But the client persists
+// several fields (polygon `points`, `floorMin`, `floorMax`, `metadata`,
+// `rotationDeg`, `defaultFloor`, `campus`, `description*`) that live on
+// the shared TypeScript type but aren't yet real DB columns — Firestore
+// stores them fine as jsonb-ish blobs, so we `.extend` the base schema
+// to let them pass through instead of being silently dropped. Without
+// this, every fresh building would save with no polygon and never
+// render on the map.
 export const insertBuildingSchema = createInsertSchema(buildings).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  points: z.any().optional(),
+  floorMin: z.number().nullable().optional(),
+  floorMax: z.number().nullable().optional(),
+  defaultFloor: z.number().nullable().optional(),
+  rotationDeg: z.number().nullable().optional(),
+  campus: z.string().nullable().optional(),
+  metadata: z.any().optional(),
+  theme: z.any().optional(),
+  center: z.any().optional(),
+  bbox: z.any().optional(),
 });
 
 export const insertRoomSchema = createInsertSchema(rooms).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  points: z.any().optional(),
+  rotationDeg: z.number().nullable().optional(),
+  displayName: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  aliases: z.array(z.string()).nullable().optional(),
+  tags: z.array(z.string()).nullable().optional(),
+  areaSquareMeters: z.number().nullable().optional(),
+  iconUrl: z.string().nullable().optional(),
+  availabilityId: z.string().nullable().optional(),
+  metadata: z.any().optional(),
+  teacher: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
 });
 
 export const insertStaffSchema = createInsertSchema(staff).omit({
@@ -609,10 +642,26 @@ export const insertFloorSchema = createInsertSchema(floors).omit({
   updatedAt: true,
 });
 
+// Same story as insertBuildingSchema — the builder POSTs a lightweight
+// polyline (startX/Y, endX/Y, surface, floor) without buildingId/name
+// because hallways/walls span the whole campus. Relax the required
+// fields + let the extra ones pass through.
 export const insertHallwaySchema = createInsertSchema(hallways).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  name: z.string().nullable().optional(),
+  buildingId: z.string().nullable().optional(),
+  startX: z.number().nullable().optional(),
+  startY: z.number().nullable().optional(),
+  endX: z.number().nullable().optional(),
+  endY: z.number().nullable().optional(),
+  surface: z.string().nullable().optional(),
+  directions: z.string().nullable().optional(),
+  accessible: z.boolean().nullable().optional(),
+  floor: z.number().nullable().optional(),
+  metadata: z.any().optional(),
 });
 
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({

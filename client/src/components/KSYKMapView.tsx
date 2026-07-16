@@ -7,7 +7,7 @@
  *   - 3D toggle + Center button (bottom-right, above zoom)
  *   - North reset (only shows when map is rotated off north)
  */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import CampusOverlay from "@/components/CampusOverlay";
@@ -39,6 +39,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [showNav, setShowNav] = useState(false);
+
+  // Pull the admin-published map defaults on first mount so every user
+  // (including mobile) picks up mobile* / desktop* overrides. Without
+  // this the client only ever saw whatever was in localStorage — the
+  // mobile publish would land in Firestore but never reach the map
+  // until the user clicked Recenter. Fires once; failures are silent.
+  useEffect(() => {
+    void loadMapDefaultsFromServer();
+  }, []);
 
   // Buildings from DB — used to compute the union of floor ranges for
   // the selector. A building can span floors like -1..3, so the selector

@@ -1213,6 +1213,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH mirror for the PropertyPanel.
+  app.patch('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      const data = insertHallwaySchema.partial().parse(req.body);
+      const hallway = await (storage as any).updateHallway?.(req.params.id, data);
+      if (!hallway) return res.status(404).json({ message: "Not found" });
+      res.json(hallway);
+    } catch (error) {
+      await logError(error, 'PATCH /api/hallways/:id', { hallwayId: req.params.id });
+      res.status(500).json({ message: "Failed to update hallway" });
+    }
+  });
+
+  // ── POI routes: stairs, elevators, doors ─────────────────────────
+  // Free-form Firestore-backed collections so the builder can persist
+  // click-to-place POIs without a schema migration. Reads soft-fail to
+  // [] so a Firestore rules glitch doesn't blank the whole map.
+  const poiCollection = (kind: "stairs" | "elevators" | "doors") => `campus_${kind}`;
+
+  const registerPoiRoutes = (kind: "stairs" | "elevators" | "doors") => {
+    app.get(`/api/${kind}`, async (_req, res) => {
+      try {
+        const snap = await db.collection(poiCollection(kind)).get();
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        res.json(items);
+      } catch (error) {
+        console.error(`GET /api/${kind} soft-failed:`, error);
+        res.set('X-Read-Soft-Fail', '1').json([]);
+      }
+    });
+
+    app.post(`/api/${kind}`, isAuthenticated, async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.claims.sub);
+        if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+        const body = req.body ?? {};
+        // Normalise position — the builder sends mapPositionX/Y (lng/lat)
+        // for compatibility with the old renderer, but the public map
+        // reads `position.{lat,lng}`. Store both so either consumer
+        // works.
+        const lat = typeof body.position?.lat === "number" ? body.position.lat
+                  : typeof body.mapPositionY === "number" ? body.mapPositionY
+                  : null;
+        const lng = typeof body.position?.lng === "number" ? body.position.lng
+                  : typeof body.mapPositionX === "number" ? body.mapPositionX
+                  : null;
+        if (lat === null || lng === null) return res.status(400).json({ message: "Missing position" });
+        const docRef = db.collection(poiCollection(kind)).doc();
+        const record = {
+          id: docRef.id,
+          ...body,
+          position: { lat, lng },
+          mapPositionX: lng,
+          mapPositionY: lat,
+          floor: typeof body.floor === "number" ? body.floor : 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await docRef.set(record);
+        res.status(201).json(record);
+      } catch (error) {
+        console.error(`POST /api/${kind} failed:`, error);
+        res.status(500).json({ message: `Failed to create ${kind}` });
+      }
+    });
+
+    app.delete(`/api/${kind}/:id`, isAuthenticated, async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.claims.sub);
+        if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+        await db.collection(poiCollection(kind)).doc(req.params.id).delete();
+        res.status(204).send();
+      } catch (error) {
+        console.error(`DELETE /api/${kind} failed:`, error);
+        res.status(500).json({ message: `Failed to delete ${kind}` });
+      }
+    });
+  };
+  registerPoiRoutes("stairs");
+  registerPoiRoutes("elevators");
+  registerPoiRoutes("doors");
+
   // User routes (admin only)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
