@@ -24,7 +24,16 @@
     <meta name="keywords" content="KSYK, campus map, navigation, room finder, Nordbyte Studio" />
     <meta name="google-site-verification" content="GT0QQO9qdSw6xDiDM7S_XtHBqc_kF9cx2oODr3U-wo0" />
     <meta name="google-site-verification" content="vUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I" />
-    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA manifest link removed 2026-07-16 — Vercel Deployment
+         Protection on dev.ksykmaps.fi intercepts /manifest.json with
+         a 302 to vercel.com/sso-api, and the SSO endpoint doesn't
+         send an Access-Control-Allow-Origin header. That caused a
+         CORS error on every page load on protected deployments.
+         PWA "Add to home screen" isn't a shipping feature yet, so
+         dropping the tag is the cleanest fix. Re-add once Deployment
+         Protection is disabled OR the manifest is hosted somewhere
+         Vercel SSO doesn't gate. -->
+    <!-- <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" /> -->
     <!-- Apple touch icons — iOS uses these for home-screen + tab grouping -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="128x128" href="/favicon-128.png" />

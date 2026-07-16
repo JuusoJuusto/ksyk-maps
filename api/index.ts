@@ -1202,114 +1202,87 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     }
     
     // Admin login endpoint
+    //
+    // Password comparison is bcrypt-aware AND self-healing:
+    //   - Stored value already bcrypt (`$2b$/$2a$/$2y$`) → bcrypt.compare
+    //   - Stored value plaintext (legacy) → strict-equal, then on
+    //     success we re-write the user with `password: <plaintext>`.
+    //     storage.upsertUser now hashes at the boundary, so the next
+    //     read sees a bcrypt hash. First successful legacy login
+    //     upgrades that user forever.
+    //
+    // Prior versions did `stored !== password` unconditionally. When
+    // hashPasswordFieldsInPlace was added at the storage layer, every
+    // stored value became a bcrypt hash → the strict-equal always
+    // failed → 100% of admin logins returned 401. This block fixes
+    // that.
     if (apiPath === '/auth/admin-login' && req.method === 'POST') {
       const { email, password } = req.body;
-      
+
       console.log('\n🔐 ========== API LOGIN ATTEMPT ==========');
       console.log('Email:', email);
       console.log('Password length:', password?.length);
-      console.log('Timestamp:', new Date().toISOString());
-      
+
       if (!email || !password) {
-        console.log('❌ Missing email or password');
         return res.status(400).json({ message: "Email and password required", success: false });
       }
-      
-      // Check owner credentials from database only
-      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
-      
-      console.log('🔑 Checking owner credentials...');
-      console.log('   Email match:', email === OWNER_EMAIL);
-      
-      if (email === OWNER_EMAIL) {
-        console.log('✅ OWNER LOGIN DETECTED');
-        // Check if owner user exists in database, create if not
-        let ownerUser = await storage.getUserByEmail(OWNER_EMAIL);
-        
-        if (!ownerUser) {
-          console.log('❌ Owner user not found in database');
-          console.log('=====================================\n');
-          return res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-          });
-        }
 
-        // Check password against database
-        if (!ownerUser.password || ownerUser.password !== password) {
-          console.log('❌ Invalid owner password');
-          console.log('=====================================\n');
-          return res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-          });
+      // Lazy-load bcrypt so cold-starts don't pay the import unless
+      // there's a login to serve.
+      const bcrypt = (await import('bcrypt')).default;
+      const isBcryptHash = (v: unknown): v is string =>
+        typeof v === 'string' && (v.startsWith('$2b$') || v.startsWith('$2a$') || v.startsWith('$2y$'));
+
+      /** Verify `plain` against `stored`. If `stored` is plaintext and
+       *  matches, kick off a background re-hash via storage.upsertUser
+       *  so the next login uses bcrypt. */
+      const verifyPassword = async (plain: string, stored: string, userId: string): Promise<boolean> => {
+        if (isBcryptHash(stored)) {
+          return bcrypt.compare(plain, stored);
         }
-        
-        console.log('✅ Owner logged in successfully');
-        console.log('=====================================\n');
-        return res.status(200).json({
-          success: true,
-          user: ownerUser,
-          requirePasswordChange: false
-        });
-      }
-      
-      // Check Firestore database for admin users
-      console.log('📊 Checking Firestore database...');
+        // Legacy plaintext — one-time upgrade.
+        if (plain !== stored) return false;
+        try {
+          // storage.upsertUser hashes at the boundary (v3.4+).
+          await storage.upsertUser({ id: userId, password: plain } as any);
+          console.log('🔒 Auto-upgraded legacy plaintext password → bcrypt for', userId);
+        } catch (err) {
+          console.warn('⚠️ Auto-upgrade of legacy password failed (still allowing login):', err);
+        }
+        return true;
+      };
+
+      const OWNER_EMAIL = 'JuusoJuusto112@gmail.com';
+
+      // Owner + Admin paths share the same verify logic — dedupe.
+      const isOwner = email === OWNER_EMAIL;
       const user = await storage.getUserByEmail(email);
-      
-      console.log('🔍 Database lookup result:');
-      console.log('   User found:', !!user);
-      
-      if (user) {
-        console.log('   User ID:', user.id);
-        console.log('   User email:', user.email);
-        console.log('   User role:', user.role);
-        console.log('   Has password field:', 'password' in user);
-        console.log('   Password is set:', !!user.password);
-        console.log('   Password value:', user.password);
-        console.log('   Provided password:', password);
-        console.log('   Password match (===):', user.password === password);
-        console.log('   Is temporary:', user.isTemporaryPassword);
-      }
-      
+
       if (!user) {
         console.log('❌ User not found in database');
-        console.log('=====================================\n');
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
-      
       if (!user.password) {
         console.log('❌ User has no password set');
-        console.log('=====================================\n');
         return res.status(401).json({
           success: false,
-          message: 'Password not set. Please check your email for password setup link.'
+          message: 'Password not set. Please check your email for password setup link.',
         });
       }
-      
-      if (user.password !== password) {
-        console.log('❌ Password mismatch!');
-        console.log('   Expected:', user.password);
-        console.log('   Got:', password);
-        console.log('=====================================\n');
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
+
+      const ok = await verifyPassword(password, user.password, user.id);
+      if (!ok) {
+        console.log(`❌ Password mismatch (${isOwner ? 'owner' : 'admin'})`);
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
-      
-      // Valid admin user from database
-      console.log('✅ PASSWORD MATCH! User logged in successfully!');
-      console.log('   Requires password change:', user.isTemporaryPassword || false);
-      console.log('=====================================\n');
+
+      console.log(`✅ ${isOwner ? 'OWNER' : 'ADMIN'} login successful for ${email}`);
+      // Never leak the password (hashed or otherwise) back to the client.
+      const { password: _pw, passwordResetToken: _tk, passwordResetExpiry: _ex, ...safeUser } = user as any;
       return res.status(200).json({
         success: true,
-        user: user,
-        requirePasswordChange: user.isTemporaryPassword || false
+        user: safeUser,
+        requirePasswordChange: user.isTemporaryPassword || false,
       });
     }
     

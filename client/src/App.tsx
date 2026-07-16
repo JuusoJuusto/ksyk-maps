@@ -15,7 +15,12 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
-import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
+// Vercel Analytics removed 2026-07-16 — the /_vercel/insights/script.js
+// asset is on every major ad-block filter list (EasyPrivacy, uBO base
+// filters). Loading it just produces console noise + a "Failed to load
+// script" error for every visitor with an adblocker. Our own
+// /api/telemetry/* sink already captures pageviews + events
+// adblock-resistantly, so Vercel Analytics adds nothing.
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
 import { useEffect } from "react";
@@ -174,12 +179,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SplashScreen />
-      {/* Vercel Web Analytics — auto-tracks pageviews on the SPA route
-       *  swaps that wouter emits. Zero-config on Vercel deployments;
-       *  no-op locally. Runs in parallel with our own /api/telemetry
-       *  sink so we get numbers even when Vercel Analytics is blocked
-       *  by an adblocker. */}
-      <VercelAnalytics />
+      {/* Vercel Analytics widget removed — see top-of-file note. */}
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <DarkModeProvider>
