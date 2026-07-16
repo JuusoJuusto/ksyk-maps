@@ -122,7 +122,12 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   devShowDebug: false,
   devShowCoords: false,
   useOsmBasemap: true,
-  // Kulosaaren Yhteiskoulu (KSYK), Helsinki — already referenced in fmiWeather.ts
+  // Bootstrap-only fallback. The client always tries to load
+  // /api/map-defaults on mount — those admin-published values override
+  // these before the user sees anything. If the server is down or the
+  // admin hasn't published yet we fall back to Kulosaaren Yhteiskoulu
+  // (KSYK), Helsinki (same coords fmiWeather.ts uses). Keeping a
+  // fallback avoids a blank world map on first ever visit.
   osmCenterLat: 60.187,
   osmCenterLng: 25.006,
   osmDefaultZoom: 19,

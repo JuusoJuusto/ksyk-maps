@@ -268,10 +268,13 @@ export default function CampusMap({
     // Zoom bounds first — MapLibre will clamp current zoom if needed.
     map.setMinZoom(d.minZoom);
     map.setMaxZoom(Math.min(19, d.maxZoom));
-    // Then camera — flyTo preserves user rotation by default.
+    // Then camera — explicit bearing + pitch so easeTo's zero-defaults
+    // can't yank the user out of their rotated / tilted view.
     map.easeTo({
       center: [d.lng, d.lat],
       zoom: d.zoom,
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
       duration: 500,
     });
   }, [

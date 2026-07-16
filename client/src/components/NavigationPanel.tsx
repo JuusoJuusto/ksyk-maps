@@ -26,6 +26,9 @@ import { cn } from "@/lib/utils";
 interface NavigationPanelProps {
   map: MaplibreMap | null;
   onClose: () => void;
+  /** When the header search dropdown is up, we collapse to a compact
+   *  bar so the two panels don't stack on top of each other. */
+  searchActive?: boolean;
 }
 
 type Endpoint =
@@ -54,7 +57,7 @@ const ROUTE_LAYER_ID = "nav-route-line";
 const ROUTE_ENDS_SOURCE_ID = "nav-route-ends";
 const ROUTE_ENDS_LAYER_ID = "nav-route-ends-layer";
 
-export default function NavigationPanel({ map, onClose }: NavigationPanelProps) {
+export default function NavigationPanel({ map, onClose, searchActive = false }: NavigationPanelProps) {
   // Measure header height so the panel sits right under it on mobile.
   const [headerBottom, setHeaderBottom] = useState<number>(120);
   useEffect(() => {
@@ -258,10 +261,16 @@ export default function NavigationPanel({ map, onClose }: NavigationPanelProps) 
         "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,24rem)]",
       )}
       style={{
-        top: headerBottom,
+        // When the search dropdown is up we duck the nav panel below
+        // the map bottom-left corner so the two never fight for the
+        // same screen real estate.
+        top: searchActive ? undefined : headerBottom,
+        bottom: searchActive ? "calc(1rem + env(safe-area-inset-bottom, 0px))" : undefined,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         // Leave the right-rail buttons + attribution room at the bottom.
-        maxHeight: `min(70dvh, calc(100dvh - ${headerBottom}px - 5rem))`,
+        maxHeight: searchActive
+          ? "12rem"
+          : `min(70dvh, calc(100dvh - ${headerBottom}px - 5rem))`,
       }}
       role="dialog"
       aria-label="Navigation directions"

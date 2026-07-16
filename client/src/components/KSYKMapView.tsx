@@ -14,6 +14,7 @@ import CampusOverlay from "@/components/CampusOverlay";
 import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResultsDropdown";
 import LayersToggle from "@/components/LayersToggle";
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
+import { loadAppSettings } from "@/lib/appSettings";
 import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { searchQuery = "" } = props;
   const { settings, update } = useAppSettings();
   const handleRef = useRef<CampusMapHandle | null>(null);
+  // Mirrored to state so children get an actual re-render when the
+  // map is ready. Without this, CampusOverlay receives `map={null}`
+  // forever unless another prop change triggers a re-render — which
+  // is why fresh visits sometimes showed a blank campus map until the
+  // user interacted with something.
+  const [mapInstance, setMapInstance] = useState<CampusMapHandle["map"] | null>(null);
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [showNav, setShowNav] = useState(false);
@@ -69,6 +76,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
 
   const onMapReady = useCallback((h: CampusMapHandle) => {
     handleRef.current = h;
+    setMapInstance(h.map);
   }, []);
 
   const toggle3D = useCallback(() => {
@@ -87,18 +95,20 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     } catch { /* keep current settings */ }
     const h = handleRef.current;
     if (!h) return;
-    const target = pickPlatformMapDefaults(settings);
+    // Re-read the snapshot fresh — the `settings` from the closure was
+    // captured before the server-load merged new values in.
+    const target = pickPlatformMapDefaults(loadAppSettings());
     h.map.flyTo({
       center: [target.lng, target.lat],
       zoom: target.zoom,
       // Keep the user's current bearing + pitch — don't slam back to
-      // north-up unless they explicitly hit the north button.
+      // north-up. This is the explicit preservation the user asked for.
       bearing: h.map.getBearing(),
       pitch: h.map.getPitch(),
       duration: 800,
       essential: true,
     });
-  }, [settings]);
+  }, []);
 
   /** Fly the map to whatever the user picked in the search dropdown.
    *  Rooms + buildings both work — we compute the polygon centroid. */
@@ -130,9 +140,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
 
       {/* Live campus overlay — draws every published building, room,
        *  and hallway on top of the OSM basemap. Refetches every 60s so
-       *  Builder publishes show up on the public map without a reload. */}
+       *  Builder publishes show up on the public map without a reload.
+       *  `map` is state (not ref) so a fresh mount that hasn't triggered
+       *  a re-render yet still installs its layers. */}
       <CampusOverlay
-        map={handleRef.current?.map ?? null}
+        map={mapInstance}
         activeFloor={selectedFloor}
       />
 
@@ -271,8 +283,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
 
       {showNav && (
         <NavigationPanel
-          map={handleRef.current?.map ?? null}
+          map={mapInstance}
           onClose={() => setShowNav(false)}
+          searchActive={!!searchQuery.trim()}
         />
       )}
     </div>
