@@ -228,6 +228,22 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 </>
               )}
             </Button>
+
+            {/* Forgot password — routes to the standalone reset flow. */}
+            <div className="text-right">
+              <a
+                href="/admin/forgot-password"
+                className={cn(
+                  "inline-block text-[11px] font-medium transition-colors",
+                  darkMode
+                    ? "text-blue-400 hover:text-blue-300"
+                    : "text-blue-600 hover:text-blue-700",
+                )}
+                data-testid="forgot-password-link"
+              >
+                Forgot password?
+              </a>
+            </div>
           </form>
 
           {/* Alt providers */}

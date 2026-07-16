@@ -28,6 +28,8 @@ import { useLocation } from "wouter";
 
 import KSYKMapsHome from "@/pages/ksykmaps-home";
 import Admin from "@/pages/admin";
+import AdminForgotPassword from "@/pages/admin-forgot-password";
+import AdminResetPassword from "@/pages/admin-reset-password";
 import HSL from "@/pages/hsl";
 import Lunch from "@/pages/lunch";
 import Features from "@/pages/features";
@@ -85,6 +87,13 @@ function Router() {
     <Switch>
       {/* Public map */}
       <Route path="/" component={KSYKMapsHome} />
+
+      {/* Admin password reset flow — these must be listed BEFORE the
+       *  catch-all /admin/:section route so wouter matches them first
+       *  (route order matters — later definitions don't override
+       *  earlier matches). */}
+      <Route path="/admin/forgot-password" component={AdminForgotPassword} />
+      <Route path="/admin/reset-password" component={AdminResetPassword} />
 
       {/* Admin — single route. Renders the login screen when no session
        * exists, the panel when authed. Invalid tokens bounce back to the

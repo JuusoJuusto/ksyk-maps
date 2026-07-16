@@ -1371,7 +1371,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
     // Password reset request endpoint
     if (apiPath === '/auth/forgot-password' && req.method === 'POST') {
-      const { email } = req.body;
+      const { email, resetPath } = req.body;
       
       console.log('\n📧 ========== PASSWORD RESET REQUEST ==========');
       console.log('Email:', email);
@@ -1401,7 +1401,13 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         });
         
         // Send reset email
-        const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}/wilma/reset-password?token=${resetToken}`;
+        // Client can pass `resetPath` to steer the emailed URL. The admin
+        // flow uses '/admin/reset-password'; the Wilma flow defaults to
+        // '/wilma/reset-password'. Whitelist so a caller can't inject an
+        // off-site link.
+        const allowedPaths = ['/admin/reset-password', '/wilma/reset-password'];
+        const safePath = allowedPaths.includes(resetPath) ? resetPath : '/wilma/reset-password';
+        const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}${safePath}?token=${resetToken}`;
         
         try {
           const emailService = await import('../server/emailService.js');
