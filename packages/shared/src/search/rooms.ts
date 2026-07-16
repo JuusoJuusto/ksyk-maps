@@ -52,16 +52,20 @@ export function buildRoomSearchIndex(
   const idx = new SearchIndex<RoomSearchPayload>();
 
   // Buildings first — so a naked "A" or "Haavikko" surfaces the parent
-  // before a room named "A-101" would.
+  // before a room named "A-101" would. The title packs ALL localised
+  // names so `name / nameEn / nameFi` all count against the heavy
+  // WEIGHT_TITLE weight, not the demoted keywords weight.
   for (const building of safeBuildings) {
-    const bTitle = [building.name, building.nameEn, building.nameFi]
-      .filter((s): s is string => !!s && s.length > 0)
-      .find(Boolean) ?? "";
-    if (!bTitle) continue;
+    const names = [building.name, building.nameEn, building.nameFi]
+      .filter((s): s is string => !!s && s.length > 0);
+    // Dedupe so a building with name === nameEn doesn't get 2x weight.
+    const uniqueNames = Array.from(new Set(names));
+    if (uniqueNames.length === 0) continue;
     idx.add({
       id: `building:${building.id}`,
       kind: "building",
-      title: bTitle,
+      // Concatenated so every language variant scores as title.
+      title: uniqueNames.join(" · "),
       subtitle: [
         building.address ?? null,
         typeof building.floors === "number"
@@ -69,9 +73,6 @@ export function buildRoomSearchIndex(
           : null,
       ].filter(Boolean).join(" · "),
       keywords: [
-        building.name,
-        building.nameEn ?? "",
-        building.nameFi ?? "",
         building.address ?? "",
         "building",
       ].filter((k) => k && k.length > 0),
@@ -81,24 +82,32 @@ export function buildRoomSearchIndex(
 
   for (const room of safeRooms) {
     const building = bIdx.get(room.buildingId) ?? null;
+    // Prefer the human name as the title — it's what shows on the map.
+    // The room number goes into the title only if there's no name (so
+    // "912" still resolves to that room). Number always sits in
+    // keywords so "912" still finds "Physics Lab" too.
+    const nameParts = [room.name, room.nameEn, room.nameFi, room.displayName]
+      .filter((s): s is string => !!s && s.length > 0);
+    const uniqueNames = Array.from(new Set(nameParts));
+    const primaryTitle =
+      uniqueNames.length > 0
+        ? uniqueNames.join(" · ")
+        : (room.roomNumber || "(unnamed room)");
     idx.add({
       id: `room:${room.id}`,
       kind: "room",
-      // "912 Physics Lab" — room number lands first so number-first
-      // queries prefix-match instantly.
-      title: [room.roomNumber, room.name ?? room.nameEn ?? ""].filter(Boolean).join(" ").trim(),
+      title: primaryTitle,
       subtitle: [
         building?.name ?? null,
+        room.roomNumber || null,
         room.floor !== undefined ? `Floor ${room.floor}` : null,
         room.type ?? null,
       ].filter(Boolean).join(" · "),
       keywords: [
         room.roomNumber,
-        room.name ?? "",
-        room.nameEn ?? "",
-        room.nameFi ?? "",
         room.type ?? "",
         ...(room.tags ?? []),
+        ...(room.aliases ?? []),
       ].filter((k) => k && k.length > 0),
       data: { room, building },
     });

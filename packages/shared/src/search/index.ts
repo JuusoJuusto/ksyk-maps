@@ -66,11 +66,17 @@ export interface SearchHit<D = unknown> {
   highlights: SearchHighlight[];
 }
 
-/** Field weight table — higher = matches in that field push a doc up. */
-const WEIGHT_TITLE = 1.5;
-const WEIGHT_KEYWORDS = 1.5;
-const WEIGHT_SUBTITLE = 1.0;
-const WEIGHT_BODY = 0.6;
+/** Field weight table — higher = matches in that field push a doc up.
+ *
+ *  Title is now WAY heavier than keywords so the actual displayed name
+ *  always outranks tag/alias matches. Keywords used to tie with title
+ *  which caused "search hits everything except the name I typed"
+ *  behaviour — a room aliased with "computer" would beat a building
+ *  literally named "Computer Wing". */
+const WEIGHT_TITLE = 3.0;
+const WEIGHT_KEYWORDS = 0.8;
+const WEIGHT_SUBTITLE = 0.7;
+const WEIGHT_BODY = 0.4;
 
 /** Per-match kind scores. Multiplied by field weight, then summed and
  *  normalised by the query token count. */

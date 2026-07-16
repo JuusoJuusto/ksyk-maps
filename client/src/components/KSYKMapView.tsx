@@ -14,7 +14,8 @@ import CampusOverlay from "@/components/CampusOverlay";
 import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResultsDropdown";
 import LayersToggle from "@/components/LayersToggle";
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
-import { LocateFixed, Plus, Minus } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
+import NavigationPanel from "@/components/NavigationPanel";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
@@ -37,6 +38,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const handleRef = useRef<CampusMapHandle | null>(null);
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
+  const [showNav, setShowNav] = useState(false);
 
   // Buildings from DB — used to compute the union of floor ranges for
   // the selector. A building can span floors like -1..3, so the selector
@@ -232,6 +234,24 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           </button>
         </div>
 
+        {/* Directions — opens the NavigationPanel top-left. Toggle button
+         *  so users can retract it. */}
+        <button
+          type="button"
+          onClick={() => setShowNav((v) => !v)}
+          aria-label={showNav ? "Close directions" : "Get directions"}
+          aria-pressed={showNav}
+          title="Directions"
+          className={cn(
+            "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
+            showNav
+              ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
+              : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+          )}
+        >
+          <Navigation2 className="h-[19px] w-[19px]" strokeWidth={2.25} />
+        </button>
+
         {/* Layers — popover with per-layer visibility toggles. Client-only
          *  overrides on top of whatever the admin publishes.
          *  Note: standalone Rotate + North-reset buttons removed — the
@@ -239,6 +259,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
          *  gesture, but the redundant chrome buttons cluttered the rail. */}
         <LayersToggle />
       </div>
+
+      {showNav && (
+        <NavigationPanel
+          map={handleRef.current?.map ?? null}
+          onClose={() => setShowNav(false)}
+        />
+      )}
     </div>
   );
 }

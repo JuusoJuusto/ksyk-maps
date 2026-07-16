@@ -35,7 +35,7 @@ import {
   ShieldAlert,
   Hand,
   Ruler,
-  Type,
+  Square,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -44,7 +44,7 @@ import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Ele
 import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 
-type BuilderTool = "select" | "building" | "room" | "hallway";
+type BuilderTool = "select" | "building" | "room" | "hallway" | "rectangle" | "measure" | "pan";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -121,6 +121,14 @@ function BuilderWorkspace() {
   const [waypoints, setWaypoints] = useState<LngLat[]>([]);
   const [selection, setSelection] = useState<LeftSidebarSelection | null>(null);
   const handleRef = useRef<CampusMapHandle | null>(null);
+  // Ref alone is enough for handler access, but effects that install
+  // GeoJSON layers need to re-run once the map becomes ready — so we
+  // also mirror readiness into state. Without this, when the buildings
+  // query resolves BEFORE the map's `load` event, the install effect
+  // sees `handleRef.current === null`, returns early, and never re-runs
+  // because refs don't trigger re-renders. Result: nothing appears
+  // until the user changes some data.
+  const [mapReady, setMapReady] = useState(false);
 
   // Legacy `selectedId` shim — many downstream effects still key off a
   // single string. New code uses `selection`.
@@ -208,6 +216,7 @@ function BuilderWorkspace() {
 
   // ── Draw waypoints layer sync ───────────────────────────────────────────
   useEffect(() => {
+    if (!mapReady) return;
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
@@ -218,61 +227,67 @@ function BuilderWorkspace() {
     const setSourceData = () => {
       const coords = waypoints.map((w) => [w.lng, w.lat]);
       const src = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+
+      // Rectangle preview: if the user has 2 corners, synthesize the 4
+      // rectangle corners and close the ring — same shape they'll get
+      // when they hit Enter. If they only have 1 point, just draw the
+      // marker so they can see where corner A landed.
+      let polyCoords: number[][] | null = null;
+      let lineCoords: number[][] | null = null;
+      if (activeTool === "rectangle" && coords.length === 2) {
+        const [a, b] = coords;
+        const minLng = Math.min(a[0], b[0]);
+        const maxLng = Math.max(a[0], b[0]);
+        const minLat = Math.min(a[1], b[1]);
+        const maxLat = Math.max(a[1], b[1]);
+        polyCoords = [
+          [minLng, minLat], [maxLng, minLat], [maxLng, maxLat], [minLng, maxLat], [minLng, minLat],
+        ];
+      } else if (activeTool === "measure" && coords.length >= 2) {
+        lineCoords = coords;
+      } else if (activeTool === "hallway" && coords.length >= 2) {
+        lineCoords = coords;
+      } else if (coords.length >= 3) {
+        polyCoords = [...coords, coords[0]];
+      }
+
+      const shapeFeature: unknown | null = polyCoords
+        ? { type: "Feature" as const, geometry: { type: "Polygon" as const, coordinates: [polyCoords] }, properties: {} }
+        : lineCoords
+        ? { type: "Feature" as const, geometry: { type: "LineString" as const, coordinates: lineCoords }, properties: {} }
+        : null;
+
+      const pointFeatures = coords.map((c, i) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: c },
+        properties: { idx: i },
+      }));
+
       const data = {
         type: "FeatureCollection" as const,
-        features:
-          coords.length >= 2
-            ? [
-                {
-                  type: "Feature" as const,
-                  geometry: {
-                    type: activeTool === "hallway" ? "LineString" : "Polygon",
-                    coordinates:
-                      activeTool === "hallway"
-                        ? coords
-                        : coords.length >= 3
-                        ? [[...coords, coords[0]]]
-                        : [coords],
-                  } as any,
-                  properties: {},
-                },
-                ...coords.map((c, i) => ({
-                  type: "Feature" as const,
-                  geometry: { type: "Point" as const, coordinates: c },
-                  properties: { idx: i },
-                })),
-              ]
-            : coords.map((c, i) => ({
-                type: "Feature" as const,
-                geometry: { type: "Point" as const, coordinates: c },
-                properties: { idx: i },
-              })),
+        features: shapeFeature ? [shapeFeature as never, ...pointFeatures] : pointFeatures,
       };
       if (src) {
         src.setData(data as any);
       } else {
         map.addSource(sourceId, { type: "geojson", data: data as any });
-        // MapLibre's AddLayerObject union rejects the shape we compose
-        // conditionally per-tool (paint keys differ by layer type). The
-        // runtime shape is provably correct because both branches key
-        // off the same `activeTool` value — cast to bypass the union.
+        // Two shape layers coexist — polygon fill (buildings/rooms/
+        // rectangle) and line (hallways/measure). Filter by $type so
+        // both can live on the same source without extra branches.
         map.addLayer({
           id: layerId,
           source: sourceId,
-          type: activeTool === "hallway" ? "line" : "fill",
-          paint:
-            activeTool === "hallway"
-              ? { "line-color": "#2563eb", "line-width": 8, "line-opacity": 0.6 }
-              : {
-                  "fill-color": "#2563eb",
-                  "fill-opacity": 0.15,
-                  "fill-outline-color": "#2563eb",
-                },
-          filter:
-            activeTool === "hallway"
-              ? ["==", "$type", "LineString"]
-              : ["==", "$type", "Polygon"],
-        } as maplibregl.AddLayerObject);
+          type: "fill",
+          paint: { "fill-color": "#2563eb", "fill-opacity": 0.15, "fill-outline-color": "#2563eb" },
+          filter: ["==", "$type", "Polygon"],
+        });
+        map.addLayer({
+          id: `${layerId}-line`,
+          source: sourceId,
+          type: "line",
+          paint: { "line-color": "#2563eb", "line-width": 4, "line-opacity": 0.8, "line-dasharray": [2, 1] },
+          filter: ["==", "$type", "LineString"],
+        });
         map.addLayer({
           id: pointsLayerId,
           source: sourceId,
@@ -288,13 +303,16 @@ function BuilderWorkspace() {
       }
     };
     setSourceData();
-  }, [waypoints, activeTool]);
+  }, [waypoints, activeTool, mapReady]);
 
   // ── Draw finalized buildings layer ──────────────────────────────────────
   useEffect(() => {
+    if (!mapReady) return;
     const h = handleRef.current;
-    if (!h || buildings.length === 0) return;
+    if (!h) return;
     const map = h.map;
+    // Note: no early-return on empty buildings — we still need to
+    // upsert an empty FeatureCollection so leftover features clear.
     const sourceId = "builder-buildings";
     const layerId = "builder-buildings-fill";
     const outlineLayerId = "builder-buildings-outline";
@@ -373,34 +391,129 @@ function BuilderWorkspace() {
         },
       });
     }
-  }, [buildings, selectedId]);
+  }, [buildings, selectedId, mapReady]);
+
+  // ── Draw rooms + hallways so builder shows the whole campus, not
+  //    just buildings. Uses simpler paint than CampusOverlay to keep
+  //    editing legible; selection styling still lives on
+  //    builder-buildings-fill.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+
+    // Rooms
+    const roomsSrcId = "builder-rooms";
+    const roomsFillId = "builder-rooms-fill";
+    const roomsOutlineId = "builder-rooms-outline";
+    const roomsLabelId = "builder-rooms-labels";
+    const rooms = roomsQ.data ?? [];
+    const roomsFC = {
+      type: "FeatureCollection" as const,
+      features: rooms
+        .filter((r) => r.points && r.points.length >= 3)
+        .map((r) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              ...r.points!.map((p) => [p.lng, p.lat]),
+              [r.points![0].lng, r.points![0].lat],
+            ]],
+          },
+          properties: {
+            id: r.id,
+            color: r.colorCode ?? "#059669",
+            label: [r.roomNumber, r.name].filter(Boolean).join(" "),
+            selected: selection?.kind === "room" && selection.id === r.id,
+          },
+        })),
+    };
+    const roomsSrc = map.getSource(roomsSrcId) as maplibregl.GeoJSONSource | undefined;
+    if (roomsSrc) roomsSrc.setData(roomsFC as any);
+    else {
+      map.addSource(roomsSrcId, { type: "geojson", data: roomsFC as any });
+      map.addLayer({
+        id: roomsFillId, source: roomsSrcId, type: "fill",
+        paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", ["boolean", ["get", "selected"], false], 0.5, 0.28] },
+      });
+      map.addLayer({
+        id: roomsOutlineId, source: roomsSrcId, type: "line",
+        paint: { "line-color": ["get", "color"], "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2] },
+      });
+      map.addLayer({
+        id: roomsLabelId, source: roomsSrcId, type: "symbol",
+        layout: { "text-field": ["get", "label"], "text-size": 11, "text-font": ["Noto Sans Regular"], "text-allow-overlap": false, "text-optional": true },
+        paint: { "text-color": "#0f172a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 },
+        minzoom: 17,
+      });
+    }
+
+    // Hallways
+    const hallSrcId = "builder-hallways";
+    const hallLineId = "builder-hallways-line";
+    const halls = hallwaysQ.data ?? [];
+    const hallsFC = {
+      type: "FeatureCollection" as const,
+      features: halls.map((hw) => ({
+        type: "Feature" as const,
+        geometry: { type: "LineString" as const, coordinates: [[hw.startX, hw.startY], [hw.endX, hw.endY]] },
+        properties: {
+          id: hw.id,
+          selected: selection?.kind === "hallway" && selection.id === hw.id,
+        },
+      })),
+    };
+    const hallsSrc = map.getSource(hallSrcId) as maplibregl.GeoJSONSource | undefined;
+    if (hallsSrc) hallsSrc.setData(hallsFC as any);
+    else {
+      map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
+      map.addLayer({
+        id: hallLineId, source: hallSrcId, type: "line",
+        paint: {
+          "line-color": ["case", ["boolean", ["get", "selected"], false], "#dc2626", "#f59e0b"],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
+          "line-opacity": 0.8,
+        },
+      });
+    }
+  }, [mapReady, roomsQ.data, hallwaysQ.data, selection]);
 
   // ── Map click handler — drops waypoints in draw mode ────────────────────
   useEffect(() => {
+    if (!mapReady) return;
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
 
     const onClick = (e: MapMouseEvent) => {
       if (activeTool === "select") {
-        // Only query layers that actually exist on the map — the builder-
-        // buildings source isn't installed until at least one building
-        // is drawn, and MapLibre throws hard on unknown layer ids.
-        const candidateLayers = ["builder-buildings-fill", "campus-buildings-fill", "campus-rooms-fill"];
-        const layers = candidateLayers.filter((id) => map.getLayer(id));
-        if (layers.length === 0) {
-          setSelectedId(null);
-          return;
-        }
-        const feats = map.queryRenderedFeatures(e.point, { layers });
-        if (feats.length > 0) {
-          setSelectedId(String(feats[0].properties?.id) || null);
+        // Rank hits by kind — rooms + hallways sit inside buildings, so
+        // the smallest thing under the cursor wins. Order = priority.
+        const roomLayers = ["builder-rooms-fill"].filter((id) => map.getLayer(id));
+        const hallLayers = ["builder-hallways-line"].filter((id) => map.getLayer(id));
+        const bldgLayers = ["builder-buildings-fill"].filter((id) => map.getLayer(id));
+        const tryQuery = (layers: string[]): { kind: LeftSidebarSelection["kind"]; id: string } | null => {
+          if (layers.length === 0) return null;
+          const feats = map.queryRenderedFeatures(e.point, { layers });
+          const hit = feats[0];
+          if (!hit || typeof hit.properties?.id !== "string") return null;
+          const kind: LeftSidebarSelection["kind"] =
+            layers[0].includes("rooms") ? "room" :
+            layers[0].includes("hallways") ? "hallway" : "building";
+          return { kind, id: hit.properties.id };
+        };
+        const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
+        if (pick) {
+          setSelection({ kind: pick.kind, id: pick.id });
+          setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "hallways");
         } else {
-          setSelectedId(null);
+          setSelection(null);
         }
         return;
       }
-      if (activeTool === "building" || activeTool === "room" || activeTool === "hallway") {
+      if (activeTool === "building" || activeTool === "room" || activeTool === "hallway" || activeTool === "rectangle" || activeTool === "measure") {
         setWaypoints((prev) => [...prev, e.lngLat]);
       }
     };
@@ -409,7 +522,7 @@ function BuilderWorkspace() {
     return () => {
       map.off("click", onClick);
     };
-  }, [activeTool]);
+  }, [activeTool, mapReady]);
 
   // ── Keyboard: Enter to finalize, Escape to cancel, hotkeys ──────────────
   useEffect(() => {
@@ -433,6 +546,9 @@ function BuilderWorkspace() {
       else if (e.key === "b" || e.key === "B") { setActiveTool("building"); setWaypoints([]); }
       else if (e.key === "r" || e.key === "R") { setActiveTool("room"); setWaypoints([]); }
       else if (e.key === "h" || e.key === "H") { setActiveTool("hallway"); setWaypoints([]); }
+      else if (e.key === "m" || e.key === "M") { setActiveTool("measure"); setWaypoints([]); }
+      else if (e.key === "u" || e.key === "U") { setActiveTool("rectangle"); setWaypoints([]); }
+      else if (e.key === " ") { setActiveTool("pan"); setWaypoints([]); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -520,6 +636,31 @@ function BuilderWorkspace() {
       });
       return;
     }
+    // Rectangle: 2 diagonal corners → axis-aligned 4-corner polygon.
+    if (activeTool === "rectangle" && waypoints.length >= 2) {
+      const [a, b] = waypoints;
+      const minLng = Math.min(a.lng, b.lng);
+      const maxLng = Math.max(a.lng, b.lng);
+      const minLat = Math.min(a.lat, b.lat);
+      const maxLat = Math.max(a.lat, b.lat);
+      const nextLetter = String.fromCharCode(65 + buildings.length);
+      createBuilding.mutate({
+        name: nextLetter,
+        points: [
+          { lng: minLng, lat: minLat },
+          { lng: maxLng, lat: minLat },
+          { lng: maxLng, lat: maxLat },
+          { lng: minLng, lat: maxLat },
+        ],
+      });
+      return;
+    }
+    // Measure: emit total distance, but keep waypoints so the user can
+    // keep chaining segments. Escape clears.
+    if (activeTool === "measure" && waypoints.length >= 2) {
+      // Handled inline by the coach — nothing to persist.
+      return;
+    }
     if ((activeTool === "building" || activeTool === "room") && waypoints.length >= 3) {
       const nextLetter = String.fromCharCode(65 + buildings.length);
       createBuilding.mutate({
@@ -528,6 +669,26 @@ function BuilderWorkspace() {
       });
     }
   }, [activeTool, waypoints, buildings.length, createBuilding, createHallway]);
+
+  /** Live distance (metres) along the current waypoint chain. Used by
+   *  the Measure tool coach. Haversine over each segment. */
+  const measureDistanceMeters = useMemo(() => {
+    if (activeTool !== "measure" || waypoints.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const a = waypoints[i];
+      const b = waypoints[i + 1];
+      const R = 6371000;
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const s =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+      total += 2 * R * Math.asin(Math.sqrt(s));
+    }
+    return total;
+  }, [activeTool, waypoints]);
 
   const onDeleteSelected = useCallback(() => {
     if (!selectedId) return;
@@ -540,6 +701,7 @@ function BuilderWorkspace() {
 
   // ── Camera + cursor + FPS wire-up ────────────────────────────────
   useEffect(() => {
+    if (!mapReady) return;
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
@@ -551,7 +713,7 @@ function BuilderWorkspace() {
     map.on("mousemove", onMouse);
     onMove();
     return () => { map.off("move", onMove); map.off("mousemove", onMouse); };
-  }, [handleRef.current]);
+  }, [mapReady]);
 
   useEffect(() => {
     let frames = 0;
@@ -681,8 +843,12 @@ function BuilderWorkspace() {
           selection={selection}
           onSelect={(sel) => {
             setSelection(sel);
-            // Focus the map on the picked entity when possible.
+            // Focus the map on the picked entity when possible. IMPORTANT:
+            // fitBounds resets bearing to 0 unless we pass the current
+            // bearing explicitly — that was causing the map to spin
+            // back to north-up on every list click.
             const h = handleRef.current;
+            const preserve = h ? { bearing: h.map.getBearing(), pitch: h.map.getPitch() } : {};
             if (sel.kind === "building" && h) {
               const b = buildings.find((x) => x.id === sel.id);
               if (b?.points && b.points.length) {
@@ -690,7 +856,7 @@ function BuilderWorkspace() {
                 const lngs = b.points.map((p) => p.lng);
                 h.map.fitBounds(
                   [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-                  { padding: 80, duration: 500 },
+                  { padding: 80, duration: 500, ...preserve },
                 );
               }
             } else if (sel.kind === "room" && h) {
@@ -700,8 +866,18 @@ function BuilderWorkspace() {
                 const lngs = r.points.map((p) => p.lng);
                 h.map.fitBounds(
                   [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-                  { padding: 120, duration: 500 },
+                  { padding: 120, duration: 500, ...preserve },
                 );
+              }
+            } else if (sel.kind === "hallway" && h) {
+              const hw = (hallwaysQ.data ?? []).find((x) => x.id === sel.id);
+              if (hw) {
+                h.map.flyTo({
+                  center: [(hw.startX + hw.endX) / 2, (hw.startY + hw.endY) / 2],
+                  zoom: Math.max(h.map.getZoom(), 18),
+                  ...preserve,
+                  duration: 500,
+                });
               }
             }
           }}
@@ -710,15 +886,23 @@ function BuilderWorkspace() {
 
         {/* Canvas + floating overlays */}
         <main className="flex-1 min-w-0 relative">
-          <CampusMap onReady={(h) => (handleRef.current = h)} />
+          <CampusMap onReady={(h) => { handleRef.current = h; setMapReady(true); }} />
 
-          {/* In-flight coach — appears while the user is placing polygon
-           *  corners. Sits above the canvas but below the property panel. */}
-          {(activeTool === "building" || activeTool === "room" || activeTool === "hallway") && (
+          {/* In-flight coach — appears while a drawing tool is active. */}
+          {activeTool !== "select" && activeTool !== "pan" && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none">
-              {activeTool === "hallway" ? (
-                <>Click waypoints — Enter to finish ({waypoints.length})</>
-              ) : (
+              {activeTool === "hallway" && (<>Click waypoints — Enter to finish ({waypoints.length})</>)}
+              {activeTool === "rectangle" && (<>Click 2 diagonal corners — Enter to finish ({waypoints.length}/2)</>)}
+              {activeTool === "measure" && (
+                <>
+                  {waypoints.length < 2
+                    ? <>Click points — line total shows here ({waypoints.length})</>
+                    : <>Distance: {measureDistanceMeters < 1000
+                        ? `${measureDistanceMeters.toFixed(1)} m`
+                        : `${(measureDistanceMeters / 1000).toFixed(2)} km`} · Esc to clear</>}
+                </>
+              )}
+              {(activeTool === "building" || activeTool === "room") && (
                 <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
               )}
             </div>
@@ -827,10 +1011,13 @@ function ToolPalette({
   onDelete: () => void;
 }) {
   const tools: Array<{ id: BuilderTool; Icon: typeof MousePointer2; label: string; hotkey: string }> = [
-    { id: "select",   Icon: MousePointer2, label: "Select",   hotkey: "V" },
-    { id: "building", Icon: Building2,     label: "Building", hotkey: "B" },
-    { id: "room",     Icon: DoorOpen,      label: "Room",     hotkey: "R" },
-    { id: "hallway",  Icon: RouteIcon,     label: "Hallway",  hotkey: "H" },
+    { id: "select",    Icon: MousePointer2, label: "Select",    hotkey: "V" },
+    { id: "pan",       Icon: Hand,          label: "Pan",       hotkey: "Space" },
+    { id: "building",  Icon: Building2,     label: "Building",  hotkey: "B" },
+    { id: "rectangle", Icon: Square,        label: "Rectangle", hotkey: "U" },
+    { id: "room",      Icon: DoorOpen,      label: "Room",      hotkey: "R" },
+    { id: "hallway",   Icon: RouteIcon,     label: "Hallway",   hotkey: "H" },
+    { id: "measure",   Icon: Ruler,         label: "Measure",   hotkey: "M" },
   ];
 
   return (
@@ -859,33 +1046,6 @@ function ToolPalette({
       })}
 
       <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
-
-      {/* Placeholder icons for tools we haven't implemented yet — kept
-       *  visible so admins can see the roadmap. Clicking is a no-op. */}
-      <button
-        type="button"
-        disabled
-        title="Pan / Hand (planned)"
-        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
-      >
-        <Hand className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        disabled
-        title="Measure (planned)"
-        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
-      >
-        <Ruler className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        disabled
-        title="Text (planned)"
-        className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 opacity-40 cursor-not-allowed"
-      >
-        <Type className="h-4 w-4" />
-      </button>
 
       <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
 

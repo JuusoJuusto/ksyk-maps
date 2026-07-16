@@ -21,28 +21,39 @@ import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings"
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
-// Classic OpenStreetMap raster tiles — the colorful look users
-// recognise from openstreetmap.org (yellow roads, green parks, blue
-// water, beige buildings, pink hospitals). Served directly from OSM
-// with a-c subdomain rotation for parallel fetches. Attribution is
-// baked into MapLibre's AttributionControl.
-//
-// MapLibre eats raster styles as a bare style spec — same rotation +
-// pitch as vector, tiles just look like classic OSM.org.
-function osmRasterStyle(): maplibregl.StyleSpecification {
+// Raster tile providers — the light theme uses classic OSM.org tiles
+// (yellow roads, green parks, beige buildings). Dark mode swaps in
+// Carto Dark Matter which reads well as a background under the KSYK
+// blue building overlays. Both providers are free + no-API-key.
+const TILE_URLS = {
+  light: [
+    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  ],
+  dark: [
+    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+  ],
+} as const;
+
+const TILE_ATTRIBUTIONS = {
+  light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+} as const;
+
+/** Build a MapLibre style spec for the given theme. */
+function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
   return {
     version: 8,
     sources: {
       "osm-raster": {
         type: "raster",
-        tiles: [
-          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        ],
+        tiles: [...TILE_URLS[mode]],
         tileSize: 256,
-        attribution:
-          "© <a href=\"https://openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+        attribution: TILE_ATTRIBUTIONS[mode],
         maxzoom: 19,
       },
     },
@@ -117,7 +128,7 @@ export default function CampusMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: osmRasterStyle(),
+      style: osmRasterStyle(darkMode ? "dark" : "light"),
       center: [platformDefaults.lng, platformDefaults.lat],
       zoom: platformDefaults.zoom,
       bearing: initialBearing,
@@ -207,14 +218,84 @@ export default function CampusMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Dark mode: no style swap (raster OSM tiles have one look). A
-  //    CSS filter would work but distorts the classic OSM colors the
-  //    user asked for. Leaving as-is; dark-mode users see the same
-  //    colorful OSM as light-mode users.
+  // ── Dark mode: swap the tile source in place. Full setStyle() would
+  //    also work but it re-installs every KSYK GeoJSON layer, so we
+  //    just update the source's tile URLs + attribution and let
+  //    MapLibre re-fetch. This preserves camera state + user overlays.
   useEffect(() => {
-    // no-op — kept as a hook slot in case we add a dark raster provider later
-    void darkMode;
-  }, [darkMode]);
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const mode = darkMode ? "dark" : "light";
+    const src = map.getStyle().sources["osm-raster"];
+    if (!src) return;
+    // MapLibre doesn't expose a mutable "setTiles" on raster sources —
+    // the safest reliable path is remove + re-add the source and
+    // re-add the layer. Both are cheap on raster.
+    const layerBefore = map.getLayer("osm-raster-layer");
+    if (layerBefore) map.removeLayer("osm-raster-layer");
+    if (map.getSource("osm-raster")) map.removeSource("osm-raster");
+    map.addSource("osm-raster", {
+      type: "raster",
+      tiles: [...TILE_URLS[mode]],
+      tileSize: 256,
+      attribution: TILE_ATTRIBUTIONS[mode],
+      maxzoom: 19,
+    });
+    // Insert BELOW the first non-basemap layer so KSYK overlays stay on top.
+    const layers = map.getStyle().layers ?? [];
+    const firstOverlay = layers.find((l) => l.id !== "osm-raster-layer")?.id;
+    map.addLayer(
+      { id: "osm-raster-layer", type: "raster", source: "osm-raster", minzoom: 0, maxzoom: 22 },
+      firstOverlay,
+    );
+  }, [darkMode, ready]);
+
+  // ── React to platform-scoped map defaults changing at runtime.
+  //    e.g. admin tweaks mobileDefaultZoom in the settings panel — the
+  //    currently-shown map should re-fly to the new values, not wait
+  //    for a reload.
+  //
+  //    The min/max zoom also need to be re-applied because MapLibre
+  //    only respects them at init unless setMinZoom/setMaxZoom is
+  //    called.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    // Only re-apply when the CALLER isn't force-controlling bearing/pitch,
+    // otherwise a prop-controlled preview would fight us.
+    if (bearing !== undefined || pitch !== undefined) return;
+    const d = pickPlatformMapDefaults(settings);
+    // Zoom bounds first — MapLibre will clamp current zoom if needed.
+    map.setMinZoom(d.minZoom);
+    map.setMaxZoom(Math.min(19, d.maxZoom));
+    // Then camera — flyTo preserves user rotation by default.
+    map.easeTo({
+      center: [d.lng, d.lat],
+      zoom: d.zoom,
+      duration: 500,
+    });
+  }, [
+    settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom, settings.osmMinZoom, settings.osmMaxZoom,
+    settings.mobileCenterLat, settings.mobileCenterLng, settings.mobileDefaultZoom, settings.mobileMinZoom, settings.mobileMaxZoom,
+    settings.desktopCenterLat, settings.desktopCenterLng, settings.desktopDefaultZoom, settings.desktopMinZoom, settings.desktopMaxZoom,
+    ready, bearing, pitch,
+  ]);
+
+  // Track viewport width changes so a phone rotated to landscape (which
+  // can cross the 768px breakpoint) picks up the desktop overrides,
+  // and vice-versa.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (typeof window === "undefined") return;
+    const onResize = () => {
+      const d = pickPlatformMapDefaults(settings);
+      map.setMinZoom(d.minZoom);
+      map.setMaxZoom(Math.min(19, d.maxZoom));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [settings, ready]);
 
   // ── React to bearing prop overrides ───────────────────────────────────
   useEffect(() => {
