@@ -21,15 +21,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
-import type { Building, Room, Hallway, MapLayer, MapVersion } from "@ksyk/shared";
+import type { Building, Room, Hallway, Door, Stair, Elevator, MapLayer, MapVersion } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2 } from "lucide-react";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "hallways" | "layers" | "history" | "settings";
+export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "layers" | "history" | "settings";
 
 export interface LeftSidebarSelection {
   kind: "building" | "room" | "hallway";
@@ -48,7 +48,11 @@ export interface LeftSidebarProps {
 const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
   { id: "buildings", label: "Buildings", Icon: Building2 },
   { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
-  { id: "hallways",  label: "Hallways",  Icon: RouteIcon },
+  // "POIs" is the umbrella for every non-polygon primitive: hallways,
+  // walls, doors, stairs, elevators, entrances. Consolidated in v3.13
+  // from the old Hallways-only tab so users have one place to see
+  // every "line + point" thing they've placed.
+  { id: "pois",      label: "POIs",      Icon: RouteIcon },
   { id: "layers",    label: "Layers",    Icon: Layers },
   { id: "history",   label: "History",   Icon: History },
   { id: "settings",  label: "Defaults",  Icon: Settings2 },
@@ -170,7 +174,7 @@ export default function LeftSidebar({
       <div className="flex-1 overflow-y-auto">
         {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
-        {activeTab === "hallways"  && <HallwayList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "pois"      && <PoiList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "layers"    && <LayerList query={query} />}
         {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
         {activeTab === "settings"  && (
@@ -281,6 +285,207 @@ function RoomList({
 
 // ── Hallways ──────────────────────────────────────────────────────
 
+// ── Unified POI list ──────────────────────────────────────────────
+//
+// Every non-building/room primitive lives here: hallways (walkable
+// corridors), walls (barriers stored as hallways with surface="wall"),
+// doors, stairs, elevators, entrances. Rows tinted + iconed by kind.
+// Hallway/wall rows still emit a `hallway` selection (opens the
+// PropertyPanel). Point POIs emit a `ksyk:focus-point` window event so
+// the parent can fly the map to them without needing PropertyPanel
+// support for those kinds (yet).
+
+type PoiKind = "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator";
+interface UnifiedPoi {
+  id: string;
+  kind: PoiKind;
+  title: string;
+  subtitle: string;
+  color: string;
+  floor: number | null;
+  /** Focus point for the click-to-fly-to behaviour on point POIs. */
+  focusLat: number | null;
+  focusLng: number | null;
+}
+
+function PoiList({
+  query, selection, onSelect,
+}: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
+  const [kindFilter, setKindFilter] = useState<"all" | PoiKind>("all");
+
+  const { data: hallways = [] } = useQuery<Hallway[]>({
+    queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways"),
+  });
+  const { data: doors = [] } = useQuery<Door[]>({
+    queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors"),
+  });
+  const { data: stairs = [] } = useQuery<Stair[]>({
+    queryKey: ["/api/stairs"], queryFn: () => fetchList<Stair>("/api/stairs"),
+  });
+  const { data: elevators = [] } = useQuery<Elevator[]>({
+    queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators"),
+  });
+
+  const items = useMemo<UnifiedPoi[]>(() => {
+    const out: UnifiedPoi[] = [];
+    for (const h of hallways) {
+      const isWall = h.surface === "wall";
+      out.push({
+        id: h.id,
+        kind: isWall ? "wall" : "hallway",
+        title: isWall ? `Wall ${h.id.slice(0, 6)}` : `Hallway ${h.id.slice(0, 6)}`,
+        subtitle: [
+          h.width != null ? `${h.width} m` : null,
+          !isWall && h.surface ? h.surface : null,
+          h.floor != null ? `Floor ${h.floor}` : null,
+        ].filter(Boolean).join(" · "),
+        color: isWall ? "#1f2937" : "#f59e0b",
+        floor: h.floor ?? null,
+        focusLat: (h.startY + h.endY) / 2,
+        focusLng: (h.startX + h.endX) / 2,
+      });
+    }
+    for (const d of doors) {
+      // Doors created via the POI tool have empty connects; those we
+      // brand as "unattached" so users know to wire them. Widening
+      // the tuple type to string[] because Firestore doesn't enforce
+      // the tuple-of-2 constraint on real data.
+      const emergency = d.emergencyExit === true;
+      const connects = (d.connects as unknown as string[] | undefined);
+      const orphan = !connects || connects.length === 0;
+      out.push({
+        id: d.id,
+        kind: emergency ? "exit" : "door",
+        title: emergency ? `Emergency exit ${d.id.slice(0, 6)}` : `Door ${d.id.slice(0, 6)}`,
+        subtitle: [
+          d.floor != null ? `Floor ${d.floor}` : null,
+          orphan ? "unattached" : null,
+        ].filter(Boolean).join(" · "),
+        color: emergency ? "#dc2626" : "#4b5563",
+        floor: d.floor ?? null,
+        focusLat: d.position?.lat ?? null,
+        focusLng: d.position?.lng ?? null,
+      });
+    }
+    for (const s of stairs) {
+      out.push({
+        id: s.id,
+        kind: "stair",
+        title: `Stairs ${s.id.slice(0, 6)}`,
+        subtitle: s.floors && s.floors.length > 0 ? `Floors ${s.floors.join(", ")}` : "no floors set",
+        color: "#b45309",
+        floor: s.floors?.[0] ?? null,
+        focusLat: s.position?.lat ?? null,
+        focusLng: s.position?.lng ?? null,
+      });
+    }
+    for (const e of elevators) {
+      out.push({
+        id: e.id,
+        kind: "elevator",
+        title: e.name ?? `Elevator ${e.id.slice(0, 6)}`,
+        subtitle: e.floors && e.floors.length > 0 ? `Floors ${e.floors.join(", ")}` : "no floors set",
+        color: "#1d4ed8",
+        floor: e.floors?.[0] ?? null,
+        focusLat: e.position?.lat ?? null,
+        focusLng: e.position?.lng ?? null,
+      });
+    }
+    return out;
+  }, [hallways, doors, stairs, elevators]);
+
+  const q = query.trim().toLowerCase();
+  const filtered = items.filter((it) => {
+    if (kindFilter !== "all" && it.kind !== kindFilter) return false;
+    if (!q) return true;
+    return it.title.toLowerCase().includes(q) || it.subtitle.toLowerCase().includes(q);
+  });
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: items.length };
+    for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1;
+    return c;
+  }, [items]);
+
+  const allChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
+    { id: "all",      label: "All",       Icon: Layers },
+    { id: "hallway",  label: "Hallways",  Icon: RouteIcon },
+    { id: "wall",     label: "Walls",     Icon: StretchHorizontal },
+    { id: "door",     label: "Doors",     Icon: DoorClosed },
+    { id: "entrance", label: "Entrances", Icon: LogIn },
+    { id: "exit",     label: "Exits",     Icon: DoorOpen },
+    { id: "stair",    label: "Stairs",    Icon: StepForward },
+    { id: "elevator", label: "Elevators", Icon: MoveVertical },
+  ];
+  const chips = allChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
+
+  if (items.length === 0) {
+    return <EmptyState message="No POIs yet." hint="Draw hallways, walls, or click-place doors, stairs, elevators and entrances." />;
+  }
+
+  const onRowClick = (it: UnifiedPoi) => {
+    if (it.kind === "hallway" || it.kind === "wall") {
+      onSelect({ kind: "hallway", id: it.id });
+    } else {
+      // Point POIs — no PropertyPanel yet, so we just fly the map to
+      // them via an event the parent listens for.
+      if (it.focusLat != null && it.focusLng != null) {
+        try {
+          window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
+            detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id },
+          }));
+        } catch { /* SSR / old browser — non-fatal */ }
+      }
+    }
+  };
+
+  return (
+    <div>
+      {/* Kind filter chips — same visual language as the search dropdown. */}
+      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 border-b border-border">
+        {chips.map((c) => {
+          const active = kindFilter === c.id;
+          const Icon = c.Icon;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setKindFilter(c.id)}
+              className={cn(
+                "shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full transition-colors flex items-center gap-1",
+                active
+                  ? "bg-blue-600 text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70",
+              )}
+            >
+              <Icon className="h-3 w-3" />
+              {c.label}
+              <span className="text-[9px] opacity-70 tabular-nums">{counts[c.id] ?? 0}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <ul className="p-1.5 space-y-0.5">
+        {filtered.map((it) => (
+          <li key={`${it.kind}:${it.id}`}>
+            <Row
+              active={selection?.kind === "hallway" && selection.id === it.id}
+              onClick={() => onRowClick(it)}
+              leading={<Swatch color={it.color} />}
+              title={it.title}
+              subtitle={it.subtitle}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Kept for backwards-compat with any code path that still imports it;
+// the tab itself now uses PoiList above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HallwayList({
   query, selection, onSelect,
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {

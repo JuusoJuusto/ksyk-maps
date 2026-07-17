@@ -450,11 +450,25 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
 
 function StyleTab({ entity }: { entity: SelectedEntity }) {
   const qc = useQueryClient();
-  const current =
+  const currentColor =
     entity.kind === "building" ? (entity.data.colorCode ?? "#2563eb") :
     entity.kind === "room"     ? (entity.data.colorCode ?? "#059669") :
                                  "#f59e0b";
-  const [color, setColor] = useState(current);
+  // Style knobs live in `metadata.style` so we don't need a DB
+  // migration per option. Renderers respect them by reading properties
+  // off the GeoJSON feature.
+  const metaStyle =
+    entity.kind !== "hallway"
+      ? (entity.data.metadata as { style?: Record<string, unknown> } | null | undefined)?.style
+      : undefined;
+  const initialShowOutline = (metaStyle?.showOutline as boolean | undefined) ?? true;
+  const initialFillOpacity = Math.round(((metaStyle?.fillOpacity as number | undefined) ?? 0.6) * 100);
+  const initialShowLabel = (metaStyle?.showLabel as boolean | undefined) ?? true;
+
+  const [color, setColor] = useState(currentColor);
+  const [showOutline, setShowOutline] = useState(initialShowOutline);
+  const [fillOpacityPct, setFillOpacityPct] = useState(initialFillOpacity);
+  const [showLabel, setShowLabel] = useState(initialShowLabel);
 
   const patch = useMutation({
     mutationFn: async () => {
@@ -462,7 +476,22 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
         entity.kind === "building" ? `/api/buildings/${entity.data.id}` :
         entity.kind === "room"     ? `/api/rooms/${entity.data.id}` :
                                      `/api/hallways/${entity.data.id}`;
-      const res = await apiRequest("PATCH", path, { colorCode: color });
+      const body: Record<string, unknown> = { colorCode: color };
+      if (entity.kind !== "hallway") {
+        // Merge into existing metadata so we don't clobber unrelated
+        // custom fields the user set on the Custom tab.
+        const prevMeta = (entity.data.metadata as Record<string, unknown> | null | undefined) ?? {};
+        body.metadata = {
+          ...prevMeta,
+          style: {
+            ...(prevMeta.style as object | undefined),
+            showOutline,
+            fillOpacity: fillOpacityPct / 100,
+            showLabel,
+          },
+        };
+      }
+      const res = await apiRequest("PATCH", path, body);
       return res.json();
     },
     onSuccess: () => {
@@ -470,7 +499,13 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
     },
   });
 
-  const dirty = color !== current;
+  const dirty =
+    color !== currentColor
+    || (entity.kind !== "hallway" && (
+      showOutline !== initialShowOutline
+      || fillOpacityPct !== initialFillOpacity
+      || showLabel !== initialShowLabel
+    ));
 
   const runEyedropper = async () => {
     const picked = await pickColor();
@@ -507,10 +542,91 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
           Click any spot on the map to sample its colour.
         </p>
       </div>
+
+      {/* Style knobs — only meaningful on polygon entities. Hallways
+       *  render as lines so they inherit the color only. */}
+      {entity.kind !== "hallway" && (
+        <div className="space-y-3 pt-1 border-t border-border">
+          <ToggleField
+            label="Show outline"
+            value={showOutline}
+            onChange={setShowOutline}
+            hint="Turn off for a fill-only look."
+          />
+          <SliderField
+            label="Fill opacity"
+            value={fillOpacityPct}
+            onChange={setFillOpacityPct}
+            min={0}
+            max={100}
+            step={5}
+            suffix="%"
+          />
+          <ToggleField
+            label="Show label"
+            value={showLabel}
+            onChange={setShowLabel}
+            hint="Hide the name text without deleting it."
+          />
+        </div>
+      )}
+
       <DirtySaveButton
         isDirty={dirty}
         isPending={patch.isPending}
         onSave={() => patch.mutate()}
+      />
+    </div>
+  );
+}
+
+function ToggleField({
+  label, value, onChange, hint,
+}: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
+  return (
+    <div>
+      <label className="flex items-center justify-between gap-2">
+        <div className="flex-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+          {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value}
+          onClick={() => onChange(!value)}
+          className={cn(
+            "relative w-9 h-5 rounded-full transition-colors shrink-0",
+            value ? "bg-blue-600" : "bg-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+              value ? "translate-x-4" : "translate-x-0.5",
+            )}
+          />
+        </button>
+      </label>
+    </div>
+  );
+}
+
+function SliderField({
+  label, value, onChange, min, max, step, suffix,
+}: { label: string; value: number; onChange: (v: number) => void; min: number; max: number; step: number; suffix?: string }) {
+  return (
+    <div>
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-xs font-mono tabular-nums">{value}{suffix ?? ""}</span>
+      </div>
+      <input
+        type="range"
+        min={min} max={max} step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full"
       />
     </div>
   );

@@ -194,12 +194,13 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     features: buildings
       .filter((b) => b.points && b.points.length >= 3)
       .map((b) => {
-        // Compute a plausible extrusion height. Real floor-heights are
-        // in the Floor table's `heightMeters` (not fetched here), so
-        // approximate with 3.5 m per floor + a 0.5 m ground offset —
-        // matches typical office building storey height.
         const floors = b.floors ?? 1;
         const height = Math.max(3.5, floors * 3.5);
+        // Per-feature style knobs from the PropertyPanel Style tab —
+        // stored on `metadata.style` so the renderer can respect
+        // per-entity overrides via data-driven expressions instead
+        // of blanket layer paint.
+        const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
         return {
           type: "Feature" as const,
           geometry: {
@@ -215,6 +216,9 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
             color: b.colorCode ?? "#2563eb",
             floors,
             height,
+            showOutline: style.showOutline !== false, // default true
+            fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
+            showLabel: style.showLabel !== false,     // default true
           },
         };
       }),
@@ -224,13 +228,20 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
   // MazeMap-style: soft cream fill (using the brand color at very low
   // opacity so buildings still read as "yours") with a crisp darker
   // outline. Zoom-scaled opacity so buildings appear as user gets close.
+  // Per-feature `fillOpacity` (from PropertyPanel Style tab) overrides
+  // the zoom curve when set.
   addLayerIfMissing(map, {
     id: LAYERS.buildingsFill,
     source: SOURCES.buildings,
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.05, 17, 0.12, 20, 0.22],
+      "fill-opacity": [
+        "case",
+        ["!=", ["get", "fillOpacity"], null],
+        ["get", "fillOpacity"],
+        ["interpolate", ["linear"], ["zoom"], 14, 0.05, 17, 0.12, 20, 0.22],
+      ],
       "fill-outline-color": ["get", "color"],
       "fill-antialias": true,
     },
@@ -243,7 +254,9 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     paint: {
       "line-color": ["get", "color"],
       "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1.5, 17, 2.5, 20, 3.5],
-      "line-opacity": 0.95,
+      // Per-feature outline toggle — false collapses the line to zero
+      // opacity without hiding the layer for every building.
+      "line-opacity": ["case", ["get", "showOutline"], 0.95, 0],
     },
   });
   addLayerIfMissing(map, {
@@ -273,6 +286,8 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       "text-halo-color": "#ffffff",
       "text-halo-width": 2,
       "text-halo-blur": 0.4,
+      // Per-feature label toggle.
+      "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
   });
 
@@ -368,23 +383,29 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
       .filter((r) => activeFloor === null || r.floor === activeFloor)
-      .map((r) => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [[
-            ...r.points!.map((p) => [p.lng, p.lat]),
-            [r.points![0].lng, r.points![0].lat],
-          ]],
-        },
-        properties: {
-          id: r.id,
-          name: r.name ?? "",
-          label: [r.roomNumber, r.name].filter(Boolean).join(" "),
-          color: r.colorCode ?? "#059669",
-          floor: r.floor ?? 0,
-        },
-      })),
+      .map((r) => {
+        const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              ...r.points!.map((p) => [p.lng, p.lat]),
+              [r.points![0].lng, r.points![0].lat],
+            ]],
+          },
+          properties: {
+            id: r.id,
+            name: r.name ?? "",
+            label: [r.roomNumber, r.name].filter(Boolean).join(" "),
+            color: r.colorCode ?? "#059669",
+            floor: r.floor ?? 0,
+            showOutline: style.showOutline !== false,
+            fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
+            showLabel: style.showLabel !== false,
+          },
+        };
+      }),
   };
   upsertGeoJSONSource(map, SOURCES.rooms, data);
 
@@ -397,8 +418,14 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       // MazeMap-style: rooms are solid fills — no outline (walls are
       // drawn from the walls source instead). Gentle opacity ramp so
       // the building fills read through at low zoom and rooms take
-      // over at close zoom.
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17.5, 0.55, 20, 0.8],
+      // over at close zoom. Per-feature override lets the user pin an
+      // exact opacity from the Style tab.
+      "fill-opacity": [
+        "case",
+        ["!=", ["get", "fillOpacity"], null],
+        ["get", "fillOpacity"],
+        ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17.5, 0.55, 20, 0.8],
+      ],
       "fill-antialias": true,
     },
   });
@@ -426,6 +453,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "text-halo-color": "#ffffff",
       "text-halo-width": 1.6,
       "text-halo-blur": 0.4,
+      "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
     // Only start drawing room labels once the user is zoomed in enough
     // that they can distinguish rooms — before that, buildings labels

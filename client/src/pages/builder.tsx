@@ -517,7 +517,7 @@ function BuilderWorkspace() {
         const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
         if (pick) {
           setSelection({ kind: pick.kind, id: pick.id });
-          setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "hallways");
+          setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "pois");
         } else {
           setSelection(null);
         }
@@ -630,6 +630,37 @@ function BuilderWorkspace() {
     },
   });
 
+  const createRoom = useMutation({
+    mutationFn: async (payload: {
+      roomNumber: string;
+      buildingId: string;
+      floor: number;
+      points: Array<{ lng: number; lat: number }>;
+    }) => {
+      const res = await apiRequest("POST", "/api/rooms", {
+        roomNumber: payload.roomNumber,
+        name: payload.roomNumber,
+        buildingId: payload.buildingId,
+        floor: payload.floor,
+        colorCode: "#059669",
+        points: payload.points,
+      });
+      return res.json();
+    },
+    onSuccess: (created: Room | { id?: string } | undefined) => {
+      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setWaypoints([]);
+      setActiveTool("select");
+      const id = created && typeof (created as { id?: string }).id === "string"
+        ? (created as { id: string }).id
+        : null;
+      if (id) {
+        setSelection({ kind: "room", id });
+        setSidebarTab("rooms");
+      }
+    },
+  });
+
   const createHallway = useMutation({
     mutationFn: async (payload: { points: Array<{ lng: number; lat: number }>; surface?: string }) => {
       // Chunk polyline into start/end segments — matches the server schema.
@@ -653,7 +684,7 @@ function BuilderWorkspace() {
       const first = created[0] as { id?: string } | undefined;
       if (first?.id) {
         setSelection({ kind: "hallway", id: first.id });
-        setSidebarTab("hallways");
+        setSidebarTab("pois");
       }
     },
   });
@@ -710,6 +741,27 @@ function BuilderWorkspace() {
     },
   });
 
+  // Listen for point-POI focus events from the LeftSidebar's PoiList.
+  // Fly to the position, keeping bearing + pitch.
+  useEffect(() => {
+    if (!mapReady) return;
+    const onFocus = (e: Event) => {
+      const detail = (e as CustomEvent<{ lat: number; lng: number }>).detail;
+      const h = handleRef.current;
+      if (!h || !detail || typeof detail.lat !== "number") return;
+      h.map.flyTo({
+        center: [detail.lng, detail.lat],
+        zoom: Math.max(h.map.getZoom(), 19),
+        bearing: h.map.getBearing(),
+        pitch: h.map.getPitch(),
+        duration: 500,
+        essential: true,
+      });
+    };
+    window.addEventListener("ksyk:focus-point", onFocus);
+    return () => window.removeEventListener("ksyk:focus-point", onFocus);
+  }, [mapReady]);
+
   const finalize = useCallback(() => {
     if (activeTool === "hallway" && waypoints.length >= 2) {
       createHallway.mutate({
@@ -749,14 +801,50 @@ function BuilderWorkspace() {
       // Handled inline by the coach — nothing to persist.
       return;
     }
-    if ((activeTool === "building" || activeTool === "room") && waypoints.length >= 3) {
+    if (activeTool === "building" && waypoints.length >= 3) {
       const nextLetter = String.fromCharCode(65 + buildings.length);
       createBuilding.mutate({
         name: nextLetter,
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
       });
+      return;
     }
-  }, [activeTool, waypoints, buildings.length, createBuilding, createHallway]);
+    if (activeTool === "room" && waypoints.length >= 3) {
+      const pts = waypoints.map((w) => ({ lng: w.lng, lat: w.lat }));
+      // Rooms MUST belong to a building. Find the building whose
+      // polygon contains the room centroid; if none, fall back to
+      // the nearest building. If there are no buildings, warn +
+      // bail rather than silently creating an orphan.
+      const centroid = {
+        lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
+        lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
+      };
+      const containing = buildings.find((b) =>
+        b.points && b.points.length >= 3 && pointInPolygon(centroid, b.points),
+      );
+      const nearest = containing ?? buildings
+        .filter((b) => b.points && b.points.length >= 3)
+        .map((b) => ({ b, d: distanceMeters(centroid, polygonCenter(b.points!)) }))
+        .sort((a, b) => a.d - b.d)[0]?.b;
+      if (!nearest) {
+        toast({
+          title: "Draw a building first",
+          description: "Rooms live inside buildings — no building found near this room.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const roomCount = (roomsQ.data ?? []).filter((r) => r.buildingId === nearest.id).length;
+      const roomNumber = `${nearest.name}-${roomCount + 1}`;
+      createRoom.mutate({
+        roomNumber,
+        buildingId: nearest.id,
+        floor: cameraState.activeFloor ?? 1,
+        points: pts,
+      });
+      return;
+    }
+  }, [activeTool, waypoints, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -880,7 +968,7 @@ function BuilderWorkspace() {
   const focusIssue = useCallback((kind: ValidationEntityKind, id: string) => {
     if (kind === "building" || kind === "room" || kind === "hallway") {
       setSelection({ kind, id });
-      const nextTab: LeftSidebarTab = kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways";
+      const nextTab: LeftSidebarTab = kind === "building" ? "buildings" : kind === "room" ? "rooms" : "pois";
       setSidebarTab(nextTab);
     }
   }, []);
@@ -994,32 +1082,49 @@ function BuilderWorkspace() {
           onRestoreVersion={(id) => { void apiRequest("POST", `/api/map-package/versions/${id}/restore`); }}
         />
 
-        {/* Canvas + floating overlays */}
-        <main className="flex-1 min-w-0 relative">
+        {/* Canvas + floating overlays. `builder-canvas-{tool}` class
+         *  lets CSS swap the cursor to a crosshair on draw tools and a
+         *  grab hand on pan — CAD-adjacent affordance. */}
+        <main className={cn(
+          "flex-1 min-w-0 relative",
+          `builder-canvas-tool-${activeTool}`,
+          activeTool !== "select" && activeTool !== "pan" && "[&_.maplibregl-canvas]:!cursor-crosshair",
+          activeTool === "pan" && "[&_.maplibregl-canvas]:!cursor-grab active:[&_.maplibregl-canvas]:!cursor-grabbing",
+        )}>
           <CampusMap onReady={(h) => { handleRef.current = h; setMapReady(true); }} />
 
-          {/* In-flight coach — appears while a drawing tool is active. */}
+          {/* In-flight coach — appears while a drawing tool is active.
+           *  Includes a live cursor coord readout for CAD-adjacent
+           *  precision (users can eyeball the lat/lng while placing
+           *  corners without hunting the StatusBar). */}
           {activeTool !== "select" && activeTool !== "pan" && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none">
-              {activeTool === "hallway" && (<>Click waypoints — Enter to finish ({waypoints.length})</>)}
-              {activeTool === "wall" && (<>Click wall endpoints — Enter to finish ({waypoints.length})</>)}
-              {activeTool === "rectangle" && (<>Click 2 diagonal corners — Enter to finish ({waypoints.length}/2)</>)}
-              {activeTool === "measure" && (
-                <>
-                  {waypoints.length < 2
-                    ? <>Click points — line total shows here ({waypoints.length})</>
-                    : <>Distance: {measureDistanceMeters < 1000
-                        ? `${measureDistanceMeters.toFixed(1)} m`
-                        : `${(measureDistanceMeters / 1000).toFixed(2)} km`} · Esc to clear</>}
-                </>
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none flex items-center gap-3">
+              <span>
+                {activeTool === "hallway" && (<>Click waypoints — Enter to finish ({waypoints.length})</>)}
+                {activeTool === "wall" && (<>Click wall endpoints — Enter to finish ({waypoints.length})</>)}
+                {activeTool === "rectangle" && (<>Click 2 diagonal corners — Enter to finish ({waypoints.length}/2)</>)}
+                {activeTool === "measure" && (
+                  <>
+                    {waypoints.length < 2
+                      ? <>Click points — line total shows here ({waypoints.length})</>
+                      : <>Distance: {measureDistanceMeters < 1000
+                          ? `${measureDistanceMeters.toFixed(1)} m`
+                          : `${(measureDistanceMeters / 1000).toFixed(2)} km`} · Esc to clear</>}
+                  </>
+                )}
+                {(activeTool === "building" || activeTool === "room") && (
+                  <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
+                )}
+                {activeTool === "poi-stairs"    && (<>Click to place stairs</>)}
+                {activeTool === "poi-elevator"  && (<>Click to place elevator</>)}
+                {activeTool === "poi-door"      && (<>Click to place door</>)}
+                {activeTool === "poi-entrance"  && (<>Click to place entrance</>)}
+              </span>
+              {cursor && (
+                <span className="text-[11px] font-mono tabular-nums text-muted-foreground border-l border-border pl-3">
+                  {cursor.lat.toFixed(6)}, {cursor.lng.toFixed(6)}
+                </span>
               )}
-              {(activeTool === "building" || activeTool === "room") && (
-                <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
-              )}
-              {activeTool === "poi-stairs"    && (<>Click to place stairs</>)}
-              {activeTool === "poi-elevator"  && (<>Click to place elevator</>)}
-              {activeTool === "poi-door"      && (<>Click to place door</>)}
-              {activeTool === "poi-entrance"  && (<>Click to place entrance</>)}
             </div>
           )}
 
@@ -1131,6 +1236,42 @@ function BuilderWorkspace() {
       />
     </div>
   );
+}
+
+// ── Geometry helpers used by the room-creation building lookup ──────
+
+function polygonCenter(pts: Array<{ lat: number; lng: number }>): { lat: number; lng: number } {
+  let lat = 0, lng = 0;
+  for (const p of pts) { lat += p.lat; lng += p.lng; }
+  return { lat: lat / pts.length, lng: lng / pts.length };
+}
+
+/** Great-circle distance in metres (haversine). Local to the builder
+ *  so we don't have to depend on the shared package here. */
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Standard even-odd point-in-polygon. Operates in lat/lng space —
+ *  fine at campus scale where earth curvature is negligible. */
+function pointInPolygon(pt: { lat: number; lng: number }, poly: Array<{ lat: number; lng: number }>): boolean {
+  let inside = false;
+  const n = poly.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = poly[i].lng, yi = poly[i].lat;
+    const xj = poly[j].lng, yj = poly[j].lat;
+    const intersect = ((yi > pt.lat) !== (yj > pt.lat)) &&
+      (pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
 }
 
 // ─── Narrow tool palette (icon column, far left) ─────────────────────────
