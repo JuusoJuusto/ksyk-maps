@@ -21,8 +21,20 @@
  */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Building, Room, Hallway, Door, Stair, Elevator, MapPackage } from "@ksyk/shared";
+import type { Building, Room, Hallway, Door, Stair, Elevator, MapPackage, LatLng } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
+
+/** Generic non-building/non-corridor markers: info, reception,
+ *  parking, bike parking, restrooms. Sits in Firestore
+ *  `campus_pois` with a free-form `kind` string. */
+export interface GenericPOI {
+  id: string;
+  kind: string;
+  position: LatLng;
+  floor?: number | null;
+  label?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
 
 export interface CampusData {
   buildings: Building[];
@@ -31,6 +43,7 @@ export interface CampusData {
   doors: Door[];
   stairs: Stair[];
   elevators: Elevator[];
+  pois: GenericPOI[];
   /** Which source served this snapshot. Useful for a "viewing published"
    *  badge on the public map. */
   source: "published" | "live" | "loading";
@@ -40,7 +53,7 @@ export interface CampusData {
 }
 
 const EMPTY: Omit<CampusData, "source" | "isReady"> = {
-  buildings: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
+  buildings: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [], pois: [],
 };
 
 /** Try the published snapshot first, fall back to live tables. */
@@ -131,6 +144,15 @@ export function useCampusData(): CampusData {
     refetchInterval: shouldUseLive ? 60_000 : false,
     refetchOnMount: "always",
   });
+  const poisQ = useQuery<GenericPOI[]>({
+    queryKey: ["/api/pois"],
+    queryFn: () => fetchList<GenericPOI>("/api/pois"),
+    // Generic POIs are ALWAYS live (we don't snapshot them in the
+    // published package yet). They refresh on the same cadence as
+    // the other campus tables.
+    refetchInterval: 60_000,
+    refetchOnMount: "always",
+  });
 
   return useMemo<CampusData>(() => {
     // Case 1: published snapshot has real content — use it verbatim.
@@ -143,6 +165,10 @@ export function useCampusData(): CampusData {
         doors:     p.doors ?? [],
         stairs:    p.stairs ?? [],
         elevators: p.elevators ?? [],
+        // Published packages don't carry generic POIs yet — fall back
+        // to live for that one collection so info/reception/etc.
+        // still show even on a published-first campus.
+        pois:      poisQ.data ?? [],
         source: "published",
         isReady: true,
       };
@@ -162,6 +188,7 @@ export function useCampusData(): CampusData {
       doors:     doorsQ.data ?? [],
       stairs:    stairsQ.data ?? [],
       elevators: elevatorsQ.data ?? [],
+      pois:      poisQ.data ?? [],
       source: "live",
       isReady: buildingsQ.isFetched && roomsQ.isFetched,
     };
@@ -173,5 +200,6 @@ export function useCampusData(): CampusData {
     doorsQ.data,
     stairsQ.data,
     elevatorsQ.data,
+    poisQ.data,
   ]);
 }

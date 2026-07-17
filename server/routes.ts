@@ -1297,6 +1297,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPoiRoutes("elevators");
   registerPoiRoutes("doors");
 
+  // Generic POIs — free-form `kind` string, one collection, one
+  // endpoint. Covers info, reception, parking, restroom_m/f/a, bike
+  // etc. without needing a table-per-kind.
+  app.get('/api/pois', async (_req, res) => {
+    try {
+      const snap = await db.collection('campus_pois').get();
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      res.json(items);
+    } catch (error) {
+      console.error('GET /api/pois soft-failed:', error);
+      res.set('X-Read-Soft-Fail', '1').json([]);
+    }
+  });
+
+  app.post('/api/pois', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      const body = req.body ?? {};
+      if (typeof body.kind !== 'string' || !body.kind) return res.status(400).json({ message: 'Missing kind' });
+      const lat = typeof body.position?.lat === 'number' ? body.position.lat
+                : typeof body.mapPositionY === 'number' ? body.mapPositionY
+                : null;
+      const lng = typeof body.position?.lng === 'number' ? body.position.lng
+                : typeof body.mapPositionX === 'number' ? body.mapPositionX
+                : null;
+      if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+      const docRef = db.collection('campus_pois').doc();
+      const record = {
+        id: docRef.id,
+        kind: body.kind,
+        position: { lat, lng },
+        floor: typeof body.floor === 'number' ? body.floor : 1,
+        label: typeof body.label === 'string' ? body.label : null,
+        metadata: body.metadata ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await docRef.set(record);
+      res.status(201).json(record);
+    } catch (error) {
+      console.error('POST /api/pois failed:', error);
+      res.status(500).json({ message: 'Failed to create POI' });
+    }
+  });
+
+  app.delete('/api/pois/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      await db.collection('campus_pois').doc(req.params.id).delete();
+      res.status(204).send();
+    } catch (error) {
+      console.error('DELETE /api/pois failed:', error);
+      res.status(500).json({ message: 'Failed to delete POI' });
+    }
+  });
+
   // User routes (admin only)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {

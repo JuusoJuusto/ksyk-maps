@@ -4525,6 +4525,65 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       return res.status(200).json([]);
     }
 
+    // Generic POIs — free-form `kind` string (info, reception,
+    // parking, restroom_m/f/a, bike, etc.). Firestore-backed.
+    if (apiPath === '/pois' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const snap = await db.collection('campus_pois').get();
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        return res.status(200).json(items);
+      } catch (err) {
+        console.error('GET /api/pois failed:', err);
+        res.setHeader('X-Read-Soft-Fail', '1');
+        return res.status(200).json([]);
+      }
+    }
+    if (apiPath === '/pois' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const body = (req.body ?? {}) as Record<string, unknown>;
+        if (typeof body.kind !== 'string' || !body.kind) return res.status(400).json({ message: 'Missing kind' });
+        const posLat = (body.position as any)?.lat;
+        const posLng = (body.position as any)?.lng;
+        const lat = typeof posLat === 'number' ? posLat
+                  : typeof body.mapPositionY === 'number' ? body.mapPositionY
+                  : null;
+        const lng = typeof posLng === 'number' ? posLng
+                  : typeof body.mapPositionX === 'number' ? body.mapPositionX
+                  : null;
+        if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+        const docRef = db.collection('campus_pois').doc();
+        const record = {
+          id: docRef.id,
+          kind: body.kind,
+          position: { lat, lng },
+          floor: typeof body.floor === 'number' ? body.floor : 1,
+          label: typeof body.label === 'string' ? body.label : null,
+          metadata: body.metadata ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await docRef.set(record);
+        return res.status(201).json(record);
+      } catch (err) {
+        console.error('POST /api/pois failed:', err);
+        return res.status(500).json({ message: 'Failed to create POI' });
+      }
+    }
+    if (apiPath.startsWith('/pois/') && req.method === 'DELETE') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const id = apiPath.slice('/pois/'.length);
+        if (!id) return res.status(400).json({ message: 'Missing id' });
+        await db.collection('campus_pois').doc(id).delete();
+        return res.status(204).end();
+      } catch (err) {
+        console.error('DELETE /api/pois failed:', err);
+        return res.status(500).json({ message: 'Delete failed' });
+      }
+    }
+
     // /api/layers — CRUD backed by Firestore. Default seeded so admins
     // see something even before the first PUT.
     if (apiPath === '/layers' && req.method === 'GET') {

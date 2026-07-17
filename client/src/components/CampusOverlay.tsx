@@ -67,7 +67,7 @@ export default function CampusOverlay({
 }: CampusOverlayProps) {
   // Single source of truth — reads from the last-published snapshot
   // when available, live tables otherwise. See useCampusData.ts.
-  const { buildings, rooms, hallways, stairs, elevators, doors } = useCampusData();
+  const { buildings, rooms, hallways, stairs, elevators, doors, pois } = useCampusData();
   // Layer visibility from the LeftSidebar Layers tab. Missing / dropped
   // layers default to visible so overlay never becomes accidentally
   // blank when the layer table is empty.
@@ -107,7 +107,7 @@ export default function CampusOverlay({
       installBuildings(map, buildings);
       installHallways(map, hallways);
       installRooms(map, rooms, activeFloor ?? null);
-      installPOIs(map, { stairs, elevators, doors, rooms }, activeFloor ?? null);
+      installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null);
       applyVisibility();
     };
     /** Apply layer visibility from the /api/layers table.
@@ -132,6 +132,14 @@ export default function CampusOverlay({
       setVis(LAYERS.buildingsOutline, bVis);
       setVis(LAYERS.buildingsLabel,   bVis && lVis);
       setVis(LAYERS.buildings3D,      bVis && is3D);
+      // Interior walls in 3D — walls are drawn as 2D lines
+      // (campus-walls-line) at all times, plus an extruded thin
+      // rectangle (campus-walls-3d) when 3D is active.
+      setVis("campus-walls-3d",       hVis && is3D);
+      // POI icons: at ground level in 2D, floating in 3D. Toggle the
+      // twin layer instead of running both.
+      setVis(LAYERS.poisIcon,         !is3D);
+      setVis(`${LAYERS.poisIcon}-3d`, is3D);
       setVis(LAYERS.roomsFill,        rVis);
       setVis(LAYERS.roomsOutline,     rVis);
       setVis(LAYERS.roomsLabel,       rVis && lVis);
@@ -181,7 +189,7 @@ export default function CampusOverlay({
       map.off("click", onClick);
       window.clearTimeout(safety);
     };
-  }, [map, buildings, rooms, hallways, stairs, elevators, doors, activeFloor, layers, clientOverrides, is3D]);
+  }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, is3D]);
 
   return null;
 }
@@ -196,10 +204,6 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       .map((b) => {
         const floors = b.floors ?? 1;
         const height = Math.max(3.5, floors * 3.5);
-        // Per-feature style knobs from the PropertyPanel Style tab —
-        // stored on `metadata.style` so the renderer can respect
-        // per-entity overrides via data-driven expressions instead
-        // of blanket layer paint.
         const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
         return {
           type: "Feature" as const,
@@ -224,6 +228,45 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       }),
   };
   upsertGeoJSONSource(map, SOURCES.buildings, data);
+
+  // Separate source for the HOLLOW 3D shell — same polygons but with
+  // an inward-offset hole so `fill-extrusion` renders as thin walls
+  // around an empty interior instead of a solid block. Interior
+  // rooms show through, MazeMap-style.
+  const shellData = {
+    type: "FeatureCollection" as const,
+    features: buildings
+      .filter((b) => b.points && b.points.length >= 3)
+      .map((b) => {
+        const floors = b.floors ?? 1;
+        const height = Math.max(3.5, floors * 3.5);
+        // Wall thickness — real walls are ~0.3 m; we use 1.0 m so the
+        // extrusion reads visually even at zoom 17.
+        const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
+        const inner = insetPolygonMeters(outer, 1.0);
+        // If the inset degenerates (tiny polygon inset to nothing),
+        // skip the hole and fall back to a solid block for that one.
+        const rings: number[][][] = inner && inner.length >= 3
+          ? [
+              [...outer, outer[0]],
+              // GeoJSON holes must be reverse-wound relative to the
+              // outer ring. `insetPolygonMeters` returns points in the
+              // same order as the outer, so we reverse before pushing.
+              [...inner.slice().reverse(), inner[inner.length - 1]],
+            ]
+          : [[...outer, outer[0]]];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Polygon" as const, coordinates: rings },
+          properties: {
+            id: b.id,
+            color: b.colorCode ?? "#2563eb",
+            height,
+          },
+        };
+      }),
+  };
+  upsertGeoJSONSource(map, "campus-buildings-shell", shellData);
 
   // MazeMap-style: soft cream fill (using the brand color at very low
   // opacity so buildings still read as "yours") with a crisp darker
@@ -291,24 +334,98 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     },
   });
 
-  // 3D extrusion layer — always installed, visibility toggled from
-  // outside via the is3D prop. Height comes from the polygon's
-  // `height` property (see feature builder above). Opacity ramps in
-  // at zoom 15+ so buildings only extrude when the user is close.
+  // 3D extrusion layer — walls only (hollow interior). Sources from
+  // the shell dataset whose polygons carry an inward-offset hole, so
+  // fill-extrusion renders a thin ring rather than a solid block.
+  // Rooms drawn on the room-fill layer show through the empty
+  // interior at close zoom, exactly like MazeMap.
   addLayerIfMissing(map, {
     id: LAYERS.buildings3D,
-    source: SOURCES.buildings,
+    source: "campus-buildings-shell",
     type: "fill-extrusion",
     layout: { visibility: "none" }, // parent controls via setLayoutProperty
     paint: {
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": 0,
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.55, 20, 0.75],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.65, 20, 0.85],
       "fill-extrusion-vertical-gradient": true,
     },
     minzoom: 14,
   });
+}
+
+// ── Geometry helpers ─────────────────────────────────────────────
+
+/** Inset a polygon by `insetMeters` metres inward. Returns null when
+ *  the resulting polygon is degenerate (self-intersecting or too
+ *  small). Uses the CCW/CW winding of the input to pick the correct
+ *  normal direction — buildings drawn in either order both work.
+ *
+ *  Not a full polygon offset algorithm — it just shifts each vertex
+ *  along the bisector of its two adjacent edges. Fine for the
+ *  convex-ish shapes buildings usually are; concave shapes with sharp
+ *  reflex angles may kink but won't crash. */
+function insetPolygonMeters(pts: Array<[number, number]>, insetMeters: number): Array<[number, number]> | null {
+  const n = pts.length;
+  if (n < 3) return null;
+  // Rough m/deg factors at the polygon's centroid latitude.
+  let cLat = 0, cLng = 0;
+  for (const [lng, lat] of pts) { cLat += lat; cLng += lng; }
+  cLat /= n; cLng /= n;
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((cLat * Math.PI) / 180);
+
+  // Signed area (in local m² space) → sign tells winding.
+  let area2 = 0;
+  const local: Array<[number, number]> = pts.map(([lng, lat]) => [
+    (lng - cLng) * metersPerDegLng,
+    (lat - cLat) * metersPerDegLat,
+  ]);
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = local[i];
+    const [x2, y2] = local[(i + 1) % n];
+    area2 += x1 * y2 - x2 * y1;
+  }
+  const cw = area2 < 0; // clockwise if signed area is negative
+
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i < n; i++) {
+    const [x, y] = local[i];
+    const [px, py] = local[(i - 1 + n) % n];
+    const [nx, ny] = local[(i + 1) % n];
+    // Two edge normals (pointing inward for the winding).
+    const e1x = x - px, e1y = y - py;
+    const e2x = nx - x, e2y = ny - y;
+    const l1 = Math.hypot(e1x, e1y) || 1;
+    const l2 = Math.hypot(e2x, e2y) || 1;
+    // Left-hand normal (rotate 90°). Flip when clockwise.
+    let n1x = -e1y / l1, n1y = e1x / l1;
+    let n2x = -e2y / l2, n2y = e2x / l2;
+    if (cw) { n1x = -n1x; n1y = -n1y; n2x = -n2x; n2y = -n2y; }
+    // Bisector direction — sum of the two edge normals, then
+    // normalise, then scale so the perpendicular distance = inset.
+    const bx = n1x + n2x, by = n1y + n2y;
+    const bl = Math.hypot(bx, by) || 1;
+    // Miter length correction: perpendicular distance is inset when
+    // bisector length is scaled by inset / cos(theta/2). Simplified:
+    const dot = n1x * n2x + n1y * n2y;
+    const miter = insetMeters / Math.max(0.25, Math.sqrt((1 + dot) / 2));
+    const shiftX = (bx / bl) * miter;
+    const shiftY = (by / bl) * miter;
+    out.push([x + shiftX, y + shiftY]);
+  }
+
+  // Sanity check — if the inset produced NaN or the polygon collapsed
+  // (all points close to centroid), reject.
+  for (const [x, y] of out) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  }
+  // Back to lng/lat.
+  return out.map(([x, y]) => [
+    cLng + x / metersPerDegLng,
+    cLat + y / metersPerDegLat,
+  ]);
 }
 
 function installHallways(map: MaplibreMap, hallways: Hallway[]) {
@@ -375,6 +492,88 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
     },
     filter: ["==", ["get", "isWall"], true],
   });
+
+  // 3D wall shells — buffer each wall LineString into a thin
+  // rectangle polygon so `fill-extrusion` can raise it up. Wall
+  // panels are ~0.4m thick and extrude ~3m tall by default (short
+  // interior wall). Users see actual room-dividing walls through
+  // the building's hollow shell.
+  const wallShellFeatures = hallways
+    .filter((h) => h.surface === "wall")
+    .map((h) => {
+      const rect = bufferLineToRectMeters(
+        { lat: h.startY, lng: h.startX },
+        { lat: h.endY, lng: h.endX },
+        0.4,
+      );
+      if (!rect) return null;
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [rect.map((p) => [p.lng, p.lat])],
+        },
+        properties: {
+          id: h.id,
+          floor: h.floor ?? 0,
+          height: 3.0,
+        },
+      };
+    })
+    .filter((f): f is NonNullable<typeof f> => f !== null);
+  upsertGeoJSONSource(map, "campus-walls-shell", {
+    type: "FeatureCollection" as const,
+    features: wallShellFeatures,
+  });
+  addLayerIfMissing(map, {
+    id: "campus-walls-3d",
+    source: "campus-walls-shell",
+    type: "fill-extrusion",
+    layout: { visibility: "none" }, // parent toggles via applyVisibility(is3D)
+    paint: {
+      "fill-extrusion-color": "#111827",
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 15,
+  });
+}
+
+/** Buffer a line segment into a 4-corner rectangle centred on the
+ *  segment with the given width in metres. Returns null on
+ *  degenerate zero-length input. Corners walk in CCW order in
+ *  local metres space so the resulting polygon is valid GeoJSON. */
+function bufferLineToRectMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+  widthMeters: number,
+): Array<{ lat: number; lng: number }> | null {
+  const cLat = (a.lat + b.lat) / 2;
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((cLat * Math.PI) / 180);
+  const ax = (a.lng - b.lng) * metersPerDegLng;
+  const ay = (a.lat - b.lat) * metersPerDegLat;
+  const len = Math.hypot(ax, ay);
+  if (len < 0.1) return null;
+  // Perpendicular (rotated 90°), normalised, scaled to half width.
+  const px = (-ay / len) * (widthMeters / 2);
+  const py = ( ax / len) * (widthMeters / 2);
+  // Corners in local metres, walking CCW.
+  const corners: Array<[number, number]> = [
+    [ (a.lng - b.lng) * metersPerDegLng / 2 + px, (a.lat - b.lat) * metersPerDegLat / 2 + py ],
+    [-(a.lng - b.lng) * metersPerDegLng / 2 + px, -(a.lat - b.lat) * metersPerDegLat / 2 + py ],
+    [-(a.lng - b.lng) * metersPerDegLng / 2 - px, -(a.lat - b.lat) * metersPerDegLat / 2 - py ],
+    [ (a.lng - b.lng) * metersPerDegLng / 2 - px, (a.lat - b.lat) * metersPerDegLat / 2 - py ],
+    // Close the ring.
+    [ (a.lng - b.lng) * metersPerDegLng / 2 + px, (a.lat - b.lat) * metersPerDegLat / 2 + py ],
+  ];
+  const cLng = (a.lng + b.lng) / 2;
+  return corners.map(([x, y]) => ({
+    lat: cLat + y / metersPerDegLat,
+    lng: cLng + x / metersPerDegLng,
+  }));
 }
 
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
@@ -473,20 +672,38 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
  *  don't have to load an icon atlas. Uses cleaner geometric symbols
  *  that read as pictographs at 12–20 px. */
 const POI_ICON: Record<string, string> = {
-  stairs:    "⇕",   // up + down arrows
-  elevator:  "⇳",   // vertical double-arrow (elevator car)
-  door:      "◫",   // door + wall
-  entrance:  "▶",   // "in" pointer
-  exit:      "◄",   // "out" pointer
-  bathroom:  "♁",   // toilet-adjacent
-  info:      "ⓘ",
+  stairs:     "⇕",   // up + down arrows
+  elevator:   "⇳",   // vertical double-arrow (elevator car)
+  door:       "◫",   // door + wall
+  entrance:   "▶",   // "in" pointer
+  exit:       "◄",   // "out" pointer
+  bathroom:   "♁",   // toilet-adjacent
+  info:       "ⓘ",
+  reception:  "☎",
+  parking:    "Ⓟ",
+  bike:       "🚲",  // universal
+  restroom_m: "♂",
+  restroom_f: "♀",
+  restroom_a: "♿",  // accessible
 };
+
+interface GenericPOI {
+  id: string;
+  kind: string;
+  position: { lat: number; lng: number };
+  floor?: number | null;
+  label?: string | null;
+}
 
 interface POIData {
   stairs: Stair[];
   elevators: Elevator[];
   doors: Door[];
   rooms: Room[];
+  /** Free-form kinds placed via the generic POI toolbar (info,
+   *  reception, parking, restroom_m/f/a, bike). Stored in Firestore
+   *  campus_pois. */
+  generic: GenericPOI[];
 }
 
 function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null) {
@@ -524,6 +741,12 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
       const kind = d.emergencyExit ? "exit" : "door";
       push(d.id, kind, d.floor ?? null, d.position.lat, d.position.lng);
     }
+  }
+  // Generic POIs (info, reception, restroom_*, parking, bike) —
+  // placed via the builder POI toolbar, stored in campus_pois.
+  for (const p of data.generic) {
+    if (typeof p.position?.lat !== "number" || typeof p.position?.lng !== "number") continue;
+    push(p.id, p.kind, p.floor ?? null, p.position.lat, p.position.lng);
   }
   // Auto-derive POI markers from typed rooms (bathroom, elevator, stairs).
   for (const r of data.rooms) {
@@ -587,6 +810,40 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     },
     paint: {
       "text-color": "#111827",
+    },
+    minzoom: 16,
+  });
+  // MazeMap-style 3D POIs — when the map is pitched, add a small
+  // vertical offset so icons hover above building walls instead of
+  // being occluded. We do this by adjusting `text-translate` (pixel
+  // space, negated for "up") — MapLibre pre-2.4 doesn't have a
+  // proper z-elevate for symbols. The offset scales with pitch so
+  // flat 2D stays untouched.
+  //
+  // Note: the base `poisChip`/`poisIcon` layers already draw at
+  // ground level. This extra layer sits ABOVE the extrusion layer
+  // in the paint order so its text isn't clipped by wall geometry.
+  addLayerIfMissing(map, {
+    id: `${LAYERS.poisIcon}-3d`,
+    source: SOURCES.pois,
+    type: "symbol",
+    layout: {
+      "text-field": ["get", "icon"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 20, 22],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-anchor": "center",
+      "visibility": "none", // enabled dynamically when is3D is on
+    },
+    paint: {
+      "text-color": "#111827",
+      // Pixel offset upward to hover above the wall shell.
+      "text-translate": [0, -32],
+      "text-translate-anchor": "viewport",
+      // Subtle halo helps the glyph read against varied backgrounds.
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1.2,
     },
     minzoom: 16,
   });

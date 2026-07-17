@@ -108,14 +108,29 @@ export default function LayersToggle() {
           ref={popRef}
           role="menu"
           aria-label="Map layers"
-          className="absolute right-0 bottom-full mb-2 w-52 rounded-2xl border border-border bg-card shadow-lg overflow-hidden z-40"
+          // Desktop / sm+: floating popover to the LEFT of the button
+          // so it never clashes with header / other rail buttons.
+          // Mobile: bottom-anchored sheet full-width in the map area.
+          // z-50 sits above the right-rail (z-30) so nothing bleeds
+          // through, and max-height scrolls internally instead of
+          // spilling over the map controls.
+          className={cn(
+            "fixed sm:absolute rounded-2xl border border-border bg-card shadow-xl overflow-hidden z-50",
+            "left-2 right-2 sm:left-auto sm:right-full sm:mr-2",
+            "bottom-2 sm:bottom-0",
+            "sm:w-56",
+          )}
+          style={{
+            maxHeight: "min(60dvh, 22rem)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          }}
         >
           <div className="px-3 py-2 border-b border-border">
             <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
               Layers
             </p>
           </div>
-          <ul className="p-1.5">
+          <ul className="p-1.5 overflow-y-auto" style={{ maxHeight: "min(52dvh, 18rem)" }}>
             {LAYERS.map((l) => {
               const visible = state[l.id] ?? true;
               return (

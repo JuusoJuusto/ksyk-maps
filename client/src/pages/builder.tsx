@@ -42,6 +42,11 @@ import {
   MoveVertical,
   DoorClosed,
   LogIn,
+  Info,
+  Phone,
+  ParkingCircle,
+  Bike,
+  Accessibility,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,7 +59,11 @@ import { toast } from "@/hooks/use-toast";
 type BuilderTool =
   | "select" | "pan"
   | "building" | "rectangle" | "room" | "hallway" | "wall" | "measure"
-  | "poi-stairs" | "poi-elevator" | "poi-door" | "poi-entrance";
+  | "poi-stairs" | "poi-elevator" | "poi-door" | "poi-entrance"
+  // Generic POI tools — placed via a single click, backed by
+  // /api/pois with a `kind` string. New in v3.14.
+  | "poi-info" | "poi-reception" | "poi-parking" | "poi-bike"
+  | "poi-restroom-m" | "poi-restroom-f" | "poi-restroom-a";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -549,6 +558,22 @@ function BuilderWorkspace() {
         });
         return;
       }
+      // Generic POIs — every one goes to /api/pois with a `kind`
+      // derived from the tool id.
+      const genericKindByTool: Partial<Record<BuilderTool, string>> = {
+        "poi-info":        "info",
+        "poi-reception":   "reception",
+        "poi-parking":     "parking",
+        "poi-bike":        "bike",
+        "poi-restroom-m":  "restroom_m",
+        "poi-restroom-f":  "restroom_f",
+        "poi-restroom-a":  "restroom_a",
+      };
+      const genericKind = genericKindByTool[activeTool];
+      if (genericKind) {
+        createGenericPoi.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng, kind: genericKind });
+        return;
+      }
     };
 
     map.on("click", onClick);
@@ -586,6 +611,7 @@ function BuilderWorkspace() {
       else if (e.key === "e" || e.key === "E") { setActiveTool("poi-elevator"); setWaypoints([]); }
       else if (e.key === "d" || e.key === "D") { setActiveTool("poi-door"); setWaypoints([]); }
       else if (e.key === "n" || e.key === "N") { setActiveTool("poi-entrance"); setWaypoints([]); }
+      else if (e.key === "i" || e.key === "I") { setActiveTool("poi-info"); setWaypoints([]); }
       else if (e.key === " ") { setActiveTool("pan"); setWaypoints([]); }
     };
     window.addEventListener("keydown", onKey);
@@ -729,6 +755,21 @@ function BuilderWorkspace() {
       try { return await res.json(); } catch { return null; }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/doors"] }); },
+  });
+
+  /** Free-form POI marker — one endpoint, `kind` string discriminates.
+   *  Backed by /api/pois (Firestore campus_pois). Covers info,
+   *  reception, parking, bike, restroom_m/f/a. */
+  const createGenericPoi = useMutation({
+    mutationFn: async (p: { lat: number; lng: number; kind: string }) => {
+      const res = await apiRequest("POST", "/api/pois", {
+        kind: p.kind,
+        position: { lat: p.lat, lng: p.lng },
+        floor: cameraState.activeFloor ?? 1,
+      });
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/pois"] }); },
   });
 
   const deleteBuilding = useMutation({
@@ -1115,10 +1156,17 @@ function BuilderWorkspace() {
                 {(activeTool === "building" || activeTool === "room") && (
                   <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
                 )}
-                {activeTool === "poi-stairs"    && (<>Click to place stairs</>)}
-                {activeTool === "poi-elevator"  && (<>Click to place elevator</>)}
-                {activeTool === "poi-door"      && (<>Click to place door</>)}
-                {activeTool === "poi-entrance"  && (<>Click to place entrance</>)}
+                {activeTool === "poi-stairs"     && (<>Click to place stairs</>)}
+                {activeTool === "poi-elevator"   && (<>Click to place elevator</>)}
+                {activeTool === "poi-door"       && (<>Click to place door</>)}
+                {activeTool === "poi-entrance"   && (<>Click to place entrance</>)}
+                {activeTool === "poi-info"       && (<>Click to place info point</>)}
+                {activeTool === "poi-reception"  && (<>Click to place reception</>)}
+                {activeTool === "poi-parking"    && (<>Click to place parking</>)}
+                {activeTool === "poi-bike"       && (<>Click to place bike parking</>)}
+                {activeTool === "poi-restroom-m" && (<>Click to place restroom (M)</>)}
+                {activeTool === "poi-restroom-f" && (<>Click to place restroom (F)</>)}
+                {activeTool === "poi-restroom-a" && (<>Click to place accessible restroom</>)}
               </span>
               {cursor && (
                 <span className="text-[11px] font-mono tabular-nums text-muted-foreground border-l border-border pl-3">
@@ -1297,6 +1345,14 @@ function ToolPalette({
     { id: "poi-elevator",   Icon: MoveVertical,       label: "Elevator",     hotkey: "E" },
     { id: "poi-door",       Icon: DoorClosed,         label: "Door",         hotkey: "D" },
     { id: "poi-entrance",   Icon: LogIn,              label: "Entrance",     hotkey: "N" },
+    // Generic POIs — one endpoint (/api/pois) discriminated by `kind`.
+    { id: "poi-info",       Icon: Info,               label: "Info",         hotkey: "I" },
+    { id: "poi-reception",  Icon: Phone,              label: "Reception",    hotkey: "" },
+    { id: "poi-parking",    Icon: ParkingCircle,      label: "Parking",      hotkey: "" },
+    { id: "poi-bike",       Icon: Bike,               label: "Bike",         hotkey: "" },
+    { id: "poi-restroom-m", Icon: Accessibility,      label: "Restroom M",   hotkey: "" },
+    { id: "poi-restroom-f", Icon: Accessibility,      label: "Restroom F",   hotkey: "" },
+    { id: "poi-restroom-a", Icon: Accessibility,      label: "Restroom ♿",  hotkey: "" },
   ];
 
   return (
