@@ -16,10 +16,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints } from "lucide-react";
+import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import type { Building, Room } from "@ksyk/shared";
+import type { Building, Room, Hallway, Door, Stair, Elevator, LatLng } from "@ksyk/shared";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
+import {
+  buildGraph, buildNavGraph, findPath,
+  PROFILE_DEFAULT, PROFILE_WHEELCHAIR,
+  type Route as NavRoute,
+} from "@ksyk/routing";
 import { fetchList } from "@/lib/fetchList";
 import { cn } from "@/lib/utils";
 
@@ -91,22 +96,104 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     queryFn: () => fetchList<Building>("/api/buildings"),
     staleTime: 60_000,
   });
+  const { data: hallways = [] } = useQuery<Hallway[]>({
+    queryKey: ["/api/hallways"],
+    queryFn: () => fetchList<Hallway>("/api/hallways"),
+    staleTime: 60_000,
+  });
+  const { data: doors = [] } = useQuery<Door[]>({
+    queryKey: ["/api/doors"],
+    queryFn: () => fetchList<Door>("/api/doors"),
+    staleTime: 60_000,
+  });
+  const { data: stairs = [] } = useQuery<Stair[]>({
+    queryKey: ["/api/stairs"],
+    queryFn: () => fetchList<Stair>("/api/stairs"),
+    staleTime: 60_000,
+  });
+  const { data: elevators = [] } = useQuery<Elevator[]>({
+    queryKey: ["/api/elevators"],
+    queryFn: () => fetchList<Elevator>("/api/elevators"),
+    staleTime: 60_000,
+  });
 
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
 
   const [from, setFrom] = useState<Endpoint | null>(null);
   const [to, setTo] = useState<Endpoint | null>(null);
+  const [accessibleOnly, setAccessibleOnly] = useState(false);
+
+  // Build the campus navigation graph once per data change. Excludes
+  // walls (surface="wall") — those are barriers, not walkable.
+  const graph = useMemo(() => {
+    const walkableHallways = (hallways ?? []).filter((h) => h.surface !== "wall");
+    const built = buildNavGraph({
+      buildings, rooms, hallways: walkableHallways, doors, stairs, elevators,
+    });
+    return { built, graph: buildGraph(built.nodes, built.edges) };
+  }, [buildings, rooms, hallways, doors, stairs, elevators]);
+
+  /** Snap an endpoint (room / building centroid) to the nearest graph
+   *  node so A* has something to search from. Returns nodeId + the
+   *  physical position we're representing. */
+  const snapEndpoint = useCallback((e: Endpoint): { nodeId: string; pos: LatLng } | null => {
+    const pos = endpointCenter(e);
+    if (!pos) return null;
+    // Prefer the exact room node if that endpoint is a room already
+    // present in the graph (buildNavGraph creates room:<id> nodes).
+    if (e.kind === "room") {
+      const directId = `room:${e.room.id}`;
+      if (graph.graph.nodes.has(directId)) return { nodeId: directId, pos };
+    }
+    // Otherwise, find the nearest node by haversine distance.
+    let bestId: string | null = null;
+    let bestDist = Infinity;
+    for (const [id, n] of graph.graph.nodes) {
+      const d = haversineMeters(pos, n.position);
+      if (d < bestDist) { bestDist = d; bestId = id; }
+    }
+    return bestId ? { nodeId: bestId, pos } : null;
+  }, [graph]);
 
   const route = useMemo(() => {
     if (!from || !to) return null;
     const a = endpointCenter(from);
     const b = endpointCenter(to);
     if (!a || !b) return null;
+
+    const sA = snapEndpoint(from);
+    const sB = snapEndpoint(to);
+    // Attempt A* if we have a snap on both sides.
+    if (sA && sB && sA.nodeId !== sB.nodeId) {
+      const profile = accessibleOnly ? PROFILE_WHEELCHAIR : PROFILE_DEFAULT;
+      const path = findPath(graph.graph, sA.nodeId, sB.nodeId, profile);
+      if (path) {
+        // Prepend/append the real endpoint centroid so the drawn
+        // line starts exactly at the user's picks (not the snap
+        // node).
+        const coords: LatLng[] = [
+          a,
+          ...path.path.map((n) => n.position),
+          b,
+        ];
+        return {
+          kind: "graph" as const,
+          coords,
+          distanceMeters: path.totalDistanceMeters
+            + haversineMeters(a, path.path[0].position)
+            + haversineMeters(b, path.path[path.path.length - 1].position),
+          floors: path.segments.map((s) => s.floor),
+        };
+      }
+    }
+    // Fallback: straight line so users always see SOMETHING.
     return {
-      a, b,
+      kind: "straight" as const,
+      coords: [a, b] as LatLng[],
       distanceMeters: haversineMeters(a, b),
+      floors: [] as number[],
     };
-  }, [from, to]);
+  }, [from, to, graph, accessibleOnly, snapEndpoint]);
 
   const walkingSeconds = route ? route.distanceMeters / WALKING_MPS : 0;
 
@@ -122,29 +209,33 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
         if (map.getSource(ROUTE_ENDS_SOURCE_ID)) map.removeSource(ROUTE_ENDS_SOURCE_ID);
         return;
       }
+      const start = route.coords[0];
+      const end = route.coords[route.coords.length - 1];
       const lineData = {
         type: "FeatureCollection" as const,
         features: [{
           type: "Feature" as const,
           geometry: {
             type: "LineString" as const,
-            coordinates: [[route.a.lng, route.a.lat], [route.b.lng, route.b.lat]],
+            coordinates: route.coords.map((c) => [c.lng, c.lat]),
           },
-          properties: {},
+          properties: { kind: route.kind },
         }],
       };
-      // Midpoint chip — shows the distance floating on the route line.
-      const midLat = (route.a.lat + route.b.lat) / 2;
-      const midLng = (route.a.lng + route.b.lng) / 2;
+      // Midpoint chip — picks the middle vertex of the polyline (not
+      // the geometric midpoint) so long routes still land the label on
+      // the line itself.
+      const midIdx = Math.floor(route.coords.length / 2);
+      const mid = route.coords[midIdx];
       const distanceLabel = route.distanceMeters < 1000
         ? `${route.distanceMeters.toFixed(0)} m`
         : `${(route.distanceMeters / 1000).toFixed(2)} km`;
       const endsData = {
         type: "FeatureCollection" as const,
         features: [
-          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.a.lng, route.a.lat] }, properties: { role: "from", label: "A" } },
-          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [route.b.lng, route.b.lat] }, properties: { role: "to",   label: "B" } },
-          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [midLng, midLat] },           properties: { role: "mid",  label: distanceLabel } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [start.lng, start.lat] }, properties: { role: "from", label: "A" } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [end.lng, end.lat]   }, properties: { role: "to",   label: "B" } },
+          { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [mid.lng, mid.lat]   }, properties: { role: "mid",  label: distanceLabel } },
         ],
       };
       const srcLine = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
@@ -156,11 +247,15 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           id: ROUTE_LAYER_ID,
           source: ROUTE_SOURCE_ID,
           type: "line",
+          layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": "#2563eb",
-            "line-width": 6,
-            "line-opacity": 0.85,
-            "line-dasharray": [2, 1.5],
+            // Fatter when zoomed in so the corridor route reads clearly.
+            "line-width": ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 8],
+            "line-opacity": 0.9,
+            // Solid for a real graph route; dashed for the straight-line
+            // fallback so users notice it's approximate.
+            "line-dasharray": ["case", ["==", ["get", "kind"], "graph"], ["literal", [1, 0]], ["literal", [2, 1.5]]],
           },
         });
       }
@@ -213,17 +308,18 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           },
         });
       }
-      // Fit the route bounds, preserving rotation + pitch.
-      const minLng = Math.min(route.a.lng, route.b.lng);
-      const maxLng = Math.max(route.a.lng, route.b.lng);
-      const minLat = Math.min(route.a.lat, route.b.lat);
-      const maxLat = Math.max(route.a.lat, route.b.lat);
-      map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
-        padding: 100,
-        duration: 600,
-        bearing: map.getBearing(),
-        pitch: map.getPitch(),
-      });
+      // Fit the FULL route bounds (every vertex), preserving rotation + pitch.
+      const lngs = route.coords.map((c) => c.lng);
+      const lats = route.coords.map((c) => c.lat);
+      map.fitBounds(
+        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+        {
+          padding: 100,
+          duration: 600,
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+        },
+      );
     };
     if (map.isStyleLoaded()) upsertLine();
     else map.once("load", upsertLine);
@@ -324,6 +420,31 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           index={index}
         />
 
+        {/* Profile toggle — accessible routing avoids stairs. */}
+        <div className="mt-1 flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2">
+          <div className="flex items-center gap-2 text-xs text-foreground">
+            <Accessibility className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <span>Accessible route</span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={accessibleOnly}
+            onClick={() => setAccessibleOnly((v) => !v)}
+            className={cn(
+              "relative w-8 h-5 rounded-full transition-colors",
+              accessibleOnly ? "bg-blue-600" : "bg-muted",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                accessibleOnly ? "translate-x-3.5" : "translate-x-0.5",
+              )}
+            />
+          </button>
+        </div>
+
         {route && (
           <div className="mt-2 rounded-xl bg-muted/40 border border-border p-3 flex items-center gap-3">
             <div className="flex-1">
@@ -344,6 +465,11 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
               </div>
             </div>
           </div>
+        )}
+        {route && route.kind === "straight" && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 text-center">
+            No connecting hallways yet — showing straight-line distance.
+          </p>
         )}
         {!route && from && to && (
           <p className="text-[11px] text-muted-foreground text-center">

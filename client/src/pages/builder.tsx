@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import maplibregl, { Map as MaplibreMap, LngLat, MapMouseEvent } from "maplibre-gl";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import PropertyPanel, { type SelectedEntity } from "@/components/builder/PropertyPanel";
+import SelectionHandles from "@/components/builder/SelectionHandles";
 import LeftSidebar, { type LeftSidebarTab, type LeftSidebarSelection } from "@/components/builder/LeftSidebar";
 import StatusBar, { type StatusBarState } from "@/components/builder/StatusBar";
 import TopToolbar from "@/components/builder/TopToolbar";
@@ -993,6 +994,23 @@ function BuilderWorkspace() {
               {activeTool === "poi-entrance"  && (<>Click to place entrance</>)}
             </div>
           )}
+
+          {/* Selection handles — vertex drag + rotation for the picked
+           *  polygon entity. Headless (returns null), renders inside the
+           *  MapLibre canvas so it stays aligned during pan/rotate. */}
+          {(() => {
+            if (!mapReady || !selection) return null;
+            const map = handleRef.current?.map ?? null;
+            if (!map) return null;
+            if (selection.kind === "building") {
+              const b = buildings.find((x) => x.id === selection.id);
+              if (b) return <SelectionHandles map={map} selection={{ kind: "building", entity: b }} />;
+            } else if (selection.kind === "room") {
+              const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
+              if (r) return <SelectionHandles map={map} selection={{ kind: "room", entity: r }} />;
+            }
+            return null;
+          })()}
 
           {/* Property panel — full tabbed editor. Building selection is
            *  wired via the canvas click handler; room/hallway selection

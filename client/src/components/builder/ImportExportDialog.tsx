@@ -22,10 +22,12 @@ import {
   packageFromJSON,
   geoJSONToPackage,
 } from "@ksyk/shared";
-import type { MapPackage } from "@ksyk/shared";
+import type { MapPackage, Building } from "@ksyk/shared";
 import { X, Upload, Download, AlertTriangle, Check, FileJson } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { parseSvgToPolygons } from "@/lib/svgImport";
+import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
 
 export interface ImportExportDialogProps {
   open: boolean;
@@ -172,17 +174,61 @@ function ImportTab({
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<MapPackage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [svgScale, setSvgScale] = useState(0.1); // 10 cm per SVG unit — safe default
   const inputRef = useRef<HTMLInputElement>(null);
+  const { settings } = useAppSettings();
 
   const handleFile = useCallback(async (f: File) => {
     setFile(f);
     setError(null);
+    setWarnings([]);
     setParsed(null);
     try {
       const text = await f.text();
-      // Auto-detect: valid JSON with top-level {type:"FeatureCollection"} is GeoJSON.
+      const isSvg = f.name.toLowerCase().endsWith(".svg") || text.trimStart().startsWith("<svg");
+      if (isSvg) {
+        // Anchor the imported floorplan on the current platform-default
+        // camera centre so it lands under the user's view. They can
+        // adjust the metres-per-unit scale before applying.
+        const camera = pickPlatformMapDefaults(settings);
+        const { shapes, warnings: w } = parseSvgToPolygons(text, {
+          anchor: { lat: camera.lat, lng: camera.lng },
+          metersPerUnit: svgScale,
+        });
+        setWarnings(w);
+        if (shapes.length === 0) {
+          setError("No <rect>, <polygon>, or <path M/L> elements found in the SVG.");
+          return;
+        }
+        // Convert every shape into a fresh building. Users can re-type
+        // any as a room from the PropertyPanel after import.
+        const buildings: Building[] = shapes.map((s, i) => ({
+          id: `svg-${Date.now()}-${i}`,
+          name: s.label ?? String.fromCharCode(65 + (i % 26)),
+          colorCode: "#2563eb",
+          floors: 1,
+          points: s.polygon,
+        }));
+        setParsed({
+          manifest: {
+            version: "1.0.0",
+            title: `Imported floorplan (${f.name})`,
+            publishedAt: new Date().toISOString(),
+          },
+          mapDefaults: {
+            center: { lat: camera.lat, lng: camera.lng },
+            zoom: camera.zoom, bearing: camera.bearing, pitch: camera.pitch,
+            minZoom: camera.minZoom, maxZoom: camera.maxZoom,
+          },
+          buildings,
+          floors: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
+        });
+        return;
+      }
+      // JSON / GeoJSON path — auto-detect via the top-level type field.
       const raw = JSON.parse(text) as { type?: string };
       const pkg = raw.type === "FeatureCollection"
         ? geoJSONToPackage(raw)
@@ -191,7 +237,7 @@ function ImportTab({
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [settings, svgScale]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -229,7 +275,7 @@ function ImportTab({
       >
         <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
         <p className="text-sm font-medium mt-2">
-          {file ? file.name : "Drop a .json or .geojson file"}
+          {file ? file.name : "Drop a .json / .geojson / .svg file"}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           or click to browse
@@ -237,7 +283,7 @@ function ImportTab({
         <input
           ref={inputRef}
           type="file"
-          accept=".json,.geojson,application/json,application/geo+json"
+          accept=".json,.geojson,.svg,application/json,application/geo+json,image/svg+xml"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -245,6 +291,45 @@ function ImportTab({
           }}
         />
       </div>
+
+      {/* SVG scale control — only surfaces when the currently-loaded file
+       *  is an SVG. Units in metres per SVG unit. Users can retry with
+       *  a different scale without picking the file again. */}
+      {file?.name.toLowerCase().endsWith(".svg") && (
+        <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <label className="font-semibold text-foreground">SVG scale</label>
+            <span className="font-mono tabular-nums text-muted-foreground">{svgScale} m / unit</span>
+          </div>
+          <input
+            type="range"
+            min={0.01} max={2} step={0.01}
+            value={svgScale}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setSvgScale(next);
+              // Re-parse with the fresh scale so the preview updates live.
+              if (file) void handleFile(file);
+            }}
+            className="w-full"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Anchored on the current map centre. Tune until the preview polygons look right in the campus, then apply.
+          </p>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-1">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold">
+            <AlertTriangle className="h-4 w-4" /> Warnings
+          </div>
+          <ul className="text-muted-foreground list-disc list-inside">
+            {warnings.slice(0, 5).map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+          {warnings.length > 5 && <p className="text-[10px] text-muted-foreground">+{warnings.length - 5} more</p>}
+        </div>
+      )}
 
       {parsed && stats && (
         <div className="rounded-lg border border-blue-500/40 bg-blue-500/5 p-3 text-xs">

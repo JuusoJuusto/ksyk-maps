@@ -12,6 +12,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
+import { db } from "./firebaseStorage";
 import { isAuthenticated } from "./simpleAuth";
 import { rateLimiters } from "./rateLimiter";
 import {
@@ -290,17 +291,28 @@ export function registerMapRoutes(app: Express) {
     }
     const body = parsed.data;
     try {
-      // Real implementation swaps the published pointer to the draft. For
-      // now we just re-fetch and return the fresh package so the client
-      // has a value to update its cache with.
+      // Snapshot the current live state into an immutable version doc
+      // AND update `mapPackages/published` to point at it. Public map
+      // reads from `published` — this makes the publish button
+      // atomically atomic: one write, one visible bump for every user.
       const { buildings, rooms, hallways, floors, stairs, elevators, doors } = await loadCampusData();
       const defaults = (await optional().getMapDefaults?.()) ?? null;
+      const publishedAt = new Date().toISOString();
+      const publishedBy = (req as unknown as { user?: { id?: string } }).user?.id ?? null;
+
+      // Compute the next version number by counting existing versions.
+      // Firestore counts are cheap for small collections; this can be
+      // swapped for a counter doc if the version list grows past ~500.
+      const versionsSnap = await db.collection("mapVersions").get();
+      const versionNumber = versionsSnap.size + 1;
+      const versionId = `v${versionNumber}-${Date.now()}`;
+
       const pkg: MapPackage = {
         manifest: {
           version: "1.0.0",
           title: "KSYK Campus",
-          publishedAt: new Date().toISOString(),
-          publishedBy: (req as unknown as { user?: { id?: string } }).user?.id ?? null,
+          publishedAt,
+          publishedBy,
           description: body.message ?? null,
         },
         mapDefaults: defaults ?? {
@@ -309,15 +321,91 @@ export function registerMapRoutes(app: Express) {
         },
         buildings, floors, rooms, hallways, doors, stairs, elevators,
       };
-      res.json(pkg);
+
+      await db.collection("mapVersions").doc(versionId).set({
+        id: versionId,
+        packageId: "current",
+        version: versionNumber,
+        savedAt: publishedAt,
+        savedBy: publishedBy,
+        published: true,
+        message: body.message ?? null,
+        payloadKey: versionId,
+        payload: pkg,
+      });
+      // Move the "published" pointer atomically.
+      await db.collection("mapPackages").doc("published").set({
+        pointer: versionId,
+        publishedAt,
+        publishedBy,
+      });
+      res.json({ ...pkg, versionId, version: versionNumber });
     } catch (err) {
+      console.error("publish failed:", err);
       res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
     }
   });
 
+  // Public read of the last-published snapshot. Falls back to the live
+  // tables (via GET /api/map-package) if nothing has been published yet.
+  app.get("/api/map-package/published", async (_req: Request, res: Response) => {
+    try {
+      const pointerDoc = await db.collection("mapPackages").doc("published").get();
+      if (!pointerDoc.exists) return res.json(null);
+      const pointer = pointerDoc.data()?.pointer as string | undefined;
+      if (!pointer) return res.json(null);
+      const versionDoc = await db.collection("mapVersions").doc(pointer).get();
+      if (!versionDoc.exists) return res.json(null);
+      const data = versionDoc.data() as { payload?: MapPackage } | undefined;
+      res.json(data?.payload ?? null);
+    } catch (err) {
+      console.error("published read failed:", err);
+      res.set("X-Read-Soft-Fail", "1").json(null);
+    }
+  });
+
   app.get("/api/map-package/versions", isAuthenticated, async (_req: Request, res: Response) => {
-    // No version store yet — return an empty array so the Builder UI can
-    // render its history panel without special-casing "endpoint missing".
-    res.json([]);
+    try {
+      const snap = await db.collection("mapVersions").orderBy("version", "desc").limit(50).get();
+      const items = snap.docs.map((d) => {
+        const data = d.data();
+        // Strip the heavy `payload` field — versions list is metadata only.
+        return {
+          id: data.id ?? d.id,
+          packageId: data.packageId ?? "current",
+          version: data.version ?? 0,
+          savedAt: data.savedAt ?? null,
+          savedBy: data.savedBy ?? null,
+          published: data.published ?? false,
+          message: data.message ?? null,
+          payloadKey: data.payloadKey ?? d.id,
+        };
+      });
+      res.json(items);
+    } catch (err) {
+      console.error("versions list failed:", err);
+      res.set("X-Read-Soft-Fail", "1").json([]);
+    }
+  });
+
+  // Restore a previously-published version: swap the pointer + optionally
+  // push its payload back into the live tables so subsequent edits base
+  // off it.
+  app.post("/api/map-package/versions/:id/restore", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      if (!ID_PATTERN.test(id)) return res.status(400).json({ message: "invalid version id" });
+      const versionDoc = await db.collection("mapVersions").doc(id).get();
+      if (!versionDoc.exists) return res.status(404).json({ message: "version not found" });
+      await db.collection("mapPackages").doc("published").set({
+        pointer: id,
+        publishedAt: new Date().toISOString(),
+        publishedBy: (req as unknown as { user?: { id?: string } }).user?.id ?? null,
+      });
+      res.json({ ok: true, pointer: id });
+    } catch (err) {
+      console.error("restore failed:", err);
+      res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
+    }
   });
 }
