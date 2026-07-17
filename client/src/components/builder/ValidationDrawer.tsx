@@ -13,17 +13,39 @@
  * worst on the tiny campus sizes we support (< ~1000 entities), and
  * running it live means the panel is always fresh.
  */
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { validateMap } from "@ksyk/shared";
 import type {
   Building, Room, Hallway, Floor, Door, Stair, Elevator,
   ValidationIssue, ValidationResult, ValidationSeverity, ValidationEntityKind,
 } from "@ksyk/shared";
-import { X, AlertTriangle, XOctagon, Info, ShieldCheck, ArrowRight } from "lucide-react";
+import { X, AlertTriangle, XOctagon, Info, ShieldCheck, ArrowRight, EyeOff, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
+
+const ACK_STORAGE_KEY = "ksyk_validation_acks_v1";
+/** localStorage-backed set of acknowledged (entityId + code) keys. */
+function loadAcks(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(ACK_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? new Set(arr.filter((v): v is string => typeof v === "string")) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+function saveAcks(set: Set<string>): void {
+  try {
+    window.localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify([...set]));
+  } catch { /* quota / private mode — silent */ }
+}
+function ackKey(i: ValidationIssue): string {
+  return `${i.entityId ?? "_"}::${i.code}`;
+}
 
 export interface ValidationDrawerProps {
   open: boolean;
@@ -58,11 +80,38 @@ export default function ValidationDrawer({ open, onClose, onFocusIssue }: Valida
     [buildings, rooms, hallways, floors, doors, stairs, elevators],
   );
 
+  // Acknowledged issues stay in localStorage. They're hidden from
+  // the default view; a "Show acknowledged" toggle brings them back
+  // so the user can un-ack a mistake.
+  const [acks, setAcks] = useState<Set<string>>(() => loadAcks());
+  const [showAcked, setShowAcked] = useState(false);
+  const toggleAck = useCallback((issue: ValidationIssue) => {
+    setAcks((prev) => {
+      const next = new Set(prev);
+      const k = ackKey(issue);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      saveAcks(next);
+      return next;
+    });
+  }, []);
+  const isAcked = useCallback((i: ValidationIssue) => acks.has(ackKey(i)), [acks]);
+
+  // Re-load acks from storage when the drawer opens so multiple tabs
+  // stay in sync.
+  useEffect(() => {
+    if (!open) return;
+    setAcks(loadAcks());
+  }, [open]);
+
   const grouped = useMemo(() => {
     const g: Record<ValidationSeverity, ValidationIssue[]> = { error: [], warning: [], info: [] };
-    for (const i of result.issues) g[i.severity].push(i);
+    for (const i of result.issues) {
+      if (!showAcked && isAcked(i)) continue;
+      g[i.severity].push(i);
+    }
     return g;
-  }, [result]);
+  }, [result, isAcked, showAcked]);
+  const ackedCount = result.issues.filter(isAcked).length;
 
   return (
     <>
@@ -114,6 +163,22 @@ export default function ValidationDrawer({ open, onClose, onFocusIssue }: Valida
           )}
         </div>
 
+        {/* Acknowledged-toggle bar. Only surfaces when there ARE any
+         *  acknowledged issues — otherwise it's noise. */}
+        {ackedCount > 0 && (
+          <div className={cn("px-4 py-2 border-b flex items-center gap-2 text-[11px]", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-slate-50/70")}>
+            <span className="text-muted-foreground">{ackedCount} acknowledged</span>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setShowAcked((v) => !v)}
+              className="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-300"
+            >
+              {showAcked ? "Hide" : "Show"}
+            </button>
+          </div>
+        )}
+
         {/* Issues */}
         <div className="flex-1 overflow-y-auto">
           {result.issues.length === 0 ? (
@@ -125,7 +190,14 @@ export default function ValidationDrawer({ open, onClose, onFocusIssue }: Valida
           ) : (
             (["error", "warning", "info"] as ValidationSeverity[]).map((sev) =>
               grouped[sev].length === 0 ? null : (
-                <Section key={sev} severity={sev} issues={grouped[sev]} onFocus={onFocusIssue} />
+                <Section
+                  key={sev}
+                  severity={sev}
+                  issues={grouped[sev]}
+                  onFocus={onFocusIssue}
+                  onToggleAck={toggleAck}
+                  isAcked={isAcked}
+                />
               )
             )
           )}
@@ -147,11 +219,13 @@ function SummaryPill({ severity, count }: { severity: ValidationSeverity; count:
 }
 
 function Section({
-  severity, issues, onFocus,
+  severity, issues, onFocus, onToggleAck, isAcked,
 }: {
   severity: ValidationSeverity;
   issues: ValidationIssue[];
   onFocus: (kind: ValidationEntityKind, id: string) => void;
+  onToggleAck: (issue: ValidationIssue) => void;
+  isAcked: (issue: ValidationIssue) => boolean;
 }) {
   const meta = SEVERITY_META[severity];
   const Icon = meta.Icon;
@@ -164,33 +238,53 @@ function Section({
         </p>
       </div>
       <ul>
-        {issues.map((i, idx) => (
-          <li key={`${i.code}-${i.entityId}-${idx}`}>
-            <button
-              type="button"
-              onClick={() => i.entityId && onFocus(i.entityKind, i.entityId)}
-              disabled={!i.entityId}
-              className={cn(
-                "w-full text-left px-4 py-2.5 border-t transition-colors",
-                "border-gray-200 dark:border-gray-800",
-                "hover:bg-muted/60 disabled:cursor-default",
-              )}
-            >
-              <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{i.message}</p>
-                  {i.hint && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{i.hint}</p>
+        {issues.map((i, idx) => {
+          const acked = isAcked(i);
+          return (
+            <li key={`${i.code}-${i.entityId}-${idx}`}>
+              <div
+                className={cn(
+                  "flex items-start px-4 py-2.5 border-t border-gray-200 dark:border-gray-800 transition-colors",
+                  acked ? "opacity-50" : "hover:bg-muted/60",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => i.entityId && onFocus(i.entityKind, i.entityId)}
+                  disabled={!i.entityId}
+                  className="flex-1 text-left disabled:cursor-default"
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{i.message}</p>
+                      {i.hint && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{i.hint}</p>
+                      )}
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1 opacity-70">
+                        {i.entityKind}{i.entityId ? ` · ${i.entityId}` : ""} · {i.code}
+                      </p>
+                    </div>
+                    {i.entityId && <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleAck(i); }}
+                  title={acked ? "Restore this warning" : "Acknowledge (hide as intended)"}
+                  aria-label={acked ? "Un-acknowledge" : "Acknowledge as intended"}
+                  className={cn(
+                    "shrink-0 ml-2 mt-0.5 h-7 w-7 rounded-md flex items-center justify-center transition-colors",
+                    acked
+                      ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
-                  <p className="text-[10px] font-mono text-muted-foreground mt-1 opacity-70">
-                    {i.entityKind}{i.entityId ? ` · ${i.entityId}` : ""} · {i.code}
-                  </p>
-                </div>
-                {i.entityId && <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />}
+                >
+                  {acked ? <RotateCcw className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                </button>
               </div>
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

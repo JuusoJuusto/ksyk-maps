@@ -18,7 +18,7 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
-import UserLocationLayer from "@/components/UserLocationLayer";
+import CompassChip from "@/components/CompassChip";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
@@ -146,13 +146,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     // Re-read the snapshot fresh — the `settings` from the closure was
     // captured before the server-load merged new values in.
     const target = pickPlatformMapDefaults(loadAppSettings());
+    // Center resets to the admin's chosen view: center + zoom AND
+    // bearing + pitch. If the user only wants to re-center without
+    // touching rotation they can use the CompassChip (auto-hidden
+    // when already at the default bearing).
     h.map.flyTo({
       center: [target.lng, target.lat],
       zoom: target.zoom,
-      // Keep the user's current bearing + pitch — don't slam back to
-      // north-up. This is the explicit preservation the user asked for.
-      bearing: h.map.getBearing(),
-      pitch: h.map.getPitch(),
+      bearing: target.bearing,
+      pitch: target.pitch,
       duration: 800,
       essential: true,
     });
@@ -267,16 +269,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
 
           <button
             type="button"
-            aria-label="Center"
+            aria-label="Reset view to campus defaults"
             onClick={recenter}
-            title="Recenter to campus defaults"
+            title="Reset view — recenter, zoom, rotate to defaults"
             className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
           >
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
-
-          {/* Locate me — GPS-driven blue dot + auto-recenter. */}
-          <UserLocationLayer map={mapInstance} />
         </div>
 
         {/* Zoom in / out — attached pair, one rounded chip. */}
@@ -325,11 +324,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           <Navigation2 className="h-[19px] w-[19px]" strokeWidth={2.25} />
         </button>
 
+        {/* Compass — MazeMap-style rotation chip. Auto-hides when the
+         *  map is at the admin's default bearing/pitch; taps to reset.
+         *  The N arrow rotates with the map so users always know
+         *  which way north is even when the map is spun. */}
+        <CompassChip map={mapInstance} />
+
         {/* Layers — popover with per-layer visibility toggles. Client-only
-         *  overrides on top of whatever the admin publishes.
-         *  Note: standalone Rotate + North-reset buttons removed — the
-         *  user can still free-rotate with right-click drag / two-finger
-         *  gesture, but the redundant chrome buttons cluttered the rail. */}
+         *  overrides on top of whatever the admin publishes. */}
         <LayersToggle />
       </div>
 

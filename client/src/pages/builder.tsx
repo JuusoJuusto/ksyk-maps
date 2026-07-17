@@ -49,6 +49,7 @@ import { validateMap } from "@ksyk/shared";
 import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Elevator, MapPackage, ValidationEntityKind } from "@ksyk/shared";
 import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
+import { toast } from "@/hooks/use-toast";
 
 type BuilderTool =
   | "select" | "pan"
@@ -688,6 +689,11 @@ function BuilderWorkspace() {
         mapPositionX: p.lng,
         mapPositionY: p.lat,
         isEntrance: p.isEntrance,
+        // Explicit empty connects tuple so the validator emits the
+        // gentler "unattached door" warning instead of the harsher
+        // "invalid connects tuple" error. User wires it up later
+        // from the PropertyPanel.
+        connects: [],
       });
       try { return await res.json(); } catch { return null; }
     },
@@ -836,17 +842,39 @@ function BuilderWorkspace() {
   // ── Publish handler ──────────────────────────────────────────────
   const onPublish = useCallback(async () => {
     if (!validation.publishable) {
+      // Open the drawer AND toast so the user isn't confused why the
+      // click seemed to do nothing.
       setShowValidation(true);
+      toast({
+        title: "Fix errors before publishing",
+        description: `${validation.errorCount} error${validation.errorCount === 1 ? "" : "s"} block publishing. See the validation drawer.`,
+        variant: "destructive",
+      });
       return;
     }
     setIsPublishing(true);
     try {
       await autosave.forceSave();
-      await apiRequest("POST", "/api/map-package/publish", { versionId: "current" });
+      const res = await apiRequest("POST", "/api/map-package/publish", { versionId: "current" });
+      const body = await res.json().catch(() => ({} as { version?: number }));
+      qc.invalidateQueries({ queryKey: ["/api/map-package/versions"] });
+      qc.invalidateQueries({ queryKey: ["/api/map-package/published"] });
+      toast({
+        title: "Published",
+        description: body.version
+          ? `Version v${body.version} is now live for all users.`
+          : "The current campus snapshot is now live for all users.",
+      });
+    } catch (e) {
+      toast({
+        title: "Publish failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
     } finally {
       setIsPublishing(false);
     }
-  }, [validation.publishable, autosave]);
+  }, [validation.publishable, validation.errorCount, autosave, qc]);
 
   // ── Focus-issue callback for the validation drawer ───────────────
   const focusIssue = useCallback((kind: ValidationEntityKind, id: string) => {

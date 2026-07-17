@@ -282,29 +282,46 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
     })),
   };
   upsertGeoJSONSource(map, SOURCES.hallways, data);
-  // Walkable hallway paint — amber-orange lane, filtered so walls aren't
-  // matched.
+  // MazeMap-style hallway: a soft cream "corridor" (light fill line
+  // for the walkable strip) sitting under a slightly thinner outline
+  // so the corridor reads as an area with edges rather than a raw
+  // colored stroke.
+  addLayerIfMissing(map, {
+    id: `${LAYERS.hallwaysLine}-under`,
+    source: SOURCES.hallways,
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#fef3c7",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 14],
+      "line-opacity": 0.75,
+    },
+    filter: ["!=", ["get", "isWall"], true],
+  });
   addLayerIfMissing(map, {
     id: LAYERS.hallwaysLine,
     source: SOURCES.hallways,
     type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": "#f59e0b",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
-      "line-opacity": 0.7,
+      "line-color": "#d97706",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 20, 2.2],
+      "line-opacity": 0.5,
     },
     filter: ["!=", ["get", "isWall"], true],
   });
-  // Walls — dark thick lines drawn on top so they read as solid
-  // barriers, MazeMap-style.
+  // Walls — thick dark segments with rounded caps for a MazeMap look.
+  // Slightly heavier than the previous version so barriers really stand
+  // out against room fills.
   addLayerIfMissing(map, {
     id: "campus-walls-line",
     source: SOURCES.hallways,
     type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": "#1f2937",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 4],
-      "line-opacity": 0.9,
+      "line-color": "#0f172a",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.8, 20, 5.5],
+      "line-opacity": 0.95,
     },
     filter: ["==", ["get", "isWall"], true],
   });
@@ -360,15 +377,20 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "symbol",
     layout: {
       "text-field": ["get", "label"],
-      "text-size": 11,
+      // MazeMap uses a compact, weightier label that scales with zoom.
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 10, 20, 14],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": false,
       "text-optional": true,
+      "text-anchor": "center",
+      "text-max-width": 10,
+      "text-padding": 2,
     },
     paint: {
-      "text-color": "#0f172a",
+      "text-color": "#0b1220",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.2,
+      "text-halo-width": 1.6,
+      "text-halo-blur": 0.4,
     },
     // Only start drawing room labels once the user is zoomed in enough
     // that they can distinguish rooms — before that, buildings labels
@@ -384,13 +406,16 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
  *
  *  Order of poiKind here dictates render priority — later ones sit on
  *  top when two POIs overlap. */
+/** MazeMap-style POI glyphs. Kept in a single font (Noto Sans) so we
+ *  don't have to load an icon atlas. Uses cleaner geometric symbols
+ *  that read as pictographs at 12–20 px. */
 const POI_ICON: Record<string, string> = {
-  stairs:    "⇅",
-  elevator:  "⇵",
-  door:      "▯",
-  entrance:  "➜",
-  exit:      "⤴",
-  bathroom:  "⚑", // room-type mapping (rooms named "bathroom" render as this)
+  stairs:    "⇕",   // up + down arrows
+  elevator:  "⇳",   // vertical double-arrow (elevator car)
+  door:      "◫",   // door + wall
+  entrance:  "▶",   // "in" pointer
+  exit:      "◄",   // "out" pointer
+  bathroom:  "♁",   // toilet-adjacent
   info:      "ⓘ",
 };
 

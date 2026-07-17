@@ -367,13 +367,35 @@ function checkDoors(input: ValidateInput): ValidationIssue[] {
   const roomIndex = new Map(input.rooms.map((r) => [r.id, r]));
 
   for (const d of input.doors ?? []) {
-    if (!d.connects || d.connects.length !== 2) {
+    // Doors placed via the POI tool don't yet carry a `connects` tuple
+    // (they're just a position on the map — user hasn't wired them
+    // yet). Downgrade the missing case to a "unattached" warning
+    // instead of a blocking error. Malformed tuples (length !== 2 when
+    // present) stay as errors because that means data corruption.
+    //
+    // The type says `connects: [string, string]` (always length 2) but
+    // real Firestore data can arrive with an empty / short array —
+    // Firestore doesn't enforce tuple lengths. Cast to a wider view
+    // so the length checks compile.
+    const connects = d.connects as string[] | undefined;
+    if (!connects || connects.length === 0) {
+      out.push({
+        code: "door_unattached",
+        severity: "warning",
+        entityKind: "door",
+        entityId: d.id,
+        message: `Door ${d.id} isn't wired to any room or hallway yet.`,
+        hint: "Open the door in the builder and connect it to two adjacent spaces so the router can traverse it.",
+      });
+      continue;
+    }
+    if (connects.length !== 2) {
       out.push({
         code: "door_invalid_connects",
         severity: "error",
         entityKind: "door",
         entityId: d.id,
-        message: `Door ${d.id} has invalid connects tuple.`,
+        message: `Door ${d.id} has ${connects.length} connections (expected exactly 2).`,
       });
       continue;
     }
