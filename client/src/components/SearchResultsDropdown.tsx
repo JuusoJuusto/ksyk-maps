@@ -15,12 +15,11 @@
  * a room info sheet, etc.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Room, Building, SearchHit } from "@ksyk/shared";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
-import { fetchList } from "@/lib/fetchList";
+import { useCampusData } from "@/hooks/useCampusData";
 
 /** What was clicked in the dropdown — either a room or a building. */
 export type SearchPick =
@@ -85,20 +84,7 @@ export default function SearchResultsDropdown({
   }, []);
   const effectiveOffset = offsetTop ?? autoOffset;
 
-  const { data: rooms = [] } = useQuery<Room[]>({
-    queryKey: ["/api/rooms"],
-    queryFn: () => fetchList<Room>("/api/rooms"),
-    // Stale-time: rooms don't change often; refetch only on window
-    // focus so the search stays responsive without a network hit on
-    // every keystroke.
-    staleTime: 60_000,
-  });
-  const { data: buildings = [] } = useQuery<Building[]>({
-    queryKey: ["/api/buildings"],
-    queryFn: () => fetchList<Building>("/api/buildings"),
-    staleTime: 60_000,
-  });
-
+  const { rooms, buildings } = useCampusData();
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
   const trimmed = query.trim();
   // Index emits both room and building hits — payload.room is nullable

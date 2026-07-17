@@ -414,43 +414,110 @@ function LayerList({ query }: { query: string }) {
 function HistoryList({
   query, onRestore,
 }: { query: string; onRestore?: (id: string) => void }) {
-  const { data: versions = [] } = useQuery<MapVersion[]>({
+  const qc = useQueryClient();
+  const { data: versions = [], isLoading } = useQuery<MapVersion[]>({
     queryKey: ["/api/map-package/versions"],
     queryFn: () => fetchList<MapVersion>("/api/map-package/versions"),
+    refetchInterval: 30_000,
   });
+
+  // The current published pointer lets us mark exactly one row as
+  // "active" — no need to invent client-side heuristics.
+  const { data: publishedPtr } = useQuery<{ pointer?: string } | null>({
+    queryKey: ["/api/map-package/published-pointer"],
+    queryFn: async () => {
+      try {
+        const r = await fetch("/api/map-package/published");
+        if (!r.ok) return null;
+        // We only need "did something get published" here; the full
+        // package response doesn't carry the pointer id, so we call the
+        // versions list separately and derive active by version.
+        return {};
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 60_000,
+  });
+  const activeVersionId = useMemo(() => {
+    if (!publishedPtr) return null;
+    // Newest published wins — server sorts DESC.
+    return versions.find((v) => v.published)?.id ?? null;
+  }, [publishedPtr, versions]);
+
+  const restore = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/map-package/versions/${id}/restore`);
+      return res.json();
+    },
+    onSuccess: () => {
+      // Every downstream consumer needs a re-fetch — the pointer moved.
+      qc.invalidateQueries({ queryKey: ["/api/map-package/versions"] });
+      qc.invalidateQueries({ queryKey: ["/api/map-package/published"] });
+      qc.invalidateQueries({ queryKey: ["/api/map-package/published-pointer"] });
+    },
+  });
+
   const q = query.trim().toLowerCase();
   const filtered = q
     ? versions.filter((v) => (v.message ?? "").toLowerCase().includes(q) || String(v.version).includes(q))
     : versions;
 
+  if (isLoading) return <Loading />;
   if (versions.length === 0) {
-    return <EmptyState message="No versions yet." hint="Every publish creates a version. Save a draft to see it here." />;
+    return <EmptyState message="No versions yet." hint="Every publish creates a version. Hit Publish in the toolbar to see it here." />;
   }
 
   return (
-    <ul className="p-1.5 space-y-0.5">
-      {filtered.map((v) => (
-        <li key={v.id}>
-          <button
-            type="button"
-            onClick={() => onRestore?.(v.id)}
-            className="w-full text-left rounded-lg px-2 py-2 hover:bg-muted/60 transition-colors"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold">v{v.version}</span>
-              <span className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider",
-                v.published ? "bg-emerald-500/15 text-emerald-600" : "bg-gray-500/15 text-gray-500",
-              )}>
-                {v.published ? "Published" : "Draft"}
-              </span>
+    <ul className="p-1.5 space-y-1">
+      {filtered.map((v) => {
+        const isActive = v.id === activeVersionId;
+        return (
+          <li key={v.id}>
+            <div
+              className={cn(
+                "rounded-lg p-2 border transition-colors",
+                isActive
+                  ? "border-emerald-500/40 bg-emerald-500/5"
+                  : "border-transparent hover:bg-muted/60",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold flex items-center gap-1.5">
+                  v{v.version}
+                  {isActive && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-500 text-white">
+                      Live
+                    </span>
+                  )}
+                </span>
+                <span className={cn(
+                  "text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider",
+                  v.published ? "bg-blue-500/15 text-blue-600 dark:text-blue-300" : "bg-gray-500/15 text-gray-500",
+                )}>
+                  {v.published ? "Published" : "Draft"}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 truncate">
+                {new Date(v.savedAt).toLocaleString()}{v.message ? ` · ${v.message}` : ""}
+              </p>
+              {!isActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    restore.mutate(v.id);
+                    onRestore?.(v.id);
+                  }}
+                  disabled={restore.isPending}
+                  className="mt-2 w-full h-7 rounded-md text-[11px] font-semibold bg-muted hover:bg-blue-500/15 hover:text-blue-700 dark:hover:text-blue-300 transition-colors disabled:opacity-50"
+                >
+                  {restore.isPending ? "Restoring…" : "Restore this version"}
+                </button>
+              )}
             </div>
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-              {new Date(v.savedAt).toLocaleString()} {v.message ? `· ${v.message}` : ""}
-            </p>
-          </button>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

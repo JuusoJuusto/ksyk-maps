@@ -15,18 +15,17 @@
  * when not in use. `onClose` retracts it back to a small pill.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import type { Building, Room, Hallway, Door, Stair, Elevator, LatLng } from "@ksyk/shared";
+import type { Building, Room, LatLng } from "@ksyk/shared";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
 import {
   buildGraph, buildNavGraph, findPath,
   PROFILE_DEFAULT, PROFILE_WHEELCHAIR,
-  type Route as NavRoute,
+  annotateRoute,
 } from "@ksyk/routing";
-import { fetchList } from "@/lib/fetchList";
 import { cn } from "@/lib/utils";
+import { useCampusData } from "@/hooks/useCampusData";
 
 interface NavigationPanelProps {
   map: MaplibreMap | null;
@@ -61,6 +60,8 @@ const ROUTE_SOURCE_ID = "nav-route-src";
 const ROUTE_LAYER_ID = "nav-route-line";
 const ROUTE_ENDS_SOURCE_ID = "nav-route-ends";
 const ROUTE_ENDS_LAYER_ID = "nav-route-ends-layer";
+const ROUTE_STEPS_SOURCE_ID = "nav-route-steps";
+const ROUTE_STEPS_LAYER_ID = "nav-route-steps-layer";
 
 export default function NavigationPanel({ map, onClose, searchActive = false }: NavigationPanelProps) {
   // Measure header height so the panel sits right under it on mobile.
@@ -86,36 +87,9 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     };
   }, []);
 
-  const { data: rooms = [] } = useQuery<Room[]>({
-    queryKey: ["/api/rooms"],
-    queryFn: () => fetchList<Room>("/api/rooms"),
-    staleTime: 60_000,
-  });
-  const { data: buildings = [] } = useQuery<Building[]>({
-    queryKey: ["/api/buildings"],
-    queryFn: () => fetchList<Building>("/api/buildings"),
-    staleTime: 60_000,
-  });
-  const { data: hallways = [] } = useQuery<Hallway[]>({
-    queryKey: ["/api/hallways"],
-    queryFn: () => fetchList<Hallway>("/api/hallways"),
-    staleTime: 60_000,
-  });
-  const { data: doors = [] } = useQuery<Door[]>({
-    queryKey: ["/api/doors"],
-    queryFn: () => fetchList<Door>("/api/doors"),
-    staleTime: 60_000,
-  });
-  const { data: stairs = [] } = useQuery<Stair[]>({
-    queryKey: ["/api/stairs"],
-    queryFn: () => fetchList<Stair>("/api/stairs"),
-    staleTime: 60_000,
-  });
-  const { data: elevators = [] } = useQuery<Elevator[]>({
-    queryKey: ["/api/elevators"],
-    queryFn: () => fetchList<Elevator>("/api/elevators"),
-    staleTime: 60_000,
-  });
+  // Prefers /api/map-package/published when the admin has published;
+  // falls back to live tables otherwise. Same shape either way.
+  const { buildings, rooms, hallways, doors, stairs, elevators, source } = useCampusData();
 
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
 
@@ -183,6 +157,9 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
             + haversineMeters(a, path.path[0].position)
             + haversineMeters(b, path.path[path.path.length - 1].position),
           floors: path.segments.map((s) => s.floor),
+          // Keep the raw Route around so we can annotate it into
+          // turn-by-turn hints without re-running A*.
+          navRoute: path,
         };
       }
     }
@@ -192,8 +169,16 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       coords: [a, b] as LatLng[],
       distanceMeters: haversineMeters(a, b),
       floors: [] as number[],
+      navRoute: null,
     };
   }, [from, to, graph, accessibleOnly, snapEndpoint]);
+
+  // Derive turn-by-turn hints from the underlying nav route (graph
+  // routes only — straight-line fallback has nothing to narrate).
+  const turnHints = useMemo(() => {
+    if (!route || route.kind !== "graph" || !route.navRoute) return [];
+    return annotateRoute(route.navRoute);
+  }, [route]);
 
   const walkingSeconds = route ? route.distanceMeters / WALKING_MPS : 0;
 
@@ -203,10 +188,12 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     const upsertLine = () => {
       if (!route) {
         // Clear any existing route.
-        if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
-        if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
-        if (map.getLayer(ROUTE_ENDS_LAYER_ID)) map.removeLayer(ROUTE_ENDS_LAYER_ID);
-        if (map.getSource(ROUTE_ENDS_SOURCE_ID)) map.removeSource(ROUTE_ENDS_SOURCE_ID);
+        for (const l of [ROUTE_LAYER_ID, ROUTE_ENDS_LAYER_ID, `${ROUTE_ENDS_LAYER_ID}-label`, ROUTE_STEPS_LAYER_ID, `${ROUTE_STEPS_LAYER_ID}-label`]) {
+          if (map.getLayer(l)) map.removeLayer(l);
+        }
+        for (const s of [ROUTE_SOURCE_ID, ROUTE_ENDS_SOURCE_ID, ROUTE_STEPS_SOURCE_ID]) {
+          if (map.getSource(s)) map.removeSource(s);
+        }
         return;
       }
       const start = route.coords[0];
@@ -308,6 +295,45 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           },
         });
       }
+      // Step markers — one numbered circle per turn hint. Skips the
+      // start/arrive endpoints since those already get A/B labels.
+      const stepFeatures = turnHints
+        .filter((h) => h.turn !== "start" && h.turn !== "arrive")
+        .map((h, i) => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [h.at.lng, h.at.lat] },
+          properties: { idx: i + 1, description: h.description },
+        }));
+      const stepsData = { type: "FeatureCollection" as const, features: stepFeatures };
+      const srcSteps = map.getSource(ROUTE_STEPS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (srcSteps) srcSteps.setData(stepsData as never);
+      else {
+        map.addSource(ROUTE_STEPS_SOURCE_ID, { type: "geojson", data: stepsData as never });
+        map.addLayer({
+          id: ROUTE_STEPS_LAYER_ID,
+          source: ROUTE_STEPS_SOURCE_ID,
+          type: "circle",
+          paint: {
+            "circle-radius": 10,
+            "circle-color": "#ffffff",
+            "circle-stroke-color": "#2563eb",
+            "circle-stroke-width": 2.5,
+          },
+        });
+        map.addLayer({
+          id: `${ROUTE_STEPS_LAYER_ID}-label`,
+          source: ROUTE_STEPS_SOURCE_ID,
+          type: "symbol",
+          layout: {
+            "text-field": ["to-string", ["get", "idx"]],
+            "text-size": 11,
+            "text-font": ["Noto Sans Regular"],
+            "text-allow-overlap": true,
+          },
+          paint: { "text-color": "#1e3a8a" },
+        });
+      }
+
       // Fit the FULL route bounds (every vertex), preserving rotation + pitch.
       const lngs = route.coords.map((c) => c.lng);
       const lats = route.coords.map((c) => c.lat);
@@ -326,18 +352,22 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     return () => {
       // Route lifetime = component lifetime. On unmount, clear.
     };
-  }, [map, route]);
+  }, [map, route, turnHints]);
 
   // Clean up route layers when the panel unmounts.
   useEffect(() => {
     return () => {
       if (!map) return;
-      const labelId = `${ROUTE_ENDS_LAYER_ID}-label`;
-      if (map.getLayer(labelId)) map.removeLayer(labelId);
-      if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
-      if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
-      if (map.getLayer(ROUTE_ENDS_LAYER_ID)) map.removeLayer(ROUTE_ENDS_LAYER_ID);
-      if (map.getSource(ROUTE_ENDS_SOURCE_ID)) map.removeSource(ROUTE_ENDS_SOURCE_ID);
+      for (const l of [
+        ROUTE_LAYER_ID,
+        ROUTE_ENDS_LAYER_ID, `${ROUTE_ENDS_LAYER_ID}-label`,
+        ROUTE_STEPS_LAYER_ID, `${ROUTE_STEPS_LAYER_ID}-label`,
+      ]) {
+        if (map.getLayer(l)) map.removeLayer(l);
+      }
+      for (const s of [ROUTE_SOURCE_ID, ROUTE_ENDS_SOURCE_ID, ROUTE_STEPS_SOURCE_ID]) {
+        if (map.getSource(s)) map.removeSource(s);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
@@ -420,6 +450,19 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           index={index}
         />
 
+        {/* Data source badge — tiny reassurance that the numbers here
+         *  are the same ones the admin published. */}
+        {source === "published" && (
+          <p className="text-[10px] text-muted-foreground text-center">
+            Routing on the last-published campus snapshot.
+          </p>
+        )}
+        {source === "live" && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center">
+            Routing on live (unpublished) draft.
+          </p>
+        )}
+
         {/* Profile toggle — accessible routing avoids stairs. */}
         <div className="mt-1 flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2">
           <div className="flex items-center gap-2 text-xs text-foreground">
@@ -480,6 +523,46 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           <p className="text-[11px] text-muted-foreground text-center">
             Pick a start and destination to see the route.
           </p>
+        )}
+
+        {/* Turn-by-turn narration — visible only when we have a real
+         *  graph route. Matches the numbered step markers rendered on
+         *  the map so users can eyeball a step's position + follow
+         *  along the corridor. */}
+        {turnHints.length > 0 && (
+          <details className="rounded-xl border border-border overflow-hidden">
+            <summary className="cursor-pointer select-none px-3 py-2 bg-muted/40 text-xs font-semibold flex items-center justify-between">
+              <span>Turn-by-turn</span>
+              <span className="text-[10px] text-muted-foreground">{turnHints.length} steps</span>
+            </summary>
+            <ol className="p-2 space-y-1 max-h-56 overflow-y-auto">
+              {turnHints.map((hint, i) => {
+                const isEndpoint = hint.turn === "start" || hint.turn === "arrive";
+                return (
+                  <li key={hint.nodeId + "-" + i} className="flex items-start gap-2.5">
+                    <span className={cn(
+                      "shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5",
+                      isEndpoint
+                        ? (hint.turn === "start" ? "bg-emerald-500 text-white" : "bg-red-500 text-white")
+                        : "bg-white ring-2 ring-blue-600 text-blue-700",
+                    )}>
+                      {isEndpoint ? (hint.turn === "start" ? "A" : "B") : i}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] leading-snug text-foreground">{hint.description}</p>
+                      {hint.distanceToNextMeters > 0 && (
+                        <p className="text-[10px] text-muted-foreground tabular-nums">
+                          {hint.distanceToNextMeters < 1000
+                            ? `${hint.distanceToNextMeters.toFixed(0)} m to next`
+                            : `${(hint.distanceToNextMeters / 1000).toFixed(2)} km to next`}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </details>
         )}
       </div>
     </div>

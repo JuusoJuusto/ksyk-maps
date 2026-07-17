@@ -22,7 +22,7 @@ import {
   packageFromJSON,
   geoJSONToPackage,
 } from "@ksyk/shared";
-import type { MapPackage, Building } from "@ksyk/shared";
+import type { MapPackage, Building, Room, Hallway } from "@ksyk/shared";
 import { X, Upload, Download, AlertTriangle, Check, FileJson } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -203,15 +203,67 @@ function ImportTab({
           setError("No <rect>, <polygon>, or <path M/L> elements found in the SVG.");
           return;
         }
-        // Convert every shape into a fresh building. Users can re-type
-        // any as a room from the PropertyPanel after import.
-        const buildings: Building[] = shapes.map((s, i) => ({
-          id: `svg-${Date.now()}-${i}`,
-          name: s.label ?? String.fromCharCode(65 + (i % 26)),
-          colorCode: "#2563eb",
-          floors: 1,
-          points: s.polygon,
-        }));
+        // Split the shape list by inferred kind. Building polygons and
+        // room polygons need a parent building — rooms attach to the
+        // first building we find (users can re-parent later). Hallways
+        // + walls serialise as line segments.
+        const stamp = Date.now();
+        const buildings: Building[] = [];
+        const rooms: Room[] = [];
+        const hallways: Hallway[] = [];
+        shapes.forEach((s, i) => {
+          const baseId = `svg-${stamp}-${i}`;
+          const label = s.label ?? "";
+          if (s.kind === "hallway" || s.kind === "wall") {
+            // Emit N-1 straight segments between consecutive polygon points.
+            for (let k = 0; k < s.polygon.length - 1; k++) {
+              hallways.push({
+                id: `${baseId}-seg${k}`,
+                buildingId: "" as string,
+                startX: s.polygon[k].lng,
+                startY: s.polygon[k].lat,
+                endX: s.polygon[k + 1].lng,
+                endY: s.polygon[k + 1].lat,
+                surface: s.kind === "wall" ? "wall" : "concrete",
+              });
+            }
+          } else if (s.kind === "room") {
+            rooms.push({
+              id: baseId,
+              buildingId: "" as string,
+              floor: 1,
+              roomNumber: label || `R${i + 1}`,
+              name: label || null,
+              points: s.polygon,
+            });
+          } else {
+            buildings.push({
+              id: baseId,
+              name: label || String.fromCharCode(65 + (buildings.length % 26)),
+              colorCode: "#2563eb",
+              floors: 1,
+              points: s.polygon,
+            });
+          }
+        });
+        // If rooms exist but no buildings, synthesise one bounding
+        // building so the rooms have somewhere to attach.
+        if (rooms.length > 0 && buildings.length === 0) {
+          const allPts = rooms.flatMap((r) => r.points ?? []);
+          if (allPts.length >= 3) {
+            buildings.push({
+              id: `svg-${stamp}-wrapper`,
+              name: "Imported campus",
+              colorCode: "#2563eb",
+              floors: 1,
+              points: convexHullLite(allPts),
+            });
+          }
+        }
+        const anchorBuildingId = buildings[0]?.id ?? "";
+        for (const r of rooms) r.buildingId = anchorBuildingId;
+        for (const hw of hallways) hw.buildingId = anchorBuildingId;
+
         setParsed({
           manifest: {
             version: "1.0.0",
@@ -224,7 +276,7 @@ function ImportTab({
             minZoom: camera.minZoom, maxZoom: camera.maxZoom,
           },
           buildings,
-          floors: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
+          floors: [], rooms, hallways, doors: [], stairs: [], elevators: [],
         });
         return;
       }
@@ -380,4 +432,22 @@ function ImportTab({
       )}
     </div>
   );
+}
+
+/** Cheap axis-aligned bounding box as a "convex hull". Not truly a
+ *  hull but good enough when SVG imports produce rooms without a
+ *  parent building — we need SOMETHING to anchor them to. */
+function convexHullLite(pts: Array<{ lat: number; lng: number }>): Array<{ lat: number; lng: number }> {
+  const lats = pts.map((p) => p.lat);
+  const lngs = pts.map((p) => p.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  return [
+    { lat: minLat, lng: minLng },
+    { lat: minLat, lng: maxLng },
+    { lat: maxLat, lng: maxLng },
+    { lat: maxLat, lng: minLng },
+  ];
 }

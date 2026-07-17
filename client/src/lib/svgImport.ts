@@ -22,10 +22,25 @@
  */
 import type { LatLng, Polygon } from "@ksyk/shared";
 
+/** What kind of entity a parsed shape becomes. Inferred from either
+ *  the element's own `data-kind` / class / id or its containing
+ *  `<g id="…">` group name. Defaults to "building" — the caller can
+ *  reassign anything they don't like from the UI. */
+export type ParsedShapeKind = "building" | "room" | "hallway" | "wall";
+
 export interface ParsedShape {
   /** Free-form label extracted from `id` / `data-name` if present. */
   label: string | null;
+  /** Kind we inferred from SVG metadata. See ParsedShapeKind. */
+  kind: ParsedShapeKind;
+  /** For polygons (buildings/rooms/walls): closed ring of corners.
+   *  For lines (hallways/walls-as-line): sequential waypoints. Either
+   *  way this array carries the geometry — consumers decide shape
+   *  based on `kind` + `isLine`. */
   polygon: Polygon;
+  /** True when the source SVG element was a polyline / <path> without
+   *  a closing Z. Hallways use this to serialise as line segments. */
+  isLine: boolean;
 }
 
 export interface SvgImportOptions {
@@ -73,22 +88,66 @@ export function parseSvgToPolygons(source: string, opts: SvgImportOptions): SvgI
   for (const el of Array.from(root.querySelectorAll("*"))) {
     const tag = el.tagName.toLowerCase();
     const label = extractLabel(el);
+    const kind = inferKind(el);
     try {
       if (tag === "rect") {
         const pts = rectPoints(el, toLatLng);
-        if (pts) shapes.push({ label, polygon: pts });
-      } else if (tag === "polygon" || tag === "polyline") {
+        if (pts) shapes.push({ label, kind, polygon: pts, isLine: false });
+      } else if (tag === "polygon") {
         const pts = pointListPoints(el, toLatLng);
-        if (pts) shapes.push({ label, polygon: pts });
+        if (pts) shapes.push({ label, kind, polygon: pts, isLine: false });
+      } else if (tag === "polyline") {
+        const pts = pointListPoints(el, toLatLng);
+        if (pts) {
+          // Polylines default to hallways when no explicit kind was
+          // provided — they're geometrically lines, not areas.
+          const inferred: ParsedShapeKind = kind === "building" ? "hallway" : kind;
+          shapes.push({ label, kind: inferred, polygon: pts, isLine: true });
+        }
       } else if (tag === "path") {
-        const pts = pathPoints(el, toLatLng);
-        if (pts) shapes.push({ label, polygon: pts });
+        const parsed = pathPoints(el, toLatLng);
+        if (parsed) {
+          shapes.push({ label, kind, polygon: parsed.points, isLine: !parsed.closed });
+        }
       }
     } catch (err) {
       warnings.push(`Skipped <${tag}${label ? ` id="${label}"` : ""}>: ${(err as Error).message}`);
     }
   }
   return { shapes, warnings };
+}
+
+/** Look at the element + its ancestors for a "kind" hint.
+ *  Priority: data-kind attr → id/class prefix → containing <g id="…">.
+ *  Everything unknown falls back to "building". */
+function inferKind(el: Element): ParsedShapeKind {
+  const directHint =
+    el.getAttribute("data-kind") ??
+    el.getAttribute("data-type") ??
+    el.getAttribute("id") ??
+    el.getAttribute("class") ??
+    "";
+  const directKind = matchKind(directHint);
+  if (directKind) return directKind;
+  // Walk up looking at parent <g> ids/classes — Illustrator and Figma
+  // both emit named layer groups this way.
+  let parent = el.parentElement;
+  while (parent && parent.tagName.toLowerCase() !== "svg") {
+    const hint = (parent.getAttribute("id") ?? "") + " " + (parent.getAttribute("class") ?? "");
+    const parentKind = matchKind(hint);
+    if (parentKind) return parentKind;
+    parent = parent.parentElement;
+  }
+  return "building";
+}
+
+function matchKind(text: string): ParsedShapeKind | null {
+  const t = text.toLowerCase();
+  if (/\bwall/.test(t)) return "wall";
+  if (/\b(hall|corridor|passage)/.test(t)) return "hallway";
+  if (/\broom|classroom|lab|office|gym|toilet|bathroom/.test(t)) return "room";
+  if (/\bbuilding|block|wing/.test(t)) return "building";
+  return null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -160,8 +219,13 @@ function pointListPoints(el: Element, toLatLng: (x: number, y: number) => LatLng
 
 /** M/L/Z-only path parser. Ignores everything else (curves become
  *  straight segments from wherever they started to wherever they end).
- *  Ideal for the boxy floorplan shapes users usually import. */
-function pathPoints(el: Element, toLatLng: (x: number, y: number) => LatLng): Polygon | null {
+ *  Ideal for the boxy floorplan shapes users usually import.
+ *
+ *  Returns null on empty input; otherwise `{ points, closed }` where
+ *  `closed` reflects whether the path ended with `Z`/`z`. Consumers
+ *  use `closed` to route open paths to hallway/wall imports instead
+ *  of treating them as room polygons. */
+function pathPoints(el: Element, toLatLng: (x: number, y: number) => LatLng): { points: Polygon; closed: boolean } | null {
   const d = el.getAttribute("d") ?? "";
   if (!d.trim()) return null;
   const out: Polygon = [];
@@ -169,6 +233,7 @@ function pathPoints(el: Element, toLatLng: (x: number, y: number) => LatLng): Po
   let i = 0;
   let cur: [number, number] = [0, 0];
   let cmd: string | null = null;
+  let closed = false;
   while (i < tokens.length) {
     const t = tokens[i];
     if (/^[a-zA-Z]$/.test(t)) { cmd = t; i++; continue; }
@@ -199,7 +264,9 @@ function pathPoints(el: Element, toLatLng: (x: number, y: number) => LatLng): Po
       case "V": { const y = Number(tokens[i]); i++; cur = [cur[0], y]; out.push(toLatLng(cur[0], cur[1])); break; }
       case "v": { const dy = Number(tokens[i]); i++; cur = [cur[0], cur[1] + dy]; out.push(toLatLng(cur[0], cur[1])); break; }
       case "Z": case "z": {
-        // Explicit close — no new point, first point is implicit close.
+        // Explicit close — flag the path as closed so consumers can
+        // decide whether it should render as a polygon or line.
+        closed = true;
         break;
       }
       default: {
@@ -210,5 +277,6 @@ function pathPoints(el: Element, toLatLng: (x: number, y: number) => LatLng): Po
       }
     }
   }
-  return out.length >= 3 ? out : null;
+  if (out.length < 2) return null;
+  return { points: out, closed };
 }

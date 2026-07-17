@@ -27,6 +27,7 @@ import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, Hallway, MapLayer, Stair, Elevator, Door } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides } from "@/components/LayersToggle";
+import { useCampusData } from "@/hooks/useCampusData";
 
 const SOURCES = {
   buildings: "campus-buildings",
@@ -59,36 +60,9 @@ export interface CampusOverlayProps {
 export default function CampusOverlay({
   map, activeFloor, onFeatureClick,
 }: CampusOverlayProps) {
-  const { data: buildings = [] } = useQuery<Building[]>({
-    queryKey: ["/api/buildings", "overlay"],
-    queryFn: () => fetchList<Building>("/api/buildings"),
-    refetchInterval: 60_000,
-  });
-  const { data: rooms = [] } = useQuery<Room[]>({
-    queryKey: ["/api/rooms", "overlay"],
-    queryFn: () => fetchList<Room>("/api/rooms"),
-    refetchInterval: 60_000,
-  });
-  const { data: hallways = [] } = useQuery<Hallway[]>({
-    queryKey: ["/api/hallways", "overlay"],
-    queryFn: () => fetchList<Hallway>("/api/hallways"),
-    refetchInterval: 60_000,
-  });
-  const { data: stairs = [] } = useQuery<Stair[]>({
-    queryKey: ["/api/stairs", "overlay"],
-    queryFn: () => fetchList<Stair>("/api/stairs"),
-    refetchInterval: 60_000,
-  });
-  const { data: elevators = [] } = useQuery<Elevator[]>({
-    queryKey: ["/api/elevators", "overlay"],
-    queryFn: () => fetchList<Elevator>("/api/elevators"),
-    refetchInterval: 60_000,
-  });
-  const { data: doors = [] } = useQuery<Door[]>({
-    queryKey: ["/api/doors", "overlay"],
-    queryFn: () => fetchList<Door>("/api/doors"),
-    refetchInterval: 60_000,
-  });
+  // Single source of truth — reads from the last-published snapshot
+  // when available, live tables otherwise. See useCampusData.ts.
+  const { buildings, rooms, hallways, stairs, elevators, doors } = useCampusData();
   // Layer visibility from the LeftSidebar Layers tab. Missing / dropped
   // layers default to visible so overlay never becomes accidentally
   // blank when the layer table is empty.
