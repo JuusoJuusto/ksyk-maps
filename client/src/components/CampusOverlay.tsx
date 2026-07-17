@@ -131,8 +131,29 @@ export default function CampusOverlay({
       setVis(LAYERS.roomsLabel,       rVis && lVis);
       setVis(LAYERS.hallwaysLine,     hVis);
     };
-    if (map.isStyleLoaded()) install();
-    else map.once("load", install);
+    // Robust install trigger — style may already be loaded (fast path),
+    // still loading (register a one-off), OR the effect may be running
+    // between load + first paint. Attach BOTH a `load` and a
+    // `styledata` listener so we don't miss the moment.
+    let installed = false;
+    const runInstall = () => {
+      if (installed) { install(); return; } // just refresh data
+      installed = true;
+      install();
+    };
+    if (map.isStyleLoaded()) {
+      runInstall();
+    } else {
+      const onLoad = () => runInstall();
+      map.once("load", onLoad);
+      map.once("styledata", onLoad);
+    }
+    // Safety net — if for any reason install never fired within 500ms
+    // of map ready, poll and try once more. Fixes the sporadic
+    // "buildings sometimes don't load on first visit" race.
+    const safety = window.setTimeout(() => {
+      if (!installed && map && map.isStyleLoaded()) runInstall();
+    }, 500);
 
     const onClick = (e: import("maplibre-gl").MapMouseEvent) => {
       const feats = map.queryRenderedFeatures(e.point, {
@@ -150,7 +171,10 @@ export default function CampusOverlay({
       clickHandlerRef.current?.(kind, hit.properties.id);
     };
     map.on("click", onClick);
-    return () => { map.off("click", onClick); };
+    return () => {
+      map.off("click", onClick);
+      window.clearTimeout(safety);
+    };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, activeFloor, layers, clientOverrides]);
 
   return null;

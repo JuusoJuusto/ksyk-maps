@@ -3,9 +3,9 @@
 // older caches get evicted on the next page load (see activate handler).
 // Bumped to force every returning visitor to fetch fresh JS + tiles —
 // old workers were pinning users to the pre-simplified control stack.
-const CACHE_NAME = 'ksyk-map-v6.10.1';
-const STATIC_CACHE_NAME = 'ksyk-static-v52';
-const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v52';
+const CACHE_NAME = 'ksyk-map-v6.10.2';
+const STATIC_CACHE_NAME = 'ksyk-static-v53';
+const DYNAMIC_CACHE_NAME = 'ksyk-dynamic-v53';
 
 // Cache strategies for different resource types
 const CACHE_STRATEGIES = {
@@ -94,23 +94,39 @@ self.addEventListener('fetch', (event) => {
 
 // Network First Strategy (for API calls)
 async function networkFirstStrategy(request) {
+  // Never cache the sources of truth for map data. Serving even a
+  // 200 OK stale campus package once caused fresh visitors to see
+  // empty buildings after a hard reset. When these routes fail there
+  // is no useful cached fallback — the client already knows to
+  // gracefully render an empty list.
+  const isAuthoritative =
+    request.url.includes("/api/map-package/") ||
+    request.url.includes("/api/buildings") ||
+    request.url.includes("/api/rooms") ||
+    request.url.includes("/api/hallways") ||
+    request.url.includes("/api/stairs") ||
+    request.url.includes("/api/elevators") ||
+    request.url.includes("/api/doors") ||
+    request.url.includes("/api/layers") ||
+    request.url.includes("/api/map-defaults");
+
   try {
     const networkResponse = await fetch(request);
-    
-    if (networkResponse.ok) {
+
+    if (networkResponse.ok && !isAuthoritative) {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[SW] Network failed, trying cache:', request.url);
-    const cachedResponse = await caches.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
+
+    if (!isAuthoritative) {
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) return cachedResponse;
     }
-    
+
     // Return offline fallback for API requests
     if (request.url.includes('/api/')) {
       return new Response(
@@ -125,7 +141,7 @@ async function networkFirstStrategy(request) {
         }
       );
     }
-    
+
     throw error;
   }
 }

@@ -49,7 +49,10 @@ export function useCampusData(): CampusData {
     queryKey: ["/api/map-package/published"],
     queryFn: async () => {
       try {
-        const r = await fetch("/api/map-package/published");
+        // Cache-bust the browser cache — SW sometimes returns a stale
+        // /api response on hard reset (Vercel edge cache + PWA cache
+        // together). Cache: 'no-store' guarantees a network round-trip.
+        const r = await fetch("/api/map-package/published", { cache: "no-store" });
         if (!r.ok) return null;
         const body = await r.json();
         return body && typeof body === "object" && Array.isArray((body as MapPackage).buildings)
@@ -63,9 +66,25 @@ export function useCampusData(): CampusData {
     // every 60 seconds so we don't hammer Firestore.
     staleTime: 300_000,
     refetchInterval: 300_000,
+    // Always re-fetch on component mount so a hard reload never
+    // renders against a stale published snapshot from React Query's
+    // in-memory cache.
+    refetchOnMount: "always",
   });
 
-  const hasPublished = !!published.data;
+  // Prefer live tables when published is present-but-empty (test
+  // publish, wiped campus, etc.). Otherwise fall back to whatever's
+  // in the published snapshot.
+  const publishedHasData =
+    !!published.data
+    && ((published.data.buildings?.length ?? 0) > 0
+       || (published.data.rooms?.length ?? 0) > 0
+       || (published.data.hallways?.length ?? 0) > 0);
+
+  // Fire the live queries whenever the published payload is missing OR
+  // empty — that way an empty publish still shows drafted data instead
+  // of a blank map.
+  const shouldUseLive = !publishedHasData;
 
   // Live queries — always registered so React Query dedupes correctly
   // with other components, but only surface as CampusData when the
@@ -73,42 +92,49 @@ export function useCampusData(): CampusData {
   const buildingsQ = useQuery<Building[]>({
     queryKey: ["/api/buildings"],
     queryFn: () => fetchList<Building>("/api/buildings"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
   const roomsQ = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     queryFn: () => fetchList<Room>("/api/rooms"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
   const hallwaysQ = useQuery<Hallway[]>({
     queryKey: ["/api/hallways"],
     queryFn: () => fetchList<Hallway>("/api/hallways"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
   const doorsQ = useQuery<Door[]>({
     queryKey: ["/api/doors"],
     queryFn: () => fetchList<Door>("/api/doors"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
   const stairsQ = useQuery<Stair[]>({
     queryKey: ["/api/stairs"],
     queryFn: () => fetchList<Stair>("/api/stairs"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
   const elevatorsQ = useQuery<Elevator[]>({
     queryKey: ["/api/elevators"],
     queryFn: () => fetchList<Elevator>("/api/elevators"),
-    enabled: !hasPublished,
-    refetchInterval: hasPublished ? false : 60_000,
+    enabled: shouldUseLive,
+    refetchInterval: shouldUseLive ? 60_000 : false,
+    refetchOnMount: "always",
   });
 
   return useMemo<CampusData>(() => {
-    if (published.data) {
+    // Case 1: published snapshot has real content — use it verbatim.
+    if (publishedHasData && published.data) {
       const p = published.data;
       return {
         buildings: p.buildings ?? [],
@@ -121,9 +147,14 @@ export function useCampusData(): CampusData {
         isReady: true,
       };
     }
-    if (!published.isFetched) {
+    // Case 2: published fetch still in flight AND live hasn't answered
+    // either. Show empty + report loading so consumers can render a
+    // skeleton instead of "no data".
+    if (!published.isFetched && !buildingsQ.isFetched && !roomsQ.isFetched) {
       return { ...EMPTY, source: "loading", isReady: false };
     }
+    // Case 3: use live tables — the common path for a campus mid-edit,
+    // and the safe fallback when a publish went out empty.
     return {
       buildings: buildingsQ.data ?? [],
       rooms:     roomsQ.data ?? [],
@@ -135,7 +166,7 @@ export function useCampusData(): CampusData {
       isReady: buildingsQ.isFetched && roomsQ.isFetched,
     };
   }, [
-    published.data, published.isFetched,
+    publishedHasData, published.data, published.isFetched,
     buildingsQ.data, buildingsQ.isFetched,
     roomsQ.data, roomsQ.isFetched,
     hallwaysQ.data,
