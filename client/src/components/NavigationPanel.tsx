@@ -97,6 +97,28 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   const [to, setTo] = useState<Endpoint | null>(null);
   const [accessibleOnly, setAccessibleOnly] = useState(false);
 
+  // Listen for cross-component route requests — the FeatureInfoSheet
+  // dispatches `ksyk:route-to` when the user hits "Directions here"
+  // from a clicked feature. We map the payload into an Endpoint and
+  // stuff it into the To field, leaving From for the user (usually
+  // their location or another search pick).
+  useEffect(() => {
+    const onRouteTo = (e: Event) => {
+      const detail = (e as CustomEvent<{ kind: "building" | "room" | "hallway"; entity: Building | Room }>).detail;
+      if (!detail) return;
+      if (detail.kind === "building") {
+        setTo({ kind: "building", building: detail.entity as Building });
+      } else if (detail.kind === "room") {
+        const room = detail.entity as Room;
+        const b = buildings.find((x) => x.id === room.buildingId) ?? null;
+        setTo({ kind: "room", room, building: b });
+      }
+      // Hallways don't make useful nav destinations — ignore.
+    };
+    window.addEventListener("ksyk:route-to", onRouteTo);
+    return () => window.removeEventListener("ksyk:route-to", onRouteTo);
+  }, [buildings]);
+
   // Build the campus navigation graph once per data change. Excludes
   // walls (surface="wall") — those are barriers, not walkable.
   const graph = useMemo(() => {
@@ -538,18 +560,63 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
             <ol className="p-2 space-y-1 max-h-56 overflow-y-auto">
               {turnHints.map((hint, i) => {
                 const isEndpoint = hint.turn === "start" || hint.turn === "arrive";
+                const isFloorChange = hint.turn === "floor_up" || hint.turn === "floor_down";
+                // The step's floor comes from the node it corresponds
+                // to — annotateRoute doesn't surface it, so we resolve
+                // via the raw route.
+                const stepFloor = route?.navRoute?.path
+                  .find((n) => n.id === hint.nodeId)?.floor ?? null;
                 return (
-                  <li key={hint.nodeId + "-" + i} className="flex items-start gap-2.5">
+                  <li
+                    key={hint.nodeId + "-" + i}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-md p-1 transition-colors",
+                      "hover:bg-blue-50/60 dark:hover:bg-blue-500/10 cursor-pointer",
+                    )}
+                    onClick={() => {
+                      // Two side effects:
+                      //   1. Fly the map to the step position (short zoom-in).
+                      //   2. If the step lives on a different floor,
+                      //      broadcast a floor-select event so the
+                      //      floor selector in KSYKMapView switches.
+                      if (map) {
+                        map.flyTo({
+                          center: [hint.at.lng, hint.at.lat],
+                          zoom: Math.max(map.getZoom(), 18.5),
+                          bearing: map.getBearing(),
+                          pitch: map.getPitch(),
+                          duration: 500,
+                          essential: true,
+                        });
+                      }
+                      if (stepFloor !== null) {
+                        try {
+                          window.dispatchEvent(new CustomEvent("ksyk:select-floor", { detail: stepFloor }));
+                        } catch { /* non-fatal */ }
+                      }
+                    }}
+                  >
                     <span className={cn(
                       "shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5",
                       isEndpoint
                         ? (hint.turn === "start" ? "bg-emerald-500 text-white" : "bg-red-500 text-white")
-                        : "bg-white ring-2 ring-blue-600 text-blue-700",
+                        : isFloorChange
+                          ? "bg-amber-500 text-white"
+                          : "bg-white ring-2 ring-blue-600 text-blue-700",
                     )}>
-                      {isEndpoint ? (hint.turn === "start" ? "A" : "B") : i}
+                      {isEndpoint
+                        ? (hint.turn === "start" ? "A" : "B")
+                        : isFloorChange
+                          ? (hint.turn === "floor_up" ? "▲" : "▼")
+                          : i}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] leading-snug text-foreground">{hint.description}</p>
+                      <p className="text-[12px] leading-snug text-foreground">
+                        {hint.description}
+                        {stepFloor !== null && !isEndpoint && (
+                          <span className="ml-1 text-[10px] text-muted-foreground">· Floor {stepFloor}</span>
+                        )}
+                      </p>
                       {hint.distanceToNextMeters > 0 && (
                         <p className="text-[10px] text-muted-foreground tabular-nums">
                           {hint.distanceToNextMeters < 1000

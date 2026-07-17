@@ -87,12 +87,67 @@ export default function SearchResultsDropdown({
   const { rooms, buildings } = useCampusData();
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
   const trimmed = query.trim();
-  // Index emits both room and building hits — payload.room is nullable
-  // for building hits. Downstream reduces it to a SearchPick union.
-  const hits: Array<SearchHit<{ room: Room | null; building: Building | null }>> = useMemo(() => {
+
+  // Filter chips let users narrow to just rooms / buildings / specific
+  // room types. "All" keeps the raw ranked list.
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  useEffect(() => {
+    // Reset filter when the query changes so the user isn't confused
+    // by an old filter narrowing a new query.
+    setActiveFilter("all");
+  }, [trimmed]);
+
+  // Precompute a raw hit set (up to a higher limit) so filters can
+  // narrow client-side without a re-search per chip.
+  const rawHits: Array<SearchHit<{ room: Room | null; building: Building | null }>> = useMemo(() => {
     if (!trimmed) return [];
-    return index.search(trimmed, { limit });
+    return index.search(trimmed, { limit: Math.max(limit * 4, 40) });
   }, [index, trimmed, limit]);
+
+  const hits = useMemo(() => {
+    const filtered = rawHits.filter((h) => {
+      if (activeFilter === "all") return true;
+      if (activeFilter === "buildings") return !h.doc.data?.room;
+      if (activeFilter === "rooms") return !!h.doc.data?.room;
+      // Room-type filter — string equals on Room.type.
+      const type = h.doc.data?.room?.type;
+      return type === activeFilter;
+    });
+    return filtered.slice(0, limit);
+  }, [rawHits, activeFilter, limit]);
+
+  // Available filter chips depend on what actually appears in the
+  // raw results — no point offering "Labs" when the query has no lab
+  // hits. Always include All / Rooms / Buildings when both kinds are
+  // represented.
+  const filterChips = useMemo(() => {
+    const chips: Array<{ id: string; label: string; count: number }> = [
+      { id: "all", label: "All", count: rawHits.length },
+    ];
+    const roomsCount = rawHits.filter((h) => h.doc.data?.room).length;
+    const buildingsCount = rawHits.filter((h) => !h.doc.data?.room).length;
+    if (roomsCount > 0 && buildingsCount > 0) {
+      chips.push({ id: "rooms", label: "Rooms", count: roomsCount });
+      chips.push({ id: "buildings", label: "Buildings", count: buildingsCount });
+    }
+    // Common room-type chips — only surface when there's at least one hit.
+    const typesToOffer: Array<[string, string]> = [
+      ["classroom", "Classrooms"],
+      ["lab", "Labs"],
+      ["bathroom", "Bathrooms"],
+      ["cafeteria", "Cafés"],
+      ["gym", "Gyms"],
+      ["office", "Offices"],
+      ["elevator", "Elevators"],
+      ["stairs", "Stairs"],
+      ["entrance", "Entrances"],
+    ];
+    for (const [id, label] of typesToOffer) {
+      const c = rawHits.filter((h) => h.doc.data?.room?.type === id).length;
+      if (c > 0) chips.push({ id, label, count: c });
+    }
+    return chips;
+  }, [rawHits]);
 
   if (!trimmed) return null;
 
@@ -118,6 +173,36 @@ export default function SearchResultsDropdown({
         maxHeight: `calc(100dvh - ${effectiveOffset}px - env(safe-area-inset-bottom, 0px) - 12px)`,
       }}
     >
+      {/* Filter chips — hidden when only "All" would show, since a
+       *  single chip is just noise. */}
+      {filterChips.length > 1 && (
+        <div className={cn("flex gap-1.5 overflow-x-auto px-3 py-2 border-b", darkMode ? "border-gray-800 bg-gray-900/70" : "border-gray-100 bg-slate-50/60")}>
+          {filterChips.map((chip) => {
+            const active = activeFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setActiveFilter(chip.id)}
+                className={cn(
+                  "shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors flex items-center gap-1.5",
+                  active
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : darkMode
+                      ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                      : "bg-white text-gray-700 hover:bg-gray-100 ring-1 ring-gray-200",
+                )}
+              >
+                {chip.label}
+                <span className={cn(
+                  "text-[10px] tabular-nums opacity-70",
+                  active ? "text-white" : darkMode ? "text-gray-500" : "text-gray-500",
+                )}>{chip.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       {hits.length === 0 ? (
         <div
           className={cn(
@@ -148,6 +233,7 @@ export default function SearchResultsDropdown({
                     : "hover:bg-blue-50 hover:text-blue-800",
                 )}
               >
+                <TypeChip pick={pick} darkMode={darkMode} />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm truncate">
                     <HighlightedText text={hit.doc.title} highlights={hit.highlights.filter((h) => h.field === "title")} />
@@ -205,4 +291,44 @@ function HighlightedText({
       )}
     </>
   );
+}
+
+/** Tiny circular icon chip identifying the pick's kind. Uses the same
+ *  semantic colours as the POI icons on the map so users get a
+ *  consistent visual language across search + map. */
+function TypeChip({ pick, darkMode }: { pick: SearchPick; darkMode: boolean }) {
+  const cfg = pickChip(pick);
+  return (
+    <span
+      className="h-8 w-8 rounded-full flex items-center justify-center text-[13px] shrink-0"
+      style={{
+        background: darkMode ? `${cfg.bg}55` : cfg.bg,
+        color: cfg.fg,
+        outline: `1px solid ${cfg.fg}55`,
+      }}
+      aria-hidden="true"
+    >
+      {cfg.glyph}
+    </span>
+  );
+}
+
+function pickChip(pick: SearchPick): { bg: string; fg: string; glyph: string } {
+  if (pick.kind === "building") return { bg: "#dbeafe", fg: "#1e40af", glyph: "▣" };
+  const type = pick.room.type;
+  switch (type) {
+    case "classroom": return { bg: "#e0f2fe", fg: "#0369a1", glyph: "🅒" };
+    case "lab":       return { bg: "#ede9fe", fg: "#6d28d9", glyph: "⚗" };
+    case "bathroom":  return { bg: "#fce7f3", fg: "#be185d", glyph: "⚑" };
+    case "cafeteria": return { bg: "#fef3c7", fg: "#b45309", glyph: "☕" };
+    case "gym":       return { bg: "#dcfce7", fg: "#15803d", glyph: "⚙" };
+    case "office":    return { bg: "#f3f4f6", fg: "#4b5563", glyph: "🅞" };
+    case "elevator":  return { bg: "#dbeafe", fg: "#1d4ed8", glyph: "⇵" };
+    case "stairs":    return { bg: "#fef3c7", fg: "#b45309", glyph: "⇅" };
+    case "entrance":  return { bg: "#dcfce7", fg: "#15803d", glyph: "➜" };
+    case "exit":      return { bg: "#fee2e2", fg: "#b91c1c", glyph: "⤴" };
+    case "library":   return { bg: "#fef3c7", fg: "#b45309", glyph: "📚" };
+    case "auditorium":return { bg: "#f5f3ff", fg: "#6d28d9", glyph: "🎤" };
+    default:          return { bg: "#e0f2fe", fg: "#0f766e", glyph: "•" };
+  }
 }

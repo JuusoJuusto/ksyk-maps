@@ -6,7 +6,7 @@ import { Info, Sparkles, Zap, Users, Map, Navigation } from "lucide-react";
 export default function VersionInfo() {
   const [showChangelog, setShowChangelog] = useState(false);
   
-  const version = "3.10.2";
+  const version = "3.11.0";
   const releaseDate = "July 16, 2026";
   const originalReleaseDate = "August 20, 2025";
   

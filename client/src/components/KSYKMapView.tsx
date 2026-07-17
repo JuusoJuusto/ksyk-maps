@@ -17,9 +17,12 @@ import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } fr
 import { loadAppSettings } from "@/lib/appSettings";
 import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
+import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
+import UserLocationLayer from "@/components/UserLocationLayer";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
+import { useCampusData } from "@/hooks/useCampusData";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -46,6 +49,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [showNav, setShowNav] = useState(false);
+  const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
+
+  // Full campus data — used to resolve a feature id from a click into
+  // the full entity so the info sheet has everything to display.
+  const campus = useCampusData();
 
   // Pull the admin-published map defaults on first mount so every user
   // (including mobile) picks up mobile* / desktop* overrides. Without
@@ -56,14 +64,24 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     void loadMapDefaultsFromServer();
   }, []);
 
-  // Buildings from DB — used to compute the union of floor ranges for
-  // the selector. A building can span floors like -1..3, so the selector
-  // must show every floor that appears in ANY building.
-  const buildingsQ = useQuery<Building[]>({ queryKey: ["/api/buildings"] });
-  const buildings = buildingsQ.data ?? [];
+  // NavigationPanel dispatches `ksyk:select-floor` when the user
+  // clicks a step on a different floor — we mirror that into the
+  // floor selector so overlays filter to the right level.
+  useEffect(() => {
+    const onFloor = (e: Event) => {
+      const detail = (e as CustomEvent<number>).detail;
+      if (typeof detail === "number") setSelectedFloor(detail);
+    };
+    window.addEventListener("ksyk:select-floor", onFloor);
+    return () => window.removeEventListener("ksyk:select-floor", onFloor);
+  }, []);
+
+  // Floor list — union of every building's declared floor range.
+  // Buildings can span -1..3 while a neighbour is 2..4, so the selector
+  // needs every distinct floor number that exists in the campus.
   const floorList = useMemo(() => {
     const set = new Set<number>();
-    for (const b of buildings) {
+    for (const b of campus.buildings as Building[]) {
       const min = typeof b.floorMin === "number" ? b.floorMin : 1;
       const max = typeof b.floorMax === "number" ? b.floorMax : (b.floors ?? 1);
       const lo = Math.min(min, max);
@@ -72,11 +90,41 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     }
     if (set.size === 0) set.add(1);
     return [...set].sort((a, b) => b - a); // top-to-bottom: highest first
-  }, [buildings]);
+  }, [campus.buildings]);
 
   const onMapReady = useCallback((h: CampusMapHandle) => {
     handleRef.current = h;
     setMapInstance(h.map);
+  }, []);
+
+  /** Resolve a click on a rendered feature into a full entity for the
+   *  info sheet. CampusOverlay only knows kind + id — we look the rest
+   *  up from useCampusData. */
+  const onFeatureClick = useCallback((kind: "building" | "room" | "hallway", id: string) => {
+    if (kind === "building") {
+      const b = campus.buildings.find((x) => x.id === id);
+      if (b) setClickedFeature({ kind: "building", entity: b });
+    } else if (kind === "room") {
+      const r = campus.rooms.find((x) => x.id === id);
+      if (r) setClickedFeature({ kind: "room", entity: r });
+    } else {
+      const h = campus.hallways.find((x) => x.id === id);
+      if (h) setClickedFeature({ kind: "hallway", entity: h });
+    }
+  }, [campus]);
+
+  /** Handoff to NavigationPanel — opens it (if closed) and fires an
+   *  event carrying the destination. NavigationPanel listens and
+   *  prefills the To field. */
+  const handleRouteTo = useCallback((f: ClickedFeature) => {
+    setShowNav(true);
+    setClickedFeature(null);
+    // Defer so NavigationPanel is mounted before we dispatch.
+    setTimeout(() => {
+      try {
+        window.dispatchEvent(new CustomEvent("ksyk:route-to", { detail: f }));
+      } catch { /* SSR / old browser — non-fatal */ }
+    }, 60);
   }, []);
 
   const toggle3D = useCallback(() => {
@@ -146,6 +194,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       <CampusOverlay
         map={mapInstance}
         activeFloor={selectedFloor}
+        onFeatureClick={onFeatureClick}
       />
 
       {/* Search results overlay — anchored under the header search bar. */}
@@ -225,6 +274,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           >
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
+
+          {/* Locate me — GPS-driven blue dot + auto-recenter. */}
+          <UserLocationLayer map={mapInstance} />
         </div>
 
         {/* Zoom in / out — attached pair, one rounded chip. */}
@@ -286,6 +338,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           map={mapInstance}
           onClose={() => setShowNav(false)}
           searchActive={!!searchQuery.trim()}
+        />
+      )}
+
+      {/* Feature info sheet — click a room/building on the map to
+       *  inspect it and get one-tap directions there. */}
+      {clickedFeature && (
+        <FeatureInfoSheet
+          feature={clickedFeature}
+          onClose={() => setClickedFeature(null)}
+          onRouteTo={handleRouteTo}
         />
       )}
     </div>
