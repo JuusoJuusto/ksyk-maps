@@ -47,6 +47,13 @@ import {
   ParkingCircle,
   Bike,
   Accessibility,
+  Coffee,
+  Utensils,
+  Droplet,
+  HeartPulse,
+  Zap,
+  Printer,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -63,7 +70,12 @@ type BuilderTool =
   // Generic POI tools — placed via a single click, backed by
   // /api/pois with a `kind` string. New in v3.14.
   | "poi-info" | "poi-reception" | "poi-parking" | "poi-bike"
-  | "poi-restroom-m" | "poi-restroom-f" | "poi-restroom-a";
+  | "poi-restroom-m" | "poi-restroom-f" | "poi-restroom-a"
+  // v3.15: cafeteria, vending, drinking fountain, first aid,
+  // defibrillator (AED), printer, and meeting point — the "everything
+  // else" set MazeMap covers by default.
+  | "poi-cafe" | "poi-vending" | "poi-water"
+  | "poi-first-aid" | "poi-defibrillator" | "poi-printer" | "poi-meeting";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -561,13 +573,20 @@ function BuilderWorkspace() {
       // Generic POIs — every one goes to /api/pois with a `kind`
       // derived from the tool id.
       const genericKindByTool: Partial<Record<BuilderTool, string>> = {
-        "poi-info":        "info",
-        "poi-reception":   "reception",
-        "poi-parking":     "parking",
-        "poi-bike":        "bike",
-        "poi-restroom-m":  "restroom_m",
-        "poi-restroom-f":  "restroom_f",
-        "poi-restroom-a":  "restroom_a",
+        "poi-info":           "info",
+        "poi-reception":      "reception",
+        "poi-parking":        "parking",
+        "poi-bike":           "bike",
+        "poi-restroom-m":     "restroom_m",
+        "poi-restroom-f":     "restroom_f",
+        "poi-restroom-a":     "restroom_a",
+        "poi-cafe":           "cafe",
+        "poi-vending":        "vending",
+        "poi-water":          "water",
+        "poi-first-aid":      "first_aid",
+        "poi-defibrillator":  "defibrillator",
+        "poi-printer":        "printer",
+        "poi-meeting":        "meeting_point",
       };
       const genericKind = genericKindByTool[activeTool];
       if (genericKind) {
@@ -1164,9 +1183,16 @@ function BuilderWorkspace() {
                 {activeTool === "poi-reception"  && (<>Click to place reception</>)}
                 {activeTool === "poi-parking"    && (<>Click to place parking</>)}
                 {activeTool === "poi-bike"       && (<>Click to place bike parking</>)}
-                {activeTool === "poi-restroom-m" && (<>Click to place restroom (M)</>)}
-                {activeTool === "poi-restroom-f" && (<>Click to place restroom (F)</>)}
-                {activeTool === "poi-restroom-a" && (<>Click to place accessible restroom</>)}
+                {activeTool === "poi-restroom-m"    && (<>Click to place restroom (M)</>)}
+                {activeTool === "poi-restroom-f"    && (<>Click to place restroom (F)</>)}
+                {activeTool === "poi-restroom-a"    && (<>Click to place accessible restroom</>)}
+                {activeTool === "poi-cafe"          && (<>Click to place café</>)}
+                {activeTool === "poi-vending"       && (<>Click to place vending machine</>)}
+                {activeTool === "poi-water"         && (<>Click to place water fountain</>)}
+                {activeTool === "poi-first-aid"     && (<>Click to place first aid</>)}
+                {activeTool === "poi-defibrillator" && (<>Click to place defibrillator (AED)</>)}
+                {activeTool === "poi-printer"       && (<>Click to place printer</>)}
+                {activeTool === "poi-meeting"       && (<>Click to place meeting point</>)}
               </span>
               {cursor && (
                 <span className="text-[11px] font-mono tabular-nums text-muted-foreground border-l border-border pl-3">
@@ -1341,18 +1367,26 @@ function ToolPalette({
     { id: "wall",           Icon: StretchHorizontal,  label: "Wall",         hotkey: "W" },
     { id: "measure",        Icon: Ruler,              label: "Measure",      hotkey: "M" },
     // POI tools — placed with a single click, no Enter needed.
-    { id: "poi-stairs",     Icon: StepForward,        label: "Stairs",       hotkey: "S" },
-    { id: "poi-elevator",   Icon: MoveVertical,       label: "Elevator",     hotkey: "E" },
-    { id: "poi-door",       Icon: DoorClosed,         label: "Door",         hotkey: "D" },
-    { id: "poi-entrance",   Icon: LogIn,              label: "Entrance",     hotkey: "N" },
+    { id: "poi-stairs",        Icon: StepForward,        label: "Stairs",         hotkey: "S" },
+    { id: "poi-elevator",      Icon: MoveVertical,       label: "Elevator",       hotkey: "E" },
+    { id: "poi-door",          Icon: DoorClosed,         label: "Door",           hotkey: "D" },
+    { id: "poi-entrance",      Icon: LogIn,              label: "Entrance",       hotkey: "N" },
     // Generic POIs — one endpoint (/api/pois) discriminated by `kind`.
-    { id: "poi-info",       Icon: Info,               label: "Info",         hotkey: "I" },
-    { id: "poi-reception",  Icon: Phone,              label: "Reception",    hotkey: "" },
-    { id: "poi-parking",    Icon: ParkingCircle,      label: "Parking",      hotkey: "" },
-    { id: "poi-bike",       Icon: Bike,               label: "Bike",         hotkey: "" },
-    { id: "poi-restroom-m", Icon: Accessibility,      label: "Restroom M",   hotkey: "" },
-    { id: "poi-restroom-f", Icon: Accessibility,      label: "Restroom F",   hotkey: "" },
-    { id: "poi-restroom-a", Icon: Accessibility,      label: "Restroom ♿",  hotkey: "" },
+    { id: "poi-info",          Icon: Info,               label: "Info",           hotkey: "I" },
+    { id: "poi-reception",     Icon: Phone,              label: "Reception",      hotkey: "" },
+    { id: "poi-parking",       Icon: ParkingCircle,      label: "Parking",        hotkey: "" },
+    { id: "poi-bike",          Icon: Bike,               label: "Bike",           hotkey: "" },
+    { id: "poi-restroom-m",    Icon: Accessibility,      label: "Restroom M",     hotkey: "" },
+    { id: "poi-restroom-f",    Icon: Accessibility,      label: "Restroom F",     hotkey: "" },
+    { id: "poi-restroom-a",    Icon: Accessibility,      label: "Restroom ♿",    hotkey: "" },
+    // v3.15 additions — cafeteria and quality-of-life POIs.
+    { id: "poi-cafe",          Icon: Coffee,             label: "Café",           hotkey: "" },
+    { id: "poi-vending",       Icon: Utensils,           label: "Vending",        hotkey: "" },
+    { id: "poi-water",         Icon: Droplet,            label: "Water",          hotkey: "" },
+    { id: "poi-first-aid",     Icon: HeartPulse,         label: "First aid",      hotkey: "" },
+    { id: "poi-defibrillator", Icon: Zap,                label: "AED",            hotkey: "" },
+    { id: "poi-printer",       Icon: Printer,            label: "Printer",        hotkey: "" },
+    { id: "poi-meeting",       Icon: Flag,               label: "Meeting point",  hotkey: "" },
   ];
 
   return (

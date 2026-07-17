@@ -23,7 +23,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, Door, Stair, Elevator, MapLayer, MapVersion } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn } from "lucide-react";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
@@ -295,7 +295,13 @@ function RoomList({
 // the parent can fly the map to them without needing PropertyPanel
 // support for those kinds (yet).
 
-type PoiKind = "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator";
+type PoiKind =
+  | "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator"
+  // Free-form kinds — placed via the generic POI tools and stored in
+  // /api/pois with a `kind` string discriminator.
+  | "info" | "reception" | "parking" | "bike"
+  | "restroom_m" | "restroom_f" | "restroom_a"
+  | "cafe" | "vending" | "water" | "first_aid" | "defibrillator" | "printer" | "meeting_point";
 interface UnifiedPoi {
   id: string;
   kind: PoiKind;
@@ -324,6 +330,13 @@ function PoiList({
   });
   const { data: elevators = [] } = useQuery<Elevator[]>({
     queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators"),
+  });
+  // Free-form POIs — info, reception, restroom_*, cafe, water, etc.
+  // Stored in the campus_pois collection via /api/pois. Each row carries
+  // a kind string + position (lat/lng).
+  const { data: pois = [] } = useQuery<Array<{ id: string; kind: string; position?: { lat?: number; lng?: number }; floor?: number | null; label?: string | null }>>({
+    queryKey: ["/api/pois"],
+    queryFn: () => fetchList("/api/pois"),
   });
 
   const items = useMemo<UnifiedPoi[]>(() => {
@@ -391,8 +404,27 @@ function PoiList({
         focusLng: e.position?.lng ?? null,
       });
     }
+    // Free-form POIs — one row per campus_pois entry. Falls back to a
+    // hyphenated kind label if the admin didn't attach a custom label.
+    for (const p of pois) {
+      const kind = p.kind as PoiKind;
+      if (!kind) continue;
+      out.push({
+        id: p.id,
+        kind,
+        title: p.label ?? poiKindDisplayName(kind),
+        subtitle: [
+          poiKindDisplayName(kind),
+          p.floor != null ? `Floor ${p.floor}` : null,
+        ].filter(Boolean).join(" · "),
+        color: poiKindColor(kind),
+        floor: p.floor ?? null,
+        focusLat: p.position?.lat ?? null,
+        focusLng: p.position?.lng ?? null,
+      });
+    }
     return out;
-  }, [hallways, doors, stairs, elevators]);
+  }, [hallways, doors, stairs, elevators, pois]);
 
   const q = query.trim().toLowerCase();
   const filtered = items.filter((it) => {
@@ -408,14 +440,28 @@ function PoiList({
   }, [items]);
 
   const allChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
-    { id: "all",      label: "All",       Icon: Layers },
-    { id: "hallway",  label: "Hallways",  Icon: RouteIcon },
-    { id: "wall",     label: "Walls",     Icon: StretchHorizontal },
-    { id: "door",     label: "Doors",     Icon: DoorClosed },
-    { id: "entrance", label: "Entrances", Icon: LogIn },
-    { id: "exit",     label: "Exits",     Icon: DoorOpen },
-    { id: "stair",    label: "Stairs",    Icon: StepForward },
-    { id: "elevator", label: "Elevators", Icon: MoveVertical },
+    { id: "all",             label: "All",       Icon: Layers },
+    { id: "hallway",         label: "Hallways",  Icon: RouteIcon },
+    { id: "wall",            label: "Walls",     Icon: StretchHorizontal },
+    { id: "door",            label: "Doors",     Icon: DoorClosed },
+    { id: "entrance",        label: "Entrances", Icon: LogIn },
+    { id: "exit",            label: "Exits",     Icon: DoorOpen },
+    { id: "stair",           label: "Stairs",    Icon: StepForward },
+    { id: "elevator",        label: "Elevators", Icon: MoveVertical },
+    { id: "info",            label: "Info",      Icon: Info },
+    { id: "reception",       label: "Reception", Icon: Phone },
+    { id: "restroom_m",      label: "WC · M",    Icon: Accessibility },
+    { id: "restroom_f",      label: "WC · F",    Icon: Accessibility },
+    { id: "restroom_a",      label: "WC · ♿",   Icon: Accessibility },
+    { id: "cafe",            label: "Café",      Icon: Coffee },
+    { id: "vending",         label: "Vending",   Icon: Utensils },
+    { id: "water",           label: "Water",     Icon: Droplet },
+    { id: "first_aid",       label: "First aid", Icon: HeartPulse },
+    { id: "defibrillator",   label: "AED",       Icon: Zap },
+    { id: "printer",         label: "Printer",   Icon: Printer },
+    { id: "meeting_point",   label: "Meeting",   Icon: Flag },
+    { id: "parking",         label: "Parking",   Icon: ParkingCircle },
+    { id: "bike",            label: "Bike",      Icon: Bike },
   ];
   const chips = allChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
 
@@ -773,4 +819,54 @@ function EmptyState({ message, hint }: { message: string; hint?: string }) {
 
 function Loading() {
   return <div className="p-6 text-center text-muted-foreground text-sm">Loading…</div>;
+}
+
+/** Human-friendly label for each POI kind — used in list rows and
+ *  filter chips so users don't see raw snake_case strings. */
+function poiKindDisplayName(kind: string): string {
+  switch (kind) {
+    case "hallway": return "Hallway";
+    case "wall": return "Wall";
+    case "door": return "Door";
+    case "entrance": return "Entrance";
+    case "exit": return "Emergency exit";
+    case "stair": case "stairs": return "Stairs";
+    case "elevator": return "Elevator";
+    case "info": return "Information";
+    case "reception": return "Reception";
+    case "parking": return "Parking";
+    case "bike": return "Bike parking";
+    case "restroom_m": return "Restroom · M";
+    case "restroom_f": return "Restroom · F";
+    case "restroom_a": return "Accessible restroom";
+    case "cafe": return "Café";
+    case "vending": return "Vending machine";
+    case "water": return "Water fountain";
+    case "first_aid": return "First aid";
+    case "defibrillator": return "Defibrillator (AED)";
+    case "printer": return "Printer";
+    case "meeting_point": return "Meeting point";
+    case "bathroom": return "Bathroom";
+    default: return kind.charAt(0).toUpperCase() + kind.slice(1);
+  }
+}
+
+/** Color chip tint per kind — mirrors the CampusOverlay POI color palette
+ *  so the sidebar and the map read as the same visual system. */
+function poiKindColor(kind: string): string {
+  switch (kind) {
+    case "info": return "#0ea5e9";
+    case "reception": return "#2563eb";
+    case "restroom_m": case "restroom_f": case "restroom_a": case "bathroom": return "#be185d";
+    case "cafe": return "#a16207";
+    case "vending": return "#7c3aed";
+    case "water": return "#0891b2";
+    case "first_aid": return "#dc2626";
+    case "defibrillator": return "#e11d48";
+    case "printer": return "#4b5563";
+    case "meeting_point": return "#059669";
+    case "parking": return "#0369a1";
+    case "bike": return "#16a34a";
+    default: return "#6b7280";
+  }
 }

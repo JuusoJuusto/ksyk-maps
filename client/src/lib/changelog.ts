@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.1.6";
+export const APP_VERSION = "3.15.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.15.0",
+    date: "July 2026",
+    title: "MazeMap-style 3D + 15 new POIs + turn-by-turn timeline",
+    titleFi: "MazeMap-tyylinen 3D + 15 uutta POI:ta + reittiaikajana",
+    latest: true,
+    highlights: [
+      "3D scene overhaul: lower walls, floor slabs, roof caps, rooms now stack ON buildings",
+      "Three.js walkthrough: hollow building shells, per-floor plates, rooms as raised platforms",
+      "Builder POIs: café, vending, water, first aid, AED, printer, meeting point",
+      "Navigation: MazeMap-style turn-by-turn timeline with typed icons + floor-change chips",
+      "Map: hover cursor on interactive features, floor picker polish",
+    ],
+    highlightsFi: [
+      "3D-uudistus: matalammat seinät, kerroslaatat, katot; huoneet asettuvat rakennuksen päälle",
+      "Three.js-kävely: läpinäkyvät rakennuskuoret, kerroslaatat, huoneet kohotettuina alustoina",
+      "Rakentajaan POI:t: kahvila, automaatti, vesi, ensiapu, AED, tulostin, tapaamispaikka",
+      "Navigaatio: MazeMap-tyylinen käännösohjeaikajana ikoneilla + kerrosvaihtojen merkinnät",
+      "Kartta: osoitin muuttuu klikattavien päällä, kerrosvalitsin viimeistelty",
+    ],
+  },
   {
     version: "3.1.6",
     date: "May 2026",
     title: "2D-only map polish",
     titleFi: "2D-kartan viimeistely",
-    latest: true,
     highlights: [
       "Removed 2D/3D toggle — home is 2D campus map only for now",
       "Richer map visuals: campus plate, shadows, search results, status legend",

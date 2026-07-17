@@ -235,33 +235,37 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {/* Floor selector — top-right. Hidden when there's only one floor
        *  in the whole campus. Renders the UNION of every building's
        *  floor range so a building spanning -1..3 and another at 4 both
-       *  show up. */}
+       *  show up. MazeMap-style — highlighted active floor, subtle chip
+       *  around each row, tighter spacing so 6+ floors still fit on
+       *  mobile without scrolling. */}
       {floorList.length > 1 && (
         <div
-          className="absolute right-3 z-30 flex flex-col gap-0.5 p-1.5 rounded-2xl border border-border bg-card shadow-sm"
+          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-card/95 shadow-md backdrop-blur-md"
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
-          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-0.5">
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-1">
             FL
           </p>
-          {floorList.map((floor) => (
-            <button
-              key={floor}
-              type="button"
-              aria-label={`Floor ${floor}`}
-              aria-pressed={selectedFloor === floor}
-              onClick={() => setSelectedFloor(floor)}
-              className={cn(
-                "min-w-[40px] h-10 px-1 rounded-xl text-sm font-bold transition-colors leading-none tabular-nums flex items-center justify-center",
-                selectedFloor === floor
-                  ? "bg-blue-600 text-white"
-                  : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
-              )}
-            >
-              {floor}
-            </button>
-          ))}
+          <div className="flex flex-col gap-0.5">
+            {floorList.map((floor) => (
+              <button
+                key={floor}
+                type="button"
+                aria-label={`Floor ${floor}`}
+                aria-pressed={selectedFloor === floor}
+                onClick={() => setSelectedFloor(floor)}
+                className={cn(
+                  "min-w-[36px] h-9 px-1 rounded-xl text-[13px] font-bold transition-all leading-none tabular-nums flex items-center justify-center",
+                  selectedFloor === floor
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
+                    : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+                )}
+              >
+                {floor}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

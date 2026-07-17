@@ -47,7 +47,21 @@ const LAYERS = {
   poisChip: "campus-pois-chip",
   poisIcon: "campus-pois-icon",
   buildings3D: "campus-buildings-extrude",
+  buildingsRoof: "campus-buildings-roof",
+  floorSlabs: "campus-floor-slabs",
+  rooms3D: "campus-rooms-extrude",
 } as const;
+
+// Physical metres per floor for 3D extrusion. Kept low so the campus
+// reads like an isometric MazeMap-style diorama, not a skyscraper block.
+const METERS_PER_FLOOR = 3.0;
+// Interior wall panels are just a bit shorter than a floor so they look
+// like real interior partitions rather than skyscraper walls.
+const WALL_HEIGHT_METERS = 2.4;
+// Room "slab" thickness — rooms extrude a tiny amount so they visually
+// SIT ON the floor. Just enough that MapLibre picks up the color at
+// pitch, without dominating over the walls.
+const ROOM_SLAB_METERS = 0.35;
 
 export interface CampusOverlayProps {
   /** MapLibre map, `null` until it's ready. */
@@ -110,6 +124,11 @@ export default function CampusOverlay({
       installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null);
       applyVisibility();
     };
+    // Rebuild the CACHED 3D-room source whenever the active floor changes
+    // so the correct floor's rooms are the ones sitting on top of the
+    // shell. installRooms writes both the flat + 3D sources; the flat
+    // one is already floor-filtered, and the 3D one uses the floor prop
+    // to compute the correct extrusion base.
     /** Apply layer visibility from the /api/layers table.
      *
      * Naming matches the LeftSidebar defaults:
@@ -132,6 +151,11 @@ export default function CampusOverlay({
       setVis(LAYERS.buildingsOutline, bVis);
       setVis(LAYERS.buildingsLabel,   bVis && lVis);
       setVis(LAYERS.buildings3D,      bVis && is3D);
+      // MazeMap-style roof caps + stacked floor slabs — only make sense
+      // when 3D pitch is on. Hidden in flat 2D so the fill layer isn't
+      // over-drawn.
+      setVis(LAYERS.buildingsRoof,    bVis && is3D);
+      setVis(LAYERS.floorSlabs,       bVis && is3D);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -140,7 +164,11 @@ export default function CampusOverlay({
       // twin layer instead of running both.
       setVis(LAYERS.poisIcon,         !is3D);
       setVis(`${LAYERS.poisIcon}-3d`, is3D);
-      setVis(LAYERS.roomsFill,        rVis);
+      // Flat rooms show in 2D. In 3D we swap to extruded room slabs
+      // stacked ON TOP of each building's floor plate so the room reads
+      // as a real MazeMap-style raised platform inside the shell.
+      setVis(LAYERS.roomsFill,        rVis && !is3D);
+      setVis(LAYERS.rooms3D,          rVis && is3D);
       setVis(LAYERS.roomsOutline,     rVis);
       setVis(LAYERS.roomsLabel,       rVis && lVis);
       setVis(LAYERS.hallwaysLine,     hVis);
@@ -185,8 +213,26 @@ export default function CampusOverlay({
       clickHandlerRef.current?.(kind, hit.properties.id);
     };
     map.on("click", onClick);
+
+    // MazeMap-style cursor + hover feedback — swap to a pointer any
+    // time the mouse is over a hoverable feature. We use a low-cost
+    // move handler that just runs queryRenderedFeatures on the
+    // buildings/rooms/hallways layers and toggles the canvas cursor.
+    const hoverableLayers = [LAYERS.buildingsFill, LAYERS.roomsFill, LAYERS.hallwaysLine, LAYERS.poisChip, LAYERS.poisIcon];
+    const onMove = (e: import("maplibre-gl").MapMouseEvent) => {
+      const layerIds = hoverableLayers.filter((id) => map.getLayer(id));
+      if (layerIds.length === 0) return;
+      const feats = map.queryRenderedFeatures(e.point, { layers: layerIds });
+      map.getCanvas().style.cursor = feats.length > 0 ? "pointer" : "";
+    };
+    const onLeave = () => { map.getCanvas().style.cursor = ""; };
+    map.on("mousemove", onMove);
+    map.on("mouseleave", onLeave);
+
     return () => {
       map.off("click", onClick);
+      map.off("mousemove", onMove);
+      map.off("mouseleave", onLeave);
       window.clearTimeout(safety);
     };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, is3D]);
@@ -203,7 +249,7 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       .filter((b) => b.points && b.points.length >= 3)
       .map((b) => {
         const floors = b.floors ?? 1;
-        const height = Math.max(3.5, floors * 3.5);
+        const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
         const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
         return {
           type: "Feature" as const,
@@ -239,11 +285,12 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       .filter((b) => b.points && b.points.length >= 3)
       .map((b) => {
         const floors = b.floors ?? 1;
-        const height = Math.max(3.5, floors * 3.5);
-        // Wall thickness — real walls are ~0.3 m; we use 1.0 m so the
-        // extrusion reads visually even at zoom 17.
+        const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
+        // Wall thickness — real walls are ~0.3 m; we use 0.7 m so the
+        // extrusion reads visually even at zoom 17 without swallowing the
+        // interior.
         const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
-        const inner = insetPolygonMeters(outer, 1.0);
+        const inner = insetPolygonMeters(outer, 0.7);
         // If the inset degenerates (tiny polygon inset to nothing),
         // skip the hole and fall back to a solid block for that one.
         const rings: number[][][] = inner && inner.length >= 3
@@ -267,6 +314,74 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       }),
   };
   upsertGeoJSONSource(map, "campus-buildings-shell", shellData);
+
+  // Per-floor slab dataset — one thin plate per (building, floor). Sits
+  // at the top of each floor so the eye reads stacked levels through
+  // the transparent shell. Colour is a soft cream/warm gray that reads
+  // as "floor plate" against the shell tint.
+  const slabFeatures: unknown[] = [];
+  for (const b of buildings) {
+    if (!b.points || b.points.length < 3) continue;
+    const floors = b.floors ?? 1;
+    const floorMin = typeof b.floorMin === "number" ? b.floorMin : 1;
+    const floorMax = typeof b.floorMax === "number" ? b.floorMax : floors;
+    const coords = [
+      ...b.points.map((p) => [p.lng, p.lat]),
+      [b.points[0].lng, b.points[0].lat],
+    ];
+    // Iterate every floor in range. `floorIdx` = zero-based index for Z
+    // stacking (so floorMin sits at ground, next slab METERS_PER_FLOOR
+    // above, and so on).
+    const lo = Math.min(floorMin, floorMax);
+    const hi = Math.max(floorMin, floorMax);
+    for (let f = lo, floorIdx = 0; f <= hi; f++, floorIdx++) {
+      const base = floorIdx * METERS_PER_FLOOR;
+      slabFeatures.push({
+        type: "Feature" as const,
+        geometry: { type: "Polygon" as const, coordinates: [coords] },
+        properties: {
+          id: `${b.id}-slab-${f}`,
+          buildingId: b.id,
+          floor: f,
+          floorIdx,
+          base,
+          top: base + 0.08, // thin 8 cm plate
+        },
+      });
+    }
+  }
+  upsertGeoJSONSource(map, "campus-floor-slabs", {
+    type: "FeatureCollection" as const,
+    features: slabFeatures,
+  });
+
+  // Roof cap dataset — one thin translucent plate at the very top of
+  // each building shell so the shell reads as an enclosed volume, not
+  // a bare picket fence.
+  const roofFeatures = buildings
+    .filter((b) => b.points && b.points.length >= 3)
+    .map((b) => {
+      const floors = b.floors ?? 1;
+      const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
+      const coords = [
+        ...b.points!.map((p) => [p.lng, p.lat]),
+        [b.points![0].lng, b.points![0].lat],
+      ];
+      return {
+        type: "Feature" as const,
+        geometry: { type: "Polygon" as const, coordinates: [coords] },
+        properties: {
+          id: `${b.id}-roof`,
+          color: b.colorCode ?? "#2563eb",
+          base: height - 0.05,
+          top: height,
+        },
+      };
+    });
+  upsertGeoJSONSource(map, "campus-buildings-roof", {
+    type: "FeatureCollection" as const,
+    features: roofFeatures,
+  });
 
   // MazeMap-style: soft cream fill (using the brand color at very low
   // opacity so buildings still read as "yours") with a crisp darker
@@ -348,10 +463,51 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": 0,
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.65, 20, 0.85],
+      // Lower default opacity so the interior floor slabs + room
+      // slabs read through the walls — MazeMap goes for a glassy shell,
+      // not a solid block.
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.45, 20, 0.7],
       "fill-extrusion-vertical-gradient": true,
     },
     minzoom: 14,
+  });
+
+  // Per-floor slab plates — a thin (~8 cm) coloured surface at the top
+  // of each floor so the campus reads as a stack of platforms even
+  // when the shell is translucent. A slightly warm neutral so the
+  // slab reads distinct from the building's brand tint.
+  addLayerIfMissing(map, {
+    id: LAYERS.floorSlabs,
+    source: "campus-floor-slabs",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": "#e6ecf5",
+      "fill-extrusion-height": ["get", "top"],
+      "fill-extrusion-base": ["get", "base"],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.6, 20, 0.85],
+      "fill-extrusion-vertical-gradient": false,
+    },
+    minzoom: 16,
+  });
+
+  // Roof caps — a slim colored disc sitting flush with the shell top so
+  // the shell looks enclosed and the campus reads as blocks with clean
+  // roofs when tilted. The colour matches the building tint so a user
+  // scanning from a distance can still identify buildings.
+  addLayerIfMissing(map, {
+    id: LAYERS.buildingsRoof,
+    source: "campus-buildings-roof",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "top"],
+      "fill-extrusion-base": ["get", "base"],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.15, 17, 0.35, 20, 0.55],
+      "fill-extrusion-vertical-gradient": false,
+    },
+    minzoom: 15,
   });
 }
 
@@ -495,18 +651,23 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
 
   // 3D wall shells — buffer each wall LineString into a thin
   // rectangle polygon so `fill-extrusion` can raise it up. Wall
-  // panels are ~0.4m thick and extrude ~3m tall by default (short
-  // interior wall). Users see actual room-dividing walls through
-  // the building's hollow shell.
+  // panels are ~0.35m thick and extrude ~2.4m tall by default (short
+  // interior wall — WALL_HEIGHT_METERS). Users see actual
+  // room-dividing walls through the building's hollow shell. Wall
+  // sits on its floor's slab (base = (floor - 1) * METERS_PER_FLOOR)
+  // so multi-story wall segments don't all pile up at ground level.
   const wallShellFeatures = hallways
     .filter((h) => h.surface === "wall")
     .map((h) => {
       const rect = bufferLineToRectMeters(
         { lat: h.startY, lng: h.startX },
         { lat: h.endY, lng: h.endX },
-        0.4,
+        0.35,
       );
       if (!rect) return null;
+      const floor = h.floor ?? 1;
+      const floorIdx = Math.max(0, floor - 1);
+      const base = floorIdx * METERS_PER_FLOOR;
       return {
         type: "Feature" as const,
         geometry: {
@@ -515,8 +676,9 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
         },
         properties: {
           id: h.id,
-          floor: h.floor ?? 0,
-          height: 3.0,
+          floor,
+          base,
+          height: base + WALL_HEIGHT_METERS,
         },
       };
     })
@@ -531,9 +693,12 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
     type: "fill-extrusion",
     layout: { visibility: "none" }, // parent toggles via applyVisibility(is3D)
     paint: {
-      "fill-extrusion-color": "#111827",
+      // MazeMap-adjacent — walls read as neutral warm gray instead of
+      // pure black so they don't overpower the room fills sitting
+      // between them.
+      "fill-extrusion-color": "#4b5563",
       "fill-extrusion-height": ["get", "height"],
-      "fill-extrusion-base": 0,
+      "fill-extrusion-base": ["get", "base"],
       "fill-extrusion-opacity": 0.85,
       "fill-extrusion-vertical-gradient": true,
     },
@@ -608,6 +773,45 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   };
   upsertGeoJSONSource(map, SOURCES.rooms, data);
 
+  // 3D room slabs — sit ON TOP of the building's floor plate for the
+  // room's floor. We compute a Z base = (floor - 1) * METERS_PER_FLOOR
+  // + 0.08 (floor slab thickness) and extrude by ROOM_SLAB_METERS so
+  // the room reads as a raised platform inside the wall shell.
+  //
+  // Filtering: only the active floor's rooms extrude — otherwise every
+  // floor's rooms would stack visually inside the shell and the user
+  // couldn't see which one they're actually looking at. MazeMap does
+  // the same — you swap floor, the interior redraws.
+  const rooms3DData = {
+    type: "FeatureCollection" as const,
+    features: rooms
+      .filter((r) => r.points && r.points.length >= 3)
+      .filter((r) => activeFloor === null || r.floor === activeFloor)
+      .map((r) => {
+        const floor = r.floor ?? 1;
+        const floorIdx = Math.max(0, floor - 1);
+        const base = floorIdx * METERS_PER_FLOOR + 0.08;
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              ...r.points!.map((p) => [p.lng, p.lat]),
+              [r.points![0].lng, r.points![0].lat],
+            ]],
+          },
+          properties: {
+            id: r.id,
+            color: r.colorCode ?? "#059669",
+            floor,
+            base,
+            height: base + ROOM_SLAB_METERS,
+          },
+        };
+      }),
+  };
+  upsertGeoJSONSource(map, "campus-rooms-3d", rooms3DData);
+
   addLayerIfMissing(map, {
     id: LAYERS.roomsFill,
     source: SOURCES.rooms,
@@ -632,6 +836,26 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // Keeping the layer id in LAYERS.roomsOutline for backwards-compat with
   // the visibility toggles; installer just skips it now.
   void LAYERS.roomsOutline;
+
+  // 3D room slabs — used when the map is pitched. Sits at the correct
+  // Z for the room's floor so multi-story buildings actually stack.
+  // Because the slab is thin (ROOM_SLAB_METERS ≈ 35 cm), the user sees
+  // colored floor plates through the shell rather than solid room
+  // "boxes" that would fill the whole floor volume.
+  addLayerIfMissing(map, {
+    id: LAYERS.rooms3D,
+    source: "campus-rooms-3d",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": ["get", "base"],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.75, 20, 0.9],
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 16,
+  });
   addLayerIfMissing(map, {
     id: LAYERS.roomsLabel,
     source: SOURCES.rooms,
@@ -672,19 +896,28 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
  *  don't have to load an icon atlas. Uses cleaner geometric symbols
  *  that read as pictographs at 12–20 px. */
 const POI_ICON: Record<string, string> = {
-  stairs:     "⇕",   // up + down arrows
-  elevator:   "⇳",   // vertical double-arrow (elevator car)
-  door:       "◫",   // door + wall
-  entrance:   "▶",   // "in" pointer
-  exit:       "◄",   // "out" pointer
-  bathroom:   "♁",   // toilet-adjacent
-  info:       "ⓘ",
-  reception:  "☎",
-  parking:    "Ⓟ",
-  bike:       "🚲",  // universal
-  restroom_m: "♂",
-  restroom_f: "♀",
-  restroom_a: "♿",  // accessible
+  stairs:        "⇕",   // up + down arrows
+  elevator:      "⇳",   // vertical double-arrow (elevator car)
+  door:          "◫",   // door + wall
+  entrance:      "▶",   // "in" pointer
+  exit:          "◄",   // "out" pointer
+  bathroom:      "♁",   // toilet-adjacent
+  info:          "ⓘ",
+  reception:     "☎",
+  parking:       "Ⓟ",
+  bike:          "🚲",  // universal
+  restroom_m:    "♂",
+  restroom_f:    "♀",
+  restroom_a:    "♿",  // accessible
+  // v3.15 additions — MazeMap-style POIs. Emoji fallbacks so the icons
+  // render even in the default `Noto Sans Regular` font.
+  cafe:          "☕",
+  vending:       "🍫",
+  water:         "💧",
+  first_aid:     "＋",
+  defibrillator: "⚡",
+  printer:       "🖨",
+  meeting_point: "⚑",
 };
 
 interface GenericPOI {
@@ -773,23 +1006,51 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 20, 15],
       "circle-color": [
         "match", ["get", "kind"],
-        "elevator", "#dbeafe",  // blue-100
-        "stairs",   "#fef3c7",  // amber-100
-        "bathroom", "#fce7f3",  // pink-100
-        "entrance", "#dcfce7",  // green-100
-        "exit",     "#fee2e2",  // red-100
-        "door",     "#f3f4f6",  // gray-100
-                    "#ffffff",  // fallback
+        "elevator",      "#dbeafe",  // blue-100
+        "stairs",        "#fef3c7",  // amber-100
+        "bathroom",      "#fce7f3",  // pink-100
+        "restroom_m",    "#dbeafe",
+        "restroom_f",    "#fce7f3",
+        "restroom_a",    "#e9d5ff",
+        "entrance",      "#dcfce7",  // green-100
+        "exit",          "#fee2e2",  // red-100
+        "door",          "#f3f4f6",  // gray-100
+        "info",          "#e0f2fe",  // sky-100
+        "reception",     "#dbeafe",
+        "cafe",          "#fef3c7",
+        "vending",       "#ede9fe",
+        "water",         "#cffafe",
+        "first_aid",     "#fee2e2",
+        "defibrillator", "#ffe4e6",
+        "printer",       "#f3f4f6",
+        "meeting_point", "#dcfce7",
+        "parking",       "#e0f2fe",
+        "bike",          "#dcfce7",
+                         "#ffffff",  // fallback
       ],
       "circle-stroke-color": [
         "match", ["get", "kind"],
-        "elevator", "#2563eb",
-        "stairs",   "#b45309",
-        "bathroom", "#be185d",
-        "entrance", "#15803d",
-        "exit",     "#b91c1c",
-        "door",     "#4b5563",
-                    "#111827",
+        "elevator",      "#2563eb",
+        "stairs",        "#b45309",
+        "bathroom",      "#be185d",
+        "restroom_m",    "#2563eb",
+        "restroom_f",    "#be185d",
+        "restroom_a",    "#7c3aed",
+        "entrance",      "#15803d",
+        "exit",          "#b91c1c",
+        "door",          "#4b5563",
+        "info",          "#0ea5e9",
+        "reception",     "#2563eb",
+        "cafe",          "#a16207",
+        "vending",       "#7c3aed",
+        "water",         "#0891b2",
+        "first_aid",     "#dc2626",
+        "defibrillator", "#e11d48",
+        "printer",       "#4b5563",
+        "meeting_point", "#059669",
+        "parking",       "#0369a1",
+        "bike",          "#16a34a",
+                         "#111827",
       ],
       "circle-stroke-width": 2,
       "circle-opacity": 1,

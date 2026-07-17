@@ -15,7 +15,7 @@
  * when not in use. `onClose` retracts it back to a small pill.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility } from "lucide-react";
+import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility, ArrowUpRight, ArrowUp, ArrowUpLeft, CornerDownRight, CornerDownLeft, ChevronsUp, ChevronsDown, Flag, PlayCircle, Layers as LayersIcon } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, LatLng } from "@ksyk/shared";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
@@ -23,6 +23,7 @@ import {
   buildGraph, buildNavGraph, findPath,
   PROFILE_DEFAULT, PROFILE_WHEELCHAIR,
   annotateRoute,
+  type TurnHint,
 } from "@ksyk/routing";
 import { cn } from "@/lib/utils";
 import { useCampusData } from "@/hooks/useCampusData";
@@ -511,23 +512,47 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
         </div>
 
         {route && (
-          <div className="mt-2 rounded-xl bg-muted/40 border border-border p-3 flex items-center gap-3">
-            <div className="flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Distance</div>
-              <div className="text-base font-semibold tabular-nums">
-                {route.distanceMeters < 1000
-                  ? `${route.distanceMeters.toFixed(0)} m`
-                  : `${(route.distanceMeters / 1000).toFixed(2)} km`}
+          <div className="mt-2 rounded-xl bg-gradient-to-br from-blue-50/70 to-blue-100/40 dark:from-blue-500/10 dark:to-blue-500/5 border border-blue-200/60 dark:border-blue-500/30 p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80">Distance</div>
+                <div className="text-base font-bold tabular-nums text-foreground">
+                  {route.distanceMeters < 1000
+                    ? `${route.distanceMeters.toFixed(0)} m`
+                    : `${(route.distanceMeters / 1000).toFixed(2)} km`}
+                </div>
               </div>
+              <div className="flex-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80 flex items-center gap-1">
+                  <Footprints className="h-2.5 w-2.5" /> Walk
+                </div>
+                <div className="text-base font-bold tabular-nums text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  {formatWalkTime(walkingSeconds)}
+                </div>
+              </div>
+              {/* Floor transitions count — surfaces multi-floor routes at
+               *  a glance. Only shows when the route actually spans more
+               *  than one floor so single-floor walks stay uncluttered. */}
+              {route.kind === "graph" && new Set(route.floors).size > 1 && (
+                <div className="border-l border-blue-300/40 dark:border-blue-500/30 pl-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80 flex items-center gap-1">
+                    <LayersIcon className="h-2.5 w-2.5" /> Floors
+                  </div>
+                  <div className="text-base font-bold tabular-nums text-foreground">
+                    {new Set(route.floors).size}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Footprints className="h-2.5 w-2.5" /> Walking
-              </div>
-              <div className="text-base font-semibold tabular-nums flex items-center gap-1.5">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                {formatWalkTime(walkingSeconds)}
-              </div>
+            {/* Route quality strip — visual indicator of what kind of
+             *  path we're showing. Solid blue = real graph route with
+             *  turn-by-turn; amber-dashed = straight-line fallback. */}
+            <div className="mt-2 h-1 rounded-full overflow-hidden bg-white/50 dark:bg-black/20">
+              <div className={cn(
+                "h-full",
+                route.kind === "graph" ? "bg-blue-500" : "bg-amber-400",
+              )} style={{ width: route.kind === "graph" ? "100%" : "50%" }} />
             </div>
           </div>
         )}
@@ -547,30 +572,43 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           </p>
         )}
 
-        {/* Turn-by-turn narration — visible only when we have a real
-         *  graph route. Matches the numbered step markers rendered on
-         *  the map so users can eyeball a step's position + follow
-         *  along the corridor. */}
+        {/* Turn-by-turn narration — MazeMap-style timeline. Always
+         *  visible when we have a real graph route (users don't have to
+         *  hunt for the disclosure), rendered as a vertical connected
+         *  timeline with typed icons per step. Click any step to fly
+         *  the map there and switch to the step's floor. */}
         {turnHints.length > 0 && (
-          <details className="rounded-xl border border-border overflow-hidden">
-            <summary className="cursor-pointer select-none px-3 py-2 bg-muted/40 text-xs font-semibold flex items-center justify-between">
-              <span>Turn-by-turn</span>
-              <span className="text-[10px] text-muted-foreground">{turnHints.length} steps</span>
-            </summary>
-            <ol className="p-2 space-y-1 max-h-56 overflow-y-auto">
+          <div className="rounded-xl border border-border overflow-hidden bg-card">
+            <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Footprints className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Directions</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{turnHints.length} steps</span>
+            </div>
+            <ol className="p-2 space-y-0 max-h-64 overflow-y-auto">
               {turnHints.map((hint, i) => {
                 const isEndpoint = hint.turn === "start" || hint.turn === "arrive";
                 const isFloorChange = hint.turn === "floor_up" || hint.turn === "floor_down";
+                const isLast = i === turnHints.length - 1;
                 // The step's floor comes from the node it corresponds
                 // to — annotateRoute doesn't surface it, so we resolve
                 // via the raw route.
                 const stepFloor = route?.navRoute?.path
                   .find((n) => n.id === hint.nodeId)?.floor ?? null;
+                const TurnIcon = turnIconFor(hint.turn);
+                const chipStyles = isEndpoint
+                  ? (hint.turn === "start"
+                    ? "bg-emerald-500 text-white ring-2 ring-emerald-200 dark:ring-emerald-900/40"
+                    : "bg-red-500 text-white ring-2 ring-red-200 dark:ring-red-900/40")
+                  : isFloorChange
+                    ? "bg-amber-500 text-white ring-2 ring-amber-200 dark:ring-amber-900/40"
+                    : "bg-white ring-2 ring-blue-500 text-blue-700 dark:bg-blue-500 dark:text-white dark:ring-blue-300/40";
                 return (
                   <li
                     key={hint.nodeId + "-" + i}
                     className={cn(
-                      "flex items-start gap-2.5 rounded-md p-1 transition-colors",
+                      "relative flex items-start gap-3 rounded-lg p-1.5 transition-colors group",
                       "hover:bg-blue-50/60 dark:hover:bg-blue-500/10 cursor-pointer",
                     )}
                     onClick={() => {
@@ -596,40 +634,40 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                       }
                     }}
                   >
+                    {/* Timeline rail — connects the chips down the
+                     *  column so the whole list reads as a path, not an
+                     *  unrelated list of items. */}
+                    {!isLast && (
+                      <span className="absolute left-[19px] top-8 bottom-0 w-px bg-gradient-to-b from-blue-300/60 to-blue-200/20 dark:from-blue-500/40 dark:to-blue-500/5 pointer-events-none" />
+                    )}
                     <span className={cn(
-                      "shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5",
-                      isEndpoint
-                        ? (hint.turn === "start" ? "bg-emerald-500 text-white" : "bg-red-500 text-white")
-                        : isFloorChange
-                          ? "bg-amber-500 text-white"
-                          : "bg-white ring-2 ring-blue-600 text-blue-700",
+                      "shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 shadow-sm",
+                      chipStyles,
                     )}>
-                      {isEndpoint
-                        ? (hint.turn === "start" ? "A" : "B")
-                        : isFloorChange
-                          ? (hint.turn === "floor_up" ? "▲" : "▼")
-                          : i}
+                      <TurnIcon className="h-3.5 w-3.5" />
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] leading-snug text-foreground">
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <p className="text-[12.5px] leading-snug text-foreground">
                         {hint.description}
-                        {stepFloor !== null && !isEndpoint && (
-                          <span className="ml-1 text-[10px] text-muted-foreground">· Floor {stepFloor}</span>
-                        )}
                       </p>
-                      {hint.distanceToNextMeters > 0 && (
-                        <p className="text-[10px] text-muted-foreground tabular-nums">
-                          {hint.distanceToNextMeters < 1000
-                            ? `${hint.distanceToNextMeters.toFixed(0)} m to next`
-                            : `${(hint.distanceToNextMeters / 1000).toFixed(2)} km to next`}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                        {hint.distanceToNextMeters > 0 && (
+                          <span className="tabular-nums">
+                            {hint.distanceToNextMeters < 1000
+                              ? `${hint.distanceToNextMeters.toFixed(0)} m`
+                              : `${(hint.distanceToNextMeters / 1000).toFixed(2)} km`}
+                          </span>
+                        )}
+                        {stepFloor !== null && !isEndpoint && (
+                          <span className="tabular-nums">· Floor {stepFloor}</span>
+                        )}
+                      </div>
                     </div>
                   </li>
                 );
               })}
             </ol>
-          </details>
+          </div>
         )}
       </div>
     </div>
@@ -731,6 +769,26 @@ function EndpointField({ label, color, value, onChange, index }: EndpointFieldPr
       )}
     </div>
   );
+}
+
+/** Pick a Lucide icon component matching the turn hint category. Used
+ *  in the turn-by-turn timeline so users see the shape of the next
+ *  action, not just a numeric index. */
+function turnIconFor(turn: TurnHint["turn"]): typeof PlayCircle {
+  switch (turn) {
+    case "start":       return PlayCircle;
+    case "arrive":      return Flag;
+    case "floor_up":    return ChevronsUp;
+    case "floor_down":  return ChevronsDown;
+    case "left":        return CornerDownLeft;
+    case "sharp_left":  return CornerDownLeft;
+    case "slight_left": return ArrowUpLeft;
+    case "right":       return CornerDownRight;
+    case "sharp_right": return CornerDownRight;
+    case "slight_right":return ArrowUpRight;
+    case "straight":
+    default:            return ArrowUp;
+  }
 }
 
 function formatWalkTime(seconds: number): string {

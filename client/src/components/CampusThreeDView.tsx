@@ -40,6 +40,17 @@ interface Room {
   height?: number;
 }
 
+interface Building {
+  id: string;
+  name?: string;
+  floors?: number | null;
+  colorCode?: string | null;
+  mapPositionX?: number;
+  mapPositionY?: number;
+  width?: number;
+  height?: number;
+}
+
 /** Loads three.js once from a CDN. Returns a promise that resolves to
  *  whatever lives at window.THREE. */
 let threeReady: Promise<any> | null = null;
@@ -97,6 +108,18 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     queryKey: ["rooms"],
     queryFn: async () => {
       const r = await fetch("/api/rooms");
+      if (!r.ok) return [];
+      return r.json();
+    },
+    staleTime: 60_000,
+  });
+
+  // Buildings — used as translucent "shells" so a room reads as sitting
+  // ON its parent building's footprint instead of floating alone.
+  const { data: buildings = [] } = useQuery<Building[]>({
+    queryKey: ["buildings"],
+    queryFn: async () => {
+      const r = await fetch("/api/buildings");
       if (!r.ok) return [];
       return r.json();
     },
@@ -199,7 +222,12 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         };
       })();
 
-      const FLOOR_HEIGHT = 30;       // metres per floor in the scene
+      // MazeMap-style short floors: 12 units per floor is enough to read
+      // the stacked platforms without towering over rooms. Rooms
+      // extrude an even shorter slab so they read as raised floor
+      // plates inside the building, not skyscraper cubes.
+      const FLOOR_HEIGHT = 12;       // metres per floor in the scene
+      const ROOM_SLAB = 2.5;         // room extrusion above its floor
       const SCALE = 1;               // svg→world unit ratio
 
       // Pre-computed room rectangles for the minimap, in scene-centred coords.
@@ -212,6 +240,17 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           h: r.height ?? 40,
           color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
           floor: r.floor ?? 1,
+        }));
+
+      // Pre-computed building rectangles for the minimap.
+      const miniBuildings = buildings
+        .filter((b) => b.mapPositionX != null && b.mapPositionY != null)
+        .map((b) => ({
+          x: (b.mapPositionX! + (b.width ?? 160) / 2) - sceneCentre.x,
+          z: (b.mapPositionY! + (b.height ?? 120) / 2) - sceneCentre.y,
+          w: b.width ?? 160,
+          h: b.height ?? 120,
+          color: b.colorCode ?? "#2563eb",
         }));
       // Compute mini bounds once — the minimap fits everything in.
       const miniBounds = (() => {
@@ -227,13 +266,102 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const roomGroup = new THREE.Group();
       scene.add(roomGroup);
 
+      // ── Buildings first — translucent hollow shells with floor
+      //    plates, so rooms visibly stack ON their building. Each
+      //    building becomes a shell (walls only) + one floor plate per
+      //    level + a roof cap, matching the MazeMap "glass box with
+      //    stacked platforms" look.
+      const buildingGroup = new THREE.Group();
+      scene.add(buildingGroup);
+      for (const b of buildings) {
+        if (b.mapPositionX == null || b.mapPositionY == null) continue;
+        const bw = (b.width ?? 160) * SCALE;
+        const bd = (b.height ?? 120) * SCALE;
+        const cx = (b.mapPositionX + (b.width ?? 160) / 2) - sceneCentre.x;
+        const cz = (b.mapPositionY + (b.height ?? 120) / 2) - sceneCentre.y;
+        const floors = Math.max(1, b.floors ?? 1);
+        const totalHeight = floors * FLOOR_HEIGHT;
+        const shellColor = new THREE.Color(b.colorCode ?? "#2563eb");
+
+        // Hollow wall shell — Shape with a hole extruded up. This is
+        // the "glass wall" that surrounds every floor.
+        const outer = new THREE.Shape([
+          new THREE.Vector2(-bw / 2, -bd / 2),
+          new THREE.Vector2( bw / 2, -bd / 2),
+          new THREE.Vector2( bw / 2,  bd / 2),
+          new THREE.Vector2(-bw / 2,  bd / 2),
+        ]);
+        const wallThickness = 1.6;
+        const holeW = Math.max(0, bw - wallThickness * 2);
+        const holeD = Math.max(0, bd - wallThickness * 2);
+        if (holeW > 0 && holeD > 0) {
+          const hole = new THREE.Path([
+            new THREE.Vector2(-holeW / 2, -holeD / 2),
+            new THREE.Vector2( holeW / 2, -holeD / 2),
+            new THREE.Vector2( holeW / 2,  holeD / 2),
+            new THREE.Vector2(-holeW / 2,  holeD / 2),
+          ]);
+          outer.holes.push(hole);
+        }
+        const shellGeo = new THREE.ExtrudeGeometry(outer, {
+          depth: totalHeight,
+          bevelEnabled: false,
+        });
+        // ExtrudeGeometry extrudes along +Z; rotate so it stands up (+Y).
+        shellGeo.rotateX(-Math.PI / 2);
+        const shellMat = new THREE.MeshStandardMaterial({
+          color: shellColor,
+          roughness: 0.7,
+          metalness: 0.05,
+          transparent: true,
+          opacity: 0.35,
+          side: THREE.DoubleSide,
+        });
+        const shell = new THREE.Mesh(shellGeo, shellMat);
+        shell.position.set(cx, 0, cz);
+        shell.castShadow = false;
+        shell.receiveShadow = true;
+        buildingGroup.add(shell);
+
+        // Floor plates — one thin slab per floor. Cream-colored so
+        // they read as "the deck of this floor".
+        for (let f = 0; f < floors; f++) {
+          const plateGeo = new THREE.BoxGeometry(bw - 0.3, 0.4, bd - 0.3);
+          const plateMat = new THREE.MeshStandardMaterial({
+            color: darkMode ? 0x2a3448 : 0xe8edf5,
+            roughness: 0.9,
+            metalness: 0,
+          });
+          const plate = new THREE.Mesh(plateGeo, plateMat);
+          plate.position.set(cx, f * FLOOR_HEIGHT, cz);
+          plate.receiveShadow = true;
+          buildingGroup.add(plate);
+        }
+
+        // Roof cap — colored plate matching the building tint at the
+        // top of the shell so the building reads as enclosed.
+        const roofGeo = new THREE.BoxGeometry(bw, 0.4, bd);
+        const roofMat = new THREE.MeshStandardMaterial({
+          color: shellColor,
+          roughness: 0.6,
+          metalness: 0.05,
+          transparent: true,
+          opacity: 0.45,
+        });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(cx, totalHeight, cz);
+        roof.receiveShadow = false;
+        buildingGroup.add(roof);
+      }
+
       for (const r of rooms) {
         if (r.mapPositionX == null || r.mapPositionY == null) continue;
         const w = (r.width ?? 56) * SCALE;
         const d = (r.height ?? 40) * SCALE;
         const floor = r.floor ?? 1;
-        // hallways/stairs stay shorter so rooms stand out
-        const tall = (r.type === "hallway" || r.type === "stairs") ? FLOOR_HEIGHT * 0.4 : FLOOR_HEIGHT;
+        // Rooms sit as short "platforms" on the building's floor plate.
+        // Hallways/stairs go even shorter so real rooms stand out.
+        const tall = (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.5 : ROOM_SLAB;
         const baseColor = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
         const tint = STATUS_TINT[r.currentStatus ?? "unknown"] ?? STATUS_TINT.unknown;
         // 70% type colour mixed with 30% status colour so both are legible.
@@ -242,13 +370,14 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const geo = new THREE.BoxGeometry(w, tall, d);
         const mat = new THREE.MeshStandardMaterial({
           color: mixed,
-          roughness: 0.6,
-          metalness: 0.05,
+          roughness: 0.55,
+          metalness: 0.06,
         });
         const cube = new THREE.Mesh(geo, mat);
         cube.position.x = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
         cube.position.z = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
-        cube.position.y = (floor - 1) * FLOOR_HEIGHT + tall / 2;
+        // Sit ON the correct floor plate: base = floor plate top + half slab.
+        cube.position.y = (floor - 1) * FLOOR_HEIGHT + 0.4 + tall / 2;
         cube.castShadow = true;
         cube.receiveShadow = true;
         cube.userData = { room: r };
@@ -288,8 +417,11 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           tex.minFilter = THREE.LinearFilter;
           const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
           const sprite = new THREE.Sprite(spriteMat);
-          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 8, cube.position.z);
-          sprite.scale.set(36, 13.5, 1);
+          // Float the label a bit above the room slab so pitched views
+          // still read it. Scale down proportionally to the new smaller
+          // floor height so labels aren't oversized against short slabs.
+          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 3, cube.position.z);
+          sprite.scale.set(22, 8.25, 1);
           roomGroup.add(sprite);
         }
       }
@@ -320,10 +452,12 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       }
 
       // ── Cameras ──────────────────────────────────────────────
-      // Orbit camera state
-      let yaw = -Math.PI / 4, pitch = Math.PI / 3, dist = 800;
-      // Walk camera state
-      const walkPos = new THREE.Vector3(0, 35, 200);
+      // Orbit camera state — shorter world so start closer.
+      let yaw = -Math.PI / 4, pitch = Math.PI / 3.2, dist = 450;
+      // Walk camera state — eye height ≈ 1.7 in the shortened world
+      // means "5 or 6 units above the floor plate" reads as human eye
+      // level. Start just above the ground plane.
+      const walkPos = new THREE.Vector3(0, 5, 120);
       const walkLook = { yaw: 0, pitch: 0 };
       const keys = new Set<string>();
 
@@ -375,7 +509,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       cv.addEventListener("wheel", (e) => {
         e.preventDefault();
         if (mode === "orbit") {
-          dist = Math.max(80, Math.min(2200, dist * (1 + e.deltaY * 0.001)));
+          dist = Math.max(40, Math.min(1400, dist * (1 + e.deltaY * 0.001)));
         }
       }, { passive: false });
 
@@ -417,6 +551,22 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             const cx = W / 2, cy = H / 2;
             const bcx = (miniBounds.minX + miniBounds.maxX) / 2;
             const bcz = (miniBounds.minZ + miniBounds.maxZ) / 2;
+            // Building outlines first — a soft dashed rectangle around
+            // each footprint so the campus reads as clusters of
+            // buildings, not just a floating grid of rooms.
+            for (const bl of miniBuildings) {
+              const px = cx + (bl.x - bcx) * scale;
+              const py = cy + (bl.z - bcz) * scale;
+              const pw = bl.w * scale;
+              const ph = bl.h * scale;
+              ctx.strokeStyle = bl.color;
+              ctx.setLineDash([3, 2]);
+              ctx.lineWidth = 1.5;
+              ctx.globalAlpha = 0.75;
+              ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
+              ctx.setLineDash([]);
+              ctx.globalAlpha = 1;
+            }
             for (const r of miniRooms) {
               const px = cx + (r.x - bcx) * scale;
               const py = cy + (r.z - bcz) * scale;
@@ -457,7 +607,9 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           // WASD / arrows movement, relative to walk yaw. Each axis is
           // committed independently so a wall blocking forward motion
           // doesn't also stop strafing — feels less stuck.
-          const speed = 90 * dt * (keys.has("shift") ? 2.5 : 1);
+          // Walking speed tuned for the shorter (12 units/floor) scene
+          // so getting between rooms feels natural rather than sprinting.
+          const speed = 40 * dt * (keys.has("shift") ? 2.5 : 1);
           const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
           let dx = 0, dz = 0;
           if (keys.has("w") || keys.has("arrowup"))    { dx += cy * speed; dz += sy * speed; }
@@ -467,8 +619,8 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           // Try the X step alone, then the Z step alone — sliding along walls.
           if (dx !== 0 && !blocked(walkPos.x + dx, walkPos.y, walkPos.z)) walkPos.x += dx;
           if (dz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + dz)) walkPos.z += dz;
-          if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed; }
-          if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(2, walkPos.y - speed); }
+          if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed * 0.6; }
+          if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(1.2, walkPos.y - speed * 0.6); }
           updateCameraWalk();
         }
         renderer.render(scene, camera);
@@ -504,7 +656,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     })();
 
     return () => { disposed = true; cleanup?.(); };
-  }, [rooms, mode, darkMode]);
+  }, [rooms, buildings, mode, darkMode]);
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-2 sm:p-6">
