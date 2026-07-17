@@ -181,17 +181,30 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
   };
   upsertGeoJSONSource(map, SOURCES.buildings, data);
 
+  // MazeMap-style: soft cream fill (using the brand color at very low
+  // opacity so buildings still read as "yours") with a crisp darker
+  // outline. Zoom-scaled opacity so buildings appear as user gets close.
   addLayerIfMissing(map, {
     id: LAYERS.buildingsFill,
     source: SOURCES.buildings,
     type: "fill",
-    paint: { "fill-color": ["get", "color"], "fill-opacity": 0.15 },
+    paint: {
+      "fill-color": ["get", "color"],
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.05, 17, 0.12, 20, 0.22],
+      "fill-outline-color": ["get", "color"],
+      "fill-antialias": true,
+    },
   });
   addLayerIfMissing(map, {
     id: LAYERS.buildingsOutline,
     source: SOURCES.buildings,
     type: "line",
-    paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.85 },
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": ["get", "color"],
+      "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1.5, 17, 2.5, 20, 3.5],
+      "line-opacity": 0.95,
+    },
   });
   addLayerIfMissing(map, {
     id: LAYERS.buildingsLabel,
@@ -305,10 +318,12 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
-      // MazeMap-style: rooms are solid fills, no outline. Walls that
-      // separate rooms are drawn from the walls source instead so the
-      // building never looks like a stained-glass window.
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 17, 0.6, 20, 0.85],
+      // MazeMap-style: rooms are solid fills — no outline (walls are
+      // drawn from the walls source instead). Gentle opacity ramp so
+      // the building fills read through at low zoom and rooms take
+      // over at close zoom.
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17.5, 0.55, 20, 0.8],
+      "fill-antialias": true,
     },
   });
   // Room outlines removed by request — see MazeMap-style comment above.
@@ -412,16 +427,37 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
   const fc = { type: "FeatureCollection" as const, features };
   upsertGeoJSONSource(map, SOURCES.pois, fc);
 
+  // Tint chip background by kind — MazeMap uses semantic colors so a
+  // toilet reads pink, elevator blue, stairs a warm ochre, entrance
+  // green, exits red. Icon stays black for max contrast.
   addLayerIfMissing(map, {
     id: LAYERS.poisChip,
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 6, 20, 14],
-      "circle-color": "#ffffff",
-      "circle-stroke-color": "#111827",
-      "circle-stroke-width": 1.5,
-      "circle-opacity": 0.95,
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 20, 15],
+      "circle-color": [
+        "match", ["get", "kind"],
+        "elevator", "#dbeafe",  // blue-100
+        "stairs",   "#fef3c7",  // amber-100
+        "bathroom", "#fce7f3",  // pink-100
+        "entrance", "#dcfce7",  // green-100
+        "exit",     "#fee2e2",  // red-100
+        "door",     "#f3f4f6",  // gray-100
+                    "#ffffff",  // fallback
+      ],
+      "circle-stroke-color": [
+        "match", ["get", "kind"],
+        "elevator", "#2563eb",
+        "stairs",   "#b45309",
+        "bathroom", "#be185d",
+        "entrance", "#15803d",
+        "exit",     "#b91c1c",
+        "door",     "#4b5563",
+                    "#111827",
+      ],
+      "circle-stroke-width": 2,
+      "circle-opacity": 1,
     },
     minzoom: 16,
   });
@@ -431,7 +467,7 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     type: "symbol",
     layout: {
       "text-field": ["get", "icon"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10, 20, 20],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 20, 22],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,

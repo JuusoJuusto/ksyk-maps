@@ -159,7 +159,32 @@ export default function CampusMap({
       );
     }
 
+    // Watchdog — if MapLibre's `load` event doesn't fire within 6s
+    // (bad WebGL context, tile CDN slow, stale style spec, etc.), tear
+    // the map down and re-init. Without this the splash + overlays
+    // would wait forever on a silently-broken map.
+    let loadFired = false;
+    const watchdog = window.setTimeout(() => {
+      if (loadFired) return;
+      console.warn("CampusMap: load event didn't fire within 6s — recovering.");
+      try { map.remove(); } catch { /* already gone */ }
+      mapRef.current = null;
+      // Fire the boot signal anyway so the splash can proceed; the map
+      // effect will re-run on next mount cycle.
+      try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
+      catch { /* non-fatal */ }
+    }, 6000);
+
+    map.on("error", (e) => {
+      // Non-fatal — swallow tile 404s and log so we see them, but don't
+      // let one bad tile pull the whole overlay down.
+      const err = (e as { error?: Error }).error;
+      if (err) console.warn("MapLibre error:", err.message);
+    });
+
     map.on("load", () => {
+      loadFired = true;
+      window.clearTimeout(watchdog);
       mapRef.current = map;
       setReady(true);
       // Fire boot-ready once the first frame paints so SplashScreen can

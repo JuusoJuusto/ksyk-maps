@@ -4459,8 +4459,69 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // map-package + route (added in v3.5).
     // ═══════════════════════════════════════════════════════════════
 
-    // Empty-list stubs so client for-of loops don't explode on 404.
-    if (['/doors', '/stairs', '/elevators', '/windows', '/outdoor'].includes(apiPath) && req.method === 'GET') {
+    // POI collections — Firestore-backed. Reads soft-fail to []
+    // so an outage doesn't blank the whole map.
+    if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const kind = apiPath.slice(1); // "doors" | "stairs" | "elevators"
+        const snap = await db.collection(`campus_${kind}`).get();
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        return res.status(200).json(items);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+    // POI creates — click-to-place from the Builder. Same normalisation
+    // as the Express variant: store both `position.{lat,lng}` and the
+    // legacy mapPositionX/Y so either consumer keeps working.
+    if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const kind = apiPath.slice(1);
+        const body = (req.body ?? {}) as Record<string, unknown>;
+        const posLat = (body.position as any)?.lat;
+        const posLng = (body.position as any)?.lng;
+        const lat = typeof posLat === 'number' ? posLat
+                  : typeof body.mapPositionY === 'number' ? body.mapPositionY
+                  : null;
+        const lng = typeof posLng === 'number' ? posLng
+                  : typeof body.mapPositionX === 'number' ? body.mapPositionX
+                  : null;
+        if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+        const docRef = db.collection(`campus_${kind}`).doc();
+        const record = {
+          id: docRef.id,
+          ...body,
+          position: { lat, lng },
+          mapPositionX: lng,
+          mapPositionY: lat,
+          floor: typeof body.floor === 'number' ? body.floor : 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await docRef.set(record);
+        return res.status(201).json(record);
+      } catch (err) {
+        console.error(`POST ${apiPath} failed:`, err);
+        return res.status(500).json({ message: `Failed to create ${apiPath.slice(1)}` });
+      }
+    }
+    // POI deletes — /api/{kind}/{id}
+    if (['/doors', '/stairs', '/elevators'].some((k) => apiPath.startsWith(k + '/')) && req.method === 'DELETE') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const [_, kind, id] = apiPath.split('/');
+        if (!kind || !id) return res.status(400).json({ message: 'Missing id' });
+        await db.collection(`campus_${kind}`).doc(id).delete();
+        return res.status(204).end();
+      } catch (err) {
+        console.error(`DELETE ${apiPath} failed:`, err);
+        return res.status(500).json({ message: 'Delete failed' });
+      }
+    }
+    // Windows + outdoor stay as empty-list stubs — no CRUD yet.
+    if (['/windows', '/outdoor'].includes(apiPath) && req.method === 'GET') {
       return res.status(200).json([]);
     }
 
@@ -4560,17 +4621,107 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       });
     }
 
+    // Real publish — snapshot live state into an immutable mapVersions
+    // doc and swap the mapPackages/published pointer atomically.
     if (apiPath === '/map-package/publish' && req.method === 'POST') {
-      const now = new Date().toISOString();
-      return res.status(200).json({
-        manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt: now },
-        mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
-        buildings: [], floors: [], rooms: [], hallways: [], doors: [], stairs: [], elevators: [],
-      });
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const [buildings, rooms, hallways, floors, stairsSnap, elevatorsSnap, doorsSnap] = await Promise.all([
+          storage.getBuildings().catch(() => []),
+          storage.getRooms().catch(() => []),
+          storage.getHallways().catch(() => []),
+          storage.getFloors().catch(() => []),
+          db.collection('campus_stairs').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+          db.collection('campus_elevators').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+          db.collection('campus_doors').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+        ]);
+        const publishedAt = new Date().toISOString();
+        const message = (req.body as { message?: string } | null)?.message ?? null;
+        const versionsSnap = await db.collection('mapVersions').get().catch(() => ({ size: 0 } as any));
+        const versionNumber = (versionsSnap.size ?? 0) + 1;
+        const versionId = `v${versionNumber}-${Date.now()}`;
+        const pkg = {
+          manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt, description: message },
+          mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
+          buildings, floors, rooms, hallways, doors: doorsSnap, stairs: stairsSnap, elevators: elevatorsSnap,
+        };
+        await db.collection('mapVersions').doc(versionId).set({
+          id: versionId, packageId: 'current', version: versionNumber,
+          savedAt: publishedAt, savedBy: null, published: true,
+          message, payloadKey: versionId, payload: pkg,
+        });
+        await db.collection('mapPackages').doc('published').set({
+          pointer: versionId, publishedAt, publishedBy: null,
+        });
+        return res.status(200).json({ ...pkg, versionId, version: versionNumber });
+      } catch (err) {
+        console.error('publish failed:', err);
+        return res.status(500).json({ message: 'Publish failed' });
+      }
     }
 
+    // Read the last-published snapshot. Returns null when nothing has
+    // been published — the client falls back to /api/map-package.
+    if (apiPath === '/map-package/published' && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const ptr = await db.collection('mapPackages').doc('published').get();
+        if (!ptr.exists) return res.status(200).json(null);
+        const pointer = (ptr.data() as { pointer?: string } | undefined)?.pointer;
+        if (!pointer) return res.status(200).json(null);
+        const version = await db.collection('mapVersions').doc(pointer).get();
+        if (!version.exists) return res.status(200).json(null);
+        const data = version.data() as { payload?: unknown } | undefined;
+        return res.status(200).json(data?.payload ?? null);
+      } catch (err) {
+        console.error('published read failed:', err);
+        res.setHeader('X-Read-Soft-Fail', '1');
+        return res.status(200).json(null);
+      }
+    }
+
+    // Version list — metadata only, payload stripped.
     if (apiPath === '/map-package/versions' && req.method === 'GET') {
-      return res.status(200).json([]);
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const snap = await db.collection('mapVersions').orderBy('version', 'desc').limit(50).get();
+        const items = snap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+            id: data.id ?? d.id,
+            packageId: data.packageId ?? 'current',
+            version: data.version ?? 0,
+            savedAt: data.savedAt ?? null,
+            savedBy: data.savedBy ?? null,
+            published: data.published ?? false,
+            message: data.message ?? null,
+            payloadKey: data.payloadKey ?? d.id,
+          };
+        });
+        return res.status(200).json(items);
+      } catch (err) {
+        console.error('versions list failed:', err);
+        res.setHeader('X-Read-Soft-Fail', '1');
+        return res.status(200).json([]);
+      }
+    }
+
+    // Restore a specific version — swap the pointer.
+    if (apiPath.startsWith('/map-package/versions/') && apiPath.endsWith('/restore') && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const id = apiPath.slice('/map-package/versions/'.length, -'/restore'.length);
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return res.status(400).json({ message: 'invalid version id' });
+        const versionDoc = await db.collection('mapVersions').doc(id).get();
+        if (!versionDoc.exists) return res.status(404).json({ message: 'version not found' });
+        await db.collection('mapPackages').doc('published').set({
+          pointer: id, publishedAt: new Date().toISOString(), publishedBy: null,
+        });
+        return res.status(200).json({ ok: true, pointer: id });
+      } catch (err) {
+        console.error('restore failed:', err);
+        return res.status(500).json({ message: 'restore failed' });
+      }
     }
 
     if (apiPath === '/route/graph' && req.method === 'GET') {
