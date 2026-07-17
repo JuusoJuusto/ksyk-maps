@@ -46,6 +46,7 @@ const LAYERS = {
   roomsLabel: "campus-rooms-label",
   poisChip: "campus-pois-chip",
   poisIcon: "campus-pois-icon",
+  buildings3D: "campus-buildings-extrude",
 } as const;
 
 export interface CampusOverlayProps {
@@ -55,10 +56,14 @@ export interface CampusOverlayProps {
   activeFloor?: number | null;
   /** Called when a building/room is clicked. Receives kind + id. */
   onFeatureClick?: (kind: "building" | "room" | "hallway", id: string) => void;
+  /** When true, render buildings as extruded 3D blocks (MazeMap-style).
+   *  Height derives from `building.floors * 3.5m`. The flat fill layer
+   *  fades out at close zoom so the 3D blocks don't double-render. */
+  is3D?: boolean;
 }
 
 export default function CampusOverlay({
-  map, activeFloor, onFeatureClick,
+  map, activeFloor, onFeatureClick, is3D = false,
 }: CampusOverlayProps) {
   // Single source of truth — reads from the last-published snapshot
   // when available, live tables otherwise. See useCampusData.ts.
@@ -123,9 +128,10 @@ export default function CampusOverlay({
       const rVis = isVisible("rooms");
       const hVis = isVisible("hallways");
       const lVis = isVisible("labels");
-      setVis(LAYERS.buildingsFill,    bVis);
+      setVis(LAYERS.buildingsFill,    bVis && !is3D);
       setVis(LAYERS.buildingsOutline, bVis);
       setVis(LAYERS.buildingsLabel,   bVis && lVis);
+      setVis(LAYERS.buildings3D,      bVis && is3D);
       setVis(LAYERS.roomsFill,        rVis);
       setVis(LAYERS.roomsOutline,     rVis);
       setVis(LAYERS.roomsLabel,       rVis && lVis);
@@ -175,7 +181,7 @@ export default function CampusOverlay({
       map.off("click", onClick);
       window.clearTimeout(safety);
     };
-  }, [map, buildings, rooms, hallways, stairs, elevators, doors, activeFloor, layers, clientOverrides]);
+  }, [map, buildings, rooms, hallways, stairs, elevators, doors, activeFloor, layers, clientOverrides, is3D]);
 
   return null;
 }
@@ -187,21 +193,31 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     type: "FeatureCollection" as const,
     features: buildings
       .filter((b) => b.points && b.points.length >= 3)
-      .map((b) => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [[
-            ...b.points!.map((p) => [p.lng, p.lat]),
-            [b.points![0].lng, b.points![0].lat],
-          ]],
-        },
-        properties: {
-          id: b.id,
-          name: b.name,
-          color: b.colorCode ?? "#2563eb",
-        },
-      })),
+      .map((b) => {
+        // Compute a plausible extrusion height. Real floor-heights are
+        // in the Floor table's `heightMeters` (not fetched here), so
+        // approximate with 3.5 m per floor + a 0.5 m ground offset —
+        // matches typical office building storey height.
+        const floors = b.floors ?? 1;
+        const height = Math.max(3.5, floors * 3.5);
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              ...b.points!.map((p) => [p.lng, p.lat]),
+              [b.points![0].lng, b.points![0].lat],
+            ]],
+          },
+          properties: {
+            id: b.id,
+            name: b.name,
+            color: b.colorCode ?? "#2563eb",
+            floors,
+            height,
+          },
+        };
+      }),
   };
   upsertGeoJSONSource(map, SOURCES.buildings, data);
 
@@ -258,6 +274,25 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       "text-halo-width": 2,
       "text-halo-blur": 0.4,
     },
+  });
+
+  // 3D extrusion layer — always installed, visibility toggled from
+  // outside via the is3D prop. Height comes from the polygon's
+  // `height` property (see feature builder above). Opacity ramps in
+  // at zoom 15+ so buildings only extrude when the user is close.
+  addLayerIfMissing(map, {
+    id: LAYERS.buildings3D,
+    source: SOURCES.buildings,
+    type: "fill-extrusion",
+    layout: { visibility: "none" }, // parent controls via setLayoutProperty
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.55, 20, 0.75],
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 14,
   });
 }
 

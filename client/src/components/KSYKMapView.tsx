@@ -8,6 +8,7 @@
  *   - North reset (only shows when map is rotated off north)
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import CampusOverlay from "@/components/CampusOverlay";
@@ -18,7 +19,9 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
+import FeatureHighlight from "@/components/FeatureHighlight";
 import CompassChip from "@/components/CompassChip";
+import type { LatLng } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
@@ -46,10 +49,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // is why fresh visits sometimes showed a blank campus map until the
   // user interacted with something.
   const [mapInstance, setMapInstance] = useState<CampusMapHandle["map"] | null>(null);
-  const [is3D, setIs3D] = useState<boolean>((settings.osmPitchDeg ?? 0) > 0);
-  const [selectedFloor, setSelectedFloor] = useState<number>(1);
+  // Persisted view state — user's 3D toggle + current floor survive
+  // a full page reload. Fresh visitors get 3D off + floor 1.
+  const [is3D, setIs3D] = usePersistedState<boolean>(
+    "ksyk_map_is3d",
+    (settings.osmPitchDeg ?? 0) > 0,
+  );
+  const [selectedFloor, setSelectedFloor] = usePersistedState<number>("ksyk_map_floor", 1);
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
+  const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
 
   // Full campus data — used to resolve a feature id from a click into
   // the full entity so the info sheet has everything to display.
@@ -103,10 +112,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const onFeatureClick = useCallback((kind: "building" | "room" | "hallway", id: string) => {
     if (kind === "building") {
       const b = campus.buildings.find((x) => x.id === id);
-      if (b) setClickedFeature({ kind: "building", entity: b });
+      if (b) {
+        setClickedFeature({ kind: "building", entity: b });
+        if (b.points?.length) setHighlightPolygon(b.points);
+      }
     } else if (kind === "room") {
       const r = campus.rooms.find((x) => x.id === id);
-      if (r) setClickedFeature({ kind: "room", entity: r });
+      if (r) {
+        setClickedFeature({ kind: "room", entity: r });
+        if (r.points?.length) setHighlightPolygon(r.points);
+      }
     } else {
       const h = campus.hallways.find((x) => x.id === id);
       if (h) setClickedFeature({ kind: "hallway", entity: h });
@@ -133,6 +148,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     handleRef.current?.setPitch(next);
     update("osmPitchDeg", next);
   }, [is3D, update]);
+
+  // When persisted is3D says "on" but the map loaded flat (fresh
+  // mount, no user gesture yet), lift the pitch so 3D extrusions
+  // become visible. Only fires once per mount.
+  useEffect(() => {
+    if (!mapInstance || !is3D) return;
+    if (mapInstance.getPitch() < 5) mapInstance.setPitch(45);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapInstance]);
 
   /** Center the camera on the platform default (mobile vs laptop) while
    *  preserving whatever bearing the user has set — clicking Center
@@ -169,8 +193,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     if (pick.kind === "room" && pick.room.points?.length) {
       centre = polygonCentroid(pick.room.points);
       if (typeof pick.room.floor === "number") setSelectedFloor(pick.room.floor);
+      setHighlightPolygon(pick.room.points);
     } else if (pick.kind === "building" && pick.building.points?.length) {
       centre = polygonCentroid(pick.building.points);
+      setHighlightPolygon(pick.building.points);
     }
     if (!centre) return;
     h.map.flyTo({
@@ -197,6 +223,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         map={mapInstance}
         activeFloor={selectedFloor}
         onFeatureClick={onFeatureClick}
+        is3D={is3D}
       />
 
       {/* Search results overlay — anchored under the header search bar. */}
@@ -350,6 +377,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           feature={clickedFeature}
           onClose={() => setClickedFeature(null)}
           onRouteTo={handleRouteTo}
+        />
+      )}
+
+      {/* Ephemeral pulsing outline on the last-picked feature so users
+       *  can find it after the fly-to. Auto-clears after ~2.5s. */}
+      {highlightPolygon && (
+        <FeatureHighlight
+          map={mapInstance}
+          polygon={highlightPolygon}
+          onFinished={() => setHighlightPolygon(null)}
         />
       )}
     </div>

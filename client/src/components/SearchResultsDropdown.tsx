@@ -20,6 +20,8 @@ import type { Room, Building, SearchHit } from "@ksyk/shared";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { useCampusData } from "@/hooks/useCampusData";
+import { loadRecentPicks, recordPick, clearRecents, type RecentPickStub } from "@/lib/recentSearches";
+import { Clock } from "lucide-react";
 
 /** What was clicked in the dropdown — either a room or a building. */
 export type SearchPick =
@@ -36,6 +38,9 @@ export interface SearchResultsDropdownProps {
   /** Optional custom Y offset (px) from the top of the viewport. Falls
    *  back to the same offset the header search row sits at. */
   offsetTop?: number;
+  /** When true AND query is empty, show the "Recent" panel of last
+   *  N picks. Parent tracks input focus and passes this through. */
+  showRecents?: boolean;
 }
 
 export default function SearchResultsDropdown({
@@ -43,6 +48,7 @@ export default function SearchResultsDropdown({
   onSelect,
   limit = 8,
   offsetTop,
+  showRecents = false,
 }: SearchResultsDropdownProps) {
   const { darkMode } = useDarkMode();
 
@@ -149,7 +155,49 @@ export default function SearchResultsDropdown({
     return chips;
   }, [rawHits]);
 
-  if (!trimmed) return null;
+  // Wrap the caller's onSelect so every pick lands in the recents
+  // store — enables the empty-state list below without leaking the
+  // dep into every consumer.
+  const handleSelect = (pick: SearchPick) => {
+    recordPick(pick);
+    onSelect(pick);
+  };
+
+  // Track focus on the combobox input so recents only appear when
+  // the user is actually engaging with search. The header owns the
+  // input but exposes `role="combobox" aria-controls="search-results-listbox"` —
+  // we listen for focus/blur on that element directly.
+  const [inputFocused, setInputFocused] = useState(false);
+  useEffect(() => {
+    const input = document.querySelector<HTMLInputElement>('[aria-controls="search-results-listbox"]');
+    if (!input) return;
+    const onFocus = () => setInputFocused(true);
+    const onBlur = () => {
+      // Delay blur so a click on a result row (which blurs the input)
+      // doesn't dismiss the recents list before the click registers.
+      setTimeout(() => setInputFocused(false), 120);
+    };
+    input.addEventListener("focus", onFocus);
+    input.addEventListener("blur", onBlur);
+    // If already focused when we mount.
+    if (document.activeElement === input) setInputFocused(true);
+    return () => {
+      input.removeEventListener("focus", onFocus);
+      input.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
+  // Recents to render on empty query when the input is focused.
+  const [recents, setRecents] = useState<RecentPickStub[]>(() => loadRecentPicks());
+  useEffect(() => {
+    // Refresh when opening the empty-state panel so a pick from
+    // another tab or the info-sheet shows up.
+    if ((showRecents || inputFocused) && !trimmed) setRecents(loadRecentPicks());
+  }, [showRecents, inputFocused, trimmed]);
+  const shouldShowRecents = (showRecents || inputFocused) && recents.length > 0;
+
+  // Nothing to render if no query AND no recents-panel requested.
+  if (!trimmed && !shouldShowRecents) return null;
 
   return (
     <div
@@ -203,7 +251,63 @@ export default function SearchResultsDropdown({
           })}
         </div>
       )}
-      {hits.length === 0 ? (
+      {!trimmed && shouldShowRecents ? (
+        <div>
+          <div className={cn("flex items-center gap-2 px-3 py-2 border-b", darkMode ? "border-gray-800 bg-gray-900/70" : "border-gray-100 bg-slate-50/60")}>
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground flex-1">
+              Recent
+            </p>
+            <button
+              type="button"
+              onClick={() => { clearRecents(); setRecents([]); }}
+              className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-300"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="divide-y divide-inherit">
+            {recents.map((r) => {
+              // Resolve back to a live entity so the pick fly-to has
+              // fresh coordinates. If the entity was deleted since
+              // recording, we skip the row.
+              const building = r.kind === "building"
+                ? buildings.find((b) => b.id === r.id) ?? null
+                : (r.buildingId ? buildings.find((b) => b.id === r.buildingId) : null) ?? null;
+              const room = r.kind === "room"
+                ? rooms.find((x) => x.id === r.id) ?? null
+                : null;
+              const canPick = (r.kind === "building" && building) || (r.kind === "room" && room);
+              if (!canPick) return null;
+              const pick: SearchPick = r.kind === "building"
+                ? { kind: "building", building: building! }
+                : { kind: "room", room: room!, building };
+              return (
+                <li
+                  key={`${r.kind}:${r.id}`}
+                  role="option"
+                  aria-selected="false"
+                  onClick={() => handleSelect(pick)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors",
+                    darkMode ? "hover:bg-blue-500/10" : "hover:bg-blue-50",
+                  )}
+                >
+                  <TypeChip pick={pick} darkMode={darkMode} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm truncate">{r.title}</div>
+                    {r.subtitle && (
+                      <div className={cn("text-xs truncate", darkMode ? "text-gray-400" : "text-gray-500")}>
+                        {r.subtitle}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : hits.length === 0 ? (
         <div
           className={cn(
             "px-4 py-3 text-sm",
@@ -225,7 +329,7 @@ export default function SearchResultsDropdown({
                 key={hit.id}
                 role="option"
                 aria-selected="false"
-                onClick={() => onSelect(pick)}
+                onClick={() => handleSelect(pick)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors",
                   darkMode
