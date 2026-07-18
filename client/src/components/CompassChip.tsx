@@ -66,23 +66,56 @@ export default function CompassChip({ map }: CompassChipProps) {
 
   if (!shouldShow) return null;
 
+  // MazeMap-style pitch dial — a thin arc around the chip that fills
+  // proportionally to the current pitch (0° to maxPitch=60°). Users get
+  // an at-a-glance sense of "how much am I tilted" without needing to
+  // read numbers.
+  const pitchPct = Math.max(0, Math.min(1, pitch / 60));
+  const arcCirc = 2 * Math.PI * 20; // stroke-dasharray for circle r=20
   return (
     <button
       type="button"
       onClick={reset}
-      aria-label={`Rotation ${Math.round(bearing)}° — tap to reset`}
-      title="Reset rotation"
+      aria-label={`Rotation ${Math.round(bearing)}° · pitch ${Math.round(pitch)}° — tap to reset`}
+      title="Reset rotation + tilt"
       className={cn(
-        "w-11 h-11 rounded-2xl border border-border bg-card shadow-sm",
+        "w-11 h-11 rounded-2xl border border-border bg-card shadow-sm relative",
         "flex items-center justify-center transition-colors active:scale-[0.97]",
         "hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
       )}
     >
+      {/* Pitch arc — thin blue ring that fills from top clockwise. Sits
+       *  behind the compass needle. */}
+      {pitchPct > 0.05 && (
+        <svg
+          className="absolute inset-0.5 pointer-events-none"
+          viewBox="0 0 44 44"
+          aria-hidden="true"
+        >
+          <circle
+            cx="22" cy="22" r="20"
+            fill="none"
+            stroke="#e5e7eb"
+            className="dark:stroke-gray-800"
+            strokeWidth="1.5"
+            strokeOpacity="0.4"
+          />
+          <circle
+            cx="22" cy="22" r="20"
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeDasharray={`${arcCirc * pitchPct} ${arcCirc}`}
+            transform="rotate(-90 22 22)"
+          />
+        </svg>
+      )}
       {/* The N arrow rotates opposite to the map bearing so it always
        *  points at true geographic north. Wrapped in an inner span so
        *  the outer chip doesn't rotate. */}
       <span
-        className="block"
+        className="block relative"
         style={{
           transform: `rotate(${-bearing}deg)`,
           transition: "transform 100ms linear",

@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.17.1";
+export const APP_VERSION = "3.18.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.18.0",
+    date: "July 2026",
+    title: "Keyboard cheat sheet, ⌘K search, compass pitch dial",
+    titleFi: "Pikanäppäinvalikko, ⌘K haku, kompassin kallistus",
+    latest: true,
+    highlights: [
+      "Builder: press ? to open a MazeMap-style keyboard cheat sheet (or the floating '?' button)",
+      "Header: ⌘K / Ctrl K focuses the search input; keyboard hint pill on the right",
+      "Compass chip now shows a thin arc around it that fills with the current 3D pitch",
+      "Search input polished: larger, rounded, focus glow, blue search icon while typing",
+    ],
+    highlightsFi: [
+      "Rakentaja: paina ? avataksesi pikanäppäinvalikon",
+      "Otsikko: ⌘K / Ctrl K kohdistaa hakukentän",
+      "Kompassichip näyttää nyt kallistusmittarin renkaana",
+      "Haku suurempi, pyöreämpi, sinisellä ikonin korostuksella",
+    ],
+  },
   {
     version: "3.17.1",
     date: "July 2026",
     title: "POI category filters, MazeMap coach chip, info sheet hero",
     titleFi: "POI-kategoriasuodattimet, työkaluvinkkichip, tietopaneelin bänneri",
-    latest: true,
     highlights: [
       "Public map: POI category filters (Transit / Info / Restrooms / Food / Safety / Amenities) in the Layers popover — hide entire groups you don't want",
       "Builder coach chip: icon + tool name + Esc hint + live cursor coords, styled per tool",

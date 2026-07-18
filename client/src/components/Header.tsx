@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,23 @@ export default function Header({
       document.body.style.overflow = prev;
     };
   }, [showMobileMenu]);
+
+  // MazeMap-style ⌘K / Ctrl+K quick-focus for the search input. Only
+  // active when a search field is actually mounted for this page.
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!onSearchChange) return;
+    const onKey = (e: KeyboardEvent) => {
+      const modOK = e.metaKey || e.ctrlKey;
+      if (modOK && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSearchChange]);
 
   const isActive = (path: string) => location === path;
   const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
@@ -243,18 +260,27 @@ export default function Header({
           </div>
         </div>
 
-        {/* Search row */}
+        {/* Search row — MazeMap-style prominent bar with focus glow,
+         *  keyboard hint pill, and a slightly bigger footprint so it
+         *  reads as the primary way to explore the campus. */}
         {onSearchChange && (
           <div className={cn("border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
-              <Search className={cn("absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10", darkMode ? "text-gray-500" : "text-gray-400")} />
+              <Search className={cn(
+                "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
+                (searchQuery && searchQuery.trim())
+                  ? "text-blue-600 dark:text-blue-400"
+                  : (darkMode ? "text-gray-500" : "text-gray-400"),
+              )} />
               <Input
+                ref={searchInputRef}
                 type="search"
                 value={searchQuery ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
-                  "h-10 w-full pl-10 pr-10 text-sm rounded-xl border shadow-sm",
+                  "h-11 w-full pl-10 pr-16 text-sm rounded-2xl border shadow-sm transition-all",
+                  "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/60 focus-visible:shadow-md focus-visible:shadow-blue-500/10",
                   darkMode ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500" : "bg-white border-gray-200"
                 )}
                 aria-label={currentLang === "fi" ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
@@ -270,10 +296,27 @@ export default function Header({
                 autoCorrect="off"
                 spellCheck={false}
               />
-              {searchQuery && (
-                <button type="button" onClick={() => onSearchChange("")} className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Clear search">
+              {/* Right-side controls — clear button if searching, else a
+               *  subtle keyboard hint pill so users know how to focus
+               *  the field. MazeMap-style. */}
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange("")}
+                  className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Clear search"
+                >
                   <X className="h-4 w-4 text-gray-400" />
                 </button>
+              ) : (
+                <kbd className={cn(
+                  "absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border pointer-events-none select-none",
+                  darkMode
+                    ? "border-gray-700 bg-gray-800 text-gray-500"
+                    : "border-gray-200 bg-white text-gray-400",
+                )}>
+                  {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
+                </kbd>
               )}
             </div>
           </div>

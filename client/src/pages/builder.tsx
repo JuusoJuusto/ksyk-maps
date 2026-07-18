@@ -63,7 +63,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 import { toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MapPin, X as XIcon } from "lucide-react";
+import { MapPin, X as XIcon, Keyboard } from "lucide-react";
 
 type BuilderTool =
   | "select" | "pan"
@@ -177,6 +177,8 @@ function BuilderWorkspace() {
   const [gridEnabled, setGridEnabled] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+  // MazeMap-style keyboard cheat sheet — toggled by "?" (Shift + /).
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
   const [cameraState, setCameraState] = useState({
@@ -669,12 +671,21 @@ function BuilderWorkspace() {
       if ((e.target as HTMLElement)?.tagName === "INPUT" ||
           (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
       if (e.key === "Escape") {
+        // Escape from the shortcuts overlay first if it's open — pressing
+        // Esc while looking at shortcuts should close the overlay, not
+        // reset the drawing tool.
+        if (showShortcuts) { setShowShortcuts(false); return; }
         setWaypoints([]);
         setActiveTool("select");
         return;
       }
       if (e.key === "Enter") {
         finalize();
+        return;
+      }
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts((s) => !s);
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -1394,6 +1405,134 @@ function BuilderWorkspace() {
         onClose={() => setShowImportExport(false)}
         onImport={applyImport}
       />
+
+      {/* Keyboard cheat sheet — MazeMap-style overlay. Toggled with '?'.
+       *  Floating button in the bottom-right also opens it so
+       *  keyboard-shy users can still find it. */}
+      <button
+        type="button"
+        onClick={() => setShowShortcuts(true)}
+        title="Keyboard shortcuts (?)"
+        aria-label="Show keyboard shortcuts"
+        className="absolute bottom-14 right-3 z-30 h-9 w-9 rounded-full border border-border bg-card shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <Keyboard className="h-4 w-4" />
+      </button>
+
+      {showShortcuts && (
+        <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />
+      )}
+    </div>
+  );
+}
+
+/** MazeMap-style keyboard shortcuts overlay. Lists every hotkey the
+ *  builder responds to, grouped by category. Dismissed via '?' again,
+ *  Esc, X button, or clicking the backdrop. */
+function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
+  const groups: Array<{ title: string; rows: Array<{ keys: string[]; label: string }> }> = [
+    {
+      title: "Tools",
+      rows: [
+        { keys: ["V"], label: "Select" },
+        { keys: ["Space"], label: "Pan" },
+        { keys: ["B"], label: "Building polygon" },
+        { keys: ["U"], label: "Rectangle building" },
+        { keys: ["R"], label: "Room polygon" },
+        { keys: ["H"], label: "Hallway" },
+        { keys: ["W"], label: "Wall" },
+        { keys: ["M"], label: "Measure" },
+        { keys: ["S"], label: "Stairs POI" },
+        { keys: ["E"], label: "Elevator POI" },
+        { keys: ["D"], label: "Door POI" },
+        { keys: ["N"], label: "Entrance POI" },
+        { keys: ["I"], label: "Info POI" },
+      ],
+    },
+    {
+      title: "Drawing",
+      rows: [
+        { keys: ["Enter"], label: "Finish current shape" },
+        { keys: ["Esc"], label: "Cancel current shape" },
+        { keys: ["Del"], label: "Delete selected feature" },
+      ],
+    },
+    {
+      title: "Editing",
+      rows: [
+        { keys: ["↑", "↓", "←", "→"], label: "Nudge selection 1 m" },
+        { keys: ["Shift", "+", "↑↓←→"], label: "Nudge 5 m" },
+        { keys: ["Shift", "+", "drag vertex"], label: "Constrain axis-aligned" },
+        { keys: ["Shift", "+", "drag rotator"], label: "Snap rotation 15°" },
+        { keys: ["Drag inside polygon"], label: "Translate whole shape" },
+      ],
+    },
+    {
+      title: "Panel",
+      rows: [
+        { keys: ["?"], label: "Toggle this overlay" },
+      ],
+    },
+  ];
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden w-full max-w-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-blue-50/60 to-blue-100/40 dark:from-blue-500/10 dark:to-blue-500/5">
+          <div className="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+            <Keyboard className="h-4 w-4" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-blue-600 dark:text-blue-400">
+              Cheat sheet
+            </p>
+            <p className="text-lg font-bold text-foreground leading-tight">Keyboard shortcuts</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label="Close shortcuts overlay"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {groups.map((g) => (
+            <section key={g.title}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+                {g.title}
+              </p>
+              <ul className="space-y-1.5">
+                {g.rows.map((r) => (
+                  <li key={r.label} className="flex items-center justify-between gap-3 text-[13px]">
+                    <span className="text-foreground truncate">{r.label}</span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      {r.keys.map((k, i) => (
+                        k === "+" ? (
+                          <span key={i} className="text-[10px] text-muted-foreground">+</span>
+                        ) : (
+                          <kbd key={i} className="text-[10.5px] font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-muted text-foreground min-w-[24px] text-center">
+                            {k}
+                          </kbd>
+                        )
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+        <footer className="px-4 py-2 border-t border-border bg-muted/40 text-[11px] text-muted-foreground text-center">
+          Press <kbd className="font-mono font-bold px-1 py-0.5 rounded border border-border bg-card">Esc</kbd> or <kbd className="font-mono font-bold px-1 py-0.5 rounded border border-border bg-card">?</kbd> to close
+        </footer>
+      </div>
     </div>
   );
 }
