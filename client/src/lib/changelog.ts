@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.18.1";
+export const APP_VERSION = "3.19.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.19.0",
+    date: "July 2026",
+    title: "3D map: sky, sun-lit shading, drop shadows, stair towers, ghost floors",
+    titleFi: "3D-kartta: taivas, aurinkovarjostus, varjot, portaikkotornit, aavehuoneet",
+    latest: true,
+    highlights: [
+      "MazeMap-style directional light — buildings now cast warm sunlit shading in light mode, cool moonlit in dark mode",
+      "Atmospheric sky layer visible when the map is pitched — soft blue horizon with a warm sun halo",
+      "Ground drop shadows offset SE under every building for depth",
+      "Stair (amber) + elevator (blue) 3D towers pierce the shell so users see where vertical transit lives",
+      "Ghost lower floors: rooms below the active floor render at low opacity so the vertical stack always reads",
+    ],
+    highlightsFi: [
+      "MazeMap-tyylinen suunnattu valo — rakennukset lämpimässä auringonvalossa",
+      "Ilmakehän taivaskerros kun kartta on kallistettu",
+      "Rakennusten varjot kaakkoon syvyyden luomiseksi",
+      "Portaikko- (amber) ja hissi- (sininen) 3D-tornit rakennuksen läpi",
+      "Alempien kerrosten huoneet läpikuultavina niin pinon rakenne näkyy",
+    ],
+  },
   {
     version: "3.18.1",
     date: "July 2026",
     title: "Nicer empty states + Publish success flash",
     titleFi: "Paremmat tyhjät tilat + julkaisun onnistumisvinkki",
-    latest: true,
     highlights: [
       "Search dropdown empty state: iconed hero + 'try a room number' hint",
       "Builder sidebar empty states: colored bubble + wider hint text",

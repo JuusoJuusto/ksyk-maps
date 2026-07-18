@@ -50,6 +50,11 @@ const LAYERS = {
   buildingsRoof: "campus-buildings-roof",
   floorSlabs: "campus-floor-slabs",
   rooms3D: "campus-rooms-extrude",
+  // v3.19 additions — MazeMap-style 3D depth.
+  buildingShadow: "campus-buildings-shadow",
+  stairsTower: "campus-stairs-tower",
+  elevatorTower: "campus-elevators-tower",
+  sky: "campus-sky",
 } as const;
 
 // Physical metres per floor for 3D extrusion. Kept low so the campus
@@ -138,7 +143,11 @@ export default function CampusOverlay({
       installBuildings(map, buildings);
       installHallways(map, hallways);
       installRooms(map, rooms, activeFloor ?? null);
+      // Stair + elevator 3D towers — sit above buildings so users see
+      // where vertical transit lives at a glance in 3D.
+      installTowers(map, stairs, elevators, buildings);
       installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null, hiddenPoiKinds);
+      installSky(map);
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -173,6 +182,11 @@ export default function CampusOverlay({
       // over-drawn.
       setVis(LAYERS.buildingsRoof,    bVis && is3D);
       setVis(LAYERS.floorSlabs,       bVis && is3D);
+      // Ground shadows + stair/elevator towers + sky — all 3D-only.
+      setVis(LAYERS.buildingShadow,   bVis && is3D);
+      setVis(LAYERS.stairsTower,      is3D);
+      setVis(LAYERS.elevatorTower,    is3D);
+      setVis(LAYERS.sky,              is3D);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -183,9 +197,12 @@ export default function CampusOverlay({
       setVis(`${LAYERS.poisIcon}-3d`, is3D);
       // Flat rooms show in 2D. In 3D we swap to extruded room slabs
       // stacked ON TOP of each building's floor plate so the room reads
-      // as a real MazeMap-style raised platform inside the shell.
+      // as a real MazeMap-style raised platform inside the shell. The
+      // ghost layer renders lower floors at low opacity so users see
+      // the vertical stack even while the active floor is highlighted.
       setVis(LAYERS.roomsFill,        rVis && !is3D);
       setVis(LAYERS.rooms3D,          rVis && is3D);
+      setVis(`${LAYERS.rooms3D}-ghost`, rVis && is3D);
       setVis(LAYERS.roomsOutline,     rVis);
       setVis(LAYERS.roomsLabel,       rVis && lVis);
       setVis(LAYERS.hallwaysLine,     hVis);
@@ -534,6 +551,34 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     features: roofFeatures,
   });
 
+  // Ground shadow dataset — a copy of each building footprint offset
+  // slightly southeast (mimicking the map's "light" position which
+  // points northeast). Renders as a soft dark blur under the shell so
+  // buildings feel grounded in 3D instead of floating.
+  const shadowFeatures = buildings
+    .filter((b) => b.points && b.points.length >= 3)
+    .map((b) => {
+      // Offset each vertex ~1.2 metres SE. At campus latitude that's
+      // ~1.1e-5 degrees, which reads as a subtle drop shadow at zoom
+      // 17-20 without becoming a full duplicate polygon.
+      const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
+      const latShift = 1.2 / 111320;
+      const lngShift = 1.2 / (111320 * Math.cos((outer[0][1] * Math.PI) / 180));
+      const shifted = outer.map(([lng, lat]) => [lng + lngShift, lat - latShift] as [number, number]);
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [[...shifted, shifted[0]]],
+        },
+        properties: { id: `${b.id}-shadow` },
+      };
+    });
+  upsertGeoJSONSource(map, "campus-buildings-shadow", {
+    type: "FeatureCollection" as const,
+    features: shadowFeatures,
+  });
+
   // MazeMap-style: soft cream fill (using the brand color at very low
   // opacity so buildings still read as "yours") with a crisp darker
   // outline. Zoom-scaled opacity so buildings appear as user gets close.
@@ -606,6 +651,24 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // Per-feature label toggle.
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
+  });
+
+  // Ground shadow layer — subtle dark blur under each building's
+  // offset copy so the campus reads as landing on ground, not
+  // floating. Only visible in 3D (applyVisibility toggles it).
+  // Drawn as a flat fill so it doesn't extrude — the shift itself
+  // creates the drop-shadow effect.
+  addLayerIfMissing(map, {
+    id: LAYERS.buildingShadow,
+    source: "campus-buildings-shadow",
+    type: "fill",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-color": "#0f172a",
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.08, 18, 0.16, 20, 0.22],
+      "fill-antialias": true,
+    },
+    minzoom: 15,
   });
 
   // 3D extrusion layer — walls only (hollow interior). Sources from
@@ -902,6 +965,133 @@ function bufferLineToRectMeters(
   }));
 }
 
+/** Small square polygon (in lng/lat) centred on `pt` with the given
+ *  half-width in metres. Used to give point POIs an extrudable footprint
+ *  so they can render as tiny towers in 3D. */
+function squareAroundPointMeters(pt: { lat: number; lng: number }, halfWidthMeters: number): Array<[number, number]> {
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((pt.lat * Math.PI) / 180);
+  const dLat = halfWidthMeters / metersPerDegLat;
+  const dLng = halfWidthMeters / metersPerDegLng;
+  return [
+    [pt.lng - dLng, pt.lat - dLat],
+    [pt.lng + dLng, pt.lat - dLat],
+    [pt.lng + dLng, pt.lat + dLat],
+    [pt.lng - dLng, pt.lat + dLat],
+    [pt.lng - dLng, pt.lat - dLat],
+  ];
+}
+
+/** Install MazeMap-style stair + elevator towers — small extruded
+ *  boxes at each POI position that pierce the building shell. Users
+ *  seeing a 3D campus at a glance can spot where vertical transit
+ *  lives. Colored per kind (stairs = amber, elevator = blue). */
+function installTowers(
+  map: MaplibreMap,
+  stairs: Stair[],
+  elevators: Elevator[],
+  buildings: Building[],
+) {
+  // Building height lookup so a tower pokes just above its parent
+  // building's roof. Falls back to 8m for orphan POIs.
+  const heightByBuildingId = new Map<string, number>();
+  for (const b of buildings) {
+    const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+    const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+      ? style.heightPerFloor
+      : METERS_PER_FLOOR;
+    const heightOverride = typeof style.totalHeight === "number" && style.totalHeight > 0
+      ? style.totalHeight
+      : null;
+    const height = heightOverride ?? Math.max(perFloor, (b.floors ?? 1) * perFloor);
+    heightByBuildingId.set(b.id, height);
+  }
+  const towerFeature = (id: string, pos: { lat: number; lng: number }, buildingId: string | null | undefined, kind: "stairs" | "elevator") => {
+    const parentH = (buildingId && heightByBuildingId.get(buildingId)) || 8;
+    const height = parentH + 0.8; // just pokes above the roof
+    const halfW = kind === "elevator" ? 1.6 : 1.2; // elevator slightly chunkier
+    const coords = squareAroundPointMeters(pos, halfW);
+    return {
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+      properties: { id, kind, height },
+    };
+  };
+  const stairFeatures = stairs
+    .filter((s) => typeof s.position?.lat === "number" && typeof s.position?.lng === "number")
+    .map((s) => towerFeature(s.id, s.position!, (s as unknown as { buildingId?: string }).buildingId, "stairs"));
+  const elevatorFeatures = elevators
+    .filter((e) => typeof e.position?.lat === "number" && typeof e.position?.lng === "number")
+    .map((e) => towerFeature(e.id, e.position!, (e as unknown as { buildingId?: string }).buildingId, "elevator"));
+
+  upsertGeoJSONSource(map, "campus-stairs-tower-src", {
+    type: "FeatureCollection" as const,
+    features: stairFeatures,
+  });
+  upsertGeoJSONSource(map, "campus-elevators-tower-src", {
+    type: "FeatureCollection" as const,
+    features: elevatorFeatures,
+  });
+
+  addLayerIfMissing(map, {
+    id: LAYERS.stairsTower,
+    source: "campus-stairs-tower-src",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      // Warm amber, matches the stairs POI chip in 2D.
+      "fill-extrusion-color": "#b45309",
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 15,
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.elevatorTower,
+    source: "campus-elevators-tower-src",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      // Blue, matches the elevator POI chip in 2D.
+      "fill-extrusion-color": "#2563eb",
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 15,
+  });
+}
+
+/** Install the sky layer — MazeMap-style atmospheric horizon when the
+ *  map is pitched. MapLibre skips rendering the sky when pitch=0 so we
+ *  don't need to conditionally add/remove it; the layer visibility
+ *  toggle keeps it out of the flat 2D paint order. */
+function installSky(map: MaplibreMap) {
+  if (map.getLayer(LAYERS.sky)) return;
+  try {
+    map.addLayer({
+      id: LAYERS.sky,
+      type: "sky",
+      layout: { visibility: "none" },
+      paint: {
+        // MapLibre 5 supports the atmosphere sky type — soft blue
+        // gradient toward the horizon with a warm sun halo.
+        "sky-type": "atmosphere",
+        "sky-atmosphere-sun": [0, 0],
+        "sky-atmosphere-sun-intensity": 8,
+        "sky-atmosphere-color": "#b6cffb",
+        "sky-atmosphere-halo-color": "#fff4dc",
+        "sky-horizon-blend": 0.6,
+      } as unknown as import("maplibre-gl").SkyPaintProps,
+    } as unknown as import("maplibre-gl").AddLayerObject);
+  } catch {
+    // Sky layer unsupported (older style spec) — skip silently.
+  }
+}
+
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
@@ -942,10 +1132,12 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // + 0.08 (floor slab thickness) and extrude by ROOM_SLAB_METERS so
   // the room reads as a raised platform inside the wall shell.
   //
-  // Filtering: only the active floor's rooms extrude — otherwise every
-  // floor's rooms would stack visually inside the shell and the user
-  // couldn't see which one they're actually looking at. MazeMap does
-  // the same — you swap floor, the interior redraws.
+  // MazeMap "ghost lower floors": we include rooms on the active floor
+  // AT FULL COLOR + rooms on floors below the active floor with
+  // isActive=false so a companion "ghost" layer can render them at
+  // reduced opacity. Users see the vertical stack of the building
+  // even when concentrating on a specific level. Rooms on floors ABOVE
+  // the active floor are hidden entirely (they'd occlude the interior).
   //
   // Custom heights: rooms accept `metadata.style.slabHeight` (how tall
   // the raised platform is, default 0.35 m) and `metadata.style.perFloor`
@@ -955,7 +1147,10 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "FeatureCollection" as const,
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
-      .filter((r) => activeFloor === null || r.floor === activeFloor)
+      .filter((r) => {
+        if (activeFloor === null) return true;
+        return (r.floor ?? 1) <= activeFloor;
+      })
       .map((r) => {
         const floor = r.floor ?? 1;
         const floorIdx = Math.max(0, floor - 1);
@@ -982,6 +1177,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
             floor,
             base,
             height: base + slabHeight,
+            // 1 = current floor (full colour), 0 = below (ghosted).
+            isActive: activeFloor === null || floor === activeFloor,
           },
         };
       }),
@@ -1026,6 +1223,12 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // Because the slab is thin (ROOM_SLAB_METERS ≈ 35 cm), the user sees
   // colored floor plates through the shell rather than solid room
   // "boxes" that would fill the whole floor volume.
+  //
+  // Split into two layers:
+  //   - `rooms-3d` — active floor rooms at full opacity (colourful)
+  //   - `rooms-3d-ghost` — rooms on floors BELOW the active floor at
+  //     low opacity so users see the stack context. Filtered via the
+  //     isActive property so both layers read from the same source.
   addLayerIfMissing(map, {
     id: LAYERS.rooms3D,
     source: "campus-rooms-3d",
@@ -1035,9 +1238,27 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base"],
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.75, 20, 0.9],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.85, 20, 0.95],
       "fill-extrusion-vertical-gradient": true,
     },
+    filter: ["boolean", ["get", "isActive"], true],
+    minzoom: 16,
+  });
+  addLayerIfMissing(map, {
+    id: `${LAYERS.rooms3D}-ghost`,
+    source: "campus-rooms-3d",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": ["get", "base"],
+      // Very low opacity — just enough to hint the stack, not enough to
+      // fight with the active floor for attention.
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.18, 20, 0.28],
+      "fill-extrusion-vertical-gradient": false,
+    },
+    filter: ["!", ["boolean", ["get", "isActive"], true]],
     minzoom: 16,
   });
   addLayerIfMissing(map, {

@@ -54,6 +54,19 @@ const TILE_ATTRIBUTIONS = {
 function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
   return {
     version: 8,
+    // MazeMap-style directional lighting. The `light` block controls
+    // shading on every fill-extrusion layer (buildings, walls, room
+    // slabs). Setting a warm color + a fixed low-angle position makes
+    // buildings read as "sunlit" instead of the flat default. Anchor
+    // "viewport" keeps the light angle stable as the user rotates.
+    light: {
+      anchor: "viewport",
+      // Slightly northeast + low. Casts a soft warm tint on faces
+      // facing east; opposite faces darker for depth.
+      position: [1.15, 210, 30],
+      color: mode === "dark" ? "#c7d0e0" : "#fff4dc",
+      intensity: mode === "dark" ? 0.35 : 0.55,
+    },
     sources: {
       "osm-raster": {
         type: "raster",
@@ -304,6 +317,16 @@ export default function CampusMap({
       },
       firstOverlay,
     );
+    // Re-apply the directional light so extrusion shading matches the
+    // theme. Warm sun for light mode, cool moon for dark mode.
+    try {
+      map.setLight({
+        anchor: "viewport",
+        position: [1.15, 210, 30],
+        color: darkMode ? "#c7d0e0" : "#fff4dc",
+        intensity: darkMode ? 0.35 : 0.55,
+      });
+    } catch { /* light spec not supported — skip */ }
   }, [darkMode, ready]);
 
   // ── React to platform-scoped map defaults changing at runtime.
