@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.20.0";
+export const APP_VERSION = "3.21.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.21.0",
+    date: "July 2026",
+    title: "Floors in builder, no-hyphen room names, nav auto-scroll + reset",
+    titleFi: "Kerrokset rakentajassa, ei viivaa huoneiden nimissä, navigaation nollaus",
+    latest: true,
+    highlights: [
+      "Builder floor selector — MazeMap-style vertical chip in top-right; rooms filter by active floor, new rooms land on the selected floor",
+      "Off-floor rooms fade to 8% opacity as ghost context — you never lose spatial awareness",
+      "Room auto-naming drops the hyphen: A1, A2, B12 (was A-1, A-2, B-12)",
+      "Navigation: active step auto-scrolls into view + Reset button in the timeline header",
+      "Arrival banner (green Flag row) when the user taps the final step",
+    ],
+    highlightsFi: [
+      "Rakentajan kerrosvalitsin, uudet huoneet menevät valittuun kerrokseen",
+      "Muiden kerrosten huoneet häivytetään 8% läpinäkyvyyteen",
+      "Huoneiden numerointi ilman viivaa: A1, A2, B12",
+      "Navigaatio: aktiivinen askel vieritetään näkyviin + Nollaa-nappula",
+      "Perilläolobanneri kun käyttäjä pääsee viimeiseen askeleeseen",
+    ],
+  },
   {
     version: "3.20.0",
     date: "July 2026",
     title: "KSYK Maps rebrand + 3D POI pillars + door/entrance markers",
     titleFi: "KSYK Maps -brändi + 3D-POI-pylväät + ovi/sisäänkäyntimerkit",
-    latest: true,
     highlights: [
       "Stripped 'by Nordbyte Studio' from browser tab, PWA manifest, splash, header, settings, landing, admin login, and version info",
       "Every generic POI (info, cafe, vending, water, first aid, AED, printer, meeting, parking, bike, restrooms) now extrudes as a 2.2 m colored pillar in 3D",

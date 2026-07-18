@@ -102,6 +102,13 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   // along visually — the current step gets a highlighted ring + the
   // total ETA re-renders from that point forward.
   const [activeStepIdx, setActiveStepIdx] = useState<number>(0);
+  // Ref to the active step's <li> so we can auto-scroll it into view
+  // whenever the user advances. Especially helpful on mobile where the
+  // step list is short and the current step would otherwise scroll off.
+  const activeStepRef = useRef<HTMLLIElement | null>(null);
+  useEffect(() => {
+    activeStepRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeStepIdx]);
 
   // Listen for cross-component route requests — the FeatureInfoSheet
   // dispatches `ksyk:route-to` when the user hits "Directions here"
@@ -625,13 +632,42 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
          *  the map there and switch to the step's floor. */}
         {turnHints.length > 0 && (
           <div className="rounded-xl border border-border overflow-hidden bg-card">
-            <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Footprints className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground min-w-0">
+                <Footprints className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                 <span>Directions</span>
+                {activeStepIdx > 0 && activeStepIdx < turnHints.length && (
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold tabular-nums truncate">
+                    · step {activeStepIdx + 1}/{turnHints.length}
+                  </span>
+                )}
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">{turnHints.length} steps</span>
+              <div className="flex items-center gap-1 shrink-0">
+                {activeStepIdx > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveStepIdx(0)}
+                    className="h-6 px-2 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1"
+                    aria-label="Reset progress to start"
+                    title="Reset progress"
+                  >
+                    <ArrowRightLeft className="h-3 w-3 rotate-180" />
+                    Reset
+                  </button>
+                )}
+                <span className="text-[10px] text-muted-foreground tabular-nums">{turnHints.length} steps</span>
+              </div>
             </div>
+            {/* Arrival banner — fires when user taps the LAST step
+             *  ("arrive"). MazeMap-style small celebration so the
+             *  route feels finished, not just "you're at the end of a
+             *  list." */}
+            {activeStepIdx === turnHints.length - 1 && turnHints.length > 1 && (
+              <div className="px-3 py-2 bg-emerald-500/10 border-b border-emerald-500/20 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                <Flag className="h-3.5 w-3.5" />
+                <span>You've arrived at your destination.</span>
+              </div>
+            )}
             <ol className="p-2 space-y-0 max-h-64 overflow-y-auto">
               {turnHints.map((hint, i) => {
                 const isEndpoint = hint.turn === "start" || hint.turn === "arrive";
@@ -657,6 +693,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                 return (
                   <li
                     key={hint.nodeId + "-" + i}
+                    ref={isActive ? activeStepRef : undefined}
                     className={cn(
                       "relative flex items-start gap-3 rounded-lg p-1.5 transition-colors group cursor-pointer",
                       isActive

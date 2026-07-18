@@ -504,26 +504,37 @@ function BuilderWorkspace() {
     const roomsOutlineId = "builder-rooms-outline";
     const roomsLabelId = "builder-rooms-labels";
     const rooms = roomsQ.data ?? [];
+    // MazeMap-style per-floor filtering — rooms not on the current
+    // floor render as a very faded "ghost" so the user sees which
+    // floor they're editing without losing spatial context. Selected
+    // room always renders full opacity even off-floor.
+    const activeFloor = cameraState.activeFloor;
     const roomsFC = {
       type: "FeatureCollection" as const,
       features: rooms
         .filter((r) => r.points && r.points.length >= 3)
-        .map((r) => ({
-          type: "Feature" as const,
-          geometry: {
-            type: "Polygon" as const,
-            coordinates: [[
-              ...r.points!.map((p) => [p.lng, p.lat]),
-              [r.points![0].lng, r.points![0].lat],
-            ]],
-          },
-          properties: {
-            id: r.id,
-            color: r.colorCode ?? "#059669",
-            label: [r.roomNumber, r.name].filter(Boolean).join(" "),
-            selected: selection?.kind === "room" && selection.id === r.id,
-          },
-        })),
+        .map((r) => {
+          const onFloor = activeFloor === null || r.floor === activeFloor;
+          const isSelected = selection?.kind === "room" && selection.id === r.id;
+          return {
+            type: "Feature" as const,
+            geometry: {
+              type: "Polygon" as const,
+              coordinates: [[
+                ...r.points!.map((p) => [p.lng, p.lat]),
+                [r.points![0].lng, r.points![0].lat],
+              ]],
+            },
+            properties: {
+              id: r.id,
+              color: r.colorCode ?? "#059669",
+              label: [r.roomNumber, r.name].filter(Boolean).join(" "),
+              selected: isSelected,
+              onFloor,
+              floor: r.floor ?? 1,
+            },
+          };
+        }),
     };
     const roomsSrc = map.getSource(roomsSrcId) as maplibregl.GeoJSONSource | undefined;
     if (roomsSrc) roomsSrc.setData(roomsFC as any);
@@ -531,16 +542,38 @@ function BuilderWorkspace() {
       map.addSource(roomsSrcId, { type: "geojson", data: roomsFC as any });
       map.addLayer({
         id: roomsFillId, source: roomsSrcId, type: "fill",
-        paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", ["boolean", ["get", "selected"], false], 0.5, 0.28] },
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": [
+            "case",
+            ["boolean", ["get", "selected"], false], 0.55,
+            ["boolean", ["get", "onFloor"], true], 0.32,
+            0.08, // off-floor ghost
+          ],
+        },
       });
       map.addLayer({
         id: roomsOutlineId, source: roomsSrcId, type: "line",
-        paint: { "line-color": ["get", "color"], "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2] },
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2],
+          "line-opacity": [
+            "case",
+            ["boolean", ["get", "selected"], false], 1,
+            ["boolean", ["get", "onFloor"], true], 0.9,
+            0.2,
+          ],
+        },
       });
       map.addLayer({
         id: roomsLabelId, source: roomsSrcId, type: "symbol",
         layout: { "text-field": ["get", "label"], "text-size": 11, "text-font": ["Noto Sans Regular"], "text-allow-overlap": false, "text-optional": true },
-        paint: { "text-color": "#0f172a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 },
+        paint: {
+          "text-color": "#0f172a",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.2,
+          "text-opacity": ["case", ["boolean", ["get", "onFloor"], true], 1, 0.35],
+        },
         minzoom: 17,
       });
     }
@@ -573,7 +606,7 @@ function BuilderWorkspace() {
         },
       });
     }
-  }, [mapReady, roomsQ.data, hallwaysQ.data, selection]);
+  }, [mapReady, roomsQ.data, hallwaysQ.data, selection, cameraState.activeFloor]);
 
   // ── Map click handler — drops waypoints in draw mode ────────────────────
   useEffect(() => {
@@ -1004,7 +1037,8 @@ function BuilderWorkspace() {
         return;
       }
       const roomCount = (roomsQ.data ?? []).filter((r) => r.buildingId === nearest.id).length;
-      const roomNumber = `${nearest.name}-${roomCount + 1}`;
+      // No hyphen — MazeMap-style "A1", "A2", "B12" naming.
+      const roomNumber = `${nearest.name}${roomCount + 1}`;
       createRoom.mutate({
         roomNumber,
         buildingId: nearest.id,
@@ -1261,6 +1295,55 @@ function BuilderWorkspace() {
           activeTool === "pan" && "[&_.maplibregl-canvas]:!cursor-grab active:[&_.maplibregl-canvas]:!cursor-grabbing",
         )}>
           <CampusMap onReady={(h) => { handleRef.current = h; setMapReady(true); }} />
+
+          {/* MazeMap-style floor selector — top-right of the canvas.
+           *  Shows the union of every building's floor range so a
+           *  building spanning -1..3 and another at 4 both appear.
+           *  New rooms + hallways/POIs created while a floor is
+           *  selected land on THAT floor. Rooms not on the active
+           *  floor render at very low opacity as ghost context. */}
+          {(() => {
+            const set = new Set<number>();
+            for (const b of buildings) {
+              const min = typeof b.floorMin === "number" ? b.floorMin : 1;
+              const max = typeof b.floorMax === "number" ? b.floorMax : (b.floors ?? 1);
+              const lo = Math.min(min, max);
+              const hi = Math.max(min, max);
+              for (let f = lo; f <= hi; f++) set.add(f);
+            }
+            if (set.size === 0) set.add(1);
+            const floorList = [...set].sort((a, b) => b - a);
+            if (floorList.length < 2) return null;
+            return (
+              <div className="absolute top-3 right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-card/95 shadow-md backdrop-blur-md">
+                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-1">
+                  FL
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  {floorList.map((floor) => {
+                    const active = cameraState.activeFloor === floor;
+                    return (
+                      <button
+                        key={floor}
+                        type="button"
+                        aria-label={`Floor ${floor}`}
+                        aria-pressed={active}
+                        onClick={() => setCameraState((s) => ({ ...s, activeFloor: floor }))}
+                        className={cn(
+                          "min-w-[36px] h-9 px-1 rounded-xl text-[13px] font-bold transition-all leading-none tabular-nums flex items-center justify-center",
+                          active
+                            ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
+                            : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+                        )}
+                      >
+                        {floor}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* In-flight coach — MazeMap-style pill chip that surfaces
            *  the current tool, live progress, and the cancel hint.
