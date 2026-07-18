@@ -23,7 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Map as MaplibreMap } from "maplibre-gl";
+import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, Hallway, MapLayer, Stair, Elevator, Door } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides } from "@/components/LayersToggle";
@@ -239,27 +239,91 @@ export default function CampusOverlay({
     };
     map.on("click", onClick);
 
-    // MazeMap-style cursor + hover feedback — swap to a pointer any
-    // time the mouse is over a hoverable feature. We use a low-cost
-    // move handler that just runs queryRenderedFeatures on the
-    // buildings/rooms/hallways layers and toggles the canvas cursor.
+    // MazeMap-style cursor + hover feedback — pointer cursor on any
+    // hoverable feature, PLUS a feature-state flip on the specific
+    // room/building under the cursor so the fill layer paint (which
+    // reads ["feature-state","hover"]) can brighten the polygon.
+    // Tracks the last-hovered id so we can clear its state on move-out.
     const hoverableLayers = [LAYERS.buildingsFill, LAYERS.roomsFill, LAYERS.hallwaysLine, LAYERS.poisChip, LAYERS.poisIcon];
+    const roomsAndBuildingsLayers = [LAYERS.roomsFill, LAYERS.buildingsFill];
+    let lastHover: { source: string; id: string | number } | null = null;
+    const clearHover = () => {
+      if (!lastHover) return;
+      map.setFeatureState(lastHover, { hover: false });
+      lastHover = null;
+    };
     const onMove = (e: import("maplibre-gl").MapMouseEvent) => {
       const layerIds = hoverableLayers.filter((id) => map.getLayer(id));
       if (layerIds.length === 0) return;
       const feats = map.queryRenderedFeatures(e.point, { layers: layerIds });
       map.getCanvas().style.cursor = feats.length > 0 ? "pointer" : "";
+      // Rooms take priority over buildings for hover state — a hover
+      // inside a room polygon should highlight the room, not its
+      // parent building.
+      const hoverFeats = map.queryRenderedFeatures(e.point, {
+        layers: roomsAndBuildingsLayers.filter((id) => map.getLayer(id)),
+      });
+      const hit = hoverFeats[0];
+      if (!hit) { clearHover(); return; }
+      const src = hit.layer.id === LAYERS.roomsFill ? SOURCES.rooms : SOURCES.buildings;
+      const id = (hit.id ?? hit.properties?.id) as string | number | undefined;
+      if (id === undefined) { clearHover(); return; }
+      if (lastHover && lastHover.source === src && lastHover.id === id) return;
+      clearHover();
+      lastHover = { source: src, id };
+      map.setFeatureState(lastHover, { hover: true });
     };
-    const onLeave = () => { map.getCanvas().style.cursor = ""; };
+    const onLeave = () => {
+      map.getCanvas().style.cursor = "";
+      clearHover();
+    };
     map.on("mousemove", onMove);
     map.on("mouseleave", onLeave);
+
+    // ── POI hover tooltip — MazeMap-style popup that surfaces the POI
+    //    kind + optional label without needing a click. Single reusable
+    //    Popup instance so we don't leak DOM nodes on every hover.
+    const poiPopup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 12,
+      className: "ksyk-poi-tip",
+      maxWidth: "220px",
+    });
+    const onPoiMove = (e: import("maplibre-gl").MapMouseEvent) => {
+      const poiLayers = [LAYERS.poisChip, LAYERS.poisIcon, `${LAYERS.poisIcon}-3d`].filter((id) => map.getLayer(id));
+      if (poiLayers.length === 0) return;
+      const feats = map.queryRenderedFeatures(e.point, { layers: poiLayers });
+      const hit = feats[0];
+      if (!hit) { poiPopup.remove(); return; }
+      const kind = (hit.properties?.kind as string | undefined) ?? "";
+      const label = (hit.properties?.label as string | undefined) ?? poiKindLabel(kind);
+      const floor = hit.properties?.floor;
+      const parts = [`<div class="text-xs font-semibold text-gray-900">${escapeHtml(label)}</div>`];
+      if (kind && kind !== label.toLowerCase()) {
+        parts.push(`<div class="text-[10px] uppercase tracking-wide text-gray-500 mt-0.5">${escapeHtml(poiKindLabel(kind))}</div>`);
+      }
+      if (floor !== null && floor !== undefined && floor !== "") {
+        parts.push(`<div class="text-[10px] text-blue-600 mt-0.5">Floor ${escapeHtml(String(floor))}</div>`);
+      }
+      poiPopup
+        .setLngLat(e.lngLat)
+        .setHTML(`<div class="px-2 py-1.5 rounded-md bg-white shadow-sm border border-gray-200">${parts.join("")}</div>`)
+        .addTo(map);
+    };
+    const onPoiLeave = () => { poiPopup.remove(); };
+    map.on("mousemove", onPoiMove);
+    map.on("mouseout", onPoiLeave);
 
     return () => {
       disposed = true;
       map.off("click", onClick);
       map.off("mousemove", onMove);
       map.off("mouseleave", onLeave);
+      map.off("mousemove", onPoiMove);
+      map.off("mouseout", onPoiLeave);
       map.off("moveend", onMoveEnd);
+      poiPopup.remove();
       // Explicitly detach the load/styledata one-offs so a stale
       // closure from a previous effect run can't fire after this
       // one has already re-installed everything with fresh state.
@@ -294,6 +358,10 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
           : null;
         const height = heightOverride ?? Math.max(perFloor, floors * perFloor);
         return {
+          // Feature-level id (not just properties.id) is required for
+          // map.setFeatureState({source, id}) to hook this specific
+          // building. Enables hover highlight without a re-render.
+          id: b.id,
           type: "Feature" as const,
           geometry: {
             type: "Polygon" as const,
@@ -468,6 +536,10 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // building rectangle competes with the small rooms drawn inside.
       "fill-opacity": [
         "case",
+        // Hovered building — quick MazeMap-style highlight so the user
+        // sees exactly which building their cursor is on.
+        ["boolean", ["feature-state", "hover"], false],
+        0.25,
         ["!=", ["get", "fillOpacity"], null],
         ["get", "fillOpacity"],
         ["interpolate", ["linear"], ["zoom"], 14, 0.05, 16, 0.09, 17, 0.06, 20, 0.02],
@@ -825,6 +897,9 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       .map((r) => {
         const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
         return {
+          // Feature-level id lets setFeatureState() target this room
+          // for hover highlight without re-rendering the source.
+          id: r.id,
           type: "Feature" as const,
           geometry: {
             type: "Polygon" as const,
@@ -916,6 +991,10 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       // from the Style tab.
       "fill-opacity": [
         "case",
+        // Hovered rooms saturate to a near-solid fill for MazeMap-style
+        // "you're pointing at THIS room" feedback.
+        ["boolean", ["feature-state", "hover"], false],
+        0.95,
         ["!=", ["get", "fillOpacity"], null],
         ["get", "fillOpacity"],
         ["interpolate", ["linear"], ["zoom"], 15, 0.35, 17, 0.7, 19, 0.85, 22, 0.95],
@@ -1037,16 +1116,26 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
   type PoiFeature = {
     type: "Feature";
     geometry: { type: "Point"; coordinates: [number, number] };
-    properties: { id: string; kind: string; icon: string; floor: number | null };
+    properties: { id: string; kind: string; icon: string; floor: number | null; label: string };
   };
   const features: PoiFeature[] = [];
 
-  const push = (id: string, kind: string, floor: number | null, lat: number, lng: number) => {
+  const push = (
+    id: string, kind: string, floor: number | null,
+    lat: number, lng: number, label?: string | null,
+  ) => {
     if (activeFloor !== null && floor !== null && floor !== activeFloor) return;
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [lng, lat] },
-      properties: { id, kind, icon: POI_ICON[kind] ?? "•", floor },
+      properties: {
+        id, kind,
+        icon: POI_ICON[kind] ?? "•",
+        floor,
+        // Fall back to a friendly kind name for the hover popup so
+        // every POI has something to show even without a custom label.
+        label: (label && label.trim()) || poiKindLabel(kind),
+      },
     });
   };
 
@@ -1060,7 +1149,7 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
   }
   for (const e of data.elevators) {
     if (typeof e.position?.lat === "number" && typeof e.position?.lng === "number") {
-      push(e.id, "elevator", e.floors?.[0] ?? null, e.position.lat, e.position.lng);
+      push(e.id, "elevator", e.floors?.[0] ?? null, e.position.lat, e.position.lng, e.name ?? null);
     }
   }
   for (const d of data.doors) {
@@ -1073,7 +1162,7 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
   // placed via the builder POI toolbar, stored in campus_pois.
   for (const p of data.generic) {
     if (typeof p.position?.lat !== "number" || typeof p.position?.lng !== "number") continue;
-    push(p.id, p.kind, p.floor ?? null, p.position.lat, p.position.lng);
+    push(p.id, p.kind, p.floor ?? null, p.position.lat, p.position.lng, p.label ?? null);
   }
   // Auto-derive POI markers from typed rooms (bathroom, elevator, stairs).
   for (const r of data.rooms) {
@@ -1233,4 +1322,45 @@ function addLayerIfMissing(map: MaplibreMap, layer: import("maplibre-gl").AddLay
     // If the map style is still transitioning, MapLibre may reject the
     // add. The next data-driven effect will retry.
   }
+}
+
+/** Friendly label for a POI kind — mirrors the sidebar's naming so the
+ *  hover tooltip on the map uses the same words the admin sees while
+ *  editing. Falls back to a titlecased kind for unknown values so new
+ *  POI kinds render sanely without a code change. */
+function poiKindLabel(kind: string): string {
+  switch (kind) {
+    case "stairs":        return "Stairs";
+    case "elevator":      return "Elevator";
+    case "door":          return "Door";
+    case "entrance":      return "Entrance";
+    case "exit":          return "Emergency exit";
+    case "bathroom":      return "Bathroom";
+    case "info":          return "Information";
+    case "reception":     return "Reception";
+    case "parking":       return "Parking";
+    case "bike":          return "Bike parking";
+    case "restroom_m":    return "Restroom · M";
+    case "restroom_f":    return "Restroom · F";
+    case "restroom_a":    return "Accessible restroom";
+    case "cafe":          return "Café";
+    case "vending":       return "Vending machine";
+    case "water":         return "Water fountain";
+    case "first_aid":     return "First aid";
+    case "defibrillator": return "Defibrillator (AED)";
+    case "printer":       return "Printer";
+    case "meeting_point": return "Meeting point";
+    default: return kind ? (kind.charAt(0).toUpperCase() + kind.slice(1).replace(/_/g, " ")) : "POI";
+  }
+}
+
+/** Minimal HTML-escape for popup contents — Popup#setHTML doesn't
+ *  sanitize, and we're passing untrusted POI labels from the DB. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

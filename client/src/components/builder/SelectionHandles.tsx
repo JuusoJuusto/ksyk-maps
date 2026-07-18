@@ -42,6 +42,10 @@ const LAYER_VERTS = "selection-vertices";
 const LAYER_ROTATOR = "selection-rotator";
 const LAYER_ROTATOR_STEM = "selection-rotator-stem";
 const LAYER_OUTLINE = "selection-outline";
+// Invisible fill on the selected polygon — sole purpose is to catch
+// pointerdown so users can drag the WHOLE shape by clicking inside it.
+// Rendered nearly transparent so it doesn't visually interfere.
+const LAYER_TRANSLATE_HIT = "selection-translate-hit";
 const LAYER_DIMS_LINES = "selection-dimensions-lines";
 const LAYER_DIMS_LABELS = "selection-dimensions-labels";
 
@@ -155,6 +159,17 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
     const dimFC = { type: "FeatureCollection" as const, features: dimFeatures };
 
     upsert(m, SRC_OUTLINE, outlineFC);
+    if (!m.getLayer(LAYER_TRANSLATE_HIT)) {
+      m.addLayer({
+        id: LAYER_TRANSLATE_HIT, source: SRC_OUTLINE, type: "fill",
+        paint: {
+          // Barely-visible tint hints "this shape is selected + draggable"
+          // without competing with the actual entity fill underneath.
+          "fill-color": "#2563eb",
+          "fill-opacity": 0.05,
+        },
+      });
+    }
     if (!m.getLayer(LAYER_OUTLINE)) {
       m.addLayer({
         id: LAYER_OUTLINE, source: SRC_OUTLINE, type: "line",
@@ -225,7 +240,7 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
     // Cleanup on unmount / selection loss.
     return () => {
       if (!selection) return;
-      for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE, LAYER_DIMS_LINES, LAYER_DIMS_LABELS]) {
+      for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE, LAYER_TRANSLATE_HIT, LAYER_DIMS_LINES, LAYER_DIMS_LABELS]) {
         if (map.getLayer(layerId)) map.removeLayer(layerId);
       }
       for (const srcId of [SRC_VERTS, SRC_ROTATOR, SRC_OUTLINE, SRC_DIMS]) {
@@ -240,27 +255,54 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
   useEffect(() => {
     if (!map || !selection) return;
 
-    let dragging: null | { kind: "vertex"; idx: number } | { kind: "rotator"; startAngleDeg: number; startPoints: LatLng[] } = null;
+    type DragTranslate = { kind: "translate"; startLat: number; startLng: number; startPoints: LatLng[] };
+    let dragging:
+      | null
+      | { kind: "vertex"; idx: number }
+      | { kind: "rotator"; startAngleDeg: number; startPoints: LatLng[] }
+      | DragTranslate = null;
 
     const onDown = (e: MapMouseEvent) => {
-      const feats = map.queryRenderedFeatures(e.point, {
+      // Rank hits: handles > outline (polygon body). Handles first so a
+      // click precisely on a vertex still drags the vertex, not the whole
+      // polygon.
+      const handleFeats = map.queryRenderedFeatures(e.point, {
         layers: [LAYER_VERTS, LAYER_ROTATOR].filter((id) => map.getLayer(id)),
       });
-      const hit = feats[0];
-      if (!hit) return;
+      const hit = handleFeats[0];
+      if (hit) {
+        e.preventDefault();
+        map.dragPan.disable();
+        if (hit.layer.id === LAYER_VERTS) {
+          const idx = Number(hit.properties?.idx ?? -1);
+          if (idx < 0) return;
+          dragging = { kind: "vertex", idx };
+        } else {
+          const pts = localPointsRef.current ?? [];
+          if (pts.length < 3) return;
+          const centroid = polygonCentroid(pts);
+          const startAngleDeg = angleDeg(centroid, { lat: e.lngLat.lat, lng: e.lngLat.lng });
+          dragging = { kind: "rotator", startAngleDeg, startPoints: pts.map((p) => ({ ...p })) };
+        }
+        return;
+      }
+      // No handle → check for a hit on the selection's translate-hit
+      // fill (an invisible fill covering the whole selected polygon).
+      // Drag-to-move translates the whole shape.
+      const bodyFeats = map.queryRenderedFeatures(e.point, {
+        layers: [LAYER_TRANSLATE_HIT].filter((id) => map.getLayer(id)),
+      });
+      if (bodyFeats.length === 0) return;
+      const pts = localPointsRef.current ?? [];
+      if (pts.length < 3) return;
       e.preventDefault();
       map.dragPan.disable();
-      if (hit.layer.id === LAYER_VERTS) {
-        const idx = Number(hit.properties?.idx ?? -1);
-        if (idx < 0) return;
-        dragging = { kind: "vertex", idx };
-      } else {
-        const pts = localPointsRef.current ?? [];
-        if (pts.length < 3) return;
-        const centroid = polygonCentroid(pts);
-        const startAngleDeg = angleDeg(centroid, { lat: e.lngLat.lat, lng: e.lngLat.lng });
-        dragging = { kind: "rotator", startAngleDeg, startPoints: pts.map((p) => ({ ...p })) };
-      }
+      dragging = {
+        kind: "translate",
+        startLat: e.lngLat.lat,
+        startLng: e.lngLat.lng,
+        startPoints: pts.map((p) => ({ ...p })),
+      };
     };
 
     const onMove = (e: MapMouseEvent) => {
@@ -283,7 +325,7 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
         }
         next[dragging.idx] = { lat: ny, lng: nx };
         localPointsRef.current = next;
-      } else {
+      } else if (dragging.kind === "rotator") {
         const centroid = polygonCentroid(dragging.startPoints);
         const cur = angleDeg(centroid, { lat: e.lngLat.lat, lng: e.lngLat.lng });
         let delta = cur - dragging.startAngleDeg;
@@ -293,21 +335,30 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
           delta = Math.round(delta / 15) * 15;
         }
         localPointsRef.current = rotatePolygon(dragging.startPoints, centroid, delta);
+      } else {
+        // translate — shift every start point by the cursor delta.
+        const dLat = e.lngLat.lat - dragging.startLat;
+        const dLng = e.lngLat.lng - dragging.startLng;
+        localPointsRef.current = dragging.startPoints.map((p) => ({
+          lat: p.lat + dLat,
+          lng: p.lng + dLng,
+        }));
       }
       refreshSources(map);
     };
 
     const onUp = () => {
       if (!dragging) return;
-      const wasVertex = dragging.kind === "vertex";
+      const wasRotator = dragging.kind === "rotator";
       dragging = null;
       map.dragPan.enable();
       const pts = localPointsRef.current;
       if (!pts) return;
       // Persist. For rotation we also bump rotationDeg by the delta so
-      // downstream consumers know the frame changed.
+      // downstream consumers know the frame changed. Vertex + translate
+      // both just persist the new point set.
       const body: Partial<Building & Room> = { points: pts };
-      if (!wasVertex && selection.entity.rotationDeg !== undefined) {
+      if (wasRotator && selection.entity.rotationDeg !== undefined) {
         const start = selection.entity.points ?? [];
         const c = polygonCentroid(start);
         const startAngle = start[0] ? angleDeg(c, start[0]) : 0;

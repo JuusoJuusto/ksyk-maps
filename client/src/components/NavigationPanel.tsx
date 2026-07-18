@@ -97,6 +97,11 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   const [from, setFrom] = useState<Endpoint | null>(null);
   const [to, setTo] = useState<Endpoint | null>(null);
   const [accessibleOnly, setAccessibleOnly] = useState(false);
+  // Active step in the turn-by-turn timeline. Advances when the user
+  // taps a step (which also flies the map there) so users can follow
+  // along visually — the current step gets a highlighted ring + the
+  // total ETA re-renders from that point forward.
+  const [activeStepIdx, setActiveStepIdx] = useState<number>(0);
 
   // Listen for cross-component route requests — the FeatureInfoSheet
   // dispatches `ksyk:route-to` when the user hits "Directions here"
@@ -204,6 +209,19 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   }, [route]);
 
   const walkingSeconds = route ? route.distanceMeters / WALKING_MPS : 0;
+
+  // Reset the active step whenever from/to changes so a new route
+  // starts at step 0. Keeping the previous idx would leave the user
+  // pointing at a step that no longer exists.
+  useEffect(() => { setActiveStepIdx(0); }, [from?.kind, to?.kind, (from as { room?: { id: string } })?.room?.id, (to as { room?: { id: string } })?.room?.id]);
+
+  // Remaining distance/time from the active step to the end — helps
+  // users understand "how much more" as they walk. Sum of
+  // distanceToNextMeters from the active step onwards.
+  const remainingMeters = turnHints
+    .slice(activeStepIdx)
+    .reduce((sum, h) => sum + (h.distanceToNextMeters ?? 0), 0);
+  const remainingSeconds = remainingMeters / WALKING_MPS;
 
   // Draw / clear the route on the map when it changes.
   useEffect(() => {
@@ -545,15 +563,35 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                 </div>
               )}
             </div>
-            {/* Route quality strip — visual indicator of what kind of
-             *  path we're showing. Solid blue = real graph route with
-             *  turn-by-turn; amber-dashed = straight-line fallback. */}
+            {/* Route progress strip — visual indicator of how far along
+             *  the user is. Fills left→right based on the active step.
+             *  Straight-line fallback shows as amber at 50% so users see
+             *  something without a real percentage. */}
             <div className="mt-2 h-1 rounded-full overflow-hidden bg-white/50 dark:bg-black/20">
               <div className={cn(
-                "h-full",
+                "h-full transition-all duration-500",
                 route.kind === "graph" ? "bg-blue-500" : "bg-amber-400",
-              )} style={{ width: route.kind === "graph" ? "100%" : "50%" }} />
+              )} style={{
+                width: route.kind === "graph"
+                  ? `${Math.max(0, Math.min(100, turnHints.length > 1 ? (activeStepIdx / (turnHints.length - 1)) * 100 : 0))}%`
+                  : "50%",
+              }} />
             </div>
+            {/* Remaining pill — visible only after the user starts
+             *  advancing through the timeline (activeStepIdx > 0) so the
+             *  fresh route stays uncluttered. */}
+            {route.kind === "graph" && activeStepIdx > 0 && remainingMeters > 0 && (
+              <div className="mt-2 flex items-center justify-between text-[11px] text-blue-700 dark:text-blue-300">
+                <span className="font-semibold">Remaining</span>
+                <span className="tabular-nums">
+                  {remainingMeters < 1000
+                    ? `${remainingMeters.toFixed(0)} m`
+                    : `${(remainingMeters / 1000).toFixed(2)} km`}
+                  {" · "}
+                  {formatWalkTime(remainingSeconds)}
+                </span>
+              </div>
+            )}
           </div>
         )}
         {route && route.kind === "straight" && (
@@ -591,6 +629,8 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                 const isEndpoint = hint.turn === "start" || hint.turn === "arrive";
                 const isFloorChange = hint.turn === "floor_up" || hint.turn === "floor_down";
                 const isLast = i === turnHints.length - 1;
+                const isActive = i === activeStepIdx;
+                const isPast = i < activeStepIdx;
                 // The step's floor comes from the node it corresponds
                 // to — annotateRoute doesn't surface it, so we resolve
                 // via the raw route.
@@ -603,15 +643,21 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                     : "bg-red-500 text-white ring-2 ring-red-200 dark:ring-red-900/40")
                   : isFloorChange
                     ? "bg-amber-500 text-white ring-2 ring-amber-200 dark:ring-amber-900/40"
-                    : "bg-white ring-2 ring-blue-500 text-blue-700 dark:bg-blue-500 dark:text-white dark:ring-blue-300/40";
+                    : isActive
+                      ? "bg-blue-600 text-white ring-4 ring-blue-200 dark:ring-blue-900/40 shadow-md shadow-blue-500/25"
+                      : "bg-white ring-2 ring-blue-500 text-blue-700 dark:bg-blue-500 dark:text-white dark:ring-blue-300/40";
                 return (
                   <li
                     key={hint.nodeId + "-" + i}
                     className={cn(
-                      "relative flex items-start gap-3 rounded-lg p-1.5 transition-colors group",
-                      "hover:bg-blue-50/60 dark:hover:bg-blue-500/10 cursor-pointer",
+                      "relative flex items-start gap-3 rounded-lg p-1.5 transition-colors group cursor-pointer",
+                      isActive
+                        ? "bg-blue-50 dark:bg-blue-500/15"
+                        : "hover:bg-blue-50/60 dark:hover:bg-blue-500/10",
+                      isPast && "opacity-60",
                     )}
                     onClick={() => {
+                      setActiveStepIdx(i);
                       // Two side effects:
                       //   1. Fly the map to the step position (short zoom-in).
                       //   2. If the step lives on a different floor,

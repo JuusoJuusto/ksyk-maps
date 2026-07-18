@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.16.0";
+export const APP_VERSION = "3.16.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.16.1",
+    date: "July 2026",
+    title: "Hover highlights, POI tooltip, drag-to-move, active step",
+    titleFi: "Osoitinkorostus, POI-vinkki, siirto, aktiivinen askel",
+    latest: true,
+    highlights: [
+      "Room + building fill brightens on hover (MazeMap-style feature-state)",
+      "Public map POIs show a floating tooltip on hover with kind + floor",
+      "Builder: drag anywhere inside a selected building/room to translate the whole shape",
+      "Navigation: active step highlighted in the timeline + remaining distance/time pill",
+      "Past steps dim so the user's progress is visually obvious",
+    ],
+    highlightsFi: [
+      "Huoneen + rakennuksen täyttö kirkastuu osoitettaessa",
+      "Julkinen kartta: POI-vinkki tyyppi + kerros näkyy osoitettaessa",
+      "Rakentaja: vedä valitun rakennuksen/huoneen sisältä siirtääksesi koko muotoa",
+      "Navigaatio: aktiivinen askel korostettu + jäljellä oleva matka/aika",
+      "Menneet askeleet himmenevät niin että edistyminen näkyy visuaalisesti",
+    ],
+  },
   {
     version: "3.16.0",
     date: "July 2026",
     title: "Configurable 3D heights, CAD polish, HD basemap, 3D toggle fix",
     titleFi: "Säädettävät 3D-korkeudet, CAD-viilaus, HD-taustakartta, 3D-korjaus",
-    latest: true,
     highlights: [
       "3D toggle fix — first press now shows extrusion (was: only tilted, needed a second press)",
       "Room fill now visible starting at zoom 15 so buildings never hide rooms in public map",
