@@ -37,10 +37,13 @@ export interface SelectionHandlesProps {
 const SRC_VERTS = "selection-vertices-src";
 const SRC_ROTATOR = "selection-rotator-src";
 const SRC_OUTLINE = "selection-outline-src";
+const SRC_DIMS = "selection-dimensions-src";
 const LAYER_VERTS = "selection-vertices";
 const LAYER_ROTATOR = "selection-rotator";
 const LAYER_ROTATOR_STEM = "selection-rotator-stem";
 const LAYER_OUTLINE = "selection-outline";
+const LAYER_DIMS_LINES = "selection-dimensions-lines";
+const LAYER_DIMS_LABELS = "selection-dimensions-labels";
 
 /** How many metres the rotator sits above the polygon centroid. Tuned
  *  visually — big enough to not overlap the shape, small enough to
@@ -119,6 +122,37 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
         properties: {},
       }],
     };
+    // CAD-style edge dimensions — one Point feature at each edge
+    // midpoint carrying the edge length in metres (formatted with 2
+    // decimals under 10 m, 1 decimal otherwise). Users editing polygons
+    // now see live length feedback like in AutoCAD or SketchUp.
+    const dimFeatures = [] as unknown[];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const midLat = (a.lat + b.lat) / 2;
+      const midLng = (a.lng + b.lng) / 2;
+      // Haversine — good enough at campus scale, no external dep.
+      const R = 6371000;
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const s2 =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+      const dist = 2 * R * Math.asin(Math.sqrt(s2));
+      const label = dist < 10
+        ? `${dist.toFixed(2)} m`
+        : dist < 1000
+          ? `${dist.toFixed(1)} m`
+          : `${(dist / 1000).toFixed(2)} km`;
+      dimFeatures.push({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [midLng, midLat] },
+        properties: { label, edge: i },
+      });
+    }
+    const dimFC = { type: "FeatureCollection" as const, features: dimFeatures };
 
     upsert(m, SRC_OUTLINE, outlineFC);
     if (!m.getLayer(LAYER_OUTLINE)) {
@@ -159,6 +193,30 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
         },
       });
     }
+    // Dimension labels — a symbol layer + a subtle background pill so
+    // the number reads over any basemap. Draws AFTER the vertex layer
+    // so the labels sit on top.
+    upsert(m, SRC_DIMS, dimFC);
+    if (!m.getLayer(LAYER_DIMS_LABELS)) {
+      m.addLayer({
+        id: LAYER_DIMS_LABELS, source: SRC_DIMS, type: "symbol",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 11,
+          "text-font": ["Noto Sans Regular"],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+          "text-anchor": "center",
+          "text-max-width": 8,
+        },
+        paint: {
+          "text-color": "#0f172a",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 2.2,
+          "text-halo-blur": 0.2,
+        },
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -167,10 +225,10 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
     // Cleanup on unmount / selection loss.
     return () => {
       if (!selection) return;
-      for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE]) {
+      for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE, LAYER_DIMS_LINES, LAYER_DIMS_LABELS]) {
         if (map.getLayer(layerId)) map.removeLayer(layerId);
       }
-      for (const srcId of [SRC_VERTS, SRC_ROTATOR, SRC_OUTLINE]) {
+      for (const srcId of [SRC_VERTS, SRC_ROTATOR, SRC_OUTLINE, SRC_DIMS]) {
         if (map.getSource(srcId)) map.removeSource(srcId);
       }
     };
@@ -211,12 +269,29 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       if (!pts) return;
       if (dragging.kind === "vertex") {
         const next = pts.slice();
-        next[dragging.idx] = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+        let nx = e.lngLat.lng, ny = e.lngLat.lat;
+        // CAD axis-lock — hold Shift to constrain vertex movement to
+        // horizontal or vertical relative to the ORIGINAL vertex
+        // position. Whichever axis the cursor deviated more on wins.
+        if (e.originalEvent instanceof MouseEvent && e.originalEvent.shiftKey) {
+          const orig = selection.entity.points?.[dragging.idx];
+          if (orig) {
+            const dx = Math.abs(nx - orig.lng);
+            const dy = Math.abs(ny - orig.lat);
+            if (dx > dy) ny = orig.lat; else nx = orig.lng;
+          }
+        }
+        next[dragging.idx] = { lat: ny, lng: nx };
         localPointsRef.current = next;
       } else {
         const centroid = polygonCentroid(dragging.startPoints);
         const cur = angleDeg(centroid, { lat: e.lngLat.lat, lng: e.lngLat.lng });
-        const delta = cur - dragging.startAngleDeg;
+        let delta = cur - dragging.startAngleDeg;
+        // CAD-style angle snap — hold Shift to constrain rotation to
+        // 15° increments. Standard drafting behaviour; users expect it.
+        if (e.originalEvent instanceof MouseEvent && e.originalEvent.shiftKey) {
+          delta = Math.round(delta / 15) * 15;
+        }
         localPointsRef.current = rotatePolygon(dragging.startPoints, centroid, delta);
       }
       refreshSources(map);

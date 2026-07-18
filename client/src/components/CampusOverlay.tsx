@@ -116,6 +116,9 @@ export default function CampusOverlay({
 
   useEffect(() => {
     if (!map) return;
+    // Effect-scoped guards — declared early so all listeners below can
+    // reference them without hitting the TDZ.
+    let disposed = false;
 
     const install = () => {
       installBuildings(map, buildings);
@@ -177,18 +180,27 @@ export default function CampusOverlay({
     // still loading (register a one-off), OR the effect may be running
     // between load + first paint. Attach BOTH a `load` and a
     // `styledata` listener so we don't miss the moment.
+    //
+    // BUG FIX (v3.16): the OLD version registered `map.once(...)` and
+    // relied on `once` auto-removal, but never CLEANED UP the listener
+    // if the effect re-ran before the event fired. That left a stale
+    // handler pointing at an outdated `install` closure — which is what
+    // caused the "press 3D once, only tilts; press again, then it works"
+    // bug. We now hold the handler references so the cleanup below can
+    // detach them, and we always re-run applyVisibility after a
+    // `moveend` so the pitch animation completing forces a repaint.
     let installed = false;
     const runInstall = () => {
       if (installed) { install(); return; } // just refresh data
       installed = true;
       install();
     };
+    const styleReadyHandler = () => { runInstall(); };
     if (map.isStyleLoaded()) {
       runInstall();
     } else {
-      const onLoad = () => runInstall();
-      map.once("load", onLoad);
-      map.once("styledata", onLoad);
+      map.once("load", styleReadyHandler);
+      map.once("styledata", styleReadyHandler);
     }
     // Safety net — if for any reason install never fired within 500ms
     // of map ready, poll and try once more. Fixes the sporadic
@@ -196,6 +208,19 @@ export default function CampusOverlay({
     const safety = window.setTimeout(() => {
       if (!installed && map && map.isStyleLoaded()) runInstall();
     }, 500);
+    // Second safety pass — a `moveend` fires when `map.easeTo({pitch})`
+    // completes. If the user just toggled 3D, this guarantees the 3D
+    // layer visibility gets flipped even if the earlier apply happened
+    // mid-animation and MapLibre had already committed the flat frame.
+    // Cheap: just a setLayoutProperty call per layer.
+    const onMoveEnd = () => { applyVisibility(); };
+    map.on("moveend", onMoveEnd);
+    // And a raf-based re-application right after the state change so we
+    // never leave a frame where is3D=true but the wall/room extrusion
+    // is still hidden.
+    const raf = window.requestAnimationFrame(() => {
+      if (!disposed && map && map.isStyleLoaded()) applyVisibility();
+    });
 
     const onClick = (e: import("maplibre-gl").MapMouseEvent) => {
       const feats = map.queryRenderedFeatures(e.point, {
@@ -230,10 +255,18 @@ export default function CampusOverlay({
     map.on("mouseleave", onLeave);
 
     return () => {
+      disposed = true;
       map.off("click", onClick);
       map.off("mousemove", onMove);
       map.off("mouseleave", onLeave);
+      map.off("moveend", onMoveEnd);
+      // Explicitly detach the load/styledata one-offs so a stale
+      // closure from a previous effect run can't fire after this
+      // one has already re-installed everything with fresh state.
+      map.off("load", styleReadyHandler);
+      map.off("styledata", styleReadyHandler);
       window.clearTimeout(safety);
+      window.cancelAnimationFrame(raf);
     };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, is3D]);
 
@@ -249,8 +282,17 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       .filter((b) => b.points && b.points.length >= 3)
       .map((b) => {
         const floors = b.floors ?? 1;
-        const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
         const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        // Per-building height controls — admin can override the default
+        // METERS_PER_FLOOR (3.0 m) or clamp a total height directly.
+        // Falls back to the campus-wide default when unset.
+        const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+          ? style.heightPerFloor
+          : METERS_PER_FLOOR;
+        const heightOverride = typeof style.totalHeight === "number" && style.totalHeight > 0
+          ? style.totalHeight
+          : null;
+        const height = heightOverride ?? Math.max(perFloor, floors * perFloor);
         return {
           type: "Feature" as const,
           geometry: {
@@ -266,9 +308,14 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
             color: b.colorCode ?? "#2563eb",
             floors,
             height,
+            perFloor,
             showOutline: style.showOutline !== false, // default true
             fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
             showLabel: style.showLabel !== false,     // default true
+            // Wall opacity override — semi-transparent shells are the
+            // MazeMap look, but admins can pick more solid walls per
+            // building if they want a monolith.
+            wallOpacity: typeof style.wallOpacity === "number" ? style.wallOpacity : null,
           },
         };
       }),
@@ -285,12 +332,22 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       .filter((b) => b.points && b.points.length >= 3)
       .map((b) => {
         const floors = b.floors ?? 1;
-        const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
-        // Wall thickness — real walls are ~0.3 m; we use 0.7 m so the
-        // extrusion reads visually even at zoom 17 without swallowing the
-        // interior.
+        const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+          ? style.heightPerFloor
+          : METERS_PER_FLOOR;
+        const heightOverride = typeof style.totalHeight === "number" && style.totalHeight > 0
+          ? style.totalHeight
+          : null;
+        const height = heightOverride ?? Math.max(perFloor, floors * perFloor);
+        // Wall thickness — admin can widen for chunky rendering or
+        // narrow for thin "glass" walls. Default 0.7 m reads well at
+        // typical campus zooms.
+        const wallThickness = typeof style.wallThickness === "number" && style.wallThickness > 0
+          ? style.wallThickness
+          : 0.7;
         const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
-        const inner = insetPolygonMeters(outer, 0.7);
+        const inner = insetPolygonMeters(outer, wallThickness);
         // If the inset degenerates (tiny polygon inset to nothing),
         // skip the hole and fall back to a solid block for that one.
         const rings: number[][][] = inner && inner.length >= 3
@@ -309,6 +366,7 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
             id: b.id,
             color: b.colorCode ?? "#2563eb",
             height,
+            wallOpacity: typeof style.wallOpacity === "number" ? style.wallOpacity : null,
           },
         };
       }),
@@ -325,17 +383,21 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     const floors = b.floors ?? 1;
     const floorMin = typeof b.floorMin === "number" ? b.floorMin : 1;
     const floorMax = typeof b.floorMax === "number" ? b.floorMax : floors;
+    const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+    const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+      ? style.heightPerFloor
+      : METERS_PER_FLOOR;
     const coords = [
       ...b.points.map((p) => [p.lng, p.lat]),
       [b.points[0].lng, b.points[0].lat],
     ];
     // Iterate every floor in range. `floorIdx` = zero-based index for Z
-    // stacking (so floorMin sits at ground, next slab METERS_PER_FLOOR
-    // above, and so on).
+    // stacking (so floorMin sits at ground, next slab perFloor above,
+    // and so on).
     const lo = Math.min(floorMin, floorMax);
     const hi = Math.max(floorMin, floorMax);
     for (let f = lo, floorIdx = 0; f <= hi; f++, floorIdx++) {
-      const base = floorIdx * METERS_PER_FLOOR;
+      const base = floorIdx * perFloor;
       slabFeatures.push({
         type: "Feature" as const,
         geometry: { type: "Polygon" as const, coordinates: [coords] },
@@ -362,7 +424,14 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     .filter((b) => b.points && b.points.length >= 3)
     .map((b) => {
       const floors = b.floors ?? 1;
-      const height = Math.max(METERS_PER_FLOOR, floors * METERS_PER_FLOOR);
+      const style = (b.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+      const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+        ? style.heightPerFloor
+        : METERS_PER_FLOOR;
+      const heightOverride = typeof style.totalHeight === "number" && style.totalHeight > 0
+        ? style.totalHeight
+        : null;
+      const height = heightOverride ?? Math.max(perFloor, floors * perFloor);
       const coords = [
         ...b.points!.map((p) => [p.lng, p.lat]),
         [b.points![0].lng, b.points![0].lat],
@@ -394,11 +463,14 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
+      // Buildings stay VERY faint at close zoom so the room fills sitting
+      // on top of them read as the "real content." Otherwise the tinted
+      // building rectangle competes with the small rooms drawn inside.
       "fill-opacity": [
         "case",
         ["!=", ["get", "fillOpacity"], null],
         ["get", "fillOpacity"],
-        ["interpolate", ["linear"], ["zoom"], 14, 0.05, 17, 0.12, 20, 0.22],
+        ["interpolate", ["linear"], ["zoom"], 14, 0.05, 16, 0.09, 17, 0.06, 20, 0.02],
       ],
       "fill-outline-color": ["get", "color"],
       "fill-antialias": true,
@@ -424,8 +496,9 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     layout: {
       "text-field": ["get", "name"],
       // Scale up as the user zooms in — hard to read a tiny label on a
-      // big polygon at zoom 19.
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 15, 20, 18],
+      // big polygon at zoom 19+. At very close zoom we shrink the
+      // building label so rooms don't fight it for legibility.
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 15, 19, 16, 21, 13],
       "text-font": ["Noto Sans Regular"],
       // Force labels to draw even if they overlap the basemap's street
       // labels — the user wants building names always visible, not
@@ -465,8 +538,10 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       "fill-extrusion-base": 0,
       // Lower default opacity so the interior floor slabs + room
       // slabs read through the walls — MazeMap goes for a glassy shell,
-      // not a solid block.
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.45, 20, 0.7],
+      // not a solid block. (fill-extrusion-opacity isn't data-driven in
+      // MapLibre, so per-feature transparency lives on the color alpha
+      // channel elsewhere — this is the global glass factor.)
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 16, 0.35, 20, 0.55],
       "fill-extrusion-vertical-gradient": true,
     },
     minzoom: 14,
@@ -782,6 +857,11 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // floor's rooms would stack visually inside the shell and the user
   // couldn't see which one they're actually looking at. MazeMap does
   // the same — you swap floor, the interior redraws.
+  //
+  // Custom heights: rooms accept `metadata.style.slabHeight` (how tall
+  // the raised platform is, default 0.35 m) and `metadata.style.perFloor`
+  // (per-floor Z stacking distance, default 3.0 m — usually inherited
+  // from the parent building).
   const rooms3DData = {
     type: "FeatureCollection" as const,
     features: rooms
@@ -790,7 +870,14 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       .map((r) => {
         const floor = r.floor ?? 1;
         const floorIdx = Math.max(0, floor - 1);
-        const base = floorIdx * METERS_PER_FLOOR + 0.08;
+        const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        const perFloor = typeof style.perFloor === "number" && style.perFloor > 0
+          ? style.perFloor
+          : METERS_PER_FLOOR;
+        const slabHeight = typeof style.slabHeight === "number" && style.slabHeight > 0
+          ? style.slabHeight
+          : ROOM_SLAB_METERS;
+        const base = floorIdx * perFloor + 0.08;
         return {
           type: "Feature" as const,
           geometry: {
@@ -805,7 +892,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
             color: r.colorCode ?? "#059669",
             floor,
             base,
-            height: base + ROOM_SLAB_METERS,
+            height: base + slabHeight,
           },
         };
       }),
@@ -819,15 +906,19 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     paint: {
       "fill-color": ["get", "color"],
       // MazeMap-style: rooms are solid fills — no outline (walls are
-      // drawn from the walls source instead). Gentle opacity ramp so
-      // the building fills read through at low zoom and rooms take
-      // over at close zoom. Per-feature override lets the user pin an
-      // exact opacity from the Style tab.
+      // drawn from the walls source instead). BUGFIX (v3.16): the
+      // previous ramp started at zoom 16 (opacity 0) which meant users
+      // at zoom 15–16 saw the (also-translucent) building fill on top
+      // of an invisible room fill — the "building overlaps the room"
+      // complaint. Now rooms start becoming visible at zoom 15 so users
+      // see the interior detail as soon as buildings themselves become
+      // legible. Per-feature override lets the user pin an exact opacity
+      // from the Style tab.
       "fill-opacity": [
         "case",
         ["!=", ["get", "fillOpacity"], null],
         ["get", "fillOpacity"],
-        ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17.5, 0.55, 20, 0.8],
+        ["interpolate", ["linear"], ["zoom"], 15, 0.35, 17, 0.7, 19, 0.85, 22, 0.95],
       ],
       "fill-antialias": true,
     },
@@ -863,7 +954,10 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     layout: {
       "text-field": ["get", "label"],
       // MazeMap uses a compact, weightier label that scales with zoom.
-      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 10, 20, 14],
+      // At full zoom we grow the label so users reading the fully-
+      // zoomed floor plate can actually read room numbers without
+      // squinting.
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 10, 19, 14, 21, 20],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": false,
       "text-optional": true,
@@ -874,14 +968,14 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     paint: {
       "text-color": "#0b1220",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.6,
+      "text-halo-width": 1.8,
       "text-halo-blur": 0.4,
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
-    // Only start drawing room labels once the user is zoomed in enough
-    // that they can distinguish rooms — before that, buildings labels
-    // dominate.
-    minzoom: 17,
+    // Rooms become distinguishable at zoom 16 with the boosted room
+    // fill opacity — pull the label-minzoom down to match so users see
+    // labels the moment the rooms themselves become visible.
+    minzoom: 16,
   });
 }
 
@@ -1003,7 +1097,9 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 20, 15],
+      // Grow POI chips at high zoom so the campus map at zoom 20+ reads
+      // as a diorama rather than a squint-fest.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 19, 14, 21, 22],
       "circle-color": [
         "match", ["get", "kind"],
         "elevator",      "#dbeafe",  // blue-100
@@ -1063,7 +1159,7 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     type: "symbol",
     layout: {
       "text-field": ["get", "icon"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 20, 22],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 20, 21, 30],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1090,7 +1186,7 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     type: "symbol",
     layout: {
       "text-field": ["get", "icon"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 20, 22],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 20, 21, 30],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,

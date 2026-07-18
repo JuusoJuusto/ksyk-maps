@@ -10,15 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.15.0";
+export const APP_VERSION = "3.16.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.16.0",
+    date: "July 2026",
+    title: "Configurable 3D heights, CAD polish, HD basemap, 3D toggle fix",
+    titleFi: "Säädettävät 3D-korkeudet, CAD-viilaus, HD-taustakartta, 3D-korjaus",
+    latest: true,
+    highlights: [
+      "3D toggle fix — first press now shows extrusion (was: only tilted, needed a second press)",
+      "Room fill now visible starting at zoom 15 so buildings never hide rooms in public map",
+      "Per-building height controls in Style tab: heightPerFloor, totalHeight override, wallThickness",
+      "Per-room slab height in Style tab (0.05–2.5 m) for column-style room visuals",
+      "CAD: live dimension callouts on every polygon edge (draw + edit), Shift-axis-lock, 15° rotation snap, arrow-key nudge",
+      "HD basemap: CARTO Voyager @2x tiles, fade at zoom 19+, room labels + POI chips grow at close zoom",
+      "Extended map max zoom from 19 → 21 so users can inspect campus interior detail",
+    ],
+    highlightsFi: [
+      "3D-korjaus — ensimmäinen painallus näyttää nyt rakennukset (ennen: vain kallistus)",
+      "Huoneet näkyvät kartalla jo zoomilla 15, eivät piiloudu rakennusten alle",
+      "Rakennuskohtaiset korkeussäätimet Style-välilehdellä",
+      "Huonekohtainen laatan korkeus Style-välilehdellä",
+      "CAD: mittalaput jokaisen polygonin sivulle, Shift-akselilukko, 15° kääntösnap, nuolinäppäinsiirto",
+      "HD-taustakartta: CARTO Voyager @2x, hivenettävä zoomilla 19+, huonemerkinnät suuremmiksi",
+      "Kartan maksimi zoomia nostettu 19 → 21 sisätilojen tarkasteluun",
+    ],
+  },
   {
     version: "3.15.0",
     date: "July 2026",
     title: "MazeMap-style 3D + 15 new POIs + turn-by-turn timeline",
     titleFi: "MazeMap-tyylinen 3D + 15 uutta POI:ta + reittiaikajana",
-    latest: true,
     highlights: [
       "3D scene overhaul: lower walls, floor slabs, roof caps, rooms now stack ON buildings",
       "Three.js walkthrough: hollow building shells, per-floor plates, rooms as raised platforms",

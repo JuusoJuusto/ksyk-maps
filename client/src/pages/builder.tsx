@@ -294,9 +294,47 @@ function BuilderWorkspace() {
         properties: { idx: i },
       }));
 
+      // CAD-style live dimension callouts on each drawn segment. Shows
+      // the length in metres midway along each edge, so users know the
+      // exact size of the shape they're placing without eyeballing.
+      const dimFeatures: unknown[] = [];
+      const segCount = polyCoords ? polyCoords.length - 1
+                     : lineCoords ? lineCoords.length - 1
+                     : 0;
+      const dimSource = polyCoords ?? lineCoords ?? [];
+      for (let i = 0; i < segCount; i++) {
+        const a = dimSource[i];
+        const b = dimSource[i + 1];
+        if (!a || !b) continue;
+        const midLng = (a[0] + b[0]) / 2;
+        const midLat = (a[1] + b[1]) / 2;
+        const R = 6371000;
+        const toRad = (d: number) => (d * Math.PI) / 180;
+        const dLat = toRad(b[1] - a[1]);
+        const dLng = toRad(b[0] - a[0]);
+        const s2 =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2;
+        const dist = 2 * R * Math.asin(Math.sqrt(s2));
+        const label = dist < 10
+          ? `${dist.toFixed(2)} m`
+          : dist < 1000
+            ? `${dist.toFixed(1)} m`
+            : `${(dist / 1000).toFixed(2)} km`;
+        dimFeatures.push({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [midLng, midLat] },
+          properties: { label },
+        });
+      }
+
       const data = {
         type: "FeatureCollection" as const,
-        features: shapeFeature ? [shapeFeature as never, ...pointFeatures] : pointFeatures,
+        features: [
+          ...(shapeFeature ? [shapeFeature as never] : []),
+          ...pointFeatures,
+          ...dimFeatures,
+        ],
       };
       if (src) {
         src.setData(data as any);
@@ -330,6 +368,28 @@ function BuilderWorkspace() {
             "circle-stroke-width": 2,
           },
           filter: ["==", "$type", "Point"],
+        });
+        // Live-draw dimension labels — visible only when the feature
+        // carries a `label` property (i.e. the mid-edge dim points we
+        // just synthesised).
+        map.addLayer({
+          id: `${layerId}-dims`,
+          source: sourceId,
+          type: "symbol",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": 11,
+            "text-font": ["Noto Sans Regular"],
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+            "text-anchor": "center",
+          },
+          paint: {
+            "text-color": "#1e3a8a",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 2,
+          },
+          filter: ["has", "label"],
         });
       }
     };
@@ -617,6 +677,42 @@ function BuilderWorkspace() {
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         onDeleteSelected();
+        return;
+      }
+      // CAD-style arrow-key nudge — when a polygon is selected and no
+      // draw tool is active, move it by 1 metre per key press (or 5 m
+      // with Shift). Ideal for aligning buildings to street grids.
+      if (
+        activeTool === "select" && selection &&
+        (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")
+      ) {
+        e.preventDefault();
+        const step = e.shiftKey ? 5 : 1; // metres
+        const metersPerDegLat = 111320;
+        // Use campus latitude for the lng scale — good enough.
+        const anchorLat = handleRef.current?.map.getCenter().lat ?? 60;
+        const metersPerDegLng = 111320 * Math.cos((anchorLat * Math.PI) / 180);
+        const dLat = (e.key === "ArrowUp") ? step / metersPerDegLat
+                   : (e.key === "ArrowDown") ? -step / metersPerDegLat
+                   : 0;
+        const dLng = (e.key === "ArrowRight") ? step / metersPerDegLng
+                   : (e.key === "ArrowLeft") ? -step / metersPerDegLng
+                   : 0;
+        if (selection.kind === "building") {
+          const b = buildings.find((x) => x.id === selection.id);
+          if (b?.points) {
+            const nextPoints = b.points.map((p) => ({ lat: p.lat + dLat, lng: p.lng + dLng }));
+            void apiRequest("PATCH", `/api/buildings/${b.id}`, { points: nextPoints })
+              .then(() => qc.invalidateQueries({ queryKey: ["/api/buildings"] }));
+          }
+        } else if (selection.kind === "room") {
+          const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
+          if (r?.points) {
+            const nextPoints = r.points.map((p) => ({ lat: p.lat + dLat, lng: p.lng + dLng }));
+            void apiRequest("PATCH", `/api/rooms/${r.id}`, { points: nextPoints })
+              .then(() => qc.invalidateQueries({ queryKey: ["/api/rooms"] }));
+          }
+        }
         return;
       }
       if (e.key === "v" || e.key === "V") setActiveTool("select");

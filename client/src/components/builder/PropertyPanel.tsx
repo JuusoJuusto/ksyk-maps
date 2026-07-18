@@ -464,11 +464,24 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
   const initialShowOutline = (metaStyle?.showOutline as boolean | undefined) ?? true;
   const initialFillOpacity = Math.round(((metaStyle?.fillOpacity as number | undefined) ?? 0.6) * 100);
   const initialShowLabel = (metaStyle?.showLabel as boolean | undefined) ?? true;
+  // 3D height knobs — buildings and rooms both accept a per-instance
+  // override. Values are in metres. 0 (or unset) falls back to the
+  // campus-wide default in CampusOverlay.
+  const defaultHeightPerFloor = entity.kind === "building" ? 3.0 : 0;
+  const defaultSlabHeight     = entity.kind === "room"     ? 0.35 : 0;
+  const initialHeightPerFloor = Math.round(((metaStyle?.heightPerFloor as number | undefined) ?? defaultHeightPerFloor) * 10) / 10;
+  const initialTotalHeight    = Math.round(((metaStyle?.totalHeight as number | undefined) ?? 0) * 10) / 10;
+  const initialWallThickness  = Math.round(((metaStyle?.wallThickness as number | undefined) ?? 0.7) * 100) / 100;
+  const initialSlabHeight     = Math.round(((metaStyle?.slabHeight as number | undefined) ?? defaultSlabHeight) * 100) / 100;
 
   const [color, setColor] = useState(currentColor);
   const [showOutline, setShowOutline] = useState(initialShowOutline);
   const [fillOpacityPct, setFillOpacityPct] = useState(initialFillOpacity);
   const [showLabel, setShowLabel] = useState(initialShowLabel);
+  const [heightPerFloor, setHeightPerFloor] = useState(initialHeightPerFloor);
+  const [totalHeight, setTotalHeight] = useState(initialTotalHeight);
+  const [wallThickness, setWallThickness] = useState(initialWallThickness);
+  const [slabHeight, setSlabHeight] = useState(initialSlabHeight);
 
   const patch = useMutation({
     mutationFn: async () => {
@@ -488,6 +501,16 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
             showOutline,
             fillOpacity: fillOpacityPct / 100,
             showLabel,
+            // 3D height knobs — persist as numbers. 0 collapses to
+            // "no override" in the renderer.
+            ...(entity.kind === "building" ? {
+              heightPerFloor: heightPerFloor || undefined,
+              totalHeight: totalHeight || undefined,
+              wallThickness: wallThickness || undefined,
+            } : {}),
+            ...(entity.kind === "room" ? {
+              slabHeight: slabHeight || undefined,
+            } : {}),
           },
         };
       }
@@ -505,6 +528,10 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
       showOutline !== initialShowOutline
       || fillOpacityPct !== initialFillOpacity
       || showLabel !== initialShowLabel
+      || heightPerFloor !== initialHeightPerFloor
+      || totalHeight !== initialTotalHeight
+      || wallThickness !== initialWallThickness
+      || slabHeight !== initialSlabHeight
     ));
 
   const runEyedropper = async () => {
@@ -569,6 +596,73 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
             hint="Hide the name text without deleting it."
           />
         </div>
+      )}
+
+      {/* 3D height controls — visible only on buildings + rooms since
+       *  hallways don't extrude. Each slider persists into
+       *  metadata.style so admins can tune each entity independently. */}
+      {entity.kind === "building" && (
+        <details className="rounded-xl border border-border overflow-hidden group" open>
+          <summary className="cursor-pointer select-none px-3 py-2 bg-muted/40 text-xs font-semibold flex items-center justify-between">
+            <span>3D height</span>
+            <span className="text-[10px] text-muted-foreground">metres</span>
+          </summary>
+          <div className="p-3 space-y-3">
+            <SliderField
+              label="Per-floor height"
+              value={heightPerFloor}
+              onChange={setHeightPerFloor}
+              min={1}
+              max={8}
+              step={0.1}
+              suffix=" m"
+            />
+            <SliderField
+              label="Total height override"
+              value={totalHeight}
+              onChange={setTotalHeight}
+              min={0}
+              max={60}
+              step={0.5}
+              suffix=" m"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Total height 0 = use per-floor × floors. Set explicitly to force a specific building height.
+            </p>
+            <SliderField
+              label="Wall thickness"
+              value={wallThickness}
+              onChange={setWallThickness}
+              min={0.2}
+              max={2.5}
+              step={0.05}
+              suffix=" m"
+            />
+          </div>
+        </details>
+      )}
+      {entity.kind === "room" && (
+        <details className="rounded-xl border border-border overflow-hidden" open>
+          <summary className="cursor-pointer select-none px-3 py-2 bg-muted/40 text-xs font-semibold flex items-center justify-between">
+            <span>3D height</span>
+            <span className="text-[10px] text-muted-foreground">metres</span>
+          </summary>
+          <div className="p-3 space-y-3">
+            <SliderField
+              label="Slab height"
+              value={slabHeight}
+              onChange={setSlabHeight}
+              min={0.05}
+              max={2.5}
+              step={0.05}
+              suffix=" m"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              How tall the room slab appears above its floor plate in 3D view.
+              MazeMap default is ~0.35 m — bump to 1–2 m for room-as-column visuals.
+            </p>
+          </div>
+        </details>
       )}
 
       <DirtySaveButton

@@ -38,6 +38,8 @@ interface Room {
   mapPositionY?: number;
   width?: number;
   height?: number;
+  /** Free-form metadata bag. Height knobs live under `.style`. */
+  metadata?: { style?: Record<string, unknown> } | null;
 }
 
 interface Building {
@@ -49,6 +51,7 @@ interface Building {
   mapPositionY?: number;
   width?: number;
   height?: number;
+  metadata?: { style?: Record<string, unknown> } | null;
 }
 
 /** Loads three.js once from a CDN. Returns a promise that resolves to
@@ -280,7 +283,18 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const cx = (b.mapPositionX + (b.width ?? 160) / 2) - sceneCentre.x;
         const cz = (b.mapPositionY + (b.height ?? 120) / 2) - sceneCentre.y;
         const floors = Math.max(1, b.floors ?? 1);
-        const totalHeight = floors * FLOOR_HEIGHT;
+        // Custom heights — admin can bump a building taller/shorter via
+        // metadata.style.heightPerFloor. The Three.js scene uses world
+        // units that already correspond roughly to metres, so we can
+        // pass the same numbers through.
+        const bStyle = b.metadata?.style ?? {};
+        const perFloor = typeof bStyle.heightPerFloor === "number" && bStyle.heightPerFloor > 0
+          ? bStyle.heightPerFloor * 4 // scale up so the walkthrough reads chunkier
+          : FLOOR_HEIGHT;
+        const heightOverride = typeof bStyle.totalHeight === "number" && bStyle.totalHeight > 0
+          ? bStyle.totalHeight * 4
+          : null;
+        const totalHeight = heightOverride ?? (floors * perFloor);
         const shellColor = new THREE.Color(b.colorCode ?? "#2563eb");
 
         // Hollow wall shell — Shape with a hole extruded up. This is
@@ -324,7 +338,9 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         buildingGroup.add(shell);
 
         // Floor plates — one thin slab per floor. Cream-colored so
-        // they read as "the deck of this floor".
+        // they read as "the deck of this floor". Stacked with the
+        // building's per-floor spacing so custom-height buildings show
+        // the correct rhythm.
         for (let f = 0; f < floors; f++) {
           const plateGeo = new THREE.BoxGeometry(bw - 0.3, 0.4, bd - 0.3);
           const plateMat = new THREE.MeshStandardMaterial({
@@ -333,7 +349,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             metalness: 0,
           });
           const plate = new THREE.Mesh(plateGeo, plateMat);
-          plate.position.set(cx, f * FLOOR_HEIGHT, cz);
+          plate.position.set(cx, f * perFloor, cz);
           plate.receiveShadow = true;
           buildingGroup.add(plate);
         }
@@ -354,14 +370,33 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         buildingGroup.add(roof);
       }
 
+      // Build a lookup so rooms can inherit their parent building's
+      // per-floor height. Falls back to FLOOR_HEIGHT when the building
+      // isn't found (orphan room) so nothing crashes.
+      const buildingHeightById = new Map<string, number>();
+      for (const b of buildings) {
+        const s = b.metadata?.style ?? {};
+        const pf = typeof s.heightPerFloor === "number" && s.heightPerFloor > 0
+          ? s.heightPerFloor * 4
+          : FLOOR_HEIGHT;
+        buildingHeightById.set(b.id, pf);
+      }
+
       for (const r of rooms) {
         if (r.mapPositionX == null || r.mapPositionY == null) continue;
         const w = (r.width ?? 56) * SCALE;
         const d = (r.height ?? 40) * SCALE;
         const floor = r.floor ?? 1;
+        // Custom slab height override on the room, else compact default.
+        const rStyle = r.metadata?.style ?? {};
+        const customSlab = typeof rStyle.slabHeight === "number" && rStyle.slabHeight > 0
+          ? rStyle.slabHeight * 4 // metres → scene units
+          : null;
         // Rooms sit as short "platforms" on the building's floor plate.
         // Hallways/stairs go even shorter so real rooms stand out.
-        const tall = (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.5 : ROOM_SLAB;
+        const tall = customSlab ?? (
+          (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.5 : ROOM_SLAB
+        );
         const baseColor = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
         const tint = STATUS_TINT[r.currentStatus ?? "unknown"] ?? STATUS_TINT.unknown;
         // 70% type colour mixed with 30% status colour so both are legible.
@@ -376,8 +411,10 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const cube = new THREE.Mesh(geo, mat);
         cube.position.x = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
         cube.position.z = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
-        // Sit ON the correct floor plate: base = floor plate top + half slab.
-        cube.position.y = (floor - 1) * FLOOR_HEIGHT + 0.4 + tall / 2;
+        // Sit ON the correct floor plate: base = (floor-1) × parent
+        // building's per-floor height + slab thickness + half our height.
+        const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_HEIGHT;
+        cube.position.y = (floor - 1) * parentPerFloor + 0.4 + tall / 2;
         cube.castShadow = true;
         cube.receiveShadow = true;
         cube.userData = { room: r };

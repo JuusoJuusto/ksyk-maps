@@ -21,26 +21,32 @@ import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings"
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
-// Raster tile providers — the light theme uses classic OSM.org tiles
-// (yellow roads, green parks, beige buildings). Dark mode swaps in
+// Raster tile providers — the light theme uses CARTO's Voyager style
+// (crisp @2x retina tiles, MazeMap-adjacent palette). Falls back to
+// classic OSM only when Voyager can't serve a tile. Dark mode swaps in
 // Carto Dark Matter which reads well as a background under the KSYK
 // blue building overlays. Both providers are free + no-API-key.
 const TILE_URLS = {
   light: [
-    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    // CARTO Voyager @2x — retina detail at zoom 19+, cleaner labels,
+    // MazeMap-style muted palette so the KSYK overlays pop on top.
+    "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+    "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+    "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+    "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
   ],
   dark: [
-    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-    "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-    "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-    "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    // Retina dark tiles too — matches the light-mode DPR so switching
+    // themes doesn't visibly change tile crispness.
+    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+    "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+    "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+    "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
   ],
 } as const;
 
 const TILE_ATTRIBUTIONS = {
-  light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
   dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
 } as const;
 
@@ -52,6 +58,8 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
       "osm-raster": {
         type: "raster",
         tiles: [...TILE_URLS[mode]],
+        // @2x tiles are still 512 px but we render them as 256 for
+        // pixel-perfect sharpness at DPR≥2 displays.
         tileSize: 256,
         attribution: TILE_ATTRIBUTIONS[mode],
         maxzoom: 19,
@@ -64,6 +72,17 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
         source: "osm-raster",
         minzoom: 0,
         maxzoom: 22,
+        paint: {
+          // Fade the basemap slightly at high zoom so the KSYK vector
+          // overlay (rooms, hallways, POIs) reads as the "real content"
+          // and the OSM streets recede into a diagram-like backdrop.
+          // Below zoom 18 we stay 100% so context (streets, districts)
+          // still guides the user's mental map.
+          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
+          // Turn off the raster's default cross-fade so labels don't
+          // flicker during zoom.
+          "raster-fade-duration": 200,
+        },
       },
     ],
     glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
@@ -133,10 +152,13 @@ export default function CampusMap({
       zoom: platformDefaults.zoom,
       bearing: initialBearing,
       pitch: initialPitch,
-      // Clamp to the OSM raster's native cap (19). Admin-configured
-      // maxZoom over 19 would produce 404s on tile requests.
+      // Raster CDN caps at zoom 19; we let MapLibre upscale the last
+      // native tile up to zoom 21 so the vector overlay (rooms, room
+      // labels, POI chips) can shine at close-in inspection. The
+      // upscaled basemap fades out via raster-opacity so it doesn't
+      // pixelate the view.
       minZoom: platformDefaults.minZoom,
-      maxZoom: Math.min(19, platformDefaults.maxZoom),
+      maxZoom: Math.min(21, platformDefaults.maxZoom),
       maxPitch: 60,
       interactive,
       attributionControl: { compact: true },
@@ -270,7 +292,16 @@ export default function CampusMap({
     const layers = map.getStyle().layers ?? [];
     const firstOverlay = layers.find((l) => l.id !== "osm-raster-layer")?.id;
     map.addLayer(
-      { id: "osm-raster-layer", type: "raster", source: "osm-raster", minzoom: 0, maxzoom: 22 },
+      {
+        id: "osm-raster-layer", type: "raster", source: "osm-raster",
+        minzoom: 0, maxzoom: 22,
+        paint: {
+          // Match the initial-style paint so a dark-mode toggle doesn't
+          // lose the high-zoom raster fade.
+          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
+          "raster-fade-duration": 200,
+        },
+      },
       firstOverlay,
     );
   }, [darkMode, ready]);
@@ -292,7 +323,7 @@ export default function CampusMap({
     const d = pickPlatformMapDefaults(settings);
     // Zoom bounds first — MapLibre will clamp current zoom if needed.
     map.setMinZoom(d.minZoom);
-    map.setMaxZoom(Math.min(19, d.maxZoom));
+    map.setMaxZoom(Math.min(21, d.maxZoom));
     // Then camera — explicit bearing + pitch so easeTo's zero-defaults
     // can't yank the user out of their rotated / tilted view.
     map.easeTo({
@@ -319,7 +350,7 @@ export default function CampusMap({
     const onResize = () => {
       const d = pickPlatformMapDefaults(settings);
       map.setMinZoom(d.minZoom);
-      map.setMaxZoom(Math.min(19, d.maxZoom));
+      map.setMaxZoom(Math.min(21, d.maxZoom));
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
