@@ -211,7 +211,7 @@ export default function AdminLogin() {
                 </div>
               </div>
             </motion.div>
-            <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-4">© {new Date().getFullYear()} Nordbyte Studio · KSYK Maps</p>
+            <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-4">© {new Date().getFullYear()} KSYK Maps</p>
           </motion.div>
         )}
 

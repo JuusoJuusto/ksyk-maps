@@ -174,7 +174,7 @@ export default function VersionInfo() {
                 <div>
                   <h4 className="font-bold mb-2">Rebranding:</h4>
                   <ul className="space-y-1 text-sm ml-4">
-                    <li>• Rebranded from OWL Apps to Nordbyte Studio</li>
+                    <li>• Rebranded to KSYK Maps</li>
                     <li>• Updated all branding throughout the application</li>
                     <li>• New orange announcement banner design</li>
                     <li>• Auto-scrolling announcements every 10 seconds</li>
@@ -372,13 +372,13 @@ export default function VersionInfo() {
               
               <div className="text-gray-600 dark:text-gray-400 text-sm space-y-1">
                 <p className="font-semibold">
-                  Made with ❤️ by <strong className="text-blue-600 dark:text-blue-400">Nordbyte Studio</strong> for KSYK
+                  Made with ❤️ for <strong className="text-blue-600 dark:text-blue-400">KSYK</strong>
                 </p>
                 <p className="text-xs">
                   Originally released: {originalReleaseDate}
                 </p>
                 <p className="text-xs">
-                  © 2026 Nordbyte Studio. All rights reserved.
+                  © 2026 KSYK Maps. All rights reserved.
                 </p>
               </div>
             </div>

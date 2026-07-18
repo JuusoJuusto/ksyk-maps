@@ -55,6 +55,11 @@ const LAYERS = {
   stairsTower: "campus-stairs-tower",
   elevatorTower: "campus-elevators-tower",
   sky: "campus-sky",
+  // v3.20 — POI pillars for every generic POI kind in 3D, plus a
+  // door/entrance marker that shows as a colored pad at ground level.
+  poi3D: "campus-pois-pillar-3d",
+  doorMarker: "campus-doors-marker",
+  entranceMarker: "campus-entrances-marker",
 } as const;
 
 // Physical metres per floor for 3D extrusion. Kept low so the campus
@@ -146,6 +151,8 @@ export default function CampusOverlay({
       // Stair + elevator 3D towers — sit above buildings so users see
       // where vertical transit lives at a glance in 3D.
       installTowers(map, stairs, elevators, buildings);
+      // Generic POI pillars + door/entrance markers in 3D.
+      installPoiPillars(map, pois, doors, activeFloor ?? null, hiddenPoiKinds);
       installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null, hiddenPoiKinds);
       installSky(map);
       applyVisibility();
@@ -187,6 +194,12 @@ export default function CampusOverlay({
       setVis(LAYERS.stairsTower,      is3D);
       setVis(LAYERS.elevatorTower,    is3D);
       setVis(LAYERS.sky,              is3D);
+      // Generic POI pillars (info / cafe / vending / etc.) and door /
+      // entrance markers — always show in 3D so users see all the
+      // amenities as coloured pillars poking above the ground plane.
+      setVis(LAYERS.poi3D,            is3D);
+      setVis(LAYERS.doorMarker,       is3D);
+      setVis(LAYERS.entranceMarker,   is3D);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -980,6 +993,144 @@ function squareAroundPointMeters(pt: { lat: number; lng: number }, halfWidthMete
     [pt.lng - dLng, pt.lat + dLat],
     [pt.lng - dLng, pt.lat - dLat],
   ];
+}
+
+/** Color per POI kind — mirrors the 2D chip stroke colors from
+ *  installPOIs so 2D and 3D read as the same visual system. */
+function poi3DColor(kind: string): string {
+  switch (kind) {
+    case "info":          return "#0ea5e9";
+    case "reception":     return "#2563eb";
+    case "restroom_m":    return "#2563eb";
+    case "restroom_f":    return "#be185d";
+    case "restroom_a":    return "#7c3aed";
+    case "bathroom":      return "#be185d";
+    case "cafe":          return "#a16207";
+    case "vending":       return "#7c3aed";
+    case "water":         return "#0891b2";
+    case "first_aid":     return "#dc2626";
+    case "defibrillator": return "#e11d48";
+    case "printer":       return "#4b5563";
+    case "meeting_point": return "#059669";
+    case "parking":       return "#0369a1";
+    case "bike":          return "#16a34a";
+    default:              return "#3b82f6";
+  }
+}
+
+/** Height (metres) each 3D POI pillar rises above the ground. Compact
+ *  enough not to occlude the interior, tall enough to spot at a glance
+ *  through the building shell. */
+const POI_PILLAR_HEIGHT = 2.2;
+
+/** Install 3D pillars for every generic POI + door/entrance markers.
+ *  Runs alongside installTowers (which handles stairs + elevators as
+ *  taller towers). */
+function installPoiPillars(
+  map: MaplibreMap,
+  pois: GenericPOI[],
+  doors: Door[],
+  activeFloor: number | null,
+  hiddenKinds: Set<string>,
+) {
+  // Small square around each POI position (~0.9 m half-width) — reads
+  // as a coloured pin from any pitch without swallowing map space.
+  const features = pois
+    .filter((p) => typeof p.position?.lat === "number" && typeof p.position?.lng === "number")
+    .filter((p) => !hiddenKinds.has(p.kind))
+    .filter((p) => activeFloor === null || p.floor === null || p.floor === undefined || p.floor === activeFloor)
+    .map((p) => {
+      const coords = squareAroundPointMeters(p.position!, 0.9);
+      return {
+        type: "Feature" as const,
+        geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+        properties: {
+          id: p.id,
+          kind: p.kind,
+          color: poi3DColor(p.kind),
+          height: POI_PILLAR_HEIGHT,
+        },
+      };
+    });
+  upsertGeoJSONSource(map, "campus-pois-pillar-3d-src", {
+    type: "FeatureCollection" as const,
+    features,
+  });
+
+  addLayerIfMissing(map, {
+    id: LAYERS.poi3D,
+    source: "campus-pois-pillar-3d-src",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 16,
+  });
+
+  // Door + entrance markers — flat coloured tiles at ground so users
+  // see where they can walk into buildings from the 3D view.
+  const doorFeatures: unknown[] = [];
+  const entranceFeatures: unknown[] = [];
+  for (const d of doors) {
+    if (typeof d.position?.lat !== "number" || typeof d.position?.lng !== "number") continue;
+    if (activeFloor !== null && d.floor !== null && d.floor !== undefined && d.floor !== activeFloor) continue;
+    const coords = squareAroundPointMeters(d.position, 0.7);
+    const feat = {
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+      properties: { id: d.id, floor: d.floor ?? null },
+    };
+    if (d.emergencyExit) doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "exit" } });
+    else if ((d as unknown as { isEntrance?: boolean }).isEntrance) entranceFeatures.push({ ...feat, properties: { ...feat.properties, kind: "entrance" } });
+    else doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "door" } });
+  }
+  upsertGeoJSONSource(map, "campus-doors-marker-src", {
+    type: "FeatureCollection" as const,
+    features: doorFeatures,
+  });
+  upsertGeoJSONSource(map, "campus-entrances-marker-src", {
+    type: "FeatureCollection" as const,
+    features: entranceFeatures,
+  });
+
+  addLayerIfMissing(map, {
+    id: LAYERS.doorMarker,
+    source: "campus-doors-marker-src",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": [
+        "match", ["get", "kind"],
+        "exit", "#dc2626",
+                "#6b7280",
+      ],
+      // Very short "pad" — signals a door without piercing walls
+      "fill-extrusion-height": 0.5,
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.9,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 16,
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.entranceMarker,
+    source: "campus-entrances-marker-src",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": "#15803d",
+      "fill-extrusion-height": 0.8,
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.95,
+      "fill-extrusion-vertical-gradient": true,
+    },
+    minzoom: 15,
+  });
 }
 
 /** Install MazeMap-style stair + elevator towers — small extruded

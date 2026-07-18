@@ -33,7 +33,7 @@ export default function Landing() {
                     KSYK Maps
                   </h1>
                   <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 font-semibold leading-none mt-0.5">
-                    by Nordbyte Studio
+                    Campus navigation
                   </p>
                 </div>
               </div>
@@ -119,8 +119,8 @@ export default function Landing() {
       {/* Footer */}
       <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 py-6">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-gray-500 dark:text-gray-500">
-          <p>© {new Date().getFullYear()} Nordbyte Studio</p>
-          <p>KSYK Maps · Campus navigation</p>
+          <p>© {new Date().getFullYear()} KSYK Maps</p>
+          <p>Campus navigation</p>
         </div>
       </footer>
     </div>

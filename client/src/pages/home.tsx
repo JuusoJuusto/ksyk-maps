@@ -1533,14 +1533,7 @@ export default function Home() {
                     <CardContent>
                       <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <p><strong>KSYK Maps</strong> - Interactive Campus Navigation</p>
-                        <p>Version 3.1.2</p>
-                        <p>© 2026 Nordbyte Studio</p>
-                        <Button
-                          onClick={() => window.open('https://nordbyte-studio.vercel.app', '_blank')}
-                          className="w-full mt-4"
-                        >
-                          {currentLang === 'fi' ? 'Lue lisää' : 'Learn More'}
-                        </Button>
+                        <p>© 2026 KSYK Maps</p>
                       </div>
                     </CardContent>
                   </Card>

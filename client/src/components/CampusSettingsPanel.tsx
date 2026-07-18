@@ -388,10 +388,9 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                       : "Interactive campus map for Kulosaaren yhteiskoulu. Find wings A, U, K, M, R, and B — with room search, timetables, and navigation."}
                   </p>
 
-                  <div className="grid sm:grid-cols-3 gap-3 text-center text-sm">
+                  <div className="grid sm:grid-cols-2 gap-3 text-center text-sm">
                     {[
                       { label: isFi ? "Versio" : "Version", value: APP_VERSION },
-                      { label: isFi ? "Kehittäjä" : "Built by", value: "Nordbyte Studio" },
                       { label: isFi ? "Koulu" : "School", value: "KSYK" },
                     ].map((item) => (
                       <div
@@ -410,13 +409,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                   <div className="flex flex-col gap-2 pt-2">
                     <Button
-                      className="w-full rounded-xl"
-                      onClick={() => window.open("https://nordbyte-studio.vercel.app", "_blank")}
-                    >
-                      Nordbyte Studio
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </Button>
-                    <Button
                       variant="outline"
                       className="w-full rounded-xl"
                       onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
@@ -427,7 +419,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                   </div>
 
                   <p className="text-xs text-center text-muted-foreground pt-2">
-                    © {new Date().getFullYear()} Nordbyte Studio · KSYK Maps
+                    © {new Date().getFullYear()} KSYK Maps
                   </p>
                 </CardContent>
               </Card>

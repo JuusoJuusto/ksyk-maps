@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.19.0";
+export const APP_VERSION = "3.20.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.20.0",
+    date: "July 2026",
+    title: "KSYK Maps rebrand + 3D POI pillars + door/entrance markers",
+    titleFi: "KSYK Maps -brändi + 3D-POI-pylväät + ovi/sisäänkäyntimerkit",
+    latest: true,
+    highlights: [
+      "Stripped 'by Nordbyte Studio' from browser tab, PWA manifest, splash, header, settings, landing, admin login, and version info",
+      "Every generic POI (info, cafe, vending, water, first aid, AED, printer, meeting, parking, bike, restrooms) now extrudes as a 2.2 m colored pillar in 3D",
+      "Doors extrude as short gray pads; entrances as taller green pads so users see building access at a glance in 3D",
+      "Emergency exits render red",
+      "package.json author updated to 'KSYK Maps'",
+    ],
+    highlightsFi: [
+      "Poistettu 'by Nordbyte Studio' otsikoista, manifestista, ja käyttöliittymästä",
+      "Jokainen POI näkyy nyt 3D:ssä värillisenä pylväänä",
+      "Ovet lyhyinä harmaina alustoina, sisäänkäynnit korkeampina vihreinä",
+      "Hätäuloskäynnit punaisia",
+    ],
+  },
   {
     version: "3.19.0",
     date: "July 2026",
     title: "3D map: sky, sun-lit shading, drop shadows, stair towers, ghost floors",
     titleFi: "3D-kartta: taivas, aurinkovarjostus, varjot, portaikkotornit, aavehuoneet",
-    latest: true,
     highlights: [
       "MazeMap-style directional light — buildings now cast warm sunlit shading in light mode, cool moonlit in dark mode",
       "Atmospheric sky layer visible when the map is pitched — soft blue horizon with a warm sun halo",

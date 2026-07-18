@@ -2,8 +2,8 @@ import { Ticket } from "lucide-react";
 
 export default function TicketSystem() {
   const handleOpenTickets = () => {
-    // Redirect to Nordbyte Studio ticket system with KSYK Maps pre-selected
-    window.open('https://nordbyte-studio.vercel.app/tickets?app=ksyk-maps', '_blank');
+    // Open the KSYK Maps GitHub issues page — where we track feedback.
+    window.open('https://github.com/JuusoJuusto/ksyk-maps/issues/new', '_blank');
   };
 
   return (

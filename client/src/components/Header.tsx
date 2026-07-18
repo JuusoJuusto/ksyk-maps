@@ -169,7 +169,7 @@ export default function Header({
               />
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-blue-600 tracking-tight">KSYK Maps</h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">by Nordbyte Studio</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">Campus navigation</p>
               </div>
             </Link>
 
@@ -560,7 +560,7 @@ export default function Header({
                   darkMode ? "text-gray-600" : "text-gray-500",
                 )}>
                   <span>KSYK Maps</span>
-                  <span>Nordbyte Studio</span>
+                  <span>Campus navigation</span>
                 </div>
               </>
             ) : (

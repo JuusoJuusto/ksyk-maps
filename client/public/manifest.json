@@ -1,7 +1,7 @@
 {
-  "name": "KSYK Maps by Nordbyte Studio",
+  "name": "KSYK Maps",
   "short_name": "KSYK Maps",
-  "description": "Interactive campus navigation for KSYK — Powered by Nordbyte Studio",
+  "description": "Interactive campus navigation and room finder for KSYK",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

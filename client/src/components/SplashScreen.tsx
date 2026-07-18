@@ -194,7 +194,7 @@ export default function SplashScreen() {
         {/* Brand */}
         <div className="text-center">
           <p className="text-xl font-bold tracking-tight text-slate-900">KSYK Maps</p>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">by Nordbyte Studio</p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">Campus navigation</p>
         </div>
 
         {/* Determinate progress bar. Grows with each satisfied signal
