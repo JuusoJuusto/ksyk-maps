@@ -1251,54 +1251,42 @@ function BuilderWorkspace() {
         )}>
           <CampusMap onReady={(h) => { handleRef.current = h; setMapReady(true); }} />
 
-          {/* In-flight coach — appears while a drawing tool is active.
-           *  Includes a live cursor coord readout for CAD-adjacent
-           *  precision (users can eyeball the lat/lng while placing
-           *  corners without hunting the StatusBar). */}
-          {activeTool !== "select" && activeTool !== "pan" && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-sm px-3.5 py-2 text-[13px] font-medium text-foreground pointer-events-none flex items-center gap-3">
-              <span>
-                {activeTool === "hallway" && (<>Click waypoints — Enter to finish ({waypoints.length})</>)}
-                {activeTool === "wall" && (<>Click wall endpoints — Enter to finish ({waypoints.length})</>)}
-                {activeTool === "rectangle" && (<>Click 2 diagonal corners — Enter to finish ({waypoints.length}/2)</>)}
-                {activeTool === "measure" && (
-                  <>
-                    {waypoints.length < 2
-                      ? <>Click points — line total shows here ({waypoints.length})</>
-                      : <>Distance: {measureDistanceMeters < 1000
-                          ? `${measureDistanceMeters.toFixed(1)} m`
-                          : `${(measureDistanceMeters / 1000).toFixed(2)} km`} · Esc to clear</>}
-                  </>
+          {/* In-flight coach — MazeMap-style pill chip that surfaces
+           *  the current tool, live progress, and the cancel hint.
+           *  Everything a user needs to know while drawing lives here
+           *  so they never have to hunt the StatusBar. */}
+          {activeTool !== "select" && activeTool !== "pan" && (() => {
+            const meta = coachMetaFor(activeTool, waypoints.length, measureDistanceMeters);
+            const ToolIcon = meta.Icon;
+            return (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-2xl shadow-lg overflow-hidden pointer-events-none flex items-stretch text-[13px] font-medium text-foreground">
+                {/* Tool badge — colored strip with icon + name */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-white",
+                  meta.badgeBg,
+                )}>
+                  <ToolIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">{meta.name}</span>
+                </div>
+                {/* Instruction text */}
+                <div className="px-3 py-2 flex items-center gap-3">
+                  <span>{meta.text}</span>
+                  {waypoints.length > 0 && (
+                    <kbd className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-muted text-muted-foreground">
+                      Esc
+                    </kbd>
+                  )}
+                </div>
+                {cursor && (
+                  <div className="px-3 py-2 border-l border-border bg-muted/40">
+                    <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                      {cursor.lat.toFixed(6)}, {cursor.lng.toFixed(6)}
+                    </span>
+                  </div>
                 )}
-                {(activeTool === "building" || activeTool === "room") && (
-                  <>Click corners — Enter to finish ({waypoints.length}/3+ needed)</>
-                )}
-                {activeTool === "poi-stairs"     && (<>Click to place stairs</>)}
-                {activeTool === "poi-elevator"   && (<>Click to place elevator</>)}
-                {activeTool === "poi-door"       && (<>Click to place door</>)}
-                {activeTool === "poi-entrance"   && (<>Click to place entrance</>)}
-                {activeTool === "poi-info"       && (<>Click to place info point</>)}
-                {activeTool === "poi-reception"  && (<>Click to place reception</>)}
-                {activeTool === "poi-parking"    && (<>Click to place parking</>)}
-                {activeTool === "poi-bike"       && (<>Click to place bike parking</>)}
-                {activeTool === "poi-restroom-m"    && (<>Click to place restroom (M)</>)}
-                {activeTool === "poi-restroom-f"    && (<>Click to place restroom (F)</>)}
-                {activeTool === "poi-restroom-a"    && (<>Click to place accessible restroom</>)}
-                {activeTool === "poi-cafe"          && (<>Click to place café</>)}
-                {activeTool === "poi-vending"       && (<>Click to place vending machine</>)}
-                {activeTool === "poi-water"         && (<>Click to place water fountain</>)}
-                {activeTool === "poi-first-aid"     && (<>Click to place first aid</>)}
-                {activeTool === "poi-defibrillator" && (<>Click to place defibrillator (AED)</>)}
-                {activeTool === "poi-printer"       && (<>Click to place printer</>)}
-                {activeTool === "poi-meeting"       && (<>Click to place meeting point</>)}
-              </span>
-              {cursor && (
-                <span className="text-[11px] font-mono tabular-nums text-muted-foreground border-l border-border pl-3">
-                  {cursor.lat.toFixed(6)}, {cursor.lng.toFixed(6)}
-                </span>
-              )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* Selection handles — vertex drag + rotation for the picked
            *  polygon entity. Headless (returns null), renders inside the
@@ -1429,6 +1417,50 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Coach chip metadata for a given tool — icon, badge color, name,
+ *  and the instruction shown to the right. Centralises what used to
+ *  be a big cascade of conditionals in the JSX. */
+function coachMetaFor(
+  tool: BuilderTool,
+  n: number,
+  measureDist: number,
+): { Icon: typeof MousePointer2; name: string; text: string; badgeBg: string } {
+  const distLabel = measureDist < 1000
+    ? `${measureDist.toFixed(1)} m`
+    : `${(measureDist / 1000).toFixed(2)} km`;
+  switch (tool) {
+    case "building":       return { Icon: Building2,         name: "Building",  text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-blue-600" };
+    case "rectangle":      return { Icon: Square,            name: "Rectangle", text: `Click 2 diagonal corners (${n}/2)`,                badgeBg: "bg-blue-600" };
+    case "room":           return { Icon: DoorOpen,          name: "Room",      text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-emerald-600" };
+    case "hallway":        return { Icon: RouteIcon,         name: "Hallway",   text: `Click waypoints — Enter to finish (${n})`,         badgeBg: "bg-amber-600" };
+    case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,    badgeBg: "bg-gray-800" };
+    case "measure":        return {
+      Icon: Ruler, name: "Measure",
+      text: n < 2 ? `Click points — line total shows here (${n})` : `Distance: ${distLabel} · Esc to clear`,
+      badgeBg: "bg-purple-600",
+    };
+    case "poi-stairs":        return { Icon: StepForward,   name: "Stairs",     text: "Click to place stairs",              badgeBg: "bg-amber-600" };
+    case "poi-elevator":      return { Icon: MoveVertical,  name: "Elevator",   text: "Click to place elevator",            badgeBg: "bg-blue-600" };
+    case "poi-door":          return { Icon: DoorClosed,    name: "Door",       text: "Click to place door",                badgeBg: "bg-gray-600" };
+    case "poi-entrance":      return { Icon: LogIn,         name: "Entrance",   text: "Click to place entrance",            badgeBg: "bg-emerald-600" };
+    case "poi-info":          return { Icon: Info,          name: "Info",       text: "Click to place info point",          badgeBg: "bg-sky-600" };
+    case "poi-reception":     return { Icon: Phone,         name: "Reception",  text: "Click to place reception",           badgeBg: "bg-blue-600" };
+    case "poi-parking":       return { Icon: ParkingCircle, name: "Parking",    text: "Click to place parking",             badgeBg: "bg-sky-700" };
+    case "poi-bike":          return { Icon: Bike,          name: "Bike",       text: "Click to place bike parking",        badgeBg: "bg-green-600" };
+    case "poi-restroom-m":    return { Icon: Accessibility, name: "Restroom M", text: "Click to place restroom (M)",        badgeBg: "bg-pink-600" };
+    case "poi-restroom-f":    return { Icon: Accessibility, name: "Restroom F", text: "Click to place restroom (F)",        badgeBg: "bg-pink-600" };
+    case "poi-restroom-a":    return { Icon: Accessibility, name: "Accessible", text: "Click to place accessible restroom", badgeBg: "bg-purple-600" };
+    case "poi-cafe":          return { Icon: Coffee,        name: "Café",       text: "Click to place café",                badgeBg: "bg-amber-700" };
+    case "poi-vending":       return { Icon: Utensils,      name: "Vending",    text: "Click to place vending machine",     badgeBg: "bg-violet-600" };
+    case "poi-water":         return { Icon: Droplet,       name: "Water",      text: "Click to place water fountain",      badgeBg: "bg-cyan-600" };
+    case "poi-first-aid":     return { Icon: HeartPulse,    name: "First aid",  text: "Click to place first aid",           badgeBg: "bg-red-600" };
+    case "poi-defibrillator": return { Icon: Zap,           name: "AED",        text: "Click to place defibrillator (AED)", badgeBg: "bg-rose-600" };
+    case "poi-printer":       return { Icon: Printer,       name: "Printer",    text: "Click to place printer",             badgeBg: "bg-gray-600" };
+    case "poi-meeting":       return { Icon: Flag,          name: "Meeting",    text: "Click to place meeting point",       badgeBg: "bg-emerald-600" };
+    default:                  return { Icon: MousePointer2, name: "Tool",       text: "Click on the map",                   badgeBg: "bg-blue-600" };
+  }
 }
 
 /** Standard even-odd point-in-polygon. Operates in lat/lng space —

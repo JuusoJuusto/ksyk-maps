@@ -26,7 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, Hallway, MapLayer, Stair, Elevator, Door } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
-import { readLayerOverrides } from "@/components/LayersToggle";
+import { readLayerOverrides, readPoiCategoryFilters, hiddenPoiKindsFromFilter } from "@/components/LayersToggle";
 import { useCampusData } from "@/hooks/useCampusData";
 
 const SOURCES = {
@@ -96,14 +96,28 @@ export default function CampusOverlay({
   const [clientOverrides, setClientOverrides] = useState<Record<string, boolean>>(
     () => readLayerOverrides(),
   );
+  const [poiFilter, setPoiFilter] = useState<Record<string, boolean>>(
+    () => readPoiCategoryFilters(),
+  );
   useEffect(() => {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent<Record<string, boolean>>).detail;
       if (detail && typeof detail === "object") setClientOverrides({ ...detail });
     };
+    const onPoiChange = (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, boolean>>).detail;
+      if (detail && typeof detail === "object") setPoiFilter({ ...detail });
+    };
     window.addEventListener("ksyk:layer-visibility", onChange);
-    return () => window.removeEventListener("ksyk:layer-visibility", onChange);
+    window.addEventListener("ksyk:poi-filter", onPoiChange);
+    return () => {
+      window.removeEventListener("ksyk:layer-visibility", onChange);
+      window.removeEventListener("ksyk:poi-filter", onPoiChange);
+    };
   }, []);
+  // Kinds hidden by the user — precomputed once per filter change so
+  // installPOIs can skip them cheaply.
+  const hiddenPoiKinds = hiddenPoiKindsFromFilter(poiFilter);
   const visibilityById = new Map<string, boolean>();
   for (const l of layers) visibilityById.set(l.id, l.visible !== false);
   const isVisible = (id: string) => {
@@ -124,7 +138,7 @@ export default function CampusOverlay({
       installBuildings(map, buildings);
       installHallways(map, hallways);
       installRooms(map, rooms, activeFloor ?? null);
-      installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null);
+      installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null, hiddenPoiKinds);
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -332,7 +346,7 @@ export default function CampusOverlay({
       window.clearTimeout(safety);
       window.cancelAnimationFrame(raf);
     };
-  }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, is3D]);
+  }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, poiFilter, is3D]);
 
   return null;
 }
@@ -1112,7 +1126,12 @@ interface POIData {
   generic: GenericPOI[];
 }
 
-function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null) {
+function installPOIs(
+  map: MaplibreMap,
+  data: POIData,
+  activeFloor: number | null,
+  hiddenKinds: Set<string> = new Set(),
+) {
   type PoiFeature = {
     type: "Feature";
     geometry: { type: "Point"; coordinates: [number, number] };
@@ -1125,6 +1144,8 @@ function installPOIs(map: MaplibreMap, data: POIData, activeFloor: number | null
     lat: number, lng: number, label?: string | null,
   ) => {
     if (activeFloor !== null && floor !== null && floor !== activeFloor) return;
+    // POI category filter — user hid this category via LayersToggle.
+    if (hiddenKinds.has(kind)) return;
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [lng, lat] },

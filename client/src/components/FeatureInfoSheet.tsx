@@ -55,33 +55,44 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <span className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
       </div>
 
-      <header className="flex items-start gap-3 px-4 pt-3 pb-2 border-b border-border">
+      {/* MazeMap-style hero band — colored gradient using the entity's
+       *  own color so each type reads distinctly at a glance. Close
+       *  button floats top-right over the band. */}
+      <div
+        className="relative h-14 flex items-end"
+        style={{
+          background: `linear-gradient(135deg, ${color} 0%, ${color}dd 50%, ${color}88 100%)`,
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-2 right-2 h-7 w-7 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-black/20 transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="px-4 py-2 text-[10px] font-bold tracking-[0.22em] uppercase text-white/90">
+          {featureKindLabel(feature)}
+        </div>
+      </div>
+
+      <header className="flex items-start gap-3 px-4 pt-3 pb-3 border-b border-border">
         <span
-          className="mt-1 h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+          className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           style={{ background: color + "22", color }}
         >
           <KindIcon feature={feature} />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
-            {featureKindLabel(feature)}
-          </p>
-          <p className="text-sm font-semibold text-foreground truncate">{title}</p>
+          <p className="text-base font-bold text-foreground leading-tight truncate">{title}</p>
           {subtitle && (
-            <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
+            <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">{subtitle}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </header>
 
-      <div className="px-4 py-3 overflow-y-auto space-y-3 text-[13px]">
+      <div className="px-4 py-3 overflow-y-auto space-y-3 text-[13px]" style={{ maxHeight: "calc(min(70dvh, 32rem) - 12rem)" }}>
         <MetadataRows feature={feature} />
       </div>
 
@@ -89,7 +100,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <button
           type="button"
           onClick={() => onRouteTo(feature)}
-          className="w-full h-10 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+          className="w-full h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm transition-all"
         >
           <Navigation2 className="h-4 w-4" />
           Directions here

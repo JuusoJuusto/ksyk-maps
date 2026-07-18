@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.17.0";
+export const APP_VERSION = "3.17.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.17.1",
+    date: "July 2026",
+    title: "POI category filters, MazeMap coach chip, info sheet hero",
+    titleFi: "POI-kategoriasuodattimet, työkaluvinkkichip, tietopaneelin bänneri",
+    latest: true,
+    highlights: [
+      "Public map: POI category filters (Transit / Info / Restrooms / Food / Safety / Amenities) in the Layers popover — hide entire groups you don't want",
+      "Builder coach chip: icon + tool name + Esc hint + live cursor coords, styled per tool",
+      "Feature info sheet: colored hero band matching the entity's tint, bigger title",
+    ],
+    highlightsFi: [
+      "Kartta: POI-kategoriasuodattimet Tasot-valikossa — piilota kokonaisia ryhmiä",
+      "Rakentajan ohjenappula: kuvake + työkalun nimi + Esc-vinkki + kohdistin",
+      "Tietopaneeli: väriviiva kohteen värillä, isompi otsikko",
+    ],
+  },
   {
     version: "3.17.0",
     date: "July 2026",
     title: "MazeMap-style POI flyout — toolbar no longer squished",
     titleFi: "MazeMap-tyylinen POI-valikko — työkalupalkki ei enää ahdas",
-    latest: true,
     highlights: [
       "Builder toolbar refactored into groups: Cursor, Shape, POIs, Delete",
       "All 18 POI tools now live behind a single 'POIs' button that opens a categorised popover (Transit, Info, Restrooms, Food, Safety, Amenities)",
