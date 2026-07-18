@@ -605,9 +605,17 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           </p>
         )}
         {(!from || !to) && (
-          <p className="text-[11px] text-muted-foreground text-center">
-            Pick a start and destination to see the route.
-          </p>
+          <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-4 text-center">
+            <div className="mx-auto h-9 w-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2">
+              <Navigation2 className="h-4 w-4" />
+            </div>
+            <p className="text-[12px] font-semibold text-foreground">
+              {!from && !to ? "Where to?" : !from ? "Where from?" : "Where to?"}
+            </p>
+            <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">
+              Search for a room or building above, or click a feature on the map and hit “Directions here.”
+            </p>
+          </div>
         )}
 
         {/* Turn-by-turn narration — MazeMap-style timeline. Always

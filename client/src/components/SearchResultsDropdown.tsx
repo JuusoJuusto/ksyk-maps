@@ -21,7 +21,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { useCampusData } from "@/hooks/useCampusData";
 import { loadRecentPicks, recordPick, clearRecents, type RecentPickStub } from "@/lib/recentSearches";
-import { Clock } from "lucide-react";
+import { Clock, Search } from "lucide-react";
 
 /** What was clicked in the dropdown — either a room or a building. */
 export type SearchPick =
@@ -308,13 +308,19 @@ export default function SearchResultsDropdown({
           </ul>
         </div>
       ) : hits.length === 0 ? (
-        <div
-          className={cn(
-            "px-4 py-3 text-sm",
-            darkMode ? "text-gray-400" : "text-gray-500",
-          )}
-        >
-          No matches for &quot;{trimmed}&quot;.
+        <div className="px-6 py-8 text-center">
+          <div className={cn(
+            "mx-auto h-11 w-11 rounded-2xl flex items-center justify-center mb-3",
+            darkMode ? "bg-gray-800 text-gray-500" : "bg-slate-100 text-gray-400",
+          )}>
+            <Search className="h-5 w-5" />
+          </div>
+          <p className={cn("text-sm font-semibold", darkMode ? "text-gray-200" : "text-gray-800")}>
+            No matches for &quot;{trimmed}&quot;
+          </p>
+          <p className={cn("text-[11px] mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+            Try a room number, building name, or a shorter query.
+          </p>
         </div>
       ) : (
         <ul className="overflow-y-auto divide-y divide-inherit" style={{ maxHeight: `calc(100dvh - ${effectiveOffset}px - env(safe-area-inset-bottom, 0px) - 12px)` }}>

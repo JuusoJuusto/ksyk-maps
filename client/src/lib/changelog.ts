@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.18.0";
+export const APP_VERSION = "3.18.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.18.1",
+    date: "July 2026",
+    title: "Nicer empty states + Publish success flash",
+    titleFi: "Paremmat tyhjät tilat + julkaisun onnistumisvinkki",
+    latest: true,
+    highlights: [
+      "Search dropdown empty state: iconed hero + 'try a room number' hint",
+      "Builder sidebar empty states: colored bubble + wider hint text",
+      "Navigation empty state: rich card with directional prompt + how to add endpoints",
+      "Publish button flashes green with a checkmark for 2s after a successful publish",
+    ],
+    highlightsFi: [
+      "Hakuvalikko: iso ikoni + 'kokeile huoneen numeroa' -vinkki",
+      "Rakentajan sivupalkki: värillinen kuvake + ohje",
+      "Navigaatio: rikas ohjekortti kun aloitusta/kohdetta ei ole valittu",
+      "Julkaisunappula vihertää + näyttää ✓ kun julkaisu onnistui",
+    ],
+  },
   {
     version: "3.18.0",
     date: "July 2026",
     title: "Keyboard cheat sheet, ⌘K search, compass pitch dial",
     titleFi: "Pikanäppäinvalikko, ⌘K haku, kompassin kallistus",
-    latest: true,
     highlights: [
       "Builder: press ? to open a MazeMap-style keyboard cheat sheet (or the floating '?' button)",
       "Header: ⌘K / Ctrl K focuses the search input; keyboard hint pill on the right",

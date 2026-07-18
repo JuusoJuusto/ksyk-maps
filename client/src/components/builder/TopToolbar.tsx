@@ -14,9 +14,10 @@
  */
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
-  RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft,
+  RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -45,6 +46,19 @@ export interface TopToolbarProps {
 
 export default function TopToolbar(p: TopToolbarProps) {
   const { darkMode } = useDarkMode();
+  // Flash a green ✓ on the Publish button when a publish completes.
+  // Detected by watching isPublishing flip true→false and hasErrors
+  // stay false (a successful publish path). Auto-clears after 2s.
+  const [justPublished, setJustPublished] = useState(false);
+  const prevPublishing = useRef(false);
+  useEffect(() => {
+    if (prevPublishing.current && !p.isPublishing && !p.hasErrors) {
+      setJustPublished(true);
+      const t = setTimeout(() => setJustPublished(false), 2000);
+      return () => clearTimeout(t);
+    }
+    prevPublishing.current = p.isPublishing;
+  }, [p.isPublishing, p.hasErrors]);
 
   return (
     <div
@@ -130,15 +144,19 @@ export default function TopToolbar(p: TopToolbarProps) {
         type="button"
         onClick={p.onPublish}
         disabled={p.isPublishing || p.hasErrors}
-        title={p.hasErrors ? "Fix validation errors first" : "Publish"}
+        title={p.hasErrors ? "Fix validation errors first" : justPublished ? "Just published" : "Publish"}
         className={cn(
-          "ml-2 h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors",
+          "ml-2 h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all",
           "disabled:opacity-40 disabled:cursor-not-allowed",
-          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/25",
+          justPublished
+            ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+            : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/25",
         )}
       >
-        <Rocket className="h-4 w-4" />
-        {p.isPublishing ? "Publishing…" : "Publish"}
+        {justPublished
+          ? <Check className="h-4 w-4" strokeWidth={3} />
+          : <Rocket className={cn("h-4 w-4", p.isPublishing && "animate-pulse")} />}
+        {justPublished ? "Published" : p.isPublishing ? "Publishing…" : "Publish"}
       </button>
     </div>
   );

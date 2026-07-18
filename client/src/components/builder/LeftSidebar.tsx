@@ -810,9 +810,12 @@ function Swatch({ color }: { color: string }) {
 
 function EmptyState({ message, hint }: { message: string; hint?: string }) {
   return (
-    <div className="p-6 text-center text-muted-foreground">
-      <p className="text-sm font-medium">{message}</p>
-      {hint && <p className="text-xs mt-1 opacity-80">{hint}</p>}
+    <div className="px-6 py-10 text-center">
+      <div className="mx-auto h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+        <Layers className="h-5 w-5" strokeWidth={2} />
+      </div>
+      <p className="text-sm font-semibold text-foreground">{message}</p>
+      {hint && <p className="text-[11.5px] text-muted-foreground mt-1.5 leading-relaxed max-w-[220px] mx-auto">{hint}</p>}
     </div>
   );
 }
