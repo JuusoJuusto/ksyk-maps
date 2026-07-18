@@ -62,6 +62,8 @@ import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Ele
 import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 import { toast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MapPin, X as XIcon } from "lucide-react";
 
 type BuilderTool =
   | "select" | "pan"
@@ -1445,6 +1447,95 @@ function pointInPolygon(pt: { lat: number; lng: number }, poly: Array<{ lat: num
 }
 
 // ─── Narrow tool palette (icon column, far left) ─────────────────────────
+//
+// MazeMap-style layout: the core drawing tools stay inline in the
+// vertical strip. All POI kinds (18 of them) live behind a single
+// "POIs" button that opens a categorised popover so the strip stays
+// short and scannable instead of the previous ~19-button squish.
+//
+// Groups (top → bottom):
+//   1. Cursor      — Select, Pan
+//   2. Shape       — Building, Rectangle, Room, Hallway, Wall, Measure
+//   3. POIs        — single icon → popover with everything
+//   4. Delete      — bottom, red
+
+type ToolDef = { id: BuilderTool; Icon: typeof MousePointer2; label: string; hotkey: string };
+
+const CURSOR_TOOLS: ToolDef[] = [
+  { id: "select", Icon: MousePointer2, label: "Select", hotkey: "V" },
+  { id: "pan",    Icon: Hand,          label: "Pan",    hotkey: "Space" },
+];
+
+const SHAPE_TOOLS: ToolDef[] = [
+  { id: "building",  Icon: Building2,         label: "Building",  hotkey: "B" },
+  { id: "rectangle", Icon: Square,            label: "Rectangle", hotkey: "U" },
+  { id: "room",      Icon: DoorOpen,          label: "Room",      hotkey: "R" },
+  { id: "hallway",   Icon: RouteIcon,         label: "Hallway",   hotkey: "H" },
+  { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
+  { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },
+];
+
+/** POI tools grouped by category — mirrors MazeMap's "POIs" flyout
+ *  where each category has its own tinted header. Categories map to
+ *  the same color families used in the map's chip renderer, so the
+ *  builder toolbar and the rendered map read as the same system. */
+const POI_GROUPS: Array<{ label: string; tint: string; tools: ToolDef[] }> = [
+  {
+    label: "Transit",
+    tint: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+    tools: [
+      { id: "poi-stairs",    Icon: StepForward,   label: "Stairs",    hotkey: "S" },
+      { id: "poi-elevator",  Icon: MoveVertical,  label: "Elevator",  hotkey: "E" },
+      { id: "poi-door",      Icon: DoorClosed,    label: "Door",      hotkey: "D" },
+      { id: "poi-entrance",  Icon: LogIn,         label: "Entrance",  hotkey: "N" },
+    ],
+  },
+  {
+    label: "Information",
+    tint: "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300",
+    tools: [
+      { id: "poi-info",      Icon: Info,   label: "Info",      hotkey: "I" },
+      { id: "poi-reception", Icon: Phone,  label: "Reception", hotkey: "" },
+      { id: "poi-meeting",   Icon: Flag,   label: "Meeting",   hotkey: "" },
+    ],
+  },
+  {
+    label: "Restrooms",
+    tint: "bg-pink-50 text-pink-700 dark:bg-pink-500/10 dark:text-pink-300",
+    tools: [
+      { id: "poi-restroom-m", Icon: Accessibility, label: "M",  hotkey: "" },
+      { id: "poi-restroom-f", Icon: Accessibility, label: "F",  hotkey: "" },
+      { id: "poi-restroom-a", Icon: Accessibility, label: "♿", hotkey: "" },
+    ],
+  },
+  {
+    label: "Food & drink",
+    tint: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
+    tools: [
+      { id: "poi-cafe",    Icon: Coffee,   label: "Café",    hotkey: "" },
+      { id: "poi-vending", Icon: Utensils, label: "Vending", hotkey: "" },
+      { id: "poi-water",   Icon: Droplet,  label: "Water",   hotkey: "" },
+    ],
+  },
+  {
+    label: "Safety",
+    tint: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+    tools: [
+      { id: "poi-first-aid",     Icon: HeartPulse, label: "First aid", hotkey: "" },
+      { id: "poi-defibrillator", Icon: Zap,        label: "AED",       hotkey: "" },
+    ],
+  },
+  {
+    label: "Amenities",
+    tint: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+    tools: [
+      { id: "poi-parking", Icon: ParkingCircle, label: "Parking", hotkey: "" },
+      { id: "poi-bike",    Icon: Bike,          label: "Bike",    hotkey: "" },
+      { id: "poi-printer", Icon: Printer,       label: "Printer", hotkey: "" },
+    ],
+  },
+];
+
 function ToolPalette({
   activeTool, selectionCount, onTool, onDelete,
 }: {
@@ -1453,66 +1544,72 @@ function ToolPalette({
   onTool: (t: BuilderTool) => void;
   onDelete: () => void;
 }) {
-  const tools: Array<{ id: BuilderTool; Icon: typeof MousePointer2; label: string; hotkey: string }> = [
-    { id: "select",         Icon: MousePointer2,      label: "Select",       hotkey: "V" },
-    { id: "pan",            Icon: Hand,               label: "Pan",          hotkey: "Space" },
-    { id: "building",       Icon: Building2,          label: "Building",     hotkey: "B" },
-    { id: "rectangle",      Icon: Square,             label: "Rectangle",    hotkey: "U" },
-    { id: "room",           Icon: DoorOpen,           label: "Room",         hotkey: "R" },
-    { id: "hallway",        Icon: RouteIcon,          label: "Hallway",      hotkey: "H" },
-    { id: "wall",           Icon: StretchHorizontal,  label: "Wall",         hotkey: "W" },
-    { id: "measure",        Icon: Ruler,              label: "Measure",      hotkey: "M" },
-    // POI tools — placed with a single click, no Enter needed.
-    { id: "poi-stairs",        Icon: StepForward,        label: "Stairs",         hotkey: "S" },
-    { id: "poi-elevator",      Icon: MoveVertical,       label: "Elevator",       hotkey: "E" },
-    { id: "poi-door",          Icon: DoorClosed,         label: "Door",           hotkey: "D" },
-    { id: "poi-entrance",      Icon: LogIn,              label: "Entrance",       hotkey: "N" },
-    // Generic POIs — one endpoint (/api/pois) discriminated by `kind`.
-    { id: "poi-info",          Icon: Info,               label: "Info",           hotkey: "I" },
-    { id: "poi-reception",     Icon: Phone,              label: "Reception",      hotkey: "" },
-    { id: "poi-parking",       Icon: ParkingCircle,      label: "Parking",        hotkey: "" },
-    { id: "poi-bike",          Icon: Bike,               label: "Bike",           hotkey: "" },
-    { id: "poi-restroom-m",    Icon: Accessibility,      label: "Restroom M",     hotkey: "" },
-    { id: "poi-restroom-f",    Icon: Accessibility,      label: "Restroom F",     hotkey: "" },
-    { id: "poi-restroom-a",    Icon: Accessibility,      label: "Restroom ♿",    hotkey: "" },
-    // v3.15 additions — cafeteria and quality-of-life POIs.
-    { id: "poi-cafe",          Icon: Coffee,             label: "Café",           hotkey: "" },
-    { id: "poi-vending",       Icon: Utensils,           label: "Vending",        hotkey: "" },
-    { id: "poi-water",         Icon: Droplet,            label: "Water",          hotkey: "" },
-    { id: "poi-first-aid",     Icon: HeartPulse,         label: "First aid",      hotkey: "" },
-    { id: "poi-defibrillator", Icon: Zap,                label: "AED",            hotkey: "" },
-    { id: "poi-printer",       Icon: Printer,            label: "Printer",        hotkey: "" },
-    { id: "poi-meeting",       Icon: Flag,               label: "Meeting point",  hotkey: "" },
-  ];
+  // Whether the current tool is a POI — used to visually flag the POIs
+  // button as "active" even though it's a group, and to keep the
+  // popover in sync with the actual selected tool for feedback.
+  const isPoiActive = activeTool.startsWith("poi-");
+  const [poiOpen, setPoiOpen] = useState(false);
+  // When the user picks a POI, close the flyout so their next click
+  // goes to the map. Feels like MazeMap where selecting a tool commits.
+  const pickPoi = (t: BuilderTool) => {
+    onTool(t);
+    setPoiOpen(false);
+  };
 
   return (
     <div className="w-12 shrink-0 flex flex-col items-center py-2 gap-1 bg-white/95 dark:bg-gray-900/95 border-r border-gray-200 dark:border-gray-800 backdrop-blur">
-      {tools.map((t) => {
-        const Icon = t.Icon;
-        const active = activeTool === t.id;
-        return (
+      {CURSOR_TOOLS.map((t) => (
+        <PaletteButton key={t.id} tool={t} active={activeTool === t.id} onClick={() => onTool(t.id)} />
+      ))}
+
+      <Divider />
+
+      {SHAPE_TOOLS.map((t) => (
+        <PaletteButton key={t.id} tool={t} active={activeTool === t.id} onClick={() => onTool(t.id)} />
+      ))}
+
+      <Divider />
+
+      {/* POIs group — single button that opens a categorised popover.
+       *  Highlights when any POI tool is active so users know which
+       *  bucket their current tool came from. Wired via shadcn Popover
+       *  so it auto-positions to the right of the strip and closes on
+       *  outside click. */}
+      <Popover open={poiOpen} onOpenChange={setPoiOpen}>
+        <PopoverTrigger asChild>
           <button
-            key={t.id}
             type="button"
-            onClick={() => onTool(t.id)}
-            title={`${t.label} (${t.hotkey})`}
-            aria-label={t.label}
-            aria-pressed={active}
+            title="POIs — click to pick one"
+            aria-label="POIs"
+            aria-pressed={isPoiActive || poiOpen}
             className={cn(
-              "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
-              active
+              "h-9 w-9 rounded-lg flex items-center justify-center transition-colors relative",
+              (isPoiActive || poiOpen)
                 ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
                 : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
             )}
           >
-            <Icon className="h-4 w-4" strokeWidth={2} />
+            <MapPin className="h-4 w-4" strokeWidth={2} />
+            {/* Little chevron dot to hint "this opens a menu" */}
+            <span
+              className={cn(
+                "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-gray-900",
+                (isPoiActive || poiOpen) ? "bg-white" : "bg-blue-500",
+              )}
+            />
           </button>
-        );
-      })}
+        </PopoverTrigger>
+        <PopoverContent
+          side="right"
+          align="start"
+          sideOffset={12}
+          className="p-0 w-[300px] rounded-2xl border border-border shadow-xl overflow-hidden"
+        >
+          <PoiFlyout activeTool={activeTool} onPick={pickPoi} onClose={() => setPoiOpen(false)} />
+        </PopoverContent>
+      </Popover>
 
-      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
-
-      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />
+      <div className="flex-1" />
 
       <button
         type="button"
@@ -1529,6 +1626,110 @@ function ToolPalette({
       >
         <Trash2 className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+function PaletteButton({
+  tool, active, onClick,
+}: {
+  tool: ToolDef;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const Icon = tool.Icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tool.hotkey ? `${tool.label} (${tool.hotkey})` : tool.label}
+      aria-label={tool.label}
+      aria-pressed={active}
+      className={cn(
+        "h-9 w-9 rounded-lg flex items-center justify-center transition-colors relative",
+        active
+          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+          : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+      )}
+    >
+      <Icon className="h-4 w-4" strokeWidth={2} />
+      {/* Hotkey ghost — visible only when hovering, MazeMap-style */}
+      {tool.hotkey && (
+        <span className="absolute -right-0.5 -bottom-0.5 text-[7px] font-mono font-bold text-gray-400 dark:text-gray-500 leading-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+          {tool.hotkey}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="my-1 h-px w-6 bg-gray-200 dark:bg-gray-700" />;
+}
+
+/** The categorised POI flyout — matches MazeMap's "add POI" popup. Each
+ *  category has a tinted header, a grid of tools underneath. Clicking
+ *  a tool commits it and closes the flyout (via `onPick`). */
+function PoiFlyout({
+  activeTool, onPick, onClose,
+}: {
+  activeTool: BuilderTool;
+  onPick: (t: BuilderTool) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col max-h-[70vh]">
+      <header className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-blue-50/60 dark:bg-blue-500/10">
+        <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <div className="flex-1">
+          <p className="text-[13px] font-semibold text-foreground leading-none">Points of interest</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Pick one, then click on the map</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+          aria-label="Close POI picker"
+        >
+          <XIcon className="h-3.5 w-3.5" />
+        </button>
+      </header>
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
+        {POI_GROUPS.map((group) => (
+          <section key={group.label}>
+            <div className={cn("inline-block text-[9px] font-bold uppercase tracking-[0.15em] px-1.5 py-0.5 rounded", group.tint)}>
+              {group.label}
+            </div>
+            <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+              {group.tools.map((t) => {
+                const Icon = t.Icon;
+                const active = activeTool === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onPick(t.id)}
+                    title={t.hotkey ? `${t.label} (${t.hotkey})` : t.label}
+                    aria-label={t.label}
+                    aria-pressed={active}
+                    className={cn(
+                      "flex flex-col items-center gap-1 px-1 py-2 rounded-lg border transition-colors",
+                      active
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 shadow-sm"
+                        : "border-transparent text-foreground hover:bg-muted",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={2} />
+                    <span className="text-[9.5px] font-medium leading-tight text-center truncate max-w-full">
+                      {t.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

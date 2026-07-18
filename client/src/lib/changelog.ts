@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.16.1";
+export const APP_VERSION = "3.17.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.17.0",
+    date: "July 2026",
+    title: "MazeMap-style POI flyout — toolbar no longer squished",
+    titleFi: "MazeMap-tyylinen POI-valikko — työkalupalkki ei enää ahdas",
+    latest: true,
+    highlights: [
+      "Builder toolbar refactored into groups: Cursor, Shape, POIs, Delete",
+      "All 18 POI tools now live behind a single 'POIs' button that opens a categorised popover (Transit, Info, Restrooms, Food, Safety, Amenities)",
+      "Popover tinted per category, matches the map's chip color palette",
+      "Group dividers + hotkey ghosts on shape tools for CAD polish",
+    ],
+    highlightsFi: [
+      "Rakentajan työkalupalkki ryhmitelty: Osoitin, Muodot, POI:t, Poisto",
+      "18 POI-työkalua nyt yhden POI-napin takana kategoriapopoverissa",
+      "Popover värikoodattu kategoreittain, sopii kartan värimaailmaan",
+    ],
+  },
   {
     version: "3.16.1",
     date: "July 2026",
     title: "Hover highlights, POI tooltip, drag-to-move, active step",
     titleFi: "Osoitinkorostus, POI-vinkki, siirto, aktiivinen askel",
-    latest: true,
     highlights: [
       "Room + building fill brightens on hover (MazeMap-style feature-state)",
       "Public map POIs show a floating tooltip on hover with kind + floor",
