@@ -92,14 +92,6 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
           // Below zoom 18 we stay 100% so context (streets, districts)
           // still guides the user's mental map.
           "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
-          // MazeMap-like vibrancy — modest saturation + contrast bump
-          // so the OSM greens/blues/parks pop as "colorful diagram" not
-          // "dull government print". Values are conservative so the
-          // map still reads correctly at low zoom.
-          "raster-saturation": mode === "light" ? 0.15 : -0.1,
-          "raster-contrast": mode === "light" ? 0.08 : 0.05,
-          "raster-brightness-min": 0,
-          "raster-brightness-max": 1,
           // Turn off the raster's default cross-fade so labels don't
           // flicker during zoom.
           "raster-fade-duration": 200,
@@ -318,12 +310,8 @@ export default function CampusMap({
         minzoom: 0, maxzoom: 22,
         paint: {
           // Match the initial-style paint so a dark-mode toggle doesn't
-          // lose the high-zoom raster fade OR the saturation bump.
+          // lose the high-zoom raster fade.
           "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
-          "raster-saturation": darkMode ? -0.1 : 0.15,
-          "raster-contrast": darkMode ? 0.05 : 0.08,
-          "raster-brightness-min": 0,
-          "raster-brightness-max": 1,
           "raster-fade-duration": 200,
         },
       },
