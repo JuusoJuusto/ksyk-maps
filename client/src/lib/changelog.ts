@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.22.0";
+export const APP_VERSION = "3.22.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.22.1",
+    date: "July 2026",
+    title: "Selection pulse, fit-route, layers reset, a11y polish",
+    titleFi: "Valinnan syke, sovita reitti, tasojen nollaus",
+    latest: true,
+    highlights: [
+      "Feature pulse: 3 breathing pulse rings on picked feature (was: one-shot fade) + soft blue glow underneath",
+      "Navigation: 'Fit route' button re-fits the map to the full route bounds without changing bearing/pitch",
+      "Screen-reader live region announces the current turn-by-turn step",
+      "Layers popover: shows how many custom overrides you have + one-tap Reset to defaults",
+    ],
+    highlightsFi: [
+      "Kohteen syke: 3 hengittävää rengasta + sininen pehmeä hehku",
+      "Navigaatio: 'Sovita reitti' -painike palauttaa kartan koko reittiin",
+      "Ruudunlukija ilmoittaa aktiivisen askeleen",
+      "Tasovalikko: nollaus-painike ja määrä 'piilotettu' -näkyvillä",
+    ],
+  },
   {
     version: "3.22.0",
     date: "July 2026",
     title: "Announcement popup overhaul + more colorful map tiles",
     titleFi: "Ilmoituspopupin uusi ilme + värikkäämmät karttatiilet",
-    latest: true,
     highlights: [
       "Announcement popup: full-bleed gradient hero (per priority), animated pulse icon in a glass circle, sparkle decoration, richer bullet points, priority-tinted CTA button",
       "Announcement banner strip: matching gradient + subtle glass shine",
