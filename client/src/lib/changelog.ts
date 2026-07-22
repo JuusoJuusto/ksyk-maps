@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.21.0";
+export const APP_VERSION = "3.22.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.22.0",
+    date: "July 2026",
+    title: "Announcement popup overhaul + more colorful map tiles",
+    titleFi: "Ilmoituspopupin uusi ilme + värikkäämmät karttatiilet",
+    latest: true,
+    highlights: [
+      "Announcement popup: full-bleed gradient hero (per priority), animated pulse icon in a glass circle, sparkle decoration, richer bullet points, priority-tinted CTA button",
+      "Announcement banner strip: matching gradient + subtle glass shine",
+      "Dot pager in the popup footer indicates which announcement is showing when there are multiple",
+      "Map tiles: +15% saturation and +8% contrast in light mode (light greens/blues pop as MazeMap-style diagram), dark mode gets a gentle -10% saturation for calmer nights",
+    ],
+    highlightsFi: [
+      "Ilmoituspopup: värillinen otsikko, sykkivä ikoni, pisteet uudessa muodossa",
+      "Ilmoitusbanneri: yhtenäinen väriliuku + kiiltoheijaste",
+      "Karttatiilet: +15% saturaatio ja +8% kontrasti kevyellä teemalla",
+    ],
+  },
   {
     version: "3.21.0",
     date: "July 2026",
     title: "Floors in builder, no-hyphen room names, nav auto-scroll + reset",
     titleFi: "Kerrokset rakentajassa, ei viivaa huoneiden nimissä, navigaation nollaus",
-    latest: true,
     highlights: [
       "Builder floor selector — MazeMap-style vertical chip in top-right; rooms filter by active floor, new rooms land on the selected floor",
       "Off-floor rooms fade to 8% opacity as ghost context — you never lose spatial awareness",
