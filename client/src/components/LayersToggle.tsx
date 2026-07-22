@@ -12,7 +12,7 @@
  * default via the Builder's Layers tab.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Layers, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Layers, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "ksyk_layer_overrides_v1";
@@ -148,22 +148,6 @@ export default function LayersToggle() {
     });
   }, []);
 
-  // Reset every override back to the admin defaults (visible for
-  // layers, on for POI categories). Wipes localStorage + dispatches
-  // both events so CampusOverlay repaints.
-  const resetAll = useCallback(() => {
-    setState({});
-    setPoiState({});
-    writeLayerOverrides({});
-    writePoiCategoryFilters({});
-  }, []);
-
-  // Count of overrides — used to show "N custom" chip in the header
-  // so users know they've deviated from defaults.
-  const overrideCount =
-    Object.entries(state).filter(([, v]) => v === false).length
-    + Object.entries(poiState).filter(([, v]) => v === false).length;
-
   return (
     <div className="relative">
       <button
@@ -205,28 +189,10 @@ export default function LayersToggle() {
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
-          <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+          <div className="px-3 py-2 border-b border-border">
             <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
               Layers
             </p>
-            <div className="flex items-center gap-1">
-              {overrideCount > 0 && (
-                <>
-                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-500/10">
-                    {overrideCount} hidden
-                  </span>
-                  <button
-                    type="button"
-                    onClick={resetAll}
-                    className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label="Reset to defaults"
-                    title="Reset all layers + POI filters to defaults"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </button>
-                </>
-              )}
-            </div>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: "min(52dvh, 22rem)" }}>
             <ul className="p-1.5">

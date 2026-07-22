@@ -15,7 +15,7 @@
  * when not in use. `onClose` retracts it back to a small pill.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility, ArrowUpRight, ArrowUp, ArrowUpLeft, CornerDownRight, CornerDownLeft, ChevronsUp, ChevronsDown, Flag, PlayCircle, Layers as LayersIcon, Maximize2 } from "lucide-react";
+import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility, ArrowUpRight, ArrowUp, ArrowUpLeft, CornerDownRight, CornerDownLeft, ChevronsUp, ChevronsDown, Flag, PlayCircle, Layers as LayersIcon } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, LatLng } from "@ksyk/shared";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
@@ -632,12 +632,6 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
          *  the map there and switch to the step's floor. */}
         {turnHints.length > 0 && (
           <div className="rounded-xl border border-border overflow-hidden bg-card">
-            {/* Screen-reader-only live region announcing the current
-             *  step as the user advances. Helps blind users follow
-             *  along without needing to hunt the visible timeline. */}
-            <p aria-live="polite" className="sr-only">
-              Step {activeStepIdx + 1} of {turnHints.length}: {turnHints[activeStepIdx]?.description ?? ""}
-            </p>
             <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground min-w-0">
                 <Footprints className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -649,32 +643,6 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {/* Fit route — re-fits the map bounds to the ENTIRE
-                 *  route so users can see it end-to-end after they've
-                 *  wandered/zoomed. Preserves bearing + pitch. */}
-                {route && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!map || !route.coords.length) return;
-                      const lngs = route.coords.map((c) => c.lng);
-                      const lats = route.coords.map((c) => c.lat);
-                      map.fitBounds(
-                        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-                        {
-                          padding: 100, duration: 500,
-                          bearing: map.getBearing(),
-                          pitch: map.getPitch(),
-                        },
-                      );
-                    }}
-                    className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center"
-                    aria-label="Fit route in view"
-                    title="Fit route in view"
-                  >
-                    <Maximize2 className="h-3 w-3" />
-                  </button>
-                )}
                 {activeStepIdx > 0 && (
                   <button
                     type="button"
