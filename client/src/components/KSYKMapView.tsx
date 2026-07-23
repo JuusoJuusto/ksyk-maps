@@ -85,6 +85,49 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     return () => window.removeEventListener("ksyk:select-floor", onFloor);
   }, []);
 
+  // Command palette handlers — palette dispatches these globally so any
+  // mounted map view responds. Only the actions that need the map
+  // instance live here; global ones (like switch page) fire directly.
+  useEffect(() => {
+    const on3D = () => {
+      const h = handleRef.current;
+      if (!h) return;
+      const next = is3D ? 0 : 45;
+      setIs3D(!is3D);
+      h.setPitch(next);
+      update("osmPitchDeg", next);
+    };
+    const onRecenter = () => { handleRef.current?.recenter(); };
+    const onResetBearing = () => { handleRef.current?.setBearing(0); };
+    const onOpenDirections = () => setShowNav(true);
+    const onFlyTo = (e: Event) => {
+      const d = (e as CustomEvent<{ lat: number; lng: number; zoom?: number; floor?: number | null }>).detail;
+      const h = handleRef.current;
+      if (!d || !h) return;
+      h.map.flyTo({
+        center: [d.lng, d.lat],
+        zoom: d.zoom ?? Math.max(h.map.getZoom(), 18),
+        bearing: h.map.getBearing(),
+        pitch: h.map.getPitch(),
+        duration: 800,
+        essential: true,
+      });
+      if (typeof d.floor === "number") setSelectedFloor(d.floor);
+    };
+    window.addEventListener("ksyk:cmd:toggle-3d", on3D);
+    window.addEventListener("ksyk:cmd:recenter", onRecenter);
+    window.addEventListener("ksyk:cmd:reset-bearing", onResetBearing);
+    window.addEventListener("ksyk:cmd:open-directions", onOpenDirections);
+    window.addEventListener("ksyk:cmd:fly-to", onFlyTo);
+    return () => {
+      window.removeEventListener("ksyk:cmd:toggle-3d", on3D);
+      window.removeEventListener("ksyk:cmd:recenter", onRecenter);
+      window.removeEventListener("ksyk:cmd:reset-bearing", onResetBearing);
+      window.removeEventListener("ksyk:cmd:open-directions", onOpenDirections);
+      window.removeEventListener("ksyk:cmd:fly-to", onFlyTo);
+    };
+  }, [is3D, update]);
+
   // Floor list — union of every building's declared floor range.
   // Buildings can span -1..3 while a neighbour is 2..4, so the selector
   // needs every distinct floor number that exists in the campus.

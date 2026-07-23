@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.21.0";
+export const APP_VERSION = "3.22.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.22.0",
+    date: "July 2026",
+    title: "Round 1 of pro-editor rebuild: ⌘K palette, undo/redo, snap-to-vertex, minimap",
+    titleFi: "Ammattilaisen työkalut: ⌘K, kumoa/uudelleen, nappaus, minikartta",
+    latest: true,
+    highlights: [
+      "Command palette (⌘K): search-first launcher for every action — switch tool, focus building, toggle 3D, publish, jump to any room by number, and more",
+      "Undo / redo: ⌘Z + ⌘⇧Z now work in the builder for every create + delete mutation. Toolbar buttons wired. History stack keeps 50 entries.",
+      "Snap-to-vertex: while drawing, cursor within 12px of an existing polygon vertex/endpoint/midpoint snaps + shows an orange crosshair + labelled pill (Vertex / Endpoint / Midpoint) — AutoCAD-standard.",
+      "Minimap: bottom-left of the builder shows the whole campus with an orange viewport rectangle. Click to jump. Retina canvas.",
+    ],
+    highlightsFi: [
+      "Komentopaletti (⌘K): kaikki toiminnot yhden pikanäppäimen takana",
+      "Kumoa / uudelleen: ⌘Z + ⌘⇧Z toimivat rakentajassa",
+      "Nappaus pisteisiin: kohdistin lähellä olemassa olevaa kärkeä lukittuu siihen, oranssi ristinäyttö",
+      "Minikartta: koko kampuksen yleiskuva ja katselualue vasemmassa alanurkassa",
+    ],
+  },
   {
     version: "3.21.0",
     date: "July 2026",
     title: "Floors in builder, no-hyphen room names, nav auto-scroll + reset",
     titleFi: "Kerrokset rakentajassa, ei viivaa huoneiden nimissä, navigaation nollaus",
-    latest: true,
     highlights: [
       "Builder floor selector — MazeMap-style vertical chip in top-right; rooms filter by active floor, new rooms land on the selected floor",
       "Off-floor rooms fade to 8% opacity as ghost context — you never lose spatial awareness",

@@ -23,6 +23,7 @@ import MaintenanceMode from "@/components/MaintenanceMode";
 // adblock-resistantly, so Vercel Analytics adds nothing.
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
+import CommandPalette from "@/components/CommandPalette";
 import { useEffect } from "react";
 import { initAnalytics } from "@/lib/analytics";
 import { initTelemetry } from "@/lib/telemetry";
@@ -191,6 +192,9 @@ export default function App() {
                   <AccessibilityClasses />
                   <CookieConsent />
                   <Toaster />
+                  {/* Global ⌘K action launcher — mounted once so it
+                   *  works on every page. */}
+                  <CommandPalette />
                   <Router />
                 </HelpBubble>
               </HelpProvider>

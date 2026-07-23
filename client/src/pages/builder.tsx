@@ -62,8 +62,10 @@ import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Ele
 import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 import { toast } from "@/hooks/use-toast";
+import { useUndoStack, type UndoAction } from "@/hooks/useUndoStack";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MapPin, X as XIcon, Keyboard } from "lucide-react";
+import Minimap from "@/components/builder/Minimap";
 
 type BuilderTool =
   | "select" | "pan"
@@ -179,6 +181,8 @@ function BuilderWorkspace() {
   const [isPublishing, setIsPublishing] = useState(false);
   // MazeMap-style keyboard cheat sheet — toggled by "?" (Shift + /).
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // ⌘Z / ⌘⇧Z history for building/room/hallway mutations.
+  const history = useUndoStack();
 
   // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
   const [cameraState, setCameraState] = useState({
@@ -187,6 +191,13 @@ function BuilderWorkspace() {
     activeFloor: 1 as number | null,
   });
   const [cursor, setCursor] = useState<{ lat: number; lng: number } | null>(null);
+  // Snap-to-vertex — MazeMap/AutoCAD-style visual feedback while a
+  // draw tool is active. When the cursor is within a screen-pixel
+  // threshold of an existing polygon vertex, we render a crosshair
+  // indicator and next click snaps to the vertex instead of the raw
+  // cursor lng/lat.
+  const snapTargetRef = useRef<{ lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" } | null>(null);
+  const [snapLabel, setSnapLabel] = useState<{ x: number; y: number; kind: string } | null>(null);
   const [fps, setFps] = useState<number | null>(null);
 
   const buildingsQ = useQuery<FeatureBuilding[]>({
@@ -646,7 +657,13 @@ function BuilderWorkspace() {
         activeTool === "hallway" || activeTool === "wall" ||
         activeTool === "rectangle" || activeTool === "measure"
       ) {
-        setWaypoints((prev) => [...prev, e.lngLat]);
+        // Snap to nearest vertex/endpoint/midpoint when the indicator
+        // is on. Falls back to the raw cursor position otherwise.
+        const snap = snapTargetRef.current;
+        const p = snap
+          ? new maplibregl.LngLat(snap.lng, snap.lat)
+          : e.lngLat;
+        setWaypoints((prev) => [...prev, p]);
         return;
       }
       // POI tools: single-click places, no need for Enter. Fire the
@@ -799,7 +816,7 @@ function BuilderWorkspace() {
       });
       return res.json();
     },
-    onSuccess: (created: FeatureBuilding | { id?: string } | undefined) => {
+    onSuccess: (created: FeatureBuilding | { id?: string } | undefined, variables) => {
       qc.invalidateQueries({ queryKey: ["/api/buildings"] });
       setWaypoints([]);
       // Snap back to the Select tool and open the Property panel on the
@@ -813,6 +830,24 @@ function BuilderWorkspace() {
       if (id) {
         setSelection({ kind: "building", id });
         setSidebarTab("buildings");
+        // Undo/redo: hold a mutable ref to the current id so the
+        // create/delete pair can point at whichever generation we're on.
+        history.record(
+          makeCreateInverse({
+            label: `New building "${variables.name}"`,
+            currentId: id,
+            resource: "buildings",
+            payload: {
+              name: variables.name,
+              nameEn: variables.name,
+              nameFi: variables.name,
+              colorCode: "#2563eb",
+              floors: 1,
+              points: variables.points,
+            },
+            invalidate: () => qc.invalidateQueries({ queryKey: ["/api/buildings"] }),
+          }),
+        );
       }
     },
   });
@@ -834,7 +869,7 @@ function BuilderWorkspace() {
       });
       return res.json();
     },
-    onSuccess: (created: Room | { id?: string } | undefined) => {
+    onSuccess: (created: Room | { id?: string } | undefined, variables) => {
       qc.invalidateQueries({ queryKey: ["/api/rooms"] });
       setWaypoints([]);
       setActiveTool("select");
@@ -844,6 +879,20 @@ function BuilderWorkspace() {
       if (id) {
         setSelection({ kind: "room", id });
         setSidebarTab("rooms");
+        history.record(makeCreateInverse({
+          label: `New room "${variables.roomNumber}"`,
+          currentId: id,
+          resource: "rooms",
+          payload: {
+            roomNumber: variables.roomNumber,
+            name: variables.roomNumber,
+            buildingId: variables.buildingId,
+            floor: variables.floor,
+            colorCode: "#059669",
+            points: variables.points,
+          },
+          invalidate: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+        }));
       }
     },
   });
@@ -935,11 +984,22 @@ function BuilderWorkspace() {
 
   const deleteBuilding = useMutation({
     mutationFn: async (id: string) => {
+      // Snapshot BEFORE the delete so we can reinstate via undo.
+      const snapshot = buildings.find((b) => b.id === id) ?? null;
       await apiRequest("DELETE", `/api/buildings/${id}`);
+      return snapshot as Record<string, unknown> | null;
     },
-    onSuccess: () => {
+    onSuccess: (snapshot) => {
       qc.invalidateQueries({ queryKey: ["/api/buildings"] });
       setSelectedId(null);
+      if (snapshot) {
+        history.record(makeDeleteInverse({
+          label: `Delete building "${(snapshot as { name?: string }).name ?? ""}"`,
+          snapshot,
+          resource: "buildings",
+          invalidate: () => qc.invalidateQueries({ queryKey: ["/api/buildings"] }),
+        }));
+      }
     },
   });
 
@@ -1048,6 +1108,132 @@ function BuilderWorkspace() {
       return;
     }
   }, [activeTool, waypoints, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor]);
+
+  // ── Snap-to-vertex ───────────────────────────────────────────────
+  // On mousemove while a DRAW tool is active, scan every building /
+  // room / hallway vertex + endpoint + midpoint, find the closest one
+  // in SCREEN space (within SNAP_PX), and if it's a hit render a
+  // crosshair indicator via a dedicated MapLibre source. Next click
+  // uses the snapped coordinates. Cleared on tool change / hover-off.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+    const SRC = "builder-snap-indicator";
+    const LAYER = "builder-snap-indicator-circle";
+    const RING = "builder-snap-indicator-ring";
+    const SNAP_PX = 12;
+
+    const isDrawTool =
+      activeTool === "building" || activeTool === "room" ||
+      activeTool === "hallway"  || activeTool === "wall" ||
+      activeTool === "rectangle" || activeTool === "measure";
+
+    // Assemble every snap candidate for the current campus. Rebuilt
+    // whenever the source data changes; a Ref keeps it stable across
+    // mousemoves.
+    type SnapCandidate = { lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" };
+    const candidates: SnapCandidate[] = [];
+    for (const b of buildings) {
+      if (!b.points) continue;
+      for (const p of b.points) candidates.push({ lat: p.lat, lng: p.lng, kind: "vertex" });
+    }
+    for (const r of roomsQ.data ?? []) {
+      if (!r.points) continue;
+      for (const p of r.points) candidates.push({ lat: p.lat, lng: p.lng, kind: "vertex" });
+    }
+    for (const hw of hallwaysQ.data ?? []) {
+      candidates.push({ lat: hw.startY, lng: hw.startX, kind: "endpoint" });
+      candidates.push({ lat: hw.endY,   lng: hw.endX,   kind: "endpoint" });
+      candidates.push({
+        lat: (hw.startY + hw.endY) / 2,
+        lng: (hw.startX + hw.endX) / 2,
+        kind: "midpoint",
+      });
+    }
+
+    const clearIndicator = () => {
+      snapTargetRef.current = null;
+      setSnapLabel(null);
+      const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+      if (src) src.setData({ type: "FeatureCollection", features: [] } as never);
+    };
+
+    if (!isDrawTool) { clearIndicator(); return; }
+
+    const onMove = (e: MapMouseEvent) => {
+      // Convert cursor to screen pixel space for accurate distance.
+      const cursorPx = e.point;
+      let best: { c: SnapCandidate; d2: number } | null = null;
+      for (const c of candidates) {
+        const p = map.project([c.lng, c.lat]);
+        const dx = p.x - cursorPx.x;
+        const dy = p.y - cursorPx.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= SNAP_PX * SNAP_PX && (!best || d2 < best.d2)) best = { c, d2 };
+      }
+      if (!best) { clearIndicator(); return; }
+      snapTargetRef.current = { lat: best.c.lat, lng: best.c.lng, kind: best.c.kind };
+      const pxOnScreen = map.project([best.c.lng, best.c.lat]);
+      setSnapLabel({
+        x: pxOnScreen.x, y: pxOnScreen.y,
+        kind: best.c.kind === "endpoint" ? "Endpoint"
+            : best.c.kind === "midpoint" ? "Midpoint"
+            :                              "Vertex",
+      });
+      // Update the on-map indicator so it rides pan/zoom until the
+      // next mousemove overrides it.
+      const feat = {
+        type: "FeatureCollection" as const,
+        features: [{
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [best.c.lng, best.c.lat] },
+          properties: { kind: best.c.kind },
+        }],
+      };
+      const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+      if (src) src.setData(feat as never);
+      else {
+        map.addSource(SRC, { type: "geojson", data: feat as never });
+        map.addLayer({
+          id: RING,
+          source: SRC,
+          type: "circle",
+          paint: {
+            "circle-radius": 12,
+            "circle-color": "transparent",
+            "circle-stroke-color": "#f97316",
+            "circle-stroke-width": 2,
+            "circle-opacity": 0.9,
+          },
+        });
+        map.addLayer({
+          id: LAYER,
+          source: SRC,
+          type: "circle",
+          paint: {
+            "circle-radius": 4,
+            "circle-color": "#f97316",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 1.5,
+          },
+        });
+      }
+    };
+    const onLeave = () => { clearIndicator(); };
+
+    map.on("mousemove", onMove);
+    map.on("mouseleave", onLeave);
+    return () => {
+      map.off("mousemove", onMove);
+      map.off("mouseleave", onLeave);
+      if (map.getLayer(LAYER)) map.removeLayer(LAYER);
+      if (map.getLayer(RING)) map.removeLayer(RING);
+      if (map.getSource(SRC)) map.removeSource(SRC);
+      clearIndicator();
+    };
+  }, [mapReady, activeTool, buildings, roomsQ.data, hallwaysQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -1202,16 +1388,22 @@ function BuilderWorkspace() {
       {/* Top toolbar */}
       <div className="relative h-11 shrink-0">
         <TopToolbar
-          canUndo={false}
-          canRedo={false}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
           isPublishing={isPublishing}
           hasErrors={validation.errorCount > 0}
           snapEnabled={snapEnabled}
           gridEnabled={gridEnabled}
           onBack={() => setLocation("/admin")}
           onSave={() => void autosave.forceSave()}
-          onUndo={() => {/* M14.1 */}}
-          onRedo={() => {/* M14.1 */}}
+          onUndo={async () => {
+            const label = await history.undo();
+            if (label) toast({ title: "Undone", description: label });
+          }}
+          onRedo={async () => {
+            const label = await history.redo();
+            if (label) toast({ title: "Redone", description: label });
+          }}
           onImport={() => setShowImportExport(true)}
           onExport={() => setShowImportExport(true)}
           onToggleGrid={() => setGridEnabled((g) => !g)}
@@ -1345,6 +1537,21 @@ function BuilderWorkspace() {
             );
           })()}
 
+          {/* Snap label — floating pill next to the snap indicator so
+           *  users see "Vertex" / "Endpoint" / "Midpoint" and know why
+           *  their next click will jump. Positioned via absolute pixel
+           *  offsets from the MapLibre projection. */}
+          {snapLabel && (
+            <div
+              className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full mt-[-14px]"
+              style={{ left: `${snapLabel.x}px`, top: `${snapLabel.y}px` }}
+            >
+              <div className="px-2 py-0.5 rounded-md bg-orange-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-md ring-1 ring-orange-600">
+                {snapLabel.kind}
+              </div>
+            </div>
+          )}
+
           {/* In-flight coach — MazeMap-style pill chip that surfaces
            *  the current tool, live progress, and the cancel hint.
            *  Everything a user needs to know while drawing lives here
@@ -1424,6 +1631,13 @@ function BuilderWorkspace() {
               />
             );
           })()}
+
+          {/* Campus minimap — pro editor signal. Bottom-left, click
+           *  to jump the main map. Auto-shows "No buildings yet" hint
+           *  on a fresh campus. */}
+          {mapReady && (
+            <Minimap map={handleRef.current?.map ?? null} buildings={buildings} />
+          )}
 
           {/* Autosave restore banner */}
           {autosave.pendingDraft && (
@@ -1639,6 +1853,82 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Build the inverse-and-then-inverse pair for an undo/redo cycle of
+ *  a "create" mutation. Undo → DELETE the current id; Redo → POST the
+ *  original payload and thread the fresh id through so subsequent
+ *  cycles keep working after id rotation on the server.
+ *
+ *  Kept local to the builder because it needs `apiRequest` + the
+ *  React-Query invalidator; not general enough to live in a package. */
+function makeCreateInverse(opts: {
+  label: string;
+  currentId: string;
+  resource: "buildings" | "rooms" | "hallways";
+  payload: Record<string, unknown>;
+  invalidate: () => void;
+}): UndoAction {
+  const { label, currentId, resource, payload, invalidate } = opts;
+  return {
+    label,
+    run: async () => {
+      // UNDO — delete the row we last created.
+      await apiRequest("DELETE", `/api/${resource}/${currentId}`).catch(() => { /* already gone */ });
+      invalidate();
+      // REDO — repost, then hand back a fresh UNDO pointing at the
+      // new id.
+      return {
+        label,
+        run: async () => {
+          const res = await apiRequest("POST", `/api/${resource}`, payload);
+          let nextId = currentId;
+          try {
+            const body = await res.json();
+            if (body && typeof body.id === "string") nextId = body.id;
+          } catch { /* keep the old id as fallback */ }
+          invalidate();
+          return makeCreateInverse({ ...opts, currentId: nextId });
+        },
+      };
+    },
+  };
+}
+
+/** Build the inverse-and-then-inverse pair for a "delete" mutation.
+ *  Undo → recreate the row from the saved snapshot; Redo → delete
+ *  the fresh row again. */
+function makeDeleteInverse(opts: {
+  label: string;
+  snapshot: Record<string, unknown>;
+  resource: "buildings" | "rooms" | "hallways";
+  invalidate: () => void;
+}): UndoAction {
+  const { label, snapshot, resource, invalidate } = opts;
+  return {
+    label,
+    run: async () => {
+      // UNDO — POST the pre-delete snapshot back to the server. The
+      // server may assign a NEW id which we use for redo.
+      const res = await apiRequest("POST", `/api/${resource}`, snapshot);
+      let nextId: string | null = null;
+      try {
+        const body = await res.json();
+        if (body && typeof body.id === "string") nextId = body.id;
+      } catch { /* ignore */ }
+      invalidate();
+      return {
+        label,
+        run: async () => {
+          if (nextId) {
+            await apiRequest("DELETE", `/api/${resource}/${nextId}`).catch(() => { /* already gone */ });
+          }
+          invalidate();
+          return makeDeleteInverse({ ...opts });
+        },
+      };
+    },
+  };
 }
 
 /** Coach chip metadata for a given tool — icon, badge color, name,
