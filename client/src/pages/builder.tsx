@@ -178,6 +178,27 @@ function BuilderWorkspace() {
   const setSelectedId = useCallback((id: string | null) => {
     setSelection(id ? { kind: "building", id } : null);
   }, []);
+  // Multi-selection — Figma-style additional selected polygons beyond
+  // the "primary" `selection` (which drives the property panel). Kept
+  // as Sets of ids per kind so contains-checks are O(1) during paint.
+  // Primary selection is INCLUDED in these sets so the paint expressions
+  // don't need to check both places.
+  const [extraBuildingIds, setExtraBuildingIds] = useState<Set<string>>(() => new Set());
+  const [extraRoomIds, setExtraRoomIds] = useState<Set<string>>(() => new Set());
+  const selectedBuildingIds = useMemo(() => {
+    const s = new Set(extraBuildingIds);
+    if (selection?.kind === "building") s.add(selection.id);
+    return s;
+  }, [extraBuildingIds, selection]);
+  const selectedRoomIds = useMemo(() => {
+    const s = new Set(extraRoomIds);
+    if (selection?.kind === "room") s.add(selection.id);
+    return s;
+  }, [extraRoomIds, selection]);
+  const clearMultiSelection = useCallback(() => {
+    setExtraBuildingIds(new Set());
+    setExtraRoomIds(new Set());
+  }, []);
 
   // ── Chrome state ─────────────────────────────────────────────────────
   const [sidebarTab, setSidebarTab] = useState<LeftSidebarTab>("buildings");
@@ -464,7 +485,7 @@ function BuilderWorkspace() {
             id: b.id,
             name: b.name,
             color: b.colorCode ?? "#2563eb",
-            selected: b.id === selectedId,
+            selected: selectedBuildingIds.has(b.id),
           },
         })),
     };
@@ -518,7 +539,7 @@ function BuilderWorkspace() {
         },
       });
     }
-  }, [buildings, selectedId, mapReady]);
+  }, [buildings, selectedId, selectedBuildingIds, mapReady]);
 
   // ── Draw rooms + hallways so builder shows the whole campus, not
   //    just buildings. Uses simpler paint than CampusOverlay to keep
@@ -547,7 +568,7 @@ function BuilderWorkspace() {
         .filter((r) => r.points && r.points.length >= 3)
         .map((r) => {
           const onFloor = activeFloor === null || r.floor === activeFloor;
-          const isSelected = selection?.kind === "room" && selection.id === r.id;
+          const isSelected = selectedRoomIds.has(r.id);
           return {
             type: "Feature" as const,
             geometry: {
@@ -638,7 +659,7 @@ function BuilderWorkspace() {
         },
       });
     }
-  }, [mapReady, roomsQ.data, hallwaysQ.data, selection, cameraState.activeFloor]);
+  }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor]);
 
   // ── Nav graph layer sync ────────────────────────────────────────
   // Draws every localStorage-persisted node + edge on the map. Nodes
@@ -763,11 +784,38 @@ function BuilderWorkspace() {
           return { kind, id: hit.properties.id };
         };
         const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
+        // Shift-click ADDs the hit to the multi-selection set (Figma
+        // convention). No-shift click becomes the primary selection
+        // and clears the extras.
+        const shiftHeld = e.originalEvent instanceof MouseEvent && e.originalEvent.shiftKey;
         if (pick) {
-          setSelection({ kind: pick.kind, id: pick.id });
-          setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "pois");
-        } else {
+          if (shiftHeld && pick.kind !== "hallway") {
+            // Toggle membership in the appropriate extras set.
+            const idsSetter = pick.kind === "building" ? setExtraBuildingIds : setExtraRoomIds;
+            idsSetter((prev) => {
+              const next = new Set(prev);
+              // If the click is the PRIMARY selection, promote an
+              // extra to primary and remove it from extras instead.
+              const isPrimary = selection?.kind === pick.kind && selection.id === pick.id;
+              if (isPrimary) {
+                const first = next.values().next().value;
+                if (first) { next.delete(first); setSelection({ kind: pick.kind, id: first }); }
+                else setSelection(null);
+              } else if (next.has(pick.id)) {
+                next.delete(pick.id);
+              } else {
+                next.add(pick.id);
+              }
+              return next;
+            });
+          } else {
+            clearMultiSelection();
+            setSelection({ kind: pick.kind, id: pick.id });
+            setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "pois");
+          }
+        } else if (!shiftHeld) {
           setSelection(null);
+          clearMultiSelection();
         }
         return;
       }
@@ -884,6 +932,21 @@ function BuilderWorkspace() {
       if (e.key === "?" || (e.shiftKey && e.key === "/")) {
         e.preventDefault();
         setShowShortcuts((s) => !s);
+        return;
+      }
+      // ⌘D / Ctrl+D — Figma-standard duplicate. Every selected
+      // building + room clones with a ~5m south-east offset so the
+      // copies don't sit on top of the originals.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        void duplicateSelection();
+        return;
+      }
+      // F — focus the map on the current selection (or every
+      // selected feature). Standard 3D-editor convention.
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        focusSelection();
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -1409,6 +1472,70 @@ function BuilderWorkspace() {
     deleteBuilding.mutate(selectedId);
   }, [selectedId, deleteBuilding]);
 
+  /** Duplicate every selected building + room with a small SE offset.
+   *  Figma-standard behaviour (⌘D). New polygons register with undo so
+   *  the whole batch can be reverted with a single ⌘Z. */
+  const duplicateSelection = useCallback(async () => {
+    if (selectedBuildingIds.size === 0 && selectedRoomIds.size === 0) return;
+    const OFFSET_METERS = 5;
+    const anchorLat = handleRef.current?.map.getCenter().lat ?? 60;
+    const dLat = OFFSET_METERS / 111320;
+    const dLng = OFFSET_METERS / (111320 * Math.cos((anchorLat * Math.PI) / 180));
+    let count = 0;
+    for (const id of selectedBuildingIds) {
+      const b = buildings.find((x) => x.id === id);
+      if (!b?.points) continue;
+      const nextPoints = b.points.map((p) => ({ lat: p.lat - dLat, lng: p.lng + dLng }));
+      createBuilding.mutate({
+        name: b.name ? `${b.name} copy` : String.fromCharCode(65 + buildings.length),
+        points: nextPoints,
+      });
+      count++;
+    }
+    for (const id of selectedRoomIds) {
+      const r = (roomsQ.data ?? []).find((x) => x.id === id);
+      if (!r?.points) continue;
+      const nextPoints = r.points.map((p) => ({ lat: p.lat - dLat, lng: p.lng + dLng }));
+      createRoom.mutate({
+        roomNumber: `${r.roomNumber ?? "R"}c`,
+        buildingId: r.buildingId,
+        floor: r.floor ?? 1,
+        points: nextPoints,
+      });
+      count++;
+    }
+    if (count > 0) toast({ title: "Duplicated", description: `${count} feature${count === 1 ? "" : "s"}` });
+  }, [buildings, roomsQ.data, selectedBuildingIds, selectedRoomIds, createBuilding, createRoom]);
+
+  /** F key — fit the map to the current selection's combined bounds.
+   *  Preserves bearing + pitch so the user's tilted view doesn't get
+   *  slammed back to flat. Falls back gracefully when nothing is
+   *  selected. */
+  const focusSelection = useCallback(() => {
+    const h = handleRef.current;
+    if (!h) return;
+    const allLats: number[] = [];
+    const allLngs: number[] = [];
+    for (const id of selectedBuildingIds) {
+      const b = buildings.find((x) => x.id === id);
+      if (b?.points) for (const p of b.points) { allLats.push(p.lat); allLngs.push(p.lng); }
+    }
+    for (const id of selectedRoomIds) {
+      const r = (roomsQ.data ?? []).find((x) => x.id === id);
+      if (r?.points) for (const p of r.points) { allLats.push(p.lat); allLngs.push(p.lng); }
+    }
+    if (allLats.length === 0) return;
+    h.map.fitBounds(
+      [[Math.min(...allLngs), Math.min(...allLats)], [Math.max(...allLngs), Math.max(...allLats)]],
+      {
+        padding: 120,
+        duration: 600,
+        bearing: h.map.getBearing(),
+        pitch: h.map.getPitch(),
+      },
+    );
+  }, [buildings, roomsQ.data, selectedBuildingIds, selectedRoomIds]);
+
   const isDirty =
     createBuilding.isPending || createHallway.isPending || deleteBuilding.isPending;
 
@@ -1932,6 +2059,9 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
         { keys: ["Shift", "+", "drag vertex"], label: "Constrain axis-aligned" },
         { keys: ["Shift", "+", "drag rotator"], label: "Snap rotation 15°" },
         { keys: ["Drag inside polygon"], label: "Translate whole shape" },
+        { keys: ["Shift", "+", "click"], label: "Add/remove from selection" },
+        { keys: ["⌘", "+", "D"], label: "Duplicate selection" },
+        { keys: ["F"], label: "Focus camera on selection" },
       ],
     },
     {

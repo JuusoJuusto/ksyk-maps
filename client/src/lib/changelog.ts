@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.23.0";
+export const APP_VERSION = "3.24.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.24.0",
+    date: "July 2026",
+    title: "Figma-style editing: multi-select, ⌘D duplicate, F focus",
+    titleFi: "Figma-tyylinen muokkaus: monivalinta, ⌘D-kloonaus, F-tarkennus",
+    latest: true,
+    highlights: [
+      "Shift+click to add/remove a building or room from your selection (Figma-standard).",
+      "⌘D / Ctrl+D duplicates every selected polygon with a ~5m offset. Each duplicate is undoable via ⌘Z.",
+      "F key fits the map to your current selection's combined bounds without changing bearing/pitch.",
+      "Selection rendering now honours the multi-selection set so every selected polygon paints with the highlighted stroke + fill.",
+      "New shortcuts documented in the ? cheat sheet.",
+    ],
+    highlightsFi: [
+      "Shift+click lisää tai poistaa valinnasta",
+      "⌘D kloonaa jokaisen valitun muodon 5 m siirtymällä",
+      "F-näppäin sovittaa kartan valinnan ympärille",
+    ],
+  },
   {
     version: "3.23.0",
     date: "July 2026",
     title: "Camera persistence, nav-graph nodes, SVG import, AO simulation",
     titleFi: "Kameran muisti, navigointigraafi, SVG-tuonti, AO-simulointi",
-    latest: true,
     highlights: [
       "Bug fix: map no longer resets to north on first login — camera (center, zoom, bearing, pitch) persists to localStorage on every moveend and restores on next visit",
       "Nav graph: new Node + Connect tools in the builder. Click to drop nodes; click two nodes to link them. Persists locally, floor-filtered, blue dots + edges rendered on the map.",
