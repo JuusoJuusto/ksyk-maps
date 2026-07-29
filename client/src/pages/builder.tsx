@@ -218,6 +218,24 @@ function BuilderWorkspace() {
   // Connect tool needs to remember the first node the user clicked so
   // the second click can complete the edge.
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  // Right-click context menu — floats at cursor position. `target`
+  // captures which entity was under the cursor so the menu shows the
+  // right actions. Menu closes on any outside click / Esc.
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    target:
+      | { kind: "building"; id: string }
+      | { kind: "room"; id: string }
+      | { kind: "node"; id: string }
+      | { kind: "empty" };
+  } | null>(null);
+  // Route preview — user picks two nav nodes, we run A* over the
+  // local nav graph and animate the path between them.
+  const [routePreview, setRoutePreview] = useState<{
+    startNodeId: string | null;
+    endNodeId: string | null;
+  }>({ startNodeId: null, endNodeId: null });
 
   // Listen for the command palette's Import-SVG entry.
   useEffect(() => {
@@ -225,6 +243,14 @@ function BuilderWorkspace() {
     window.addEventListener("ksyk:cmd:import-svg", onOpenSvg);
     return () => window.removeEventListener("ksyk:cmd:import-svg", onOpenSvg);
   }, []);
+
+  // Listen for the palette's Auto-connect command. Kept behind an
+  // event so the palette module doesn't have to import the builder.
+  useEffect(() => {
+    const onAuto = () => autoConnectNodes(8);
+    window.addEventListener("ksyk:cmd:autoconnect-nav", onAuto);
+    return () => window.removeEventListener("ksyk:cmd:autoconnect-nav", onAuto);
+  }, [autoConnectNodes]);
 
   // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
   const [cameraState, setCameraState] = useState({
@@ -905,8 +931,33 @@ function BuilderWorkspace() {
     };
 
     map.on("click", onClick);
+
+    // Right-click → context menu. MapLibre fires `contextmenu` with a
+    // MapMouseEvent whose `originalEvent.preventDefault()` we call to
+    // suppress the browser menu. Query every clickable layer under
+    // the cursor and pick the smallest thing so a right-click on a
+    // room inside a building targets the room.
+    const onContextMenu = (e: MapMouseEvent) => {
+      e.preventDefault();
+      const nodeLayers = ["builder-nav-nodes"].filter((id) => map.getLayer(id));
+      const roomLayers = ["builder-rooms-fill"].filter((id) => map.getLayer(id));
+      const bldgLayers = ["builder-buildings-fill"].filter((id) => map.getLayer(id));
+      const nodeHit = nodeLayers.length ? map.queryRenderedFeatures(e.point, { layers: nodeLayers })[0] : null;
+      const roomHit = roomLayers.length ? map.queryRenderedFeatures(e.point, { layers: roomLayers })[0] : null;
+      const bldgHit = bldgLayers.length ? map.queryRenderedFeatures(e.point, { layers: bldgLayers })[0] : null;
+      const originalEvent = e.originalEvent as MouseEvent;
+      const target: NonNullable<typeof contextMenu>["target"] =
+        nodeHit && typeof nodeHit.properties?.id === "string" ? { kind: "node", id: nodeHit.properties.id }
+        : roomHit && typeof roomHit.properties?.id === "string" ? { kind: "room", id: roomHit.properties.id }
+        : bldgHit && typeof bldgHit.properties?.id === "string" ? { kind: "building", id: bldgHit.properties.id }
+        : { kind: "empty" };
+      setContextMenu({ x: originalEvent.clientX, y: originalEvent.clientY, target });
+    };
+    map.on("contextmenu", onContextMenu);
+
     return () => {
       map.off("click", onClick);
+      map.off("contextmenu", onContextMenu);
     };
   }, [activeTool, mapReady]);
 
@@ -920,6 +971,7 @@ function BuilderWorkspace() {
         // Esc while looking at shortcuts should close the overlay, not
         // reset the drawing tool.
         if (showShortcuts) { setShowShortcuts(false); return; }
+        if (contextMenu) { setContextMenu(null); return; }
         if (connectFrom) { setConnectFrom(null); return; }
         setWaypoints([]);
         setActiveTool("select");
@@ -1536,6 +1588,165 @@ function BuilderWorkspace() {
     );
   }, [buildings, roomsQ.data, selectedBuildingIds, selectedRoomIds]);
 
+  /** Compute the shortest path (Dijkstra) between the two nodes the
+   *  user picked for the route preview. Returns an ordered array of
+   *  nav-graph node ids, or null if the endpoints are disconnected.
+   *  Kept in-file because our nav-graph shape is simpler than the
+   *  @ksyk/routing package's — running Dijkstra here is ~20 lines. */
+  const routePath = useMemo<string[] | null>(() => {
+    const { startNodeId, endNodeId } = routePreview;
+    if (!startNodeId || !endNodeId || startNodeId === endNodeId) return null;
+    const nodes = navGraph.graph.nodes;
+    const edges = navGraph.graph.edges;
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    if (!byId.has(startNodeId) || !byId.has(endNodeId)) return null;
+    // Adjacency — Dijkstra needs neighbours + edge weight (metres).
+    const R = 6371000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const distMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    };
+    const adj = new Map<string, Array<{ id: string; w: number }>>();
+    for (const n of nodes) adj.set(n.id, []);
+    for (const e of edges) {
+      const a = byId.get(e.fromNodeId), b = byId.get(e.toNodeId);
+      if (!a || !b) continue;
+      const w = distMeters(a, b);
+      adj.get(a.id)!.push({ id: b.id, w });
+      adj.get(b.id)!.push({ id: a.id, w });
+    }
+    // Dijkstra — small graph so plain array-scan for the min-cost
+    // frontier is fine. Would swap for a heap at >1k nodes.
+    const dist = new Map<string, number>();
+    const prev = new Map<string, string | null>();
+    for (const n of nodes) { dist.set(n.id, Infinity); prev.set(n.id, null); }
+    dist.set(startNodeId, 0);
+    const unvisited = new Set(nodes.map((n) => n.id));
+    while (unvisited.size > 0) {
+      let uId: string | null = null;
+      let uDist = Infinity;
+      for (const id of unvisited) {
+        const d = dist.get(id)!;
+        if (d < uDist) { uDist = d; uId = id; }
+      }
+      if (uId === null || uDist === Infinity) break;
+      if (uId === endNodeId) break;
+      unvisited.delete(uId);
+      for (const nb of adj.get(uId) ?? []) {
+        if (!unvisited.has(nb.id)) continue;
+        const alt = uDist + nb.w;
+        if (alt < (dist.get(nb.id) ?? Infinity)) {
+          dist.set(nb.id, alt);
+          prev.set(nb.id, uId);
+        }
+      }
+    }
+    if (dist.get(endNodeId) === Infinity) return null;
+    const path: string[] = [];
+    let cur: string | null = endNodeId;
+    while (cur) { path.unshift(cur); cur = prev.get(cur) ?? null; }
+    return path.length > 1 ? path : null;
+  }, [routePreview, navGraph.graph]);
+
+  // Route preview layer sync — paints the computed path as a blue
+  // line on top of the nav edges. Cleared automatically when the
+  // preview endpoints are unset.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+    const SRC = "builder-route-preview-src";
+    const LINE = "builder-route-preview-line";
+    const CASING = "builder-route-preview-casing";
+    const byId = new Map(navGraph.graph.nodes.map((n) => [n.id, n]));
+
+    if (!routePath) {
+      // Clear.
+      for (const id of [LINE, CASING]) if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(SRC)) map.removeSource(SRC);
+      return;
+    }
+    const coords = routePath
+      .map((id) => byId.get(id))
+      .filter((n): n is NonNullable<typeof n> => Boolean(n))
+      .map((n) => [n.lng, n.lat]);
+    if (coords.length < 2) return;
+    const fc = {
+      type: "FeatureCollection" as const,
+      features: [{
+        type: "Feature" as const,
+        geometry: { type: "LineString" as const, coordinates: coords },
+        properties: {},
+      }],
+    };
+    const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(fc as any);
+    else {
+      map.addSource(SRC, { type: "geojson", data: fc as any });
+      // Fatter white casing under a slimmer blue line so the route
+      // reads even over the ground shadow + AO layers.
+      map.addLayer({
+        id: CASING, source: SRC, type: "line",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": "#ffffff",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 15, 5, 20, 12],
+          "line-opacity": 0.9,
+        },
+      });
+      map.addLayer({
+        id: LINE, source: SRC, type: "line",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": "#2563eb",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2.5, 20, 7],
+          "line-opacity": 0.95,
+        },
+      });
+    }
+  }, [mapReady, routePath, navGraph.graph]);
+
+  /** Auto-connect: link every pair of nav nodes within `maxMeters` of
+   *  each other on the same floor. Idempotent — addEdge silently
+   *  skips duplicates. Great for bootstrapping the graph after
+   *  dropping a bunch of nodes down a hallway. */
+  const autoConnectNodes = useCallback((maxMeters = 8) => {
+    const nodes = navGraph.graph.nodes;
+    if (nodes.length < 2) {
+      toast({ title: "Nothing to connect", description: "Drop at least two nav nodes first." });
+      return;
+    }
+    let added = 0;
+    // Haversine — good enough at campus scale.
+    const R = 6371000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        // Same-floor only for now — inter-floor edges are the job of
+        // dedicated stair/elevator nodes.
+        if (a.floor !== b.floor) continue;
+        const dLat = toRad(b.lat - a.lat);
+        const dLng = toRad(b.lng - a.lng);
+        const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+        const dist = 2 * R * Math.asin(Math.sqrt(s));
+        if (dist <= maxMeters) {
+          if (navGraph.addEdge(a.id, b.id)) added++;
+        }
+      }
+    }
+    toast({
+      title: added === 0 ? "No new edges" : `Connected ${added} pair${added === 1 ? "" : "s"}`,
+      description: added === 0
+        ? `No node pairs closer than ${maxMeters} m — add more nodes or raise the threshold.`
+        : `Every pair within ${maxMeters} m is now linked.`,
+    });
+  }, [navGraph]);
+
   const isDirty =
     createBuilding.isPending || createHallway.isPending || deleteBuilding.isPending;
 
@@ -2015,6 +2226,107 @@ function BuilderWorkspace() {
 
       {showShortcuts && (
         <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {(routePreview.startNodeId || routePreview.endNodeId) && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-full shadow-lg px-3 py-1.5 flex items-center gap-3 text-[12px]">
+          <span className={cn(
+            "flex items-center gap-1.5 font-semibold",
+            routePreview.startNodeId ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+          )}>
+            <span className={cn(
+              "h-2 w-2 rounded-full",
+              routePreview.startNodeId ? "bg-emerald-500" : "bg-muted-foreground/40",
+            )} />
+            From {routePreview.startNodeId ? "✓" : "?"}
+          </span>
+          <span className="text-muted-foreground">→</span>
+          <span className={cn(
+            "flex items-center gap-1.5 font-semibold",
+            routePreview.endNodeId ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
+          )}>
+            <span className={cn(
+              "h-2 w-2 rounded-full",
+              routePreview.endNodeId ? "bg-red-500" : "bg-muted-foreground/40",
+            )} />
+            To {routePreview.endNodeId ? "✓" : "?"}
+          </span>
+          {routePath && (
+            <span className="text-[10px] tabular-nums text-blue-600 dark:text-blue-400 border-l border-border pl-2">
+              {routePath.length} hops
+            </span>
+          )}
+          {!routePath && routePreview.startNodeId && routePreview.endNodeId && (
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 border-l border-border pl-2">
+              No path
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setRoutePreview({ startNodeId: null, endNodeId: null })}
+            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground px-2 py-0.5 rounded hover:bg-muted"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {contextMenu && (
+        <BuilderContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          target={contextMenu.target}
+          onClose={() => setContextMenu(null)}
+          onDelete={() => {
+            const t = contextMenu.target;
+            if (t.kind === "building") deleteBuilding.mutate(t.id);
+            else if (t.kind === "node") navGraph.removeNode(t.id);
+            setContextMenu(null);
+          }}
+          onDuplicate={() => {
+            const t = contextMenu.target;
+            if (t.kind === "building") {
+              setSelection({ kind: "building", id: t.id });
+              void duplicateSelection();
+            } else if (t.kind === "room") {
+              setSelection({ kind: "room", id: t.id });
+              void duplicateSelection();
+            }
+            setContextMenu(null);
+          }}
+          onFocus={() => {
+            const t = contextMenu.target;
+            if (t.kind === "building" || t.kind === "room") {
+              setSelection({ kind: t.kind, id: t.id });
+              // Give the selection state a tick to settle before we
+              // fitBounds — otherwise focusSelection reads the OLD
+              // selectedIds and no-ops.
+              setTimeout(focusSelection, 0);
+            }
+            setContextMenu(null);
+          }}
+          onProperties={() => {
+            const t = contextMenu.target;
+            if (t.kind === "building") {
+              setSelection({ kind: "building", id: t.id });
+              setSidebarTab("buildings");
+            } else if (t.kind === "room") {
+              setSelection({ kind: "room", id: t.id });
+              setSidebarTab("rooms");
+            }
+            setContextMenu(null);
+          }}
+          onRouteFrom={() => {
+            const t = contextMenu.target;
+            if (t.kind === "node") setRoutePreview((r) => ({ ...r, startNodeId: t.id }));
+            setContextMenu(null);
+          }}
+          onRouteTo={() => {
+            const t = contextMenu.target;
+            if (t.kind === "node") setRoutePreview((r) => ({ ...r, endNodeId: t.id }));
+            setContextMenu(null);
+          }}
+        />
       )}
     </div>
   );
@@ -2598,3 +2910,137 @@ function PoiFlyout({
 // Old inline UI helpers (ToolGroup/ToolButton) were removed when the
 // Builder migrated to the new TopToolbar/LeftSidebar/ToolPalette layout
 // (M14). BuildingPropertyPanel is now in components/builder/PropertyPanel.tsx.
+
+// ─── Right-click context menu ─────────────────────────────────────────────
+//
+// Floats at the cursor. Actions vary by target kind: polygon
+// targets (building/room) show Delete/Duplicate/Focus/Properties;
+// node targets show Delete/Route from here/Route to here; empty
+// canvas gets an "About" hint that right-click needs a target.
+//
+// Kept as an outside-click closable panel — clicking any menu item
+// runs the action, closing happens via the parent's setContextMenu.
+
+interface BuilderContextMenuProps {
+  x: number;
+  y: number;
+  target:
+    | { kind: "building"; id: string }
+    | { kind: "room"; id: string }
+    | { kind: "node"; id: string }
+    | { kind: "empty" };
+  onClose: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onFocus: () => void;
+  onProperties: () => void;
+  onRouteFrom: () => void;
+  onRouteTo: () => void;
+}
+
+function BuilderContextMenu({
+  x, y, target,
+  onClose, onDelete, onDuplicate, onFocus, onProperties,
+  onRouteFrom, onRouteTo,
+}: BuilderContextMenuProps) {
+  // Outside-click dismiss. Bound once per mount.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("[data-builder-context-menu]")) return;
+      onClose();
+    };
+    // Use capture so we win over other listeners.
+    window.addEventListener("mousedown", onDown, { capture: true });
+    return () => window.removeEventListener("mousedown", onDown, { capture: true } as EventListenerOptions);
+  }, [onClose]);
+
+  const isEmpty = target.kind === "empty";
+  const isNode = target.kind === "node";
+  const isPolygon = target.kind === "building" || target.kind === "room";
+
+  // Clamp position so a right-click near the bottom-right edge
+  // doesn't spawn the menu off-screen.
+  const style: React.CSSProperties = {
+    left: Math.min(x, window.innerWidth - 220),
+    top: Math.min(y, window.innerHeight - 240),
+  };
+
+  return (
+    <div
+      data-builder-context-menu
+      style={style}
+      className={cn(
+        "fixed z-[200] w-52 rounded-xl border border-border bg-card shadow-xl overflow-hidden",
+        "text-sm text-foreground",
+      )}
+      role="menu"
+    >
+      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground border-b border-border">
+        {isEmpty ? "Empty area"
+          : target.kind === "node" ? "Nav node"
+          : target.kind === "building" ? "Building"
+          : "Room"}
+      </div>
+      <ul className="py-1">
+        {isPolygon && (
+          <>
+            <ContextMenuItem label="Properties" onClick={onProperties} shortcut="Enter" />
+            <ContextMenuItem label="Focus" onClick={onFocus} shortcut="F" />
+            <ContextMenuItem label="Duplicate" onClick={onDuplicate} shortcut="⌘D" />
+            <ContextMenuSeparator />
+            <ContextMenuItem label="Delete" onClick={onDelete} shortcut="Del" danger />
+          </>
+        )}
+        {isNode && (
+          <>
+            <ContextMenuItem label="Route from here" onClick={onRouteFrom} />
+            <ContextMenuItem label="Route to here" onClick={onRouteTo} />
+            <ContextMenuSeparator />
+            <ContextMenuItem label="Delete node" onClick={onDelete} shortcut="Del" danger />
+          </>
+        )}
+        {isEmpty && (
+          <li className="px-3 py-2 text-[11.5px] text-muted-foreground">
+            Right-click a building, room, or nav node to see actions.
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function ContextMenuItem({
+  label, onClick, shortcut, danger,
+}: {
+  label: string;
+  onClick: () => void;
+  shortcut?: string;
+  danger?: boolean;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "w-full flex items-center justify-between px-3 py-1.5 text-sm text-left transition-colors",
+          danger
+            ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            : "text-foreground hover:bg-muted",
+        )}
+      >
+        <span>{label}</span>
+        {shortcut && (
+          <kbd className="text-[10px] font-mono font-semibold text-muted-foreground">
+            {shortcut}
+          </kbd>
+        )}
+      </button>
+    </li>
+  );
+}
+
+function ContextMenuSeparator() {
+  return <li className="my-1 h-px bg-border" />;
+}

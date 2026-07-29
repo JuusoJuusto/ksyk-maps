@@ -149,6 +149,14 @@ export default function CommandPalette() {
       onRun: () => window.dispatchEvent(new CustomEvent("ksyk:cmd:import-svg")),
     },
     {
+      id: "builder.autoconnect",
+      label: "Auto-connect nearby nav nodes (8 m)",
+      group: "Builder",
+      Icon: RouteIcon,
+      keywords: "connect nav graph auto link edges hallway",
+      onRun: () => window.dispatchEvent(new CustomEvent("ksyk:cmd:autoconnect-nav")),
+    },
+    {
       id: "builder.validate",
       label: "Validate campus",
       group: "Builder",

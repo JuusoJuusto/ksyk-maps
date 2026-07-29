@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.24.0";
+export const APP_VERSION = "3.25.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.0",
+    date: "July 2026",
+    title: "Right-click menu, auto-connect nav nodes, route preview",
+    titleFi: "Oikean napin valikko, automaattinen yhdistys, reittiesikatselu",
+    latest: true,
+    highlights: [
+      "Right-click any building, room, or nav node for a floating context menu (Properties, Focus, Duplicate, Delete, and — for nodes — Route from/to here).",
+      "Auto-connect nearby nav nodes: ⌘K → 'Auto-connect nearby nav nodes (8 m)' links every pair within 8 m on the same floor. Skips duplicates, reports how many edges landed.",
+      "Route preview: right-click one node → 'Route from here', right-click another → 'Route to here'. Dijkstra runs over the local graph, animates a fat blue line with white casing, and shows a status chip with the hop count (or 'No path' if the two are disconnected).",
+    ],
+    highlightsFi: [
+      "Oikea klikkaus avaa valikon jokaiselle kohteelle",
+      "Automaattinen yhdistys: kaikki 8 m sisällä olevat solmut linkitetään yhdellä komennolla",
+      "Reittiesikatselu: valitse aloitus + kohde, Dijkstra piirtää reitin",
+    ],
+  },
   {
     version: "3.24.0",
     date: "July 2026",
     title: "Figma-style editing: multi-select, ⌘D duplicate, F focus",
     titleFi: "Figma-tyylinen muokkaus: monivalinta, ⌘D-kloonaus, F-tarkennus",
-    latest: true,
     highlights: [
       "Shift+click to add/remove a building or room from your selection (Figma-standard).",
       "⌘D / Ctrl+D duplicates every selected polygon with a ~5m offset. Each duplicate is undoable via ⌘Z.",
