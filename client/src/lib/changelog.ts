@@ -10,15 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.0";
+export const APP_VERSION = "3.25.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.1",
+    date: "July 2026",
+    title: "Fix: builder crash on load (\"Cannot access 'Mi' before initialization\")",
+    titleFi: "Korjaus: rakentaja kaatui latauksessa",
+    latest: true,
+    highlights: [
+      "Fixed a temporal-dead-zone ReferenceError that crashed the builder immediately after login. Root cause was a useEffect dependency array referencing a callback declared 1500 lines below it — evaluated at render, always fired TDZ.",
+      "Refactored the auto-connect nav-nodes event listener to use a ref instead so the effect doesn't have to depend on the callback identifier.",
+    ],
+    highlightsFi: [
+      "Korjaus: rakentaja kaatui latauksessa TDZ-virheeseen",
+    ],
+  },
   {
     version: "3.25.0",
     date: "July 2026",
     title: "Right-click menu, auto-connect nav nodes, route preview",
     titleFi: "Oikean napin valikko, automaattinen yhdistys, reittiesikatselu",
-    latest: true,
     highlights: [
       "Right-click any building, room, or nav node for a floating context menu (Properties, Focus, Duplicate, Delete, and — for nodes — Route from/to here).",
       "Auto-connect nearby nav nodes: ⌘K → 'Auto-connect nearby nav nodes (8 m)' links every pair within 8 m on the same floor. Skips duplicates, reports how many edges landed.",

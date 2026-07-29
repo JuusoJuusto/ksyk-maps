@@ -246,11 +246,15 @@ function BuilderWorkspace() {
 
   // Listen for the palette's Auto-connect command. Kept behind an
   // event so the palette module doesn't have to import the builder.
+  // Refs indirection avoids a TDZ error: autoConnectNodes is declared
+  // ~1500 lines below this effect, and putting it in a dep array
+  // evaluates the identifier at render → ReferenceError before init.
+  const autoConnectNodesRef = useRef<((m?: number) => void) | null>(null);
   useEffect(() => {
-    const onAuto = () => autoConnectNodes(8);
+    const onAuto = () => autoConnectNodesRef.current?.(8);
     window.addEventListener("ksyk:cmd:autoconnect-nav", onAuto);
     return () => window.removeEventListener("ksyk:cmd:autoconnect-nav", onAuto);
-  }, [autoConnectNodes]);
+  }, []);
 
   // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
   const [cameraState, setCameraState] = useState({
@@ -1746,6 +1750,11 @@ function BuilderWorkspace() {
         : `Every pair within ${maxMeters} m is now linked.`,
     });
   }, [navGraph]);
+
+  // Sync the ref so the earlier useEffect can invoke the latest
+  // callback without depending on it (which would cause a TDZ error
+  // — the effect is declared 1500 lines above autoConnectNodes).
+  useEffect(() => { autoConnectNodesRef.current = autoConnectNodes; }, [autoConnectNodes]);
 
   const isDirty =
     createBuilding.isPending || createHallway.isPending || deleteBuilding.isPending;
