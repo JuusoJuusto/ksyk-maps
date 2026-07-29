@@ -45,6 +45,46 @@ const TILE_URLS = {
   ],
 } as const;
 
+/** Camera persistence — remembers where the user last had the map
+ *  positioned/rotated/tilted so opening the app on a subsequent
+ *  session doesn't slam back to the admin default. Read once on mount,
+ *  written on every `moveend` so it stays in sync without polling. */
+const CAMERA_STORAGE_KEY = "ksyk_camera_v1";
+interface PersistedCamera {
+  lat: number;
+  lng: number;
+  zoom: number;
+  bearing: number;
+  pitch: number;
+}
+function readPersistedCamera(): PersistedCamera | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CAMERA_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedCamera> | null;
+    if (
+      !parsed
+      || typeof parsed.lat !== "number"
+      || typeof parsed.lng !== "number"
+      || typeof parsed.zoom !== "number"
+      || typeof parsed.bearing !== "number"
+      || typeof parsed.pitch !== "number"
+    ) return null;
+    // Sanity — reject any out-of-range values that would confuse
+    // MapLibre and clamp the user into a corner of the world.
+    if (Math.abs(parsed.lat) > 85 || Math.abs(parsed.lng) > 180) return null;
+    if (parsed.zoom < 0 || parsed.zoom > 24) return null;
+    return parsed as PersistedCamera;
+  } catch {
+    return null;
+  }
+}
+function writePersistedCamera(c: PersistedCamera): void {
+  try { window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(c)); }
+  catch { /* quota / private mode — camera just won't persist */ }
+}
+
 const TILE_ATTRIBUTIONS = {
   light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
   dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
@@ -58,14 +98,17 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
     // shading on every fill-extrusion layer (buildings, walls, room
     // slabs). Setting a warm color + a fixed low-angle position makes
     // buildings read as "sunlit" instead of the flat default. Anchor
-    // "viewport" keeps the light angle stable as the user rotates.
+    // "map" so shadows behave as world-space (the sun stays put as
+    // the user rotates) — required for `fill-extrusion-cast-shadows`
+    // to read as a real sun instead of a headlamp.
     light: {
-      anchor: "viewport",
-      // Slightly northeast + low. Casts a soft warm tint on faces
-      // facing east; opposite faces darker for depth.
-      position: [1.15, 210, 30],
+      anchor: "map",
+      // Position is [radial, azimuth°, polar°]. Southwest-ish light
+      // at 65° above horizon → shadows cast north-east, which matches
+      // the drop-shadow polygons in installBuildings.
+      position: [1.15, 45, 65],
       color: mode === "dark" ? "#c7d0e0" : "#fff4dc",
-      intensity: mode === "dark" ? 0.35 : 0.55,
+      intensity: mode === "dark" ? 0.35 : 0.6,
     },
     sources: {
       "osm-raster": {
@@ -155,14 +198,23 @@ export default function CampusMap({
     // Platform-aware camera — mobile vs laptop defaults live under
     // their own keys and fall back to the shared osm* values when unset.
     const platformDefaults = pickPlatformMapDefaults(settings);
-    const initialBearing = bearing ?? platformDefaults.bearing;
-    const initialPitch = pitch ?? platformDefaults.pitch;
+    // Persisted camera — if the user rotated / tilted / panned in a
+    // previous session, restore that view instead of snapping back to
+    // the admin defaults. Fixes the "first login resets bearing to
+    // north" bug reported v3.22.
+    const persisted = readPersistedCamera();
+    const initialBearing = bearing ?? persisted?.bearing ?? platformDefaults.bearing;
+    const initialPitch   = pitch   ?? persisted?.pitch   ?? platformDefaults.pitch;
+    const initialCenter: [number, number] = persisted
+      ? [persisted.lng, persisted.lat]
+      : [platformDefaults.lng, platformDefaults.lat];
+    const initialZoom = persisted?.zoom ?? platformDefaults.zoom;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: osmRasterStyle(darkMode ? "dark" : "light"),
-      center: [platformDefaults.lng, platformDefaults.lat],
-      zoom: platformDefaults.zoom,
+      center: initialCenter,
+      zoom: initialZoom,
       bearing: initialBearing,
       pitch: initialPitch,
       // Raster CDN caps at zoom 19; we let MapLibre upscale the last
@@ -227,6 +279,18 @@ export default function CampusMap({
       map.once("idle", () => {
         try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
         catch { /* SSR / old browser — non-fatal */ }
+      });
+      // Persist camera on every settle so the next session restores
+      // exactly where the user left off. Throttled implicitly by
+      // moveend being emitted only when the map stops.
+      map.on("moveend", () => {
+        writePersistedCamera({
+          lat: map.getCenter().lat,
+          lng: map.getCenter().lng,
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+        });
       });
       const handle: CampusMapHandle = {
         map,
@@ -318,13 +382,15 @@ export default function CampusMap({
       firstOverlay,
     );
     // Re-apply the directional light so extrusion shading matches the
-    // theme. Warm sun for light mode, cool moon for dark mode.
+    // theme. Warm sun for light mode, cool moon for dark mode. Same
+    // world-space anchor as the initial style spec so cast shadows
+    // continue to behave correctly after a theme toggle.
     try {
       map.setLight({
-        anchor: "viewport",
-        position: [1.15, 210, 30],
+        anchor: "map",
+        position: [1.15, 45, 65],
         color: darkMode ? "#c7d0e0" : "#fff4dc",
-        intensity: darkMode ? 0.35 : 0.55,
+        intensity: darkMode ? 0.35 : 0.6,
       });
     } catch { /* light spec not supported — skip */ }
   }, [darkMode, ready]);

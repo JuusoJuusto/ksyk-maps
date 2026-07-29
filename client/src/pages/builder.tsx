@@ -63,9 +63,12 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { fetchList } from "@/lib/fetchList";
 import { toast } from "@/hooks/use-toast";
 import { useUndoStack, type UndoAction } from "@/hooks/useUndoStack";
+import { useNavGraph } from "@/lib/navGraph";
+import { Circle as CircleIcon, Zap as ZapIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MapPin, X as XIcon, Keyboard } from "lucide-react";
 import Minimap from "@/components/builder/Minimap";
+import SvgImportDialog, { type ImportedPolygon } from "@/components/builder/SvgImportDialog";
 
 type BuilderTool =
   | "select" | "pan"
@@ -79,7 +82,11 @@ type BuilderTool =
   // defibrillator (AED), printer, and meeting point — the "everything
   // else" set MazeMap covers by default.
   | "poi-cafe" | "poi-vending" | "poi-water"
-  | "poi-first-aid" | "poi-defibrillator" | "poi-printer" | "poi-meeting";
+  | "poi-first-aid" | "poi-defibrillator" | "poi-printer" | "poi-meeting"
+  // v3.24: navigation graph tools. `node` drops a nav node at cursor
+  // (localStorage-backed for now; server sync lands with the routing
+  // API). `connect` links two clicked nodes with an edge.
+  | "node" | "connect";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -176,6 +183,7 @@ function BuilderWorkspace() {
   const [sidebarTab, setSidebarTab] = useState<LeftSidebarTab>("buildings");
   const [showValidation, setShowValidation] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
+  const [showSvgImport, setShowSvgImport] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -183,6 +191,19 @@ function BuilderWorkspace() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // ⌘Z / ⌘⇧Z history for building/room/hallway mutations.
   const history = useUndoStack();
+  // Local-first navigation graph. Nodes + edges live in localStorage
+  // until the server-side /api/nav-nodes API lands.
+  const navGraph = useNavGraph();
+  // Connect tool needs to remember the first node the user clicked so
+  // the second click can complete the edge.
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+
+  // Listen for the command palette's Import-SVG entry.
+  useEffect(() => {
+    const onOpenSvg = () => setShowSvgImport(true);
+    window.addEventListener("ksyk:cmd:import-svg", onOpenSvg);
+    return () => window.removeEventListener("ksyk:cmd:import-svg", onOpenSvg);
+  }, []);
 
   // ── Camera + cursor + FPS trackers (StatusBar) ───────────────────────
   const [cameraState, setCameraState] = useState({
@@ -619,6 +640,104 @@ function BuilderWorkspace() {
     }
   }, [mapReady, roomsQ.data, hallwaysQ.data, selection, cameraState.activeFloor]);
 
+  // ── Nav graph layer sync ────────────────────────────────────────
+  // Draws every localStorage-persisted node + edge on the map. Nodes
+  // filter by the active floor; the graph rebuilds cheaply whenever
+  // the useNavGraph hook fires a change event.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+    const NODE_SRC = "builder-nav-nodes-src";
+    const NODE_LAYER = "builder-nav-nodes";
+    const NODE_HALO = "builder-nav-nodes-halo";
+    const EDGE_SRC = "builder-nav-edges-src";
+    const EDGE_LAYER = "builder-nav-edges";
+
+    const activeFloor = cameraState.activeFloor ?? null;
+    const nodes = navGraph.graph.nodes.filter((n) => activeFloor === null || n.floor === activeFloor);
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+    // Only draw edges whose BOTH endpoints are on the active floor
+    // (interfloor edges = stairs/elevators — those get their own
+    // treatment eventually).
+    const edges = navGraph.graph.edges.filter((e) => nodeIds.has(e.fromNodeId) && nodeIds.has(e.toNodeId));
+
+    const nodeFC = {
+      type: "FeatureCollection" as const,
+      features: nodes.map((n) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [n.lng, n.lat] },
+        properties: {
+          id: n.id, kind: n.kind ?? "junction",
+          isPickingFrom: n.id === connectFrom,
+        },
+      })),
+    };
+    const edgeFC = {
+      type: "FeatureCollection" as const,
+      features: edges.map((e) => {
+        const a = nodeById.get(e.fromNodeId)!;
+        const b = nodeById.get(e.toNodeId)!;
+        return {
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: [[a.lng, a.lat], [b.lng, b.lat]] },
+          properties: { id: e.id },
+        };
+      }),
+    };
+
+    // Edges FIRST (below nodes in paint order).
+    const edgeSrc = map.getSource(EDGE_SRC) as maplibregl.GeoJSONSource | undefined;
+    if (edgeSrc) edgeSrc.setData(edgeFC as any);
+    else {
+      map.addSource(EDGE_SRC, { type: "geojson", data: edgeFC as any });
+      map.addLayer({
+        id: EDGE_LAYER, source: EDGE_SRC, type: "line",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": "#3b82f6",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 4],
+          "line-opacity": 0.7,
+        },
+      });
+    }
+
+    const nodeSrc = map.getSource(NODE_SRC) as maplibregl.GeoJSONSource | undefined;
+    if (nodeSrc) nodeSrc.setData(nodeFC as any);
+    else {
+      map.addSource(NODE_SRC, { type: "geojson", data: nodeFC as any });
+      // Outer halo — larger when the node is the "picking from" for
+      // the connect tool so users see which node they're linking.
+      map.addLayer({
+        id: NODE_HALO, source: NODE_SRC, type: "circle",
+        paint: {
+          "circle-radius": ["case", ["boolean", ["get", "isPickingFrom"], false], 14, 8],
+          "circle-color": "#3b82f6",
+          "circle-opacity": ["case", ["boolean", ["get", "isPickingFrom"], false], 0.4, 0.18],
+        },
+      });
+      // Solid center dot.
+      map.addLayer({
+        id: NODE_LAYER, source: NODE_SRC, type: "circle",
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 7],
+          "circle-color": [
+            "match", ["get", "kind"],
+            "room", "#059669",
+            "stairs", "#b45309",
+            "elevator", "#2563eb",
+            "entrance", "#15803d",
+                        "#3b82f6",
+          ],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+    }
+  }, [mapReady, navGraph.graph, cameraState.activeFloor, connectFrom]);
+
   // ── Map click handler — drops waypoints in draw mode ────────────────────
   useEffect(() => {
     if (!mapReady) return;
@@ -668,6 +787,34 @@ function BuilderWorkspace() {
       }
       // POI tools: single-click places, no need for Enter. Fire the
       // matching mutation with the click position.
+      // v3.24 nav-graph tools — click to drop a node, or click two
+      // existing nodes to connect them.
+      if (activeTool === "node") {
+        navGraph.addNode({
+          lat: e.lngLat.lat, lng: e.lngLat.lng,
+          floor: cameraState.activeFloor ?? 1,
+          kind: "junction",
+        });
+        return;
+      }
+      if (activeTool === "connect") {
+        // Query the nav-nodes MapLibre layer we install below. Nearest
+        // rendered feature within the click box wins.
+        const nodeLayers = ["builder-nav-nodes"].filter((id) => map.getLayer(id));
+        const feats = nodeLayers.length ? map.queryRenderedFeatures(e.point, { layers: nodeLayers }) : [];
+        const hit = feats[0];
+        const nodeId = hit?.properties?.id;
+        if (typeof nodeId !== "string") return;
+        if (!connectFrom) {
+          setConnectFrom(nodeId);
+          toast({ title: "Now click the second node", description: "Or press Esc to cancel." });
+        } else {
+          const edge = navGraph.addEdge(connectFrom, nodeId);
+          setConnectFrom(null);
+          if (edge) toast({ title: "Connected", description: "Nav edge added." });
+        }
+        return;
+      }
       if (activeTool === "poi-stairs") {
         createStair.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         return;
@@ -725,6 +872,7 @@ function BuilderWorkspace() {
         // Esc while looking at shortcuts should close the overlay, not
         // reset the drawing tool.
         if (showShortcuts) { setShowShortcuts(false); return; }
+        if (connectFrom) { setConnectFrom(null); return; }
         setWaypoints([]);
         setActiveTool("select");
         return;
@@ -1702,6 +1850,28 @@ function BuilderWorkspace() {
         onClose={() => setShowImportExport(false)}
         onImport={applyImport}
       />
+      <SvgImportDialog
+        open={showSvgImport}
+        onClose={() => setShowSvgImport(false)}
+        map={handleRef.current?.map ?? null}
+        onImport={(polygons: ImportedPolygon[]) => {
+          // Each parsed shape becomes a building — user can convert
+          // to rooms manually via drag-select later. Buildings are
+          // the safe default since we don't know the containing
+          // building context at import time.
+          for (const poly of polygons) {
+            const name = poly.label ?? String.fromCharCode(65 + (buildings.length % 26));
+            createBuilding.mutate({
+              name,
+              points: poly.points.map((p) => ({ lat: p.lat, lng: p.lng })),
+            });
+          }
+          toast({
+            title: `Imported ${polygons.length} shape${polygons.length === 1 ? "" : "s"}`,
+            description: "Drag vertices to refine the alignment. Right-click a shape to convert to Room.",
+          });
+        }}
+      />
 
       {/* Keyboard cheat sheet — MazeMap-style overlay. Toggled with '?'.
        *  Floating button in the bottom-right also opens it so
@@ -1971,6 +2141,8 @@ function coachMetaFor(
     case "poi-defibrillator": return { Icon: Zap,           name: "AED",        text: "Click to place defibrillator (AED)", badgeBg: "bg-rose-600" };
     case "poi-printer":       return { Icon: Printer,       name: "Printer",    text: "Click to place printer",             badgeBg: "bg-gray-600" };
     case "poi-meeting":       return { Icon: Flag,          name: "Meeting",    text: "Click to place meeting point",       badgeBg: "bg-emerald-600" };
+    case "node":              return { Icon: CircleIcon,    name: "Nav node",   text: "Click to drop a navigation node",    badgeBg: "bg-blue-600" };
+    case "connect":           return { Icon: ZapIcon,       name: "Connect",    text: "Click a node, then another to link", badgeBg: "bg-blue-600" };
     default:                  return { Icon: MousePointer2, name: "Tool",       text: "Click on the map",                   badgeBg: "bg-blue-600" };
   }
 }
@@ -2017,6 +2189,15 @@ const SHAPE_TOOLS: ToolDef[] = [
   { id: "hallway",   Icon: RouteIcon,         label: "Hallway",   hotkey: "H" },
   { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
   { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },
+];
+
+/** Nav-graph tools — nodes + edges. Users route by dropping nodes on
+ *  a floor, connecting them, and stairs/elevators bridge floors. Kept
+ *  in its own group between shape tools and POIs so the palette
+ *  visually communicates "here's where routing lives". */
+const NAV_TOOLS: ToolDef[] = [
+  { id: "node",    Icon: CircleIcon, label: "Nav node",    hotkey: "" },
+  { id: "connect", Icon: ZapIcon,    label: "Connect",     hotkey: "" },
 ];
 
 /** POI tools grouped by category — mirrors MazeMap's "POIs" flyout
@@ -2109,6 +2290,12 @@ function ToolPalette({
       <Divider />
 
       {SHAPE_TOOLS.map((t) => (
+        <PaletteButton key={t.id} tool={t} active={activeTool === t.id} onClick={() => onTool(t.id)} />
+      ))}
+
+      <Divider />
+
+      {NAV_TOOLS.map((t) => (
         <PaletteButton key={t.id} tool={t} active={activeTool === t.id} onClick={() => onTool(t.id)} />
       ))}
 

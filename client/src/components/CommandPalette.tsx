@@ -141,6 +141,14 @@ export default function CommandPalette() {
       onRun: () => window.dispatchEvent(new CustomEvent("ksyk:cmd:publish")),
     },
     {
+      id: "builder.import.svg",
+      label: "Import SVG floor plan",
+      group: "Builder",
+      Icon: MapPin,
+      keywords: "import svg figma illustrator floor plan",
+      onRun: () => window.dispatchEvent(new CustomEvent("ksyk:cmd:import-svg")),
+    },
+    {
       id: "builder.validate",
       label: "Validate campus",
       group: "Builder",

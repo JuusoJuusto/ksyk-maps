@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.22.0";
+export const APP_VERSION = "3.23.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.23.0",
+    date: "July 2026",
+    title: "Camera persistence, nav-graph nodes, SVG import, AO simulation",
+    titleFi: "Kameran muisti, navigointigraafi, SVG-tuonti, AO-simulointi",
+    latest: true,
+    highlights: [
+      "Bug fix: map no longer resets to north on first login — camera (center, zoom, bearing, pitch) persists to localStorage on every moveend and restores on next visit",
+      "Nav graph: new Node + Connect tools in the builder. Click to drop nodes; click two nodes to link them. Persists locally, floor-filtered, blue dots + edges rendered on the map.",
+      "SVG import (Figma → KSYK): opens via ⌘K → 'Import SVG floor plan'. Parses every polygon/rect/simple path, drops them into the current viewport center as buildings — drag vertices to refine.",
+      "3D AO simulation: hand-authored dark ring polygon around every building base (fill-extrusion-ambient-occlusion isn't in MapLibre 5.x upstream, so we approximate it). Ground shadow tint bumped for more depth.",
+      "Entrance glow: green ground disc under each entrance so 'the way in' reads from a distance in 3D.",
+      "Light spec switched to anchor='map' so shadows behave world-space (sun stays put as you rotate).",
+    ],
+    highlightsFi: [
+      "Korjaus: kartta ei enää nollaa kääntymistä ensimmäisellä kirjautumisella",
+      "Navigointigraafi: Solmu- ja Yhdistä-työkalut rakentajassa",
+      "SVG-tuonti Figmasta: ⌘K → 'Import SVG'",
+      "3D-tunnelma: AO-rengas jokaisen rakennuksen ympärille",
+      "Sisäänkäyntien vihreä hohto 3D:ssä",
+    ],
+  },
   {
     version: "3.22.0",
     date: "July 2026",
     title: "Round 1 of pro-editor rebuild: ⌘K palette, undo/redo, snap-to-vertex, minimap",
     titleFi: "Ammattilaisen työkalut: ⌘K, kumoa/uudelleen, nappaus, minikartta",
-    latest: true,
     highlights: [
       "Command palette (⌘K): search-first launcher for every action — switch tool, focus building, toggle 3D, publish, jump to any room by number, and more",
       "Undo / redo: ⌘Z + ⌘⇧Z now work in the builder for every create + delete mutation. Toolbar buttons wired. History stack keeps 50 entries.",

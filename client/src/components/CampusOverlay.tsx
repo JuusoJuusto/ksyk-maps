@@ -60,6 +60,13 @@ const LAYERS = {
   poi3D: "campus-pois-pillar-3d",
   doorMarker: "campus-doors-marker",
   entranceMarker: "campus-entrances-marker",
+  // v3.23 — simulated ambient occlusion + flood light. MapLibre 5.x
+  // doesn't expose Mapbox's fill-extrusion AO / flood-light paints
+  // upstream, so we fake them with hand-authored ring polygons: a
+  // dark ring on the ground where the wall base meets the map,
+  // and a coloured glow ring around entrances/POIs.
+  buildingAO: "campus-buildings-ao",
+  entranceGlow: "campus-entrances-glow",
 } as const;
 
 // Physical metres per floor for 3D extrusion. Kept low so the campus
@@ -191,6 +198,7 @@ export default function CampusOverlay({
       setVis(LAYERS.floorSlabs,       bVis && is3D);
       // Ground shadows + stair/elevator towers + sky — all 3D-only.
       setVis(LAYERS.buildingShadow,   bVis && is3D);
+      setVis(LAYERS.buildingAO,       bVis && is3D);
       setVis(LAYERS.stairsTower,      is3D);
       setVis(LAYERS.elevatorTower,    is3D);
       setVis(LAYERS.sky,              is3D);
@@ -200,6 +208,7 @@ export default function CampusOverlay({
       setVis(LAYERS.poi3D,            is3D);
       setVis(LAYERS.doorMarker,       is3D);
       setVis(LAYERS.entranceMarker,   is3D);
+      setVis(LAYERS.entranceGlow,     is3D);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -592,6 +601,36 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     features: shadowFeatures,
   });
 
+  // v3.23 — simulated ambient occlusion. For each building footprint,
+  // generate a thin outer ring polygon (outer = original + 2.5 m,
+  // inner = original). Painted as a soft dark fill, this ring darkens
+  // the ground exactly where the wall base meets it — the visual cue
+  // real AO would produce. Combined with the vertical gradient on
+  // the shell itself, buildings get proper depth without needing
+  // GPU shadow maps.
+  const aoFeatures = buildings
+    .filter((b) => b.points && b.points.length >= 3)
+    .map((b) => {
+      const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
+      const expanded = insetPolygonMeters(outer, -2.5); // negative = grow outward
+      if (!expanded || expanded.length < 3) return null;
+      // Ring = expanded outer + reversed original inner (hole).
+      const ring: number[][][] = [
+        [...expanded, expanded[0]],
+        [...outer.slice().reverse(), outer[outer.length - 1]],
+      ];
+      return {
+        type: "Feature" as const,
+        geometry: { type: "Polygon" as const, coordinates: ring },
+        properties: { id: `${b.id}-ao` },
+      };
+    })
+    .filter((f): f is NonNullable<typeof f> => f !== null);
+  upsertGeoJSONSource(map, "campus-buildings-ao", {
+    type: "FeatureCollection" as const,
+    features: aoFeatures,
+  });
+
   // MazeMap-style: soft cream fill (using the brand color at very low
   // opacity so buildings still read as "yours") with a crisp darker
   // outline. Zoom-scaled opacity so buildings appear as user gets close.
@@ -678,7 +717,31 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     layout: { visibility: "none" },
     paint: {
       "fill-color": "#0f172a",
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.08, 18, 0.16, 20, 0.22],
+      // v3.23 — original drop-shadow polygon (offset SE from the
+      // building) supplemented by a dedicated AO ring layer below,
+      // together approximating what fill-extrusion-cast-shadows +
+      // ambient-occlusion do in Mapbox but that MapLibre doesn't
+      // upstream. Kept as directional shadow tint.
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.06, 18, 0.11, 20, 0.15],
+      "fill-antialias": true,
+    },
+    minzoom: 15,
+  });
+
+  // AO ring — hand-authored ambient-occlusion band around each
+  // building footprint. Radially fades from a dark inside edge to
+  // transparent at the outer edge. Achieves what fill-extrusion-
+  // ambient-occlusion-* does on Mapbox without needing shader access.
+  addLayerIfMissing(map, {
+    id: LAYERS.buildingAO,
+    source: "campus-buildings-ao",
+    type: "fill",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-color": "#0b1220",
+      // Peaks at zoom 18-19 where buildings dominate the screen; fades
+      // out at low zoom so the AO doesn't smear across the whole map.
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 17, 0.18, 19, 0.28, 22, 0.32],
       "fill-antialias": true,
     },
     minzoom: 15,
@@ -1096,6 +1159,38 @@ function installPoiPillars(
   upsertGeoJSONSource(map, "campus-entrances-marker-src", {
     type: "FeatureCollection" as const,
     features: entranceFeatures,
+  });
+
+  // Entrance glow — larger green disc under each entrance pad so the
+  // "way in" reads from a distance in 3D. Simulates flood-light
+  // spilling onto the ground; MapLibre doesn't have real flood-light
+  // paints for fill-extrusion.
+  const entranceGlowFeatures = doors
+    .filter((d) => (d as unknown as { isEntrance?: boolean }).isEntrance)
+    .filter((d) => typeof d.position?.lat === "number" && typeof d.position?.lng === "number")
+    .map((d) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "Polygon" as const,
+        coordinates: [squareAroundPointMeters(d.position!, 2.5).map(([lng, lat]) => [lng, lat])],
+      },
+      properties: { id: `${d.id}-glow` },
+    }));
+  upsertGeoJSONSource(map, "campus-entrances-glow-src", {
+    type: "FeatureCollection" as const,
+    features: entranceGlowFeatures,
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.entranceGlow,
+    source: "campus-entrances-glow-src",
+    type: "fill",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-color": "#22c55e",
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.15, 18, 0.3, 20, 0.35],
+      "fill-antialias": true,
+    },
+    minzoom: 15,
   });
 
   addLayerIfMissing(map, {
