@@ -10,15 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.1";
+export const APP_VERSION = "3.25.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.2",
+    date: "July 2026",
+    title: "Cache-bust redeploy — ship the 3.25.1 builder fix",
+    titleFi: "Välimuistin tyhjennys — 3.25.1-korjaus voimaan",
+    latest: true,
+    highlights: [
+      "Version bump + forced Vercel rebuild so browsers stop loading the stale pre-3.25.1 bundle. Same code as 3.25.1, new hash — the old builder crash (\"Cannot access 'Mi' before initialization\") is finally gone from every cached client.",
+    ],
+    highlightsFi: [
+      "Uusi julkaisu, joka pakottaa selaimet lataamaan 3.25.1-korjauksen",
+    ],
+  },
   {
     version: "3.25.1",
     date: "July 2026",
     title: "Fix: builder crash on load (\"Cannot access 'Mi' before initialization\")",
     titleFi: "Korjaus: rakentaja kaatui latauksessa",
-    latest: true,
     highlights: [
       "Fixed a temporal-dead-zone ReferenceError that crashed the builder immediately after login. Root cause was a useEffect dependency array referencing a callback declared 1500 lines below it — evaluated at render, always fired TDZ.",
       "Refactored the auto-connect nav-nodes event listener to use a ref instead so the effect doesn't have to depend on the callback identifier.",
