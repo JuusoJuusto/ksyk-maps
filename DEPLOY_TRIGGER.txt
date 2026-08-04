@@ -1,10 +1,11 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.25.9. Replaces the "FL" text label with a layers icon
-in both the public map and the builder (defense-in-depth against
-browser autotranslate). MazeMap-style URL state sync — the map writes
-z/lat/lng/bearing/pitch/floor to the URL as the user pans, so any copy
-of the URL restores the exact view.
+Bump reason: v3.26.0. Fixes the "white screen at max zoom" bug with a
+ground-fill background layer + gentler raster fade. Removes the
+GeolocateControl. Default floor = 1 on every fresh visit. Builder now
+supports real-time deletion of rooms + walls (previously only
+buildings) and shows a dashed placement ghost from the last waypoint
+to the cursor while drawing.
 
-Timestamp: 1786082400
-Build: FORCE_REBUILD_v3.25.9
+Timestamp: 1786086000
+Build: FORCE_REBUILD_v3.26.0

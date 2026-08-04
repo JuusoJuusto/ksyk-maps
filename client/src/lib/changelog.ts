@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.9";
+export const APP_VERSION = "3.26.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.0",
+    date: "August 2026",
+    title: "Ground fill (no more white zoom), GeolocateControl removed, wall/room delete + placement ghost, floor 1 default",
+    titleFi: "Valkoinen ruutu korjattu, sijainti-nappula pois, seinien ja huoneiden poisto + esikatselu",
+    latest: true,
+    highlights: [
+      "Fix: fully-zoomed-in map no longer goes white. Added a MazeMap-adjacent \"paper\" ground fill (dark slate in dark mode) beneath the raster, plus the raster now holds ~35% opacity at zoom 22 instead of fading to 5%.",
+      "Removed: the GeolocateControl (\"find me\" real-location button). GPS accuracy on a small indoor campus was rarely useful and the button clashed with the site's navigation UI. Indoor routing still works via the \"Etsi lähtöhuone\" room picker.",
+      "Default floor is now 1 on every fresh visit — no more \"the map opens on floor 3 because I last looked there.\" A shared URL with ?floor=2 still wins.",
+      "Builder: real-time deletion of rooms + walls. Previously only buildings had a delete path from the property panel; walls (surface=wall on hallways) and rooms now have their own mutations that invalidate the right query so the map updates immediately.",
+      "Builder: placement ghost while drawing. Wall/hallway/building/room/measure tools now show a dashed blue preview segment from the last placed waypoint to the cursor, so users see exactly where their next click will land before committing.",
+      "Confirmed: dragging building/room corner points already works via SelectionHandles — vertices become circles you can drag; the shape updates live and PATCHes on mouseup.",
+    ],
+    highlightsFi: [
+      "Kartta ei enää muutu valkoiseksi täysin zoomatessa",
+      "Poistettu: oikeaa GPS-sijaintia näyttänyt nappula",
+      "Oletustaso on aina 1. jaettu linkki voi ohittaa",
+      "Rakentaja: seinien ja huoneiden poisto toimii nyt reaaliajassa",
+      "Rakentaja: hiiren alla esikatselu piirtotyökaluissa",
+    ],
+  },
   {
     version: "3.25.9",
     date: "August 2026",
     title: "FL replaced with icon. URL state sync for shareable views.",
     titleFi: "FL-teksti ikoniksi. URL tallentaa kartan tilan jaettaville linkeille.",
-    latest: true,
     highlights: [
       "The \"FL\" floor label is now a layers icon in both the public map and the builder — belt-and-suspenders against any browser autotranslate that still slips through (Chrome sometimes translates individual elements even with the global translate=\"no\").",
       "MazeMap-style URL sharing: the map now writes `?z=`, `?lat=`, `?lng=`, `?bearing=`, `?pitch=`, `?floor=` to the URL as the user pans/rotates/switches floor. Any copy of that URL restores the exact view — camera + level + rotation. Writes are debounced (300 ms) and use history.replaceState so the back button isn't spammed.",

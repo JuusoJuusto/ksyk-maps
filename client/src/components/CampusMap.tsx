@@ -177,6 +177,13 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
       color: mode === "dark" ? "#c7d0e0" : "#fff4dc",
       intensity: mode === "dark" ? 0.35 : 0.6,
     },
+    // v3.26.0 — ground fill so the map is never blank. Previously the
+    // raster faded to 5% at zoom 22 and nothing lived beneath it, so
+    // fully-zoomed-in views went white. Painting a MazeMap-adjacent
+    // "paper" beige (or dark slate in dark mode) here guarantees a
+    // proper backdrop for the KSYK vector overlay at every zoom.
+    // `background` layers accept a color that reads through every
+    // higher layer's transparency.
     sources: {
       "osm-raster": {
         type: "raster",
@@ -190,19 +197,29 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
     },
     layers: [
       {
+        // Ground fill — a MazeMap-ish paper tint (or dark slate) that
+        // shows through when the raster has faded out at extreme zoom.
+        // No more white screen at zoom 22.
+        id: "ground",
+        type: "background",
+        paint: {
+          "background-color": mode === "dark" ? "#0f172a" : "#f5f2ea",
+        },
+      },
+      {
         id: "osm-raster-layer",
         type: "raster",
         source: "osm-raster",
         minzoom: 0,
         maxzoom: 22,
         paint: {
-          // v3.25.7 — much more aggressive fade past zoom 19 so the
-          // (inevitably blurry) overzoomed raster stops distracting
-          // from the crisp KSYK vector overlays. Past zoom 21 the
-          // basemap is basically a ghost so the interior view is a
-          // clean vector diagram. Below 18 the basemap stays 100% so
-          // the campus reads in its neighborhood context.
-          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.6, 20, 0.35, 21, 0.15, 22, 0.05],
+          // v3.26.0 — held opacity floor at 0.35 through zoom 22 so
+          // the map is never blank. Below 19 the raster stays at 100%
+          // for full-context neighborhood view; past 19 it fades to a
+          // subtle diagram-adjacent backdrop that the vector overlays
+          // dominate. The bright ground layer beneath fills whatever
+          // the raster leaves transparent.
+          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.55, 21, 0.4, 22, 0.35],
           // Linear resampling smooths overzoomed pixels — trades
           // crispness for a less jagged blur. Combined with the low
           // opacity above, the eye stops trying to focus on it.
@@ -210,7 +227,7 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
           // Slight saturation boost at low zooms so the basemap has
           // personality; back to 0 at high zoom where the vector
           // overlays are the focus.
-          "raster-saturation": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 18, 0.05, 22, -0.3],
+          "raster-saturation": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 18, 0.05, 22, -0.25],
           // Turn off the raster's default cross-fade so labels don't
           // flicker during zoom.
           "raster-fade-duration": 200,
@@ -327,25 +344,11 @@ export default function CampusMap({
       );
     }
 
-    // v3.25.3 — MazeMap-style "find me" puck. Adds a control that
-    // requests the browser Geolocation API on click, drops a blue dot,
-    // and (with trackUserLocation) keeps it in sync as the user walks.
-    // MapLibre draws the accuracy ring + puck itself — no per-frame
-    // animation code on our side.
-    try {
-      map.addControl(
-        new maplibregl.GeolocateControl({
-          positionOptions: { enableHighAccuracy: true },
-          trackUserLocation: true,
-          showAccuracyCircle: true,
-          fitBoundsOptions: { maxZoom: 19 },
-        }),
-        "top-right",
-      );
-    } catch {
-      // Non-fatal — some browsers reject the control silently. The map
-      // still works; users just won't get the "find me" button.
-    }
+    // v3.26.0 — GeolocateControl removed per feedback. Real GPS was
+    // rarely useful on a small indoor campus (accuracy circle covered
+    // half the building) and the button conflicted with the site's
+    // own navigation UI. The indoor routing flow uses room-based
+    // origins ("Etsi lähtöhuone") instead.
 
     // v3.25.3 — metric scale bar in the corner. Matches every consumer
     // map (Google Maps, MazeMap, Apple Maps) so users have a persistent

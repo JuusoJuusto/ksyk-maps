@@ -163,6 +163,13 @@ function BuilderWorkspace() {
   const qc = useQueryClient();
   const [activeTool, setActiveTool] = useState<BuilderTool>("select");
   const [waypoints, setWaypoints] = useState<LngLat[]>([]);
+  // v3.26.0 — cursor lat/lng in world space. Updated on mousemove
+  // while a draw tool is active so we can render a "ghost" segment
+  // from the last placed waypoint to the cursor. Users see EXACTLY
+  // where their next click will land before committing. Plain shape
+  // (not the maplibre LngLat class) so setting it from any {lng, lat}
+  // literal is type-safe.
+  const [cursorLngLat, setCursorLngLat] = useState<{ lng: number; lat: number } | null>(null);
   const [selection, setSelection] = useState<LeftSidebarSelection | null>(null);
   const handleRef = useRef<CampusMapHandle | null>(null);
   // Ref alone is enough for handler access, but effects that install
@@ -1272,6 +1279,51 @@ function BuilderWorkspace() {
     },
   });
 
+  // v3.26.0 — delete mutations for rooms + hallways/walls. Rooms and
+  // walls previously had no delete path from the property panel — the
+  // button called onDeleteSelected which only handled buildings. Now
+  // any selected feature can be removed, and the query invalidation
+  // makes the removal show up on the map immediately.
+  const deleteRoom = useMutation({
+    mutationFn: async (id: string) => {
+      const snapshot = (roomsQ.data ?? []).find((r) => r.id === id) ?? null;
+      await apiRequest("DELETE", `/api/rooms/${id}`);
+      return snapshot as Record<string, unknown> | null;
+    },
+    onSuccess: (snapshot) => {
+      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setSelection(null);
+      if (snapshot) {
+        history.record(makeDeleteInverse({
+          label: `Delete room "${(snapshot as { roomNumber?: string }).roomNumber ?? ""}"`,
+          snapshot,
+          resource: "rooms",
+          invalidate: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+        }));
+      }
+    },
+  });
+  const deleteHallway = useMutation({
+    mutationFn: async (id: string) => {
+      const snapshot = (hallwaysQ.data ?? []).find((h) => h.id === id) ?? null;
+      await apiRequest("DELETE", `/api/hallways/${id}`);
+      return snapshot as Record<string, unknown> | null;
+    },
+    onSuccess: (snapshot) => {
+      qc.invalidateQueries({ queryKey: ["/api/hallways"] });
+      setSelection(null);
+      if (snapshot) {
+        const label = (snapshot as { surface?: string }).surface === "wall" ? "wall" : "hallway";
+        history.record(makeDeleteInverse({
+          label: `Delete ${label}`,
+          snapshot,
+          resource: "hallways",
+          invalidate: () => qc.invalidateQueries({ queryKey: ["/api/hallways"] }),
+        }));
+      }
+    },
+  });
+
   // Listen for point-POI focus events from the LeftSidebar's PoiList.
   // Fly to the position, keeping bearing + pitch.
   useEffect(() => {
@@ -1432,6 +1484,10 @@ function BuilderWorkspace() {
     if (!isDrawTool) { clearIndicator(); return; }
 
     const onMove = (e: MapMouseEvent) => {
+      // v3.26.0 — also expose the raw cursor lat/lng so the placement
+      // ghost effect below can draw a preview segment from the last
+      // waypoint to the cursor.
+      setCursorLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
       // Convert cursor to screen pixel space for accurate distance.
       const cursorPx = e.point;
       let best: { c: SnapCandidate; d2: number } | null = null;
@@ -1490,7 +1546,7 @@ function BuilderWorkspace() {
         });
       }
     };
-    const onLeave = () => { clearIndicator(); };
+    const onLeave = () => { clearIndicator(); setCursorLngLat(null); };
 
     map.on("mousemove", onMove);
     map.on("mouseleave", onLeave);
@@ -1503,6 +1559,71 @@ function BuilderWorkspace() {
       clearIndicator();
     };
   }, [mapReady, activeTool, buildings, roomsQ.data, hallwaysQ.data]);
+
+  // ── Ghost preview segment ────────────────────────────────────────
+  // While drawing a wall/hallway/building/room, render a dashed line
+  // from the last placed waypoint to the current cursor so users see
+  // exactly where the next segment will land before clicking.
+  // MazeMap/CAD standard — massive quality-of-life win for placement.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+    const SRC = "builder-ghost-preview";
+    const LAYER = "builder-ghost-preview-line";
+
+    const clear = () => {
+      const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+      if (src) src.setData({ type: "FeatureCollection", features: [] } as never);
+    };
+
+    const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
+      || activeTool === "building" || activeTool === "room" || activeTool === "measure";
+
+    if (!isSegmentTool || waypoints.length === 0 || !cursorLngLat) {
+      clear();
+      return;
+    }
+
+    // Pending endpoint = snap target (if any) else raw cursor. This
+    // keeps the preview line honest — if snap will grab a vertex, the
+    // ghost draws to THAT vertex too, not the raw mouse.
+    const snap = snapTargetRef.current;
+    const endLng = snap ? snap.lng : cursorLngLat.lng;
+    const endLat = snap ? snap.lat : cursorLngLat.lat;
+
+    const last = waypoints[waypoints.length - 1];
+    const data = {
+      type: "FeatureCollection" as const,
+      features: [{
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: [[last.lng, last.lat], [endLng, endLat]],
+        },
+        properties: {},
+      }],
+    };
+    const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(data as never);
+    else {
+      map.addSource(SRC, { type: "geojson", data: data as never });
+      map.addLayer({
+        id: LAYER,
+        source: SRC,
+        type: "line",
+        paint: {
+          "line-color": "#3b82f6",
+          "line-width": 2.5,
+          "line-opacity": 0.75,
+          "line-dasharray": [2, 2],
+        },
+      });
+    }
+
+    return () => { clear(); };
+  }, [mapReady, activeTool, waypoints, cursorLngLat]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -1525,10 +1646,32 @@ function BuilderWorkspace() {
   }, [activeTool, waypoints]);
 
   const onDeleteSelected = useCallback(() => {
-    if (!selectedId) return;
-    if (!confirm("Delete this building?")) return;
-    deleteBuilding.mutate(selectedId);
-  }, [selectedId, deleteBuilding]);
+    if (!selection) return;
+    // v3.26.0 — route to the right mutation based on selection.kind.
+    // Previously only buildings were deletable; walls/rooms now go
+    // through their dedicated mutations, which invalidate the
+    // relevant query and trigger the map to re-render immediately.
+    switch (selection.kind) {
+      case "building": {
+        if (!confirm("Delete this building?")) return;
+        deleteBuilding.mutate(selection.id);
+        return;
+      }
+      case "room": {
+        if (!confirm("Delete this room?")) return;
+        deleteRoom.mutate(selection.id);
+        return;
+      }
+      case "hallway": {
+        // Same mutation covers walls (surface="wall") and hallways.
+        const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
+        const label = h?.surface === "wall" ? "wall" : "hallway";
+        if (!confirm(`Delete this ${label}?`)) return;
+        deleteHallway.mutate(selection.id);
+        return;
+      }
+    }
+  }, [selection, deleteBuilding, deleteRoom, deleteHallway, hallwaysQ.data]);
 
   /** Duplicate every selected building + room with a small SE offset.
    *  Figma-standard behaviour (⌘D). New polygons register with undo so

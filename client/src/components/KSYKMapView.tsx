@@ -55,7 +55,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     "ksyk_map_is3d",
     (settings.osmPitchDeg ?? 0) > 0,
   );
-  const [selectedFloor, setSelectedFloor] = usePersistedState<number>("ksyk_map_floor", 1);
+  // v3.26.0 — floor no longer persists across visits per feedback;
+  // every session opens on floor 1. The URL query still wins if a
+  // shared link specifies ?floor=… (see the effect below).
+  const [selectedFloor, setSelectedFloor] = useState<number>(1);
 
   // v3.25.9 — read initial floor from ?floor= query param on mount so
   // shared links restore the correct level. Written back to the URL
