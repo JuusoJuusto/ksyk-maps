@@ -23,6 +23,7 @@ import SelectionHandles from "@/components/builder/SelectionHandles";
 import LeftSidebar, { type LeftSidebarTab, type LeftSidebarSelection } from "@/components/builder/LeftSidebar";
 import StatusBar, { type StatusBarState } from "@/components/builder/StatusBar";
 import TopToolbar from "@/components/builder/TopToolbar";
+import LayersToggle from "@/components/LayersToggle";
 import ValidationDrawer from "@/components/builder/ValidationDrawer";
 import ImportExportDialog from "@/components/builder/ImportExportDialog";
 import { Button } from "@/components/ui/button";
@@ -2031,6 +2032,16 @@ function BuilderWorkspace() {
               </div>
             );
           })()}
+
+          {/* Layers toggle — v3.25.4. Sits to the left of the floor
+           *  selector so admins can preview what public users see with
+           *  buildings/rooms/hallways/labels + POI categories hidden.
+           *  Writes to the same localStorage overrides + custom events
+           *  that CampusOverlay listens for, so toggles take effect
+           *  live without a page reload. */}
+          <div className="absolute top-3 right-16 z-30">
+            <LayersToggle />
+          </div>
 
           {/* Snap label — floating pill next to the snap indicator so
            *  users see "Vertex" / "Endpoint" / "Midpoint" and know why

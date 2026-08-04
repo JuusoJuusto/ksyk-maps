@@ -33,6 +33,7 @@ import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.BuildingsScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LoginScreen
+import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
@@ -104,7 +105,12 @@ private fun AppShell() {
                     )
                 }
                 composable("map")       { MapScreen() }
-                composable("rooms")     { RoomFinderScreen() }
+                composable("rooms")     {
+                    RoomFinderScreen(onOpenOnMap = { roomId ->
+                        MapNavIntent.pendingRoomId = roomId
+                        navigate(nav, "map")
+                    })
+                }
                 composable("beacons")   { BeaconScreen() }
                 composable("buildings") { BuildingsScreen() }
                 composable("news")      { AnnouncementsScreen() }

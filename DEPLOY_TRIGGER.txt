@@ -1,10 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.25.3 ships the native Android app (MapLibre map screen +
-offline cache + Map tab) and MazeMap-style improvements to the web map
-(built-in GeolocateControl for "You are here" puck + heading arrow, and a
-metric ScaleControl in the bottom-left). New version = new bundle hash =
-cache invalidation.
+Bump reason: v3.25.4 ships room rendering + deep-link on the Android
+native map, and adds the LayersToggle popover to the builder canvas
+(beside the floor selector) so drafters can preview the public view
+without leaving the builder. New version = new bundle hash = cache
+invalidation.
 
-Timestamp: 1786060800
-Build: FORCE_REBUILD_v3.25.3
+Timestamp: 1786064400
+Build: FORCE_REBUILD_v3.25.4

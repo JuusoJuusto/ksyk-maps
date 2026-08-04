@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.3";
+export const APP_VERSION = "3.25.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.4",
+    date: "August 2026",
+    title: "Android: rooms on the map + room deep-link. Builder: layers toggle.",
+    titleFi: "Android: huoneet kartalle. Rakentaja: tasovalikko.",
+    latest: true,
+    highlights: [
+      "Android: room polygons now render on top of building shells with colored fills, thin outlines and room-number labels — labels fade in past zoom 18 so distant floors stay uncluttered.",
+      "Android: tap a room on the map → bottom sheet with type, capacity, and floor + 'Isolate floor' shortcut. Rooms are hit-tested before buildings, so a tap inside a room selects the room, not the surrounding shell.",
+      "Android: 'Open on map' from the Room finder now jumps to the native Map tab, sets the floor, flies the camera to the room and pops the room sheet — instead of opening a browser.",
+      "Android: bottom-left pill now shows the floor-filtered room count (\"5 · 42 rooms · Floor 2\") so admins can sanity-check floor filters at a glance.",
+      "Builder: LayersToggle popover is now available beside the floor selector, so drafters can preview what the map looks like with buildings/rooms/hallways/labels + POI categories hidden without leaving the builder.",
+    ],
+    highlightsFi: [
+      "Android: huoneet piirtyvät nyt kartalle omilla väreillään",
+      "Android: 'Näytä kartalla' avaa natiivin karttavälilehden, ei selainta",
+      "Rakentaja: tasovalikko lattian valitsimen vieressä esikatselua varten",
+    ],
+  },
   {
     version: "3.25.3",
     date: "August 2026",
     title: "Native Android app + MazeMap-style locate/scale on web",
     titleFi: "Natiivi Android-sovellus + MazeMap-tyylinen paikannus",
-    latest: true,
     highlights: [
       "New: native Android map screen (MapLibre Native) with the same OSM/CARTO Voyager basemap the web uses, KSYK building polygons on top, a floor switcher, and tap-a-building bottom sheet.",
       "New: offline-first API layer on Android — every successful GET is mirrored to disk, and reads fall back to the cached copy when the network can't be reached. First launch needs signal; every subsequent launch opens on the subway.",

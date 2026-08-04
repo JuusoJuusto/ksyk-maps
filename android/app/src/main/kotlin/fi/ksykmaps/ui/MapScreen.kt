@@ -81,6 +81,11 @@ private const val LAYER_FILL = "campus-buildings-fill"
 private const val LAYER_OUTLINE = "campus-buildings-outline"
 private const val LAYER_LABEL = "campus-buildings-label"
 
+private const val SRC_ROOMS = "campus-rooms"
+private const val LAYER_ROOM_FILL = "campus-rooms-fill"
+private const val LAYER_ROOM_OUTLINE = "campus-rooms-outline"
+private const val LAYER_ROOM_LABEL = "campus-rooms-label"
+
 // CARTO Voyager @2x — matches CampusMap.tsx's TILE_URLS.light so the
 // two platforms share basemap identity.
 private const val STYLE_JSON_LIGHT = """{
@@ -125,8 +130,10 @@ fun MapScreen() {
     }
 
     var buildings by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var selectedFloor by remember { mutableStateOf<Int?>(null) }
     var selected by remember { mutableStateOf<JsonObject?>(null) }
+    var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
     var offlineMode by remember { mutableStateOf(false) }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
     var followMe by remember { mutableStateOf(false) }
@@ -141,35 +148,80 @@ fun MapScreen() {
     }
 
     LaunchedEffect(Unit) {
+        // Buildings first — they're usually smaller and the map should
+        // frame the campus even if the rooms fetch is slow.
         try {
             val json = withContext(Dispatchers.IO) { Api.get("/buildings") }
             buildings = json.jsonArray.mapNotNull { it as? JsonObject }
             offlineMode = false
         } catch (_: Exception) {
-            // Fallback to any cached copy on disk so the app still opens
-            // to a usable map on the subway.
             val cached = Api.getOffline("/buildings")
             if (cached != null) {
                 buildings = cached.jsonArray.mapNotNull { it as? JsonObject }
                 offlineMode = true
             }
         }
+        try {
+            val json = withContext(Dispatchers.IO) { Api.get("/rooms") }
+            rooms = json.jsonArray.mapNotNull { it as? JsonObject }
+        } catch (_: Exception) {
+            val cached = Api.getOffline("/rooms")
+            if (cached != null) {
+                rooms = cached.jsonArray.mapNotNull { it as? JsonObject }
+                offlineMode = true
+            }
+        }
     }
 
-    // Recompute polygons whenever the building set or selected floor changes.
-    LaunchedEffect(buildings, selectedFloor, mapRef) {
+    // Deep-link — if RoomFinder (or another screen) pushed a focus
+    // intent before navigating here, fly the camera to the room and
+    // pop its bottom sheet as soon as the room data is in and the map
+    // is ready. Then clear the intent so it doesn't re-fire on a later
+    // navigation back to this tab.
+    LaunchedEffect(rooms, mapRef) {
         val map = mapRef ?: return@LaunchedEffect
-        val featuresJson = buildBuildingsFeatureCollection(buildings, selectedFloor)
+        val pendingId = MapNavIntent.pendingRoomId ?: return@LaunchedEffect
+        if (rooms.isEmpty()) return@LaunchedEffect
+        val room = rooms.firstOrNull { (it["id"] as? JsonPrimitive)?.contentOrNull == pendingId }
+        if (room != null) {
+            val floor = (room["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+            if (floor != null) selectedFloor = floor
+            val centroid = centroidOf(room)
+            if (centroid != null) {
+                map.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(centroid.first, centroid.second),
+                        19.0
+                    ),
+                    500,
+                )
+            }
+            selectedRoom = room
+        }
+        MapNavIntent.pendingRoomId = null
+    }
+
+    // Recompute polygons whenever the data or selected floor changes.
+    // Buildings + rooms are separate MapLibre sources so we can toggle
+    // the room layer's opacity/visibility per floor without touching
+    // the building shells that stay put regardless of which level is
+    // "active."
+    LaunchedEffect(buildings, rooms, selectedFloor, mapRef) {
+        val map = mapRef ?: return@LaunchedEffect
+        val buildingsGeoJson = buildBuildingsFeatureCollection(buildings, selectedFloor)
+        val roomsGeoJson = buildRoomsFeatureCollection(rooms, selectedFloor)
+
         map.getStyle { style ->
-            val existing = style.getSourceAs<GeoJsonSource>(SRC_BUILDINGS)
-            if (existing != null) {
-                existing.setGeoJson(featuresJson)
+            // ── Buildings ──
+            val existingB = style.getSourceAs<GeoJsonSource>(SRC_BUILDINGS)
+            if (existingB != null) {
+                existingB.setGeoJson(buildingsGeoJson)
             } else {
-                style.addSource(GeoJsonSource(SRC_BUILDINGS, featuresJson))
+                style.addSource(GeoJsonSource(SRC_BUILDINGS, buildingsGeoJson))
                 style.addLayer(
                     FillLayer(LAYER_FILL, SRC_BUILDINGS).withProperties(
                         PropertyFactory.fillColor(Expression.get("color")),
-                        PropertyFactory.fillOpacity(0.28f),
+                        PropertyFactory.fillOpacity(0.24f),
                     )
                 )
                 style.addLayer(
@@ -187,6 +239,48 @@ fun MapScreen() {
                         PropertyFactory.textHaloColor(AndroidColor.WHITE),
                         PropertyFactory.textHaloWidth(1.5f),
                         PropertyFactory.textAllowOverlap(false),
+                    )
+                )
+            }
+
+            // ── Rooms — drawn ON TOP of building fill so they read as
+            // interior slabs, MazeMap-style. Only visible when zoomed
+            // in past 17.5 (below that they'd be sub-pixel noise). ──
+            val existingR = style.getSourceAs<GeoJsonSource>(SRC_ROOMS)
+            if (existingR != null) {
+                existingR.setGeoJson(roomsGeoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_ROOMS, roomsGeoJson))
+                style.addLayer(
+                    FillLayer(LAYER_ROOM_FILL, SRC_ROOMS).withProperties(
+                        PropertyFactory.fillColor(Expression.get("color")),
+                        PropertyFactory.fillOpacity(0.55f),
+                    )
+                )
+                style.addLayer(
+                    LineLayer(LAYER_ROOM_OUTLINE, SRC_ROOMS).withProperties(
+                        PropertyFactory.lineColor(AndroidColor.parseColor("#0F172A")),
+                        PropertyFactory.lineWidth(0.8f),
+                        PropertyFactory.lineOpacity(0.35f),
+                    )
+                )
+                style.addLayer(
+                    SymbolLayer(LAYER_ROOM_LABEL, SRC_ROOMS).withProperties(
+                        PropertyFactory.textField(Expression.get("label")),
+                        PropertyFactory.textSize(10f),
+                        PropertyFactory.textColor(AndroidColor.parseColor("#111827")),
+                        PropertyFactory.textHaloColor(AndroidColor.WHITE),
+                        PropertyFactory.textHaloWidth(1.2f),
+                        PropertyFactory.textAllowOverlap(false),
+                        // Only paint labels once we're close enough to
+                        // read them without a magnifying glass.
+                        PropertyFactory.textOpacity(
+                            Expression.interpolate(
+                                Expression.linear(), Expression.zoom(),
+                                Expression.stop(17f, 0f),
+                                Expression.stop(18f, 1f),
+                            )
+                        ),
                     )
                 )
             }
@@ -215,6 +309,15 @@ fun MapScreen() {
                                 setAttributionMargins(16, 0, 0, 24)
                             }
                             m.addOnMapClickListener { latLng ->
+                                // Rooms first — they're smaller and drawn on
+                                // top so a tap that lands inside a room
+                                // should select the room, not the
+                                // surrounding building.
+                                val roomHit = pickRoomAt(rooms, latLng, selectedFloor)
+                                if (roomHit != null) {
+                                    selectedRoom = roomHit
+                                    return@addOnMapClickListener true
+                                }
                                 val hit = pickBuildingAt(buildings, latLng)
                                 if (hit != null) selected = hit
                                 hit != null
@@ -283,7 +386,11 @@ fun MapScreen() {
             )
         }
 
-        // ── Building count / status pill (bottom-left) ─────────────
+        // ── Building/room count pill (bottom-left) ─────────────────
+        val visibleRoomCount = remember(rooms, selectedFloor) {
+            if (selectedFloor == null) rooms.size
+            else rooms.count { (it["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() == selectedFloor }
+        }
         Row(
             Modifier
                 .align(Alignment.BottomStart)
@@ -300,7 +407,7 @@ fun MapScreen() {
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                "${buildings.size} building${if (buildings.size == 1) "" else "s"}",
+                "${buildings.size} · $visibleRoomCount rooms",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -332,6 +439,28 @@ fun MapScreen() {
             }
             selected = null
         }
+    }
+
+    selectedRoom?.let { r ->
+        RoomSheet(
+            room = r,
+            onDismiss = { selectedRoom = null },
+            onFocus = {
+                val centroid = centroidOf(r)
+                if (centroid != null) {
+                    mapRef?.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(centroid.first, centroid.second),
+                            19.0
+                        )
+                    )
+                }
+                selectedRoom = null
+            },
+            onSwitchFloor = { floor ->
+                selectedFloor = floor
+            },
+        )
     }
 }
 
@@ -489,6 +618,84 @@ private fun BuildingSheet(building: JsonObject, onDismiss: () -> Unit, onFocus: 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoomSheet(
+    room: JsonObject,
+    onDismiss: () -> Unit,
+    onFocus: () -> Unit,
+    onSwitchFloor: (Int) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val number = (room["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
+    val name = (room["name"] as? JsonPrimitive)?.contentOrNull ?: ""
+    val type = (room["type"] as? JsonPrimitive)?.contentOrNull ?: ""
+    val floor = (room["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+    val capacity = (room["capacity"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+    val color = (room["colorCode"] as? JsonPrimitive)?.contentOrNull ?: "#059669"
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(runCatching { Color(AndroidColor.parseColor(color)) }
+                                     .getOrDefault(Color(0xFF059669)).copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        number.take(3),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = runCatching { Color(AndroidColor.parseColor(color)) }.getOrDefault(Color(0xFF059669)),
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text("Room $number", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    if (name.isNotBlank()) {
+                        Text(
+                            name,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("Floor $floor")
+                if (type.isNotBlank()) Chip(type)
+                if (capacity != null && capacity > 0) Chip("Seats $capacity")
+            }
+            Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onFocus,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Icon(Icons.Outlined.MyLocation, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Focus", fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(
+                    onClick = { onSwitchFloor(floor); onDismiss() },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Icon(Icons.Outlined.Layers, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Isolate floor", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
 @Composable
 private fun Chip(text: String) {
     Box(
@@ -510,6 +717,68 @@ private fun floorsFromBuildings(buildings: List<JsonObject>): List<Int> {
     val min = buildings.mapNotNull { (it["floorMin"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }.minOrNull() ?: 1
     if (max <= 0) return emptyList()
     return (min..max).toList()
+}
+
+/** Build a GeoJSON FeatureCollection string of room polygons for the active floor. */
+private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): String {
+    val features = StringBuilder()
+    var first = true
+    for (r in rooms) {
+        val roomFloor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        if (floor != null && roomFloor != floor) continue
+
+        val ptsArr = (r["points"] as? JsonArray) ?: continue
+        if (ptsArr.size < 3) continue
+
+        val coords = StringBuilder("[")
+        var isFirstPt = true
+        for (p in ptsArr) {
+            val po = p as? JsonObject ?: continue
+            val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: continue
+            val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: continue
+            if (!isFirstPt) coords.append(",")
+            coords.append("[$lng,$lat]")
+            isFirstPt = false
+        }
+        val firstPt = ptsArr[0] as? JsonObject
+        if (firstPt != null) {
+            val lat = (firstPt["lat"] as? JsonPrimitive)?.doubleOrNull
+            val lng = (firstPt["lng"] as? JsonPrimitive)?.doubleOrNull
+            if (lat != null && lng != null) coords.append(",[$lng,$lat]")
+        }
+        coords.append("]")
+
+        val name = (r["name"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        val number = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        val label = listOf(number, name).filter { it.isNotEmpty() }.joinToString(" ").ifBlank { "Room" }
+        val color = (r["colorCode"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "#059669"
+        val id = (r["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+
+        if (!first) features.append(",")
+        features.append(
+            """{"type":"Feature","id":"$id","geometry":{"type":"Polygon","coordinates":[$coords]},"properties":{"label":"$label","name":"$name","number":"$number","color":"$color","floor":$roomFloor,"id":"$id"}}"""
+        )
+        first = false
+    }
+    return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
+/** Hit-test — returns the room whose polygon contains the tap. */
+private fun pickRoomAt(rooms: List<JsonObject>, at: LatLng, activeFloor: Int?): JsonObject? {
+    for (r in rooms) {
+        val roomFloor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        if (activeFloor != null && roomFloor != activeFloor) continue
+        val ptsArr = (r["points"] as? JsonArray) ?: continue
+        if (ptsArr.size < 3) continue
+        val polygon = ptsArr.mapNotNull { p ->
+            val po = p as? JsonObject ?: return@mapNotNull null
+            val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
+            val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
+            LatLng(lat, lng)
+        }
+        if (polygon.size >= 3 && pointInPolygon(at, polygon)) return r
+    }
+    return null
 }
 
 /** Build a GeoJSON FeatureCollection string of building polygons. */

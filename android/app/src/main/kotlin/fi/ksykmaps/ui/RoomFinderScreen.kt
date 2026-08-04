@@ -42,10 +42,13 @@ import kotlinx.serialization.json.jsonArray
  * Searchable room list. Type-filter chips across the top let the user
  * quickly narrow by classroom / hallway / lab etc. Tap a card to open a
  * detail bottom sheet with all the metadata + share + open-in-map buttons.
+ *
+ * If `onOpenOnMap` is supplied, the "Open on map" button jumps to the
+ * native Map tab and focuses the room instead of opening the browser.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomFinderScreen() {
+fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
@@ -201,8 +204,16 @@ fun RoomFinderScreen() {
     selected?.let { r ->
         RoomDetailSheet(r, onDismiss = { selected = null }) {
             val id = (r["id"] as? JsonPrimitive)?.contentOrNull
-            val uri = if (id != null) "https://ksykmaps.fi/?room=$id" else "https://ksykmaps.fi"
-            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: Exception) { }
+            if (onOpenOnMap != null && id != null) {
+                // Prefer the native map — hand the room id to the Map
+                // tab via a one-shot intent flag and navigate there.
+                onOpenOnMap(id)
+            } else {
+                // Fallback: open the web link (used if this screen is
+                // ever hosted outside the standard NavHost).
+                val uri = if (id != null) "https://ksykmaps.fi/?room=$id" else "https://ksykmaps.fi"
+                try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: Exception) { }
+            }
             selected = null
         }
     }
