@@ -1,11 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.27.5 — map always opens at admin spawn (persisted
-camera dropped), map init waits for server defaults (no Kulosaari
-flash), search input auto-clears after pick, header taller on
-desktop, announcement banner improved, info drawer drag-resizable on
-mobile with 3 snap points. Android v1.8.0 gets a persistent live
-compass chip.
+Bump reason: v3.28.0 — POIs (doors, stairs, elevators, generic POIs)
+now render on the builder map with distinct color chips + letter
+markers. RoomProps gains EN + FI name fields. AnnouncementBanner
+strip reverted to compact; the click-to-open dialog is polished.
 
-Timestamp: 1786176000
-Build: FORCE_REBUILD_v3.27.5_SPAWN_HEADER_COMPASS
+Timestamp: 1786179600
+Build: FORCE_REBUILD_v3.28.0_BUILDER_POIS

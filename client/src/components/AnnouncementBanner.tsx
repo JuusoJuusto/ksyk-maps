@@ -126,12 +126,11 @@ export default function AnnouncementBanner() {
           onClick={() => setIsDialogOpen(true)}
         >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-          {/* v3.27.5 — taller strip on desktop (py 2 → 3), room for
-           *  the icon to breathe (bigger padding), and content
-           *  preview text now visible on mobile too (was hidden).
-           *  Click affordance: a subtle chevron on the right so
-           *  users know it opens a dialog. */}
-          <div className="flex items-center justify-between gap-2 py-2 sm:py-2.5 md:py-3">
+          {/* v3.28.0 — reverted the 3.27.5 size bump per feedback.
+           *  Back to the original compact strip that doesn't dominate
+           *  the top of the screen. Dialog polish moved to the modal
+           *  itself (see the AnnouncementDialog below). */}
+          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentAnnouncement.id}
@@ -139,17 +138,16 @@ export default function AnnouncementBanner() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -12 }}
                 transition={{ duration: 0.35 }}
-                className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0"
+                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
               >
-                <div className="flex-shrink-0 bg-white/25 p-1.5 sm:p-2 rounded-full ring-1 ring-white/10">
+                <div className="flex-shrink-0 bg-white/20 p-1 sm:p-1.5 rounded-full">
                   {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
-                <div className="flex-1 min-w-0 leading-snug">
-                  <p className="text-white font-bold text-[13px] sm:text-sm md:text-base truncate">
+                <div className="flex-1 min-w-0 leading-tight">
+                  <p className="text-white font-bold text-xs sm:text-sm truncate">
                     {getLocalizedTitle(currentAnnouncement)}
                   </p>
-                  {/* Now shown on mobile too — was hidden sm:block. */}
-                  <p className="text-white/90 text-[10.5px] sm:text-xs md:text-[13px] truncate">
+                  <p className="text-white/85 text-[10px] sm:text-xs truncate hidden sm:block">
                     {getLocalizedContent(currentAnnouncement)}
                   </p>
                 </div>
@@ -233,14 +231,18 @@ export default function AnnouncementBanner() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className={cn(
-            "max-w-lg w-[calc(100vw-1.5rem)] p-0 gap-0 overflow-hidden rounded-2xl border-0 shadow-2xl",
-            "max-h-[calc(100dvh-3rem)]",
+            // v3.28.0 — cleaner dialog. Slightly wider on desktop
+            // (max-w-lg → max-w-xl) so long announcements don't
+            // wrap awkwardly; taller max-height cap so bullet lists
+            // don't scroll cramped; rounded-3xl for a softer edge.
+            "max-w-xl w-[calc(100vw-1.5rem)] p-0 gap-0 overflow-hidden rounded-3xl border-0 shadow-2xl",
+            "max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh]",
             "bg-white dark:bg-gray-950",
           )}
         >
           {/* Thin top accent bar — carries the priority color without
            *  taking over the whole header. */}
-          <div className={cn("h-1 w-full", priorityBg)} />
+          <div className={cn("h-1.5 w-full", priorityBg)} />
 
           {/* Header — white, matches top bar. Colored icon tile
            *  provides the KSYK-family accent. */}
@@ -314,7 +316,7 @@ export default function AnnouncementBanner() {
           <div className="h-px mx-5 sm:mx-6 bg-gray-100 dark:bg-gray-800" />
 
           {/* Body — scrollable prose */}
-          <div className="px-5 sm:px-6 py-5 overflow-y-auto max-h-[calc(100dvh-18rem)]">
+          <div className="px-5 sm:px-7 py-5 sm:py-6 overflow-y-auto flex-1" style={{ maxHeight: "min(65dvh, 38rem)" }}>
             <div className={cn(
               "text-[15px] leading-relaxed",
               darkMode ? "text-gray-300" : "text-gray-700",
@@ -353,20 +355,51 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* Footer — clean neutral, matches top bar buttons */}
+          {/* Footer — v3.28.0 cleaner. Removed the loud KSYK Maps
+           *  wordmark; if there are multiple announcements, footer
+           *  shows an "N of M" counter with prev/next chevrons so
+           *  users can page through without closing. Close button
+           *  toned down to a subtle outline (Cancel-style) since a
+           *  dialog with only one action shouldn't scream at the
+           *  reader. */}
           <div className={cn(
-            "flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-t",
+            "flex items-center justify-between gap-3 px-5 sm:px-7 py-3 border-t",
             darkMode ? "border-gray-800 bg-gray-950" : "border-gray-100 bg-gray-50/60",
           )}>
-            <div className={cn(
-              "text-[11px] font-medium",
-              darkMode ? "text-gray-500" : "text-gray-400",
-            )}>
-              KSYK Maps
+            <div className="flex items-center gap-2">
+              {activeAnnouncements.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
+                    className="h-8 w-8 p-0 rounded-lg"
+                    aria-label="Previous announcement"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className={cn(
+                    "text-[11px] font-semibold tabular-nums",
+                    darkMode ? "text-gray-400" : "text-gray-500",
+                  )}>
+                    {currentIndex + 1} / {activeAnnouncements.length}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
+                    className="h-8 w-8 p-0 rounded-lg"
+                    aria-label="Next announcement"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
             <Button
+              variant="outline"
               onClick={() => setIsDialogOpen(false)}
-              className="h-10 px-5 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] transition-all"
+              className="h-9 px-5 rounded-lg font-semibold"
             >
               {i18n.language === "fi" ? "Sulje" : "Close"}
             </Button>

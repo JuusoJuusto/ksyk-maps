@@ -312,6 +312,11 @@ function RoomProps({ room }: { room: Room }) {
   const qc = useQueryClient();
   const [roomNumber, setRoomNumber] = useState(room.roomNumber);
   const [name, setName] = useState(room.name ?? "");
+  // v3.28.0 — English + Finnish name fields alongside the base name.
+  // Server schema already had nameEn/nameFi columns; the property
+  // panel just wasn't exposing them.
+  const [nameEn, setNameEn] = useState((room as unknown as { nameEn?: string | null }).nameEn ?? "");
+  const [nameFi, setNameFi] = useState((room as unknown as { nameFi?: string | null }).nameFi ?? "");
   const [type, setType] = useState<RoomType | null>(room.type ?? null);
   const [capacity, setCapacity] = useState(room.capacity ?? 0);
   const [department, setDepartment] = useState(room.department ?? "");
@@ -340,6 +345,8 @@ function RoomProps({ room }: { room: Room }) {
   const dirty =
     roomNumber !== room.roomNumber ||
     name !== (room.name ?? "") ||
+    nameEn !== ((room as unknown as { nameEn?: string | null }).nameEn ?? "") ||
+    nameFi !== ((room as unknown as { nameFi?: string | null }).nameFi ?? "") ||
     type !== (room.type ?? null) ||
     capacity !== (room.capacity ?? 0) ||
     department !== (room.department ?? "") ||
@@ -355,6 +362,13 @@ function RoomProps({ room }: { room: Room }) {
       <div className="grid grid-cols-2 gap-2">
         <TextField label="Number" value={roomNumber} onChange={setRoomNumber} />
         <TextField label="Name" value={name} onChange={setName} />
+      </div>
+      {/* v3.28.0 — bilingual name fields. Empty = fall back to base
+       *  name; used by i18n-aware displays (search index, info drawer
+       *  once localized). */}
+      <div className="grid grid-cols-2 gap-2">
+        <TextField label="Name (English)" value={nameEn} onChange={setNameEn} placeholder="e.g. Music room" />
+        <TextField label="Name (Finnish)" value={nameFi} onChange={setNameFi} placeholder="esim. Musiikkiluokka" />
       </div>
       <div>
         <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Type</label>
@@ -427,6 +441,8 @@ function RoomProps({ room }: { room: Room }) {
           patch.mutate({
             roomNumber,
             name: name || null,
+            nameEn: nameEn || null,
+            nameFi: nameFi || null,
             type,
             floor,
             capacity,
@@ -438,7 +454,7 @@ function RoomProps({ room }: { room: Room }) {
               .map((s) => s.trim())
               .filter(Boolean),
             metadata: nextMeta as never,
-          });
+          } as never);
         }}
       />
     </div>

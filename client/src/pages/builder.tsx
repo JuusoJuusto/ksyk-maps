@@ -25,6 +25,7 @@ import StatusBar, { type StatusBarState } from "@/components/builder/StatusBar";
 import TopToolbar from "@/components/builder/TopToolbar";
 import LayersToggle from "@/components/LayersToggle";
 import ImageOverlay from "@/components/builder/ImageOverlay";
+import BuilderPois from "@/components/builder/BuilderPois";
 import ValidationDrawer from "@/components/builder/ValidationDrawer";
 import ImportExportDialog from "@/components/builder/ImportExportDialog";
 import { Button } from "@/components/ui/button";
@@ -2280,6 +2281,17 @@ function BuilderWorkspace() {
            *  re-mounts with the actual map handle once the map's
            *  `load` event fires. */}
           {mapReady && <ImageOverlay map={handleRef.current?.map ?? null} />}
+
+          {/* v3.28.0 — render doors, stairs, elevators, and generic
+           *  POIs as circle chips directly on the builder map so
+           *  admins can SEE what they're placing without publishing.
+           *  Filtered by the currently-selected floor. */}
+          {mapReady && (
+            <BuilderPois
+              map={handleRef.current?.map ?? null}
+              activeFloor={cameraState.activeFloor ?? null}
+            />
+          )}
 
           {/* Snap label — floating pill next to the snap indicator so
            *  users see "Vertex" / "Endpoint" / "Midpoint" and know why

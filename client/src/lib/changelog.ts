@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.5";
+export const APP_VERSION = "3.28.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.28.0",
+    date: "August 2026",
+    title: "POIs visible in builder, EN/FI room names, cleaner announcement dialog, banner reverted",
+    titleFi: "POI:t näkyvät rakentajassa, EN/FI-nimet huoneille, siistimpi ilmoitusikkuna",
+    latest: true,
+    highlights: [
+      "Builder: POIs (doors, stairs, elevators, generic POIs) are now RENDERED on the builder map. Doors: green E for entrance, X for exit, D for door. Stairs: amber S. Elevators: blue E. Generic POIs colored by category. All filter by the currently-selected floor. Previously invisible in the builder — admins had to publish to see placement.",
+      "RoomProps: new Name (English) + Name (Finnish) fields alongside the base Name. Wired to the existing nameEn/nameFi columns in the schema so the search index + future i18n-aware displays pick them up.",
+      "AnnouncementBanner: reverted the 3.27.5 size bump per feedback — strip is back to the compact original height. The click-to-open DIALOG is polished instead: wider on desktop (max-w-xl), rounded-3xl, cleaner footer with per/next chevrons + subtle outline Close (was a loud blue CTA).",
+      "Building label toggle already exists in the Style tab of the Property panel — check the Show label switch to hide/show a building's name on the map.",
+    ],
+    highlightsFi: [
+      "Rakentaja: ovet, portaat, hissit ja POI:t näkyvät suoraan kartalla",
+      "Huoneille englannin- ja suomenkieliset nimikentät",
+      "Ilmoituspalkki palautettu — sen sijaan avautuva ikkuna siistimpi",
+    ],
+  },
   {
     version: "3.27.5",
     date: "August 2026",
     title: "Spawn-on-load, taller header, drag-resize info sheet, better banner. Android v1.8.0: live compass",
     titleFi: "Aloitusnäkymä aina spawnista, isompi yläpalkki, säädettävä tietopaneeli. Android: kompassi.",
-    latest: true,
     highlights: [
       "Map now ALWAYS opens at the admin-configured spawn (center, zoom, rotation) on fresh page loads. Cross-session persisted camera dropped — every open is a fresh spawn. Shared URLs (?z=&lat=&lng=…) still win so links work.",
       "Map init now waits up to 2 s for /api/map-defaults before painting the first frame, so users no longer briefly see the hardcoded fallback before the real admin spawn arrives.",
