@@ -444,10 +444,14 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
         top: searchActive ? undefined : headerBottom,
         bottom: searchActive ? "calc(1rem + env(safe-area-inset-bottom, 0px))" : undefined,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // Leave the right-rail buttons + attribution room at the bottom.
+        // v3.26.6 — taller max height on desktop so the turn-by-turn
+        // list has real breathing room. Was 70dvh; now 85dvh (mobile
+        // stays comfortable because it's still gated by the same
+        // "distance to viewport bottom" calc). Mobile search-active
+        // stays 12rem so it doesn't cover the search dropdown.
         maxHeight: searchActive
           ? "12rem"
-          : `min(70dvh, calc(100dvh - ${headerBottom}px - 5rem))`,
+          : `min(85dvh, calc(100dvh - ${headerBottom}px - 4rem))`,
       }}
       role="dialog"
       aria-label="Navigation directions"

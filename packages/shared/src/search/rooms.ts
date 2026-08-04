@@ -73,7 +73,7 @@ export function buildRoomSearchIndex(
         typeof building.floors === "number"
           ? `${building.floors} floor${building.floors === 1 ? "" : "s"}`
           : null,
-      ].filter(Boolean).join(" · "),
+      ].filter(Boolean).join(" — "),
       // Repeat the names in keywords too so a token like "kulo" hits
       // both fields — belt-and-suspenders after the earlier weight
       // rebalance. Even at WEIGHT_KEYWORDS 0.8 this only helps
@@ -109,7 +109,7 @@ export function buildRoomSearchIndex(
         room.roomNumber || null,
         room.floor !== undefined ? `Floor ${room.floor}` : null,
         room.type ?? null,
-      ].filter(Boolean).join(" · "),
+      ].filter(Boolean).join(" — "),
       keywords: [
         room.roomNumber,
         // Include names in keywords too — belt-and-suspenders like buildings.

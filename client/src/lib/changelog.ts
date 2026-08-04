@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.5";
+export const APP_VERSION = "3.26.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.6",
+    date: "August 2026",
+    title: "Nav panel taller, search em-dash separator, drag-to-move images, tilt reset",
+    titleFi: "Reittipaneeli korkeampi, hakuruudun välimerkki –, kuvien raahaus",
+    latest: true,
+    highlights: [
+      "NavigationPanel: desktop max-height 70dvh → 85dvh so the turn-by-turn list has real breathing room. Mobile stays gated by the viewport-bottom distance so nothing changes there.",
+      "Search results: field separator changed from a middle dot (·) to an em-dash (—). Reads more clearly as \"Building — 105 — Floor 2 — Classroom\" instead of the cramped dot version.",
+      "Builder: image overlays are now DRAGGABLE. Click and drag the selected overlay to move it on the map (map's own drag pan is temporarily disabled during a drag so the map doesn't slide out from under it). Touch drag works on tablets. A blue hint chip on the control panel tells you drag is available.",
+      "Builder: added \"Reset tilt + skew\" button under the perspective sliders. Zeros both to zero so rotation is pure again without touching the rotation slider.",
+    ],
+    highlightsFi: [
+      "Reittipaneeli mahtuu korkeammaksi työpöydällä",
+      "Hakutuloksissa selkeä ajatusviiva erottimena",
+      "Kuvia voi nyt raahata suoraan kartalla — myös tabletilla",
+      "\"Nollaa kallistus + vinouma\" nappula palauttaa kuvan suoraan",
+    ],
+  },
   {
     version: "3.26.5",
     date: "August 2026",
     title: "Search clip fix, category room colors, doors snap to walls, image tilt + toolbar",
     titleFi: "Hakuruudun leikkautuminen korjattu, huoneiden autovärit, ovet napsahtavat seiniin",
-    latest: true,
     highlights: [
       "Fix — the desktop search results dropdown was visually clipping under the top bar for some layouts. Bumped its z-index above the sticky header so it now always sits cleanly on top.",
       "MazeMap-style: rooms with no explicit color now auto-tint based on their type — classroom green, lab orange, toilets pink, cafeteria amber, office indigo, gym rose, storage grey, and more. Explicit colorCode still wins so anything you set in the builder is preserved.",

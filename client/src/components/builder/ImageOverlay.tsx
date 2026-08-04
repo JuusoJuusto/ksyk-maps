@@ -21,9 +21,9 @@
  * recomputed on every change so rotation actually works. (MapLibre
  * image sources don't have a native rotation parameter.)
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Map as MaplibreMap } from "maplibre-gl";
-import { Image as ImageIcon, RotateCw, Trash2, ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Map as MaplibreMap, MapMouseEvent } from "maplibre-gl";
+import { Image as ImageIcon, RotateCw, Trash2, ChevronDown, ChevronUp, MapPin, Move } from "lucide-react";
 
 const STORAGE_KEY = "ksyk_builder_image_overlays_v1";
 
@@ -132,6 +132,15 @@ export default function ImageOverlay({ map }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [aspectMap, setAspectMap] = useState<Record<string, number>>({});
   const [collapsed, setCollapsed] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  // Refs so the mousedown/move handlers can read the latest state
+  // without re-subscribing every render.
+  const overlaysRef = useRef(overlays);
+  const activeIdRef = useRef(activeId);
+  const aspectMapRef = useRef(aspectMap);
+  useEffect(() => { overlaysRef.current = overlays; }, [overlays]);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  useEffect(() => { aspectMapRef.current = aspectMap; }, [aspectMap]);
 
   // Persist to localStorage on every change so a reload restores them.
   useEffect(() => { writeOverlays(overlays); }, [overlays]);
@@ -243,6 +252,89 @@ export default function ImageOverlay({ map }: Props) {
     return () => window.removeEventListener("ksyk:builder-import-image", onGlobal);
   }, [onImport]);
 
+  // v3.26.6 — drag-to-move for the ACTIVE overlay. Mousedown inside
+  // the active image's 4-corner polygon starts a drag; mousemove
+  // updates the overlay center; mouseup ends it. Map's own drag pan
+  // is temporarily disabled during a drag so the map doesn't slide
+  // out from under the image.
+  useEffect(() => {
+    if (!map) return;
+
+    const findHit = (e: MapMouseEvent): ImageOverlaySpec | null => {
+      const aid = activeIdRef.current;
+      if (!aid) return null;
+      const o = overlaysRef.current.find((x) => x.id === aid);
+      if (!o) return null;
+      const aspect = aspectMapRef.current[o.id] ?? 1;
+      const corners = cornersFor(
+        o.centerLat, o.centerLng, o.widthMeters, aspect, o.rotationDeg,
+        o.tiltDeg ?? 0, o.skewDeg ?? 0,
+      );
+      // Point-in-polygon (ray-cast) on the 4-corner ring, in lng/lat.
+      const pt: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+      let inside = false;
+      for (let i = 0, j = corners.length - 1; i < corners.length; j = i++) {
+        const [xi, yi] = corners[i];
+        const [xj, yj] = corners[j];
+        const intersect = ((yi > pt[1]) !== (yj > pt[1])) &&
+          (pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi + 1e-12) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside ? o : null;
+    };
+
+    let dragStartLL: { lng: number; lat: number } | null = null;
+    let dragStartCenter: { lat: number; lng: number } | null = null;
+
+    const onDown = (e: MapMouseEvent) => {
+      const hit = findHit(e);
+      if (!hit) return;
+      // Only start a drag if the click was on the ACTIVE overlay.
+      dragStartLL = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+      dragStartCenter = { lat: hit.centerLat, lng: hit.centerLng };
+      setDragging(true);
+      map.dragPan.disable();
+      // Prevent the map's own click handlers from firing.
+      e.originalEvent?.preventDefault();
+    };
+    const onMove = (e: MapMouseEvent) => {
+      if (!dragStartLL || !dragStartCenter) return;
+      const dLng = e.lngLat.lng - dragStartLL.lng;
+      const dLat = e.lngLat.lat - dragStartLL.lat;
+      const aid = activeIdRef.current;
+      if (!aid) return;
+      setOverlays((prev) => prev.map((o) =>
+        o.id === aid
+          ? { ...o, centerLat: dragStartCenter!.lat + dLat, centerLng: dragStartCenter!.lng + dLng }
+          : o,
+      ));
+    };
+    const onUp = () => {
+      if (!dragStartLL) return;
+      dragStartLL = null;
+      dragStartCenter = null;
+      setDragging(false);
+      map.dragPan.enable();
+    };
+
+    map.on("mousedown", onDown);
+    map.on("mousemove", onMove);
+    map.on("mouseup", onUp);
+    // touch equivalents so drag works on iPad/Android tablet
+    map.on("touchstart", onDown);
+    map.on("touchmove", onMove);
+    map.on("touchend", onUp);
+    return () => {
+      map.off("mousedown", onDown);
+      map.off("mousemove", onMove);
+      map.off("mouseup", onUp);
+      map.off("touchstart", onDown);
+      map.off("touchmove", onMove);
+      map.off("touchend", onUp);
+      map.dragPan.enable();
+    };
+  }, [map]);
+
   const active = useMemo(() => overlays.find((o) => o.id === activeId) ?? null, [overlays, activeId]);
 
   const patchActive = useCallback((patch: Partial<ImageOverlaySpec>) => {
@@ -301,6 +393,10 @@ export default function ImageOverlay({ map }: Props) {
 
               {active && (
                 <div className="border-t border-border p-3 space-y-3">
+                  <div className="flex items-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10 rounded-lg px-2 py-1.5">
+                    <Move className="h-3 w-3 shrink-0" />
+                    <span>Drag the image on the map to move it</span>
+                  </div>
                   <SliderRow
                     label="Opacity"
                     value={active.opacity}
@@ -337,6 +433,16 @@ export default function ImageOverlay({ map }: Props) {
                     format={(v) => `${v.toFixed(0)}°`}
                     onChange={(v) => patchActive({ skewDeg: v })}
                   />
+                  {/* v3.26.6 — Reset perspective. Zeros tilt + skew
+                   *  so the image is a pure rectangle again; leaves
+                   *  rotation alone. */}
+                  <button
+                    type="button"
+                    onClick={() => patchActive({ tiltDeg: 0, skewDeg: 0 })}
+                    className="w-full h-7 rounded-lg border border-border bg-background text-[11px] font-semibold hover:bg-muted/40"
+                  >
+                    Reset tilt + skew
+                  </button>
                   <div className="flex gap-1.5 pt-1">
                     <button
                       type="button"

@@ -1,9 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.26.5 — search dropdown clip fix (z-index above the
-sticky header), MazeMap-style room auto-coloring by type, doors snap
-to nearest wall within 3 m in the builder, image overlay gains tilt +
-skew sliders and its Import button moves into the top toolbar.
+Bump reason: v3.26.6 — desktop NavigationPanel taller (85dvh), search
+results now use em-dash separators, builder image overlays are
+draggable on the map with a Reset button for tilt/skew.
 
-Timestamp: 1786104000
-Build: FORCE_REBUILD_v3.26.5_MAZEMAP_POLISH
+Timestamp: 1786107600
+Build: FORCE_REBUILD_v3.26.6_DRAG_IMAGES
