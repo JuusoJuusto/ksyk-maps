@@ -227,31 +227,42 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     });
   }, []);
 
-  /** Fly the map to whatever the user picked in the search dropdown.
-   *  Rooms + buildings both work — we compute the polygon centroid. */
+  /** Fly the map to the pick AND set it as the routing destination.
+   *  v3.25.8 — MazeMap-style: clicking a search result opens the
+   *  NavigationPanel with the pick pre-filled as "To". The panel then
+   *  prompts for the "From" endpoint. The camera still animates to the
+   *  pick so users see context; the highlight polygon + floor switch
+   *  behave as before. */
   const onPickResult = useCallback((pick: SearchPick) => {
     const h = handleRef.current;
     if (!h) return;
     let centre: { lat: number; lng: number } | null = null;
+    let routeFeature: ClickedFeature | null = null;
     if (pick.kind === "room" && pick.room.points?.length) {
       centre = polygonCentroid(pick.room.points);
       if (typeof pick.room.floor === "number") setSelectedFloor(pick.room.floor);
       setHighlightPolygon(pick.room.points);
+      routeFeature = { kind: "room", entity: pick.room };
     } else if (pick.kind === "building" && pick.building.points?.length) {
       centre = polygonCentroid(pick.building.points);
       setHighlightPolygon(pick.building.points);
+      routeFeature = { kind: "building", entity: pick.building };
     }
-    if (!centre) return;
-    h.map.flyTo({
-      center: [centre.lng, centre.lat],
-      zoom: Math.max(h.map.getZoom(), pick.kind === "building" ? 17.5 : 18.5),
-      // Preserve rotation + pitch — the user asked us to keep it.
-      bearing: h.map.getBearing(),
-      pitch: h.map.getPitch(),
-      duration: 800,
-      essential: true,
-    });
-  }, []);
+    if (centre) {
+      h.map.flyTo({
+        center: [centre.lng, centre.lat],
+        zoom: Math.max(h.map.getZoom(), pick.kind === "building" ? 17.5 : 18.5),
+        // Preserve rotation + pitch — the user asked us to keep it.
+        bearing: h.map.getBearing(),
+        pitch: h.map.getPitch(),
+        duration: 800,
+        essential: true,
+      });
+    }
+    // Open NavigationPanel and hand it the destination via the same
+    // `ksyk:route-to` event FeatureInfoSheet's "Directions here" uses.
+    if (routeFeature) handleRouteTo(routeFeature);
+  }, [handleRouteTo]);
 
   return (
     <div className="absolute inset-0">

@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.7";
+export const APP_VERSION = "3.25.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.8",
+    date: "August 2026",
+    title: "Fix: FL→Florida autotranslate. Fix: first-visit bearing. Web search now routes.",
+    titleFi: "Korjaus: FL→Florida automaattikäännös. Korjaus: kompassisuunta. Web-haku aloittaa reitityksen.",
+    latest: true,
+    highlights: [
+      "Fix — the site now sets translate=\"no\" globally, so Chrome/Safari's auto-translate stops rewriting labels like \"FL\" (floor) to \"Florida\" and garbling room numbers/POI names. The Finnish UI still works via i18n; only browser autotranslate is disabled.",
+      "Fix — first-ever visit was booting the map facing north instead of the admin-set bearing. Root cause: /api/map-defaults loads AFTER the map inits, and the re-apply effect deliberately preserved the current bearing. Now: if no persisted camera exists AND the user hasn't rotated yet, applying the admin bearing/pitch when defaults arrive.",
+      "Web: clicking a search result now IMMEDIATELY opens the NavigationPanel with the pick as the destination — same MazeMap-style flow the Android app got in 3.25.7. Camera still flies to the room for context; user is then prompted for the origin.",
+    ],
+    highlightsFi: [
+      "Korjaus: FL-lyhenne ei enää käänny \"Florida\"-sanaksi automaattikäännöksissä",
+      "Korjaus: ensimmäisellä käynnillä kartta katsoo nyt admin-asetettuun suuntaan",
+      "Web: hakutuloksen napautus avaa suoraan reitityksen ja pyytää lähtöpaikkaa",
+    ],
+  },
   {
     version: "3.25.7",
     date: "August 2026",
     title: "Android: no login, search→destination, 3D toggle. Web: sharper at max zoom.",
     titleFi: "Android: ei kirjautumista, haku→määränpää, 3D. Web: terävämpi kartta.",
-    latest: true,
     highlights: [
       "Android: no more login gate. The app opens straight to the map like the website. Sign-in moved to Settings as an optional link, only needed for the beacon survey + admin actions.",
       "Android: tapping a search result now IMMEDIATELY sets it as the destination and pops the Lähtöpaikka picker (Oma sijainti / Etsi lähtöhuone). No detour through the room sheet — that's still available by tapping the room on the map.",

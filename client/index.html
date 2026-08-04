@@ -1,7 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
   <head>
     <meta charset="UTF-8" />
+    <!-- v3.25.8 — disable browser autotranslate for the whole app.
+         Chrome/Safari's "always translate this page" was rewriting
+         labels like "FL" (floor abbreviation) into "Florida" and
+         garbling room numbers/POI names that map to real-world
+         entities and must NOT be translated. The i18n system provides
+         proper Finnish translations for UI copy; the map data is
+         proper nouns and should stay as-is. -->
+    <meta name="google" content="notranslate" />
     <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
     <link rel="icon" type="image/png" href="/favicon-48.png" sizes="48x48" />
     <link rel="icon" type="image/png" href="/favicon-64.png" sizes="64x64" />

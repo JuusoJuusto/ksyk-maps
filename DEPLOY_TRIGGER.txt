@@ -1,11 +1,11 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.25.7. Android: removed the forced login gate (app opens
-like the website); tapping a search result immediately sets it as
-destination and prompts for Lähtöpaikka; new 3D toggle with building +
-room extrusions on Android. Web: max zoom raised to 22 and basemap
-fades aggressively past zoom 19 so the KSYK vector overlay stays crisp
-at the interior view.
+Bump reason: v3.25.8. Fixes: translate="no" globally so browsers stop
+auto-translating "FL"→"Florida"; first-visit bearing snap so the map
+uses the admin's rotation instead of facing north; web search click
+now opens NavigationPanel with the pick as destination + prompts for
+lähtöpaikka (MazeMap-style, matching the Android behaviour we shipped
+in 3.25.7).
 
-Timestamp: 1786075200
-Build: FORCE_REBUILD_v3.25.7
+Timestamp: 1786078800
+Build: FORCE_REBUILD_v3.25.8

@@ -457,19 +457,34 @@ export default function CampusMap({
     // Zoom bounds first — MapLibre will clamp current zoom if needed.
     map.setMinZoom(d.minZoom);
     map.setMaxZoom(Math.min(22, d.maxZoom));
+    // v3.25.8 — first-visit fix: if the user has no persisted camera
+    // (i.e. this is their first-ever load OR they've cleared
+    // localStorage) AND has never moved the map (bearing/pitch still
+    // at 0), it's safe to snap to the admin-set bearing + pitch.
+    // Without this the map would boot facing north because
+    // `loadMapDefaultsFromServer` finishes AFTER the map init effect,
+    // so `platformDefaults.bearing` was 0 at init time and we never
+    // re-applied it. The old easeTo below kept `map.getBearing()`
+    // which was 0.
+    const hasPersistedCamera = readPersistedCamera() !== null;
+    const userHasMovedCamera = Math.abs(map.getBearing()) > 0.5 || map.getPitch() > 1;
+    const shouldSnapBearing = !hasPersistedCamera && !userHasMovedCamera;
     // Then camera — explicit bearing + pitch so easeTo's zero-defaults
     // can't yank the user out of their rotated / tilted view.
     map.easeTo({
       center: [d.lng, d.lat],
       zoom: d.zoom,
-      bearing: map.getBearing(),
-      pitch: map.getPitch(),
+      bearing: shouldSnapBearing ? d.bearing : map.getBearing(),
+      pitch:   shouldSnapBearing ? d.pitch   : map.getPitch(),
       duration: 500,
     });
   }, [
     settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom, settings.osmMinZoom, settings.osmMaxZoom,
+    settings.osmRotationDeg, settings.osmPitchDeg,
     settings.mobileCenterLat, settings.mobileCenterLng, settings.mobileDefaultZoom, settings.mobileMinZoom, settings.mobileMaxZoom,
+    settings.mobileRotationDeg, settings.mobilePitchDeg,
     settings.desktopCenterLat, settings.desktopCenterLng, settings.desktopDefaultZoom, settings.desktopMinZoom, settings.desktopMaxZoom,
+    settings.desktopRotationDeg, settings.desktopPitchDeg,
     ready, bearing, pitch,
   ]);
 
