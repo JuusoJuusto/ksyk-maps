@@ -24,6 +24,7 @@ import LeftSidebar, { type LeftSidebarTab, type LeftSidebarSelection } from "@/c
 import StatusBar, { type StatusBarState } from "@/components/builder/StatusBar";
 import TopToolbar from "@/components/builder/TopToolbar";
 import LayersToggle from "@/components/LayersToggle";
+import ImageOverlay from "@/components/builder/ImageOverlay";
 import ValidationDrawer from "@/components/builder/ValidationDrawer";
 import ImportExportDialog from "@/components/builder/ImportExportDialog";
 import { Button } from "@/components/ui/button";
@@ -376,6 +377,11 @@ function BuilderWorkspace() {
         lineCoords = coords;
       } else if (coords.length >= 3) {
         polyCoords = [...coords, coords[0]];
+      } else if ((activeTool === "building" || activeTool === "room") && coords.length === 2) {
+        // v3.26.4 — while placing a building/room, show a line between
+        // corners 1 and 2 so the user sees their progress. Once corner
+        // 3 lands, the branch above kicks in and closes the polygon.
+        lineCoords = coords;
       }
 
       const shapeFeature: unknown | null = polyCoords
@@ -2192,6 +2198,15 @@ function BuilderWorkspace() {
           <div className="absolute top-3 right-16 z-30">
             <LayersToggle />
           </div>
+
+          {/* v3.26.4 — reference image overlay tool. Import a floor
+           *  plan / architect PDF page / photo, position + rotate +
+           *  fade it, then trace walls and rooms on top. Uses
+           *  MapLibre image sources; overlays persist in localStorage.
+           *  Gated on mapReady (a state var) so the component
+           *  re-mounts with the actual map handle once the map's
+           *  `load` event fires. */}
+          {mapReady && <ImageOverlay map={handleRef.current?.map ?? null} />}
 
           {/* Snap label — floating pill next to the snap indicator so
            *  users see "Vertex" / "Endpoint" / "Midpoint" and know why

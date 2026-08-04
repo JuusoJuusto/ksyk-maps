@@ -1,8 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.26.3 — MazeMap-style hover halos on buildings + rooms,
-and a mandatory cache-bust so any stale bundles from before the
-3.26.2 hotfix chain get invalidated for every user.
+Bump reason: v3.26.4 — builder gets an image overlay tool (import a
+floor plan / architect PDF page / photo, position + rotate + fade,
+then trace walls and rooms on top). Also: line preview between the
+first two corners while drawing a building or room, so you see the
+first segment before placing the third corner.
 
-Timestamp: 1786096800
-Build: FORCE_REBUILD_v3.26.3_HOVER_HALOS_AND_CACHE_BUST
+Timestamp: 1786100400
+Build: FORCE_REBUILD_v3.26.4_IMAGE_OVERLAY

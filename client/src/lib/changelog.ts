@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.3";
+export const APP_VERSION = "3.26.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.4",
+    date: "August 2026",
+    title: "Builder: reference-image overlay + line preview while drawing",
+    titleFi: "Rakentaja: pohjapiirustus-kuvien tuonti ja viivan esikatselu",
+    latest: true,
+    highlights: [
+      "Builder: Import a floor plan / architect PDF page / photo and use it as a MazeMap-style tracing layer. Sliders for opacity, width (5–500 m), and rotation (–180° to +180°). \"Recenter\" snaps the image to the current map view; delete button removes it. Overlays persist across reloads in localStorage. Handles multiple images with a collapsible list picker at top-left.",
+      "Builder: while drawing a building or room, the segment between corners 1 and 2 now shows as a solid line (previously nothing appeared until you'd placed 3 corners). At 3+ corners the shape closes to a polygon as before. Combined with the dashed cursor-ghost from 3.26.0, you always see exactly what you're placing.",
+    ],
+    highlightsFi: [
+      "Rakentaja: tuo pohjapiirustus-kuva ja käytä sitä pohjana",
+      "Rakentaja: piirtäessä kulmat 1-2 näkyvät jo viivana",
+    ],
+  },
   {
     version: "3.26.3",
     date: "August 2026",
     title: "MazeMap-style hover halos + cache-bust",
     titleFi: "MazeMap-tyylinen hover-korostus + välimuisti tyhjennetty",
-    latest: true,
     highlights: [
       "Hover the map with your cursor — buildings now get a thick coloured outline (2× normal width, full opacity) so you see exactly which building the cursor is on. Rooms get a bright blue 3–5px halo ring while hovered, matching MazeMap's \"active feature\" affordance.",
       "Cache bump so browsers pick up the previous hotfixes (the blank-map fixes in 3.26.1/3.26.2 might've been masked by stale bundles for some users).",
