@@ -92,13 +92,22 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // the full entity so the info sheet has everything to display.
   const campus = useCampusData();
 
-  // Pull the admin-published map defaults on first mount so every user
-  // (including mobile) picks up mobile* / desktop* overrides. Without
-  // this the client only ever saw whatever was in localStorage — the
-  // mobile publish would land in Firestore but never reach the map
-  // until the user clicked Recenter. Fires once; failures are silent.
+  // v3.27.5 — await server defaults BEFORE rendering the map. Old
+  // code fired-and-forgot the fetch and mounted the map immediately,
+  // which meant users briefly saw the hardcoded Kulosaari fallback
+  // before the real admin spawn arrived. Now we block the map mount
+  // with a 2 s hard timeout so the fetch either completes or we
+  // fall back to localStorage — either way the map's first frame
+  // reflects the admin's real spawn.
+  const [defaultsReady, setDefaultsReady] = useState(false);
   useEffect(() => {
-    void loadMapDefaultsFromServer();
+    let done = false;
+    const finish = () => { if (!done) { done = true; setDefaultsReady(true); } };
+    loadMapDefaultsFromServer().finally(finish);
+    // 2 s hard timeout — no user should stare at a spinner forever
+    // just because /api/map-defaults is slow.
+    const t = window.setTimeout(finish, 2000);
+    return () => window.clearTimeout(t);
   }, []);
 
   // NavigationPanel dispatches `ksyk:select-floor` when the user
@@ -290,11 +299,26 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     }
     // Show the info drawer — same UI a click on the map opens.
     if (infoFeature) setClickedFeature(infoFeature);
+    // v3.27.5 — clear the search input after a pick so the dropdown
+    // closes and the info drawer isn't blocked. Especially critical
+    // on mobile where the dropdown occupies most of the viewport.
+    // Header/home listens for `ksyk:search-clear` to zero out its
+    // controlled searchQuery state.
+    try { window.dispatchEvent(new CustomEvent("ksyk:search-clear")); }
+    catch { /* SSR / old browser — non-fatal */ }
   }, []);
 
   return (
     <div className="absolute inset-0">
-      <CampusMap onReady={onMapReady} />
+      {/* v3.27.5 — hold map mount until admin defaults have loaded
+       *  (or the 2s timeout fired). Prevents the flash of Kulosaari
+       *  fallback before the real spawn arrives. */}
+      {defaultsReady && <CampusMap onReady={onMapReady} />}
+      {!defaultsReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-900">
+          <div className="text-xs text-muted-foreground animate-pulse">Loading map…</div>
+        </div>
+      )}
 
       {/* Live campus overlay — draws every published building, room,
        *  and hallway on top of the OSM basemap. Refetches every 60s so

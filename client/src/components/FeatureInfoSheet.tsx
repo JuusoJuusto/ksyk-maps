@@ -11,6 +11,7 @@
  * Desktop (sm+): floating card on the right side, sitting above the
  * bottom-right control rail but below the header.
  */
+import { useState, useRef } from "react";
 import { X, MapPin, Compass, Users, User, Layers as LayersIcon, Info, Navigation2, Clock, Phone, Mail, ExternalLink } from "lucide-react";
 import type { Building, Room, Hallway } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,44 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const subtitle = featureSubtitle(feature);
   const color = featureColor(feature);
 
+  // v3.27.5 — mobile drag-to-resize state. Three snap points:
+  //   • "peek"  — small, just title + a couple rows (35dvh)
+  //   • "half"  — default height (60dvh)
+  //   • "full"  — nearly full-screen (85dvh)
+  // The drag handle at the top lets the user swipe between them
+  // without dismissing the sheet. Desktop always uses "full".
+  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
+  const dragStartYRef = useRef<number | null>(null);
+  const dragStartSnapRef = useRef<typeof mobileSnap>("half");
+  const cycleSnap = () => {
+    setMobileSnap((s) => (s === "peek" ? "half" : s === "half" ? "full" : "peek"));
+  };
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    dragStartYRef.current = e.clientY;
+    dragStartSnapRef.current = mobileSnap;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onHandlePointerMove = (e: React.PointerEvent) => {
+    const startY = dragStartYRef.current;
+    if (startY === null) return;
+    const dy = e.clientY - startY;
+    // Drag up (dy < 0) → bigger; drag down (dy > 0) → smaller.
+    if (Math.abs(dy) < 40) return;
+    if (dy < 0) {
+      setMobileSnap(dragStartSnapRef.current === "peek" ? "half" : "full");
+    } else {
+      setMobileSnap(dragStartSnapRef.current === "full" ? "half" : "peek");
+    }
+    dragStartYRef.current = null;
+  };
+  const onHandlePointerUp = () => {
+    dragStartYRef.current = null;
+  };
+  const mobileMaxHeight =
+    mobileSnap === "peek" ? "35dvh" :
+    mobileSnap === "half" ? "60dvh" :
+                            "85dvh";
+
   return (
     <div
       role="dialog"
@@ -49,18 +88,29 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // v3.27.4 — mobile height math. The sheet is bottom-anchored
-        // (`bottom-2`) so it grows UPWARD; if it grows past the
-        // header the top gets clipped. Cap at `viewport - 7rem` so
-        // 7rem always remains at the top for the header + search bar.
-        // Desktop uses the smaller of 48rem OR the equivalent
-        // headroom, keeping the previous behaviour.
-        maxHeight: "min(48rem, calc(100dvh - 7rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))",
+        // v3.27.5 — dynamic mobile max-height based on the current
+        // drag-snap point (peek / half / full). Desktop unchanged
+        // — always uses the 48rem cap.
+        maxHeight: `min(48rem, ${mobileMaxHeight}, calc(100dvh - 7rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))`,
+        transition: "max-height 220ms cubic-bezier(0.32, 0.72, 0, 1)",
       }}
     >
-      {/* Grab handle on mobile — signals the panel is dismissible. */}
-      <div className="sm:hidden flex justify-center pt-1.5">
-        <span className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+      {/* v3.27.5 — big mobile drag handle. Tap cycles peek → half →
+       *  full → peek. Drag up/down snaps to the next size. Desktop
+       *  hidden — no need for the resize affordance on a floating
+       *  card. The touch-none prevents the browser from scrolling
+       *  the map while the user is dragging the sheet. */}
+      <div
+        className="sm:hidden flex justify-center py-2 cursor-grab active:cursor-grabbing touch-none select-none"
+        onPointerDown={onHandlePointerDown}
+        onPointerMove={onHandlePointerMove}
+        onPointerUp={onHandlePointerUp}
+        onClick={cycleSnap}
+        role="button"
+        aria-label={`Resize (currently ${mobileSnap})`}
+        title="Drag to resize"
+      >
+        <span className="h-1.5 w-12 rounded-full bg-slate-400 dark:bg-slate-500" />
       </div>
 
       {/* v3.27.2 — Photo band OR gradient hero, depending on whether

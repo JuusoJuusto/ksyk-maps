@@ -255,22 +255,22 @@ export default function CampusMap({
     // Platform-aware camera — mobile vs laptop defaults live under
     // their own keys and fall back to the shared osm* values when unset.
     const platformDefaults = pickPlatformMapDefaults(settings);
-    // v3.25.9 — precedence: URL query > localStorage > admin defaults.
-    // URL wins so a shared link (with ?z=&lat=&lng=...) always drops
-    // the recipient at that exact view, even if they'd panned somewhere
-    // else in a previous session. Bare URLs fall through to persisted
-    // camera → admin default.
+    // v3.27.5 — ALWAYS start at admin spawn on fresh page loads. The
+    // localStorage-based `readPersistedCamera` is no longer consulted
+    // (the writer stays, so pans still persist within-session for
+    // convenience) — every open of the site drops the user at the
+    // admin-configured centre + zoom + rotation. Only the URL query
+    // still overrides, so shared links (?z=&lat=&lng=…) restore the
+    // exact view. Rationale: reported "spawn location isn't
+    // consistent, sometimes lands mid-air over last-panned view."
     const urlCam = readUrlCamera();
-    const persisted = readPersistedCamera();
-    const initialBearing = bearing ?? urlCam?.bearing ?? persisted?.bearing ?? platformDefaults.bearing;
-    const initialPitch   = pitch   ?? urlCam?.pitch   ?? persisted?.pitch   ?? platformDefaults.pitch;
+    const initialBearing = bearing ?? urlCam?.bearing ?? platformDefaults.bearing;
+    const initialPitch   = pitch   ?? urlCam?.pitch   ?? platformDefaults.pitch;
     const initialCenter: [number, number] =
       (urlCam?.lat !== undefined && urlCam?.lng !== undefined)
         ? [urlCam.lng, urlCam.lat]
-      : persisted
-        ? [persisted.lng, persisted.lat]
         : [platformDefaults.lng, platformDefaults.lat];
-    const initialZoom = urlCam?.zoom ?? persisted?.zoom ?? platformDefaults.zoom;
+    const initialZoom = urlCam?.zoom ?? platformDefaults.zoom;
 
     const map = new maplibregl.Map({
       container: containerRef.current,

@@ -36,6 +36,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -187,6 +188,10 @@ fun MapScreen() {
     // on the very first data load per session. Otherwise the fit
     // would fight the restored persisted camera / user's pans.
     var hasAutoFitOnce by remember { mutableStateOf(loadPersistedCamera(ctx) != null) }
+    // v1.8.0 — track current map bearing for the compass chip. Camera-
+    // idle updates this so the compass arrow visibly rotates as the
+    // user drags the map with two fingers.
+    var currentBearing by remember { mutableStateOf(0.0) }
     // Directions state — MazeMap-adjacent "from → to" routing.
     //   destination = target room/building (set by "Suunnista tänne")
     //   origin      = start room (set by picker), null = use GPS
@@ -611,6 +616,14 @@ fun MapScreen() {
                                     cp.target?.longitude ?: 0.0,
                                     cp.zoom, cp.bearing, cp.tilt,
                                 )
+                                currentBearing = cp.bearing
+                            }
+                            // Also update bearing during interactive
+                            // moves (not just when it settles) so the
+                            // compass tracks live under the user's
+                            // finger, not lags behind by 300 ms.
+                            m.addOnCameraMoveListener {
+                                currentBearing = m.cameraPosition.bearing
                             }
                             mapRef = m
                         }
@@ -730,8 +743,15 @@ fun MapScreen() {
             MapChipButton(icon = Icons.Outlined.Remove, label = "Zoom out") {
                 mapRef?.animateCamera(CameraUpdateFactory.zoomOut())
             }
-            MapChipButton(icon = Icons.Outlined.Explore, label = "Reset bearing") {
-                mapRef?.animateCamera(CameraUpdateFactory.bearingTo(0.0))
+            // v1.8.0 — compass chip. Icon spins with current bearing
+            // so users can see how far off north they are; tap resets
+            // to 0°. Hidden when bearing is negligible (<1°) so the
+            // chip doesn't clutter the rail when the map is already
+            // pointing north.
+            if (Math.abs(currentBearing) > 1) {
+                CompassChip(bearingDeg = currentBearing) {
+                    mapRef?.animateCamera(CameraUpdateFactory.bearingTo(0.0))
+                }
             }
             MapChipButton(
                 icon = Icons.Outlined.ViewInAr,
@@ -1201,6 +1221,47 @@ private fun MapChipButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(22.dp))
+    }
+}
+
+/**
+ * v1.8.0 — compass chip. Explore icon rotates to counter the map's
+ * current bearing so the "N" points to true north on screen. Tap
+ * resets bearing to 0 with a smooth animation. Only rendered when
+ * map bearing is non-negligible so the chip doesn't clutter the
+ * rail when north-aligned.
+ */
+@Composable
+private fun CompassChip(bearingDeg: Double, onReset: () -> Unit) {
+    Box(
+        Modifier
+            .size(46.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .clickable(onClick = onReset),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Rotate opposite the map bearing so the compass points to
+        // world-north regardless of camera rotation.
+        Icon(
+            Icons.Outlined.Explore,
+            contentDescription = "Reset bearing (currently ${bearingDeg.toInt()}°)",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(24.dp)
+                .rotate((-bearingDeg).toFloat()),
+        )
+        // Tiny "N" label at top pointing to north.
+        Text(
+            "N",
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFDC2626),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 3.dp)
+                .rotate((-bearingDeg).toFloat()),
+        )
     }
 }
 

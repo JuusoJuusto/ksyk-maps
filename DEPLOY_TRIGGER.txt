@@ -1,9 +1,11 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.27.4 — room click hit-test widened to a 6px bbox
-(finger-precise), rooms tested before buildings so tap-in-room selects
-the room. Info drawer max-height constrained so it no longer clips at
-the top on mobile; photo band shrunk on mobile to leave content room.
+Bump reason: v3.27.5 — map always opens at admin spawn (persisted
+camera dropped), map init waits for server defaults (no Kulosaari
+flash), search input auto-clears after pick, header taller on
+desktop, announcement banner improved, info drawer drag-resizable on
+mobile with 3 snap points. Android v1.8.0 gets a persistent live
+compass chip.
 
-Timestamp: 1786172400
-Build: FORCE_REBUILD_v3.27.4_CLICK_INFO_FIXES
+Timestamp: 1786176000
+Build: FORCE_REBUILD_v3.27.5_SPAWN_HEADER_COMPASS

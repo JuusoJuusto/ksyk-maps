@@ -34,6 +34,16 @@ export default function KSYKMapsHome() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  // v3.27.5 — listen for search-clear pings from KSYKMapView so the
+  // input empties + dropdown closes automatically after picking a
+  // result. Especially critical on mobile where the dropdown
+  // otherwise blocks the info drawer that just opened.
+  useEffect(() => {
+    const onClear = () => setSearchQuery("");
+    window.addEventListener("ksyk:search-clear", onClear);
+    return () => window.removeEventListener("ksyk:search-clear", onClear);
+  }, []);
+
   return (
     <div
       className={cn(

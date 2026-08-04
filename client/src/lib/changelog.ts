@@ -10,15 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.4";
+export const APP_VERSION = "3.27.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.5",
+    date: "August 2026",
+    title: "Spawn-on-load, taller header, drag-resize info sheet, better banner. Android v1.8.0: live compass",
+    titleFi: "Aloitusnäkymä aina spawnista, isompi yläpalkki, säädettävä tietopaneeli. Android: kompassi.",
+    latest: true,
+    highlights: [
+      "Map now ALWAYS opens at the admin-configured spawn (center, zoom, rotation) on fresh page loads. Cross-session persisted camera dropped — every open is a fresh spawn. Shared URLs (?z=&lat=&lng=…) still win so links work.",
+      "Map init now waits up to 2 s for /api/map-defaults before painting the first frame, so users no longer briefly see the hardcoded fallback before the real admin spawn arrives.",
+      "Search: picking a result now auto-clears the input on all platforms (dispatch/listen for ksyk:search-clear). Dropdown closes immediately, doesn't block the info drawer that opens over the map.",
+      "Header: taller on desktop (h-14 mobile / h-16 sm / h-20 lg) so the nav reads as a proper top bar instead of a squished chip.",
+      "AnnouncementBanner: taller strip, bigger icon padding, content preview shown on mobile too (was hidden), larger title font at lg+. More scannable.",
+      "Info drawer on mobile is DRAG-RESIZABLE — three snap points (peek 35dvh / half 60dvh / full 85dvh). Big drag handle at top; tap cycles sizes, drag up/down snaps to next. Desktop unchanged.",
+      "Android v1.8.0 — persistent compass chip appears on the right rail when map bearing is non-zero. Icon spins with the map so \"N\" always points to world-north; tap resets bearing to 0. Camera-move listener means the compass tracks live under your finger.",
+    ],
+    highlightsFi: [
+      "Kartta avautuu aina admin-asettamasta sijainnista",
+      "Työpöytäyläpalkki isompi",
+      "Ilmoituspalkki näyttää nyt esikatselutekstin myös mobiilissa",
+      "Tietopaneelia voi vetää mobiilissa — kolme kokoa",
+      "Android: elävä kompassi, joka pyörii kartan mukana",
+    ],
+  },
   {
     version: "3.27.4",
     date: "August 2026",
     title: "Room clicks widened, info sheet no longer clips top on mobile",
     titleFi: "Huoneiden klikkaus toimii paremmin, tietopaneeli ei enää leikkaudu",
-    latest: true,
     highlights: [
       "Fix — clicking a room on the map now uses a 6px-radius bbox instead of a point-precise hit-test. Rooms hit rooms-first, then buildings, then hallways, so a tap that overlaps a room inside a building resolves to the room. Much easier to select tiny rooms on touch devices.",
       "Fix — the room/building info drawer no longer clips at the top on mobile. Max-height now leaves 7rem of headroom above (header + search bar), so the entire sheet — photo band, title, metadata, Directions button — is always visible without scrolling off the top. Photo band on mobile is 7rem (was 10rem) so more room for content.",

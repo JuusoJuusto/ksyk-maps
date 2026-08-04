@@ -126,7 +126,12 @@ export default function AnnouncementBanner() {
           onClick={() => setIsDialogOpen(true)}
         >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
+          {/* v3.27.5 — taller strip on desktop (py 2 → 3), room for
+           *  the icon to breathe (bigger padding), and content
+           *  preview text now visible on mobile too (was hidden).
+           *  Click affordance: a subtle chevron on the right so
+           *  users know it opens a dialog. */}
+          <div className="flex items-center justify-between gap-2 py-2 sm:py-2.5 md:py-3">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentAnnouncement.id}
@@ -134,16 +139,17 @@ export default function AnnouncementBanner() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -12 }}
                 transition={{ duration: 0.35 }}
-                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
+                className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0"
               >
-                <div className="flex-shrink-0 bg-white/20 p-1 sm:p-1.5 rounded-full">
+                <div className="flex-shrink-0 bg-white/25 p-1.5 sm:p-2 rounded-full ring-1 ring-white/10">
                   {getPriorityIcon(currentAnnouncement.priority)}
                 </div>
-                <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-white font-bold text-xs sm:text-sm truncate">
+                <div className="flex-1 min-w-0 leading-snug">
+                  <p className="text-white font-bold text-[13px] sm:text-sm md:text-base truncate">
                     {getLocalizedTitle(currentAnnouncement)}
                   </p>
-                  <p className="text-white/85 text-[10px] sm:text-xs truncate hidden sm:block">
+                  {/* Now shown on mobile too — was hidden sm:block. */}
+                  <p className="text-white/90 text-[10.5px] sm:text-xs md:text-[13px] truncate">
                     {getLocalizedContent(currentAnnouncement)}
                   </p>
                 </div>

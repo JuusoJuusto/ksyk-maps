@@ -159,7 +159,10 @@ export default function Header({
       <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
         <header className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
+          {/* v3.27.5 — taller header on desktop. 14→16→20 across
+           *  mobile/sm/lg so the nav reads as a proper top bar on
+           *  desktop, not a squished chip. */}
+          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
               <KSYKLogo
