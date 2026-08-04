@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.8";
+export const APP_VERSION = "3.27.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.0",
+    date: "August 2026",
+    title: "Stage room type, marching-ants route, POIs inherit active floor. Android v1.7.0: doors + walls on map.",
+    titleFi: "Näyttämö-tyyppi, animoitu reitti. Android: ovet + seinät kartalle.",
+    latest: true,
+    highlights: [
+      "New room types recognised: stage (näyttämö), theater/theatre, assembly, chapel, reception — all get distinct auto-colors on both web and Android.",
+      "Builder: stairs, elevators, and doors placed with any POI tool now inherit the builder's currently-selected floor (was hardcoded to floor 1). Draw on floor 3 → new stair lands on floor 3.",
+      "Web: MazeMap-style \"marching ants\" animation on the active route line. The blue dashes now shift along the line ~6 times/sec so users see the direction of travel from origin to destination. Auto-starts when a route is active, auto-stops when cleared.",
+      "Android v1.7.0: doors + entrances now render on the map (green chips for entrances, red for exits, dark grey for interior doors) with white halos so they read clearly on every basemap tint.",
+      "Android v1.7.0: walls (hallways with surface=wall) render as dark short line segments. Floor filter applies — only walls on the selected floor show when a floor is isolated.",
+    ],
+    highlightsFi: [
+      "Näyttämö-huonetyyppi lisätty (myös theater, chapel, reception)",
+      "POI-työkalut käyttävät valittua kerrosta automaattisesti",
+      "Reittiviiva animoituu — kulkusuunta näkyy",
+      "Android: ovet, sisäänkäynnit ja seinät piirtyvät kartalle",
+    ],
+  },
   {
     version: "3.26.8",
     date: "August 2026",
     title: "Extreme tilt/skew for images. Android v1.6.0: category room colors + camera persistence.",
     titleFi: "Voimakkaammat kallistukset kuville. Android v1.6.0: huoneiden autovärit + kameran muisti.",
-    latest: true,
     highlights: [
       "Image overlay: Tilt range bumped ±60° → ±85° (near-vertical foreshortening) and Skew ±45° → ±80°. Perspective correction of extreme-angle photos is now viable.",
       "Android v1.6.0 — rooms without an explicit colorCode now auto-tint by type (classroom green, lab orange, toilets pink, cafeteria amber, office indigo, gym rose, storage grey, ~20 types). Matches the web CampusOverlay behavior — same room looks the same on both platforms.",

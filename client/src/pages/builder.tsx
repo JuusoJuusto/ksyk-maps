@@ -1273,7 +1273,10 @@ function BuilderWorkspace() {
   const createStair = useMutation({
     mutationFn: async (p: { lat: number; lng: number }) => {
       const res = await apiRequest("POST", "/api/stairs", {
-        floor: 1,
+        // v3.27.0 — inherit the builder's active floor instead of
+        // hardcoding to 1, so stairs land on the level the user is
+        // actually drawing on.
+        floor: cameraState.activeFloor ?? 1,
         mapPositionX: p.lng,
         mapPositionY: p.lat,
       });
@@ -1285,7 +1288,7 @@ function BuilderWorkspace() {
   const createElevator = useMutation({
     mutationFn: async (p: { lat: number; lng: number }) => {
       const res = await apiRequest("POST", "/api/elevators", {
-        floor: 1,
+        floor: cameraState.activeFloor ?? 1,
         mapPositionX: p.lng,
         mapPositionY: p.lat,
       });
@@ -1297,7 +1300,7 @@ function BuilderWorkspace() {
   const createDoor = useMutation({
     mutationFn: async (p: { lat: number; lng: number; isEntrance: boolean }) => {
       const res = await apiRequest("POST", "/api/doors", {
-        floor: 1,
+        floor: cameraState.activeFloor ?? 1,
         mapPositionX: p.lng,
         mapPositionY: p.lat,
         isEntrance: p.isEntrance,

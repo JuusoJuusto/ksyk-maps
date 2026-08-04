@@ -51,6 +51,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
@@ -105,6 +106,12 @@ private const val LAYER_ROOM_LABEL = "campus-rooms-label"
 // Extrusion — raised room slab, per floor. Base = floor * 3 m, height
 // = base + 0.35 m (ROOM_SLAB). Reads as MazeMap-style raised platforms.
 private const val LAYER_ROOM_EXTRUSION = "campus-rooms-extrusion"
+
+// v1.7.0 — doors + walls
+private const val SRC_DOORS = "campus-doors"
+private const val LAYER_DOORS_CHIP = "campus-doors-chip"
+private const val SRC_WALLS = "campus-walls"
+private const val LAYER_WALLS_LINE = "campus-walls-line"
 
 private const val METERS_PER_FLOOR = 3.0
 private const val ROOM_SLAB_METERS = 0.35
@@ -162,6 +169,8 @@ fun MapScreen() {
 
     var buildings by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var doors by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var hallways by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var selectedFloor by remember { mutableStateOf<Int?>(null) }
     var selected by remember { mutableStateOf<JsonObject?>(null) }
     var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
@@ -226,6 +235,21 @@ fun MapScreen() {
                 rooms = cached.jsonArray.mapNotNull { it as? JsonObject }
                 offlineMode = true
             }
+        }
+        // v1.7.0 — doors + hallways/walls
+        try {
+            val json = withContext(Dispatchers.IO) { Api.get("/doors") }
+            doors = json.jsonArray.mapNotNull { it as? JsonObject }
+        } catch (_: Exception) {
+            val cached = Api.getOffline("/doors")
+            if (cached != null) doors = cached.jsonArray.mapNotNull { it as? JsonObject }
+        }
+        try {
+            val json = withContext(Dispatchers.IO) { Api.get("/hallways") }
+            hallways = json.jsonArray.mapNotNull { it as? JsonObject }
+        } catch (_: Exception) {
+            val cached = Api.getOffline("/hallways")
+            if (cached != null) hallways = cached.jsonArray.mapNotNull { it as? JsonObject }
         }
     }
 
@@ -471,6 +495,71 @@ fun MapScreen() {
         if (!hasAutoFitOnce && buildings.isNotEmpty()) {
             centerOnBuildings(map, buildings)
             hasAutoFitOnce = true
+        }
+    }
+
+    // v1.7.0 — doors + walls sync. Doors render as colored circle
+    // chips (green for entrances, grey for interior doors). Walls
+    // render as dark short line segments. Both filter by selectedFloor
+    // when it's set. Runs whenever data or the active floor changes.
+    LaunchedEffect(doors, hallways, selectedFloor, mapRef) {
+        val map = mapRef ?: return@LaunchedEffect
+        val doorsGeoJson = buildDoorsFeatureCollection(doors, selectedFloor)
+        val wallsGeoJson = buildWallsFeatureCollection(hallways, selectedFloor)
+        map.getStyle { style ->
+            // Walls first (below doors so doors chip on top)
+            val existingW = style.getSourceAs<GeoJsonSource>(SRC_WALLS)
+            if (existingW != null) {
+                existingW.setGeoJson(wallsGeoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_WALLS, wallsGeoJson))
+                style.addLayer(
+                    LineLayer(LAYER_WALLS_LINE, SRC_WALLS).withProperties(
+                        PropertyFactory.lineColor(AndroidColor.parseColor("#374151")),
+                        PropertyFactory.lineWidth(
+                            Expression.interpolate(
+                                Expression.linear(), Expression.zoom(),
+                                Expression.stop(15f, 1f),
+                                Expression.stop(18f, 2.5f),
+                                Expression.stop(22f, 5f),
+                            ),
+                        ),
+                        PropertyFactory.lineOpacity(0.85f),
+                        PropertyFactory.lineCap("round"),
+                        PropertyFactory.lineJoin("round"),
+                    )
+                )
+            }
+            // Doors
+            val existingD = style.getSourceAs<GeoJsonSource>(SRC_DOORS)
+            if (existingD != null) {
+                existingD.setGeoJson(doorsGeoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_DOORS, doorsGeoJson))
+                style.addLayer(
+                    org.maplibre.android.style.layers.CircleLayer(LAYER_DOORS_CHIP, SRC_DOORS).withProperties(
+                        PropertyFactory.circleRadius(
+                            Expression.interpolate(
+                                Expression.linear(), Expression.zoom(),
+                                Expression.stop(15f, 3f),
+                                Expression.stop(18f, 6f),
+                                Expression.stop(22f, 10f),
+                            ),
+                        ),
+                        PropertyFactory.circleColor(
+                            Expression.match(
+                                Expression.get("kind"),
+                                Expression.literal("#374151"),  // default (door)
+                                Expression.stop("entrance", "#16a34a"),
+                                Expression.stop("exit", "#dc2626"),
+                            )
+                        ),
+                        PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
+                        PropertyFactory.circleStrokeWidth(1.5f),
+                        PropertyFactory.circleOpacity(0.95f),
+                    )
+                )
+            }
         }
     }
 
@@ -1529,6 +1618,88 @@ private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): S
 }
 
 /**
+ * v1.7.0 — Doors GeoJSON — one Point per door. `kind` = "entrance" |
+ * "exit" | "door". Filtered by active floor when set.
+ */
+private fun buildDoorsFeatureCollection(doors: List<JsonObject>, floor: Int?): String {
+    val features = StringBuilder()
+    var first = true
+    for (d in doors) {
+        val f = (d["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        if (floor != null && f != floor) continue
+        val lat = (d["mapPositionY"] as? JsonPrimitive)?.doubleOrNull
+                ?: (d["lat"] as? JsonPrimitive)?.doubleOrNull ?: continue
+        val lng = (d["mapPositionX"] as? JsonPrimitive)?.doubleOrNull
+                ?: (d["lng"] as? JsonPrimitive)?.doubleOrNull ?: continue
+        val isEntrance = (d["isEntrance"] as? JsonPrimitive)?.booleanOrNull ?: false
+        val isExit = (d["isExit"] as? JsonPrimitive)?.booleanOrNull ?: false
+        val kind = when {
+            isEntrance -> "entrance"
+            isExit -> "exit"
+            else -> "door"
+        }
+        val id = (d["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        if (!first) features.append(",")
+        features.append(
+            """{"type":"Feature","id":"$id","geometry":{"type":"Point","coordinates":[$lng,$lat]},"properties":{"kind":"$kind","id":"$id","floor":$f}}"""
+        )
+        first = false
+    }
+    return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
+/**
+ * v1.7.0 — Walls GeoJSON — hallways with `surface == "wall"` become
+ * LineStrings. Filtered by active floor when set. Multi-vertex
+ * hallways emit the full path; simple ones emit just start→end.
+ */
+private fun buildWallsFeatureCollection(hallways: List<JsonObject>, floor: Int?): String {
+    val features = StringBuilder()
+    var first = true
+    for (h in hallways) {
+        val surface = (h["surface"] as? JsonPrimitive)?.contentOrNull ?: continue
+        if (surface.lowercase() != "wall") continue
+        val f = (h["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        if (floor != null && f != floor) continue
+
+        // Prefer multi-vertex `points` array if present; otherwise
+        // fall back to startX/Y + endX/Y two-point segment.
+        val coordsBuf = StringBuilder("[")
+        val pts = h["points"] as? JsonArray
+        var haveAny = false
+        if (pts != null && pts.size >= 2) {
+            var isFirst = true
+            for (p in pts) {
+                val po = p as? JsonObject ?: continue
+                val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: continue
+                val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: continue
+                if (!isFirst) coordsBuf.append(",")
+                coordsBuf.append("[$lng,$lat]")
+                isFirst = false; haveAny = true
+            }
+        } else {
+            val sx = (h["startX"] as? JsonPrimitive)?.doubleOrNull
+            val sy = (h["startY"] as? JsonPrimitive)?.doubleOrNull
+            val ex = (h["endX"] as? JsonPrimitive)?.doubleOrNull
+            val ey = (h["endY"] as? JsonPrimitive)?.doubleOrNull
+            if (sx != null && sy != null && ex != null && ey != null) {
+                coordsBuf.append("[$sx,$sy],[$ex,$ey]")
+                haveAny = true
+            }
+        }
+        coordsBuf.append("]")
+        if (!haveAny) continue
+        val id = (h["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        if (!first) features.append(",")
+        features.append(
+            """{"type":"Feature","id":"$id","geometry":{"type":"LineString","coordinates":$coordsBuf},"properties":{"id":"$id","floor":$f}}"""
+        )
+        first = false
+    }
+    return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
+/**
  * v1.6.0 — MazeMap-style default color per room type. Mirrors the
  * ROOM_TYPE_COLORS table in web CampusOverlay.tsx so the same room
  * looks the same on both platforms even when no explicit colorCode
@@ -1554,6 +1725,12 @@ private val ROOM_TYPE_COLORS: Map<String, String> = mapOf(
     "auditorium" to "#a855f7",
     "music" to "#c084fc",
     "art" to "#f43f5e",
+    // v1.7.0 — additional types requested
+    "stage" to "#a21caf", "näyttämö" to "#a21caf",
+    "theater" to "#a21caf", "theatre" to "#a21caf",
+    "assembly" to "#a21caf",
+    "chapel" to "#eab308",
+    "reception" to "#0ea5e9",
 )
 private fun colorForRoomType(type: String?): String? {
     if (type.isNullOrBlank()) return null

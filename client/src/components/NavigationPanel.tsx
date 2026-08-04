@@ -420,6 +420,41 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
+  // v3.27.0 — MazeMap-style "marching ants" animation on the route
+  // line while a route is displayed. Cycles the line-dasharray values
+  // ~10 times/second so users see motion FROM origin TO destination.
+  // Kept subtle (~1-second period, low delta) so it reads as "guidance"
+  // not "flashing ad." Auto-stops when no route is active.
+  useEffect(() => {
+    if (!map || !route) return;
+    let frame = 0;
+    let raf: number | null = null;
+    const step = () => {
+      frame = (frame + 1) % 60;
+      if (map.getLayer(ROUTE_LAYER_ID)) {
+        // Cycle 6-step pattern: dash length grows, gap shrinks —
+        // eye reads it as forward motion.
+        const dashes = [
+          [0.5, 3.5],
+          [1.0, 3.0],
+          [1.5, 2.5],
+          [2.0, 2.0],
+          [2.5, 1.5],
+          [3.0, 1.0],
+        ];
+        const idx = Math.floor(frame / 10) % dashes.length;
+        try {
+          map.setPaintProperty(ROUTE_LAYER_ID, "line-dasharray", dashes[idx]);
+        } catch { /* layer might have been removed mid-frame */ }
+      }
+      raf = window.requestAnimationFrame(step);
+    };
+    raf = window.requestAnimationFrame(step);
+    return () => {
+      if (raf !== null) window.cancelAnimationFrame(raf);
+    };
+  }, [map, route]);
+
   const swap = useCallback(() => {
     setFrom(to);
     setTo(from);

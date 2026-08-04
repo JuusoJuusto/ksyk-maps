@@ -1436,6 +1436,14 @@ const ROOM_TYPE_COLORS: Record<string, string> = {
   auditorium: "#a855f7",
   music:      "#c084fc",
   art:        "#f43f5e",
+  // v3.27.0 — additional types requested by users
+  stage:      "#a21caf",   // fuchsia — theater / assembly stage
+  "näyttämö": "#a21caf",   // Finnish alias
+  theater:    "#a21caf",
+  theatre:    "#a21caf",
+  assembly:   "#a21caf",
+  chapel:     "#eab308",
+  reception:  "#0ea5e9",
 };
 function colorForRoomType(type: string | null | undefined): string | null {
   if (!type) return null;
