@@ -10,22 +10,29 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -137,6 +144,8 @@ fun MapScreen() {
     var offlineMode by remember { mutableStateOf(false) }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
     var followMe by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchFocused by remember { mutableStateOf(false) }
 
     val locationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -331,6 +340,55 @@ fun MapScreen() {
             modifier = Modifier.fillMaxSize(),
         )
 
+        // ── Search overlay (top) ───────────────────────────────────
+        // A single field that filters rooms + buildings as the user
+        // types. Tapping a result flies the camera + opens the sheet
+        // for that entity, mirroring the web map's search behaviour.
+        SearchOverlay(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            focused = searchFocused,
+            onFocusChange = { searchFocused = it },
+            results = remember(searchQuery, rooms, buildings) {
+                searchEntities(query = searchQuery, rooms = rooms, buildings = buildings)
+            },
+            onPickRoom = { r ->
+                val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                if (floor != null) selectedFloor = floor
+                val centroid = centroidOf(r)
+                if (centroid != null) {
+                    mapRef?.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(centroid.first, centroid.second),
+                            19.0,
+                        ),
+                        500,
+                    )
+                }
+                selectedRoom = r
+                searchQuery = ""
+                searchFocused = false
+            },
+            onPickBuilding = { b ->
+                val centroid = centroidOf(b)
+                if (centroid != null) {
+                    mapRef?.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(centroid.first, centroid.second),
+                            18.5,
+                        ),
+                        500,
+                    )
+                }
+                selected = b
+                searchQuery = ""
+                searchFocused = false
+            },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        )
+
         // ── Floor switcher (right side, vertical) ──────────────────
         val floors = remember(buildings) { floorsFromBuildings(buildings) }
         if (floors.isNotEmpty()) {
@@ -378,11 +436,12 @@ fun MapScreen() {
         }
 
         // ── Offline banner ─────────────────────────────────────────
+        // Sits under the search bar so both remain visible simultaneously.
         if (offlineMode) {
             OfflineBanner(
                 Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
+                    .padding(top = 74.dp),
             )
         }
 
@@ -474,6 +533,222 @@ private fun enableLocation(ctx: android.content.Context, map: MapLibreMap) {
         lc.isLocationComponentEnabled = true
         lc.cameraMode = CameraMode.TRACKING
         lc.renderMode = RenderMode.COMPASS
+    }
+}
+
+// ── Search overlay ─────────────────────────────────────────────────
+
+/**
+ * Top-mounted search overlay. Collapsed = a pill-shaped Search field.
+ * Focused = the pill grows a card of results underneath it (up to 8
+ * hits) with icons distinguishing rooms from buildings. Escape / tap
+ * "x" closes the results.
+ */
+sealed class SearchHit {
+    data class RoomHit(val room: JsonObject) : SearchHit()
+    data class BuildingHit(val building: JsonObject) : SearchHit()
+}
+
+private fun searchEntities(
+    query: String,
+    rooms: List<JsonObject>,
+    buildings: List<JsonObject>,
+    maxResults: Int = 8,
+): List<SearchHit> {
+    val q = query.trim().lowercase()
+    if (q.length < 1) return emptyList()
+
+    val hits = mutableListOf<SearchHit>()
+
+    // Rooms first — usually what people search for. Match on number,
+    // name and type; score exact-prefix higher than substring so a
+    // query "203" prioritises room 203 over 203a-adjacent.
+    val roomMatches = rooms.mapNotNull { r ->
+        val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull?.lowercase() ?: ""
+        val name = (r["name"] as? JsonPrimitive)?.contentOrNull?.lowercase() ?: ""
+        val type = (r["type"] as? JsonPrimitive)?.contentOrNull?.lowercase() ?: ""
+        val score = when {
+            num == q -> 100
+            num.startsWith(q) -> 80
+            name.startsWith(q) -> 60
+            num.contains(q) -> 40
+            name.contains(q) -> 30
+            type.contains(q) -> 10
+            else -> 0
+        }
+        if (score > 0) r to score else null
+    }.sortedByDescending { it.second }.take(maxResults)
+    for ((r, _) in roomMatches) hits.add(SearchHit.RoomHit(r))
+
+    // Then a handful of buildings so the user can still jump to
+    // "Main building" or similar names.
+    if (hits.size < maxResults) {
+        val buildingMatches = buildings.mapNotNull { b ->
+            val name = (b["name"] as? JsonPrimitive)?.contentOrNull?.lowercase() ?: ""
+            val score = when {
+                name == q -> 100
+                name.startsWith(q) -> 70
+                name.contains(q) -> 40
+                else -> 0
+            }
+            if (score > 0) b to score else null
+        }.sortedByDescending { it.second }.take(maxResults - hits.size)
+        for ((b, _) in buildingMatches) hits.add(SearchHit.BuildingHit(b))
+    }
+    return hits
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchOverlay(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    focused: Boolean,
+    onFocusChange: (Boolean) -> Unit,
+    results: List<SearchHit>,
+    onPickRoom: (JsonObject) -> Unit,
+    onPickBuilding: (JsonObject) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.Search, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { onQueryChange(it); if (!focused && it.isNotBlank()) onFocusChange(true) },
+                placeholder = { Text("Search rooms, buildings…", fontSize = 14.sp) },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 44.dp)
+                    .onFocusChanged { onFocusChange(it.isFocused || query.isNotBlank()) },
+                shape = RoundedCornerShape(10.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                ),
+                keyboardOptions = KeyboardOptions.Default,
+            )
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange(""); onFocusChange(false) }) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Clear search",
+                         modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+
+        // Results list — only appears when there's an active query
+        // AND at least one match. An empty query keeps the pill compact.
+        if (query.isNotBlank() && results.isNotEmpty()) {
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            LazyColumn(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp),
+            ) {
+                items(results) { hit ->
+                    when (hit) {
+                        is SearchHit.RoomHit -> SearchRoomRow(hit.room) { onPickRoom(hit.room) }
+                        is SearchHit.BuildingHit -> SearchBuildingRow(hit.building) { onPickBuilding(hit.building) }
+                    }
+                }
+            }
+        } else if (query.isNotBlank() && results.isEmpty()) {
+            Text(
+                "No matches",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchRoomRow(r: JsonObject, onClick: () -> Unit) {
+    val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
+    val name = (r["name"] as? JsonPrimitive)?.contentOrNull ?: ""
+    val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull ?: ""
+    Row(
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.MeetingRoom, null,
+                 tint = MaterialTheme.colorScheme.primary,
+                 modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(num, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            if (name.isNotBlank()) {
+                Text(name, fontSize = 11.sp,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (floor.isNotBlank()) {
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+            ) {
+                Text("F$floor", fontSize = 10.sp,
+                     fontWeight = FontWeight.SemiBold,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchBuildingRow(b: JsonObject, onClick: () -> Unit) {
+    val name = (b["name"] as? JsonPrimitive)?.contentOrNull ?: "Building"
+    val floors = (b["floors"] as? JsonPrimitive)?.contentOrNull ?: ""
+    Row(
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF8B5CF6).copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Business, null,
+                 tint = Color(0xFF8B5CF6),
+                 modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("Building", fontSize = 11.sp,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (floors.isNotBlank()) {
+            Text("$floors floors", fontSize = 11.sp,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package fi.ksykmaps
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,8 +59,28 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         Session.load(this)
+        handleDeepLink(intent)  // Cold-start deep link (app launched by URL)
         setContent {
             KsykTheme { AppShell() }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Warm-start deep link — app is already running, user taps a
+        // ksykmaps.fi/?room=<id> link somewhere. singleTop launchMode
+        // means we get onNewIntent instead of a fresh activity.
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val data: Uri = intent?.data ?: return
+        // We only recognise the room-focus query for now; other pages
+        // fall back to opening the browser via the OS chooser.
+        val roomId = data.getQueryParameter("room") ?: return
+        if (roomId.isNotBlank()) {
+            MapNavIntent.pendingRoomId = roomId
         }
     }
 }
@@ -83,6 +105,13 @@ private fun AppShell() {
     if (!loggedIn) {
         LoginScreen(onLoggedIn = { loggedIn = true })
         return
+    }
+
+    // Cold-start deep link — if MainActivity received a room URL and
+    // pushed the id into MapNavIntent before we composed, jump to the
+    // Map tab so MapScreen's own LaunchedEffect can consume the intent.
+    LaunchedEffect(Unit) {
+        if (MapNavIntent.pendingRoomId != null) navigate(nav, "map")
     }
 
     Scaffold(

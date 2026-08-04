@@ -25,10 +25,28 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="KSYK Maps"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.KSYKMaps.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                Deep link — https://ksykmaps.fi/?room=<id> opens the app on
+                the Map tab focused on the requested room. Same URL format
+                as the "Share room" copy-link flow on the web, so a link
+                shared from any device (WhatsApp, email, browser bar) can
+                land directly in the native app on any phone that has it
+                installed. `autoVerify` triggers Android App Links so we
+                skip the "open with…" chooser once verified.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ksykmaps.fi" />
+                <data android:scheme="https" android:host="www.ksykmaps.fi" />
             </intent-filter>
         </activity>
     </application>

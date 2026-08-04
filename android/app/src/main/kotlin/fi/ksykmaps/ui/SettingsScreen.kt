@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
 
 /**
@@ -38,6 +39,8 @@ fun SettingsScreen(onSignOut: () -> Unit) {
     var editingApi by remember { mutableStateOf(false) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var dynamicColour by remember { mutableStateOf(true) }
+    var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
+    var clearing by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -104,6 +107,24 @@ fun SettingsScreen(onSignOut: () -> Unit) {
                 },
             )
 
+            SectionTitle("Offline data")
+            SettingRow(
+                icon = Icons.Outlined.CloudDone,
+                title = "Cached responses",
+                subtitle = formatBytes(cacheBytes) + " · buildings, rooms, announcements",
+                trailing = {
+                    TextButton(
+                        onClick = {
+                            clearing = true
+                            DiskCache.clear()
+                            cacheBytes = 0L
+                            clearing = false
+                        },
+                        enabled = !clearing && cacheBytes > 0L,
+                    ) { Text(if (clearing) "Clearing…" else "Clear") }
+                },
+            )
+
             SectionTitle("Account")
             LinkRow(
                 icon = Icons.Outlined.AccountCircle,
@@ -116,7 +137,7 @@ fun SettingsScreen(onSignOut: () -> Unit) {
             SettingRow(
                 icon = Icons.Outlined.Info,
                 title = "KSYK Maps Mobile",
-                subtitle = "Version 1.0.0 · © 2026 Nordbyte Studio",
+                subtitle = "Version 1.2.0 · © 2026 Nordbyte Studio",
             )
         }
     }
@@ -251,4 +272,13 @@ private fun LinkRow(
             )
         }
     }
+}
+
+/** Human-friendly byte count — 342 B, 12.3 KB, 4.8 MB. */
+private fun formatBytes(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val kb = bytes / 1024.0
+    if (kb < 1024) return "%.1f KB".format(kb)
+    val mb = kb / 1024.0
+    return "%.1f MB".format(mb)
 }

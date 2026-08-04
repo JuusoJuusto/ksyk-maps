@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.4";
+export const APP_VERSION = "3.25.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.5",
+    date: "August 2026",
+    title: "Android: on-map search + share-link deep-link + clear offline cache",
+    titleFi: "Android: karttahaku, jakolinkit, offline-muistin tyhjennys",
+    latest: true,
+    highlights: [
+      "Android: pill-shaped search bar mounted at the top of the map. Filters rooms + buildings as the user types with prefix-scoring (203 → room 203 first, then anything containing 203). Tap a result → floor sets, camera flies, sheet opens.",
+      "Android: ksykmaps.fi/?room=<id> now opens the native app directly instead of the browser (App Links intent filter, autoVerify enabled). Cold-start + warm-start supported so the app jumps straight to the room whether it was already running or not.",
+      "Android: Settings > Offline data shows the on-disk cache size (\"1.2 MB · buildings, rooms, announcements\") with a Clear button that empties filesDir/api_cache.",
+      "Android: about card now reads Version 1.3.0.",
+    ],
+    highlightsFi: [
+      "Android: hakupalkki kartalla — huoneet ja rakennukset",
+      "Android: ksykmaps.fi -linkit avaavat sovelluksen",
+      "Android: offline-muistin tyhjennys asetuksissa",
+    ],
+  },
   {
     version: "3.25.4",
     date: "August 2026",
     title: "Android: rooms on the map + room deep-link. Builder: layers toggle.",
     titleFi: "Android: huoneet kartalle. Rakentaja: tasovalikko.",
-    latest: true,
     highlights: [
       "Android: room polygons now render on top of building shells with colored fills, thin outlines and room-number labels — labels fade in past zoom 18 so distant floors stay uncluttered.",
       "Android: tap a room on the map → bottom sheet with type, capacity, and floor + 'Isolate floor' shortcut. Rooms are hit-tested before buildings, so a tap inside a room selects the room, not the surrounding shell.",

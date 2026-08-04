@@ -1,10 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.25.4 ships room rendering + deep-link on the Android
-native map, and adds the LayersToggle popover to the builder canvas
-(beside the floor selector) so drafters can preview the public view
-without leaving the builder. New version = new bundle hash = cache
-invalidation.
+Bump reason: v3.25.5 ships on-map search + App Links deep-linking on
+Android (ksykmaps.fi/?room=<id> now opens the native app), plus a
+Clear-offline-cache action in Settings. Web unchanged this bump; the
+web-side entry is the changelog so users on the site know a new Android
+release landed. New version = new bundle hash = cache invalidation.
 
-Timestamp: 1786064400
-Build: FORCE_REBUILD_v3.25.4
+Timestamp: 1786068000
+Build: FORCE_REBUILD_v3.25.5
