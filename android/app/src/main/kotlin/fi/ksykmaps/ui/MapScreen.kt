@@ -174,6 +174,10 @@ fun MapScreen() {
     // become visible, buildings and room slabs read as real volumes.
     // Off → flat top-down, extrusions hidden, only fill layers show.
     var is3D by remember { mutableStateOf(false) }
+    // v1.6.0 — first-run detection so we only auto-fit to buildings
+    // on the very first data load per session. Otherwise the fit
+    // would fight the restored persisted camera / user's pans.
+    var hasAutoFitOnce by remember { mutableStateOf(loadPersistedCamera(ctx) != null) }
     // Directions state — MazeMap-adjacent "from → to" routing.
     //   destination = target room/building (set by "Suunnista tänne")
     //   origin      = start room (set by picker), null = use GPS
@@ -460,9 +464,14 @@ fun MapScreen() {
                 )
             }
         }
-        // Recenter on the mean of all building centroids so first-load
-        // frames the campus, not the KSYK fallback.
-        centerOnBuildings(map, buildings)
+        // v1.6.0 — only auto-fit on the very first data load per
+        // session, and only when no persisted camera was restored.
+        // Later data-refetch cycles must NOT snap the map back to
+        // campus bounds — that would fight the user's pans.
+        if (!hasAutoFitOnce && buildings.isNotEmpty()) {
+            centerOnBuildings(map, buildings)
+            hasAutoFitOnce = true
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -471,10 +480,18 @@ fun MapScreen() {
                 MapView(c).apply {
                     getMapAsync { m ->
                         m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
-                            m.cameraPosition = CameraPosition.Builder()
-                                .target(KSYK_CENTER)
-                                .zoom(KSYK_ZOOM)
+                            // v1.6.0 — camera persistence. If we have a
+                            // saved view from the last session, restore
+                            // it (position + zoom + bearing + pitch);
+                            // otherwise fall back to the KSYK default.
+                            val restored = loadPersistedCamera(c)
+                            val cam = CameraPosition.Builder()
+                                .target(restored?.target ?: KSYK_CENTER)
+                                .zoom(restored?.zoom ?: KSYK_ZOOM)
+                                .bearing(restored?.bearing ?: 0.0)
+                                .tilt(restored?.tilt ?: 0.0)
                                 .build()
+                            m.cameraPosition = cam
                             m.uiSettings.apply {
                                 isCompassEnabled = true
                                 isRotateGesturesEnabled = true
@@ -484,10 +501,6 @@ fun MapScreen() {
                                 setAttributionMargins(16, 0, 0, 24)
                             }
                             m.addOnMapClickListener { latLng ->
-                                // Rooms first — they're smaller and drawn on
-                                // top so a tap that lands inside a room
-                                // should select the room, not the
-                                // surrounding building.
                                 val roomHit = pickRoomAt(rooms, latLng, selectedFloor)
                                 if (roomHit != null) {
                                     selectedRoom = roomHit
@@ -496,6 +509,19 @@ fun MapScreen() {
                                 val hit = pickBuildingAt(buildings, latLng)
                                 if (hit != null) selected = hit
                                 hit != null
+                            }
+                            // Persist camera on every settle so the
+                            // next launch restores where the user left
+                            // off. addOnCameraIdleListener fires when
+                            // the user stops interacting.
+                            m.addOnCameraIdleListener {
+                                val cp = m.cameraPosition
+                                savePersistedCamera(
+                                    c,
+                                    cp.target?.latitude ?: 0.0,
+                                    cp.target?.longitude ?: 0.0,
+                                    cp.zoom, cp.bearing, cp.tilt,
+                                )
                             }
                             mapRef = m
                         }
@@ -1480,7 +1506,14 @@ private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): S
         val name = (r["name"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
         val number = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
         val label = listOf(number, name).filter { it.isNotEmpty() }.joinToString(" ").ifBlank { "Room" }
-        val color = (r["colorCode"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "#059669"
+        // v1.6.0 — category coloring by room type, mirroring the web
+        // (see ROOM_TYPE_COLORS in CampusOverlay.tsx). Explicit
+        // colorCode always wins; if unset, the room's type gets a
+        // category tint (classroom green, lab orange, toilets pink,
+        // etc.). Fallback stays KSYK green for unrecognised types.
+        val explicitColor = (r["colorCode"] as? JsonPrimitive)?.contentOrNull
+        val roomType = (r["type"] as? JsonPrimitive)?.contentOrNull
+        val color = (explicitColor ?: colorForRoomType(roomType) ?: "#059669").escape()
         val id = (r["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
         val floorIdx = maxOf(0, roomFloor - 1)
         val base = floorIdx * METERS_PER_FLOOR + 0.08
@@ -1493,6 +1526,38 @@ private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): S
         first = false
     }
     return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
+/**
+ * v1.6.0 — MazeMap-style default color per room type. Mirrors the
+ * ROOM_TYPE_COLORS table in web CampusOverlay.tsx so the same room
+ * looks the same on both platforms even when no explicit colorCode
+ * is set. Types are case-insensitive; whitespace trimmed.
+ */
+private val ROOM_TYPE_COLORS: Map<String, String> = mapOf(
+    "classroom" to "#059669", "class" to "#059669", "luokka" to "#059669",
+    "lecture" to "#0891b2",
+    "lab" to "#ea580c", "laboratory" to "#ea580c",
+    "workshop" to "#d97706",
+    "gym" to "#e11d48", "sports" to "#e11d48",
+    "cafeteria" to "#f59e0b", "cafe" to "#f59e0b", "canteen" to "#f59e0b",
+    "kitchen" to "#f97316",
+    "restroom" to "#ec4899", "restrooms" to "#ec4899",
+    "toilets" to "#ec4899", "bathroom" to "#ec4899",
+    "office" to "#6366f1", "admin" to "#6366f1", "staff" to "#6366f1",
+    "meeting" to "#8b5cf6",
+    "library" to "#7c3aed",
+    "storage" to "#6b7280", "utility" to "#6b7280",
+    "hallway" to "#94a3b8", "corridor" to "#94a3b8",
+    "stairs" to "#f59e0b",
+    "elevator" to "#2563eb",
+    "auditorium" to "#a855f7",
+    "music" to "#c084fc",
+    "art" to "#f43f5e",
+)
+private fun colorForRoomType(type: String?): String? {
+    if (type.isNullOrBlank()) return null
+    return ROOM_TYPE_COLORS[type.lowercase().trim()]
 }
 
 /** Hit-test — returns the room whose polygon contains the tap. */
@@ -1643,4 +1708,47 @@ private fun centerOnBuildings(map: MapLibreMap, buildings: List<JsonObject>) {
     // Only fit-to-bounds on the very first data load — later we let the
     // user pan freely without being snapped back to campus.
     map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 80), 600)
+}
+
+// ─── Camera persistence ────────────────────────────────────────────
+// v1.6.0 — SharedPreferences-backed save + restore of the last map
+// camera. Mirrors the web CampusMap camera storage so the app opens
+// to whatever view the user was on last, not the KSYK default.
+
+private const val CAM_PREFS = "ksyk_map_camera"
+
+data class PersistedCamera(
+    val target: LatLng,
+    val zoom: Double,
+    val bearing: Double,
+    val tilt: Double,
+)
+
+private fun loadPersistedCamera(ctx: android.content.Context): PersistedCamera? {
+    val sp = ctx.getSharedPreferences(CAM_PREFS, android.content.Context.MODE_PRIVATE)
+    if (!sp.contains("lat")) return null
+    val lat = sp.getFloat("lat", Float.NaN).toDouble()
+    val lng = sp.getFloat("lng", Float.NaN).toDouble()
+    val zoom = sp.getFloat("zoom", Float.NaN).toDouble()
+    val bearing = sp.getFloat("bearing", 0f).toDouble()
+    val tilt = sp.getFloat("tilt", 0f).toDouble()
+    if (lat.isNaN() || lng.isNaN() || zoom.isNaN()) return null
+    if (Math.abs(lat) > 85 || Math.abs(lng) > 180) return null
+    if (zoom < 0 || zoom > 24) return null
+    return PersistedCamera(LatLng(lat, lng), zoom, bearing, tilt)
+}
+
+private fun savePersistedCamera(
+    ctx: android.content.Context,
+    lat: Double, lng: Double, zoom: Double, bearing: Double, tilt: Double,
+) {
+    if (Math.abs(lat) > 85 || Math.abs(lng) > 180) return
+    val sp = ctx.getSharedPreferences(CAM_PREFS, android.content.Context.MODE_PRIVATE)
+    sp.edit()
+        .putFloat("lat", lat.toFloat())
+        .putFloat("lng", lng.toFloat())
+        .putFloat("zoom", zoom.toFloat())
+        .putFloat("bearing", bearing.toFloat())
+        .putFloat("tilt", tilt.toFloat())
+        .apply()
 }

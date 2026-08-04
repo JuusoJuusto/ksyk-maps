@@ -1,9 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.26.7 — image overlays now auto-align to the map's
-current bearing on import (so a rotated map still shows the image
-straight on screen). New "Align to map" button re-syncs rotation to
-current bearing and zeros tilt + skew in one click.
+Bump reason: v3.26.8 — image overlay tilt/skew ranges expanded to
+±85°/±80° for extreme perspective correction. Android v1.6.0 gains
+category-color rooms by type and camera persistence across launches.
 
-Timestamp: 1786111200
-Build: FORCE_REBUILD_v3.26.7_ALIGN_IMAGE
+Timestamp: 1786114800
+Build: FORCE_REBUILD_v3.26.8_EXTREME_TILT

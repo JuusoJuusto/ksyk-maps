@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.7";
+export const APP_VERSION = "3.26.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.8",
+    date: "August 2026",
+    title: "Extreme tilt/skew for images. Android v1.6.0: category room colors + camera persistence.",
+    titleFi: "Voimakkaammat kallistukset kuville. Android v1.6.0: huoneiden autovärit + kameran muisti.",
+    latest: true,
+    highlights: [
+      "Image overlay: Tilt range bumped ±60° → ±85° (near-vertical foreshortening) and Skew ±45° → ±80°. Perspective correction of extreme-angle photos is now viable.",
+      "Android v1.6.0 — rooms without an explicit colorCode now auto-tint by type (classroom green, lab orange, toilets pink, cafeteria amber, office indigo, gym rose, storage grey, ~20 types). Matches the web CampusOverlay behavior — same room looks the same on both platforms.",
+      "Android v1.6.0 — camera persistence. On every camera-idle we save target/zoom/bearing/tilt to SharedPreferences; on next launch we restore the exact view. First-ever launch still auto-fits to the campus bounds; subsequent launches respect your last position and rotation.",
+    ],
+    highlightsFi: [
+      "Kuvien kallistus ja vinouma nyt +-85° / +-80°",
+      "Android: huoneet autovärittyvät tyypin mukaan (luokka, labra, wc, ...)",
+      "Android: sovellus muistaa viimeisimmän karttanäkymän",
+    ],
+  },
   {
     version: "3.26.7",
     date: "August 2026",
     title: "Image overlays auto-align to map bearing on import + Align to map button",
     titleFi: "Kuvat suoraan kartan mukaisesti tuotaessa + Kohdista karttaan -nappula",
-    latest: true,
     highlights: [
       "Import an image while the map is rotated → the image now lands screen-straight instead of world-north-straight. On import we set the overlay's rotation to −map.getBearing() so it visually cancels the map's rotation. Tilt + skew default to 0.",
       "New \"Align to map\" button on the image control panel — one click re-syncs rotation to the current map bearing AND zeros tilt + skew. Fixes the \"rotation shouldn't tilt/pitch\" complaint by giving a fast path back to a clean rectangle aligned with your current view.",

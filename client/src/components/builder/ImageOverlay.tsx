@@ -97,16 +97,19 @@ function cornersFor(
   const dLat = heightMeters / 2 / 111320;
   const dLng = widthMeters / 2 / (111320 * Math.cos((centerLat * Math.PI) / 180));
 
-  // Perspective tilt — narrow the top edge inward by cos(tilt) and
-  // also shift it toward center vertically by sin(tilt) to fake
-  // foreshortening. Clamped so at ±60° the top is 50% of the bottom.
-  const tiltR = (Math.max(-60, Math.min(60, tiltDeg)) * Math.PI) / 180;
-  const topScale = Math.cos(tiltR);          // 1 at 0°, 0.5 at 60°
+  // v3.26.8 — expanded range. Tilt allowed up to ±85° (near-vertical);
+  // top edge shrinks to ~9% of bottom at that extreme so the image
+  // still has SOME visible area. Below-negative flips the trapezoid
+  // (top wider than bottom) for the "looking up from the ground" look.
+  const tiltR = (Math.max(-85, Math.min(85, tiltDeg)) * Math.PI) / 180;
+  const topScale = Math.cos(tiltR);          // 1 at 0°, ~0.09 at 85°
   const topYNudge = -Math.sin(tiltR) * dLat; // pushes top toward center
 
-  // Skew — shift the top edge horizontally by tan(skew) * dLat.
-  // Small angle so ±45° gives roughly ±(dLat) of shift.
-  const skewShift = Math.tan((skewDeg * Math.PI) / 180) * dLat;
+  // v3.26.8 — skew range up to ±80° so extreme shears (fixing photos
+  // taken from a very off-axis angle) are possible. Clamp separately
+  // from the raw tan() so 89° doesn't blow up the shift to infinity.
+  const skewClamped = Math.max(-80, Math.min(80, skewDeg));
+  const skewShift = Math.tan((skewClamped * Math.PI) / 180) * dLat;
 
   // Corners in local (dLng, dLat) space, then rotated, then translated.
   const topDLng = dLng * topScale;
@@ -442,14 +445,14 @@ export default function ImageOverlay({ map }: Props) {
                   <SliderRow
                     label="Tilt"
                     value={active.tiltDeg ?? 0}
-                    min={-60} max={60} step={1}
+                    min={-85} max={85} step={1}
                     format={(v) => `${v.toFixed(0)}°`}
                     onChange={(v) => patchActive({ tiltDeg: v })}
                   />
                   <SliderRow
                     label="Skew"
                     value={active.skewDeg ?? 0}
-                    min={-45} max={45} step={1}
+                    min={-80} max={80} step={1}
                     format={(v) => `${v.toFixed(0)}°`}
                     onChange={(v) => patchActive({ skewDeg: v })}
                   />
