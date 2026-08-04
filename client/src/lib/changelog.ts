@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.0";
+export const APP_VERSION = "3.26.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.1",
+    date: "August 2026",
+    title: "HOTFIX: blank map reverted. Bigger nav panel on desktop.",
+    titleFi: "KIIREKORJAUS: tyhjä kartta korjattu. Isompi reittipaneeli työpöydällä.",
+    latest: true,
+    highlights: [
+      "Hotfix — 3.26.0's aggressive raster fade at high zoom caused a blank-map report on some devices. Reverted to 100% raster opacity at every zoom; the paper-beige ground layer stays as a fallback if tiles ever fail to load. Cleanest of both worlds — you always see either the CARTO basemap or the paper backdrop, never white.",
+      "Desktop: NavigationPanel width bumped 24rem → 28rem (sm+) → 32rem (lg+) so the turn-by-turn list has room to breathe and long room names/hallway labels stop wrapping awkwardly.",
+    ],
+    highlightsFi: [
+      "Tyhjän kartan bugin nopea korjaus",
+      "Työpöydällä reittipaneeli on nyt isompi",
+    ],
+  },
   {
     version: "3.26.0",
     date: "August 2026",
     title: "Ground fill (no more white zoom), GeolocateControl removed, wall/room delete + placement ghost, floor 1 default",
     titleFi: "Valkoinen ruutu korjattu, sijainti-nappula pois, seinien ja huoneiden poisto + esikatselu",
-    latest: true,
     highlights: [
       "Fix: fully-zoomed-in map no longer goes white. Added a MazeMap-adjacent \"paper\" ground fill (dark slate in dark mode) beneath the raster, plus the raster now holds ~35% opacity at zoom 22 instead of fading to 5%.",
       "Removed: the GeolocateControl (\"find me\" real-location button). GPS accuracy on a small indoor campus was rarely useful and the button clashed with the site's navigation UI. Indoor routing still works via the \"Etsi lähtöhuone\" room picker.",

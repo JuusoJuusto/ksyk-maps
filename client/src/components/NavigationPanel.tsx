@@ -430,9 +430,12 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       className={cn(
         // Top-anchored on both mobile + desktop, right under the header,
         // so it never covers the bottom-right control rail. Mobile:
-        // stretches side-to-side; sm+: floating card with fixed width.
+        // stretches side-to-side; sm+: floating card. v3.26.1 — desktop
+        // width bumped from 24rem → 28rem, and lg+ pushes to 32rem so
+        // the turn-by-turn list has room to breathe and long room
+        // names/labels don't wrap awkwardly.
         "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
-        "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,24rem)]",
+        "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)]",
       )}
       style={{
         // When the search dropdown is up we duck the nav panel below

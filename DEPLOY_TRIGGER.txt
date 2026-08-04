@@ -1,11 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.26.0. Fixes the "white screen at max zoom" bug with a
-ground-fill background layer + gentler raster fade. Removes the
-GeolocateControl. Default floor = 1 on every fresh visit. Builder now
-supports real-time deletion of rooms + walls (previously only
-buildings) and shows a dashed placement ghost from the last waypoint
-to the cursor while drawing.
+Bump reason: v3.26.1 HOTFIX. Reverts the aggressive raster fade past
+zoom 19 that was leaving the map blank on some users' devices. Raster
+now at 100% opacity at every zoom; the paper-beige ground layer stays
+as a fallback. Also bumps the desktop NavigationPanel width so the
+turn-by-turn list has room to breathe.
 
-Timestamp: 1786086000
-Build: FORCE_REBUILD_v3.26.0
+Timestamp: 1786089600
+Build: FORCE_REBUILD_v3.26.1

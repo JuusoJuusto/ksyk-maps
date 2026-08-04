@@ -213,23 +213,15 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
         minzoom: 0,
         maxzoom: 22,
         paint: {
-          // v3.26.0 — held opacity floor at 0.35 through zoom 22 so
-          // the map is never blank. Below 19 the raster stays at 100%
-          // for full-context neighborhood view; past 19 it fades to a
-          // subtle diagram-adjacent backdrop that the vector overlays
-          // dominate. The bright ground layer beneath fills whatever
-          // the raster leaves transparent.
-          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.55, 21, 0.4, 22, 0.35],
-          // Linear resampling smooths overzoomed pixels — trades
-          // crispness for a less jagged blur. Combined with the low
-          // opacity above, the eye stops trying to focus on it.
+          // v3.26.1 — REVERTED aggressive fade. Keeping the raster at
+          // full opacity everywhere so the map is guaranteed visible
+          // at every zoom. The ground layer beneath is a safety net
+          // for the (rare) case tiles fail to load. Prior fade curve
+          // (fade to 5% at zoom 22) was causing a "blank map" report
+          // on some users' devices — trade the "clean diagram" look
+          // for reliable visibility.
+          "raster-opacity": 1.0,
           "raster-resampling": "linear",
-          // Slight saturation boost at low zooms so the basemap has
-          // personality; back to 0 at high zoom where the vector
-          // overlays are the focus.
-          "raster-saturation": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 18, 0.05, 22, -0.25],
-          // Turn off the raster's default cross-fade so labels don't
-          // flicker during zoom.
           "raster-fade-duration": 200,
         },
       },
