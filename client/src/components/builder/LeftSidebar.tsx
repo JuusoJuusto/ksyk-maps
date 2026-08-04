@@ -32,7 +32,11 @@ import MapSettingsPanel from "@/components/MapSettingsPanel";
 export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "layers" | "history" | "settings";
 
 export interface LeftSidebarSelection {
-  kind: "building" | "room" | "hallway";
+  // v3.28.1 — point-POI kinds added so the property panel can edit
+  // doors/stairs/elevators/generic POIs. The builder's own selection
+  // dispatch (from BuilderPois' click handler) sets these; the left
+  // sidebar's list clicks still only produce building/room/hallway.
+  kind: "building" | "room" | "hallway" | "door" | "stair" | "elevator" | "poi";
   id: string;
 }
 

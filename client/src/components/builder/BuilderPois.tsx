@@ -50,9 +50,14 @@ const LYR = {
 interface Props {
   map: MaplibreMap | null;
   activeFloor?: number | null;
+  /** v3.28.1 — fires when the user clicks any point-POI layer.
+   *  Kind maps 1:1 to LeftSidebarSelection's new door/stair/elevator/
+   *  poi kinds. Parent uses it to set selection so PropertyPanel
+   *  renders the appropriate editor. */
+  onSelect?: (kind: "door" | "stair" | "elevator" | "poi", id: string) => void;
 }
 
-export default function BuilderPois({ map, activeFloor = null }: Props) {
+export default function BuilderPois({ map, activeFloor = null, onSelect }: Props) {
   const doorsQ = useQuery<DoorFeature[]>({
     queryKey: ["/api/doors"],
     queryFn: async () => {
@@ -296,6 +301,43 @@ export default function BuilderPois({ map, activeFloor = null }: Props) {
       map.once("styledata", onLoad);
     }
   }, [map, activeFloor, doorsQ.data, stairsQ.data, elevQ.data, poisQ.data]);
+
+  // v3.28.1 — click handlers on the POI layers. Clicking any POI
+  // fires onSelect(kind, id) so the parent can update selection and
+  // pop the property panel. Cursor turns pointer on hover.
+  useEffect(() => {
+    if (!map || !onSelect) return;
+    const wireClick = (layerId: string, kind: "door" | "stair" | "elevator" | "poi") => {
+      const onClick = (e: import("maplibre-gl").MapLayerMouseEvent) => {
+        const f = e.features?.[0];
+        const id = f?.properties?.id;
+        if (typeof id === "string") {
+          onSelect(kind, id);
+          // Stop propagation so the builder's own map-click doesn't
+          // ALSO fire (which would try to hit-test buildings/rooms
+          // underneath the POI).
+          e.originalEvent?.stopPropagation();
+        }
+      };
+      const onEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+      const onLeave = () => { map.getCanvas().style.cursor = ""; };
+      map.on("click", layerId, onClick);
+      map.on("mouseenter", layerId, onEnter);
+      map.on("mouseleave", layerId, onLeave);
+      return () => {
+        map.off("click", layerId, onClick);
+        map.off("mouseenter", layerId, onEnter);
+        map.off("mouseleave", layerId, onLeave);
+      };
+    };
+    const cleanups = [
+      wireClick(LYR.doors, "door"),
+      wireClick(LYR.stairs, "stair"),
+      wireClick(LYR.elevators, "elevator"),
+      wireClick(LYR.pois, "poi"),
+    ];
+    return () => { for (const c of cleanups) c(); };
+  }, [map, onSelect]);
 
   // Cleanup on unmount — remove all layers + sources we added.
   useEffect(() => {

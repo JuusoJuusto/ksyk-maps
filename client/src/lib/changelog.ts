@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.28.0";
+export const APP_VERSION = "3.28.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.28.1",
+    date: "August 2026",
+    title: "Doors + stairs + elevators editable in builder, way cleaner announcement dialog",
+    titleFi: "Ovet, portaat ja hissit muokattavissa rakentajassa. Siistimpi ilmoitusikkuna.",
+    latest: true,
+    highlights: [
+      "Builder: doors, stairs, elevators are now CLICKABLE and EDITABLE. Click any POI chip on the map → the property panel opens with a form: Floor, isEntrance/isExit toggles (doors only), position readout, Save, Delete. Same for stairs and elevators (with a coming-soon note for generic POIs).",
+      "PropertyPanel: the new PointPoiProps form appears when a point-POI is selected. The kind pill in the header, the tab strip, and titleFor all know about the new door/stair/elevator/poi kinds.",
+      "AnnouncementBanner dialog: MUCH cleaner. Redundant icon tile removed; priority chip + relative time now sit above the title in a tidy row. Title bumped to 2xl/3xl for hierarchy. Divider dropped. Combined with the outline Close button + inline prev/next chevrons from 3.28.0, the modal reads as a focused announcement viewer, not a busy card.",
+    ],
+    highlightsFi: [
+      "Rakentaja: ovet, portaat ja hissit muokattavissa suoraan kartalta",
+      "Ilmoitusikkuna paljon siistimpi",
+    ],
+  },
   {
     version: "3.28.0",
     date: "August 2026",
     title: "POIs visible in builder, EN/FI room names, cleaner announcement dialog, banner reverted",
     titleFi: "POI:t näkyvät rakentajassa, EN/FI-nimet huoneille, siistimpi ilmoitusikkuna",
-    latest: true,
     highlights: [
       "Builder: POIs (doors, stairs, elevators, generic POIs) are now RENDERED on the builder map. Doors: green E for entrance, X for exit, D for door. Stairs: amber S. Elevators: blue E. Generic POIs colored by category. All filter by the currently-selected floor. Previously invisible in the builder — admins had to publish to see placement.",
       "RoomProps: new Name (English) + Name (Finnish) fields alongside the base Name. Wired to the existing nameEn/nameFi columns in the schema so the search index + future i18n-aware displays pick them up.",

@@ -1,9 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.28.0 — POIs (doors, stairs, elevators, generic POIs)
-now render on the builder map with distinct color chips + letter
-markers. RoomProps gains EN + FI name fields. AnnouncementBanner
-strip reverted to compact; the click-to-open dialog is polished.
+Bump reason: v3.28.1 — doors, stairs, and elevators are now clickable
++ editable in the builder (PointPoiProps form: floor, isEntrance/
+isExit toggles for doors, delete). AnnouncementBanner dialog cleaner
+— icon tile removed, priority chip + time above the title, bigger
+title, no divider.
 
-Timestamp: 1786179600
-Build: FORCE_REBUILD_v3.28.0_BUILDER_POIS
+Timestamp: 1786183200
+Build: FORCE_REBUILD_v3.28.1_POI_EDIT_CLEANER_DIALOG

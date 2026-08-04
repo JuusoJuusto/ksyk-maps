@@ -1721,9 +1721,7 @@ function BuilderWorkspace() {
   const onDeleteSelected = useCallback(() => {
     if (!selection) return;
     // v3.26.0 — route to the right mutation based on selection.kind.
-    // Previously only buildings were deletable; walls/rooms now go
-    // through their dedicated mutations, which invalidate the
-    // relevant query and trigger the map to re-render immediately.
+    // v3.28.1 — extended to point POIs (door/stair/elevator/poi).
     switch (selection.kind) {
       case "building": {
         if (!confirm("Delete this building?")) return;
@@ -1736,15 +1734,35 @@ function BuilderWorkspace() {
         return;
       }
       case "hallway": {
-        // Same mutation covers walls (surface="wall") and hallways.
         const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
         const label = h?.surface === "wall" ? "wall" : "hallway";
         if (!confirm(`Delete this ${label}?`)) return;
         deleteHallway.mutate(selection.id);
         return;
       }
+      case "door":
+      case "stair":
+      case "elevator":
+      case "poi": {
+        const label = selection.kind === "door" ? "door"
+                    : selection.kind === "stair" ? "stairs"
+                    : selection.kind === "elevator" ? "elevator"
+                    : "POI";
+        if (!confirm(`Delete this ${label}?`)) return;
+        const resource = selection.kind === "door" ? "doors"
+                       : selection.kind === "stair" ? "stairs"
+                       : selection.kind === "elevator" ? "elevators"
+                       : "pois";
+        void apiRequest("DELETE", `/api/${resource}/${selection.id}`)
+          .then(() => {
+            qc.invalidateQueries({ queryKey: [`/api/${resource}`] });
+            setSelection(null);
+          })
+          .catch(() => toast({ title: "Delete failed", variant: "destructive" }));
+        return;
+      }
     }
-  }, [selection, deleteBuilding, deleteRoom, deleteHallway, hallwaysQ.data]);
+  }, [selection, deleteBuilding, deleteRoom, deleteHallway, hallwaysQ.data, qc]);
 
   /** Duplicate every selected building + room with a small SE offset.
    *  Figma-standard behaviour (⌘D). New polygons register with undo so
@@ -2285,11 +2303,14 @@ function BuilderWorkspace() {
           {/* v3.28.0 — render doors, stairs, elevators, and generic
            *  POIs as circle chips directly on the builder map so
            *  admins can SEE what they're placing without publishing.
-           *  Filtered by the currently-selected floor. */}
+           *  Filtered by the currently-selected floor.
+           *  v3.28.1 — POIs are also selectable + editable now via
+           *  the onSelect callback → LeftSidebarSelection. */}
           {mapReady && (
             <BuilderPois
               map={handleRef.current?.map ?? null}
               activeFloor={cameraState.activeFloor ?? null}
+              onSelect={(kind, id) => setSelection({ kind, id })}
             />
           )}
 
@@ -2376,7 +2397,18 @@ function BuilderWorkspace() {
             } else if (selection.kind === "hallway") {
               const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
               if (h) entity = { kind: "hallway", data: h };
+            } else if (selection.kind === "door") {
+              const d = (doorsQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
+              if (d) entity = { kind: "door", data: d as never };
+            } else if (selection.kind === "stair") {
+              const s = (stairsQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
+              if (s) entity = { kind: "stair", data: s as never };
+            } else if (selection.kind === "elevator") {
+              const e = (elevatorsQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
+              if (e) entity = { kind: "elevator", data: e as never };
             }
+            // "poi" (generic POI) not wired yet — needs a query in
+            // this file for /api/pois; punt to v3.28.2.
             if (!entity) return null;
             return (
               <PropertyPanel

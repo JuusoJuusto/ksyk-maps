@@ -23,11 +23,27 @@ import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
 
 /** Selection dispatched to the panel. Union so the panel can render
- *  a different form per entity kind. */
+ *  a different form per entity kind. v3.28.1 — added point-POI kinds
+ *  so doors/stairs/elevators/generic POIs are editable in the
+ *  builder. Data is loose `Record<string, unknown>` for those since
+ *  we don't have first-class typed shared types for them yet. */
 export type SelectedEntity =
   | { kind: "building"; data: Building }
   | { kind: "room"; data: Room }
-  | { kind: "hallway"; data: Hallway };
+  | { kind: "hallway"; data: Hallway }
+  | { kind: "door"; data: PointPoi & { isEntrance?: boolean; isExit?: boolean } }
+  | { kind: "stair"; data: PointPoi }
+  | { kind: "elevator"; data: PointPoi }
+  | { kind: "poi"; data: PointPoi & { kind?: string } };
+
+export interface PointPoi {
+  id: string;
+  floor?: number | null;
+  mapPositionX?: number | null;
+  mapPositionY?: number | null;
+  metadata?: Record<string, unknown> | null;
+  [k: string]: unknown;
+}
 
 interface PropertyPanelProps {
   entity: SelectedEntity;
@@ -60,6 +76,16 @@ type TabId = typeof TABS[number]["id"];
 export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPanelProps) {
   const [tab, setTab] = useState<TabId>("props");
   const title = useMemo(() => entity.kind[0].toUpperCase() + entity.kind.slice(1), [entity.kind]);
+  // v3.28.1 — point POI kinds (door/stair/elevator/poi) don't have
+  // polygon-style, transform, or per-feature metadata knobs yet.
+  // Style/Transform/Custom tabs would render blank forms or crash for
+  // those, so we only surface the Properties tab. Building/room/
+  // hallway still get all four.
+  const isPointPoi = entity.kind === "door" || entity.kind === "stair" ||
+                     entity.kind === "elevator" || entity.kind === "poi";
+  const visibleTabs = isPointPoi
+    ? TABS.filter((t) => t.id === "props")
+    : TABS;
 
   return (
     <div className="absolute top-3 right-3 z-30 w-80 rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
@@ -87,8 +113,8 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-4 border-b border-border bg-muted/40">
-        {TABS.map((t) => {
+      <div className={cn("grid border-b border-border bg-muted/40", isPointPoi ? "grid-cols-1" : "grid-cols-4")}>
+        {visibleTabs.map((t) => {
           const Icon = t.Icon;
           const active = tab === t.id;
           return (
@@ -138,10 +164,18 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
 // ── Helpers ────────────────────────────────────────────────────────
 
 function KindDot({ entity }: { entity: SelectedEntity }) {
-  const color =
-    entity.kind === "building" ? (entity.data.colorCode ?? "#2563eb") :
-    entity.kind === "room"     ? (entity.data.colorCode ?? "#059669") :
-                                 "#f59e0b";
+  // v3.28.1 — point-POI kinds get distinct colours matching the map
+  // chips (green entrance, grey door, amber stair, blue elevator).
+  let color: string;
+  switch (entity.kind) {
+    case "building": color = entity.data.colorCode ?? "#2563eb"; break;
+    case "room":     color = entity.data.colorCode ?? "#059669"; break;
+    case "hallway":  color = "#f59e0b"; break;
+    case "door":     color = entity.data.isEntrance ? "#16a34a" : entity.data.isExit ? "#dc2626" : "#374151"; break;
+    case "stair":    color = "#f59e0b"; break;
+    case "elevator": color = "#2563eb"; break;
+    case "poi":      color = "#8b5cf6"; break;
+  }
   return <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ background: color }} />;
 }
 
@@ -150,7 +184,11 @@ function titleFor(entity: SelectedEntity): string {
   if (entity.kind === "room") {
     return [entity.data.roomNumber, entity.data.name].filter(Boolean).join(" · ") || "(unnamed room)";
   }
-  return `Hallway ${entity.data.id.slice(0, 8)}`;
+  if (entity.kind === "hallway") return `Hallway ${entity.data.id.slice(0, 8)}`;
+  if (entity.kind === "door") return entity.data.isEntrance ? "Entrance" : entity.data.isExit ? "Exit" : "Door";
+  if (entity.kind === "stair") return "Stairs";
+  if (entity.kind === "elevator") return "Elevator";
+  return `POI (${entity.data.kind ?? "other"})`;
 }
 
 // ── Shared field primitives ───────────────────────────────────────
@@ -231,7 +269,115 @@ function DirtySaveButton({
 function PropsTab({ entity }: { entity: SelectedEntity }) {
   if (entity.kind === "building") return <BuildingProps building={entity.data} />;
   if (entity.kind === "room") return <RoomProps room={entity.data} />;
-  return <HallwayProps hallway={entity.data} />;
+  if (entity.kind === "hallway") return <HallwayProps hallway={entity.data} />;
+  // v3.28.1 — point POI forms. All four share the same core (floor +
+  // position + delete); doors additionally have isEntrance/isExit
+  // toggles; generic POIs have a `kind` string.
+  const resource =
+    entity.kind === "door" ? "doors" :
+    entity.kind === "stair" ? "stairs" :
+    entity.kind === "elevator" ? "elevators" :
+    "pois";
+  return <PointPoiProps poi={entity.data} kind={entity.kind} resource={resource} />;
+}
+
+/** Point-POI editor — one form for door / stair / elevator / poi. */
+function PointPoiProps({
+  poi, kind, resource,
+}: {
+  poi: PointPoi & { isEntrance?: boolean; isExit?: boolean; kind?: string };
+  kind: "door" | "stair" | "elevator" | "poi";
+  resource: "doors" | "stairs" | "elevators" | "pois";
+}) {
+  const qc = useQueryClient();
+  const [floor, setFloor] = useState<number>((poi.floor as number | null) ?? 1);
+  const [isEntrance, setIsEntrance] = useState<boolean>(!!poi.isEntrance);
+  const [isExit, setIsExit] = useState<boolean>(!!poi.isExit);
+  const [poiKind, setPoiKind] = useState<string>(String(poi.kind ?? ""));
+
+  const patch = useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await apiRequest("PATCH", `/api/${resource}/${poi.id}`, body);
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [`/api/${resource}`] }),
+  });
+
+  const dirty =
+    floor !== ((poi.floor as number | null) ?? 1) ||
+    (kind === "door" && (isEntrance !== !!poi.isEntrance || isExit !== !!poi.isExit)) ||
+    (kind === "poi" && poiKind !== String(poi.kind ?? ""));
+
+  const label =
+    kind === "door" ? "Door" :
+    kind === "stair" ? "Stairs" :
+    kind === "elevator" ? "Elevator" :
+    "POI";
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Type</p>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-sm font-semibold">
+          {label}
+        </div>
+      </div>
+      <NumberField label="Floor" value={floor} onChange={setFloor} min={-5} max={30} />
+      {kind === "door" && (
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isEntrance}
+              onChange={(e) => {
+                setIsEntrance(e.target.checked);
+                if (e.target.checked) setIsExit(false);
+              }}
+              className="h-4 w-4 accent-emerald-600"
+            />
+            <span>Is entrance <span className="text-muted-foreground text-xs">(green E)</span></span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isExit}
+              onChange={(e) => {
+                setIsExit(e.target.checked);
+                if (e.target.checked) setIsEntrance(false);
+              }}
+              className="h-4 w-4 accent-red-600"
+            />
+            <span>Is exit only <span className="text-muted-foreground text-xs">(red X)</span></span>
+          </label>
+        </div>
+      )}
+      {kind === "poi" && (
+        <TextField
+          label="POI kind"
+          value={poiKind}
+          onChange={setPoiKind}
+          placeholder="e.g. info, cafe, restroom_m"
+        />
+      )}
+      <div className="pt-2 border-t border-border">
+        <p className="text-[11px] text-muted-foreground mb-2">
+          Position: {typeof poi.mapPositionY === "number" && typeof poi.mapPositionX === "number"
+            ? `${poi.mapPositionY.toFixed(6)}, ${poi.mapPositionX.toFixed(6)}`
+            : "unknown"}
+        </p>
+      </div>
+      <DirtySaveButton
+        isDirty={dirty}
+        isPending={patch.isPending}
+        onSave={() => {
+          const body: Record<string, unknown> = { floor };
+          if (kind === "door") { body.isEntrance = isEntrance; body.isExit = isExit; }
+          if (kind === "poi") { body.kind = poiKind || null; }
+          patch.mutate(body);
+        }}
+      />
+    </div>
+  );
 }
 
 function BuildingProps({ building }: { building: Building }) {
@@ -531,6 +677,13 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
 
 function StyleTab({ entity }: { entity: SelectedEntity }) {
   const qc = useQueryClient();
+  // v3.28.1 — point-POI kinds have no per-feature style knobs yet; if
+  // one somehow reaches this tab (should be blocked by the tab
+  // visibility filter), render a placeholder instead of crashing.
+  if (entity.kind === "door" || entity.kind === "stair"
+      || entity.kind === "elevator" || entity.kind === "poi") {
+    return <p className="text-xs text-muted-foreground p-4">Point POIs use their kind's default style. Edit position + floor in the Properties tab.</p>;
+  }
   const currentColor =
     entity.kind === "building" ? (entity.data.colorCode ?? "#2563eb") :
     entity.kind === "room"     ? (entity.data.colorCode ?? "#059669") :
@@ -810,6 +963,10 @@ function SliderField({
 // ── Transform tab (position, rotation, size) ──────────────────────
 
 function TransformTab({ entity }: { entity: SelectedEntity }) {
+  if (entity.kind === "door" || entity.kind === "stair"
+      || entity.kind === "elevator" || entity.kind === "poi") {
+    return <p className="text-xs text-muted-foreground p-4">Point POIs move by dragging on the map. Coordinates shown in the Properties tab.</p>;
+  }
   // Building / Room store polygon corners — we surface the centroid +
   // rotation only, since editing individual corners belongs to the
   // canvas transform gizmo. Hallway shows start/end points.
@@ -854,6 +1011,10 @@ function TransformTab({ entity }: { entity: SelectedEntity }) {
 
 function CustomTab({ entity }: { entity: SelectedEntity }) {
   const qc = useQueryClient();
+  if (entity.kind === "door" || entity.kind === "stair"
+      || entity.kind === "elevator" || entity.kind === "poi") {
+    return <p className="text-xs text-muted-foreground p-4">Custom metadata for point POIs isn't editable via a JSON blob yet — use the Properties tab.</p>;
+  }
   const initial = useMemo(() => {
     const m = entity.kind === "hallway" ? undefined : (entity.data.metadata ?? null);
     return m ? JSON.stringify(m, null, 2) : "{}";

@@ -244,64 +244,56 @@ export default function AnnouncementBanner() {
            *  taking over the whole header. */}
           <div className={cn("h-1.5 w-full", priorityBg)} />
 
-          {/* Header — white, matches top bar. Colored icon tile
-           *  provides the KSYK-family accent. */}
-          <div className="flex items-start gap-3 px-5 sm:px-6 pt-5 pb-4">
-            <div className={cn(
-              "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ring-1",
-              currentAnnouncement.priority === "urgent"
-                ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 ring-red-100 dark:ring-red-900/40"
-                : currentAnnouncement.priority === "high"
-                ? "bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-300 ring-orange-100 dark:ring-orange-900/40"
-                : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 ring-blue-100 dark:ring-blue-900/40",
-            )}>
-              {getPriorityIcon(currentAnnouncement.priority)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className={cn(
-                  "text-[10px] font-bold tracking-[0.18em] uppercase",
-                  currentAnnouncement.priority === "urgent"
-                    ? "text-red-600 dark:text-red-400"
+          {/* v3.28.1 — much cleaner header. Icon tile removed (it was
+           *  redundant with the top accent bar which already conveys
+           *  priority). Priority chip + relative time now sit above
+           *  the title in a single tidy row. Big title has room to
+           *  breathe without a fighting icon tile beside it. */}
+          <div className="px-5 sm:px-7 pt-6 pb-4">
+            <div className="flex items-center gap-2 flex-wrap mb-3">
+              <span className={cn(
+                "text-[10px] font-bold tracking-[0.2em] uppercase px-2 py-0.5 rounded-full",
+                currentAnnouncement.priority === "urgent"
+                  ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                  : currentAnnouncement.priority === "high"
+                  ? "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300"
+                  : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+              )}>
+                {i18n.language === "fi"
+                  ? currentAnnouncement.priority === "urgent"
+                    ? "Kiireellinen"
                     : currentAnnouncement.priority === "high"
-                    ? "text-orange-600 dark:text-orange-400"
-                    : "text-blue-600 dark:text-blue-400",
-                )}>
-                  {i18n.language === "fi"
-                    ? currentAnnouncement.priority === "urgent"
-                      ? "Kiireellinen"
-                      : currentAnnouncement.priority === "high"
-                      ? "Korkea prioriteetti"
-                      : "Tiedote"
-                    : currentAnnouncement.priority === "urgent"
-                    ? "Urgent"
-                    : currentAnnouncement.priority === "high"
-                    ? "High priority"
-                    : "Announcement"}
-                </span>
-                <span className="text-gray-300 dark:text-gray-700">·</span>
-                <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-500">
-                  <Clock className="h-3 w-3" />
-                  {(() => {
-                    try {
-                      const timestamp = currentAnnouncement.createdAt;
-                      let date: Date;
-                      if (!timestamp) return "Recently";
-                      if (typeof timestamp === "object" && timestamp._seconds) {
-                        date = new Date(timestamp._seconds * 1000);
-                      } else {
-                        date = new Date(timestamp);
-                      }
-                      if (isNaN(date.getTime())) return "Recently";
-                      return formatDistanceToNow(date, { addSuffix: true });
-                    } catch {
-                      return "Recently";
+                    ? "Korkea prioriteetti"
+                    : "Tiedote"
+                  : currentAnnouncement.priority === "urgent"
+                  ? "Urgent"
+                  : currentAnnouncement.priority === "high"
+                  ? "High priority"
+                  : "Announcement"}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-500">
+                <Clock className="h-3 w-3" />
+                {(() => {
+                  try {
+                    const timestamp = currentAnnouncement.createdAt;
+                    let date: Date;
+                    if (!timestamp) return "Recently";
+                    if (typeof timestamp === "object" && timestamp._seconds) {
+                      date = new Date(timestamp._seconds * 1000);
+                    } else {
+                      date = new Date(timestamp);
                     }
-                  })()}
-                </span>
-              </div>
+                    if (isNaN(date.getTime())) return "Recently";
+                    return formatDistanceToNow(date, { addSuffix: true });
+                  } catch {
+                    return "Recently";
+                  }
+                })()}
+              </span>
+            </div>
+            <div className="min-w-0">
               <DialogTitle className={cn(
-                "text-xl sm:text-2xl font-bold tracking-tight leading-tight",
+                "text-2xl sm:text-3xl font-bold tracking-tight leading-tight",
                 darkMode ? "text-white" : "text-gray-900",
               )}>
                 {getLocalizedTitle(currentAnnouncement)}
@@ -312,8 +304,8 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="h-px mx-5 sm:mx-6 bg-gray-100 dark:bg-gray-800" />
+          {/* v3.28.1 — divider dropped, cleaner. Body just flows from
+           *  the header with the same horizontal padding. */}
 
           {/* Body — scrollable prose */}
           <div className="px-5 sm:px-7 py-5 sm:py-6 overflow-y-auto flex-1" style={{ maxHeight: "min(65dvh, 38rem)" }}>
