@@ -1608,7 +1608,11 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
         0.95,
         ["!=", ["get", "fillOpacity"], null],
         ["get", "fillOpacity"],
-        ["interpolate", ["linear"], ["zoom"], 15, 0.35, 17, 0.7, 19, 0.85, 22, 0.95],
+        // v3.27.3 — bumped base opacity from 0.35→0.7→0.85 to
+        // 0.6→0.85→0.92 so rooms READ at typical zooms instead of
+        // being ghostly at zoom 15-17. The building shell stays at
+        // 0.24 opacity so rooms sitting on top don't get muddied.
+        ["interpolate", ["linear"], ["zoom"], 15, 0.6, 17, 0.85, 19, 0.92, 22, 0.95],
       ],
       "fill-antialias": true,
     },

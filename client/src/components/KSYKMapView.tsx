@@ -255,26 +255,27 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     });
   }, []);
 
-  /** Fly the map to the pick AND set it as the routing destination.
-   *  v3.25.8 — MazeMap-style: clicking a search result opens the
-   *  NavigationPanel with the pick pre-filled as "To". The panel then
-   *  prompts for the "From" endpoint. The camera still animates to the
-   *  pick so users see context; the highlight polygon + floor switch
-   *  behave as before. */
+  /** Fly the map to the pick AND open the FeatureInfoSheet.
+   *  v3.27.3 — reverted the "search click = directions" behaviour;
+   *  clicking a search result now opens the info drawer (with photo /
+   *  hours / contact / etc.) so users can see WHAT the room is before
+   *  deciding whether to route to it. The info drawer's "Directions
+   *  here" button still hands off to NavigationPanel for the routing
+   *  flow, so the previous behaviour is one tap away. */
   const onPickResult = useCallback((pick: SearchPick) => {
     const h = handleRef.current;
     if (!h) return;
     let centre: { lat: number; lng: number } | null = null;
-    let routeFeature: ClickedFeature | null = null;
+    let infoFeature: ClickedFeature | null = null;
     if (pick.kind === "room" && pick.room.points?.length) {
       centre = polygonCentroid(pick.room.points);
       if (typeof pick.room.floor === "number") setSelectedFloor(pick.room.floor);
       setHighlightPolygon(pick.room.points);
-      routeFeature = { kind: "room", entity: pick.room };
+      infoFeature = { kind: "room", entity: pick.room };
     } else if (pick.kind === "building" && pick.building.points?.length) {
       centre = polygonCentroid(pick.building.points);
       setHighlightPolygon(pick.building.points);
-      routeFeature = { kind: "building", entity: pick.building };
+      infoFeature = { kind: "building", entity: pick.building };
     }
     if (centre) {
       h.map.flyTo({
@@ -287,10 +288,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         essential: true,
       });
     }
-    // Open NavigationPanel and hand it the destination via the same
-    // `ksyk:route-to` event FeatureInfoSheet's "Directions here" uses.
-    if (routeFeature) handleRouteTo(routeFeature);
-  }, [handleRouteTo]);
+    // Show the info drawer — same UI a click on the map opens.
+    if (infoFeature) setClickedFeature(infoFeature);
+  }, []);
 
   return (
     <div className="absolute inset-0">

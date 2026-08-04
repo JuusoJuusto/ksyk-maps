@@ -317,6 +317,15 @@ function RoomProps({ room }: { room: Room }) {
   const [department, setDepartment] = useState(room.department ?? "");
   const [teacher, setTeacher] = useState(room.teacher ?? "");
   const [tagsInput, setTagsInput] = useState((room.tags ?? []).join(", "));
+  const [floor, setFloor] = useState<number>(room.floor ?? 1);
+  // v3.27.3 — info fields (photo + hours + description) editable
+  // right here without diving into the Custom-JSON tab. Stored inside
+  // metadata.info so the schema stays untouched.
+  const initialMeta = (room.metadata as Record<string, unknown> | null | undefined) ?? {};
+  const initialInfo = ((initialMeta.info as Record<string, unknown> | undefined) ?? initialMeta) as Record<string, unknown>;
+  const [photoUrl, setPhotoUrl] = useState((initialInfo.photoUrl as string | undefined) ?? (initialMeta.photoUrl as string | undefined) ?? "");
+  const [hours, setHours] = useState((initialInfo.hours as string | undefined) ?? (initialMeta.hours as string | undefined) ?? "");
+  const [description, setDescription] = useState(room.description ?? "");
 
   const patch = useMutation({
     mutationFn: async (body: Partial<Room>) => {
@@ -326,6 +335,8 @@ function RoomProps({ room }: { room: Room }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
   });
 
+  const initialPhoto = (initialInfo.photoUrl as string | undefined) ?? (initialMeta.photoUrl as string | undefined) ?? "";
+  const initialHours = (initialInfo.hours as string | undefined) ?? (initialMeta.hours as string | undefined) ?? "";
   const dirty =
     roomNumber !== room.roomNumber ||
     name !== (room.name ?? "") ||
@@ -333,7 +344,11 @@ function RoomProps({ room }: { room: Room }) {
     capacity !== (room.capacity ?? 0) ||
     department !== (room.department ?? "") ||
     teacher !== (room.teacher ?? "") ||
-    tagsInput !== (room.tags ?? []).join(", ");
+    tagsInput !== (room.tags ?? []).join(", ") ||
+    floor !== (room.floor ?? 1) ||
+    photoUrl !== initialPhoto ||
+    hours !== initialHours ||
+    description !== (room.description ?? "");
 
   return (
     <div className="space-y-3">
@@ -354,27 +369,77 @@ function RoomProps({ room }: { room: Room }) {
           ))}
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
+        <NumberField label="Floor" value={floor} onChange={setFloor} min={-5} max={30} />
         <NumberField label="Capacity" value={capacity} onChange={setCapacity} min={0} max={5000} />
         <TextField label="Department" value={department} onChange={setDepartment} />
       </div>
       <TextField label="Teacher" value={teacher} onChange={setTeacher} />
       <TextField label="Tags (comma-separated)" value={tagsInput} onChange={setTagsInput} />
+      {/* v3.27.3 — info fields section. Anything typed here becomes
+       *  the room's info drawer on the public map. Simple text inputs;
+       *  the schema-first proper upload widget is a follow-up. */}
+      <div className="pt-2 mt-2 border-t border-border">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+          Info drawer content
+        </p>
+        <div className="space-y-2">
+          <TextField
+            label="Photo URL"
+            value={photoUrl}
+            onChange={setPhotoUrl}
+            placeholder="https://…/room-photo.jpg"
+          />
+          <TextField
+            label="Hours"
+            value={hours}
+            onChange={setHours}
+            placeholder="Mon–Fri 8–16 · Closed weekends"
+          />
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="One-line or paragraph. Shown as the About row in the info drawer."
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+            />
+          </div>
+        </div>
+      </div>
       <DirtySaveButton
         isDirty={dirty}
         isPending={patch.isPending}
-        onSave={() => patch.mutate({
-          roomNumber,
-          name: name || null,
-          type,
-          capacity,
-          department: department || null,
-          teacher: teacher || null,
-          tags: tagsInput
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-        })}
+        onSave={() => {
+          // v3.27.3 — merge the info fields into metadata WITHOUT
+          // clobbering unrelated keys (e.g. `style` set from the
+          // Style tab). Everything else (photoUrl, hours) sits at
+          // the top level of metadata so featurePhotoUrl +
+          // featureContact in FeatureInfoSheet pick it up.
+          const nextMeta: Record<string, unknown> = { ...initialMeta };
+          if (photoUrl.trim()) nextMeta.photoUrl = photoUrl.trim();
+          else delete nextMeta.photoUrl;
+          if (hours.trim()) nextMeta.hours = hours.trim();
+          else delete nextMeta.hours;
+          patch.mutate({
+            roomNumber,
+            name: name || null,
+            type,
+            floor,
+            capacity,
+            department: department || null,
+            teacher: teacher || null,
+            description: description.trim() || null,
+            tags: tagsInput
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+            metadata: nextMeta as never,
+          });
+        }}
       />
     </div>
   );

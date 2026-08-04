@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.2";
+export const APP_VERSION = "3.27.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.3",
+    date: "August 2026",
+    title: "Rooms brighter + visible earlier, 3D bearing fixed, search opens info, easy photo/hours editing",
+    titleFi: "Huoneet näkyvämmät, 3D-korjaus, hakutulos avaa tietopaneelin, helppo kuva-editointi",
+    latest: true,
+    highlights: [
+      "Fix — the 3D toggle no longer resets the map's rotation. Rotation and pitch are now in separate effects, so bumping one preserves the other AND the current center/zoom. Combined with the 3.27.2 fix, the 3D button now truly \"only tilts.\"",
+      "Rooms are much more visible now — fill-opacity ramp bumped from 0.35→0.85 to 0.6→0.92 across zoom 15-22. Rooms READ at the \"just zoomed into the campus\" step instead of appearing only when you're already at walking-zoom.",
+      "Search results now open the info drawer (with photos + hours + description + Directions button) instead of jumping straight into route mode. Same behaviour as clicking the room on the map. Hit \"Directions here\" in the drawer to route.",
+      "Builder → RoomProps: new Info drawer content section. Fields for Photo URL, Hours, and Description save into room.metadata + room.description in one click, so filling in the info drawer no longer requires diving into the Custom-JSON tab. Also added a Floor number field so admins can move a room between floors after creation.",
+    ],
+    highlightsFi: [
+      "Korjaus: 3D nappula ei enää nollaa karttasuuntausta",
+      "Huoneet paljon näkyvämmät jo pienemmillä zoomeilla",
+      "Hakutulos avaa tietopaneelin (ei mene suoraan reititykseen)",
+      "Rakentaja: kuvat, aukioloajat, kuvaukset editoitavissa suoraan huoneen paneelissa",
+    ],
+  },
   {
     version: "3.27.2",
     date: "August 2026",
     title: "Fix: 3D toggle resetting map. Enriched info sheet with photos + hours.",
     titleFi: "Korjaus: 3D nappula ei enää nollaa karttaa. Tietopaneeli näyttää kuvat + aukioloajat.",
-    latest: true,
     highlights: [
       "Fix — the 3D toggle no longer resets your pan / zoom back to campus defaults. Root cause: a single \"settings changed\" effect was re-flying center + zoom + bearing + pitch whenever ANY setting changed, so bumping pitchDeg (what the toggle does) accidentally reset everything. Now split into two effects — center/zoom changes preserve current bearing/pitch, and rotation/pitch changes preserve current center/zoom.",
       "FeatureInfoSheet: wider Mappedin-style drawer on desktop (26rem sm+ / 30rem lg+), taller max-height (48rem) so photos + descriptions + hours all fit without scrolling.",

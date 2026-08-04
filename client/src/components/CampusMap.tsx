@@ -520,9 +520,11 @@ export default function CampusMap({
     ready, bearing, pitch,
   ]);
 
-  // Effect B — rotation + pitch. Fires only when those change.
-  // Preserves current center + zoom, so a "3D toggle" click tilts
-  // the map without yanking it back to campus defaults.
+  // v3.27.3 — SPLIT rotation and pitch into TWO effects so toggling
+  // the 3D button (which updates pitchDeg) doesn't also reset the
+  // user's map bearing. The old combined effect passed BOTH d.bearing
+  // and d.pitch on every fire, which meant clicking 3D flew the map
+  // back to admin's default rotation on top of tilting.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -532,13 +534,27 @@ export default function CampusMap({
       center: map.getCenter(),
       zoom: map.getZoom(),
       bearing: d.bearing,
+      pitch: map.getPitch(),
+      duration: 500,
+    });
+  }, [
+    settings.osmRotationDeg, settings.mobileRotationDeg, settings.desktopRotationDeg,
+    ready, bearing, pitch,
+  ]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (bearing !== undefined || pitch !== undefined) return;
+    const d = pickPlatformMapDefaults(settings);
+    map.easeTo({
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
       pitch: d.pitch,
       duration: 500,
     });
   }, [
-    settings.osmRotationDeg, settings.osmPitchDeg,
-    settings.mobileRotationDeg, settings.mobilePitchDeg,
-    settings.desktopRotationDeg, settings.desktopPitchDeg,
+    settings.osmPitchDeg, settings.mobilePitchDeg, settings.desktopPitchDeg,
     ready, bearing, pitch,
   ]);
 
