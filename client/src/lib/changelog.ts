@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.3";
+export const APP_VERSION = "3.27.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.4",
+    date: "August 2026",
+    title: "Room clicks widened, info sheet no longer clips top on mobile",
+    titleFi: "Huoneiden klikkaus toimii paremmin, tietopaneeli ei enää leikkaudu",
+    latest: true,
+    highlights: [
+      "Fix — clicking a room on the map now uses a 6px-radius bbox instead of a point-precise hit-test. Rooms hit rooms-first, then buildings, then hallways, so a tap that overlaps a room inside a building resolves to the room. Much easier to select tiny rooms on touch devices.",
+      "Fix — the room/building info drawer no longer clips at the top on mobile. Max-height now leaves 7rem of headroom above (header + search bar), so the entire sheet — photo band, title, metadata, Directions button — is always visible without scrolling off the top. Photo band on mobile is 7rem (was 10rem) so more room for content.",
+    ],
+    highlightsFi: [
+      "Huoneiden klikkaus toimii nyt luotettavammin — myös pieniä huoneita on helpompi valita",
+      "Tietopaneeli mahtuu näytölle mobiilissa — ei enää leikkaudu ylälaidasta",
+    ],
+  },
   {
     version: "3.27.3",
     date: "August 2026",
     title: "Rooms brighter + visible earlier, 3D bearing fixed, search opens info, easy photo/hours editing",
     titleFi: "Huoneet näkyvämmät, 3D-korjaus, hakutulos avaa tietopaneelin, helppo kuva-editointi",
-    latest: true,
     highlights: [
       "Fix — the 3D toggle no longer resets the map's rotation. Rotation and pitch are now in separate effects, so bumping one preserves the other AND the current center/zoom. Combined with the 3.27.2 fix, the 3D button now truly \"only tilts.\"",
       "Rooms are much more visible now — fill-opacity ramp bumped from 0.35→0.85 to 0.6→0.92 across zoom 15-22. Rooms READ at the \"just zoomed into the campus\" step instead of appearing only when you're already at walking-zoom.",

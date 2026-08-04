@@ -40,15 +40,22 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       aria-label={`${feature.kind} info`}
       className={cn(
         "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
-        // v3.27.2 — wider Mappedin-style drawer on desktop (22rem →
-        // 26rem sm, 30rem lg) with more vertical breathing room so
-        // photos + descriptions + hours all fit without scrolling.
+        // v3.27.4 — mobile: full-width bottom sheet, safe-area
+        // padded, with a fixed max-height so it never clips at the
+        // top when a photo band is present. Desktop (sm+): floating
+        // right-side card, top-24 to clear the sticky header.
         "left-2 right-2 sm:left-auto sm:right-3 sm:w-[min(92vw,26rem)] lg:w-[min(92vw,30rem)]",
         "bottom-2 sm:bottom-auto sm:top-24",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        maxHeight: "min(85dvh, 48rem)",
+        // v3.27.4 — mobile height math. The sheet is bottom-anchored
+        // (`bottom-2`) so it grows UPWARD; if it grows past the
+        // header the top gets clipped. Cap at `viewport - 7rem` so
+        // 7rem always remains at the top for the header + search bar.
+        // Desktop uses the smaller of 48rem OR the equivalent
+        // headroom, keeping the previous behaviour.
+        maxHeight: "min(48rem, calc(100dvh - 7rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))",
       }}
     >
       {/* Grab handle on mobile — signals the panel is dismissible. */}
@@ -66,7 +73,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         const photoUrl = featurePhotoUrl(feature);
         if (photoUrl) {
           return (
-            <div className="relative h-40 sm:h-44 bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div className="relative h-28 sm:h-40 md:h-44 bg-slate-100 dark:bg-slate-800 overflow-hidden">
               <img
                 src={photoUrl}
                 alt={title}

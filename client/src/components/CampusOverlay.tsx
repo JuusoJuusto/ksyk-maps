@@ -279,19 +279,37 @@ export default function CampusOverlay({
     });
 
     const onClick = (e: import("maplibre-gl").MapMouseEvent) => {
-      const feats = map.queryRenderedFeatures(e.point, {
-        layers: [LAYERS.buildingsFill, LAYERS.roomsFill, LAYERS.hallwaysLine].filter((id) => map.getLayer(id)),
-      });
-      const hit = feats[0];
-      if (!hit || typeof hit.properties?.id !== "string") return;
-      // Locked layers block interaction. Check the corresponding
-      // layer's `locked` flag from the /api/layers table.
-      const kind = hit.layer.id === LAYERS.buildingsFill ? "building"
-                 : hit.layer.id === LAYERS.roomsFill    ? "room"
-                 :                                        "hallway";
-      const layerRow = layers.find((l) => l.id === (kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways"));
-      if (layerRow?.locked) return;
-      clickHandlerRef.current?.(kind, hit.properties.id);
+      // v3.27.4 — widened hit-test. Point-precise queries missed tiny
+      // rooms on touch devices where the finger cursor is imprecise;
+      // now we search a 6px-radius bbox around the cursor so pointing
+      // "roughly at" a room selects it. Rooms are tested BEFORE
+      // buildings so a tap that overlaps a room inside a building
+      // resolves to the room, not the shell.
+      const px = 6;
+      const bbox: [import("maplibre-gl").PointLike, import("maplibre-gl").PointLike] = [
+        [e.point.x - px, e.point.y - px],
+        [e.point.x + px, e.point.y + px],
+      ];
+      const roomLayers = [LAYERS.roomsFill].filter((id) => map.getLayer(id));
+      const bldgLayers = [LAYERS.buildingsFill].filter((id) => map.getLayer(id));
+      const hallLayers = [LAYERS.hallwaysLine].filter((id) => map.getLayer(id));
+      const layerRow = (kind: "building" | "room" | "hallway") =>
+        layers.find((l) => l.id === (kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways"));
+
+      const roomHit = roomLayers.length ? map.queryRenderedFeatures(bbox, { layers: roomLayers })[0] : undefined;
+      if (roomHit && typeof roomHit.properties?.id === "string" && !layerRow("room")?.locked) {
+        clickHandlerRef.current?.("room", roomHit.properties.id);
+        return;
+      }
+      const bldgHit = bldgLayers.length ? map.queryRenderedFeatures(bbox, { layers: bldgLayers })[0] : undefined;
+      if (bldgHit && typeof bldgHit.properties?.id === "string" && !layerRow("building")?.locked) {
+        clickHandlerRef.current?.("building", bldgHit.properties.id);
+        return;
+      }
+      const hallHit = hallLayers.length ? map.queryRenderedFeatures(bbox, { layers: hallLayers })[0] : undefined;
+      if (hallHit && typeof hallHit.properties?.id === "string" && !layerRow("hallway")?.locked) {
+        clickHandlerRef.current?.("hallway", hallHit.properties.id);
+      }
     };
     map.on("click", onClick);
 

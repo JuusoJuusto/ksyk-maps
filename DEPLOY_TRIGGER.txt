@@ -1,10 +1,9 @@
-FORCE VERCEL REBUILD - 2026-08-04
+FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.27.3 — rooms brighter + visible at wider zooms, the
-3D toggle bearing-reset glitch fixed (rotation/pitch now in separate
-effects), search-result clicks open the info drawer instead of jumping
-into route mode, and RoomProps now has direct fields for Photo URL,
-Hours, Description, and Floor — no more Custom-JSON tab dive.
+Bump reason: v3.27.4 — room click hit-test widened to a 6px bbox
+(finger-precise), rooms tested before buildings so tap-in-room selects
+the room. Info drawer max-height constrained so it no longer clips at
+the top on mobile; photo band shrunk on mobile to leave content room.
 
-Timestamp: 1786129200
-Build: FORCE_REBUILD_v3.27.3_ROOM_INFO_EDITING
+Timestamp: 1786172400
+Build: FORCE_REBUILD_v3.27.4_CLICK_INFO_FIXES
