@@ -10,15 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.1";
+export const APP_VERSION = "3.26.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.2",
+    date: "August 2026",
+    title: "HOTFIX #2: strip style back to minimum + CSS backdrop fallback",
+    titleFi: "KIIREKORJAUS #2: tyhjä kartta uudelleen korjattu",
+    latest: true,
+    highlights: [
+      "The 3.26.0 background layer was still causing a blank map for some users even after 3.26.1's revert. Removed it entirely — the style now has ONLY the raster layer, matching pre-3.26.0 rendering exactly.",
+      "Added a CSS backgroundColor on the map container itself (paper-beige / dark slate). Even if MapLibre fails to init OR the raster tiles fail to load, the map area shows a neutral backdrop, never stark white.",
+    ],
+    highlightsFi: [
+      "Tausta-layer poistettu — sotki karttaa. Container-CSS estää valkoisen ruudun.",
+    ],
+  },
   {
     version: "3.26.1",
     date: "August 2026",
     title: "HOTFIX: blank map reverted. Bigger nav panel on desktop.",
     titleFi: "KIIREKORJAUS: tyhjä kartta korjattu. Isompi reittipaneeli työpöydällä.",
-    latest: true,
     highlights: [
       "Hotfix — 3.26.0's aggressive raster fade at high zoom caused a blank-map report on some devices. Reverted to 100% raster opacity at every zoom; the paper-beige ground layer stays as a fallback if tiles ever fail to load. Cleanest of both worlds — you always see either the CARTO basemap or the paper backdrop, never white.",
       "Desktop: NavigationPanel width bumped 24rem → 28rem (sm+) → 32rem (lg+) so the turn-by-turn list has room to breathe and long room names/hallway labels stop wrapping awkwardly.",

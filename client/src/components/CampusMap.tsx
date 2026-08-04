@@ -161,51 +161,30 @@ const TILE_ATTRIBUTIONS = {
 function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
   return {
     version: 8,
-    // MazeMap-style directional lighting. The `light` block controls
-    // shading on every fill-extrusion layer (buildings, walls, room
-    // slabs). Setting a warm color + a fixed low-angle position makes
-    // buildings read as "sunlit" instead of the flat default. Anchor
-    // "map" so shadows behave as world-space (the sun stays put as
-    // the user rotates) — required for `fill-extrusion-cast-shadows`
-    // to read as a real sun instead of a headlamp.
+    // MazeMap-style directional lighting for fill-extrusion layers.
     light: {
       anchor: "map",
-      // Position is [radial, azimuth°, polar°]. Southwest-ish light
-      // at 65° above horizon → shadows cast north-east, which matches
-      // the drop-shadow polygons in installBuildings.
       position: [1.15, 45, 65],
       color: mode === "dark" ? "#c7d0e0" : "#fff4dc",
       intensity: mode === "dark" ? 0.35 : 0.6,
     },
-    // v3.26.0 — ground fill so the map is never blank. Previously the
-    // raster faded to 5% at zoom 22 and nothing lived beneath it, so
-    // fully-zoomed-in views went white. Painting a MazeMap-adjacent
-    // "paper" beige (or dark slate in dark mode) here guarantees a
-    // proper backdrop for the KSYK vector overlay at every zoom.
-    // `background` layers accept a color that reads through every
-    // higher layer's transparency.
     sources: {
       "osm-raster": {
         type: "raster",
         tiles: [...TILE_URLS[mode]],
-        // @2x tiles are still 512 px but we render them as 256 for
-        // pixel-perfect sharpness at DPR≥2 displays.
         tileSize: 256,
         attribution: TILE_ATTRIBUTIONS[mode],
         maxzoom: 19,
       },
     },
+    // v3.26.2 — minimum-viable style. Raster is the ONLY layer here;
+    // KSYK overlays get added on top by CampusOverlay. Removed the
+    // background layer that I added in 3.26.0 — it (or the tweaked
+    // raster opacity curve) was blanking the map for some users. If
+    // tiles fail to load, the container's CSS background-color paints
+    // through — the map area shows the app's default background, not
+    // white. Safe. Boring. Works.
     layers: [
-      {
-        // Ground fill — a MazeMap-ish paper tint (or dark slate) that
-        // shows through when the raster has faded out at extreme zoom.
-        // No more white screen at zoom 22.
-        id: "ground",
-        type: "background",
-        paint: {
-          "background-color": mode === "dark" ? "#0f172a" : "#f5f2ea",
-        },
-      },
       {
         id: "osm-raster-layer",
         type: "raster",
@@ -213,13 +192,6 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
         minzoom: 0,
         maxzoom: 22,
         paint: {
-          // v3.26.1 — REVERTED aggressive fade. Keeping the raster at
-          // full opacity everywhere so the map is guaranteed visible
-          // at every zoom. The ground layer beneath is a safety net
-          // for the (rare) case tiles fail to load. Prior fade curve
-          // (fade to 5% at zoom 22) was causing a "blank map" report
-          // on some users' devices — trade the "clean diagram" look
-          // for reliable visibility.
           "raster-opacity": 1.0,
           "raster-resampling": "linear",
           "raster-fade-duration": 200,
@@ -597,6 +569,10 @@ export default function CampusMap({
   return (
     <div
       ref={containerRef}
+      // v3.26.2 — CSS fallback backdrop. If MapLibre fails to init or
+      // the raster tiles don't load, the container shows a neutral
+      // paper-beige (or dark slate) so users never see stark white.
+      style={{ backgroundColor: darkMode ? "#0f172a" : "#eeeae0" }}
       className={cn(
         "w-full h-full relative",
         // Kill MapLibre's default focus outline — we manage focus states
