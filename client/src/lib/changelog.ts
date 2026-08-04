@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.2";
+export const APP_VERSION = "3.26.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.3",
+    date: "August 2026",
+    title: "MazeMap-style hover halos + cache-bust",
+    titleFi: "MazeMap-tyylinen hover-korostus + välimuisti tyhjennetty",
+    latest: true,
+    highlights: [
+      "Hover the map with your cursor — buildings now get a thick coloured outline (2× normal width, full opacity) so you see exactly which building the cursor is on. Rooms get a bright blue 3–5px halo ring while hovered, matching MazeMap's \"active feature\" affordance.",
+      "Cache bump so browsers pick up the previous hotfixes (the blank-map fixes in 3.26.1/3.26.2 might've been masked by stale bundles for some users).",
+    ],
+    highlightsFi: [
+      "Hover-tehoste — kohdistettu rakennus/huone saa kirkkaan reunuksen",
+      "Välimuisti tyhjennetty, jotta korjatut versiot latautuvat kaikille",
+    ],
+  },
   {
     version: "3.26.2",
     date: "August 2026",
     title: "HOTFIX #2: strip style back to minimum + CSS backdrop fallback",
     titleFi: "KIIREKORJAUS #2: tyhjä kartta uudelleen korjattu",
-    latest: true,
     highlights: [
       "The 3.26.0 background layer was still causing a blank map for some users even after 3.26.1's revert. Removed it entirely — the style now has ONLY the raster layer, matching pre-3.26.0 rendering exactly.",
       "Added a CSS backgroundColor on the map container itself (paper-beige / dark slate). Even if MapLibre fails to init OR the raster tiles fail to load, the map area shows a neutral backdrop, never stark white.",

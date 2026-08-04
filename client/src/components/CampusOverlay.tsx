@@ -669,10 +669,25 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
       "line-color": ["get", "color"],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1.5, 17, 2.5, 20, 3.5],
+      // v3.26.3 — MazeMap-style hover halo. Hovered building outline
+      // thickens 2× and jumps to full opacity, so the user sees
+      // exactly which building the cursor is on even when the
+      // building color is subtle. Combined with the pre-existing
+      // fill-opacity bump, hover feels responsive and MazeMap-adjacent.
+      "line-width": [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        ["interpolate", ["linear"], ["zoom"], 14, 3, 17, 5, 20, 7],
+        ["interpolate", ["linear"], ["zoom"], 14, 1.5, 17, 2.5, 20, 3.5],
+      ],
       // Per-feature outline toggle — false collapses the line to zero
       // opacity without hiding the layer for every building.
-      "line-opacity": ["case", ["get", "showOutline"], 0.95, 0],
+      "line-opacity": [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        1.0,
+        ["case", ["get", "showOutline"], 0.95, 0],
+      ],
     },
   });
   addLayerIfMissing(map, {
@@ -1506,6 +1521,32 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // Keeping the layer id in LAYERS.roomsOutline for backwards-compat with
   // the visibility toggles; installer just skips it now.
   void LAYERS.roomsOutline;
+
+  // v3.26.3 — hover halo ring around the room the cursor is on. Only
+  // renders when feature-state.hover is true; invisible otherwise so
+  // permanent outlines don't clutter the map. Bright blue for
+  // wayfinding contrast.
+  addLayerIfMissing(map, {
+    id: "campus-rooms-hover-halo",
+    source: SOURCES.rooms,
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#2563eb",
+      "line-width": [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        ["interpolate", ["linear"], ["zoom"], 15, 2, 18, 3.5, 22, 5],
+        0,
+      ],
+      "line-opacity": [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        0.95,
+        0,
+      ],
+    },
+  });
 
   // 3D room slabs — used when the map is pitched. Sits at the correct
   // Z for the room's floor so multi-story buildings actually stack.
