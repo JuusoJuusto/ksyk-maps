@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.6";
+export const APP_VERSION = "3.26.7";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.7",
+    date: "August 2026",
+    title: "Image overlays auto-align to map bearing on import + Align to map button",
+    titleFi: "Kuvat suoraan kartan mukaisesti tuotaessa + Kohdista karttaan -nappula",
+    latest: true,
+    highlights: [
+      "Import an image while the map is rotated → the image now lands screen-straight instead of world-north-straight. On import we set the overlay's rotation to −map.getBearing() so it visually cancels the map's rotation. Tilt + skew default to 0.",
+      "New \"Align to map\" button on the image control panel — one click re-syncs rotation to the current map bearing AND zeros tilt + skew. Fixes the \"rotation shouldn't tilt/pitch\" complaint by giving a fast path back to a clean rectangle aligned with your current view.",
+      "\"Reset tilt + skew\" is still there (leaves rotation as-is); the two buttons now share a row so both fixes are equally discoverable.",
+    ],
+    highlightsFi: [
+      "Kuvia tuodessa ne asettuvat suoraan näytön suuntaan",
+      "\"Kohdista karttaan\" -nappula palauttaa siistin suorakulmion",
+    ],
+  },
   {
     version: "3.26.6",
     date: "August 2026",
     title: "Nav panel taller, search em-dash separator, drag-to-move images, tilt reset",
     titleFi: "Reittipaneeli korkeampi, hakuruudun välimerkki –, kuvien raahaus",
-    latest: true,
     highlights: [
       "NavigationPanel: desktop max-height 70dvh → 85dvh so the turn-by-turn list has real breathing room. Mobile stays gated by the viewport-bottom distance so nothing changes there.",
       "Search results: field separator changed from a middle dot (·) to an em-dash (—). Reads more clearly as \"Building — 105 — Floor 2 — Classroom\" instead of the cramped dot version.",

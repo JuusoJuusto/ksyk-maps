@@ -1,8 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.26.6 — desktop NavigationPanel taller (85dvh), search
-results now use em-dash separators, builder image overlays are
-draggable on the map with a Reset button for tilt/skew.
+Bump reason: v3.26.7 — image overlays now auto-align to the map's
+current bearing on import (so a rotated map still shows the image
+straight on screen). New "Align to map" button re-syncs rotation to
+current bearing and zeros tilt + skew in one click.
 
-Timestamp: 1786107600
-Build: FORCE_REBUILD_v3.26.6_DRAG_IMAGES
+Timestamp: 1786111200
+Build: FORCE_REBUILD_v3.26.7_ALIGN_IMAGE

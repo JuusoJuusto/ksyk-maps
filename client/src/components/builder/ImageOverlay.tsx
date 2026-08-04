@@ -224,15 +224,23 @@ export default function ImageOverlay({ map }: Props) {
       reader.onload = () => {
         const dataUrl = reader.result as string;
         const c = map.getCenter();
+        // v3.26.7 — align imported image to the current map bearing so
+        // it always appears "right side up" on screen when it lands.
+        // If the user has the map rotated to bearing=30°, the image
+        // world-rotation is set to -30° so screen appearance is
+        // straight. Tilt/skew default to 0 (pure rectangle).
+        const bearingCorrection = -map.getBearing();
         const spec: ImageOverlaySpec = {
           id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           dataUrl,
           centerLat: c.lat,
           centerLng: c.lng,
           widthMeters: 50,   // Reasonable starting size for a building floor plan
-          rotationDeg: 0,
+          rotationDeg: bearingCorrection,
           opacity: 0.6,
           name: file.name,
+          tiltDeg: 0,
+          skewDeg: 0,
         };
         setOverlays((prev) => [...prev, spec]);
         setActiveId(spec.id);
@@ -354,6 +362,18 @@ export default function ImageOverlay({ map }: Props) {
     patchActive({ centerLat: c.lat, centerLng: c.lng });
   }, [activeId, map, patchActive]);
 
+  // v3.26.7 — re-sync image rotation to the current map bearing so it
+  // appears screen-straight. Also zeros tilt + skew for a clean
+  // "start over from a plain rectangle aligned with the view" reset.
+  const alignActiveToMap = useCallback(() => {
+    if (!activeId || !map) return;
+    patchActive({
+      rotationDeg: -map.getBearing(),
+      tiltDeg: 0,
+      skewDeg: 0,
+    });
+  }, [activeId, map, patchActive]);
+
   return (
     <div className="absolute top-16 left-3 z-30 flex flex-col gap-2 pointer-events-none">
       {/* v3.26.5 — import button moved to TopToolbar. This component
@@ -436,13 +456,24 @@ export default function ImageOverlay({ map }: Props) {
                   {/* v3.26.6 — Reset perspective. Zeros tilt + skew
                    *  so the image is a pure rectangle again; leaves
                    *  rotation alone. */}
-                  <button
-                    type="button"
-                    onClick={() => patchActive({ tiltDeg: 0, skewDeg: 0 })}
-                    className="w-full h-7 rounded-lg border border-border bg-background text-[11px] font-semibold hover:bg-muted/40"
-                  >
-                    Reset tilt + skew
-                  </button>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => patchActive({ tiltDeg: 0, skewDeg: 0 })}
+                      className="h-7 rounded-lg border border-border bg-background text-[11px] font-semibold hover:bg-muted/40"
+                      title="Zero the tilt + skew sliders (leaves rotation as-is)"
+                    >
+                      Reset perspective
+                    </button>
+                    <button
+                      type="button"
+                      onClick={alignActiveToMap}
+                      className="h-7 rounded-lg border border-blue-500/50 bg-blue-50 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300"
+                      title="Rotate image to match the current map orientation, zero tilt + skew"
+                    >
+                      Align to map
+                    </button>
+                  </div>
                   <div className="flex gap-1.5 pt-1">
                     <button
                       type="button"
