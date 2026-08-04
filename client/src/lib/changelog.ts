@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.0";
+export const APP_VERSION = "3.27.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.1",
+    date: "August 2026",
+    title: "Bigger door + entrance chips with letter markers",
+    titleFi: "Isommat ovi- ja sisäänkäyntipisteet + kirjaintunnisteet",
+    latest: true,
+    highlights: [
+      "Doors on the public map are now ~40% bigger (radius 4→10 px across zoom) with thicker white halos, so they read from further out.",
+      "Entrance chips are ~30% bigger (radius 5→14 px) with brighter halos — the primary wayfinding cue now really pops.",
+      "Each chip gets a bold white letter inside — \"D\" for door, \"E\" for entrance. Reads clearly even in monochrome / high-contrast modes and helps colorblind users distinguish the two types at a glance.",
+    ],
+    highlightsFi: [
+      "Ovet ja sisäänkäynnit näkyvät nyt isompina ja selkeämpinä pisteinä",
+      "Jokaisessa pisteessä D/E-kirjain, jotta tyyppi näkyy heti",
+    ],
+  },
   {
     version: "3.27.0",
     date: "August 2026",
     title: "Stage room type, marching-ants route, POIs inherit active floor. Android v1.7.0: doors + walls on map.",
     titleFi: "Näyttämö-tyyppi, animoitu reitti. Android: ovet + seinät kartalle.",
-    latest: true,
     highlights: [
       "New room types recognised: stage (näyttämö), theater/theatre, assembly, chapel, reception — all get distinct auto-colors on both web and Android.",
       "Builder: stairs, elevators, and doors placed with any POI tool now inherit the builder's currently-selected floor (was hardcoded to floor 1). Draw on floor 3 → new stair lands on floor 3.",

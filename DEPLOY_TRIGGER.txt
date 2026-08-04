@@ -1,9 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.27.0. Adds stage/näyttämö room type, ensures POIs
-inherit builder's active floor, marching-ants animation on the web
-route line. Android v1.7.0 renders doors + entrances (colored chips)
-and walls (dark line segments) on the map.
+Bump reason: v3.27.1 — door + entrance chips on the public map are
+bigger (radius 4→10 px doors, 5→14 px entrances), have chunkier white
+halos, and now include "D" / "E" letter markers inside so the two
+types are unambiguous even in monochrome/high-contrast modes.
 
-Timestamp: 1786118400
-Build: FORCE_REBUILD_v3.27.0_STAGE_DOORS_WALLS
+Timestamp: 1786122000
+Build: FORCE_REBUILD_v3.27.1_DOOR_LETTERS

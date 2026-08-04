@@ -1226,15 +1226,16 @@ function installPoiPillars(
     type: "circle",
     minzoom: 16,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 5, 20, 7],
+      // v3.27.1 — chunkier so doors read at wider zooms.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 4, 18, 7, 20, 10],
       "circle-color": [
         "match", ["get", "kind"],
         "exit", "#dc2626",
                 "#374151",
       ],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 1.5,
-      "circle-opacity": 0.95,
+      "circle-stroke-width": 2,
+      "circle-opacity": 0.98,
     },
   });
   addLayerIfMissing(map, {
@@ -1243,11 +1244,52 @@ function installPoiPillars(
     type: "circle",
     minzoom: 15,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 4, 18, 8, 20, 11],
+      // v3.27.1 — bigger + brighter halo. Entrances are the primary
+      // wayfinding cue; they should read from across the campus.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 10, 20, 14],
       "circle-color": "#16a34a",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 2.5,
       "circle-opacity": 0.98,
+    },
+  });
+  // v3.27.1 — "D" / "E" letter inside each chip. Reads clearly even
+  // in high-contrast / monochrome and helps colorblind users tell
+  // doors from entrances at a glance.
+  addLayerIfMissing(map, {
+    id: "campus-doors-letter",
+    source: "campus-doors-marker-src",
+    type: "symbol",
+    minzoom: 17,
+    layout: {
+      "text-field": "D",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 8, 20, 12],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-halo-color": "#00000060",
+      "text-halo-width": 0.4,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: "campus-entrances-letter",
+    source: "campus-entrances-marker-src",
+    type: "symbol",
+    minzoom: 16,
+    layout: {
+      "text-field": "E",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 9, 20, 14],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-halo-color": "#00000060",
+      "text-halo-width": 0.4,
     },
   });
 
