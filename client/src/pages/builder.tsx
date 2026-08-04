@@ -116,6 +116,58 @@ function useAdminAuth() {
   return state;
 }
 
+/**
+ * v3.26.5 — Snap a lat/lng to the nearest wall segment within the
+ * supplied threshold in metres. Iterates every hallway with
+ * `surface === "wall"`, projects the click onto each segment, and
+ * returns the closest projected point. Falls back to null (caller
+ * uses raw click) when no wall is close enough.
+ *
+ * Projection is done in a locally-linear (small-angle) approximation
+ * — for building-scale distances (<50 m) this is off by <0.1 %, far
+ * below the 3 m default snap threshold.
+ */
+function snapPointToNearestWall(
+  click: { lat: number; lng: number },
+  hallways: Array<{ startX: number; startY: number; endX: number; endY: number; surface?: string | null }>,
+  thresholdMeters: number,
+): { lat: number; lng: number } | null {
+  // Metres per degree at this latitude.
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  const px = 0;                       // click is our origin in local metres
+  const py = 0;
+
+  let best: { lat: number; lng: number; d2: number } | null = null;
+  for (const h of hallways) {
+    if ((h.surface ?? "").toLowerCase() !== "wall") continue;
+    // Segment endpoints in metres relative to the click.
+    const ax = (h.startX - click.lng) * mPerDegLng;
+    const ay = (h.startY - click.lat) * mPerDegLat;
+    const bx = (h.endX - click.lng) * mPerDegLng;
+    const by = (h.endY - click.lat) * mPerDegLat;
+
+    const abx = bx - ax; const aby = by - ay;
+    const apx = px - ax; const apy = py - ay;
+    const denom = abx * abx + aby * aby;
+    if (denom === 0) continue;
+    let t = (apx * abx + apy * aby) / denom;
+    t = Math.max(0, Math.min(1, t));
+    const projX = ax + t * abx;
+    const projY = ay + t * aby;
+
+    const dx = projX - px; const dy = projY - py;
+    const d2 = dx * dx + dy * dy;
+    if (d2 <= thresholdMeters * thresholdMeters && (!best || d2 < best.d2)) {
+      // Convert back to lat/lng from local-metre offset.
+      const lng = click.lng + projX / mPerDegLng;
+      const lat = click.lat + projY / mPerDegLat;
+      best = { lat, lng, d2 };
+    }
+  }
+  return best ? { lat: best.lat, lng: best.lng } : null;
+}
+
 // ─── Root page ────────────────────────────────────────────────────────────
 export default function BuilderPage() {
   const [, setLocation] = useLocation();
@@ -917,9 +969,20 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-door" || activeTool === "poi-entrance") {
+        // v3.26.5 — snap doors to the nearest wall segment within 3m.
+        // Projects the click onto every wall/hallway LineString and
+        // picks the closest hit; falls back to raw click if nothing's
+        // near. Doors that live ON walls look right; free-floating
+        // doors "in the middle of a room" no longer happen on
+        // accident.
+        const snapped = snapPointToNearestWall(
+          { lat: e.lngLat.lat, lng: e.lngLat.lng },
+          hallwaysQ.data ?? [],
+          3,  // meters
+        ) ?? { lat: e.lngLat.lat, lng: e.lngLat.lng };
         createDoor.mutate({
-          lat: e.lngLat.lat,
-          lng: e.lngLat.lng,
+          lat: snapped.lat,
+          lng: snapped.lng,
           isEntrance: activeTool === "poi-entrance",
         });
         return;
@@ -2052,6 +2115,13 @@ function BuilderWorkspace() {
           }}
           onImport={() => setShowImportExport(true)}
           onExport={() => setShowImportExport(true)}
+          // v3.26.5 — image overlay import lives in the top toolbar
+          // now. Dispatch a global event; ImageOverlay listens and
+          // triggers its own file-picker flow.
+          onImportImage={() => {
+            try { window.dispatchEvent(new CustomEvent("ksyk:builder-import-image")); }
+            catch { /* older browsers — non-fatal */ }
+          }}
           onToggleGrid={() => setGridEnabled((g) => !g)}
           onToggleSnap={() => setSnapEnabled((s) => !s)}
           onZoomIn={() => handleRef.current?.map.zoomIn()}

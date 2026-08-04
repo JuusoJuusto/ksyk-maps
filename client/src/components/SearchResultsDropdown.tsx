@@ -209,7 +209,11 @@ export default function SearchResultsDropdown({
         // larger viewports. Stretches to available viewport height so
         // long result lists scroll INSIDE the panel instead of pushing
         // off-screen.
-        "fixed left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 sm:w-[min(92vw,42rem)] rounded-2xl border shadow-lg overflow-hidden",
+        // v3.26.5 — z bumped to 55, above the sticky Header (z-50), so
+        // the dropdown NEVER visually clips under the top bar even if
+        // the two touch (e.g. mid-scroll, small viewport where the
+        // announcement banner briefly overlaps).
+        "fixed left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[55] sm:w-[min(92vw,42rem)] rounded-2xl border shadow-lg overflow-hidden",
         darkMode
           ? "bg-gray-900/95 border-gray-800 text-gray-100 backdrop-blur"
           : "bg-white border-gray-200 text-gray-900",

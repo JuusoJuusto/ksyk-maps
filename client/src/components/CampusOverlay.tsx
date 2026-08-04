@@ -1396,6 +1396,52 @@ function installSky(map: MaplibreMap) {
   }
 }
 
+/**
+ * v3.26.5 — MazeMap-style default color per room type. Applied only
+ * when a room has NO explicit `colorCode` set in the builder — user
+ * overrides always win. Keeps floor plans legible at a glance by
+ * giving every room type a distinct hue: classroom (KSYK green),
+ * lab (orange), toilets (pink), cafeteria (amber), office (indigo),
+ * storage (grey), gym (rose), etc.
+ */
+const ROOM_TYPE_COLORS: Record<string, string> = {
+  classroom:  "#059669",   // KSYK green
+  class:      "#059669",
+  luokka:     "#059669",
+  lecture:    "#0891b2",   // teal
+  lab:        "#ea580c",   // orange
+  laboratory: "#ea580c",
+  workshop:   "#d97706",   // amber-darker
+  gym:        "#e11d48",   // rose
+  sports:     "#e11d48",
+  cafeteria:  "#f59e0b",   // amber
+  cafe:       "#f59e0b",
+  canteen:    "#f59e0b",
+  kitchen:    "#f97316",
+  restroom:   "#ec4899",   // pink
+  restrooms:  "#ec4899",
+  toilets:    "#ec4899",
+  bathroom:   "#ec4899",
+  office:     "#6366f1",   // indigo
+  admin:      "#6366f1",
+  staff:      "#6366f1",
+  meeting:    "#8b5cf6",   // violet
+  library:    "#7c3aed",
+  storage:    "#6b7280",   // slate
+  utility:    "#6b7280",
+  hallway:    "#94a3b8",
+  corridor:   "#94a3b8",
+  stairs:     "#f59e0b",
+  elevator:   "#2563eb",
+  auditorium: "#a855f7",
+  music:      "#c084fc",
+  art:        "#f43f5e",
+};
+function colorForRoomType(type: string | null | undefined): string | null {
+  if (!type) return null;
+  return ROOM_TYPE_COLORS[type.toLowerCase().trim()] ?? null;
+}
+
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
@@ -1420,7 +1466,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
             id: r.id,
             name: r.name ?? "",
             label: [r.roomNumber, r.name].filter(Boolean).join(" "),
-            color: r.colorCode ?? "#059669",
+            color: r.colorCode ?? colorForRoomType(r.type) ?? "#059669",
             floor: r.floor ?? 0,
             showOutline: style.showOutline !== false,
             fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
@@ -1477,7 +1523,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
           },
           properties: {
             id: r.id,
-            color: r.colorCode ?? "#059669",
+            color: r.colorCode ?? colorForRoomType(r.type) ?? "#059669",
             floor,
             base,
             height: base + slabHeight,

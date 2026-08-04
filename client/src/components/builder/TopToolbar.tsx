@@ -17,7 +17,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
-  RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check,
+  RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check, Image as ImageIcon,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -34,6 +34,10 @@ export interface TopToolbarProps {
   onRedo: () => void;
   onImport: () => void;
   onExport: () => void;
+  /** v3.26.5 — imports a reference image (PNG/JPG/etc.) as a
+   *  MapLibre raster overlay. Optional so pre-3.26.5 callers still
+   *  compile. */
+  onImportImage?: () => void;
   onToggleGrid: () => void;
   onToggleSnap: () => void;
   onZoomIn: () => void;
@@ -97,6 +101,11 @@ export default function TopToolbar(p: TopToolbarProps) {
       <IconButton onClick={p.onExport} label="Export">
         <Download className="h-4 w-4" />
       </IconButton>
+      {p.onImportImage && (
+        <IconButton onClick={p.onImportImage} label="Import reference image (PNG/JPG)">
+          <ImageIcon className="h-4 w-4" />
+        </IconButton>
+      )}
 
       <Divider />
 

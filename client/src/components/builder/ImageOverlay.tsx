@@ -36,6 +36,17 @@ interface ImageOverlaySpec {
   rotationDeg: number;
   opacity: number;
   name: string;
+  /** Perspective tilt around the image's horizontal axis, degrees.
+   *  Positive tilts "away" from the viewer (top edge shrinks toward
+   *  the horizon); negative tilts "toward" (top edge expands). Used to
+   *  match a scanned floor plan taken at an angle to a rectified
+   *  MapLibre view, or vice versa to fake 3D projection on a flat
+   *  plan. Range -60..+60 keeps the trapezoid readable. */
+  tiltDeg?: number;
+  /** Horizontal shear/skew of the top edge relative to the bottom.
+   *  Positive shifts the top edge right, negative shifts left. Useful
+   *  when a photo was taken from an off-axis angle. Range -45..+45. */
+  skewDeg?: number;
 }
 
 function loadOverlays(): ImageOverlaySpec[] {
@@ -68,24 +79,43 @@ function rotate(dLng: number, dLat: number, deg: number): [number, number] {
   return [dLng * c - dLat * s, dLng * s + dLat * c];
 }
 
-/** Given a center + width + rotation + aspect ratio, return the four
- *  corner [lng,lat]s that MapLibre `image` sources want (in order:
- *  top-left, top-right, bottom-right, bottom-left). */
+/** Given a center + width + rotation + aspect + tilt + skew, return
+ *  the four corner [lng,lat]s that MapLibre `image` sources want (in
+ *  order: top-left, top-right, bottom-right, bottom-left).
+ *
+ *  Tilt narrows the TOP edge (positive) or bottom (negative) to fake
+ *  perspective projection. Skew shears the top edge horizontally.
+ *  Both applied BEFORE rotation so rotation is around the visible
+ *  image center regardless of tilt/skew. */
 function cornersFor(
   centerLat: number, centerLng: number,
   widthMeters: number, aspect: number, rotationDeg: number,
+  tiltDeg = 0, skewDeg = 0,
 ): [[number, number], [number, number], [number, number], [number, number]] {
   const heightMeters = widthMeters / aspect;
   // Meters → degrees at this latitude.
   const dLat = heightMeters / 2 / 111320;
   const dLng = widthMeters / 2 / (111320 * Math.cos((centerLat * Math.PI) / 180));
 
+  // Perspective tilt — narrow the top edge inward by cos(tilt) and
+  // also shift it toward center vertically by sin(tilt) to fake
+  // foreshortening. Clamped so at ±60° the top is 50% of the bottom.
+  const tiltR = (Math.max(-60, Math.min(60, tiltDeg)) * Math.PI) / 180;
+  const topScale = Math.cos(tiltR);          // 1 at 0°, 0.5 at 60°
+  const topYNudge = -Math.sin(tiltR) * dLat; // pushes top toward center
+
+  // Skew — shift the top edge horizontally by tan(skew) * dLat.
+  // Small angle so ±45° gives roughly ±(dLat) of shift.
+  const skewShift = Math.tan((skewDeg * Math.PI) / 180) * dLat;
+
   // Corners in local (dLng, dLat) space, then rotated, then translated.
+  const topDLng = dLng * topScale;
+  const topDLat = dLat + topYNudge;
   const local: [number, number][] = [
-    [-dLng, +dLat],  // TL
-    [+dLng, +dLat],  // TR
-    [+dLng, -dLat],  // BR
-    [-dLng, -dLat],  // BL
+    [-topDLng + skewShift, +topDLat],  // TL
+    [+topDLng + skewShift, +topDLat],  // TR
+    [+dLng, -dLat],                    // BR
+    [-dLng, -dLat],                    // BL
   ];
   return local.map(([lng, lat]) => {
     const [rx, ry] = rotate(lng, lat, rotationDeg);
@@ -131,7 +161,10 @@ export default function ImageOverlay({ map }: Props) {
 
     for (const o of overlays) {
       const aspect = aspectMap[o.id] ?? 1;  // fallback until measured
-      const corners = cornersFor(o.centerLat, o.centerLng, o.widthMeters, aspect, o.rotationDeg);
+      const corners = cornersFor(
+        o.centerLat, o.centerLng, o.widthMeters, aspect, o.rotationDeg,
+        o.tiltDeg ?? 0, o.skewDeg ?? 0,
+      );
       const srcId = `img-overlay-${o.id}`;
       const layerId = `img-overlay-layer-${o.id}`;
       const existing = map.getSource(srcId) as maplibregl.ImageSource | undefined;
@@ -200,6 +233,16 @@ export default function ImageOverlay({ map }: Props) {
     input.click();
   }, [map]);
 
+  // v3.26.5 — the "Import image" button lives in the top toolbar now.
+  // The toolbar dispatches `ksyk:builder-import-image` to open the
+  // file picker; we listen for that event here so ImageOverlay stays
+  // the single source of truth for the import flow.
+  useEffect(() => {
+    const onGlobal = () => onImport();
+    window.addEventListener("ksyk:builder-import-image", onGlobal);
+    return () => window.removeEventListener("ksyk:builder-import-image", onGlobal);
+  }, [onImport]);
+
   const active = useMemo(() => overlays.find((o) => o.id === activeId) ?? null, [overlays, activeId]);
 
   const patchActive = useCallback((patch: Partial<ImageOverlaySpec>) => {
@@ -220,19 +263,10 @@ export default function ImageOverlay({ map }: Props) {
   }, [activeId, map, patchActive]);
 
   return (
-    <div className="absolute top-3 left-16 z-30 flex flex-col gap-2 pointer-events-none">
-      {/* Import button — always visible */}
-      <div className="pointer-events-auto">
-        <button
-          type="button"
-          onClick={onImport}
-          title="Import reference image"
-          className="h-9 px-3 rounded-xl border border-border bg-card shadow-sm text-xs font-semibold text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 flex items-center gap-1.5"
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-          Import image
-        </button>
-      </div>
+    <div className="absolute top-16 left-3 z-30 flex flex-col gap-2 pointer-events-none">
+      {/* v3.26.5 — import button moved to TopToolbar. This component
+       *  only surfaces the LIST + CONTROLS for existing overlays now;
+       *  hidden entirely when no image has been imported yet. */}
 
       {/* Overlay list + controls */}
       {overlays.length > 0 && (
@@ -288,6 +322,20 @@ export default function ImageOverlay({ map }: Props) {
                     min={-180} max={180} step={1}
                     format={(v) => `${v.toFixed(0)}°`}
                     onChange={(v) => patchActive({ rotationDeg: v })}
+                  />
+                  <SliderRow
+                    label="Tilt"
+                    value={active.tiltDeg ?? 0}
+                    min={-60} max={60} step={1}
+                    format={(v) => `${v.toFixed(0)}°`}
+                    onChange={(v) => patchActive({ tiltDeg: v })}
+                  />
+                  <SliderRow
+                    label="Skew"
+                    value={active.skewDeg ?? 0}
+                    min={-45} max={45} step={1}
+                    format={(v) => `${v.toFixed(0)}°`}
+                    onChange={(v) => patchActive({ skewDeg: v })}
                   />
                   <div className="flex gap-1.5 pt-1">
                     <button

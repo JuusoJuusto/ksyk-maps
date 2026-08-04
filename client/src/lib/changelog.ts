@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.26.4";
+export const APP_VERSION = "3.26.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.26.5",
+    date: "August 2026",
+    title: "Search clip fix, category room colors, doors snap to walls, image tilt + toolbar",
+    titleFi: "Hakuruudun leikkautuminen korjattu, huoneiden autovärit, ovet napsahtavat seiniin",
+    latest: true,
+    highlights: [
+      "Fix — the desktop search results dropdown was visually clipping under the top bar for some layouts. Bumped its z-index above the sticky header so it now always sits cleanly on top.",
+      "MazeMap-style: rooms with no explicit color now auto-tint based on their type — classroom green, lab orange, toilets pink, cafeteria amber, office indigo, gym rose, storage grey, and more. Explicit colorCode still wins so anything you set in the builder is preserved.",
+      "Builder: door + entrance tools now SNAP to the nearest wall within 3 m and use the projected point (not the raw click), so doors always land ON a wall instead of floating inside rooms.",
+      "Builder: image overlay gains Tilt (–60° to +60°) and Skew (–45° to +45°) sliders alongside opacity/width/rotation. Tilt narrows the top edge to fake perspective foreshortening; skew shears the top horizontally. Useful for straightening scanned floor plans taken at an angle.",
+      "Builder: Import Image button moved into the top toolbar (image icon, next to Import/Export) — a first-class action instead of a floating pill.",
+    ],
+    highlightsFi: [
+      "Työpöytäversion hakukenttä ei enää leikkaudu yläpalkkiin",
+      "Huoneet saavat automaattisen värin tyypin mukaan",
+      "Ovet napsahtavat lähimpään seinään 3 m sisällä",
+      "Kuvan tuontiin lisätty kallistus + vinouma. Nappula siirretty yläpalkkiin.",
+    ],
+  },
   {
     version: "3.26.4",
     date: "August 2026",
     title: "Builder: reference-image overlay + line preview while drawing",
     titleFi: "Rakentaja: pohjapiirustus-kuvien tuonti ja viivan esikatselu",
-    latest: true,
     highlights: [
       "Builder: Import a floor plan / architect PDF page / photo and use it as a MazeMap-style tracing layer. Sliders for opacity, width (5–500 m), and rotation (–180° to +180°). \"Recenter\" snaps the image to the current map view; delete button removes it. Overlays persist across reloads in localStorage. Handles multiple images with a collapsible list picker at top-left.",
       "Builder: while drawing a building or room, the segment between corners 1 and 2 now shows as a solid line (previously nothing appeared until you'd placed 3 corners). At 3+ corners the shape closes to a polygon as before. Combined with the dashed cursor-ghost from 3.26.0, you always see exactly what you're placing.",
