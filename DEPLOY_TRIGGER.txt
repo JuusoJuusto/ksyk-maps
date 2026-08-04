@@ -1,9 +1,10 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.27.1 — door + entrance chips on the public map are
-bigger (radius 4→10 px doors, 5→14 px entrances), have chunkier white
-halos, and now include "D" / "E" letter markers inside so the two
-types are unambiguous even in monochrome/high-contrast modes.
+Bump reason: v3.27.2 — fixes the 3D toggle bug that was resetting
+pan/zoom to defaults (split the settings effect so pitch changes
+don't touch center/zoom). Enriches the click-to-inspect drawer with
+photo hero + hours/phone/email/website contact rows, and widens it
+to 30rem on desktop.
 
-Timestamp: 1786122000
-Build: FORCE_REBUILD_v3.27.1_DOOR_LETTERS
+Timestamp: 1786125600
+Build: FORCE_REBUILD_v3.27.2_3D_FIX_INFO_DRAWER

@@ -490,43 +490,54 @@ export default function CampusMap({
   //    The min/max zoom also need to be re-applied because MapLibre
   //    only respects them at init unless setMinZoom/setMaxZoom is
   //    called.
+  // v3.27.2 — SPLIT the old "settings change → easeTo everything"
+  // effect into two independent effects. Old code fired on every
+  // relevant settings change and always re-flew center + zoom + both
+  // rotation + pitch, which meant clicking the 3D toggle (updates
+  // pitchDeg) reset the user's pan and zoom too. The bug user
+  // reported as "3d mode doesnt work, resets map controls."
+
+  // Effect A — center + zoom + minZoom + maxZoom. Fires only when
+  // those specifically change. Preserves current bearing + pitch.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    // Only re-apply when the CALLER isn't force-controlling bearing/pitch,
-    // otherwise a prop-controlled preview would fight us.
     if (bearing !== undefined || pitch !== undefined) return;
     const d = pickPlatformMapDefaults(settings);
-    // Zoom bounds first — MapLibre will clamp current zoom if needed.
     map.setMinZoom(d.minZoom);
     map.setMaxZoom(Math.min(22, d.maxZoom));
-    // v3.25.8 — first-visit fix: if the user has no persisted camera
-    // (i.e. this is their first-ever load OR they've cleared
-    // localStorage) AND has never moved the map (bearing/pitch still
-    // at 0), it's safe to snap to the admin-set bearing + pitch.
-    // Without this the map would boot facing north because
-    // `loadMapDefaultsFromServer` finishes AFTER the map init effect,
-    // so `platformDefaults.bearing` was 0 at init time and we never
-    // re-applied it. The old easeTo below kept `map.getBearing()`
-    // which was 0.
-    const hasPersistedCamera = readPersistedCamera() !== null;
-    const userHasMovedCamera = Math.abs(map.getBearing()) > 0.5 || map.getPitch() > 1;
-    const shouldSnapBearing = !hasPersistedCamera && !userHasMovedCamera;
-    // Then camera — explicit bearing + pitch so easeTo's zero-defaults
-    // can't yank the user out of their rotated / tilted view.
     map.easeTo({
       center: [d.lng, d.lat],
       zoom: d.zoom,
-      bearing: shouldSnapBearing ? d.bearing : map.getBearing(),
-      pitch:   shouldSnapBearing ? d.pitch   : map.getPitch(),
+      bearing: map.getBearing(),
+      pitch:   map.getPitch(),
       duration: 500,
     });
   }, [
     settings.osmCenterLat, settings.osmCenterLng, settings.osmDefaultZoom, settings.osmMinZoom, settings.osmMaxZoom,
-    settings.osmRotationDeg, settings.osmPitchDeg,
     settings.mobileCenterLat, settings.mobileCenterLng, settings.mobileDefaultZoom, settings.mobileMinZoom, settings.mobileMaxZoom,
-    settings.mobileRotationDeg, settings.mobilePitchDeg,
     settings.desktopCenterLat, settings.desktopCenterLng, settings.desktopDefaultZoom, settings.desktopMinZoom, settings.desktopMaxZoom,
+    ready, bearing, pitch,
+  ]);
+
+  // Effect B — rotation + pitch. Fires only when those change.
+  // Preserves current center + zoom, so a "3D toggle" click tilts
+  // the map without yanking it back to campus defaults.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (bearing !== undefined || pitch !== undefined) return;
+    const d = pickPlatformMapDefaults(settings);
+    map.easeTo({
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+      bearing: d.bearing,
+      pitch: d.pitch,
+      duration: 500,
+    });
+  }, [
+    settings.osmRotationDeg, settings.osmPitchDeg,
+    settings.mobileRotationDeg, settings.mobilePitchDeg,
     settings.desktopRotationDeg, settings.desktopPitchDeg,
     ready, bearing, pitch,
   ]);

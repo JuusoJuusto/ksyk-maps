@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.27.1";
+export const APP_VERSION = "3.27.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.27.2",
+    date: "August 2026",
+    title: "Fix: 3D toggle resetting map. Enriched info sheet with photos + hours.",
+    titleFi: "Korjaus: 3D nappula ei enää nollaa karttaa. Tietopaneeli näyttää kuvat + aukioloajat.",
+    latest: true,
+    highlights: [
+      "Fix — the 3D toggle no longer resets your pan / zoom back to campus defaults. Root cause: a single \"settings changed\" effect was re-flying center + zoom + bearing + pitch whenever ANY setting changed, so bumping pitchDeg (what the toggle does) accidentally reset everything. Now split into two effects — center/zoom changes preserve current bearing/pitch, and rotation/pitch changes preserve current center/zoom.",
+      "FeatureInfoSheet: wider Mappedin-style drawer on desktop (26rem sm+ / 30rem lg+), taller max-height (48rem) so photos + descriptions + hours all fit without scrolling.",
+      "FeatureInfoSheet: photo hero. If a room/building's metadata contains `photoUrl` (or `imageUrl` / `image` / `photo`), it's rendered as a 40-vh photo band at the top with a gradient scrim + floating close button. Falls back to the coloured hero when no photo is set.",
+      "FeatureInfoSheet: new Contact section — Hours (from metadata.hours), Phone, Email, and Website, all rendered as tap-to-call / tap-to-email / open-in-tab links when present.",
+    ],
+    highlightsFi: [
+      "Korjaus: 3D-nappula ei enää palauta karttaa oletusnäkymään",
+      "Tietopaneeli isompi työpöydällä, tukee kuvat + yhteystiedot",
+      "Aukioloajat / puhelin / sähköposti / verkkosivu näytetään linkkeinä",
+    ],
+  },
   {
     version: "3.27.1",
     date: "August 2026",
     title: "Bigger door + entrance chips with letter markers",
     titleFi: "Isommat ovi- ja sisäänkäyntipisteet + kirjaintunnisteet",
-    latest: true,
     highlights: [
       "Doors on the public map are now ~40% bigger (radius 4→10 px across zoom) with thicker white halos, so they read from further out.",
       "Entrance chips are ~30% bigger (radius 5→14 px) with brighter halos — the primary wayfinding cue now really pops.",
