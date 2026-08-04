@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.2";
+export const APP_VERSION = "3.25.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.3",
+    date: "August 2026",
+    title: "Native Android app + MazeMap-style locate/scale on web",
+    titleFi: "Natiivi Android-sovellus + MazeMap-tyylinen paikannus",
+    latest: true,
+    highlights: [
+      "New: native Android map screen (MapLibre Native) with the same OSM/CARTO Voyager basemap the web uses, KSYK building polygons on top, a floor switcher, and tap-a-building bottom sheet.",
+      "New: offline-first API layer on Android — every successful GET is mirrored to disk, and reads fall back to the cached copy when the network can't be reached. First launch needs signal; every subsequent launch opens on the subway.",
+      "Map tab is now the Android app's primary destination; the searchable Rooms list stays a step away in the bottom nav.",
+      "Web: MapLibre GeolocateControl now ships on the campus map — the blue \"You are here\" puck + heading arrow works on desktop and mobile, matching MazeMap's find-me flow.",
+      "Web: metric scale bar in the bottom-left so 5 m vs 50 m is always legible without zooming.",
+    ],
+    highlightsFi: [
+      "Uusi natiivi Android-kartta (MapLibre) samalla tyylillä kuin webissä",
+      "Offline-tuki Android-sovellukseen — sovellus avautuu ilman verkkoa",
+      "Web-karttaan lisätty \"paikanna minut\" -painike ja mittakaava",
+    ],
+  },
   {
     version: "3.25.2",
     date: "July 2026",
     title: "Cache-bust redeploy — ship the 3.25.1 builder fix",
     titleFi: "Välimuistin tyhjennys — 3.25.1-korjaus voimaan",
-    latest: true,
     highlights: [
       "Version bump + forced Vercel rebuild so browsers stop loading the stale pre-3.25.1 bundle. Same code as 3.25.1, new hash — the old builder crash (\"Cannot access 'Mi' before initialization\") is finally gone from every cached client.",
     ],

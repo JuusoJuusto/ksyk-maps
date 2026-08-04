@@ -12,8 +12,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildFeatures { compose = true }
@@ -79,8 +79,18 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
+    // MapLibre Native — native OpenGL vector/raster renderer for Android.
+    // Mirrors what CampusMap.tsx uses on the web (MapLibre GL JS), so the
+    // same OpenStreetMap-derived styles/tile URLs work on both platforms.
+    // Ships prebuilt .so binaries for arm64-v8a, armeabi-v7a, x86, x86_64.
+    implementation("org.maplibre.gl:android-sdk:11.5.2")
+    implementation("org.maplibre.gl:android-plugin-annotation-v9:3.0.1")
+
     // Storage
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    // Persist API responses to disk so the app opens offline. We use a
+    // handful of small JSON blobs (buildings, rooms, announcements) via
+    // simple files under filesDir — no need for a full Room database.
 
     debugImplementation("androidx.compose.ui:ui-tooling:$compose")
 

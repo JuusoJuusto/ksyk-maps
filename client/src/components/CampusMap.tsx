@@ -246,6 +246,41 @@ export default function CampusMap({
       );
     }
 
+    // v3.25.3 — MazeMap-style "find me" puck. Adds a control that
+    // requests the browser Geolocation API on click, drops a blue dot,
+    // and (with trackUserLocation) keeps it in sync as the user walks.
+    // MapLibre draws the accuracy ring + puck itself — no per-frame
+    // animation code on our side.
+    try {
+      map.addControl(
+        new maplibregl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true,
+          showAccuracyCircle: true,
+          fitBoundsOptions: { maxZoom: 19 },
+        }),
+        "top-right",
+      );
+    } catch {
+      // Non-fatal — some browsers reject the control silently. The map
+      // still works; users just won't get the "find me" button.
+    }
+
+    // v3.25.3 — metric scale bar in the corner. Matches every consumer
+    // map (Google Maps, MazeMap, Apple Maps) so users have a persistent
+    // sense of "5 m vs 50 m across." Kept metric-only because the KSYK
+    // campus is in Finland and switching units mid-view is more
+    // confusing than helpful.
+    try {
+      map.addControl(
+        new maplibregl.ScaleControl({ maxWidth: 90, unit: "metric" }),
+        "bottom-left",
+      );
+    } catch {
+      // Non-fatal — very old browsers may not have the necessary
+      // canvas APIs. The map still renders fine.
+    }
+
     // Watchdog — if MapLibre's `load` event doesn't fire within 6s
     // (bad WebGL context, tile CDN slow, stale style spec, etc.), tear
     // the map down and re-init. Without this the splash + overlays

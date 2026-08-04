@@ -41,7 +41,28 @@ object Api {
         .header("X-KSYK-Client", "KSYK-Maps-Android/1.0")
 
     @Throws(ApiException::class)
-    fun get(path: String): JsonElement = request(path, "GET", null)
+    fun get(path: String): JsonElement {
+        return try {
+            val fresh = request(path, "GET", null)
+            DiskCache.write(path, fresh)   // mirror every success so we can serve offline next time
+            fresh
+        } catch (e: ApiException) {
+            // Network unreachable → fall back to the last-good copy on
+            // disk. Application errors (401, 404, 5xx) still surface —
+            // they usually mean the caller needs to change behavior,
+            // not that we should hand back stale data pretending to be
+            // fresh. Only status == 0 (IO / no connection) triggers the
+            // fallback so a real 404 doesn't quietly serve deleted rooms.
+            if (e.status == 0) {
+                val cached = DiskCache.read(path)
+                if (cached != null) return cached
+            }
+            throw e
+        }
+    }
+
+    /** Pure disk read — returns whatever was cached without touching the network. */
+    fun getOffline(path: String): JsonElement? = DiskCache.read(path)
 
     @Throws(ApiException::class)
     fun post(path: String, body: JsonElement): JsonElement = request(path, "POST", body)

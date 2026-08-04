@@ -1,9 +1,10 @@
-FORCE VERCEL REBUILD - 2026-07-30
+FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: cache-bust for v3.25.2. The 3.25.1 builder TDZ fix is
-committed and locally built, but browsers were still loading the
-pre-fix bundle (index-BIBHVhNY.js). New version = new bundle hash =
+Bump reason: v3.25.3 ships the native Android app (MapLibre map screen +
+offline cache + Map tab) and MazeMap-style improvements to the web map
+(built-in GeolocateControl for "You are here" puck + heading arrow, and a
+metric ScaleControl in the bottom-left). New version = new bundle hash =
 cache invalidation.
 
-Timestamp: 1785362400
-Build: FORCE_REBUILD_v3.25.2
+Timestamp: 1786060800
+Build: FORCE_REBUILD_v3.25.3

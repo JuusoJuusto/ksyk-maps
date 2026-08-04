@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
@@ -32,6 +33,7 @@ import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.BuildingsScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LoginScreen
+import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.theme.KsykTheme
@@ -41,10 +43,11 @@ import fi.ksykmaps.ui.theme.KsykTheme
  *
  * Routes:
  *   home          · Landing dashboard with live stats
- *   rooms         · Searchable room finder
- *   beacons       · WiFi + GPS survey
- *   buildings     · Campus buildings directory
- *   announcements · School announcements
+ *   map           · Native MapLibre campus map — primary screen
+ *   rooms         · Searchable room finder (list view companion to Map)
+ *   beacons       · WiFi + GPS survey (linked from Home quick-actions)
+ *   buildings     · Campus buildings directory (linked from Home)
+ *   news          · School announcements
  *   settings      · App preferences + about
  */
 class MainActivity : ComponentActivity() {
@@ -63,8 +66,8 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 
 private val TABS = listOf(
     Tab("home",     "Home",     Icons.Outlined.Home),
-    Tab("rooms",    "Rooms",    Icons.Outlined.Map),
-    Tab("beacons",  "Beacons",  Icons.Outlined.Wifi),
+    Tab("map",      "Map",      Icons.Outlined.Map),
+    Tab("rooms",    "Rooms",    Icons.Outlined.MeetingRoom),
     Tab("news",     "News",     Icons.Outlined.Campaign),
     Tab("settings", "Settings", Icons.Outlined.Settings),
 )
@@ -93,13 +96,14 @@ private fun AppShell() {
             ) {
                 composable("home") {
                     HomeScreen(
-                        onOpenRooms         = { navigate(nav, "rooms") },
+                        onOpenRooms         = { navigate(nav, "map") },
                         onOpenBeacons       = { navigate(nav, "beacons") },
                         onOpenAnnouncements = { navigate(nav, "news") },
                         onOpenAccount       = { navigate(nav, "settings") },
-                        onOpenBuildings     = { navigate(nav, "buildings") },
+                        onOpenBuildings     = { navigate(nav, "map") },
                     )
                 }
+                composable("map")       { MapScreen() }
                 composable("rooms")     { RoomFinderScreen() }
                 composable("beacons")   { BeaconScreen() }
                 composable("buildings") { BuildingsScreen() }

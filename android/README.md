@@ -1,33 +1,61 @@
 # KSYK Maps — Android (native Kotlin)
 
-Native Android app that mirrors the desktop Quick + Admin apps. **Same login → same Firestore-backed API → same data.** Capture a beacon position on your phone and it appears instantly in the desktop admin and on the website map.
+Native Android app that mirrors the website's campus map + admin tools. **Same login → same Firestore-backed API → same data.** Whatever you draw in the desktop Builder shows up on the phone immediately; capture a beacon position on your phone and it appears instantly in the desktop admin.
 
 ## What's in here
 
 ```
 android/
-├── README.md            ← this file
-├── BUILD.md             ← how to build the APK
+├── README.md              ← this file
+├── BUILD.md               ← how to build the APK
 ├── app/
-│   ├── build.gradle.kts ← module-level build
+│   ├── build.gradle.kts   ← module-level build (MapLibre Native, Retrofit, Compose)
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml
 │   │   ├── kotlin/fi/ksykmaps/
-│   │   │   ├── KsykApp.kt           ← Application + DI
-│   │   │   ├── MainActivity.kt      ← single-activity Compose host
+│   │   │   ├── KsykApp.kt              ← Application + DI
+│   │   │   ├── MainActivity.kt         ← single-activity Compose host + bottom nav
 │   │   │   ├── data/
-│   │   │   │   ├── Api.kt           ← Retrofit + browser headers
-│   │   │   │   ├── Session.kt       ← credentials + bearer-like state
-│   │   │   │   └── Models.kt
+│   │   │   │   ├── Api.kt              ← OkHttp client + browser headers, cache-first
+│   │   │   │   ├── DiskCache.kt        ← JSON response cache → filesDir/api_cache/
+│   │   │   │   └── Session.kt          ← remembered login state
 │   │   │   └── ui/
+│   │   │       ├── HomeScreen.kt       ← dashboard (stats + quick actions)
+│   │   │       ├── MapScreen.kt        ← native MapLibre map + floor switcher
+│   │   │       ├── RoomFinderScreen.kt ← searchable room list
+│   │   │       ├── BeaconScreen.kt     ← WiFi + GPS survey
+│   │   │       ├── BuildingsScreen.kt  ← campus buildings directory
+│   │   │       ├── AnnouncementsScreen.kt
 │   │   │       ├── LoginScreen.kt
-│   │   │       ├── RoomFinderScreen.kt
-│   │   │       ├── BeaconScreen.kt   ← WiFi + GPS capture
+│   │   │       ├── SettingsScreen.kt
+│   │   │       ├── AccountScreen.kt
 │   │   │       └── theme.kt
-│   │   └── res/                      ← drawables, strings, colors
-├── build.gradle.kts                  ← project-level build
+│   │   └── res/                        ← drawables, strings, colors
+├── build.gradle.kts                    ← project-level build
 └── settings.gradle.kts
 ```
+
+## The map screen (v1.1.0)
+
+`MapScreen.kt` uses **MapLibre Native** — the same rendering engine the web uses (`maplibre-gl` JS) — via `AndroidView { MapView }`. Everything is drawn as MapLibre style layers:
+
+- **Basemap** — CARTO Voyager @2x raster tiles (identical to `CampusMap.tsx`)
+- **Buildings** — GeoJSON polygons from `/api/buildings`, tinted by `colorCode`, with labels
+- **Floor switcher** — vertical rail on the right, filters visible polygons per floor
+- **My location** — Android's `FusedLocationProviderClient` feeding MapLibre's `LocationComponent` (blue puck + heading arrow, matching MazeMap)
+- **Tap a building** → bottom sheet with name, floor count, and "focus on map"
+
+Everything rotates + pitches with the map without any per-frame code because MapLibre handles the projection natively.
+
+## Offline mode
+
+Every successful API `GET` gets mirrored to `filesDir/api_cache/<slug>.json`. If a subsequent call fails with an IO error (no signal, captive portal, etc), `Api.get()` transparently returns the last-known-good copy. That means:
+
+- First launch requires network to seed the cache
+- Every subsequent launch opens instantly to a usable map, even fully offline
+- The MapScreen shows an amber "Offline · showing cached campus data" banner so users know why data might be stale
+
+Real 4xx/5xx responses still surface (a 404 doesn't quietly hand back deleted rooms) — only network-unreachable (status == 0) falls back to disk.
 
 ## Why native (Kotlin Compose), not React Native / Capacitor?
 
