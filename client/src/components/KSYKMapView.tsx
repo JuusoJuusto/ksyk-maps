@@ -16,7 +16,7 @@ import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResul
 import LayersToggle from "@/components/LayersToggle";
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
 import { loadAppSettings } from "@/lib/appSettings";
-import { LocateFixed, Plus, Minus, Navigation2 } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2, Layers } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
@@ -56,6 +56,31 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     (settings.osmPitchDeg ?? 0) > 0,
   );
   const [selectedFloor, setSelectedFloor] = usePersistedState<number>("ksyk_map_floor", 1);
+
+  // v3.25.9 — read initial floor from ?floor= query param on mount so
+  // shared links restore the correct level. Written back to the URL
+  // whenever selectedFloor changes so subsequent copies of the URL
+  // stay accurate. Only runs on the client; SSR-safe via typeof guard.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search);
+    const f = Number(p.get("floor"));
+    if (Number.isFinite(f)) setSelectedFloor(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const p = new URLSearchParams(window.location.search);
+      // Only write the floor param when it differs from the default so
+      // trivial URLs stay clean. Floor 1 is our default → omit it.
+      if (selectedFloor === 1) p.delete("floor");
+      else p.set("floor", String(selectedFloor));
+      const q = p.toString();
+      const next = `${window.location.pathname}${q ? "?" + q : ""}${window.location.hash}`;
+      window.history.replaceState(null, "", next);
+    } catch { /* history API missing — non-fatal */ }
+  }, [selectedFloor]);
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
@@ -298,9 +323,19 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
-          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-1">
-            FL
-          </p>
+          {/* v3.25.9 — icon replaces the "FL" text label. Chrome's
+           *  auto-translate was rewriting "FL" to "Florida" in some
+           *  locales; even with the global translate="no" we don't want
+           *  a two-letter abbreviation whose language-neutrality is
+           *  fragile. The layers icon reads as "floors" universally. */}
+          <div
+            className="flex items-center justify-center py-1 text-muted-foreground"
+            translate="no"
+            aria-label="Floors"
+            title="Floors"
+          >
+            <Layers className="h-3 w-3" strokeWidth={2.25} />
+          </div>
           <div className="flex flex-col gap-0.5">
             {floorList.map((floor) => (
               <button

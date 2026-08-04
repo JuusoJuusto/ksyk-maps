@@ -85,6 +85,73 @@ function writePersistedCamera(c: PersistedCamera): void {
   catch { /* quota / private mode — camera just won't persist */ }
 }
 
+/**
+ * v3.25.9 — MazeMap-style URL state sync.
+ *
+ * Reflects the camera into the URL query string (`?z=17.5&lat=60.192&
+ * lng=25.006&bearing=45&pitch=30`) using `history.replaceState` so the
+ * back button isn't spammed. Anyone sharing/copying the URL restores
+ * the exact view on the recipient's browser.
+ *
+ * Reads take priority over the persisted localStorage camera so a
+ * shared link overrides the visitor's last-session position — the
+ * expected behaviour when someone sends you a specific location.
+ */
+interface UrlCamera {
+  lat?: number; lng?: number; zoom?: number;
+  bearing?: number; pitch?: number;
+  floor?: number;
+}
+function readUrlCamera(): UrlCamera | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const num = (k: string): number | undefined => {
+      const v = p.get(k);
+      if (v === null || v === "") return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    const out: UrlCamera = {
+      lat: num("lat"), lng: num("lng"), zoom: num("z") ?? num("zoom"),
+      bearing: num("bearing"), pitch: num("pitch"),
+      floor: num("floor"),
+    };
+    // Only return non-null if at least one useful field is present so
+    // consumers can prefer localStorage when the URL is bare.
+    if (out.lat === undefined && out.lng === undefined && out.zoom === undefined
+        && out.bearing === undefined && out.pitch === undefined) return null;
+    // Sanity range same as persisted camera reader.
+    if (out.lat !== undefined && Math.abs(out.lat) > 85) return null;
+    if (out.lng !== undefined && Math.abs(out.lng) > 180) return null;
+    if (out.zoom !== undefined && (out.zoom < 0 || out.zoom > 24)) return null;
+    return out;
+  } catch { return null; }
+}
+/** Debounced URL writer — only reflects the current camera after
+ *  the user stops panning for 300 ms so history isn't hammered. */
+let urlWriteTimer: number | null = null;
+function scheduleWriteUrlCamera(c: PersistedCamera): void {
+  if (typeof window === "undefined") return;
+  if (urlWriteTimer !== null) window.clearTimeout(urlWriteTimer);
+  urlWriteTimer = window.setTimeout(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      p.set("z", c.zoom.toFixed(2));
+      p.set("lat", c.lat.toFixed(6));
+      p.set("lng", c.lng.toFixed(6));
+      // Only include bearing/pitch when non-zero so trivial URLs stay
+      // trivial (`?z=17.5&lat=60.19&lng=25.00`).
+      if (Math.abs(c.bearing) > 0.5) p.set("bearing", c.bearing.toFixed(1));
+      else p.delete("bearing");
+      if (c.pitch > 1) p.set("pitch", c.pitch.toFixed(1));
+      else p.delete("pitch");
+      const next = `${window.location.pathname}?${p.toString()}${window.location.hash}`;
+      window.history.replaceState(null, "", next);
+    } catch { /* history API not available (very old browsers) */ }
+  }, 300);
+}
+
 const TILE_ATTRIBUTIONS = {
   light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
   dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
@@ -207,17 +274,22 @@ export default function CampusMap({
     // Platform-aware camera — mobile vs laptop defaults live under
     // their own keys and fall back to the shared osm* values when unset.
     const platformDefaults = pickPlatformMapDefaults(settings);
-    // Persisted camera — if the user rotated / tilted / panned in a
-    // previous session, restore that view instead of snapping back to
-    // the admin defaults. Fixes the "first login resets bearing to
-    // north" bug reported v3.22.
+    // v3.25.9 — precedence: URL query > localStorage > admin defaults.
+    // URL wins so a shared link (with ?z=&lat=&lng=...) always drops
+    // the recipient at that exact view, even if they'd panned somewhere
+    // else in a previous session. Bare URLs fall through to persisted
+    // camera → admin default.
+    const urlCam = readUrlCamera();
     const persisted = readPersistedCamera();
-    const initialBearing = bearing ?? persisted?.bearing ?? platformDefaults.bearing;
-    const initialPitch   = pitch   ?? persisted?.pitch   ?? platformDefaults.pitch;
-    const initialCenter: [number, number] = persisted
-      ? [persisted.lng, persisted.lat]
-      : [platformDefaults.lng, platformDefaults.lat];
-    const initialZoom = persisted?.zoom ?? platformDefaults.zoom;
+    const initialBearing = bearing ?? urlCam?.bearing ?? persisted?.bearing ?? platformDefaults.bearing;
+    const initialPitch   = pitch   ?? urlCam?.pitch   ?? persisted?.pitch   ?? platformDefaults.pitch;
+    const initialCenter: [number, number] =
+      (urlCam?.lat !== undefined && urlCam?.lng !== undefined)
+        ? [urlCam.lng, urlCam.lat]
+      : persisted
+        ? [persisted.lng, persisted.lat]
+        : [platformDefaults.lng, platformDefaults.lat];
+    const initialZoom = urlCam?.zoom ?? persisted?.zoom ?? platformDefaults.zoom;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -326,15 +398,19 @@ export default function CampusMap({
       });
       // Persist camera on every settle so the next session restores
       // exactly where the user left off. Throttled implicitly by
-      // moveend being emitted only when the map stops.
+      // moveend being emitted only when the map stops. v3.25.9: also
+      // debounce-writes the same values to the URL query so shared
+      // links restore the exact view (MazeMap-style).
       map.on("moveend", () => {
-        writePersistedCamera({
+        const cam: PersistedCamera = {
           lat: map.getCenter().lat,
           lng: map.getCenter().lng,
           zoom: map.getZoom(),
           bearing: map.getBearing(),
           pitch: map.getPitch(),
-        });
+        };
+        writePersistedCamera(cam);
+        scheduleWriteUrlCamera(cam);
       });
       const handle: CampusMapHandle = {
         map,

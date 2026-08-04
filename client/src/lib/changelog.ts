@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.8";
+export const APP_VERSION = "3.25.9";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.9",
+    date: "August 2026",
+    title: "FL replaced with icon. URL state sync for shareable views.",
+    titleFi: "FL-teksti ikoniksi. URL tallentaa kartan tilan jaettaville linkeille.",
+    latest: true,
+    highlights: [
+      "The \"FL\" floor label is now a layers icon in both the public map and the builder — belt-and-suspenders against any browser autotranslate that still slips through (Chrome sometimes translates individual elements even with the global translate=\"no\").",
+      "MazeMap-style URL sharing: the map now writes `?z=`, `?lat=`, `?lng=`, `?bearing=`, `?pitch=`, `?floor=` to the URL as the user pans/rotates/switches floor. Any copy of that URL restores the exact view — camera + level + rotation. Writes are debounced (300 ms) and use history.replaceState so the back button isn't spammed.",
+      "URL params take precedence over the persisted-camera in localStorage, so a shared link always drops the recipient at the intended spot even if they'd panned elsewhere in a previous session.",
+    ],
+    highlightsFi: [
+      "\"FL\" korvattu tasoja-ikonilla — käännösvarma",
+      "Karttalinkit tallentavat nyt näkymän — jaettu linkki avaa saman kohdan",
+    ],
+  },
   {
     version: "3.25.8",
     date: "August 2026",
     title: "Fix: FL→Florida autotranslate. Fix: first-visit bearing. Web search now routes.",
     titleFi: "Korjaus: FL→Florida automaattikäännös. Korjaus: kompassisuunta. Web-haku aloittaa reitityksen.",
-    latest: true,
     highlights: [
       "Fix — the site now sets translate=\"no\" globally, so Chrome/Safari's auto-translate stops rewriting labels like \"FL\" (floor) to \"Florida\" and garbling room numbers/POI names. The Finnish UI still works via i18n; only browser autotranslate is disabled.",
       "Fix — first-ever visit was booting the map facing north instead of the admin-set bearing. Root cause: /api/map-defaults loads AFTER the map inits, and the re-apply effect deliberately preserved the current bearing. Now: if no persisted camera exists AND the user hasn't rotated yet, applying the admin bearing/pitch when defaults arrive.",

@@ -55,6 +55,7 @@ import {
   Zap,
   Printer,
   Flag,
+  Layers as LayersIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -2004,9 +2005,15 @@ function BuilderWorkspace() {
             if (floorList.length < 2) return null;
             return (
               <div className="absolute top-3 right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-card/95 shadow-md backdrop-blur-md">
-                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-center text-muted-foreground leading-none py-1">
-                  FL
-                </p>
+                {/* v3.25.9 — icon replaces "FL". See KSYKMapView. */}
+                <div
+                  className="flex items-center justify-center py-1 text-muted-foreground"
+                  translate="no"
+                  aria-label="Floors"
+                  title="Floors"
+                >
+                  <LayersIcon className="h-3 w-3" strokeWidth={2.25} />
+                </div>
                 <div className="flex flex-col gap-0.5">
                   {floorList.map((floor) => {
                     const active = cameraState.activeFloor === floor;
