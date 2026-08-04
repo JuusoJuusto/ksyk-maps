@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.5";
+export const APP_VERSION = "3.25.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.6",
+    date: "August 2026",
+    title: "Android: full directions flow (Lähtöpaikka). Web: doors + entrances visible in 2D.",
+    titleFi: "Android: reittiopastus (Lähtöpaikka). Web: ovet ja sisäänkäynnit näkyviin.",
+    latest: true,
+    highlights: [
+      "Android: room sheet gets a big blue \"Suunnista tänne\" button. Tap it → destination locked in, a Lähtöpaikka picker card appears with two quick options: Oma sijainti (uses live GPS puck) or Etsi lähtöhuone (returns you to the search bar in ORIGIN mode with a blue prompt strip).",
+      "Android: once both endpoints are set, a bright blue route line is drawn between them with a white casing (visible on any basemap tint). A persistent info chip in the top-left shows distance (m/km), walking time (~1.35 m/s), and both endpoint labels; a small × clears the route.",
+      "Android: when the route origin is \"Oma sijainti,\" the route line and info chip update every 3 s as the user walks, so distance/time countdown in real time.",
+      "Web: door + entrance markers are now visible in 2D (previously 3D-only). A new circle-chip overlay draws them as unambiguous coloured dots — bright green for entrances, dark grey for interior doors, red for exit-only — with white halos so they read on every basemap.",
+      "Web: entrance glow discs boosted (~2× opacity at walking-zoom) so \"you can get in here\" reads from a distance.",
+    ],
+    highlightsFi: [
+      "Android: täydellinen reittiopastus lähtöpaikkavalinnalla",
+      "Web: ovet ja sisäänkäynnit näkyvät nyt 2D-tilassa vihreinä pisteinä",
+    ],
+  },
   {
     version: "3.25.5",
     date: "August 2026",
     title: "Android: on-map search + share-link deep-link + clear offline cache",
     titleFi: "Android: karttahaku, jakolinkit, offline-muistin tyhjennys",
-    latest: true,
     highlights: [
       "Android: pill-shaped search bar mounted at the top of the map. Filters rooms + buildings as the user types with prefix-scoring (203 → room 203 first, then anything containing 203). Tap a result → floor sets, camera flies, sheet opens.",
       "Android: ksykmaps.fi/?room=<id> now opens the native app directly instead of the browser (App Links intent filter, autoVerify enabled). Cold-start + warm-start supported so the app jumps straight to the room whether it was already running or not.",

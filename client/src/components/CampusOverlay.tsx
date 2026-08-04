@@ -202,13 +202,16 @@ export default function CampusOverlay({
       setVis(LAYERS.stairsTower,      is3D);
       setVis(LAYERS.elevatorTower,    is3D);
       setVis(LAYERS.sky,              is3D);
-      // Generic POI pillars (info / cafe / vending / etc.) and door /
-      // entrance markers — always show in 3D so users see all the
-      // amenities as coloured pillars poking above the ground plane.
+      // Generic POI pillars (info / cafe / vending / etc.) are 3D-only
+      // — they don't make sense as ground-plane sprites. But door and
+      // entrance markers are important wayfinding cues that need to
+      // read in BOTH 2D and 3D. In 2D they still surface as coloured
+      // pads so users can see where a building can actually be entered
+      // without having to tilt the map first.
       setVis(LAYERS.poi3D,            is3D);
-      setVis(LAYERS.doorMarker,       is3D);
-      setVis(LAYERS.entranceMarker,   is3D);
-      setVis(LAYERS.entranceGlow,     is3D);
+      setVis(LAYERS.doorMarker,       true);
+      setVis(LAYERS.entranceMarker,   true);
+      setVis(LAYERS.entranceGlow,     true);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -1187,10 +1190,50 @@ function installPoiPillars(
     layout: { visibility: "none" },
     paint: {
       "fill-color": "#22c55e",
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.15, 18, 0.3, 20, 0.35],
+      // v3.25.6 — boosted opacity so entrances read as strong wayfinding
+      // cues in 2D, not subtle background tint. Zoom-interpolated so
+      // the campus-wide view stays clean and the walk-up view really
+      // shouts "you can get in here."
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.28, 18, 0.55, 20, 0.65],
       "fill-antialias": true,
     },
     minzoom: 15,
+  });
+
+  // v3.25.6 — dedicated CIRCLE overlay for doors + entrances, always
+  // visible in 2D. The extrusion pads read well in 3D but disappear
+  // as tiny squares from a top-down view; a circle marker gives users
+  // an unambiguous "door here" chip at every zoom above 16. Green =
+  // entrance (way in), red = exit-only, grey = interior door.
+  addLayerIfMissing(map, {
+    id: "campus-doors-chip",
+    source: "campus-doors-marker-src",
+    type: "circle",
+    minzoom: 16,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 5, 20, 7],
+      "circle-color": [
+        "match", ["get", "kind"],
+        "exit", "#dc2626",
+                "#374151",
+      ],
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 1.5,
+      "circle-opacity": 0.95,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: "campus-entrances-chip",
+    source: "campus-entrances-marker-src",
+    type: "circle",
+    minzoom: 15,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 4, 18, 8, 20, 11],
+      "circle-color": "#16a34a",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 2,
+      "circle-opacity": 0.98,
+    },
   });
 
   addLayerIfMissing(map, {

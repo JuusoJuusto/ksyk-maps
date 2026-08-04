@@ -22,9 +22,12 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
@@ -93,6 +96,14 @@ private const val LAYER_ROOM_FILL = "campus-rooms-fill"
 private const val LAYER_ROOM_OUTLINE = "campus-rooms-outline"
 private const val LAYER_ROOM_LABEL = "campus-rooms-label"
 
+// Route line — a single blue LineString drawn from the origin centroid
+// (or the current GPS puck) to the destination centroid. We refresh
+// the source whenever origin/destination changes.
+private const val SRC_ROUTE = "nav-route"
+private const val LAYER_ROUTE_LINE = "nav-route-line"
+private const val LAYER_ROUTE_CASING = "nav-route-casing"
+private const val WALKING_MPS = 1.35
+
 // CARTO Voyager @2x — matches CampusMap.tsx's TILE_URLS.light so the
 // two platforms share basemap identity.
 private const val STYLE_JSON_LIGHT = """{
@@ -146,6 +157,21 @@ fun MapScreen() {
     var followMe by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searchFocused by remember { mutableStateOf(false) }
+    // Directions state — MazeMap-adjacent "from → to" routing.
+    //   destination = target room/building (set by "Suunnista tänne")
+    //   origin      = start room (set by picker), null = use GPS
+    //   originIsMyLocation = we should use the current puck instead of
+    //                        a room centroid; forces the location
+    //                        component on and refreshes the line as the
+    //                        user walks.
+    //   searchMode  = ORIGIN → next search pick becomes origin, not sheet
+    //   showStartPicker = card asking "Lähtöpaikka?" is up
+    var destination by remember { mutableStateOf<JsonObject?>(null) }
+    var origin by remember { mutableStateOf<JsonObject?>(null) }
+    var originIsMyLocation by remember { mutableStateOf(false) }
+    var myLocation by remember { mutableStateOf<LatLng?>(null) }
+    var searchMode by remember { mutableStateOf(SearchMode.NONE) }
+    var showStartPicker by remember { mutableStateOf(false) }
 
     val locationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -179,6 +205,81 @@ fun MapScreen() {
                 rooms = cached.jsonArray.mapNotNull { it as? JsonObject }
                 offlineMode = true
             }
+        }
+    }
+
+    // Route rendering — whenever origin or destination changes, redraw
+    // (or clear) the blue navigation line. Straight great-circle from
+    // origin centroid → destination centroid; the hallway A* comes in
+    // a follow-up when we have /api/navigate wired on this platform.
+    LaunchedEffect(destination, origin, originIsMyLocation, myLocation, mapRef) {
+        val map = mapRef ?: return@LaunchedEffect
+        val dest = destination
+        val originPt: LatLng? = when {
+            dest == null -> null
+            originIsMyLocation -> myLocation
+            origin != null -> centroidOf(origin!!)?.let { LatLng(it.first, it.second) }
+            else -> null
+        }
+        val destPt: LatLng? = dest?.let { centroidOf(it)?.let { c -> LatLng(c.first, c.second) } }
+
+        val routeJson: String = if (originPt != null && destPt != null) {
+            """{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"LineString","coordinates":[[${originPt.longitude},${originPt.latitude}],[${destPt.longitude},${destPt.latitude}]]},"properties":{}}]}"""
+        } else {
+            """{"type":"FeatureCollection","features":[]}"""
+        }
+
+        map.getStyle { style ->
+            val existing = style.getSourceAs<GeoJsonSource>(SRC_ROUTE)
+            if (existing != null) {
+                existing.setGeoJson(routeJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_ROUTE, routeJson))
+                // Casing (thick white halo) drawn UNDER the coloured
+                // line so the route reads on any basemap tint. Both
+                // land on top of the room/building fill layers because
+                // we're adding them after the initial layer install.
+                style.addLayer(
+                    LineLayer(LAYER_ROUTE_CASING, SRC_ROUTE).withProperties(
+                        PropertyFactory.lineColor(AndroidColor.WHITE),
+                        PropertyFactory.lineWidth(9f),
+                        PropertyFactory.lineOpacity(0.9f),
+                        PropertyFactory.lineCap("round"),
+                        PropertyFactory.lineJoin("round"),
+                    )
+                )
+                style.addLayer(
+                    LineLayer(LAYER_ROUTE_LINE, SRC_ROUTE).withProperties(
+                        PropertyFactory.lineColor(AndroidColor.parseColor("#2563EB")),
+                        PropertyFactory.lineWidth(5f),
+                        PropertyFactory.lineOpacity(0.95f),
+                        PropertyFactory.lineCap("round"),
+                        PropertyFactory.lineJoin("round"),
+                    )
+                )
+            }
+        }
+
+        // Auto-fit the map to the newly drawn route so both endpoints
+        // are visible without the user pinching to zoom out.
+        if (originPt != null && destPt != null) {
+            val bounds = LatLngBounds.Builder().include(originPt).include(destPt).build()
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 200), 700)
+        }
+    }
+
+    // Live GPS refresh — while a route is anchored to "My location",
+    // poll the LocationComponent's last-known fix every 3 s so the
+    // route line + distance/ETA chip update as the user walks. Cheap:
+    // no separate LocationEngine subscription; the component's own
+    // engine is already ticking because followMe is on.
+    LaunchedEffect(originIsMyLocation, mapRef) {
+        if (!originIsMyLocation) return@LaunchedEffect
+        val map = mapRef ?: return@LaunchedEffect
+        while (originIsMyLocation) {
+            val loc = try { map.locationComponent.lastKnownLocation } catch (_: Exception) { null }
+            if (loc != null) myLocation = LatLng(loc.latitude, loc.longitude)
+            kotlinx.coroutines.delay(3000)
         }
     }
 
@@ -342,17 +443,31 @@ fun MapScreen() {
 
         // ── Search overlay (top) ───────────────────────────────────
         // A single field that filters rooms + buildings as the user
-        // types. Tapping a result flies the camera + opens the sheet
-        // for that entity, mirroring the web map's search behaviour.
+        // types. Behaviour depends on searchMode:
+        //   NONE        → tap flies the camera and opens the sheet
+        //   ORIGIN      → tap sets the pick as the route origin and
+        //                 exits ORIGIN mode; MazeMap-style "from" pick
+        //   DESTINATION → (reserved for a future "search destinations"
+        //                 UI; currently unused because destination is
+        //                 set by the room sheet button)
         SearchOverlay(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
             focused = searchFocused,
             onFocusChange = { searchFocused = it },
+            mode = searchMode,
             results = remember(searchQuery, rooms, buildings) {
                 searchEntities(query = searchQuery, rooms = rooms, buildings = buildings)
             },
             onPickRoom = { r ->
+                if (searchMode == SearchMode.ORIGIN) {
+                    origin = r
+                    originIsMyLocation = false
+                    searchMode = SearchMode.NONE
+                    searchQuery = ""
+                    searchFocused = false
+                    return@SearchOverlay
+                }
                 val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
                 if (floor != null) selectedFloor = floor
                 val centroid = centroidOf(r)
@@ -370,6 +485,14 @@ fun MapScreen() {
                 searchFocused = false
             },
             onPickBuilding = { b ->
+                if (searchMode == SearchMode.ORIGIN) {
+                    origin = b
+                    originIsMyLocation = false
+                    searchMode = SearchMode.NONE
+                    searchQuery = ""
+                    searchFocused = false
+                    return@SearchOverlay
+                }
                 val centroid = centroidOf(b)
                 if (centroid != null) {
                     mapRef?.animateCamera(
@@ -519,6 +642,84 @@ fun MapScreen() {
             onSwitchFloor = { floor ->
                 selectedFloor = floor
             },
+            onDirections = {
+                destination = r
+                origin = null
+                originIsMyLocation = false
+                selectedRoom = null
+                showStartPicker = true
+            },
+        )
+    }
+
+    // Route info + clear button. Pinned to the top-left so it doesn't
+    // fight the search bar (top-center) and stays visible even when
+    // the user pans elsewhere.
+    val curDest = destination
+    val curOrigin = origin
+    if (curDest != null && (curOrigin != null || originIsMyLocation)) {
+        val destPt = centroidOf(curDest)?.let { LatLng(it.first, it.second) }
+        val originPt: LatLng? = when {
+            originIsMyLocation -> myLocation
+            curOrigin != null -> centroidOf(curOrigin)?.let { LatLng(it.first, it.second) }
+            else -> null
+        }
+        if (destPt != null && originPt != null) {
+            val distMeters = haversineMeters(originPt, destPt)
+            val walkSec = (distMeters / WALKING_MPS).toInt()
+            RouteInfoChip(
+                distanceMeters = distMeters,
+                walkSeconds = walkSec,
+                destinationLabel = labelOf(curDest),
+                originLabel = if (originIsMyLocation) "Oma sijainti" else labelOf(curOrigin!!),
+                onClear = {
+                    destination = null
+                    origin = null
+                    originIsMyLocation = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp, top = 74.dp),
+            )
+        }
+    }
+
+    // "Lähtöpaikka" picker — appears after the user hits "Suunnista
+    // tänne" in a room sheet. Two quick actions + a cancel.
+    if (showStartPicker) {
+        StartPickerCard(
+            destinationLabel = labelOf(destination),
+            onMyLocation = {
+                originIsMyLocation = true
+                origin = null
+                showStartPicker = false
+                // Prompt for GPS if not granted yet.
+                val hasLocation = ContextCompat.checkSelfPermission(
+                    ctx, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+                if (hasLocation) {
+                    followMe = true
+                    mapRef?.let { enableLocation(ctx, it) }
+                    // Seed myLocation from last-known so the line
+                    // draws immediately without waiting for the first
+                    // GPS fix; the LocationComponent will update it
+                    // as the user walks.
+                    mapRef?.locationComponent?.lastKnownLocation?.let { loc ->
+                        myLocation = LatLng(loc.latitude, loc.longitude)
+                    }
+                } else {
+                    locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            },
+            onSearchRoom = {
+                searchMode = SearchMode.ORIGIN
+                showStartPicker = false
+                searchFocused = true
+            },
+            onCancel = {
+                showStartPicker = false
+                destination = null
+            },
         )
     }
 }
@@ -535,6 +736,9 @@ private fun enableLocation(ctx: android.content.Context, map: MapLibreMap) {
         lc.renderMode = RenderMode.COMPASS
     }
 }
+
+/** Which endpoint the next search pick fills. */
+enum class SearchMode { NONE, ORIGIN, DESTINATION }
 
 // ── Search overlay ─────────────────────────────────────────────────
 
@@ -605,6 +809,7 @@ private fun SearchOverlay(
     onQueryChange: (String) -> Unit,
     focused: Boolean,
     onFocusChange: (Boolean) -> Unit,
+    mode: SearchMode,
     results: List<SearchHit>,
     onPickRoom: (JsonObject) -> Unit,
     onPickBuilding: (JsonObject) -> Unit,
@@ -616,6 +821,28 @@ private fun SearchOverlay(
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)),
     ) {
+        // MazeMap-style "Choose starting point" hint when in ORIGIN
+        // mode. Colored strip so users immediately notice they're
+        // picking a `from`, not opening a room sheet.
+        if (mode == SearchMode.ORIGIN) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF2563EB))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.LocationOn, null, tint = Color.White,
+                     modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Valitse lähtöpaikka — Choose starting point",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -629,7 +856,11 @@ private fun SearchOverlay(
             OutlinedTextField(
                 value = query,
                 onValueChange = { onQueryChange(it); if (!focused && it.isNotBlank()) onFocusChange(true) },
-                placeholder = { Text("Search rooms, buildings…", fontSize = 14.sp) },
+                placeholder = { Text(
+                    if (mode == SearchMode.ORIGIN) "Search a room to start from…"
+                    else "Search rooms, buildings…",
+                    fontSize = 14.sp,
+                ) },
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
@@ -900,6 +1131,7 @@ private fun RoomSheet(
     onDismiss: () -> Unit,
     onFocus: () -> Unit,
     onSwitchFloor: (Int) -> Unit,
+    onDirections: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val number = (room["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
@@ -946,27 +1178,165 @@ private fun RoomSheet(
                 if (capacity != null && capacity > 0) Chip("Seats $capacity")
             }
             Spacer(Modifier.height(20.dp))
+            // Primary action — MazeMap always foregrounds Directions.
+            // Big blue button spanning the row so it reads as "the
+            // thing you probably came here to do."
+            Button(
+                onClick = onDirections,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Suunnista tänne", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
+                OutlinedButton(
                     onClick = onFocus,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(46.dp),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Icon(Icons.Outlined.MyLocation, null)
+                    Icon(Icons.Outlined.MyLocation, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Focus", fontWeight = FontWeight.SemiBold)
+                    Text("Focus", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
                 OutlinedButton(
                     onClick = { onSwitchFloor(floor); onDismiss() },
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(46.dp),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Icon(Icons.Outlined.Layers, null)
+                    Icon(Icons.Outlined.Layers, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Isolate floor", fontWeight = FontWeight.SemiBold)
+                    Text("Isolate floor", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Persistent route-info card — distance + walking time + endpoints. */
+@Composable
+private fun RouteInfoChip(
+    distanceMeters: Double,
+    walkSeconds: Int,
+    destinationLabel: String,
+    originLabel: String,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val distanceStr = when {
+        distanceMeters < 1000 -> "${distanceMeters.toInt()} m"
+        else -> "%.2f km".format(distanceMeters / 1000.0)
+    }
+    val walkStr = when {
+        walkSeconds < 60 -> "< 1 min"
+        walkSeconds < 3600 -> "${walkSeconds / 60} min"
+        else -> "%dh %dmin".format(walkSeconds / 3600, (walkSeconds % 3600) / 60)
+    }
+    Column(
+        modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.AutoMirrored.Outlined.DirectionsWalk, null,
+                tint = Color(0xFF2563EB),
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(distanceStr, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Spacer(Modifier.width(10.dp))
+            Text("· $walkStr", fontSize = 13.sp,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                 fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(8.dp))
+            IconButton(onClick = onClear, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Outlined.Close, "Clear route",
+                     modifier = Modifier.size(16.dp),
+                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(originLabel, fontSize = 11.sp,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(destinationLabel, fontSize = 11.sp,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** "Choose starting point" bottom card — appears when destination is
+ *  set but origin isn't. Two quick actions + cancel. */
+@Composable
+private fun BoxScope.StartPickerCard(
+    destinationLabel: String,
+    onMyLocation: () -> Unit,
+    onSearchRoom: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .padding(horizontal = 12.dp, vertical = 80.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Navigation, null,
+                 tint = Color(0xFF2563EB), modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Lähtöpaikka", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(
+                    "→ $destinationLabel",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Outlined.Close, "Cancel",
+                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = onMyLocation,
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Icon(Icons.Outlined.MyLocation, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Oma sijainti — My location", fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onSearchRoom,
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Icon(Icons.Outlined.Search, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Etsi lähtöhuone — Search a room", fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -1145,6 +1515,28 @@ private fun centroidOf(b: JsonObject): Pair<Double, Double>? {
     }
     if (n == 0) return null
     return lat / n to lng / n
+}
+
+/** Best display name for a building or room. Falls back through
+ *  name → roomNumber → id → "?". */
+private fun labelOf(o: JsonObject?): String {
+    if (o == null) return "?"
+    val name = (o["name"] as? JsonPrimitive)?.contentOrNull
+    val number = (o["roomNumber"] as? JsonPrimitive)?.contentOrNull
+    return listOfNotNull(number, name).joinToString(" ").ifBlank { "?" }
+}
+
+/** Great-circle distance in metres between two LatLng points.
+ *  Standard haversine — good to ~0.5% at building-scale distances. */
+private fun haversineMeters(a: LatLng, b: LatLng): Double {
+    val r = 6371000.0
+    val lat1 = Math.toRadians(a.latitude); val lat2 = Math.toRadians(b.latitude)
+    val dLat = Math.toRadians(b.latitude - a.latitude)
+    val dLng = Math.toRadians(b.longitude - a.longitude)
+    val s = Math.sin(dLat / 2)
+    val t = Math.sin(dLng / 2)
+    val h = s * s + Math.cos(lat1) * Math.cos(lat2) * t * t
+    return 2 * r * Math.asin(Math.min(1.0, Math.sqrt(h)))
 }
 
 private fun centerOnBuildings(map: MapLibreMap, buildings: List<JsonObject>) {
