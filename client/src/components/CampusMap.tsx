@@ -129,12 +129,21 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
         minzoom: 0,
         maxzoom: 22,
         paint: {
-          // Fade the basemap slightly at high zoom so the KSYK vector
-          // overlay (rooms, hallways, POIs) reads as the "real content"
-          // and the OSM streets recede into a diagram-like backdrop.
-          // Below zoom 18 we stay 100% so context (streets, districts)
-          // still guides the user's mental map.
-          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
+          // v3.25.7 — much more aggressive fade past zoom 19 so the
+          // (inevitably blurry) overzoomed raster stops distracting
+          // from the crisp KSYK vector overlays. Past zoom 21 the
+          // basemap is basically a ghost so the interior view is a
+          // clean vector diagram. Below 18 the basemap stays 100% so
+          // the campus reads in its neighborhood context.
+          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.6, 20, 0.35, 21, 0.15, 22, 0.05],
+          // Linear resampling smooths overzoomed pixels — trades
+          // crispness for a less jagged blur. Combined with the low
+          // opacity above, the eye stops trying to focus on it.
+          "raster-resampling": "linear",
+          // Slight saturation boost at low zooms so the basemap has
+          // personality; back to 0 at high zoom where the vector
+          // overlays are the focus.
+          "raster-saturation": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 18, 0.05, 22, -0.3],
           // Turn off the raster's default cross-fade so labels don't
           // flicker during zoom.
           "raster-fade-duration": 200,
@@ -217,13 +226,13 @@ export default function CampusMap({
       zoom: initialZoom,
       bearing: initialBearing,
       pitch: initialPitch,
-      // Raster CDN caps at zoom 19; we let MapLibre upscale the last
-      // native tile up to zoom 21 so the vector overlay (rooms, room
-      // labels, POI chips) can shine at close-in inspection. The
-      // upscaled basemap fades out via raster-opacity so it doesn't
-      // pixelate the view.
+      // v3.25.7 — Raster CDN caps at zoom 19; we let MapLibre upscale
+      // the last native tile up to zoom 22 so users can inspect
+      // individual rooms/desks. The upscaled basemap fades out
+      // aggressively past 20 (see raster-opacity above) so blurry
+      // pixels don't distract from the crisp KSYK vector overlay.
       minZoom: platformDefaults.minZoom,
-      maxZoom: Math.min(21, platformDefaults.maxZoom),
+      maxZoom: Math.min(22, platformDefaults.maxZoom),
       maxPitch: 60,
       interactive,
       attributionControl: { compact: true },
@@ -447,7 +456,7 @@ export default function CampusMap({
     const d = pickPlatformMapDefaults(settings);
     // Zoom bounds first — MapLibre will clamp current zoom if needed.
     map.setMinZoom(d.minZoom);
-    map.setMaxZoom(Math.min(21, d.maxZoom));
+    map.setMaxZoom(Math.min(22, d.maxZoom));
     // Then camera — explicit bearing + pitch so easeTo's zero-defaults
     // can't yank the user out of their rotated / tilted view.
     map.easeTo({
@@ -474,7 +483,8 @@ export default function CampusMap({
     const onResize = () => {
       const d = pickPlatformMapDefaults(settings);
       map.setMinZoom(d.minZoom);
-      map.setMaxZoom(Math.min(21, d.maxZoom));
+      map.setMaxZoom(Math.min(22, d.maxZoom));
+      // No animation here; just clamp for the new device orientation.
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);

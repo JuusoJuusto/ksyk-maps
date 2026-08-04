@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,8 +68,10 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -90,11 +93,21 @@ private const val SRC_BUILDINGS = "campus-buildings"
 private const val LAYER_FILL = "campus-buildings-fill"
 private const val LAYER_OUTLINE = "campus-buildings-outline"
 private const val LAYER_LABEL = "campus-buildings-label"
+// Extrusion — 3D block per building footprint. Height derives from
+// `floors * METERS_PER_FLOOR` (3 m per floor, MazeMap-adjacent) so
+// buildings read as real volumes once pitch > 0.
+private const val LAYER_BUILDING_EXTRUSION = "campus-buildings-extrusion"
 
 private const val SRC_ROOMS = "campus-rooms"
 private const val LAYER_ROOM_FILL = "campus-rooms-fill"
 private const val LAYER_ROOM_OUTLINE = "campus-rooms-outline"
 private const val LAYER_ROOM_LABEL = "campus-rooms-label"
+// Extrusion — raised room slab, per floor. Base = floor * 3 m, height
+// = base + 0.35 m (ROOM_SLAB). Reads as MazeMap-style raised platforms.
+private const val LAYER_ROOM_EXTRUSION = "campus-rooms-extrusion"
+
+private const val METERS_PER_FLOOR = 3.0
+private const val ROOM_SLAB_METERS = 0.35
 
 // Route line — a single blue LineString drawn from the origin centroid
 // (or the current GPS puck) to the destination centroid. We refresh
@@ -157,6 +170,10 @@ fun MapScreen() {
     var followMe by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searchFocused by remember { mutableStateOf(false) }
+    // v1.5.0 — 3D toggle. On → pitch tilts to ~50°, extrusion layers
+    // become visible, buildings and room slabs read as real volumes.
+    // Off → flat top-down, extrusions hidden, only fill layers show.
+    var is3D by remember { mutableStateOf(false) }
     // Directions state — MazeMap-adjacent "from → to" routing.
     //   destination = target room/building (set by "Suunnista tänne")
     //   origin      = start room (set by picker), null = use GPS
@@ -268,6 +285,25 @@ fun MapScreen() {
         }
     }
 
+    // 3D toggle — flips extrusion layer visibility on/off and animates
+    // the camera pitch to a MazeMap-friendly angle. Reading the layers
+    // out of the current style is safer than tracking them in Compose
+    // state because they only exist after the polygon LaunchedEffect
+    // has run once.
+    LaunchedEffect(is3D, mapRef) {
+        val map = mapRef ?: return@LaunchedEffect
+        map.getStyle { style ->
+            style.getLayer(LAYER_BUILDING_EXTRUSION)?.setProperties(
+                PropertyFactory.visibility(if (is3D) Property.VISIBLE else Property.NONE),
+            )
+            style.getLayer(LAYER_ROOM_EXTRUSION)?.setProperties(
+                PropertyFactory.visibility(if (is3D) Property.VISIBLE else Property.NONE),
+            )
+        }
+        val targetPitch = if (is3D) 50.0 else 0.0
+        map.animateCamera(CameraUpdateFactory.tiltTo(targetPitch), 500)
+    }
+
     // Live GPS refresh — while a route is anchored to "My location",
     // poll the LocationComponent's last-known fix every 3 s so the
     // route line + distance/ETA chip update as the user walks. Cheap:
@@ -334,6 +370,20 @@ fun MapScreen() {
                         PropertyFactory.fillOpacity(0.24f),
                     )
                 )
+                // 3D extrusion — floors * METERS_PER_FLOOR high, tinted
+                // by colorCode. Vertical gradient shading makes the
+                // volume read as sunlit vs shadowed sides. Hidden by
+                // default; the 3D toggle flips visibility.
+                style.addLayer(
+                    FillExtrusionLayer(LAYER_BUILDING_EXTRUSION, SRC_BUILDINGS).withProperties(
+                        PropertyFactory.fillExtrusionColor(Expression.get("color")),
+                        PropertyFactory.fillExtrusionHeight(Expression.get("height")),
+                        PropertyFactory.fillExtrusionBase(0f),
+                        PropertyFactory.fillExtrusionOpacity(0.72f),
+                        PropertyFactory.fillExtrusionVerticalGradient(true),
+                        PropertyFactory.visibility(Property.NONE),
+                    )
+                )
                 style.addLayer(
                     LineLayer(LAYER_OUTLINE, SRC_BUILDINGS).withProperties(
                         PropertyFactory.lineColor(Expression.get("color")),
@@ -365,6 +415,21 @@ fun MapScreen() {
                     FillLayer(LAYER_ROOM_FILL, SRC_ROOMS).withProperties(
                         PropertyFactory.fillColor(Expression.get("color")),
                         PropertyFactory.fillOpacity(0.55f),
+                    )
+                )
+                // Raised room slab in 3D — sits ON TOP of the building's
+                // floor plate for the room's floor. Base = floor idx *
+                // 3 m + 0.08 (floor slab thickness); height adds
+                // ROOM_SLAB (0.35 m) so it reads as a raised platform
+                // inside the building shell.
+                style.addLayer(
+                    FillExtrusionLayer(LAYER_ROOM_EXTRUSION, SRC_ROOMS).withProperties(
+                        PropertyFactory.fillExtrusionColor(Expression.get("color")),
+                        PropertyFactory.fillExtrusionBase(Expression.get("base")),
+                        PropertyFactory.fillExtrusionHeight(Expression.get("top")),
+                        PropertyFactory.fillExtrusionOpacity(0.92f),
+                        PropertyFactory.fillExtrusionVerticalGradient(true),
+                        PropertyFactory.visibility(Property.NONE),
                     )
                 )
                 style.addLayer(
@@ -468,6 +533,10 @@ fun MapScreen() {
                     searchFocused = false
                     return@SearchOverlay
                 }
+                // v1.5.0 — MazeMap-style: tapping a search hit
+                // immediately picks it as the DESTINATION and asks for
+                // the starting point. The room's info sheet is still
+                // reachable by tapping the room ON the map itself.
                 val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
                 if (floor != null) selectedFloor = floor
                 val centroid = centroidOf(r)
@@ -480,7 +549,10 @@ fun MapScreen() {
                         500,
                     )
                 }
-                selectedRoom = r
+                destination = r
+                origin = null
+                originIsMyLocation = false
+                showStartPicker = true
                 searchQuery = ""
                 searchFocused = false
             },
@@ -493,6 +565,8 @@ fun MapScreen() {
                     searchFocused = false
                     return@SearchOverlay
                 }
+                // Same destination-first flow for buildings — routing
+                // targets the building centroid.
                 val centroid = centroidOf(b)
                 if (centroid != null) {
                     mapRef?.animateCamera(
@@ -503,7 +577,10 @@ fun MapScreen() {
                         500,
                     )
                 }
-                selected = b
+                destination = b
+                origin = null
+                originIsMyLocation = false
+                showStartPicker = true
                 searchQuery = ""
                 searchFocused = false
             },
@@ -540,6 +617,13 @@ fun MapScreen() {
             }
             MapChipButton(icon = Icons.Outlined.Explore, label = "Reset bearing") {
                 mapRef?.animateCamera(CameraUpdateFactory.bearingTo(0.0))
+            }
+            MapChipButton(
+                icon = Icons.Outlined.ViewInAr,
+                label = if (is3D) "2D view" else "3D view",
+                highlighted = is3D,
+            ) {
+                is3D = !is3D
             }
             MapChipButton(
                 icon = Icons.Outlined.MyLocation,
@@ -1398,10 +1482,13 @@ private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): S
         val label = listOf(number, name).filter { it.isNotEmpty() }.joinToString(" ").ifBlank { "Room" }
         val color = (r["colorCode"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "#059669"
         val id = (r["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        val floorIdx = maxOf(0, roomFloor - 1)
+        val base = floorIdx * METERS_PER_FLOOR + 0.08
+        val top = base + ROOM_SLAB_METERS
 
         if (!first) features.append(",")
         features.append(
-            """{"type":"Feature","id":"$id","geometry":{"type":"Polygon","coordinates":[$coords]},"properties":{"label":"$label","name":"$name","number":"$number","color":"$color","floor":$roomFloor,"id":"$id"}}"""
+            """{"type":"Feature","id":"$id","geometry":{"type":"Polygon","coordinates":[$coords]},"properties":{"label":"$label","name":"$name","number":"$number","color":"$color","floor":$roomFloor,"base":$base,"top":$top,"id":"$id"}}"""
         )
         first = false
     }
@@ -1462,10 +1549,12 @@ private fun buildBuildingsFeatureCollection(buildings: List<JsonObject>, floor: 
         val name = (b["name"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "Building"
         val color = (b["colorCode"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "#2563eb"
         val id = (b["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        val floorsCount = (b["floors"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        val height = maxOf(METERS_PER_FLOOR, floorsCount * METERS_PER_FLOOR)
 
         if (!first) features.append(",")
         features.append(
-            """{"type":"Feature","id":"$id","geometry":{"type":"Polygon","coordinates":[$coords]},"properties":{"name":"$name","color":"$color","id":"$id"}}"""
+            """{"type":"Feature","id":"$id","geometry":{"type":"Polygon","coordinates":[$coords]},"properties":{"name":"$name","color":"$color","id":"$id","height":$height,"floors":$floorsCount}}"""
         )
         first = false
     }

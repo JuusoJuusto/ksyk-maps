@@ -33,7 +33,7 @@ import fi.ksykmaps.data.Session
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onSignOut: () -> Unit) {
+fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
     val ctx = LocalContext.current
     var apiBase by remember { mutableStateOf(Api.base) }
     var editingApi by remember { mutableStateOf(false) }
@@ -126,12 +126,25 @@ fun SettingsScreen(onSignOut: () -> Unit) {
             )
 
             SectionTitle("Account")
-            LinkRow(
-                icon = Icons.Outlined.AccountCircle,
-                title = Api.sessionEmail ?: "Signed in",
-                subtitle = "Tap to sign out",
-                onClick = onSignOut,
-            )
+            if (Api.sessionEmail != null) {
+                LinkRow(
+                    icon = Icons.Outlined.AccountCircle,
+                    title = Api.sessionEmail!!,
+                    subtitle = "Tap to sign out",
+                    onClick = onSignOut,
+                )
+            } else {
+                // v1.5.0 — guest mode. Sign-in is optional and only
+                // needed for admin-only screens (beacon survey +
+                // publishing). The rest of the app (map, rooms, news)
+                // works anonymously against the public API.
+                LinkRow(
+                    icon = Icons.Outlined.Login,
+                    title = "Sign in",
+                    subtitle = "Optional — required only for beacon survey + admin",
+                    onClick = onSignIn,
+                )
+            }
 
             SectionTitle("About")
             SettingRow(

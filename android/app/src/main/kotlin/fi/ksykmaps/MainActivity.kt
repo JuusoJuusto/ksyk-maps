@@ -100,18 +100,31 @@ private val TABS = listOf(
 private fun AppShell() {
     val ctx = LocalContext.current
     val nav = rememberNavController()
+    // v1.5.0 — no forced login. The app opens straight to the map like
+    // the website. Sign-in is optional and lives in Settings; it's only
+    // needed for admin features (Beacons survey, publishing changes).
+    // Public campus data (buildings, rooms, announcements) is served
+    // to anonymous callers by /api on the server side, matching the
+    // web anon experience.
     var loggedIn by remember { mutableStateOf(Api.sessionEmail != null) }
-
-    if (!loggedIn) {
-        LoginScreen(onLoggedIn = { loggedIn = true })
-        return
-    }
+    var showLogin by remember { mutableStateOf(false) }
 
     // Cold-start deep link — if MainActivity received a room URL and
     // pushed the id into MapNavIntent before we composed, jump to the
     // Map tab so MapScreen's own LaunchedEffect can consume the intent.
     LaunchedEffect(Unit) {
         if (MapNavIntent.pendingRoomId != null) navigate(nav, "map")
+    }
+
+    // Optional login sheet — surfaces only when the user explicitly
+    // triggers it (Settings → Sign in, or a screen that requires auth
+    // like the beacon survey). Doesn't block the rest of the app.
+    if (showLogin) {
+        LoginScreen(onLoggedIn = {
+            loggedIn = true
+            showLogin = false
+        })
+        return
     }
 
     Scaffold(
@@ -144,10 +157,13 @@ private fun AppShell() {
                 composable("buildings") { BuildingsScreen() }
                 composable("news")      { AnnouncementsScreen() }
                 composable("settings")  {
-                    SettingsScreen(onSignOut = {
-                        Session.clear(ctx)
-                        loggedIn = false
-                    })
+                    SettingsScreen(
+                        onSignOut = {
+                            Session.clear(ctx)
+                            loggedIn = false
+                        },
+                        onSignIn = { showLogin = true },
+                    )
                 }
             }
         }

@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.25.6";
+export const APP_VERSION = "3.25.7";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.25.7",
+    date: "August 2026",
+    title: "Android: no login, search→destination, 3D toggle. Web: sharper at max zoom.",
+    titleFi: "Android: ei kirjautumista, haku→määränpää, 3D. Web: terävämpi kartta.",
+    latest: true,
+    highlights: [
+      "Android: no more login gate. The app opens straight to the map like the website. Sign-in moved to Settings as an optional link, only needed for the beacon survey + admin actions.",
+      "Android: tapping a search result now IMMEDIATELY sets it as the destination and pops the Lähtöpaikka picker (Oma sijainti / Etsi lähtöhuone). No detour through the room sheet — that's still available by tapping the room on the map.",
+      "Android: 3D toggle chip (right-side rail, view-in-AR icon). On → camera tilts to 50°, buildings extrude to floors×3 m with vertical gradient shading and colored tint, rooms extrude as raised slabs sitting on their floor's plate. Off → flat top-down as before.",
+      "Web: max-zoom bumped 21→22 so users can inspect individual rooms. Basemap fade past zoom 19 is now aggressive (60% → 15% → 5% at 22) so the blurry overzoomed raster stops fighting the crisp KSYK vector overlay. Raster resampling is explicit linear + slight desaturation at high zoom for a diagram-clean feel.",
+    ],
+    highlightsFi: [
+      "Android: kirjautuminen pois — sovellus avautuu suoraan karttaan",
+      "Android: haun tulos → määränpää + Lähtöpaikka-valinta",
+      "Android: 3D-nappula — rakennukset ja huoneet kohoavat",
+      "Web: terävämpi lähikuva — pohjakartta häivytetään enemmän zoomatessa",
+    ],
+  },
   {
     version: "3.25.6",
     date: "August 2026",
     title: "Android: full directions flow (Lähtöpaikka). Web: doors + entrances visible in 2D.",
     titleFi: "Android: reittiopastus (Lähtöpaikka). Web: ovet ja sisäänkäynnit näkyviin.",
-    latest: true,
     highlights: [
       "Android: room sheet gets a big blue \"Suunnista tänne\" button. Tap it → destination locked in, a Lähtöpaikka picker card appears with two quick options: Oma sijainti (uses live GPS puck) or Etsi lähtöhuone (returns you to the search bar in ORIGIN mode with a blue prompt strip).",
       "Android: once both endpoints are set, a bright blue route line is drawn between them with a white casing (visible on any basemap tint). A persistent info chip in the top-left shows distance (m/km), walking time (~1.35 m/s), and both endpoint labels; a small × clears the route.",

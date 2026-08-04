@@ -1,9 +1,11 @@
 FORCE VERCEL REBUILD - 2026-08-04
 
-Bump reason: v3.25.6 ships the full "Suunnista tänne" directions flow
-on Android (destination + Lähtöpaikka picker + live GPS route line +
-distance/ETA chip), and makes door + entrance markers visible in the
-web map's 2D mode with a dedicated circle-chip layer.
+Bump reason: v3.25.7. Android: removed the forced login gate (app opens
+like the website); tapping a search result immediately sets it as
+destination and prompts for Lähtöpaikka; new 3D toggle with building +
+room extrusions on Android. Web: max zoom raised to 22 and basemap
+fades aggressively past zoom 19 so the KSYK vector overlay stays crisp
+at the interior view.
 
-Timestamp: 1786071600
-Build: FORCE_REBUILD_v3.25.6
+Timestamp: 1786075200
+Build: FORCE_REBUILD_v3.25.7
