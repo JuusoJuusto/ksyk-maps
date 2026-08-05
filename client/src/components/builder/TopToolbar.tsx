@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
   RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check, Image as ImageIcon,
+  RectangleHorizontal,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -27,6 +28,13 @@ export interface TopToolbarProps {
   hasErrors: boolean;
   snapEnabled: boolean;
   gridEnabled: boolean;
+  /** v3.31.2 — ortho (right-angle) constraint. When on, each new
+   *  waypoint click snaps to 90° from the previous vertex so
+   *  drafters can produce perfect rectangles + rectilinear rooms
+   *  without eyeballing corners. Optional so pre-3.31.2 callers
+   *  still compile. */
+  orthoEnabled?: boolean;
+  onToggleOrtho?: () => void;
 
   onBack?: () => void;
   onSave: () => void;
@@ -123,6 +131,15 @@ export default function TopToolbar(p: TopToolbarProps) {
       >
         <Magnet className="h-4 w-4" />
       </IconButton>
+      {p.onToggleOrtho && (
+        <IconButton
+          onClick={p.onToggleOrtho}
+          pressed={!!p.orthoEnabled}
+          label={p.orthoEnabled ? "Ortho on (90° snap)" : "Ortho off"}
+        >
+          <RectangleHorizontal className="h-4 w-4" />
+        </IconButton>
+      )}
 
       <Divider />
 

@@ -270,6 +270,10 @@ function BuilderWorkspace() {
   const [showSvgImport, setShowSvgImport] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
+  // v3.31.2 — ortho (right-angle) constraint. On → new waypoint
+  // clicks snap to horizontal/vertical from the previous vertex.
+  // Off → free-form clicks (current behaviour).
+  const [orthoEnabled, setOrthoEnabled] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   // MazeMap-style keyboard cheat sheet — toggled by "?" (Shift + /).
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -965,9 +969,25 @@ function BuilderWorkspace() {
         // Snap to nearest vertex/endpoint/midpoint when the indicator
         // is on. Falls back to the raw cursor position otherwise.
         const snap = snapTargetRef.current;
-        const p = snap
+        let p = snap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
+        // v3.31.2 — ortho constraint: if enabled and there's a
+        // previous waypoint, snap the click's lat OR lng to match
+        // the previous vertex (whichever axis moved less), producing
+        // a perfectly horizontal or vertical edge.
+        if (orthoEnabled && waypoints.length > 0) {
+          const prev = waypoints[waypoints.length - 1];
+          const dLng = Math.abs(p.lng - prev.lng);
+          const dLat = Math.abs(p.lat - prev.lat);
+          if (dLng > dLat) {
+            // Movement is more horizontal → lock lat to previous.
+            p = new maplibregl.LngLat(p.lng, prev.lat);
+          } else {
+            // Movement is more vertical → lock lng to previous.
+            p = new maplibregl.LngLat(prev.lng, p.lat);
+          }
+        }
         setWaypoints((prev) => [...prev, p]);
         return;
       }
@@ -1709,10 +1729,18 @@ function BuilderWorkspace() {
     // keeps the preview line honest — if snap will grab a vertex, the
     // ghost draws to THAT vertex too, not the raw mouse.
     const snap = snapTargetRef.current;
-    const endLng = snap ? snap.lng : cursorLngLat.lng;
-    const endLat = snap ? snap.lat : cursorLngLat.lat;
+    let endLng = snap ? snap.lng : cursorLngLat.lng;
+    let endLat = snap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
+    // v3.31.2 — mirror the ortho constraint in the preview so users
+    // see the axis-locked pending segment BEFORE they commit.
+    if (orthoEnabled) {
+      const dLng = Math.abs(endLng - last.lng);
+      const dLat = Math.abs(endLat - last.lat);
+      if (dLng > dLat) endLat = last.lat;
+      else endLng = last.lng;
+    }
     const data = {
       type: "FeatureCollection" as const,
       features: [{
@@ -1742,7 +1770,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -2192,6 +2220,8 @@ function BuilderWorkspace() {
           }}
           onToggleGrid={() => setGridEnabled((g) => !g)}
           onToggleSnap={() => setSnapEnabled((s) => !s)}
+          orthoEnabled={orthoEnabled}
+          onToggleOrtho={() => setOrthoEnabled((o) => !o)}
           onZoomIn={() => handleRef.current?.map.zoomIn()}
           onZoomOut={() => handleRef.current?.map.zoomOut()}
           onRotateCW={() => handleRef.current?.map.rotateTo(handleRef.current.map.getBearing() + 30)}

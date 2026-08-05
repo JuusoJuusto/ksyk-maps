@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.31.1";
+export const APP_VERSION = "3.31.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.31.2",
+    date: "August 2026",
+    title: "Ortho tool (90° corner snap) + POI paint uses Shape-B resolver",
+    titleFi: "Ortho-työkalu (90° kulmalukko) + POI-tyylit tulevat luokkajärjestelmästä",
+    latest: true,
+    highlights: [
+      "New Ortho toggle in the top toolbar (rectangle icon, between Snap and Zoom). When on, every waypoint click while drawing a building / room / rectangle / path / wall snaps to horizontal OR vertical from the previous vertex — locks whichever axis you moved less on. Ghost preview line shows the axis-locked pending segment BEFORE you commit. Perfect right-angle corners without eyeballing.",
+      "CampusOverlay POI features now embed their resolved category style (chipColor / strokeColor / icon) as feature properties, fed by @ksyk/shared/poi/categories → resolveCategoryStyle(). Legacy flat kind strings resolve through LEGACY_KIND_MAP to their new category paths. Foundation for admins to register new POI kinds without touching paint code.",
+    ],
+    highlightsFi: [
+      "Ortho-työkalu (90° kulmasnäp) — jokainen klikkaus kohdistuu vaaka- tai pystylinjaan",
+      "POI:t saavat tyylinsä luokkajärjestelmästä (Shape B) — perustus admin-CRUD:lle",
+    ],
+  },
   {
     version: "3.31.1",
     date: "August 2026",
     title: "Path tool renders multi-vertex, walls visible in builder, Wilma schedule link",
     titleFi: "Path-työkalu piirtää monikulmaisia hallytäjä, seinät näkyvät rakentajassa, Wilma-linkki huoneelle",
-    latest: true,
+    latest: false,
     highlights: [
       "Builder: FIXED — the hallway renderer was still using legacy startX/Y → endX/Y for the LineString coordinates, ignoring the multi-vertex points array shipped in 3.30.0. Result: a 4-click L-shape saved correctly but drew as a straight line through walls. Now the builder walks the full points[] polyline (with fallback for older hallways).",
       "Builder: walls (surface=wall on hallways) render as CHUNKY DARK LINES (line-color #1f2937, ~3-12 px width across zoom) instead of the amber walkable-path color. Reads as an obstacle, not a route. Public map already had this.",

@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, Hallway, MapLayer, Stair, Elevator, Door } from "@ksyk/shared";
+import { resolveCategoryStyle } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides, readPoiCategoryFilters, hiddenPoiKindsFromFilter } from "@/components/LayersToggle";
 import { useCampusData } from "@/hooks/useCampusData";
@@ -1883,7 +1884,17 @@ function installPOIs(
   type PoiFeature = {
     type: "Feature";
     geometry: { type: "Point"; coordinates: [number, number] };
-    properties: { id: string; kind: string; icon: string; floor: number | null; label: string };
+    properties: {
+      id: string; kind: string; icon: string; floor: number | null;
+      label: string;
+      // v3.31.2 — resolved style baked in from Shape B category tree.
+      // Paint expressions can now use ["get","chipColor"] etc. instead
+      // of hardcoded ["match", ["get","kind"], ...] arms. Adding a
+      // new POI category with its own icon+color no longer requires
+      // touching the paint spec.
+      chipColor: string;
+      strokeColor: string;
+    };
   };
   const features: PoiFeature[] = [];
 
@@ -1894,12 +1905,20 @@ function installPOIs(
     if (activeFloor !== null && floor !== null && floor !== activeFloor) return;
     // POI category filter — user hid this category via LayersToggle.
     if (hiddenKinds.has(kind)) return;
+    // v3.31.2 — Shape B resolver merges parent+leaf category styles.
+    // Legacy flat kind strings (restroom_m) resolve to their category
+    // paths (amenity/restroom/m) via LEGACY_KIND_MAP.
+    const resolved = resolveCategoryStyle(kind);
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [lng, lat] },
       properties: {
         id, kind,
-        icon: POI_ICON[kind] ?? "•",
+        // Prefer POI_ICON (hand-tuned) when the kind is one we ship
+        // with, else fall back to the resolved category icon.
+        icon: POI_ICON[kind] ?? resolved.icon,
+        chipColor: resolved.chipColor,
+        strokeColor: resolved.strokeColor,
         floor,
         // Fall back to a friendly kind name for the hover popup so
         // every POI has something to show even without a custom label.

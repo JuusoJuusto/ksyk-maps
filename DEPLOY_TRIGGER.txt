@@ -1,9 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.31.1 — builder hallway renderer FIXED to use points[]
-array (was falling back to startX/Y+endX/Y). Walls render as chunky
-dark lines in builder. Room gets scheduleUrl + scheduleLabel Wilma-
-link support with a green button in the info drawer.
+Bump reason: v3.31.2 — new Ortho tool in the builder top toolbar
+(right-angle waypoint snap). CampusOverlay POI features now use the
+Shape B resolveCategoryStyle() resolver, so category-tree styles
+actually flow through to paint.
 
-Timestamp: 1786204800
-Build: FORCE_REBUILD_v3.31.1_BUILDER_POLYLINE_WALLS_SCHEDULE
+Timestamp: 1786208400
+Build: FORCE_REBUILD_v3.31.2_ORTHO_POI_RESOLVER
