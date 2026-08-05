@@ -1,9 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.31.0 — Shape B POI category tree (nested with
-inheritance) in packages/shared/poi/categories. Doors + entrances
-on the public map get pin-style translate + ▼ tail. Multi-vertex
-hallway flow verified end-to-end.
+Bump reason: v3.31.1 — builder hallway renderer FIXED to use points[]
+array (was falling back to startX/Y+endX/Y). Walls render as chunky
+dark lines in builder. Room gets scheduleUrl + scheduleLabel Wilma-
+link support with a green button in the info drawer.
 
-Timestamp: 1786201200
-Build: FORCE_REBUILD_v3.31.0_CATEGORY_TREE_DOOR_PINS
+Timestamp: 1786204800
+Build: FORCE_REBUILD_v3.31.1_BUILDER_POLYLINE_WALLS_SCHEDULE

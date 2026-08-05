@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.31.0";
+export const APP_VERSION = "3.31.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.31.1",
+    date: "August 2026",
+    title: "Path tool renders multi-vertex, walls visible in builder, Wilma schedule link",
+    titleFi: "Path-työkalu piirtää monikulmaisia hallytäjä, seinät näkyvät rakentajassa, Wilma-linkki huoneelle",
+    latest: true,
+    highlights: [
+      "Builder: FIXED — the hallway renderer was still using legacy startX/Y → endX/Y for the LineString coordinates, ignoring the multi-vertex points array shipped in 3.30.0. Result: a 4-click L-shape saved correctly but drew as a straight line through walls. Now the builder walks the full points[] polyline (with fallback for older hallways).",
+      "Builder: walls (surface=wall on hallways) render as CHUNKY DARK LINES (line-color #1f2937, ~3-12 px width across zoom) instead of the amber walkable-path color. Reads as an obstacle, not a route. Public map already had this.",
+      "Room properties: new Schedule link section — Button label + URL. Set a custom label like \"Open in Wilma\" and a URL; a prominent emerald button appears in the room's info drawer that opens the link in a new tab. Falls back to \"Open schedule\" when label is empty.",
+      "Type schema: Room gains scheduleUrl + scheduleLabel as first-class optional string columns (with metadata fallback for older rooms).",
+    ],
+    highlightsFi: [
+      "Rakentaja: monikulmaiset hallytäjä piirtyvät nyt kaikilla kulmilla",
+      "Rakentaja: seinät näkyvät tummina paksuina viivoina",
+      "Huoneelle voi lisätä Wilma-linkin — näkyy vihreänä nappina tietopaneelissa",
+    ],
+  },
   {
     version: "3.31.0",
     date: "August 2026",
     title: "Shape-B POI category tree, door + entrance pins with tails",
     titleFi: "POI-luokkajärjestelmä (Shape B), ovet + sisäänkäynnit näkyvät pin-muodossa",
-    latest: true,
+    latest: false,
     highlights: [
       "New @ksyk/shared/poi/categories module. Slash-delimited category paths (amenity/food/cafe), per-category displayName/icon/color/searchAliases, nested inheritance via resolveCategoryStyle(), and a legacy alias table so existing kind=\"restroom_m\" resolves to \"amenity/restroom/m\" without a data migration. ~25 categories pre-registered across amenity/info/safety/transit/services. Foundation for a future admin CRUD UI + Firestore-backed registry.",
       "Doors + entrances are now MazeMap-style pins on the public map, matching the POI pin treatment shipped in 3.30.1. Chip translated up so the coordinate sits at the bottom of the pin head; new tail ▼ glyph points to the exact spot. D/E letters translated with the chip so they stay inside the pin head. Entrance chip bumped 5→20 px baseline; door 4→14 px.",

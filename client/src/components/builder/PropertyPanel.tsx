@@ -521,6 +521,14 @@ function RoomProps({ room }: { room: Room }) {
   const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
   const [hours, setHours] = useState(initialHoursVal);
   const [description, setDescription] = useState(room.description ?? "");
+  // v3.31.1 — Wilma/external schedule link. scheduleLabel is the
+  // button text (e.g. "Open in Wilma"); scheduleUrl is the target.
+  const initialScheduleUrl = ((room as unknown as { scheduleUrl?: string | null }).scheduleUrl)
+    ?? (initialMeta.scheduleUrl as string | undefined) ?? "";
+  const initialScheduleLabel = ((room as unknown as { scheduleLabel?: string | null }).scheduleLabel)
+    ?? (initialMeta.scheduleLabel as string | undefined) ?? "";
+  const [scheduleUrl, setScheduleUrl] = useState(initialScheduleUrl);
+  const [scheduleLabel, setScheduleLabel] = useState(initialScheduleLabel);
 
   const patch = useMutation({
     mutationFn: async (body: Partial<Room>) => {
@@ -543,6 +551,8 @@ function RoomProps({ room }: { room: Room }) {
     floor !== (room.floor ?? 1) ||
     photoUrl !== initialPhotoUrl ||
     hours !== initialHoursVal ||
+    scheduleUrl !== initialScheduleUrl ||
+    scheduleLabel !== initialScheduleLabel ||
     description !== (room.description ?? "");
 
   return (
@@ -598,6 +608,27 @@ function RoomProps({ room }: { room: Room }) {
             onChange={setHours}
             placeholder="Mon–Fri 8–16 · Closed weekends"
           />
+          <div className="grid grid-cols-1 gap-2 pt-2 mt-2 border-t border-border">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Schedule link (Wilma / external)
+            </p>
+            <TextField
+              label="Button label"
+              value={scheduleLabel}
+              onChange={setScheduleLabel}
+              placeholder="e.g. Open in Wilma"
+            />
+            <TextField
+              label="URL"
+              value={scheduleUrl}
+              onChange={setScheduleUrl}
+              placeholder="https://wilma.school.fi/…"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Shown as a blue button in the room's info drawer. If label
+              is empty, we render "Open schedule."
+            </p>
+          </div>
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Description
@@ -643,6 +674,9 @@ function RoomProps({ room }: { room: Room }) {
             // from the old scheme doesn't carry duplicates.
             photoUrl: photoUrl.trim() || null,
             hours: hours.trim() || null,
+            // v3.31.1 — schedule link columns.
+            scheduleUrl: scheduleUrl.trim() || null,
+            scheduleLabel: scheduleLabel.trim() || null,
             tags: tagsInput
               .split(",")
               .map((s) => s.trim())

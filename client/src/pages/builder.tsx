@@ -741,19 +741,31 @@ function BuilderWorkspace() {
     }
 
     // Hallways
+    // v3.31.1 — use the new `points` polyline when set, else fall
+    // back to legacy startX/Y → endX/Y. Wall segments render as
+    // thick dark lines to distinguish from walkable amber hallways.
+    // Both changes matter for admins visually verifying what they
+    // drew before hitting publish.
     const hallSrcId = "builder-hallways";
     const hallLineId = "builder-hallways-line";
     const halls = hallwaysQ.data ?? [];
     const hallsFC = {
       type: "FeatureCollection" as const,
-      features: halls.map((hw) => ({
-        type: "Feature" as const,
-        geometry: { type: "LineString" as const, coordinates: [[hw.startX, hw.startY], [hw.endX, hw.endY]] },
-        properties: {
-          id: hw.id,
-          selected: selection?.kind === "hallway" && selection.id === hw.id,
-        },
-      })),
+      features: halls.map((hw) => {
+        const pts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
+        const coords: number[][] = (Array.isArray(pts) && pts.length >= 2)
+          ? pts.map((p) => [p.lng, p.lat])
+          : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: coords },
+          properties: {
+            id: hw.id,
+            selected: selection?.kind === "hallway" && selection.id === hw.id,
+            isWall: (hw as { surface?: string | null }).surface === "wall",
+          },
+        };
+      }),
     };
     const hallsSrc = map.getSource(hallSrcId) as maplibregl.GeoJSONSource | undefined;
     if (hallsSrc) hallsSrc.setData(hallsFC as any);
@@ -761,10 +773,27 @@ function BuilderWorkspace() {
       map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
       map.addLayer({
         id: hallLineId, source: hallSrcId, type: "line",
+        layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": ["case", ["boolean", ["get", "selected"], false], "#dc2626", "#f59e0b"],
-          "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
-          "line-opacity": 0.8,
+          "line-color": [
+            "case",
+            ["boolean", ["get", "selected"], false], "#dc2626",
+            ["boolean", ["get", "isWall"], false],  "#1f2937",  // dark for walls
+                                                     "#f59e0b",  // amber walkable
+          ],
+          "line-width": [
+            "case",
+            ["boolean", ["get", "isWall"], false],
+            // Walls: chunky dark segments so they clearly read as
+            // obstacles, not paths.
+            ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 12],
+            ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
+          ],
+          "line-opacity": [
+            "case",
+            ["boolean", ["get", "isWall"], false], 0.95,
+                                                    0.8,
+          ],
         },
       });
     }

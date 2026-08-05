@@ -167,6 +167,12 @@ export interface Room extends Timestamped {
   /** v3.29.0 — first-class opening/usage hours string. Free-form so
    *  admins can write "Mon-Fri 8-16" or a longer note. */
   hours?: string | null;
+  /** v3.31.1 — external schedule / booking URL (e.g. a Wilma link).
+   *  Shown as a prominent button in the info drawer when set. */
+  scheduleUrl?: string | null;
+  /** v3.31.1 — custom label for the schedule button. If empty, we
+   *  render "Open schedule." */
+  scheduleLabel?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 

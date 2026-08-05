@@ -200,7 +200,29 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <MetadataRows feature={feature} />
       </div>
 
-      <div className="px-3 pb-3 pt-2 border-t border-border">
+      <div className="px-3 pb-3 pt-2 border-t border-border space-y-2">
+        {/* v3.31.1 — Schedule link (Wilma / external) shown as a
+         *  prominent secondary button when set on the room. Custom
+         *  label from scheduleLabel; default "Open schedule." */}
+        {(() => {
+          if (feature.kind !== "room") return null;
+          const sched = (feature.entity as unknown as {
+            scheduleUrl?: string | null; scheduleLabel?: string | null;
+          });
+          if (!sched.scheduleUrl || !sched.scheduleUrl.trim()) return null;
+          const label = sched.scheduleLabel?.trim() || "Open schedule";
+          return (
+            <a
+              href={sched.scheduleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full h-11 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm transition-all"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {label}
+            </a>
+          );
+        })()}
         <button
           type="button"
           onClick={() => onRouteTo(feature)}
