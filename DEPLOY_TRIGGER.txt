@@ -1,9 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.30.1 — MazeMap-style pin POIs (chip translated up +
-▼ tail glyph pointing to coordinate), info drawer slides up from
-bottom on desktop too, Hallway tool renamed to Path with multi-
-vertex coach text.
+Bump reason: v3.31.0 — Shape B POI category tree (nested with
+inheritance) in packages/shared/poi/categories. Doors + entrances
+on the public map get pin-style translate + ▼ tail. Multi-vertex
+hallway flow verified end-to-end.
 
-Timestamp: 1786197600
-Build: FORCE_REBUILD_v3.30.1_PINS_BOTTOM_SHEET
+Timestamp: 1786201200
+Build: FORCE_REBUILD_v3.31.0_CATEGORY_TREE_DOOR_PINS

@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.30.1";
+export const APP_VERSION = "3.31.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.31.0",
+    date: "August 2026",
+    title: "Shape-B POI category tree, door + entrance pins with tails",
+    titleFi: "POI-luokkajärjestelmä (Shape B), ovet + sisäänkäynnit näkyvät pin-muodossa",
+    latest: true,
+    highlights: [
+      "New @ksyk/shared/poi/categories module. Slash-delimited category paths (amenity/food/cafe), per-category displayName/icon/color/searchAliases, nested inheritance via resolveCategoryStyle(), and a legacy alias table so existing kind=\"restroom_m\" resolves to \"amenity/restroom/m\" without a data migration. ~25 categories pre-registered across amenity/info/safety/transit/services. Foundation for a future admin CRUD UI + Firestore-backed registry.",
+      "Doors + entrances are now MazeMap-style pins on the public map, matching the POI pin treatment shipped in 3.30.1. Chip translated up so the coordinate sits at the bottom of the pin head; new tail ▼ glyph points to the exact spot. D/E letters translated with the chip so they stay inside the pin head. Entrance chip bumped 5→20 px baseline; door 4→14 px.",
+      "Hallway multi-vertex flow verified end-to-end — draw N clicks, Enter finalises, single hallway record with points[] array, CampusOverlay renders full polyline, routing graph adds a waypoint node per vertex.",
+    ],
+    highlightsFi: [
+      "POI-luokkajärjestelmä käyttöön (Shape B) — hierarkkinen kategoriapuu perittävillä tyyleillä",
+      "Ovet ja sisäänkäynnit näkyvät nyt tippaan piirrettynä pin-muodossa julkiselle kartalle",
+    ],
+  },
   {
     version: "3.30.1",
     date: "August 2026",
     title: "MazeMap-style pin POIs, bottom-sheet info drawer on desktop, hallway → Path tool",
     titleFi: "MazeMap-tyyliset kartioviestit, tietopaneeli näytön alalaidasta työpöydällä",
-    latest: true,
+    latest: false,
     highlights: [
       "POI markers are now MazeMap-style pins. The circle chip is translated up so it sits above the coordinate; a small ▼ tail below points to the exact spot. Chunkier baseline (9→24 px radius across zoom 15/19/21) with per-kind tail colour matching the chip's stroke.",
       "Room/building info panel now slides up from the bottom of the screen on desktop too (was floating right-side). Anchored bottom-center, wider on desktop (32/36rem), matches the MazeMap card affordance. Mobile behaviour unchanged.",

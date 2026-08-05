@@ -1253,16 +1253,20 @@ function installPoiPillars(
     type: "circle",
     minzoom: 16,
     paint: {
-      // v3.27.1 — chunkier so doors read at wider zooms.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 4, 18, 7, 20, 10],
+      // v3.31.0 — pin translate + bigger chip, matching the generic
+      // POI pin treatment from 3.30.1. Chip sits ABOVE the door
+      // coordinate; the tail glyph below points to the exact spot.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 6, 18, 10, 20, 14],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -8]], 18, ["literal", [0, -13]], 20, ["literal", [0, -18]]],
+      "circle-translate-anchor": "viewport",
       "circle-color": [
         "match", ["get", "kind"],
         "exit", "#dc2626",
                 "#374151",
       ],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
-      "circle-opacity": 0.98,
+      "circle-stroke-width": 2.5,
+      "circle-opacity": 1,
     },
   });
   addLayerIfMissing(map, {
@@ -1271,13 +1275,58 @@ function installPoiPillars(
     type: "circle",
     minzoom: 15,
     paint: {
-      // v3.27.1 — bigger + brighter halo. Entrances are the primary
-      // wayfinding cue; they should read from across the campus.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 10, 20, 14],
+      // v3.31.0 — bigger pin for entrances, translated up like doors.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 14, 20, 20],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 18, ["literal", [0, -18]], 20, ["literal", [0, -26]]],
+      "circle-translate-anchor": "viewport",
       "circle-color": "#16a34a",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2.5,
-      "circle-opacity": 0.98,
+      "circle-stroke-width": 3,
+      "circle-opacity": 1,
+    },
+  });
+  // v3.31.0 — pin TAILS. Small ▼ pointing at each door/entrance
+  // coordinate so the whole marker reads as a MazeMap teardrop.
+  addLayerIfMissing(map, {
+    id: "campus-doors-tail",
+    source: "campus-doors-marker-src",
+    type: "symbol",
+    minzoom: 16,
+    layout: {
+      "text-field": "▼",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 10, 18, 14, 20, 18],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-anchor": "bottom",
+    },
+    paint: {
+      "text-color": [
+        "match", ["get", "kind"],
+        "exit", "#dc2626",
+                "#374151",
+      ],
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: "campus-entrances-tail",
+    source: "campus-entrances-marker-src",
+    type: "symbol",
+    minzoom: 15,
+    layout: {
+      "text-field": "▼",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 18, 18, 20, 24],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-anchor": "bottom",
+    },
+    paint: {
+      "text-color": "#16a34a",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1,
     },
   });
   // v3.27.1 — "D" / "E" letter inside each chip. Reads clearly even
@@ -1290,7 +1339,7 @@ function installPoiPillars(
     minzoom: 17,
     layout: {
       "text-field": "D",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 8, 20, 12],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 9, 20, 14],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1299,6 +1348,10 @@ function installPoiPillars(
       "text-color": "#ffffff",
       "text-halo-color": "#00000060",
       "text-halo-width": 0.4,
+      // v3.31.0 — match the chip's translate so the letter sits
+      // inside the pin head, not floating below.
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 17, ["literal", [0, -10]], 20, ["literal", [0, -18]]],
+      "text-translate-anchor": "viewport",
     },
   });
   addLayerIfMissing(map, {
@@ -1308,7 +1361,7 @@ function installPoiPillars(
     minzoom: 16,
     layout: {
       "text-field": "E",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 9, 20, 14],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 11, 20, 18],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1317,6 +1370,9 @@ function installPoiPillars(
       "text-color": "#ffffff",
       "text-halo-color": "#00000060",
       "text-halo-width": 0.4,
+      // v3.31.0 — translate to sit inside the pin head.
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 20, ["literal", [0, -26]]],
+      "text-translate-anchor": "viewport",
     },
   });
 
