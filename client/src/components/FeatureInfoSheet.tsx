@@ -251,18 +251,18 @@ function featureColor(f: ClickedFeature): string {
 }
 
 /**
- * v3.27.2 — Pull the photo URL out of the entity's free-form
- * metadata. Supports `metadata.photoUrl`, `metadata.imageUrl`, or a
- * top-level `photoUrl`/`imageUrl` for future schema additions.
- * Returns null when nothing usable is set.
+ * v3.27.2 — Pull the photo URL out of the entity's data.
+ * v3.29.0 — Top-level `photoUrl` (first-class column) tried first;
+ * legacy metadata keys as fallback so rooms authored before the
+ * column existed still show a photo.
  */
 function featurePhotoUrl(f: ClickedFeature): string | null {
   if (f.kind === "hallway") return null;
+  const top = f.entity as unknown as { photoUrl?: unknown; imageUrl?: unknown };
   const md = (f.entity.metadata ?? {}) as Record<string, unknown>;
   const candidates: unknown[] = [
+    top.photoUrl, top.imageUrl,
     md.photoUrl, md.imageUrl, md.image, md.photo,
-    (f.entity as unknown as { photoUrl?: unknown }).photoUrl,
-    (f.entity as unknown as { imageUrl?: unknown }).imageUrl,
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.length > 0 && (c.startsWith("http") || c.startsWith("data:"))) {
@@ -273,17 +273,17 @@ function featurePhotoUrl(f: ClickedFeature): string | null {
 }
 
 /**
- * v3.27.2 — Free-form metadata extractor for optional fields that
- * we surface as their own rows: opening hours, phone, email, website.
- * All optional; only rendered when a string value is present.
+ * v3.27.2 — Optional Hours / Phone / Email / Website rows.
+ * v3.29.0 — Top-level `hours` column checked first; metadata fallback.
  */
 function featureContact(f: ClickedFeature): { hours?: string; phone?: string; email?: string; website?: string } {
   if (f.kind === "hallway") return {};
+  const top = f.entity as unknown as { hours?: unknown };
   const md = (f.entity.metadata ?? {}) as Record<string, unknown>;
   const str = (v: unknown): string | undefined =>
     typeof v === "string" && v.trim().length > 0 ? v : undefined;
   return {
-    hours: str(md.hours) ?? str(md.openingHours) ?? str(md.opening_hours),
+    hours: str(top.hours) ?? str(md.hours) ?? str(md.openingHours) ?? str(md.opening_hours),
     phone: str(md.phone) ?? str(md.tel) ?? str(md.contactPhone),
     email: str(md.email) ?? str(md.contactEmail),
     website: str(md.website) ?? str(md.url),

@@ -160,6 +160,13 @@ export interface Room extends Timestamped {
   iconUrl?: string | null;
   /** Availability schedule reference (external system id). */
   availabilityId?: string | null;
+  /** v3.29.0 — first-class photo URL surfaced by the info drawer as
+   *  the hero image. Also read-through from `metadata.photoUrl` for
+   *  backward compatibility with rooms authored before this column. */
+  photoUrl?: string | null;
+  /** v3.29.0 — first-class opening/usage hours string. Free-form so
+   *  admins can write "Mon-Fri 8-16" or a longer note. */
+  hours?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 

@@ -504,12 +504,22 @@ function RoomProps({ room }: { room: Room }) {
   const [tagsInput, setTagsInput] = useState((room.tags ?? []).join(", "));
   const [floor, setFloor] = useState<number>(room.floor ?? 1);
   // v3.27.3 — info fields (photo + hours + description) editable
-  // right here without diving into the Custom-JSON tab. Stored inside
-  // metadata.info so the schema stays untouched.
+  // right here without diving into the Custom-JSON tab.
+  // v3.29.0 — photoUrl + hours are first-class Room columns now;
+  // read top-level first, fall back to metadata for rooms authored
+  // before the column existed.
   const initialMeta = (room.metadata as Record<string, unknown> | null | undefined) ?? {};
   const initialInfo = ((initialMeta.info as Record<string, unknown> | undefined) ?? initialMeta) as Record<string, unknown>;
-  const [photoUrl, setPhotoUrl] = useState((initialInfo.photoUrl as string | undefined) ?? (initialMeta.photoUrl as string | undefined) ?? "");
-  const [hours, setHours] = useState((initialInfo.hours as string | undefined) ?? (initialMeta.hours as string | undefined) ?? "");
+  const initialPhotoUrl = ((room as unknown as { photoUrl?: string | null }).photoUrl)
+    ?? (initialInfo.photoUrl as string | undefined)
+    ?? (initialMeta.photoUrl as string | undefined)
+    ?? "";
+  const initialHoursVal = ((room as unknown as { hours?: string | null }).hours)
+    ?? (initialInfo.hours as string | undefined)
+    ?? (initialMeta.hours as string | undefined)
+    ?? "";
+  const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
+  const [hours, setHours] = useState(initialHoursVal);
   const [description, setDescription] = useState(room.description ?? "");
 
   const patch = useMutation({
@@ -520,8 +530,6 @@ function RoomProps({ room }: { room: Room }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
   });
 
-  const initialPhoto = (initialInfo.photoUrl as string | undefined) ?? (initialMeta.photoUrl as string | undefined) ?? "";
-  const initialHours = (initialInfo.hours as string | undefined) ?? (initialMeta.hours as string | undefined) ?? "";
   const dirty =
     roomNumber !== room.roomNumber ||
     name !== (room.name ?? "") ||
@@ -533,8 +541,8 @@ function RoomProps({ room }: { room: Room }) {
     teacher !== (room.teacher ?? "") ||
     tagsInput !== (room.tags ?? []).join(", ") ||
     floor !== (room.floor ?? 1) ||
-    photoUrl !== initialPhoto ||
-    hours !== initialHours ||
+    photoUrl !== initialPhotoUrl ||
+    hours !== initialHoursVal ||
     description !== (room.description ?? "");
 
   return (
@@ -629,6 +637,12 @@ function RoomProps({ room }: { room: Room }) {
             department: department || null,
             teacher: teacher || null,
             description: description.trim() || null,
+            // v3.29.0 — photoUrl + hours are now first-class Room
+            // columns (see packages/shared types). Legacy metadata
+            // keys are still cleared on save so a room migrated
+            // from the old scheme doesn't carry duplicates.
+            photoUrl: photoUrl.trim() || null,
+            hours: hours.trim() || null,
             tags: tagsInput
               .split(",")
               .map((s) => s.trim())

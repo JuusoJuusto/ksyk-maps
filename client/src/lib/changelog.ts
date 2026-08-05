@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.28.2";
+export const APP_VERSION = "3.29.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.29.0",
+    date: "August 2026",
+    title: "Photo + hours first-class, bilingual room labels, unisex WC on public map",
+    titleFi: "Kuva + aukioloajat huoneen omina kenttinä, kaksikieliset huoneiden nimet",
+    latest: true,
+    highlights: [
+      "Room labels on the public map now show BOTH English + Finnish names when both are set (e.g. \"Music Room / Musiikkiluokka\"); when only one is set, it shows alone; the base `name` is dropped from labels per feedback. The room number prefix stays.",
+      "Photo URL + Hours are now first-class Room columns (packages/shared types updated). Builder saves them to top-level fields; FeatureInfoSheet reads top-level first with metadata-fallback for older rooms.",
+      "Public map (CampusOverlay): new `restroom` POI kind (unisex/generic) picks up the same 🚻 glyph + pink chip color the builder shows. Match with the WC tool added in 3.28.2.",
+    ],
+    highlightsFi: [
+      "Huoneiden nimet näkyvät kaksikielisinä (EN/FI) kartalla",
+      "Kuva + aukioloajat ovat nyt huoneen omia kenttiä (ei enää metadatassa)",
+      "Julkiselle kartalle unisex WC-piste",
+    ],
+  },
   {
     version: "3.28.2",
     date: "August 2026",
     title: "Generic POIs editable + resizable, unisex restroom, MazeMap-style emoji icons",
     titleFi: "POI:t muokattavissa + koko säädettävissä, unisex-vessa, MazeMap-tyyliset kuvakkeet",
-    latest: true,
     highlights: [
       "Builder: generic POIs (info, cafe, water, printer, first-aid, etc.) are now clickable + editable via the same PropertyPanel path as doors/stairs/elevators. Builder fetches /api/pois; PropertyPanel resolver picks it up.",
       "New POI kind: `restroom` (unisex/generic) — placed via the new WC tool in the POI palette. Distinct pink chip; separate from restroom_m (blue ♂), restroom_f (pink ♀), restroom_a (purple ♿).",

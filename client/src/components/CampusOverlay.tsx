@@ -1530,16 +1530,28 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
               [r.points![0].lng, r.points![0].lat],
             ]],
           },
-          properties: {
-            id: r.id,
-            name: r.name ?? "",
-            label: [r.roomNumber, r.name].filter(Boolean).join(" "),
-            color: r.colorCode ?? colorForRoomType(r.type) ?? "#059669",
-            floor: r.floor ?? 0,
-            showOutline: style.showOutline !== false,
-            fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
-            showLabel: style.showLabel !== false,
-          },
+          // v3.29.0 — MazeMap-style bilingual label. Show nameEn AND
+          // nameFi (separated by " / ") when both exist; otherwise
+          // show whichever is set; fall back to the base name only
+          // when neither is defined. Base name dropped from labels
+          // per user feedback ("delete the normal name").
+          properties: (() => {
+            const rr = r as unknown as { nameEn?: string | null; nameFi?: string | null };
+            const bilingual = [rr.nameEn, rr.nameFi].filter((s): s is string => !!s && s.trim().length > 0);
+            const displayName = bilingual.length > 0
+              ? bilingual.join(" / ")
+              : (r.name ?? "");
+            return {
+              id: r.id,
+              name: displayName,
+              label: [r.roomNumber, displayName].filter(Boolean).join(" "),
+              color: r.colorCode ?? colorForRoomType(r.type) ?? "#059669",
+              floor: r.floor ?? 0,
+              showOutline: style.showOutline !== false,
+              fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
+              showLabel: style.showLabel !== false,
+            };
+          })(),
         };
       }),
   };
@@ -1774,6 +1786,8 @@ const POI_ICON: Record<string, string> = {
   defibrillator: "⚡",
   printer:       "🖨",
   meeting_point: "⚑",
+  // v3.29.0 — unisex/generic restroom to match the new builder tool.
+  restroom:      "🚻",
 };
 
 interface GenericPOI {
@@ -1884,6 +1898,7 @@ function installPOIs(
         "elevator",      "#dbeafe",  // blue-100
         "stairs",        "#fef3c7",  // amber-100
         "bathroom",      "#fce7f3",  // pink-100
+        "restroom",      "#fce7f3",  // v3.29.0 unisex/generic
         "restroom_m",    "#dbeafe",
         "restroom_f",    "#fce7f3",
         "restroom_a",    "#e9d5ff",
@@ -1908,6 +1923,7 @@ function installPOIs(
         "elevator",      "#2563eb",
         "stairs",        "#b45309",
         "bathroom",      "#be185d",
+        "restroom",      "#be185d",
         "restroom_m",    "#2563eb",
         "restroom_f",    "#be185d",
         "restroom_a",    "#7c3aed",

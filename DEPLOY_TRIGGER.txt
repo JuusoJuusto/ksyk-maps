@@ -1,8 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.28.2 — generic POIs editable + resizable in builder,
-unisex restroom kind added, MazeMap-style emoji glyphs render inside
-every POI chip.
+Bump reason: v3.29.0 — bilingual room labels (EN + FI shown, base
+name dropped), photoUrl + hours are now first-class Room columns
+(with metadata-fallback for older rooms), unisex WC icon added to
+the public map POI icons.
 
-Timestamp: 1786186800
-Build: FORCE_REBUILD_v3.28.2_POI_ICONS_RESIZE
+Timestamp: 1786190400
+Build: FORCE_REBUILD_v3.29.0_BILINGUAL_LABELS_PHOTO_COLUMN
