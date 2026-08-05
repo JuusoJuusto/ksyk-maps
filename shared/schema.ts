@@ -199,6 +199,10 @@ export const hallways = pgTable("hallways", {
   startY: integer("start_y"),
   endX: integer("end_x"),
   endY: integer("end_y"),
+  // v3.30.0 — multi-vertex polyline. When set, this array of
+  // { lat, lng } wins over startX/Y + endX/Y (which we still keep
+  // in sync as the first/last points for backward compat).
+  points: jsonb("points"),
   width: integer("width").default(2),
   colorCode: varchar("color_code").default("#9CA3AF"),
   emergencyRoute: boolean("emergency_route").default(false),

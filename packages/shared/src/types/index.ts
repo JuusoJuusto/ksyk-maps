@@ -170,8 +170,12 @@ export interface Room extends Timestamped {
   metadata?: Record<string, unknown> | null;
 }
 
-/** A hallway segment. Multi-point corridors are stored as a chain of
- *  segments so the routing graph can add nodes at every waypoint. */
+/** A hallway segment or polyline. v3.30.0 — supports multi-vertex
+ *  paths via the optional `points` array. When set, `points` is the
+ *  source of truth; the legacy `startX/Y + endX/Y` are populated as
+ *  the first and last entries respectively for backward compat with
+ *  older readers. Older data with only startX/Y + endX/Y still works
+ *  as a two-vertex polyline. */
 export interface Hallway extends Timestamped {
   id: string;
   buildingId?: string | null;
@@ -180,6 +184,11 @@ export interface Hallway extends Timestamped {
   startY: number;
   endX: number;
   endY: number;
+  /** v3.30.0 — polyline vertices in world space (lat/lng). Present
+   *  when the hallway was drawn as a multi-vertex path. If absent,
+   *  the renderer + router synthesize a two-point path from
+   *  startX/Y → endX/Y. */
+  points?: LatLng[] | null;
   /** Optional physical width in metres — the router uses this to prefer
    *  wider corridors when routing wheelchair users. */
   width?: number | null;

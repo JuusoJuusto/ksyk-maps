@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.29.0";
+export const APP_VERSION = "3.30.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.30.0",
+    date: "August 2026",
+    title: "Multi-vertex hallways + routing that actually connects doors↔hallways↔rooms",
+    titleFi: "Monikulmaiset käytävät + reititys joka oikeasti yhdistää ovet, käytävät ja huoneet",
+    latest: true,
+    highlights: [
+      "Hallways: draw as many vertices as you want. Click 2, 3, 4, N points → Enter finalises a SINGLE polyline hallway (previously we secretly chunked it into N separate 2-point rows in the sidebar). New optional `points: LatLng[]` column on the Hallway schema is the source of truth; legacy startX/Y + endX/Y stay populated as the first/last vertex for backward compat with older readers.",
+      "CampusOverlay: hallway renderer uses the full `points` polyline when present, so bent corridors actually bend on the map — no more \"my L-shaped hallway shows as one straight line through a wall.\"",
+      "Routing: multi-vertex hallways emit one waypoint node per vertex + edges between every consecutive pair, so Dijkstra can flow through bends.",
+      "Routing: DOORS AUTO-WIRE to their neighbours. A door without an explicit connects tuple now gets auto-connected to the nearest room (within ~2 m) AND the nearest hallway waypoint on the same floor (within 5 m) at graph-build time. No more \"I placed a door but the router still can't reach the room\" — the door is the bridge, and the graph builder finds both sides for you.",
+    ],
+    highlightsFi: [
+      "Käytävät voi piirtää usealla kulmalla — yksi käytävä pysyy yhtenä",
+      "Reititys: ovet yhdistyvät automaattisesti lähimpään huoneeseen ja käytävään, ei tarvitse käsin määrittää",
+    ],
+  },
   {
     version: "3.29.0",
     date: "August 2026",
     title: "Photo + hours first-class, bilingual room labels, unisex WC on public map",
     titleFi: "Kuva + aukioloajat huoneen omina kenttinä, kaksikieliset huoneiden nimet",
-    latest: true,
     highlights: [
       "Room labels on the public map now show BOTH English + Finnish names when both are set (e.g. \"Music Room / Musiikkiluokka\"); when only one is set, it shows alone; the base `name` is dropped from labels per feedback. The room number prefix stays.",
       "Photo URL + Hours are now first-class Room columns (packages/shared types updated). Builder saves them to top-level fields; FeatureInfoSheet reads top-level first with metadata-fallback for older rooms.",

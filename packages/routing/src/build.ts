@@ -183,10 +183,18 @@ export function buildNavGraph(input: BuildNavGraphInput): BuildNavGraphResult {
   for (const h of hallways) {
     const floor = h.floor ?? 0;
     const b = h.buildingId ?? null;
-    const aId = waypointNodeId(hallwayStart(h), floor, b);
-    const bId = waypointNodeId(hallwayEnd(h), floor, b);
-    if (aId !== bId) {
-      pushEdge(`hall:${h.id}`, aId, bId, /* accessible */ (h.width ?? 0) === 0 || (h.width ?? 999) >= 0.9);
+    // v3.30.0 — multi-vertex hallways emit one waypoint per vertex
+    // and edges between every consecutive pair, so routing works
+    // through bends. Backward-compat: if h.points is missing, we
+    // fall back to the legacy start→end two-vertex chain.
+    const pts = (Array.isArray(h.points) && h.points.length >= 2)
+      ? h.points
+      : [hallwayStart(h), hallwayEnd(h)];
+    const vertexIds: string[] = pts.map((p) => waypointNodeId(p, floor, b));
+    const accessible = (h.width ?? 0) === 0 || (h.width ?? 999) >= 0.9;
+    for (let i = 0; i < vertexIds.length - 1; i++) {
+      const from = vertexIds[i], to = vertexIds[i + 1];
+      if (from !== to) pushEdge(`hall:${h.id}#${i}`, from, to, accessible);
     }
   }
 
@@ -197,18 +205,41 @@ export function buildNavGraph(input: BuildNavGraphInput): BuildNavGraphResult {
   void detectHallwayIntersections;
 
   // ── Doors ──────────────────────────────────────────────────────────
-  // A door bridges two entities. If either endpoint is a room we
-  // connect its `room:<id>` node; if it's a hallway we connect the
-  // nearest waypoint on that hallway; otherwise we warn.
-  for (const door of doors) {
-    if (!door.connects || door.connects.length !== 2) {
-      warnings.push({
-        kind: "orphan_door",
-        entityId: door.id,
-        message: `Door ${door.id} has invalid connects tuple`,
-      });
-      continue;
+  // A door bridges two entities. Explicit `connects` (from the admin
+  // builder's door wiring) wins. If the door has no connects — the
+  // common case for freshly-placed doors — we v3.30.0 auto-wire it
+  // to the nearest room polygon (by containment or proximity) AND
+  // the nearest hallway waypoint on the same floor within 5 m, so
+  // routing works without admins having to manually wire every door.
+  const AUTO_HALLWAY_RANGE_METERS = 5;
+  const AUTO_ROOM_RANGE_METERS = 2;
+
+  const nearestRoomIdTo = (pos: LatLng, floor: number): string | null => {
+    let best: { id: string; d: number } | null = null;
+    for (const r of rooms) {
+      if (r.floor !== floor) continue;
+      const c = roomCenter(r);
+      if (!c) continue;
+      const d = haversineMeters(c, pos);
+      if (d > AUTO_ROOM_RANGE_METERS + 15) continue;  // rough cull
+      // TODO: proper point-in-polygon; for now use centroid distance.
+      if (!best || d < best.d) best = { id: r.id, d };
     }
+    return best?.id ?? null;
+  };
+  const nearestHallwayWaypointIdTo = (pos: LatLng, floor: number): string | null => {
+    let best: { id: string; d: number } | null = null;
+    for (const [, wid] of waypointOf) {
+      const n = nodeById.get(wid);
+      if (!n || n.floor !== floor) continue;
+      const d = haversineMeters(n.position, pos);
+      if (d > AUTO_HALLWAY_RANGE_METERS) continue;
+      if (!best || d < best.d) best = { id: wid, d };
+    }
+    return best?.id ?? null;
+  };
+
+  for (const door of doors) {
     const doorNodeId = `door:${door.id}`;
     pushNode({
       id: doorNodeId,
@@ -217,6 +248,32 @@ export function buildNavGraph(input: BuildNavGraphInput): BuildNavGraphResult {
       buildingId: door.buildingId,
       type: "door",
     });
+
+    // No explicit connects → auto-wire door → nearest room + nearest
+    // hallway waypoint on the same floor.
+    if (!door.connects || door.connects.length !== 2) {
+      const roomId = nearestRoomIdTo(door.position, door.floor);
+      const waypointId = nearestHallwayWaypointIdTo(door.position, door.floor);
+      let sideCount = 0;
+      if (roomId) {
+        pushEdge(`door-${door.id}-auto-room`, doorNodeId, `room:${roomId}`,
+                 door.accessible ?? true, door.locked ? ["locked"] : null);
+        sideCount++;
+      }
+      if (waypointId) {
+        pushEdge(`door-${door.id}-auto-hall`, doorNodeId, waypointId,
+                 door.accessible ?? true, door.locked ? ["locked"] : null);
+        sideCount++;
+      }
+      if (sideCount < 2) {
+        warnings.push({
+          kind: "orphan_door",
+          entityId: door.id,
+          message: `Door ${door.id} auto-connected to ${sideCount} side(s); place near a room + hallway to bridge them.`,
+        });
+      }
+      continue;
+    }
 
     for (let side = 0; side < 2; side++) {
       const target = door.connects[side];

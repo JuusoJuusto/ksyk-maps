@@ -1,9 +1,11 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.29.0 — bilingual room labels (EN + FI shown, base
-name dropped), photoUrl + hours are now first-class Room columns
-(with metadata-fallback for older rooms), unisex WC icon added to
-the public map POI icons.
+Bump reason: v3.30.0 — multi-vertex hallway support end-to-end
+(schema + type + create + CampusOverlay renderer + routing graph
+builder). Routing: doors auto-wire to nearest room + hallway
+waypoint on the same floor when their `connects` field is empty, so
+Dijkstra can actually find paths without admins manually wiring
+every door.
 
-Timestamp: 1786190400
-Build: FORCE_REBUILD_v3.29.0_BILINGUAL_LABELS_PHOTO_COLUMN
+Timestamp: 1786194000
+Build: FORCE_REBUILD_v3.30.0_MULTIVERTEX_ROUTING

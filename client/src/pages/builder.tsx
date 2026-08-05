@@ -1257,27 +1257,32 @@ function BuilderWorkspace() {
 
   const createHallway = useMutation({
     mutationFn: async (payload: { points: Array<{ lng: number; lat: number }>; surface?: string }) => {
-      // Chunk polyline into start/end segments — matches the server schema.
-      const created: unknown[] = [];
-      for (let i = 0; i < payload.points.length - 1; i++) {
-        const res = await apiRequest("POST", "/api/hallways", {
-          startX: payload.points[i].lng,
-          startY: payload.points[i].lat,
-          endX: payload.points[i + 1].lng,
-          endY: payload.points[i + 1].lat,
-          surface: payload.surface,
-        });
-        try { created.push(await res.json()); } catch { /* swallow parse */ }
-      }
-      return created;
+      // v3.30.0 — single POST with the full polyline as `points`.
+      // Server-side we still populate startX/Y + endX/Y with the
+      // first + last vertex so older clients that don't understand
+      // `points` still see a straight-line segment (backward compat).
+      // Previously we chunked into N separate 2-point hallways,
+      // which meant they showed as disconnected rows in the sidebar
+      // and each could be deleted independently — bad UX.
+      const first = payload.points[0];
+      const last = payload.points[payload.points.length - 1];
+      const res = await apiRequest("POST", "/api/hallways", {
+        startX: first.lng,
+        startY: first.lat,
+        endX: last.lng,
+        endY: last.lat,
+        points: payload.points.map((p) => ({ lat: p.lat, lng: p.lng })),
+        surface: payload.surface,
+      });
+      try { return await res.json(); } catch { return null; }
     },
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["/api/hallways"] });
       setWaypoints([]);
       setActiveTool("select");
-      const first = created[0] as { id?: string } | undefined;
-      if (first?.id) {
-        setSelection({ kind: "hallway", id: first.id });
+      const c = created as { id?: string } | null | undefined;
+      if (c?.id) {
+        setSelection({ kind: "hallway", id: c.id });
         setSidebarTab("pois");
       }
     },

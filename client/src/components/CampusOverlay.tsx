@@ -923,22 +923,31 @@ function insetPolygonMeters(pts: Array<[number, number]>, insetMeters: number): 
 function installHallways(map: MaplibreMap, hallways: Hallway[]) {
   const data = {
     type: "FeatureCollection" as const,
-    features: hallways.map((h) => ({
-      type: "Feature" as const,
-      geometry: {
-        type: "LineString" as const,
-        coordinates: [[h.startX, h.startY], [h.endX, h.endY]],
-      },
-      properties: {
-        id: h.id,
-        width: h.width ?? 2,
-        floor: h.floor ?? 0,
-        // Walls are stored as hallways with surface="wall". The renderer
-        // uses this to switch to a dark thick line instead of the
-        // walkable amber path.
-        isWall: h.surface === "wall",
-      },
-    })),
+    features: hallways.map((h) => {
+      // v3.30.0 — polyline support. If a `points` array is set,
+      // walk every vertex; otherwise fall back to the legacy
+      // startX/Y → endX/Y two-point segment. Vertices in the DB
+      // are stored as { lat, lng } but GeoJSON expects [lng, lat].
+      const coords: [number, number][] = (Array.isArray(h.points) && h.points.length >= 2)
+        ? h.points.map((p) => [p.lng, p.lat] as [number, number])
+        : [[h.startX, h.startY], [h.endX, h.endY]];
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: coords,
+        },
+        properties: {
+          id: h.id,
+          width: h.width ?? 2,
+          floor: h.floor ?? 0,
+          // Walls are stored as hallways with surface="wall". The renderer
+          // uses this to switch to a dark thick line instead of the
+          // walkable amber path.
+          isWall: h.surface === "wall",
+        },
+      };
+    }),
   };
   upsertGeoJSONSource(map, SOURCES.hallways, data);
   // MazeMap-style hallway: a soft cream "corridor" (light fill line
