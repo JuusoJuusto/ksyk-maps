@@ -79,12 +79,14 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       aria-label={`${feature.kind} info`}
       className={cn(
         "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
-        // v3.27.4 — mobile: full-width bottom sheet, safe-area
-        // padded, with a fixed max-height so it never clips at the
-        // top when a photo band is present. Desktop (sm+): floating
-        // right-side card, top-24 to clear the sticky header.
-        "left-2 right-2 sm:left-auto sm:right-3 sm:w-[min(92vw,26rem)] lg:w-[min(92vw,30rem)]",
-        "bottom-2 sm:bottom-auto sm:top-24",
+        // v3.30.1 — MazeMap-style bottom sheet on BOTH mobile AND
+        // desktop. Slides up from the bottom of the screen; wider on
+        // desktop but still anchored to the bottom edge so the map
+        // stays the primary focus above it. Left/right offsets keep
+        // it inset from the viewport edges on desktop; full-width
+        // on mobile.
+        "left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-[min(92vw,32rem)] lg:w-[min(92vw,36rem)]",
+        "bottom-2 sm:bottom-4",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",

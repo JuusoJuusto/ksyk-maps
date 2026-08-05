@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.30.0";
+export const APP_VERSION = "3.30.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.30.1",
+    date: "August 2026",
+    title: "MazeMap-style pin POIs, bottom-sheet info drawer on desktop, hallway → Path tool",
+    titleFi: "MazeMap-tyyliset kartioviestit, tietopaneeli näytön alalaidasta työpöydällä",
+    latest: true,
+    highlights: [
+      "POI markers are now MazeMap-style pins. The circle chip is translated up so it sits above the coordinate; a small ▼ tail below points to the exact spot. Chunkier baseline (9→24 px radius across zoom 15/19/21) with per-kind tail colour matching the chip's stroke.",
+      "Room/building info panel now slides up from the bottom of the screen on desktop too (was floating right-side). Anchored bottom-center, wider on desktop (32/36rem), matches the MazeMap card affordance. Mobile behaviour unchanged.",
+      "Builder: renamed the H (Hallway) tool to \"Path\" with coach text \"Click each corner — Enter to finish (N points, min 2)\" so the multi-vertex behaviour is discoverable. Cheat sheet + palette label + coach text all updated.",
+    ],
+    highlightsFi: [
+      "POI:t näkyvät nyt MazeMap-tyylisinä pinneinä (kartiona) — ylempänä koordinaattia, alla pieni häntä osoittamassa tarkkaa kohtaa",
+      "Huoneen/rakennuksen tietopaneeli avautuu myös työpöydällä alalaidasta",
+      "Rakentaja: \"Hallway\"-työkalu nimetty \"Path\" — vihjaa monikulmaisen tuen",
+    ],
+  },
   {
     version: "3.30.0",
     date: "August 2026",
     title: "Multi-vertex hallways + routing that actually connects doors↔hallways↔rooms",
     titleFi: "Monikulmaiset käytävät + reititys joka oikeasti yhdistää ovet, käytävät ja huoneet",
-    latest: true,
     highlights: [
       "Hallways: draw as many vertices as you want. Click 2, 3, 4, N points → Enter finalises a SINGLE polyline hallway (previously we secretly chunked it into N separate 2-point rows in the sidebar). New optional `points: LatLng[]` column on the Hallway schema is the source of truth; legacy startX/Y + endX/Y stay populated as the first/last vertex for backward compat with older readers.",
       "CampusOverlay: hallway renderer uses the full `points` polyline when present, so bent corridors actually bend on the map — no more \"my L-shaped hallway shows as one straight line through a wall.\"",

@@ -1899,9 +1899,14 @@ function installPOIs(
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      // Grow POI chips at high zoom so the campus map at zoom 20+ reads
-      // as a diorama rather than a squint-fest.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 19, 14, 21, 22],
+      // v3.30.1 — pin-style POI markers. Chip is translated UP by
+      // its own radius so the CIRCLE sits above the coordinate and
+      // the coordinate lines up with the pin's bottom edge — same
+      // affordance as a Google Maps / MazeMap teardrop pin. Slightly
+      // bigger baseline size too.
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 16, 21, 24],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "circle-translate-anchor": "viewport",
       "circle-color": [
         "match", ["get", "kind"],
         "elevator",      "#dbeafe",  // blue-100
@@ -1963,7 +1968,7 @@ function installPOIs(
     type: "symbol",
     layout: {
       "text-field": ["get", "icon"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 20, 21, 30],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 22, 21, 32],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1971,6 +1976,57 @@ function installPOIs(
     },
     paint: {
       "text-color": "#111827",
+      // v3.30.1 — translate the emoji UP to match the pin chip
+      // translation. Keeps the glyph centered inside the pin head.
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "text-translate-anchor": "viewport",
+    },
+    minzoom: 16,
+  });
+  // v3.30.1 — pin TAIL. A small ▼ glyph rendered at the actual
+  // coordinate points down to the ground so the whole thing reads
+  // as a MazeMap-style teardrop pin. Colored to match the chip's
+  // stroke so the pin looks unified.
+  addLayerIfMissing(map, {
+    id: `${LAYERS.poisChip}-tail`,
+    source: SOURCES.pois,
+    type: "symbol",
+    layout: {
+      "text-field": "▼",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 20, 21, 28],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-anchor": "bottom",
+    },
+    paint: {
+      "text-color": [
+        "match", ["get", "kind"],
+        "elevator",      "#2563eb",
+        "stairs",        "#b45309",
+        "bathroom",      "#be185d",
+        "restroom",      "#be185d",
+        "restroom_m",    "#2563eb",
+        "restroom_f",    "#be185d",
+        "restroom_a",    "#7c3aed",
+        "entrance",      "#15803d",
+        "exit",          "#b91c1c",
+        "door",          "#4b5563",
+        "info",          "#0ea5e9",
+        "reception",     "#2563eb",
+        "cafe",          "#a16207",
+        "vending",       "#7c3aed",
+        "water",         "#0891b2",
+        "first_aid",     "#dc2626",
+        "defibrillator", "#e11d48",
+        "printer",       "#4b5563",
+        "meeting_point", "#059669",
+        "parking",       "#0369a1",
+        "bike",          "#16a34a",
+                         "#111827",
+      ],
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1,
     },
     minzoom: 16,
   });

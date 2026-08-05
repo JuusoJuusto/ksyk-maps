@@ -2665,7 +2665,7 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
         { keys: ["B"], label: "Building polygon" },
         { keys: ["U"], label: "Rectangle building" },
         { keys: ["R"], label: "Room polygon" },
-        { keys: ["H"], label: "Hallway" },
+        { keys: ["H"], label: "Path (multi-vertex hallway)" },
         { keys: ["W"], label: "Wall" },
         { keys: ["M"], label: "Measure" },
         { keys: ["S"], label: "Stairs POI" },
@@ -2878,7 +2878,7 @@ function coachMetaFor(
     case "building":       return { Icon: Building2,         name: "Building",  text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-blue-600" };
     case "rectangle":      return { Icon: Square,            name: "Rectangle", text: `Click 2 diagonal corners (${n}/2)`,                badgeBg: "bg-blue-600" };
     case "room":           return { Icon: DoorOpen,          name: "Room",      text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-emerald-600" };
-    case "hallway":        return { Icon: RouteIcon,         name: "Hallway",   text: `Click waypoints — Enter to finish (${n})`,         badgeBg: "bg-amber-600" };
+    case "hallway":        return { Icon: RouteIcon,         name: "Path",      text: `Click each corner — Enter to finish (${n} points, min 2)`, badgeBg: "bg-amber-600" };
     case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,    badgeBg: "bg-gray-800" };
     case "measure":        return {
       Icon: Ruler, name: "Measure",
@@ -2949,7 +2949,7 @@ const SHAPE_TOOLS: ToolDef[] = [
   { id: "building",  Icon: Building2,         label: "Building",  hotkey: "B" },
   { id: "rectangle", Icon: Square,            label: "Rectangle", hotkey: "U" },
   { id: "room",      Icon: DoorOpen,          label: "Room",      hotkey: "R" },
-  { id: "hallway",   Icon: RouteIcon,         label: "Hallway",   hotkey: "H" },
+  { id: "hallway",   Icon: RouteIcon,         label: "Path",      hotkey: "H" },
   { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
   { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },
 ];

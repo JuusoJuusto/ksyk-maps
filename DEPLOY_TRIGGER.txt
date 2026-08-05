@@ -1,11 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.30.0 — multi-vertex hallway support end-to-end
-(schema + type + create + CampusOverlay renderer + routing graph
-builder). Routing: doors auto-wire to nearest room + hallway
-waypoint on the same floor when their `connects` field is empty, so
-Dijkstra can actually find paths without admins manually wiring
-every door.
+Bump reason: v3.30.1 — MazeMap-style pin POIs (chip translated up +
+▼ tail glyph pointing to coordinate), info drawer slides up from
+bottom on desktop too, Hallway tool renamed to Path with multi-
+vertex coach text.
 
-Timestamp: 1786194000
-Build: FORCE_REBUILD_v3.30.0_MULTIVERTEX_ROUTING
+Timestamp: 1786197600
+Build: FORCE_REBUILD_v3.30.1_PINS_BOTTOM_SHEET
