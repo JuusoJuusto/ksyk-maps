@@ -44,7 +44,7 @@ export interface PoiCategory {
 const POI_CATEGORIES: PoiCategory[] = [
   { id: "transit",    label: "Transit",    tint: "bg-blue-500",    kinds: ["stairs", "elevator", "door", "entrance", "exit"] },
   { id: "info",       label: "Info",       tint: "bg-sky-500",     kinds: ["info", "reception", "meeting_point"] },
-  { id: "restrooms",  label: "Restrooms",  tint: "bg-pink-500",    kinds: ["restroom_m", "restroom_f", "restroom_a", "bathroom"] },
+  { id: "restrooms",  label: "Restrooms",  tint: "bg-pink-500",    kinds: ["restroom", "restroom_m", "restroom_f", "restroom_a", "bathroom"] },
   { id: "food",       label: "Food",       tint: "bg-amber-500",   kinds: ["cafe", "vending", "water"] },
   { id: "safety",     label: "Safety",     tint: "bg-red-500",     kinds: ["first_aid", "defibrillator"] },
   { id: "amenities",  label: "Amenities",  tint: "bg-emerald-500", kinds: ["parking", "bike", "printer"] },

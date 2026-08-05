@@ -1,10 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-05
 
-Bump reason: v3.28.1 — doors, stairs, and elevators are now clickable
-+ editable in the builder (PointPoiProps form: floor, isEntrance/
-isExit toggles for doors, delete). AnnouncementBanner dialog cleaner
-— icon tile removed, priority chip + time above the title, bigger
-title, no divider.
+Bump reason: v3.28.2 — generic POIs editable + resizable in builder,
+unisex restroom kind added, MazeMap-style emoji glyphs render inside
+every POI chip.
 
-Timestamp: 1786183200
-Build: FORCE_REBUILD_v3.28.1_POI_EDIT_CLEANER_DIALOG
+Timestamp: 1786186800
+Build: FORCE_REBUILD_v3.28.2_POI_ICONS_RESIZE

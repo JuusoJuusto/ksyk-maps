@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.28.1";
+export const APP_VERSION = "3.28.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.28.2",
+    date: "August 2026",
+    title: "Generic POIs editable + resizable, unisex restroom, MazeMap-style emoji icons",
+    titleFi: "POI:t muokattavissa + koko säädettävissä, unisex-vessa, MazeMap-tyyliset kuvakkeet",
+    latest: true,
+    highlights: [
+      "Builder: generic POIs (info, cafe, water, printer, first-aid, etc.) are now clickable + editable via the same PropertyPanel path as doors/stairs/elevators. Builder fetches /api/pois; PropertyPanel resolver picks it up.",
+      "New POI kind: `restroom` (unisex/generic) — placed via the new WC tool in the POI palette. Distinct pink chip; separate from restroom_m (blue ♂), restroom_f (pink ♀), restroom_a (purple ♿).",
+      "MazeMap-style POI icons: emoji/symbol glyphs render inside each POI chip on the builder — ☕ cafe, 🚻 restroom, ♂/♀/♿ per-gender restrooms, P parking, 🚲 bike, 🖨 printer, ⚡ defibrillator, ✚ first-aid, ℹ info, ≈ water. Much easier to identify at a glance than colored dots.",
+      "POI resize: PointPoiProps gets an Icon size slider (0-30 px). Value 0 uses the default zoom-scaled radius; any positive value pins the circle at that size. Stored in metadata.style.iconSize so the same override works when the map re-renders on data changes.",
+      "POI chips also bumped in default size (5→13 px radius across zoom 15/18/20 vs the older 3.5→10) with chunkier white halos so they read more clearly.",
+    ],
+    highlightsFi: [
+      "POI:t muokattavissa: kahvilat, vesipisteet, kirjelaatikot, jne.",
+      "Uusi POI-tyyppi: unisex-vessa (WC-työkalu palettissa)",
+      "MazeMap-tyyliset kuvakkeet POI-pisteissä (☕ 🚻 ♂ ♀ ♿ P 🚲 🖨 …)",
+      "POI-pisteiden koko säädettävissä liukusäätimellä",
+    ],
+  },
   {
     version: "3.28.1",
     date: "August 2026",
     title: "Doors + stairs + elevators editable in builder, way cleaner announcement dialog",
     titleFi: "Ovet, portaat ja hissit muokattavissa rakentajassa. Siistimpi ilmoitusikkuna.",
-    latest: true,
     highlights: [
       "Builder: doors, stairs, elevators are now CLICKABLE and EDITABLE. Click any POI chip on the map → the property panel opens with a form: Floor, isEntrance/isExit toggles (doors only), position readout, Save, Delete. Same for stairs and elevators (with a coming-soon note for generic POIs).",
       "PropertyPanel: the new PointPoiProps form appears when a point-POI is selected. The kind pill in the header, the tab strip, and titleFor all know about the new door/stair/elevator/poi kinds.",

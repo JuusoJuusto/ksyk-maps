@@ -45,6 +45,7 @@ const LYR = {
   elevators: "builder-elevators",
   elevatorsLetter: "builder-elevators-letter",
   pois: "builder-pois",
+  poisEmoji: "builder-pois-emoji",
 } as const;
 
 interface Props {
@@ -108,6 +109,12 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
         if (typeof lat !== "number" || typeof lng !== "number") continue;
         const props: Record<string, unknown> = { id: p.id, floor: f };
         if (kindProp) props.kind = kindProp(p);
+        // v3.28.2 — per-POI icon size override, stored in
+        // metadata.style.iconSize. Used by the circle paint's
+        // ["case",["has","iconSize"], ["get","iconSize"], …] branch.
+        const md = (p as unknown as { metadata?: { style?: { iconSize?: number } } }).metadata;
+        const iconSize = md?.style?.iconSize;
+        if (typeof iconSize === "number" && iconSize > 0) props.iconSize = iconSize;
         features.push({
           type: "Feature",
           geometry: { type: "Point", coordinates: [lng, lat] },
@@ -253,8 +260,11 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
       }
 
       // ─ GENERIC POIs ─
-      // Colored by kind — reception/info blue, cafe amber, restroom
-      // pink, first-aid red, parking cyan, everything else grey.
+      // Colored by kind + MazeMap-style emoji icon per kind so users
+      // recognise the amenity at a glance without having to guess
+      // what the coloured dot means. Circle-radius honours a
+      // metadata.style.iconSize when set (see PointPoiProps size
+      // slider); default follows a zoom-interpolated ramp.
       const poisSrc = map.getSource(SRC.pois) as maplibregl.GeoJSONSource | undefined;
       if (poisSrc) {
         poisSrc.setData(poisData as never);
@@ -264,9 +274,14 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
           id: LYR.pois,
           source: SRC.pois,
           type: "circle",
-          minzoom: 15,
+          minzoom: 14,
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 3.5, 18, 7, 20, 10],
+            "circle-radius": [
+              "case",
+              ["has", "iconSize"],
+              ["get", "iconSize"],
+              ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 9, 20, 13],
+            ],
             "circle-color": [
               "match", ["get", "kind"],
               "info", "#0ea5e9",
@@ -276,9 +291,10 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
               "water", "#06b6d4",
               "first_aid", "#dc2626",
               "defibrillator", "#dc2626",
-              "restroom_m", "#ec4899",
+              "restroom",   "#ec4899",  // v3.28.2 — unisex/generic
+              "restroom_m", "#3b82f6",
               "restroom_f", "#ec4899",
-              "restroom_a", "#ec4899",
+              "restroom_a", "#8b5cf6",
               "parking", "#6366f1",
               "bike", "#10b981",
               "printer", "#a855f7",
@@ -286,8 +302,44 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
               /* other */ "#6b7280",
             ],
             "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 1.5,
-            "circle-opacity": 0.95,
+            "circle-stroke-width": 2,
+            "circle-opacity": 0.98,
+          },
+        });
+        map.addLayer({
+          id: LYR.poisEmoji,
+          source: SRC.pois,
+          type: "symbol",
+          minzoom: 15,
+          layout: {
+            "text-field": [
+              "match", ["get", "kind"],
+              "info", "ℹ",
+              "reception", "◉",
+              "cafe", "☕",
+              "vending", "▨",
+              "water", "≈",
+              "first_aid", "✚",
+              "defibrillator", "⚡",
+              "restroom", "🚻",
+              "restroom_m", "♂",
+              "restroom_f", "♀",
+              "restroom_a", "♿",
+              "parking", "P",
+              "bike", "🚲",
+              "printer", "🖨",
+              "meeting", "◇",
+              /* other */ "●",
+            ],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 12, 20, 16],
+            "text-font": ["Noto Sans Regular"],
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+          paint: {
+            "text-color": "#ffffff",
+            "text-halo-color": "#00000055",
+            "text-halo-width": 0.5,
           },
         });
       }

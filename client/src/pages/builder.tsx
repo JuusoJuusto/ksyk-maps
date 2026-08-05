@@ -81,7 +81,7 @@ type BuilderTool =
   // Generic POI tools — placed via a single click, backed by
   // /api/pois with a `kind` string. New in v3.14.
   | "poi-info" | "poi-reception" | "poi-parking" | "poi-bike"
-  | "poi-restroom-m" | "poi-restroom-f" | "poi-restroom-a"
+  | "poi-restroom" | "poi-restroom-m" | "poi-restroom-f" | "poi-restroom-a"
   // v3.15: cafeteria, vending, drinking fountain, first aid,
   // defibrillator (AED), printer, and meeting point — the "everything
   // else" set MazeMap covers by default.
@@ -352,6 +352,17 @@ function BuilderWorkspace() {
   const doorsQ = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors") });
   const stairsQ = useQuery<Stair[]>({ queryKey: ["/api/stairs"], queryFn: () => fetchList<Stair>("/api/stairs") });
   const elevatorsQ = useQuery<Elevator[]>({ queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators") });
+  // v3.28.2 — generic POI query so PropertyPanel can resolve a
+  // `poi` selection into an editable entity + so BuilderPois can
+  // share the cached data with LeftSidebar (React Query dedupes).
+  const poisQ = useQuery<Record<string, unknown>[]>({
+    queryKey: ["/api/pois"],
+    queryFn: async () => {
+      const r = await fetch("/api/pois");
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
 
   const validation = useMemo(() => validateMap({
     buildings,
@@ -995,6 +1006,7 @@ function BuilderWorkspace() {
         "poi-reception":      "reception",
         "poi-parking":        "parking",
         "poi-bike":           "bike",
+        "poi-restroom":       "restroom",   // v3.28.2 unisex/generic
         "poi-restroom-m":     "restroom_m",
         "poi-restroom-f":     "restroom_f",
         "poi-restroom-a":     "restroom_a",
@@ -2406,9 +2418,10 @@ function BuilderWorkspace() {
             } else if (selection.kind === "elevator") {
               const e = (elevatorsQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
               if (e) entity = { kind: "elevator", data: e as never };
+            } else if (selection.kind === "poi") {
+              const p = (poisQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
+              if (p) entity = { kind: "poi", data: p as never };
             }
-            // "poi" (generic POI) not wired yet — needs a query in
-            // this file for /api/pois; punt to v3.28.2.
             if (!entity) return null;
             return (
               <PropertyPanel
@@ -2875,7 +2888,8 @@ function coachMetaFor(
     case "poi-reception":     return { Icon: Phone,         name: "Reception",  text: "Click to place reception",           badgeBg: "bg-blue-600" };
     case "poi-parking":       return { Icon: ParkingCircle, name: "Parking",    text: "Click to place parking",             badgeBg: "bg-sky-700" };
     case "poi-bike":          return { Icon: Bike,          name: "Bike",       text: "Click to place bike parking",        badgeBg: "bg-green-600" };
-    case "poi-restroom-m":    return { Icon: Accessibility, name: "Restroom M", text: "Click to place restroom (M)",        badgeBg: "bg-pink-600" };
+    case "poi-restroom":      return { Icon: Accessibility, name: "Restroom",   text: "Click to place unisex restroom",   badgeBg: "bg-pink-600" };
+    case "poi-restroom-m":    return { Icon: Accessibility, name: "Restroom M", text: "Click to place restroom (M)",        badgeBg: "bg-blue-600" };
     case "poi-restroom-f":    return { Icon: Accessibility, name: "Restroom F", text: "Click to place restroom (F)",        badgeBg: "bg-pink-600" };
     case "poi-restroom-a":    return { Icon: Accessibility, name: "Accessible", text: "Click to place accessible restroom", badgeBg: "bg-purple-600" };
     case "poi-cafe":          return { Icon: Coffee,        name: "Café",       text: "Click to place café",                badgeBg: "bg-amber-700" };
@@ -2972,6 +2986,7 @@ const POI_GROUPS: Array<{ label: string; tint: string; tools: ToolDef[] }> = [
     label: "Restrooms",
     tint: "bg-pink-50 text-pink-700 dark:bg-pink-500/10 dark:text-pink-300",
     tools: [
+      { id: "poi-restroom",   Icon: Accessibility, label: "WC", hotkey: "" },
       { id: "poi-restroom-m", Icon: Accessibility, label: "M",  hotkey: "" },
       { id: "poi-restroom-f", Icon: Accessibility, label: "F",  hotkey: "" },
       { id: "poi-restroom-a", Icon: Accessibility, label: "♿", hotkey: "" },

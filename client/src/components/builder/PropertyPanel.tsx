@@ -294,6 +294,14 @@ function PointPoiProps({
   const [isEntrance, setIsEntrance] = useState<boolean>(!!poi.isEntrance);
   const [isExit, setIsExit] = useState<boolean>(!!poi.isExit);
   const [poiKind, setPoiKind] = useState<string>(String(poi.kind ?? ""));
+  // v3.28.2 — per-POI icon size override (px radius). Stored in
+  // metadata.style.iconSize so BuilderPois + CampusOverlay honour it
+  // via ["case",["has","iconSize"], ["get","iconSize"], …]. 0 = "use
+  // default zoom-interpolated size."
+  const initialMeta = (poi.metadata ?? {}) as Record<string, unknown>;
+  const initialStyle = (initialMeta.style ?? {}) as Record<string, unknown>;
+  const initialIconSize = typeof initialStyle.iconSize === "number" ? initialStyle.iconSize : 0;
+  const [iconSize, setIconSize] = useState<number>(initialIconSize);
 
   const patch = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -306,7 +314,8 @@ function PointPoiProps({
   const dirty =
     floor !== ((poi.floor as number | null) ?? 1) ||
     (kind === "door" && (isEntrance !== !!poi.isEntrance || isExit !== !!poi.isExit)) ||
-    (kind === "poi" && poiKind !== String(poi.kind ?? ""));
+    (kind === "poi" && poiKind !== String(poi.kind ?? "")) ||
+    iconSize !== initialIconSize;
 
   const label =
     kind === "door" ? "Door" :
@@ -356,9 +365,27 @@ function PointPoiProps({
           label="POI kind"
           value={poiKind}
           onChange={setPoiKind}
-          placeholder="e.g. info, cafe, restroom_m"
+          placeholder="e.g. restroom, cafe, info"
         />
       )}
+      <div>
+        <label className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          <span>Icon size</span>
+          <span className="tabular-nums text-foreground normal-case">
+            {iconSize > 0 ? `${iconSize}px` : "auto"}
+          </span>
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={30}
+          step={1}
+          value={iconSize}
+          onChange={(e) => setIconSize(Number(e.target.value))}
+          className="w-full accent-blue-600"
+        />
+        <p className="text-[10px] text-muted-foreground">Drag to 0 to use the default zoom-scaled size.</p>
+      </div>
       <div className="pt-2 border-t border-border">
         <p className="text-[11px] text-muted-foreground mb-2">
           Position: {typeof poi.mapPositionY === "number" && typeof poi.mapPositionX === "number"
@@ -373,6 +400,13 @@ function PointPoiProps({
           const body: Record<string, unknown> = { floor };
           if (kind === "door") { body.isEntrance = isEntrance; body.isExit = isExit; }
           if (kind === "poi") { body.kind = poiKind || null; }
+          // v3.28.2 — merge iconSize into metadata.style so we don't
+          // clobber unrelated metadata keys.
+          const nextStyle: Record<string, unknown> = { ...initialStyle };
+          if (iconSize > 0) nextStyle.iconSize = iconSize;
+          else delete nextStyle.iconSize;
+          const nextMeta: Record<string, unknown> = { ...initialMeta, style: nextStyle };
+          body.metadata = nextMeta;
           patch.mutate(body);
         }}
       />
