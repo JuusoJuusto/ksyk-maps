@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.31.3";
+export const APP_VERSION = "3.32.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.32.0",
+    date: "August 2026",
+    title: "Corridor tool (traced polygon hallway), 3D floor-switch nudge, hover-flicker fix",
+    titleFi: "Corridor-työkalu (piirrä käytävä huoneena), 3D floor-vaihdon animaatio",
+    latest: true,
+    highlights: [
+      "New Corridor tool (hotkey C) in the builder — trace corridor corners like a Room, Enter to close. Saves as a Room with type=\"hallway\" and a slate-grey color; renders as a filled polygon on both the builder + public map (not just a line). Use it for any walkable area you want to look like a real corridor, not a stroke.",
+      "3D mode: floor changes now trigger a small camera pitch-up nudge (+8° for 240ms, back for 260ms) so the level switch reads as a visible transition instead of an instant swap. Only fires when 3D is on; 2D top-down stays instant.",
+      "Fix — hover flicker on selected buildings in the builder. Added fill-opacity-transition (120ms) + line-width-transition on the buildings paint so the selected↔unselected paint change eases smoothly instead of snapping. Every feature-collection regeneration used to insta-repaint, which was reading as a flicker on hover.",
+      "PoiList: fixed row click on point POIs — now opens PropertyPanel (was just firing fly-to and leaving panel empty).",
+      "PoiList: new \"Clear all\" button in Nav-graph header wipes localStorage nav nodes with confirmation. Fixes \"can't delete nav nodes\" — they were in browser storage, not DB.",
+    ],
+    highlightsFi: [
+      "Uusi Corridor-työkalu (pikanäppäin C) — piirrä käytävä huoneen tapaan, saa täytön ja harmaan värin",
+      "3D-tila: kerroksen vaihto animoi kameran hieman, jotta muutos näkyy",
+      "Korjaus: rakennusten hover-välkkyminen kun ne on valittuna",
+    ],
+  },
   {
     version: "3.31.3",
     date: "August 2026",
     title: "Ortho v2 (alternating axes), clear-nav-nodes button, POI tab rows select+edit",
     titleFi: "Ortho v2 vuorotellen, navigointinodejen tyhjennys, POI-välilehden rivit avaavat editorin",
-    latest: true,
+    latest: false,
     highlights: [
       "Ortho tool redesigned: consecutive edges now ALTERNATE horizontal ↔ vertical based on the previous edge's orientation (AutoCAD style). Draw a rectangle by clicking, dragging right, click, dragging down, click, dragging left, click, close — every corner is automatically 90°. First segment still picks by cursor's dominant axis.",
       "LeftSidebar POI tab: new \"Clear all\" button in the Nav-graph header explains that nav nodes are per-browser localStorage (not DB) and wipes them in one click. Fixes \"I can't delete nav nodes\" — they weren't stored on the server.",
@@ -36,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     title: "Ortho tool (90° corner snap) + POI paint uses Shape-B resolver",
     titleFi: "Ortho-työkalu (90° kulmalukko) + POI-tyylit tulevat luokkajärjestelmästä",
     latest: false,
-    latest: true,
     highlights: [
       "New Ortho toggle in the top toolbar (rectangle icon, between Snap and Zoom). When on, every waypoint click while drawing a building / room / rectangle / path / wall snaps to horizontal OR vertical from the previous vertex — locks whichever axis you moved less on. Ghost preview line shows the axis-locked pending segment BEFORE you commit. Perfect right-angle corners without eyeballing.",
       "CampusOverlay POI features now embed their resolved category style (chipColor / strokeColor / icon) as feature properties, fed by @ksyk/shared/poi/categories → resolveCategoryStyle(). Legacy flat kind strings resolve through LEGACY_KIND_MAP to their new category paths. Foundation for admins to register new POI kinds without touching paint code.",

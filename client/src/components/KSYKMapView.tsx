@@ -84,6 +84,32 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       window.history.replaceState(null, "", next);
     } catch { /* history API missing — non-fatal */ }
   }, [selectedFloor]);
+
+  // v3.32.0 — camera nudge on floor change when 3D is on. Briefly
+  // eases pitch up then back so users see the "we switched floors"
+  // motion cue in 3D. In 2D top-down, no nudge — the change is
+  // instantly visible.
+  const previousFloorRef = useRef<number>(selectedFloor);
+  useEffect(() => {
+    if (previousFloorRef.current === selectedFloor) return;
+    previousFloorRef.current = selectedFloor;
+    if (!is3D || !mapInstance) return;
+    const originalPitch = mapInstance.getPitch();
+    mapInstance.easeTo({
+      pitch: Math.min(60, originalPitch + 8),
+      duration: 240,
+      essential: true,
+    });
+    window.setTimeout(() => {
+      try {
+        mapInstance.easeTo({
+          pitch: originalPitch,
+          duration: 260,
+          essential: true,
+        });
+      } catch { /* map might've unmounted */ }
+    }, 280);
+  }, [selectedFloor, is3D, mapInstance]);
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);

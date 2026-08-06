@@ -76,7 +76,7 @@ import SvgImportDialog, { type ImportedPolygon } from "@/components/builder/SvgI
 
 type BuilderTool =
   | "select" | "pan"
-  | "building" | "rectangle" | "room" | "hallway" | "wall" | "measure"
+  | "building" | "rectangle" | "room" | "corridor" | "hallway" | "wall" | "measure"
   | "poi-stairs" | "poi-elevator" | "poi-door" | "poi-entrance"
   // Generic POI tools — placed via a single click, backed by
   // /api/pois with a `kind` string. New in v3.14.
@@ -445,10 +445,11 @@ function BuilderWorkspace() {
         lineCoords = coords;
       } else if (coords.length >= 3) {
         polyCoords = [...coords, coords[0]];
-      } else if ((activeTool === "building" || activeTool === "room") && coords.length === 2) {
-        // v3.26.4 — while placing a building/room, show a line between
-        // corners 1 and 2 so the user sees their progress. Once corner
-        // 3 lands, the branch above kicks in and closes the polygon.
+      } else if ((activeTool === "building" || activeTool === "room" || activeTool === "corridor") && coords.length === 2) {
+        // v3.26.4 — while placing a building/room/corridor, show a
+        // line between corners 1 and 2 so the user sees their
+        // progress. Once corner 3 lands, the branch above kicks in
+        // and closes the polygon.
         lineCoords = coords;
       }
 
@@ -620,6 +621,12 @@ function BuilderWorkspace() {
             0.35,
             0.2,
           ],
+          // v3.32.0 — smooth selection paint transitions so the
+          // fill/outline don't visually snap when the selected flag
+          // flips (fixes reported "hover glitch" flicker on selected
+          // buildings — every feature-collection regeneration was
+          // instantly re-painting).
+          "fill-opacity-transition": { duration: 120, delay: 0 },
         },
       });
       map.addLayer({
@@ -634,6 +641,7 @@ function BuilderWorkspace() {
             4,
             2,
           ],
+          "line-width-transition": { duration: 120, delay: 0 },
         },
       });
       map.addLayer({
@@ -963,6 +971,7 @@ function BuilderWorkspace() {
       }
       if (
         activeTool === "building" || activeTool === "room" ||
+        activeTool === "corridor" ||
         activeTool === "hallway" || activeTool === "wall" ||
         activeTool === "rectangle" || activeTool === "measure"
       ) {
@@ -1199,6 +1208,7 @@ function BuilderWorkspace() {
       if (e.key === "v" || e.key === "V") setActiveTool("select");
       else if (e.key === "b" || e.key === "B") { setActiveTool("building"); setWaypoints([]); }
       else if (e.key === "r" || e.key === "R") { setActiveTool("room"); setWaypoints([]); }
+      else if (e.key === "c" || e.key === "C") { setActiveTool("corridor"); setWaypoints([]); }
       else if (e.key === "h" || e.key === "H") { setActiveTool("hallway"); setWaypoints([]); }
       else if (e.key === "w" || e.key === "W") { setActiveTool("wall"); setWaypoints([]); }
       else if (e.key === "m" || e.key === "M") { setActiveTool("measure"); setWaypoints([]); }
@@ -1542,12 +1552,9 @@ function BuilderWorkspace() {
       });
       return;
     }
-    if (activeTool === "room" && waypoints.length >= 3) {
+    if ((activeTool === "room" || activeTool === "corridor") && waypoints.length >= 3) {
       const pts = waypoints.map((w) => ({ lng: w.lng, lat: w.lat }));
-      // Rooms MUST belong to a building. Find the building whose
-      // polygon contains the room centroid; if none, fall back to
-      // the nearest building. If there are no buildings, warn +
-      // bail rather than silently creating an orphan.
+      // Rooms MUST belong to a building.
       const centroid = {
         lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
         lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
@@ -1562,19 +1569,27 @@ function BuilderWorkspace() {
       if (!nearest) {
         toast({
           title: "Draw a building first",
-          description: "Rooms live inside buildings — no building found near this room.",
+          description: "Rooms + corridors live inside buildings — no building found near this shape.",
           variant: "destructive",
         });
         return;
       }
       const roomCount = (roomsQ.data ?? []).filter((r) => r.buildingId === nearest.id).length;
-      // No hyphen — MazeMap-style "A1", "A2", "B12" naming.
-      const roomNumber = `${nearest.name}${roomCount + 1}`;
+      // v3.32.0 — Corridor tool creates a Room polygon with
+      // type="hallway" so it renders as a filled area (like rooms
+      // do) but categorized as a walkable corridor. Traces exactly
+      // like the Room tool: click each corner, close by clicking
+      // back near the first vertex or pressing Enter.
+      const isCorridor = activeTool === "corridor";
+      const roomNumber = isCorridor
+        ? `${nearest.name}-C${(roomsQ.data ?? []).filter((r) => r.type === "hallway" && r.buildingId === nearest.id).length + 1}`
+        : `${nearest.name}${roomCount + 1}`;
       createRoom.mutate({
         roomNumber,
         buildingId: nearest.id,
         floor: cameraState.activeFloor ?? 1,
         points: pts,
+        ...(isCorridor ? { type: "hallway", colorCode: "#94a3b8" } : {}),
       });
       return;
     }
@@ -1598,6 +1613,7 @@ function BuilderWorkspace() {
 
     const isDrawTool =
       activeTool === "building" || activeTool === "room" ||
+      activeTool === "corridor" ||
       activeTool === "hallway"  || activeTool === "wall" ||
       activeTool === "rectangle" || activeTool === "measure";
 
@@ -2956,6 +2972,7 @@ function coachMetaFor(
     case "building":       return { Icon: Building2,         name: "Building",  text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-blue-600" };
     case "rectangle":      return { Icon: Square,            name: "Rectangle", text: `Click 2 diagonal corners (${n}/2)`,                badgeBg: "bg-blue-600" };
     case "room":           return { Icon: DoorOpen,          name: "Room",      text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-emerald-600" };
+    case "corridor":       return { Icon: RouteIcon,         name: "Corridor",  text: `Trace corridor corners — Enter to close (${n}/3+ needed)`, badgeBg: "bg-slate-500" };
     case "hallway":        return { Icon: RouteIcon,         name: "Path",      text: `Click each corner — Enter to finish (${n} points, min 2)`, badgeBg: "bg-amber-600" };
     case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,    badgeBg: "bg-gray-800" };
     case "measure":        return {
@@ -3027,6 +3044,7 @@ const SHAPE_TOOLS: ToolDef[] = [
   { id: "building",  Icon: Building2,         label: "Building",  hotkey: "B" },
   { id: "rectangle", Icon: Square,            label: "Rectangle", hotkey: "U" },
   { id: "room",      Icon: DoorOpen,          label: "Room",      hotkey: "R" },
+  { id: "corridor",  Icon: RouteIcon,         label: "Corridor",  hotkey: "C" },
   { id: "hallway",   Icon: RouteIcon,         label: "Path",      hotkey: "H" },
   { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
   { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },

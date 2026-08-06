@@ -1,9 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-06
 
-Bump reason: v3.31.3 — Ortho v2 (alternating axes for CAD-style
-rectangles). "Clear all nav nodes" button in LeftSidebar Nav-graph
-section. POI tab rows now open PropertyPanel instead of just flying
-the camera.
+Bump reason: v3.32.0 — new Corridor tool (traced polygon hallway),
+3D mode floor-switch camera nudge, defensive fix for hover flicker
+on selected buildings via paint transitions.
 
-Timestamp: 1786280400
-Build: FORCE_REBUILD_v3.31.3_ORTHO_V2_NAV_CLEAR
+Timestamp: 1786284000
+Build: FORCE_REBUILD_v3.32.0_CORRIDOR_3D_HOVERFIX
