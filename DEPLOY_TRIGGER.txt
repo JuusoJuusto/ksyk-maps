@@ -1,7 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-07
 
-Bump reason: v3.32.1 — Ortho v3 (perpendicular-to-previous-edge,
-any angle), Layers tab deleted, POIs tab renamed to Infra.
+Bump reason: v3.33.0 — Structure tab (renamed from Infra), corridors as
+first-class elements in Structure tab (not Rooms), ortho+snap conflict
+fixed, corridor ghost preview added (slate-gray), LayersToggle removed
+from public map.
 
-Timestamp: 1786370400
-Build: FORCE_REBUILD_v3.32.1_ORTHO_V3_INFRA_TAB
+Timestamp: 1786373000
+Build: FORCE_REBUILD_v3.33.0_STRUCTURE_TAB_CORRIDOR_FIX
