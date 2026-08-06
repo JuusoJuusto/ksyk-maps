@@ -972,20 +972,31 @@ function BuilderWorkspace() {
         let p = snap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // v3.31.2 — ortho constraint: if enabled and there's a
-        // previous waypoint, snap the click's lat OR lng to match
-        // the previous vertex (whichever axis moved less), producing
-        // a perfectly horizontal or vertical edge.
+        // v3.31.3 — ortho constraint v2: consecutive edges alternate
+        // horizontal ↔ vertical based on the PREVIOUS EDGE's
+        // orientation. This is how AutoCAD's ORTHO mode works:
+        // rectangles fall out naturally — click, right, click, down,
+        // click, left, click, close. First segment picks axis from
+        // cursor's dominant direction since there's no prior edge.
         if (orthoEnabled && waypoints.length > 0) {
           const prev = waypoints[waypoints.length - 1];
-          const dLng = Math.abs(p.lng - prev.lng);
-          const dLat = Math.abs(p.lat - prev.lat);
-          if (dLng > dLat) {
-            // Movement is more horizontal → lock lat to previous.
-            p = new maplibregl.LngLat(p.lng, prev.lat);
+          if (waypoints.length >= 2) {
+            const beforePrev = waypoints[waypoints.length - 2];
+            const prevWasHorizontal =
+              Math.abs(prev.lng - beforePrev.lng) > Math.abs(prev.lat - beforePrev.lat);
+            if (prevWasHorizontal) {
+              // Previous edge horizontal → make this one vertical.
+              p = new maplibregl.LngLat(prev.lng, p.lat);
+            } else {
+              // Previous edge vertical → make this one horizontal.
+              p = new maplibregl.LngLat(p.lng, prev.lat);
+            }
           } else {
-            // Movement is more vertical → lock lng to previous.
-            p = new maplibregl.LngLat(prev.lng, p.lat);
+            // First segment — no previous edge, use dominant axis.
+            const dLng = Math.abs(p.lng - prev.lng);
+            const dLat = Math.abs(p.lat - prev.lat);
+            if (dLng > dLat) p = new maplibregl.LngLat(p.lng, prev.lat);
+            else            p = new maplibregl.LngLat(prev.lng, p.lat);
           }
         }
         setWaypoints((prev) => [...prev, p]);
@@ -1733,13 +1744,21 @@ function BuilderWorkspace() {
     let endLat = snap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // v3.31.2 — mirror the ortho constraint in the preview so users
-    // see the axis-locked pending segment BEFORE they commit.
+    // v3.31.3 — mirror the alternate-axis ortho behaviour so the
+    // preview line matches exactly what the next click will place.
     if (orthoEnabled) {
-      const dLng = Math.abs(endLng - last.lng);
-      const dLat = Math.abs(endLat - last.lat);
-      if (dLng > dLat) endLat = last.lat;
-      else endLng = last.lng;
+      if (waypoints.length >= 2) {
+        const beforeLast = waypoints[waypoints.length - 2];
+        const prevHorizontal =
+          Math.abs(last.lng - beforeLast.lng) > Math.abs(last.lat - beforeLast.lat);
+        if (prevHorizontal) endLng = last.lng;  // next = vertical
+        else                endLat = last.lat;  // next = horizontal
+      } else {
+        const dLng = Math.abs(endLng - last.lng);
+        const dLat = Math.abs(endLat - last.lat);
+        if (dLng > dLat) endLat = last.lat;
+        else             endLng = last.lng;
+      }
     }
     const data = {
       type: "FeatureCollection" as const,

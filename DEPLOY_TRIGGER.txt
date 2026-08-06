@@ -1,9 +1,9 @@
-FORCE VERCEL REBUILD - 2026-08-05
+FORCE VERCEL REBUILD - 2026-08-06
 
-Bump reason: v3.31.2 — new Ortho tool in the builder top toolbar
-(right-angle waypoint snap). CampusOverlay POI features now use the
-Shape B resolveCategoryStyle() resolver, so category-tree styles
-actually flow through to paint.
+Bump reason: v3.31.3 — Ortho v2 (alternating axes for CAD-style
+rectangles). "Clear all nav nodes" button in LeftSidebar Nav-graph
+section. POI tab rows now open PropertyPanel instead of just flying
+the camera.
 
-Timestamp: 1786208400
-Build: FORCE_REBUILD_v3.31.2_ORTHO_POI_RESOLVER
+Timestamp: 1786280400
+Build: FORCE_REBUILD_v3.31.3_ORTHO_V2_NAV_CLEAR

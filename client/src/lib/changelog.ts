@@ -10,14 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.31.2";
+export const APP_VERSION = "3.31.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.31.3",
+    date: "August 2026",
+    title: "Ortho v2 (alternating axes), clear-nav-nodes button, POI tab rows select+edit",
+    titleFi: "Ortho v2 vuorotellen, navigointinodejen tyhjennys, POI-välilehden rivit avaavat editorin",
+    latest: true,
+    highlights: [
+      "Ortho tool redesigned: consecutive edges now ALTERNATE horizontal ↔ vertical based on the previous edge's orientation (AutoCAD style). Draw a rectangle by clicking, dragging right, click, dragging down, click, dragging left, click, close — every corner is automatically 90°. First segment still picks by cursor's dominant axis.",
+      "LeftSidebar POI tab: new \"Clear all\" button in the Nav-graph header explains that nav nodes are per-browser localStorage (not DB) and wipes them in one click. Fixes \"I can't delete nav nodes\" — they weren't stored on the server.",
+      "LeftSidebar POI tab rows: clicking a door / stair / elevator / generic POI now OPENS THE PROPERTY PANEL (was just flying the map to the point). Same behavior as clicking the POI on the map, so users can edit floor/kind/delete from either surface.",
+    ],
+    highlightsFi: [
+      "Ortho-työkalu vuorottelee vaaka- ja pystylinjaa (CAD-tyyliin) — täydellinen suorakulmio 4 klikkauksella",
+      "Nav-nodet: uusi \"Tyhjennä kaikki\" -nappula sivupaneelissa (nodet ovat vain selaimessa, eivät tietokannassa)",
+      "POI-välilehden rivit avaavat nyt muokkauspaneelin",
+    ],
+  },
   {
     version: "3.31.2",
     date: "August 2026",
     title: "Ortho tool (90° corner snap) + POI paint uses Shape-B resolver",
     titleFi: "Ortho-työkalu (90° kulmalukko) + POI-tyylit tulevat luokkajärjestelmästä",
+    latest: false,
     latest: true,
     highlights: [
       "New Ortho toggle in the top toolbar (rectangle icon, between Snap and Zoom). When on, every waypoint click while drawing a building / room / rectangle / path / wall snaps to horizontal OR vertical from the previous vertex — locks whichever axis you moved less on. Ghost preview line shows the axis-locked pending segment BEFORE you commit. Perfect right-angle corners without eyeballing.",

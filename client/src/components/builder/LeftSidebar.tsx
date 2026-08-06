@@ -477,8 +477,17 @@ function PoiList({
     if (it.kind === "hallway" || it.kind === "wall") {
       onSelect({ kind: "hallway", id: it.id });
     } else {
-      // Point POIs — no PropertyPanel yet, so we just fly the map to
-      // them via an event the parent listens for.
+      // v3.31.3 — point POIs now select through LeftSidebarSelection
+      // so PropertyPanel opens with the door/stair/elevator/poi
+      // editor. Kind maps to the same values BuilderPois.onSelect
+      // dispatches from map clicks.
+      const selKind: LeftSidebarSelection["kind"] | null =
+        it.kind === "door" || it.kind === "exit" || it.kind === "entrance" ? "door" :
+        it.kind === "stair" ? "stair" :
+        it.kind === "elevator" ? "elevator" :
+        "poi";
+      onSelect({ kind: selKind, id: it.id });
+      // Also fly the map to the POI so users see what they clicked.
       if (it.focusLat != null && it.focusLng != null) {
         try {
           window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
@@ -491,6 +500,29 @@ function PoiList({
 
   return (
     <div>
+      {/* v3.31.3 — Nav-graph management: nodes are per-browser
+       *  localStorage (`ksyk_nav_graph_v1`), not DB. If the user
+       *  built up nav nodes and wants to start over, this is the
+       *  fastest path. */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Nav graph (per-browser)
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            if (!confirm("Clear ALL nav nodes + edges from this browser? (They're only stored locally, not in the database.)")) return;
+            try {
+              window.localStorage.removeItem("ksyk_nav_graph_v1");
+              window.dispatchEvent(new CustomEvent("ksyk:nav-graph-change"));
+            } catch { /* quota / private mode */ }
+          }}
+          className="text-[10px] font-semibold px-2 py-0.5 rounded border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
+        >
+          Clear all
+        </button>
+      </div>
+
       {/* Kind filter chips — same visual language as the search dropdown. */}
       <div className="flex gap-1 overflow-x-auto px-2 py-1.5 border-b border-border">
         {chips.map((c) => {
