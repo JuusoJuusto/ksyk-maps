@@ -981,33 +981,38 @@ function BuilderWorkspace() {
         let p = snap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // v3.31.3 — ortho constraint v2: consecutive edges alternate
-        // horizontal ↔ vertical based on the PREVIOUS EDGE's
-        // orientation. This is how AutoCAD's ORTHO mode works:
-        // rectangles fall out naturally — click, right, click, down,
-        // click, left, click, close. First segment picks axis from
-        // cursor's dominant direction since there's no prior edge.
-        if (orthoEnabled && waypoints.length > 0) {
+        // v3.32.1 — ortho constraint v3: snap PERPENDICULAR to the
+        // previous edge regardless of world-axis orientation. First
+        // edge (waypoints 0 → 1) is FREE, so users can lay down a
+        // wall at any angle. Every subsequent click projects the
+        // cursor onto the perpendicular line through the previous
+        // vertex — clicking anywhere resolves to a point that
+        // creates a 90° corner from the last edge. Rectangular
+        // corridors at any orientation (even off-axis buildings)
+        // fall out naturally.
+        if (orthoEnabled && waypoints.length >= 2) {
           const prev = waypoints[waypoints.length - 1];
-          if (waypoints.length >= 2) {
-            const beforePrev = waypoints[waypoints.length - 2];
-            const prevWasHorizontal =
-              Math.abs(prev.lng - beforePrev.lng) > Math.abs(prev.lat - beforePrev.lat);
-            if (prevWasHorizontal) {
-              // Previous edge horizontal → make this one vertical.
-              p = new maplibregl.LngLat(prev.lng, p.lat);
-            } else {
-              // Previous edge vertical → make this one horizontal.
-              p = new maplibregl.LngLat(p.lng, prev.lat);
-            }
-          } else {
-            // First segment — no previous edge, use dominant axis.
-            const dLng = Math.abs(p.lng - prev.lng);
-            const dLat = Math.abs(p.lat - prev.lat);
-            if (dLng > dLat) p = new maplibregl.LngLat(p.lng, prev.lat);
-            else            p = new maplibregl.LngLat(prev.lng, p.lat);
+          const beforePrev = waypoints[waypoints.length - 2];
+          const eLng = prev.lng - beforePrev.lng;
+          const eLat = prev.lat - beforePrev.lat;
+          const eLen = Math.hypot(eLng, eLat);
+          if (eLen > 1e-9) {
+            // Perpendicular unit vector (rotate previous edge +90°).
+            const perpLng = -eLat / eLen;
+            const perpLat =  eLng / eLen;
+            // Project the click onto the perpendicular line through prev.
+            const dLng = p.lng - prev.lng;
+            const dLat = p.lat - prev.lat;
+            const t = dLng * perpLng + dLat * perpLat;
+            p = new maplibregl.LngLat(
+              prev.lng + t * perpLng,
+              prev.lat + t * perpLat,
+            );
           }
         }
+        // First segment (waypoint 0 → 1) is intentionally FREE so
+        // users can start a wall at any angle. Ortho only kicks in
+        // from the second click onward.
         setWaypoints((prev) => [...prev, p]);
         return;
       }
@@ -1760,20 +1765,22 @@ function BuilderWorkspace() {
     let endLat = snap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // v3.31.3 — mirror the alternate-axis ortho behaviour so the
-    // preview line matches exactly what the next click will place.
-    if (orthoEnabled) {
-      if (waypoints.length >= 2) {
-        const beforeLast = waypoints[waypoints.length - 2];
-        const prevHorizontal =
-          Math.abs(last.lng - beforeLast.lng) > Math.abs(last.lat - beforeLast.lat);
-        if (prevHorizontal) endLng = last.lng;  // next = vertical
-        else                endLat = last.lat;  // next = horizontal
-      } else {
-        const dLng = Math.abs(endLng - last.lng);
-        const dLat = Math.abs(endLat - last.lat);
-        if (dLng > dLat) endLat = last.lat;
-        else             endLng = last.lng;
+    // v3.32.1 — mirror the perpendicular-to-previous-edge ortho
+    // logic so the preview line matches the click. First segment
+    // (only 1 waypoint) stays free (no snap on preview either).
+    if (orthoEnabled && waypoints.length >= 2) {
+      const beforeLast = waypoints[waypoints.length - 2];
+      const eLng = last.lng - beforeLast.lng;
+      const eLat = last.lat - beforeLast.lat;
+      const eLen = Math.hypot(eLng, eLat);
+      if (eLen > 1e-9) {
+        const perpLng = -eLat / eLen;
+        const perpLat =  eLng / eLen;
+        const dLng = endLng - last.lng;
+        const dLat = endLat - last.lat;
+        const t = dLng * perpLng + dLat * perpLat;
+        endLng = last.lng + t * perpLng;
+        endLat = last.lat + t * perpLat;
       }
     }
     const data = {

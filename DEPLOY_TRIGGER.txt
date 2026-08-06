@@ -1,8 +1,7 @@
-FORCE VERCEL REBUILD - 2026-08-06
+FORCE VERCEL REBUILD - 2026-08-07
 
-Bump reason: v3.32.0 — new Corridor tool (traced polygon hallway),
-3D mode floor-switch camera nudge, defensive fix for hover flicker
-on selected buildings via paint transitions.
+Bump reason: v3.32.1 — Ortho v3 (perpendicular-to-previous-edge,
+any angle), Layers tab deleted, POIs tab renamed to Infra.
 
-Timestamp: 1786284000
-Build: FORCE_REBUILD_v3.32.0_CORRIDOR_3D_HOVERFIX
+Timestamp: 1786370400
+Build: FORCE_REBUILD_v3.32.1_ORTHO_V3_INFRA_TAB

@@ -29,7 +29,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "layers" | "history" | "settings";
+export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "history" | "settings";
 
 export interface LeftSidebarSelection {
   // v3.28.1 — point-POI kinds added so the property panel can edit
@@ -52,12 +52,12 @@ export interface LeftSidebarProps {
 const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
   { id: "buildings", label: "Buildings", Icon: Building2 },
   { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
-  // "POIs" is the umbrella for every non-polygon primitive: hallways,
-  // walls, doors, stairs, elevators, entrances. Consolidated in v3.13
-  // from the old Hallways-only tab so users have one place to see
-  // every "line + point" thing they've placed.
-  { id: "pois",      label: "POIs",      Icon: RouteIcon },
-  { id: "layers",    label: "Layers",    Icon: Layers },
+  // v3.32.1 — renamed "POIs" → "Infra" (Infrastructure). Umbrella
+  // for every non-polygon-building primitive: hallways, walls,
+  // corridors, doors, stairs, elevators, entrances, POI chips.
+  // Layers tab was removed here — its floor filter + layer toggles
+  // live in the top-right rail so the sidebar isn't a duplicate.
+  { id: "pois",      label: "Infra",     Icon: RouteIcon },
   { id: "history",   label: "History",   Icon: History },
   { id: "settings",  label: "Defaults",  Icon: Settings2 },
 ];
@@ -179,7 +179,6 @@ export default function LeftSidebar({
         {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "pois"      && <PoiList query={query} selection={selection} onSelect={onSelect} />}
-        {activeTab === "layers"    && <LayerList query={query} />}
         {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
         {activeTab === "settings"  && (
           <div className="p-3">

@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.32.0";
+export const APP_VERSION = "3.32.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.32.1",
+    date: "August 2026",
+    title: "Ortho v3 (perpendicular to any edge), Infra tab replaces Layers+POIs",
+    titleFi: "Ortho v3 (kohtisuora edelliseen), Infra-välilehti korvaa Layers+POIs",
+    latest: true,
+    highlights: [
+      "Ortho v3 — finally works the way user expected. First edge (2 clicks) is FREE, so you can lay down a wall at any angle. Every subsequent click snaps to the PERPENDICULAR of the previous edge — not axis-aligned. Draw a rectangular corridor at 30° off-north by clicking, dragging in any direction, click, then every subsequent click is locked 90° from the last edge. Ghost preview mirrors the snap.",
+      "Deleted Layers tab from LeftSidebar — floor filter + visibility toggles already live in the top-right rail, the sidebar version was a duplicate.",
+      "Renamed POIs tab → Infra (Infrastructure). Now clearly holds hallways, walls, corridors, doors, stairs, elevators, entrances, and POI chips — everything that isn't a Building or Room polygon. Prevents \"where do I find walls?\" confusion.",
+      "Walls have been in the Infra tab (PoiList) since 3.28.1 with a Walls filter chip — verified rendering path. If they still don't show for you, hit \"Clear all\" in the Nav-graph section then reload — sometimes a stale localStorage entry hides them.",
+    ],
+    highlightsFi: [
+      "Ortho v3: ensimmäinen seinä vapaasti mihin suuntaan tahansa, sen jälkeen jokainen klikkaus kohtisuoraan edelliseen — myös vinoille rakennuksille",
+      "Layers-välilehti poistettu, POIs-välilehti nimetty uudelleen \"Infra\":ksi — käytävät, seinät, ovet, portaat, hissit, POI:t yhdessä",
+    ],
+  },
   {
     version: "3.32.0",
     date: "August 2026",
     title: "Corridor tool (traced polygon hallway), 3D floor-switch nudge, hover-flicker fix",
     titleFi: "Corridor-työkalu (piirrä käytävä huoneena), 3D floor-vaihdon animaatio",
-    latest: true,
+    latest: false,
     highlights: [
       "New Corridor tool (hotkey C) in the builder — trace corridor corners like a Room, Enter to close. Saves as a Room with type=\"hallway\" and a slate-grey color; renders as a filled polygon on both the builder + public map (not just a line). Use it for any walkable area you want to look like a real corridor, not a stroke.",
       "3D mode: floor changes now trigger a small camera pitch-up nudge (+8° for 240ms, back for 260ms) so the level switch reads as a visible transition instead of an instant swap. Only fires when 3D is on; 2D top-down stays instant.",
