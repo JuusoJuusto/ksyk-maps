@@ -977,19 +977,20 @@ function BuilderWorkspace() {
       ) {
         // Snap to nearest vertex/endpoint/midpoint when the indicator
         // is on. Falls back to the raw cursor position otherwise.
+        // Ortho overrides snap for edges after the first: projecting a
+        // vertex onto the perpendicular line gives a non-vertex point
+        // anyway, so snap would just add noise. Use the raw cursor as
+        // the projection base when ortho is engaged; snap still applies
+        // for the first free segment (waypoints.length < 2).
         const snap = snapTargetRef.current;
-        let p = snap
+        const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+        let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // v3.32.1 — ortho constraint v3: snap PERPENDICULAR to the
-        // previous edge regardless of world-axis orientation. First
-        // edge (waypoints 0 → 1) is FREE, so users can lay down a
-        // wall at any angle. Every subsequent click projects the
-        // cursor onto the perpendicular line through the previous
-        // vertex — clicking anywhere resolves to a point that
-        // creates a 90° corner from the last edge. Rectangular
-        // corridors at any orientation (even off-axis buildings)
-        // fall out naturally.
+        // Ortho constraint (v3): perpendicular to the previous edge so
+        // rectangles work at any building orientation. First edge is
+        // free (any direction); every subsequent click is locked 90°
+        // from the last edge.
         if (orthoEnabled && waypoints.length >= 2) {
           const prev = waypoints[waypoints.length - 1];
           const beforePrev = waypoints[waypoints.length - 2];
@@ -1000,7 +1001,7 @@ function BuilderWorkspace() {
             // Perpendicular unit vector (rotate previous edge +90°).
             const perpLng = -eLat / eLen;
             const perpLat =  eLng / eLen;
-            // Project the click onto the perpendicular line through prev.
+            // Project the raw cursor onto the perpendicular line through prev.
             const dLng = p.lng - prev.lng;
             const dLat = p.lat - prev.lat;
             const t = dLng * perpLng + dLat * perpLat;
@@ -1750,24 +1751,25 @@ function BuilderWorkspace() {
     };
 
     const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
-      || activeTool === "building" || activeTool === "room" || activeTool === "measure";
+      || activeTool === "building" || activeTool === "room" || activeTool === "corridor" || activeTool === "measure";
 
     if (!isSegmentTool || waypoints.length === 0 || !cursorLngLat) {
       clear();
       return;
     }
 
-    // Pending endpoint = snap target (if any) else raw cursor. This
-    // keeps the preview line honest — if snap will grab a vertex, the
-    // ghost draws to THAT vertex too, not the raw mouse.
+    // Pending endpoint: raw cursor when ortho is active (same logic as
+    // the click handler — snap-to-vertex + ortho-projection conflict,
+    // ortho wins). Snap is used for the first free segment and when
+    // ortho is off.
     const snap = snapTargetRef.current;
-    let endLng = snap ? snap.lng : cursorLngLat.lng;
-    let endLat = snap ? snap.lat : cursorLngLat.lat;
+    const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+    let endLng = useSnap ? snap.lng : cursorLngLat.lng;
+    let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // v3.32.1 — mirror the perpendicular-to-previous-edge ortho
-    // logic so the preview line matches the click. First segment
-    // (only 1 waypoint) stays free (no snap on preview either).
+    // Mirror ortho: perpendicular-to-previous-edge so the preview
+    // line matches what the click will commit.
     if (orthoEnabled && waypoints.length >= 2) {
       const beforeLast = waypoints[waypoints.length - 2];
       const eLng = last.lng - beforeLast.lng;
@@ -1795,15 +1797,21 @@ function BuilderWorkspace() {
       }],
     };
     const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
-    if (src) src.setData(data as never);
-    else {
+    // Corridor ghost is slate-gray so it reads differently from rooms (blue).
+    const ghostColor = activeTool === "corridor" ? "#64748b" : "#3b82f6";
+    if (src) {
+      src.setData(data as never);
+      // Layer persists across tool switches; update paint so the
+      // corridor vs room color distinction actually takes effect.
+      try { map.setPaintProperty(LAYER, "line-color", ghostColor); } catch { /* not yet added */ }
+    } else {
       map.addSource(SRC, { type: "geojson", data: data as never });
       map.addLayer({
         id: LAYER,
         source: SRC,
         type: "line",
         paint: {
-          "line-color": "#3b82f6",
+          "line-color": ghostColor,
           "line-width": 2.5,
           "line-opacity": 0.75,
           "line-dasharray": [2, 2],

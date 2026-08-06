@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import CampusOverlay from "@/components/CampusOverlay";
 import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResultsDropdown";
-import LayersToggle from "@/components/LayersToggle";
+// LayersToggle temporarily removed from public map — toggle lives only in builder.
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
 import { loadAppSettings } from "@/lib/appSettings";
 import { LocateFixed, Plus, Minus, Navigation2, Layers } from "lucide-react";
@@ -503,9 +503,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
          *  which way north is even when the map is spun. */}
         <CompassChip map={mapInstance} />
 
-        {/* Layers — popover with per-layer visibility toggles. Client-only
-         *  overrides on top of whatever the admin publishes. */}
-        <LayersToggle />
+        {/* LayersToggle temporarily removed — available in builder only. */}
       </div>
 
       {showNav && (

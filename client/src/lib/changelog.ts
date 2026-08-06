@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.32.1";
+export const APP_VERSION = "3.33.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.33.0",
+    date: "August 2026",
+    title: "Structure tab, corridors as first-class elements, ortho+snap fix, LayersToggle removed from public map",
+    titleFi: "Structure-välilehti, käytävät omana elementtinä, ortho+snap korjaus",
+    latest: true,
+    highlights: [
+      "Infra tab renamed to Structure. Corridors (drawn with C) now appear HERE as first-class structural elements — not mixed into the Rooms list. Filter chips grouped: structural (Corridors, Paths, Walls, Stairs, Elevators), access (Doors, Entrances, Exits), then services.",
+      "Rooms tab now excludes corridors. The Rooms list shows only actual spaces; corridor-type rooms are managed in the Structure tab with their own property panel access.",
+      "Ortho+snap conflict fixed: when Ortho is active after the first edge, vertex-snap no longer hijacks the projection base. Ortho now projects the raw cursor, so the perpendicular constraint is clean. Ghost preview has the same fix.",
+      "Corridor ghost preview: the drawn-segment ghost is now slate-grey (#64748b) instead of blue to visually distinguish corridor drawing from room drawing. Ghost was also missing entirely for the corridor tool — fixed.",
+      "LayersToggle removed from the public map temporarily. The toggle button is still available in the builder (top-right rail).",
+    ],
+    highlightsFi: [
+      "Infra-välilehti nimetty 'Structure':ksi. Käytävät (C-työkalu) näkyvät täällä, eivät enää Rooms-listassa.",
+      "Ortho+snap-konflikti korjattu: ortho käyttää nyt raakaa kursorin sijaintia projektioon.",
+      "Käytävän ghost-esikatselu oli puuttunut — korjattu. Käytävä näkyy harmaana, huone sinisenä.",
+      "LayersToggle poistettu julkiselta kartalta väliaikaisesti.",
+    ],
+  },
   {
     version: "3.32.1",
     date: "August 2026",
     title: "Ortho v3 (perpendicular to any edge), Infra tab replaces Layers+POIs",
     titleFi: "Ortho v3 (kohtisuora edelliseen), Infra-välilehti korvaa Layers+POIs",
-    latest: true,
+    latest: false,
     highlights: [
       "Ortho v3 — finally works the way user expected. First edge (2 clicks) is FREE, so you can lay down a wall at any angle. Every subsequent click snaps to the PERPENDICULAR of the previous edge — not axis-aligned. Draw a rectangular corridor at 30° off-north by clicking, dragging in any direction, click, then every subsequent click is locked 90° from the last edge. Ghost preview mirrors the snap.",
       "Deleted Layers tab from LeftSidebar — floor filter + visibility toggles already live in the top-right rail, the sidebar version was a duplicate.",
