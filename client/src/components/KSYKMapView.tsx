@@ -224,7 +224,8 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       }
     } else if (kind === "room") {
       const r = campus.rooms.find((x) => x.id === id);
-      if (r) {
+      // Corridors (type="hallway") are walkable areas, not rooms — skip.
+      if (r && r.type !== "hallway") {
         setClickedFeature({ kind: "room", entity: r });
         if (r.points?.length) setHighlightPolygon(r.points);
       }

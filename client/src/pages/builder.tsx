@@ -73,6 +73,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { MapPin, X as XIcon, Keyboard } from "lucide-react";
 import Minimap from "@/components/builder/Minimap";
 import SvgImportDialog, { type ImportedPolygon } from "@/components/builder/SvgImportDialog";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 type BuilderTool =
   | "select" | "pan"
@@ -234,6 +235,7 @@ function BuilderWorkspace() {
   // because refs don't trigger re-renders. Result: nothing appears
   // until the user changes some data.
   const [mapReady, setMapReady] = useState(false);
+  const { darkMode } = useDarkMode();
 
   // Legacy `selectedId` shim — many downstream effects still key off a
   // single string. New code uses `selection`.
@@ -797,7 +799,7 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  "#e2e8f0",  // light gray — visible in dark mode
+            ["boolean", ["get", "isWall"], false],  "#374151",  // dark gray wall (updated per dark-mode)
                                                      "#f59e0b",  // amber walkable
           ],
           "line-width": [
@@ -817,6 +819,24 @@ function BuilderWorkspace() {
       });
     }
   }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor]);
+
+  // ── Dark-mode wall color ────────────────────────────────────────
+  // Wall color must flip with the basemap: dark on light Voyager,
+  // light on Dark Matter. The layer is only added once (above), so
+  // we drive the paint update via setPaintProperty here.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = handleRef.current?.map;
+    if (!map) return;
+    const wallColor = darkMode ? "#94a3b8" : "#374151";
+    const expr = [
+      "case",
+      ["boolean", ["get", "selected"], false], "#dc2626",
+      ["boolean", ["get", "isWall"], false], wallColor,
+      "#f59e0b",
+    ];
+    try { map.setPaintProperty("builder-hallways-line", "line-color", expr); } catch { /* layer not yet added */ }
+  }, [mapReady, darkMode]);
 
   // ── Nav graph layer sync ────────────────────────────────────────
   // Draws every localStorage-persisted node + edge on the map. Nodes
@@ -992,32 +1012,24 @@ function BuilderWorkspace() {
         const snap = snapTargetRef.current;
         const wps = waypointsRef.current;
         const orthoOn = orthoEnabledRef.current;
-        const useSnap = snap && !(orthoOn && wps.length >= 2);
+        // Ortho overrides snap from the second point onward — the
+        // projected point is never a vertex, so snap adds noise.
+        const useSnap = snap && !(orthoOn && wps.length >= 1);
         let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // Ortho constraint (v3): perpendicular to the previous edge so
-        // rectangles work at any building orientation. First edge is
-        // free (any direction); every subsequent click is locked 90°
-        // from the last edge.
-        if (orthoOn && wps.length >= 2) {
+        // Ortho v4 — axis-aligned (horizontal/vertical) snap from the
+        // previous point. |dLng| vs |dLat| picks which axis to lock.
+        // Kicks in from the very second click so walls are always
+        // strictly horizontal or vertical.
+        if (orthoOn && wps.length >= 1) {
           const prev = wps[wps.length - 1];
-          const beforePrev = wps[wps.length - 2];
-          const eLng = prev.lng - beforePrev.lng;
-          const eLat = prev.lat - beforePrev.lat;
-          const eLen = Math.hypot(eLng, eLat);
-          if (eLen > 1e-9) {
-            // Perpendicular unit vector (rotate previous edge +90°).
-            const perpLng = -eLat / eLen;
-            const perpLat =  eLng / eLen;
-            // Project the raw cursor onto the perpendicular line through prev.
-            const dLng = p.lng - prev.lng;
-            const dLat = p.lat - prev.lat;
-            const t = dLng * perpLng + dLat * perpLat;
-            p = new maplibregl.LngLat(
-              prev.lng + t * perpLng,
-              prev.lat + t * perpLat,
-            );
+          const dLng = p.lng - prev.lng;
+          const dLat = p.lat - prev.lat;
+          if (Math.abs(dLng) >= Math.abs(dLat)) {
+            p = new maplibregl.LngLat(p.lng, prev.lat); // horizontal
+          } else {
+            p = new maplibregl.LngLat(prev.lng, p.lat); // vertical
           }
         }
         // First segment (waypoint 0 → 1) is intentionally FREE so
@@ -1772,26 +1784,20 @@ function BuilderWorkspace() {
     // ortho wins). Snap is used for the first free segment and when
     // ortho is off.
     const snap = snapTargetRef.current;
-    const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+    const useSnap = snap && !(orthoEnabled && waypoints.length >= 1);
     let endLng = useSnap ? snap.lng : cursorLngLat.lng;
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // Mirror ortho: perpendicular-to-previous-edge so the preview
-    // line matches what the click will commit.
-    if (orthoEnabled && waypoints.length >= 2) {
-      const beforeLast = waypoints[waypoints.length - 2];
-      const eLng = last.lng - beforeLast.lng;
-      const eLat = last.lat - beforeLast.lat;
-      const eLen = Math.hypot(eLng, eLat);
-      if (eLen > 1e-9) {
-        const perpLng = -eLat / eLen;
-        const perpLat =  eLng / eLen;
-        const dLng = endLng - last.lng;
-        const dLat = endLat - last.lat;
-        const t = dLng * perpLng + dLat * perpLat;
-        endLng = last.lng + t * perpLng;
-        endLat = last.lat + t * perpLat;
+    // Ortho v4 — axis-aligned preview. Mirrors the click handler:
+    // lock to horizontal if |dLng| >= |dLat|, else vertical.
+    if (orthoEnabled && waypoints.length >= 1) {
+      const dLng = endLng - last.lng;
+      const dLat = endLat - last.lat;
+      if (Math.abs(dLng) >= Math.abs(dLat)) {
+        endLat = last.lat; // horizontal
+      } else {
+        endLng = last.lng; // vertical
       }
     }
     const data = {
