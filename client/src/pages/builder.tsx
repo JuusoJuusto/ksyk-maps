@@ -274,6 +274,13 @@ function BuilderWorkspace() {
   // clicks snap to horizontal/vertical from the previous vertex.
   // Off → free-form clicks (current behaviour).
   const [orthoEnabled, setOrthoEnabled] = useState(false);
+  // Refs so the click-handler useEffect (deps: [activeTool, mapReady])
+  // can read the LATEST waypoints and orthoEnabled without being
+  // re-registered on every state change (stale-closure fix).
+  const waypointsRef = useRef<LngLat[]>([]);
+  waypointsRef.current = waypoints;
+  const orthoEnabledRef = useRef(false);
+  orthoEnabledRef.current = orthoEnabled;
   const [isPublishing, setIsPublishing] = useState(false);
   // MazeMap-style keyboard cheat sheet — toggled by "?" (Shift + /).
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -790,7 +797,7 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  "#1f2937",  // dark for walls
+            ["boolean", ["get", "isWall"], false],  "#e2e8f0",  // light gray — visible in dark mode
                                                      "#f59e0b",  // amber walkable
           ],
           "line-width": [
@@ -977,37 +984,45 @@ function BuilderWorkspace() {
       ) {
         // Snap to nearest vertex/endpoint/midpoint when the indicator
         // is on. Falls back to the raw cursor position otherwise.
+        // Ortho overrides snap for edges after the first: projecting a
+        // vertex onto the perpendicular line gives a non-vertex point
+        // anyway, so snap would just add noise. Use the raw cursor as
+        // the projection base when ortho is engaged; snap still applies
+        // for the first free segment (waypoints.length < 2).
         const snap = snapTargetRef.current;
-        let p = snap
+        const wps = waypointsRef.current;
+        const orthoOn = orthoEnabledRef.current;
+        const useSnap = snap && !(orthoOn && wps.length >= 2);
+        let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // v3.31.3 — ortho constraint v2: consecutive edges alternate
-        // horizontal ↔ vertical based on the PREVIOUS EDGE's
-        // orientation. This is how AutoCAD's ORTHO mode works:
-        // rectangles fall out naturally — click, right, click, down,
-        // click, left, click, close. First segment picks axis from
-        // cursor's dominant direction since there's no prior edge.
-        if (orthoEnabled && waypoints.length > 0) {
-          const prev = waypoints[waypoints.length - 1];
-          if (waypoints.length >= 2) {
-            const beforePrev = waypoints[waypoints.length - 2];
-            const prevWasHorizontal =
-              Math.abs(prev.lng - beforePrev.lng) > Math.abs(prev.lat - beforePrev.lat);
-            if (prevWasHorizontal) {
-              // Previous edge horizontal → make this one vertical.
-              p = new maplibregl.LngLat(prev.lng, p.lat);
-            } else {
-              // Previous edge vertical → make this one horizontal.
-              p = new maplibregl.LngLat(p.lng, prev.lat);
-            }
-          } else {
-            // First segment — no previous edge, use dominant axis.
-            const dLng = Math.abs(p.lng - prev.lng);
-            const dLat = Math.abs(p.lat - prev.lat);
-            if (dLng > dLat) p = new maplibregl.LngLat(p.lng, prev.lat);
-            else            p = new maplibregl.LngLat(prev.lng, p.lat);
+        // Ortho constraint (v3): perpendicular to the previous edge so
+        // rectangles work at any building orientation. First edge is
+        // free (any direction); every subsequent click is locked 90°
+        // from the last edge.
+        if (orthoOn && wps.length >= 2) {
+          const prev = wps[wps.length - 1];
+          const beforePrev = wps[wps.length - 2];
+          const eLng = prev.lng - beforePrev.lng;
+          const eLat = prev.lat - beforePrev.lat;
+          const eLen = Math.hypot(eLng, eLat);
+          if (eLen > 1e-9) {
+            // Perpendicular unit vector (rotate previous edge +90°).
+            const perpLng = -eLat / eLen;
+            const perpLat =  eLng / eLen;
+            // Project the raw cursor onto the perpendicular line through prev.
+            const dLng = p.lng - prev.lng;
+            const dLat = p.lat - prev.lat;
+            const t = dLng * perpLng + dLat * perpLat;
+            p = new maplibregl.LngLat(
+              prev.lng + t * perpLng,
+              prev.lat + t * perpLat,
+            );
           }
         }
+        // First segment (waypoint 0 → 1) is intentionally FREE so
+        // users can start a wall at any angle. Ortho only kicks in
+        // from the second click onward.
         setWaypoints((prev) => [...prev, p]);
         return;
       }
@@ -1745,35 +1760,38 @@ function BuilderWorkspace() {
     };
 
     const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
-      || activeTool === "building" || activeTool === "room" || activeTool === "measure";
+      || activeTool === "building" || activeTool === "room" || activeTool === "corridor" || activeTool === "measure";
 
     if (!isSegmentTool || waypoints.length === 0 || !cursorLngLat) {
       clear();
       return;
     }
 
-    // Pending endpoint = snap target (if any) else raw cursor. This
-    // keeps the preview line honest — if snap will grab a vertex, the
-    // ghost draws to THAT vertex too, not the raw mouse.
+    // Pending endpoint: raw cursor when ortho is active (same logic as
+    // the click handler — snap-to-vertex + ortho-projection conflict,
+    // ortho wins). Snap is used for the first free segment and when
+    // ortho is off.
     const snap = snapTargetRef.current;
-    let endLng = snap ? snap.lng : cursorLngLat.lng;
-    let endLat = snap ? snap.lat : cursorLngLat.lat;
+    const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+    let endLng = useSnap ? snap.lng : cursorLngLat.lng;
+    let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // v3.31.3 — mirror the alternate-axis ortho behaviour so the
-    // preview line matches exactly what the next click will place.
-    if (orthoEnabled) {
-      if (waypoints.length >= 2) {
-        const beforeLast = waypoints[waypoints.length - 2];
-        const prevHorizontal =
-          Math.abs(last.lng - beforeLast.lng) > Math.abs(last.lat - beforeLast.lat);
-        if (prevHorizontal) endLng = last.lng;  // next = vertical
-        else                endLat = last.lat;  // next = horizontal
-      } else {
-        const dLng = Math.abs(endLng - last.lng);
-        const dLat = Math.abs(endLat - last.lat);
-        if (dLng > dLat) endLat = last.lat;
-        else             endLng = last.lng;
+    // Mirror ortho: perpendicular-to-previous-edge so the preview
+    // line matches what the click will commit.
+    if (orthoEnabled && waypoints.length >= 2) {
+      const beforeLast = waypoints[waypoints.length - 2];
+      const eLng = last.lng - beforeLast.lng;
+      const eLat = last.lat - beforeLast.lat;
+      const eLen = Math.hypot(eLng, eLat);
+      if (eLen > 1e-9) {
+        const perpLng = -eLat / eLen;
+        const perpLat =  eLng / eLen;
+        const dLng = endLng - last.lng;
+        const dLat = endLat - last.lat;
+        const t = dLng * perpLng + dLat * perpLat;
+        endLng = last.lng + t * perpLng;
+        endLat = last.lat + t * perpLat;
       }
     }
     const data = {
@@ -1788,15 +1806,21 @@ function BuilderWorkspace() {
       }],
     };
     const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
-    if (src) src.setData(data as never);
-    else {
+    // Corridor ghost is slate-gray so it reads differently from rooms (blue).
+    const ghostColor = activeTool === "corridor" ? "#64748b" : "#3b82f6";
+    if (src) {
+      src.setData(data as never);
+      // Layer persists across tool switches; update paint so the
+      // corridor vs room color distinction actually takes effect.
+      try { map.setPaintProperty(LAYER, "line-color", ghostColor); } catch { /* not yet added */ }
+    } else {
       map.addSource(SRC, { type: "geojson", data: data as never });
       map.addLayer({
         id: LAYER,
         source: SRC,
         type: "line",
         paint: {
-          "line-color": "#3b82f6",
+          "line-color": ghostColor,
           "line-width": 2.5,
           "line-opacity": 0.75,
           "line-dasharray": [2, 2],

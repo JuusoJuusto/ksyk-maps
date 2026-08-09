@@ -988,8 +988,8 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
     type: "line",
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": "#0f172a",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.8, 20, 5.5],
+      "line-color": "#cbd5e1",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 6],
       "line-opacity": 0.95,
     },
     filter: ["==", ["get", "isWall"], true],

@@ -1,8 +1,8 @@
-FORCE VERCEL REBUILD - 2026-08-06
+FORCE VERCEL REBUILD - 2026-08-09
 
-Bump reason: v3.32.0 — new Corridor tool (traced polygon hallway),
-3D mode floor-switch camera nudge, defensive fix for hover flicker
-on selected buildings via paint transitions.
+Bump reason: v3.34.0 — Ortho click fix (stale-closure via refs), rooms
+always visible on public map (live data always), walls visible in dark
+mode (color changed to light slate).
 
-Timestamp: 1786284000
-Build: FORCE_REBUILD_v3.32.0_CORRIDOR_3D_HOVERFIX
+Timestamp: 1786550000
+Build: FORCE_REBUILD_v3.34.0_ORTHO_CLICK_FIX_ROOMS_VISIBLE_WALLS_VISIBLE

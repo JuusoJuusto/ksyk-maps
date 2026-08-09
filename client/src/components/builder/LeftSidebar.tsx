@@ -23,13 +23,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, Door, Stair, Elevator, MapLayer, MapVersion } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag } from "lucide-react";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "layers" | "history" | "settings";
+export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "history" | "settings";
 
 export interface LeftSidebarSelection {
   // v3.28.1 — point-POI kinds added so the property panel can edit
@@ -52,12 +52,11 @@ export interface LeftSidebarProps {
 const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
   { id: "buildings", label: "Buildings", Icon: Building2 },
   { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
-  // "POIs" is the umbrella for every non-polygon primitive: hallways,
-  // walls, doors, stairs, elevators, entrances. Consolidated in v3.13
-  // from the old Hallways-only tab so users have one place to see
-  // every "line + point" thing they've placed.
-  { id: "pois",      label: "POIs",      Icon: RouteIcon },
-  { id: "layers",    label: "Layers",    Icon: Layers },
+  // Structure tab: every drawn structural element — corridors (filled
+  // walkable areas), hallway lines, walls, stairs, elevators, doors,
+  // entrances + free-form POI chips. Corridors appear HERE (not in
+  // Rooms) since they're navigation infrastructure, not spaces.
+  { id: "pois",      label: "Structure", Icon: LayoutGrid },
   { id: "history",   label: "History",   Icon: History },
   { id: "settings",  label: "Defaults",  Icon: Settings2 },
 ];
@@ -179,7 +178,6 @@ export default function LeftSidebar({
         {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "pois"      && <PoiList query={query} selection={selection} onSelect={onSelect} />}
-        {activeTab === "layers"    && <LayerList query={query} />}
         {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
         {activeTab === "settings"  && (
           <div className="p-3">
@@ -258,14 +256,15 @@ function RoomList({
   const index = useMemo(() => buildRoomSearchIndex(rooms, buildings), [rooms, buildings]);
 
   const list = useMemo(() => {
+    // Corridors (type="hallway") belong in the Structure tab, not here.
+    const nonCorridors = rooms.filter((r) => r.type !== "hallway");
     if (!query.trim()) {
-      return rooms.map((room) => ({ room, score: 0 }));
+      return nonCorridors.map((room) => ({ room, score: 0 }));
     }
-    // Filter out building hits — the Rooms tab lists rooms only. Building
-    // hits still surface in the header search dropdown.
+    // Filter out building hits — the Rooms tab lists rooms only.
     return index.search(query, { limit: 200, kind: "room" })
       .map((hit) => hit.doc.data?.room ? { room: hit.doc.data.room, score: hit.score } : null)
-      .filter((v): v is { room: Room; score: number } => v !== null);
+      .filter((v): v is { room: Room; score: number } => v !== null && v.room.type !== "hallway");
   }, [query, index, rooms]);
 
   if (rooms.length === 0) return <EmptyState message="No rooms yet." hint="Draw a room inside a building using the Room tool." />;
@@ -300,6 +299,9 @@ function RoomList({
 // support for those kinds (yet).
 
 type PoiKind =
+  // Structural polygon — drawn with the Corridor tool, stored as a
+  // Room with type="hallway". Lives in Structure tab (not Rooms).
+  | "corridor"
   | "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator"
   // Free-form kinds — placed via the generic POI tools and stored in
   // /api/pois with a `kind` string discriminator.
@@ -323,6 +325,13 @@ function PoiList({
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const [kindFilter, setKindFilter] = useState<"all" | PoiKind>("all");
 
+  // Corridors are rooms with type="hallway" — fetch from rooms API
+  // and show here (Structure tab) rather than in the Rooms tab.
+  const { data: allRooms = [] } = useQuery<Room[]>({
+    queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms"),
+  });
+  const corridorRooms = useMemo(() => allRooms.filter((r) => r.type === "hallway"), [allRooms]);
+
   const { data: hallways = [] } = useQuery<Hallway[]>({
     queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways"),
   });
@@ -345,6 +354,23 @@ function PoiList({
 
   const items = useMemo<UnifiedPoi[]>(() => {
     const out: UnifiedPoi[] = [];
+    // Corridors first — drawn polygon walkways, treated as first-class
+    // structural elements distinct from Rooms.
+    for (const r of corridorRooms) {
+      const pts = r.points ?? [];
+      const centLat = pts.length ? pts.reduce((s, p) => s + p.lat, 0) / pts.length : null;
+      const centLng = pts.length ? pts.reduce((s, p) => s + p.lng, 0) / pts.length : null;
+      out.push({
+        id: r.id,
+        kind: "corridor",
+        title: r.roomNumber ? `Corridor ${r.roomNumber}` : `Corridor ${r.id.slice(0, 6)}`,
+        subtitle: [r.name, r.floor != null ? `Floor ${r.floor}` : null].filter(Boolean).join(" · "),
+        color: "#64748b", // slate-500
+        floor: r.floor ?? null,
+        focusLat: centLat,
+        focusLng: centLng,
+      });
+    }
     for (const h of hallways) {
       const isWall = h.surface === "wall";
       out.push({
@@ -428,7 +454,7 @@ function PoiList({
       });
     }
     return out;
-  }, [hallways, doors, stairs, elevators, pois]);
+  }, [corridorRooms, hallways, doors, stairs, elevators, pois]);
 
   const q = query.trim().toLowerCase();
   const filtered = items.filter((it) => {
@@ -443,15 +469,20 @@ function PoiList({
     return c;
   }, [items]);
 
+  // Chips grouped: structural elements first, then point-of-interest services.
   const allChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
     { id: "all",             label: "All",       Icon: Layers },
-    { id: "hallway",         label: "Hallways",  Icon: RouteIcon },
+    // ── Structural (drawn) ──────────────────────────
+    { id: "corridor",        label: "Corridors", Icon: LayoutGrid },
+    { id: "hallway",         label: "Paths",     Icon: RouteIcon },
     { id: "wall",            label: "Walls",     Icon: StretchHorizontal },
+    { id: "stair",           label: "Stairs",    Icon: StepForward },
+    { id: "elevator",        label: "Elevators", Icon: MoveVertical },
+    // ── Access points ───────────────────────────────
     { id: "door",            label: "Doors",     Icon: DoorClosed },
     { id: "entrance",        label: "Entrances", Icon: LogIn },
     { id: "exit",            label: "Exits",     Icon: DoorOpen },
-    { id: "stair",           label: "Stairs",    Icon: StepForward },
-    { id: "elevator",        label: "Elevators", Icon: MoveVertical },
+    // ── Services / POIs ─────────────────────────────
     { id: "info",            label: "Info",      Icon: Info },
     { id: "reception",       label: "Reception", Icon: Phone },
     { id: "restroom_m",      label: "WC · M",    Icon: Accessibility },
@@ -476,24 +507,31 @@ function PoiList({
   const onRowClick = (it: UnifiedPoi) => {
     if (it.kind === "hallway" || it.kind === "wall") {
       onSelect({ kind: "hallway", id: it.id });
+    } else if (it.kind === "corridor") {
+      // Corridors are stored as rooms — open the room property panel.
+      onSelect({ kind: "room", id: it.id });
+      if (it.focusLat != null && it.focusLng != null) {
+        try {
+          window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
+            detail: { lat: it.focusLat, lng: it.focusLng, kind: "room", id: it.id },
+          }));
+        } catch { /* SSR / old browser */ }
+      }
     } else {
-      // v3.31.3 — point POIs now select through LeftSidebarSelection
-      // so PropertyPanel opens with the door/stair/elevator/poi
-      // editor. Kind maps to the same values BuilderPois.onSelect
-      // dispatches from map clicks.
-      const selKind: LeftSidebarSelection["kind"] | null =
+      // Point POIs — select through LeftSidebarSelection so
+      // PropertyPanel opens the right editor.
+      const selKind: LeftSidebarSelection["kind"] =
         it.kind === "door" || it.kind === "exit" || it.kind === "entrance" ? "door" :
         it.kind === "stair" ? "stair" :
         it.kind === "elevator" ? "elevator" :
         "poi";
       onSelect({ kind: selKind, id: it.id });
-      // Also fly the map to the POI so users see what they clicked.
       if (it.focusLat != null && it.focusLng != null) {
         try {
           window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
             detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id },
           }));
-        } catch { /* SSR / old browser — non-fatal */ }
+        } catch { /* SSR / old browser */ }
       }
     }
   };
@@ -549,17 +587,28 @@ function PoiList({
       </div>
 
       <ul className="p-1.5 space-y-0.5">
-        {filtered.map((it) => (
-          <li key={`${it.kind}:${it.id}`}>
-            <Row
-              active={selection?.kind === "hallway" && selection.id === it.id}
-              onClick={() => onRowClick(it)}
-              leading={<Swatch color={it.color} />}
-              title={it.title}
-              subtitle={it.subtitle}
-            />
-          </li>
-        ))}
+        {filtered.map((it) => {
+          const isActive =
+            it.kind === "hallway" || it.kind === "wall"
+              ? selection?.kind === "hallway" && selection.id === it.id
+              : it.kind === "corridor"
+              ? selection?.kind === "room" && selection.id === it.id
+              : selection?.id === it.id &&
+                selection?.kind !== "building" &&
+                selection?.kind !== "room" &&
+                selection?.kind !== "hallway";
+          return (
+            <li key={`${it.kind}:${it.id}`}>
+              <Row
+                active={isActive}
+                onClick={() => onRowClick(it)}
+                leading={<Swatch color={it.color} />}
+                title={it.title}
+                subtitle={it.subtitle}
+              />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -864,6 +913,7 @@ function Loading() {
  *  filter chips so users don't see raw snake_case strings. */
 function poiKindDisplayName(kind: string): string {
   switch (kind) {
+    case "corridor": return "Corridor";
     case "hallway": return "Hallway";
     case "wall": return "Wall";
     case "door": return "Door";

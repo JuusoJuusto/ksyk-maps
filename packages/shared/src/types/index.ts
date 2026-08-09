@@ -53,6 +53,7 @@ export type RoomType =
   | "exit"
   | "outdoor"
   | "emergency"
+  | "hallway"    // corridor drawn with the Corridor tool — a filled walkable polygon
   | "other";
 
 /** Outdoor area category. Feeds routing (paths ARE traversable, grass

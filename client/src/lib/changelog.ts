@@ -10,15 +10,68 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.32.0";
+export const APP_VERSION = "3.34.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.34.0",
+    date: "August 2026",
+    title: "Ortho click fix, rooms visible on public map, walls visible in both modes",
+    titleFi: "Ortho-klikkauskorjaus, huoneet julkisella kartalla, seinät näkyvät molemmissa tiloissa",
+    latest: true,
+    highlights: [
+      "Ortho constraint now actually applies on click, not just in the ghost preview. The stale-closure bug (click handler captured old waypoints/orthoEnabled state) is fixed using refs — perpendicular snapping now works correctly from the second waypoint onwards.",
+      "Rooms now always visible on the public map. Previously the map served a published snapshot and newly drawn rooms/corridors did not appear until Publish was pressed. The public map now always reads live data.",
+      "Wall color changed from near-black (#1f2937) to light slate (#e2e8f0 builder / #cbd5e1 public) so walls are visible in dark-mode basemap. Previously walls were invisible against CARTO Dark Matter.",
+    ],
+    highlightsFi: [
+      "Ortho-rajoitus toimii nyt klikkauksen yhteydessä — vanhentunut sulkeuma korjattu viiteillä.",
+      "Huoneet näkyvät julkisella kartalla välittömästi ilman Publish-painiketta.",
+      "Seinät näkyvät myös tummassa tilassa — väri vaihdettu vaaleaksi liuskekiveksi.",
+    ],
+  },
+  {
+    version: "3.33.0",
+    date: "August 2026",
+    title: "Structure tab, corridors as first-class elements, ortho+snap fix, LayersToggle removed from public map",
+    titleFi: "Structure-välilehti, käytävät omana elementtinä, ortho+snap korjaus",
+    highlights: [
+      "Infra tab renamed to Structure. Corridors (drawn with C) now appear HERE as first-class structural elements — not mixed into the Rooms list. Filter chips grouped: structural (Corridors, Paths, Walls, Stairs, Elevators), access (Doors, Entrances, Exits), then services.",
+      "Rooms tab now excludes corridors. The Rooms list shows only actual spaces; corridor-type rooms are managed in the Structure tab with their own property panel access.",
+      "Ortho+snap conflict fixed: when Ortho is active after the first edge, vertex-snap no longer hijacks the projection base. Ortho now projects the raw cursor, so the perpendicular constraint is clean. Ghost preview has the same fix.",
+      "Corridor ghost preview: the drawn-segment ghost is now slate-grey (#64748b) instead of blue to visually distinguish corridor drawing from room drawing. Ghost was also missing entirely for the corridor tool — fixed.",
+      "LayersToggle removed from the public map temporarily. The toggle button is still available in the builder (top-right rail).",
+    ],
+    highlightsFi: [
+      "Infra-välilehti nimetty 'Structure':ksi. Käytävät (C-työkalu) näkyvät täällä, eivät enää Rooms-listassa.",
+      "Ortho+snap-konflikti korjattu: ortho käyttää nyt raakaa kursorin sijaintia projektioon.",
+      "Käytävän ghost-esikatselu oli puuttunut — korjattu. Käytävä näkyy harmaana, huone sinisenä.",
+      "LayersToggle poistettu julkiselta kartalta väliaikaisesti.",
+    ],
+  },
+  {
+    version: "3.32.1",
+    date: "August 2026",
+    title: "Ortho v3 (perpendicular to any edge), Infra tab replaces Layers+POIs",
+    titleFi: "Ortho v3 (kohtisuora edelliseen), Infra-välilehti korvaa Layers+POIs",
+    latest: false,
+    highlights: [
+      "Ortho v3 — finally works the way user expected. First edge (2 clicks) is FREE, so you can lay down a wall at any angle. Every subsequent click snaps to the PERPENDICULAR of the previous edge — not axis-aligned. Draw a rectangular corridor at 30° off-north by clicking, dragging in any direction, click, then every subsequent click is locked 90° from the last edge. Ghost preview mirrors the snap.",
+      "Deleted Layers tab from LeftSidebar — floor filter + visibility toggles already live in the top-right rail, the sidebar version was a duplicate.",
+      "Renamed POIs tab → Infra (Infrastructure). Now clearly holds hallways, walls, corridors, doors, stairs, elevators, entrances, and POI chips — everything that isn't a Building or Room polygon. Prevents \"where do I find walls?\" confusion.",
+      "Walls have been in the Infra tab (PoiList) since 3.28.1 with a Walls filter chip — verified rendering path. If they still don't show for you, hit \"Clear all\" in the Nav-graph section then reload — sometimes a stale localStorage entry hides them.",
+    ],
+    highlightsFi: [
+      "Ortho v3: ensimmäinen seinä vapaasti mihin suuntaan tahansa, sen jälkeen jokainen klikkaus kohtisuoraan edelliseen — myös vinoille rakennuksille",
+      "Layers-välilehti poistettu, POIs-välilehti nimetty uudelleen \"Infra\":ksi — käytävät, seinät, ovet, portaat, hissit, POI:t yhdessä",
+    ],
+  },
   {
     version: "3.32.0",
     date: "August 2026",
     title: "Corridor tool (traced polygon hallway), 3D floor-switch nudge, hover-flicker fix",
     titleFi: "Corridor-työkalu (piirrä käytävä huoneena), 3D floor-vaihdon animaatio",
-    latest: true,
+    latest: false,
     highlights: [
       "New Corridor tool (hotkey C) in the builder — trace corridor corners like a Room, Enter to close. Saves as a Room with type=\"hallway\" and a slate-grey color; renders as a filled polygon on both the builder + public map (not just a line). Use it for any walkable area you want to look like a real corridor, not a stroke.",
       "3D mode: floor changes now trigger a small camera pitch-up nudge (+8° for 240ms, back for 260ms) so the level switch reads as a visible transition instead of an instant swap. Only fires when 3D is on; 2D top-down stays instant.",

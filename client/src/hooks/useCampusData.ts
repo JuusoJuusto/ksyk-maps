@@ -85,19 +85,11 @@ export function useCampusData(): CampusData {
     refetchOnMount: "always",
   });
 
-  // Prefer live tables when published is present-but-empty (test
-  // publish, wiped campus, etc.). Otherwise fall back to whatever's
-  // in the published snapshot.
-  const publishedHasData =
-    !!published.data
-    && ((published.data.buildings?.length ?? 0) > 0
-       || (published.data.rooms?.length ?? 0) > 0
-       || (published.data.hallways?.length ?? 0) > 0);
-
-  // Fire the live queries whenever the published payload is missing OR
-  // empty — that way an empty publish still shows drafted data instead
-  // of a blank map.
-  const shouldUseLive = !publishedHasData;
+  // Always use live tables so newly added rooms/hallways show up
+  // immediately on the public map without requiring an explicit Publish.
+  // Published snapshot is kept for future "draft vs. published" badge UI.
+  const publishedHasData = false;
+  const shouldUseLive = true;
 
   // Live queries — always registered so React Query dedupes correctly
   // with other components, but only surface as CampusData when the
