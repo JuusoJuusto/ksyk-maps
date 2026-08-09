@@ -274,6 +274,13 @@ function BuilderWorkspace() {
   // clicks snap to horizontal/vertical from the previous vertex.
   // Off → free-form clicks (current behaviour).
   const [orthoEnabled, setOrthoEnabled] = useState(false);
+  // Refs so the click-handler useEffect (deps: [activeTool, mapReady])
+  // can read the LATEST waypoints and orthoEnabled without being
+  // re-registered on every state change (stale-closure fix).
+  const waypointsRef = useRef<LngLat[]>([]);
+  waypointsRef.current = waypoints;
+  const orthoEnabledRef = useRef(false);
+  orthoEnabledRef.current = orthoEnabled;
   const [isPublishing, setIsPublishing] = useState(false);
   // MazeMap-style keyboard cheat sheet — toggled by "?" (Shift + /).
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -790,7 +797,7 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  "#1f2937",  // dark for walls
+            ["boolean", ["get", "isWall"], false],  "#e2e8f0",  // light gray — visible in dark mode
                                                      "#f59e0b",  // amber walkable
           ],
           "line-width": [
@@ -983,7 +990,9 @@ function BuilderWorkspace() {
         // the projection base when ortho is engaged; snap still applies
         // for the first free segment (waypoints.length < 2).
         const snap = snapTargetRef.current;
-        const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+        const wps = waypointsRef.current;
+        const orthoOn = orthoEnabledRef.current;
+        const useSnap = snap && !(orthoOn && wps.length >= 2);
         let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
@@ -991,9 +1000,9 @@ function BuilderWorkspace() {
         // rectangles work at any building orientation. First edge is
         // free (any direction); every subsequent click is locked 90°
         // from the last edge.
-        if (orthoEnabled && waypoints.length >= 2) {
-          const prev = waypoints[waypoints.length - 1];
-          const beforePrev = waypoints[waypoints.length - 2];
+        if (orthoOn && wps.length >= 2) {
+          const prev = wps[wps.length - 1];
+          const beforePrev = wps[wps.length - 2];
           const eLng = prev.lng - beforePrev.lng;
           const eLat = prev.lat - beforePrev.lat;
           const eLen = Math.hypot(eLng, eLat);

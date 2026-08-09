@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.33.0";
+export const APP_VERSION = "3.34.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.34.0",
+    date: "August 2026",
+    title: "Ortho click fix, rooms visible on public map, walls visible in both modes",
+    titleFi: "Ortho-klikkauskorjaus, huoneet julkisella kartalla, seinät näkyvät molemmissa tiloissa",
+    latest: true,
+    highlights: [
+      "Ortho constraint now actually applies on click, not just in the ghost preview. The stale-closure bug (click handler captured old waypoints/orthoEnabled state) is fixed using refs — perpendicular snapping now works correctly from the second waypoint onwards.",
+      "Rooms now always visible on the public map. Previously the map served a published snapshot and newly drawn rooms/corridors did not appear until Publish was pressed. The public map now always reads live data.",
+      "Wall color changed from near-black (#1f2937) to light slate (#e2e8f0 builder / #cbd5e1 public) so walls are visible in dark-mode basemap. Previously walls were invisible against CARTO Dark Matter.",
+    ],
+    highlightsFi: [
+      "Ortho-rajoitus toimii nyt klikkauksen yhteydessä — vanhentunut sulkeuma korjattu viiteillä.",
+      "Huoneet näkyvät julkisella kartalla välittömästi ilman Publish-painiketta.",
+      "Seinät näkyvät myös tummassa tilassa — väri vaihdettu vaaleaksi liuskekiveksi.",
+    ],
+  },
   {
     version: "3.33.0",
     date: "August 2026",
     title: "Structure tab, corridors as first-class elements, ortho+snap fix, LayersToggle removed from public map",
     titleFi: "Structure-välilehti, käytävät omana elementtinä, ortho+snap korjaus",
-    latest: true,
     highlights: [
       "Infra tab renamed to Structure. Corridors (drawn with C) now appear HERE as first-class structural elements — not mixed into the Rooms list. Filter chips grouped: structural (Corridors, Paths, Walls, Stairs, Elevators), access (Doors, Entrances, Exits), then services.",
       "Rooms tab now excludes corridors. The Rooms list shows only actual spaces; corridor-type rooms are managed in the Structure tab with their own property panel access.",
