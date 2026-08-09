@@ -29,6 +29,7 @@ import { resolveCategoryStyle } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides, readPoiCategoryFilters, hiddenPoiKindsFromFilter } from "@/components/LayersToggle";
 import { useCampusData } from "@/hooks/useCampusData";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 const SOURCES = {
   buildings: "campus-buildings",
@@ -100,6 +101,7 @@ export default function CampusOverlay({
   // Single source of truth — reads from the last-published snapshot
   // when available, live tables otherwise. See useCampusData.ts.
   const { buildings, rooms, hallways, stairs, elevators, doors, pois } = useCampusData();
+  const { darkMode } = useDarkMode();
   // Layer visibility from the LeftSidebar Layers tab. Missing / dropped
   // layers default to visible so overlay never becomes accidentally
   // blank when the layer table is empty.
@@ -155,6 +157,7 @@ export default function CampusOverlay({
     const install = () => {
       installBuildings(map, buildings);
       installHallways(map, hallways);
+      installCorridors(map, rooms, activeFloor ?? null);
       installRooms(map, rooms, activeFloor ?? null);
       // Stair + elevator 3D towers — sit above buildings so users see
       // where vertical transit lives at a glance in 3D.
@@ -408,6 +411,13 @@ export default function CampusOverlay({
       window.cancelAnimationFrame(raf);
     };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, poiFilter, is3D]);
+
+  // Update wall line color when dark mode toggles without reinstalling layers.
+  useEffect(() => {
+    if (!map) return;
+    const wallColor = darkMode ? "#94a3b8" : "#374151";
+    try { map.setPaintProperty("campus-walls-line", "line-color", wallColor); } catch { /* layer may not exist yet */ }
+  }, [map, darkMode]);
 
   return null;
 }
@@ -988,7 +998,7 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
     type: "line",
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": "#cbd5e1",
+      "line-color": "#374151",
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 6],
       "line-opacity": 0.95,
     },
@@ -1576,12 +1586,56 @@ function colorForRoomType(type: string | null | undefined): string | null {
   return ROOM_TYPE_COLORS[type.toLowerCase().trim()] ?? null;
 }
 
+function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
+  const corridors = rooms.filter(
+    (r) => r.type === "hallway" && r.points && r.points.length >= 3
+  ).filter((r) => activeFloor === null || r.floor == null || r.floor === activeFloor);
+
+  const data = {
+    type: "FeatureCollection" as const,
+    features: corridors.map((r) => ({
+      id: r.id,
+      type: "Feature" as const,
+      geometry: {
+        type: "Polygon" as const,
+        coordinates: [[
+          ...r.points!.map((p) => [p.lng, p.lat]),
+          [r.points![0].lng, r.points![0].lat],
+        ]],
+      },
+      properties: { id: r.id, floor: r.floor ?? 0 },
+    })),
+  };
+  upsertGeoJSONSource(map, "campus-corridors", data);
+  addLayerIfMissing(map, {
+    id: "campus-corridors-fill",
+    source: "campus-corridors",
+    type: "fill",
+    paint: {
+      "fill-color": "#e2e8f0",
+      "fill-opacity": 0.55,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: "campus-corridors-outline",
+    source: "campus-corridors",
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#94a3b8",
+      "line-width": 1,
+      "line-opacity": 0.7,
+    },
+  });
+}
+
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
-      .filter((r) => activeFloor === null || r.floor === activeFloor)
+      .filter((r) => r.type !== "hallway") // corridors rendered separately
+      .filter((r) => activeFloor === null || r.floor == null || r.floor === activeFloor)
       .map((r) => {
         const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
         return {

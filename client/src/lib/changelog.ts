@@ -10,24 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.34.0";
+export const APP_VERSION = "3.35.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "3.34.0",
+    version: "3.35.0",
     date: "August 2026",
-    title: "Ortho click fix, rooms visible on public map, walls visible in both modes",
-    titleFi: "Ortho-klikkauskorjaus, huoneet julkisella kartalla, seinät näkyvät molemmissa tiloissa",
+    title: "Ortho axis-aligned, corridor separation, POIs tab, wall dark-mode fix, auth fix",
+    titleFi: "Ortho suorakulmaiseksi, käytävät erillään, POI-välilehti, seinävärikorjaus, auth-korjaus",
     latest: true,
     highlights: [
-      "Ortho constraint now actually applies on click, not just in the ghost preview. The stale-closure bug (click handler captured old waypoints/orthoEnabled state) is fixed using refs — perpendicular snapping now works correctly from the second waypoint onwards.",
-      "Rooms now always visible on the public map. Previously the map served a published snapshot and newly drawn rooms/corridors did not appear until Publish was pressed. The public map now always reads live data.",
-      "Wall color changed from near-black (#1f2937) to light slate (#e2e8f0 builder / #cbd5e1 public) so walls are visible in dark-mode basemap. Previously walls were invisible against CARTO Dark Matter.",
+      "Ortho tool is now truly axis-aligned (horizontal/vertical) — click two points and every subsequent click locks to either the H or V axis from the previous point. Ghost preview matches the committed result.",
+      "Corridors (type=hallway) are now separated from rooms in the public map renderer. They render as translucent walkable areas, not as colored room fills, and clicking them no longer opens a room info sheet.",
+      "Wall colors are now dark-mode aware. Builder and public map use dark gray (#374151) on light basemap and light slate (#94a3b8) on Dark Matter — updated live via setPaintProperty when the theme toggles.",
+      "New POIs tab in the builder sidebar holds stairs, elevators, doors, and all generic service POIs. Structure tab now contains only corridors, hallway paths, and walls.",
+      "Owner and editor roles can now create/edit/delete rooms and hallways (previously only admin could — auth guard fixed for all 7 endpoints).",
     ],
     highlightsFi: [
-      "Ortho-rajoitus toimii nyt klikkauksen yhteydessä — vanhentunut sulkeuma korjattu viiteillä.",
-      "Huoneet näkyvät julkisella kartalla välittömästi ilman Publish-painiketta.",
-      "Seinät näkyvät myös tummassa tilassa — väri vaihdettu vaaleaksi liuskekiveksi.",
+      "Ortho on nyt aidosti vaaka/pystysuuntainen — jokainen klikkaus lukittuu H tai V-akselille edellisestä pisteestä.",
+      "Käytävät erottuvat nyt huoneista julkisella kartalla — läpinäkyvät kulkualueet, ei värilliset huonetäytöt.",
+      "Seinävärit vaihtuvat tumman tilan mukaan automaattisesti.",
+      "Uusi POI-välilehti rakentajassa: portaat, hissit, ovet ja palvelupisteet. Structure-välilehti sisältää vain käytävät, polut ja seinät.",
+      "Omistaja- ja muokkaajaroolit voivat nyt luoda/muokata/poistaa huoneita ja käytäviä.",
     ],
   },
   {

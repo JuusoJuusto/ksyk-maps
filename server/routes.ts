@@ -1022,8 +1022,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/rooms', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
       const validatedData = insertRoomSchema.parse(req.body);
@@ -1038,8 +1038,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
       const validatedData = insertRoomSchema.partial().parse(req.body);
@@ -1055,8 +1055,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
       const validatedData = insertRoomSchema.partial().parse(req.body);
       const room = await storage.updateRoom(req.params.id, validatedData);
@@ -1070,8 +1070,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
       await storage.deleteRoom(req.params.id);
@@ -1185,8 +1185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/hallways', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
       const hallwayData = insertHallwaySchema.parse(req.body);
@@ -1201,8 +1201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
       await storage.deleteHallway(req.params.id);
@@ -1217,7 +1217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) return res.status(403).json({ message: "Admin, owner, or editor access required" });
       const data = insertHallwaySchema.partial().parse(req.body);
       const hallway = await (storage as any).updateHallway?.(req.params.id, data);
       if (!hallway) return res.status(404).json({ message: "Not found" });

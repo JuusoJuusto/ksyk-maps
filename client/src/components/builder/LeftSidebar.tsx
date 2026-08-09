@@ -29,7 +29,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "history" | "settings";
+export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "poi-list" | "history" | "settings";
 
 export interface LeftSidebarSelection {
   // v3.28.1 — point-POI kinds added so the property panel can edit
@@ -52,11 +52,11 @@ export interface LeftSidebarProps {
 const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
   { id: "buildings", label: "Buildings", Icon: Building2 },
   { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
-  // Structure tab: every drawn structural element — corridors (filled
-  // walkable areas), hallway lines, walls, stairs, elevators, doors,
-  // entrances + free-form POI chips. Corridors appear HERE (not in
-  // Rooms) since they're navigation infrastructure, not spaces.
+  // Structure: drawn structural elements — corridors, hallway lines, walls.
   { id: "pois",      label: "Structure", Icon: LayoutGrid },
+  // POIs: point-of-interest elements — stairs, elevators, doors, entrances,
+  // generic service POIs (info, cafe, restroom, etc.).
+  { id: "poi-list",  label: "POIs",      Icon: RouteIcon },
   { id: "history",   label: "History",   Icon: History },
   { id: "settings",  label: "Defaults",  Icon: Settings2 },
 ];
@@ -177,7 +177,8 @@ export default function LeftSidebar({
       <div className="flex-1 overflow-y-auto">
         {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
-        {activeTab === "pois"      && <PoiList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "pois"      && <StructureList query={query} selection={selection} onSelect={onSelect} />}
+        {activeTab === "poi-list"  && <PoiList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "history"   && <HistoryList query={query} onRestore={onRestoreVersion} />}
         {activeTab === "settings"  && (
           <div className="p-3">
@@ -320,13 +321,12 @@ interface UnifiedPoi {
   focusLng: number | null;
 }
 
-function PoiList({
+// ── Structure tab: corridors + hallway lines + walls ─────────────────
+function StructureList({
   query, selection, onSelect,
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const [kindFilter, setKindFilter] = useState<"all" | PoiKind>("all");
 
-  // Corridors are rooms with type="hallway" — fetch from rooms API
-  // and show here (Structure tab) rather than in the Rooms tab.
   const { data: allRooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms"),
   });
@@ -335,6 +335,86 @@ function PoiList({
   const { data: hallways = [] } = useQuery<Hallway[]>({
     queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways"),
   });
+
+  const items = useMemo<UnifiedPoi[]>(() => {
+    const out: UnifiedPoi[] = [];
+    for (const r of corridorRooms) {
+      const pts = r.points ?? [];
+      const centLat = pts.length ? pts.reduce((s, p) => s + p.lat, 0) / pts.length : null;
+      const centLng = pts.length ? pts.reduce((s, p) => s + p.lng, 0) / pts.length : null;
+      out.push({
+        id: r.id, kind: "corridor",
+        title: r.roomNumber ? `Corridor ${r.roomNumber}` : `Corridor ${r.id.slice(0, 6)}`,
+        subtitle: [r.name, r.floor != null ? `Floor ${r.floor}` : null].filter(Boolean).join(" · "),
+        color: "#64748b", floor: r.floor ?? null, focusLat: centLat, focusLng: centLng,
+      });
+    }
+    for (const h of hallways) {
+      const isWall = h.surface === "wall";
+      out.push({
+        id: h.id, kind: isWall ? "wall" : "hallway",
+        title: isWall ? `Wall ${h.id.slice(0, 6)}` : `Hallway ${h.id.slice(0, 6)}`,
+        subtitle: [h.width != null ? `${h.width} m` : null, !isWall && h.surface ? h.surface : null, h.floor != null ? `Floor ${h.floor}` : null].filter(Boolean).join(" · "),
+        color: isWall ? "#1f2937" : "#f59e0b",
+        floor: h.floor ?? null, focusLat: (h.startY + h.endY) / 2, focusLng: (h.startX + h.endX) / 2,
+      });
+    }
+    return out;
+  }, [corridorRooms, hallways]);
+
+  const q = query.trim().toLowerCase();
+  const filtered = items.filter((it) => {
+    if (kindFilter !== "all" && it.kind !== kindFilter) return false;
+    if (!q) return true;
+    return it.title.toLowerCase().includes(q) || it.subtitle.toLowerCase().includes(q);
+  });
+  const counts = useMemo(() => { const c: Record<string, number> = { all: items.length }; for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1; return c; }, [items]);
+  const allStructureChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
+    { id: "all" as const, label: "All", Icon: Layers },
+    { id: "corridor" as const, label: "Corridors", Icon: LayoutGrid },
+    { id: "hallway" as const, label: "Paths", Icon: RouteIcon },
+    { id: "wall" as const, label: "Walls", Icon: StretchHorizontal },
+  ];
+  const chips = allStructureChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
+
+  const onRowClick = (it: UnifiedPoi) => {
+    if (it.kind === "hallway" || it.kind === "wall") {
+      onSelect({ kind: "hallway", id: it.id });
+    } else if (it.kind === "corridor") {
+      onSelect({ kind: "room", id: it.id });
+      if (it.focusLat != null && it.focusLng != null) {
+        try { window.dispatchEvent(new CustomEvent("ksyk:focus-point", { detail: { lat: it.focusLat, lng: it.focusLng, kind: "room", id: it.id } })); } catch { /* SSR */ }
+      }
+    }
+  };
+
+  if (items.length === 0) return <EmptyState message="No structure elements yet." hint="Draw corridors, hallways, or walls with the Structure tools." />;
+  return (
+    <div>
+      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 border-b border-border">
+        {chips.map((c) => { const active = kindFilter === c.id; const Icon = c.Icon; return (
+          <button key={c.id} type="button" onClick={() => setKindFilter(c.id)}
+            className={cn("shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full transition-colors flex items-center gap-1", active ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
+            <Icon className="h-3 w-3" />{c.label}<span className="text-[9px] opacity-70 tabular-nums">{counts[c.id] ?? 0}</span>
+          </button>
+        ); })}
+      </div>
+      <ul className="p-1.5 space-y-0.5">
+        {filtered.map((it) => {
+          const isActive = it.kind === "hallway" || it.kind === "wall" ? selection?.kind === "hallway" && selection.id === it.id : selection?.kind === "room" && selection.id === it.id;
+          return <li key={`${it.kind}:${it.id}`}><Row active={isActive} onClick={() => onRowClick(it)} leading={<Swatch color={it.color} />} title={it.title} subtitle={it.subtitle} /></li>;
+        })}
+      </ul>
+    </div>
+  );
+}
+
+// ── POIs tab: stairs, elevators, doors, generic POIs ─────────────────
+function PoiList({
+  query, selection, onSelect,
+}: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
+  const [kindFilter, setKindFilter] = useState<"all" | PoiKind>("all");
+
   const { data: doors = [] } = useQuery<Door[]>({
     queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors"),
   });
@@ -344,9 +424,6 @@ function PoiList({
   const { data: elevators = [] } = useQuery<Elevator[]>({
     queryKey: ["/api/elevators"], queryFn: () => fetchList<Elevator>("/api/elevators"),
   });
-  // Free-form POIs — info, reception, restroom_*, cafe, water, etc.
-  // Stored in the campus_pois collection via /api/pois. Each row carries
-  // a kind string + position (lat/lng).
   const { data: pois = [] } = useQuery<Array<{ id: string; kind: string; position?: { lat?: number; lng?: number }; floor?: number | null; label?: string | null }>>({
     queryKey: ["/api/pois"],
     queryFn: () => fetchList("/api/pois"),
@@ -354,84 +431,34 @@ function PoiList({
 
   const items = useMemo<UnifiedPoi[]>(() => {
     const out: UnifiedPoi[] = [];
-    // Corridors first — drawn polygon walkways, treated as first-class
-    // structural elements distinct from Rooms.
-    for (const r of corridorRooms) {
-      const pts = r.points ?? [];
-      const centLat = pts.length ? pts.reduce((s, p) => s + p.lat, 0) / pts.length : null;
-      const centLng = pts.length ? pts.reduce((s, p) => s + p.lng, 0) / pts.length : null;
-      out.push({
-        id: r.id,
-        kind: "corridor",
-        title: r.roomNumber ? `Corridor ${r.roomNumber}` : `Corridor ${r.id.slice(0, 6)}`,
-        subtitle: [r.name, r.floor != null ? `Floor ${r.floor}` : null].filter(Boolean).join(" · "),
-        color: "#64748b", // slate-500
-        floor: r.floor ?? null,
-        focusLat: centLat,
-        focusLng: centLng,
-      });
-    }
-    for (const h of hallways) {
-      const isWall = h.surface === "wall";
-      out.push({
-        id: h.id,
-        kind: isWall ? "wall" : "hallway",
-        title: isWall ? `Wall ${h.id.slice(0, 6)}` : `Hallway ${h.id.slice(0, 6)}`,
-        subtitle: [
-          h.width != null ? `${h.width} m` : null,
-          !isWall && h.surface ? h.surface : null,
-          h.floor != null ? `Floor ${h.floor}` : null,
-        ].filter(Boolean).join(" · "),
-        color: isWall ? "#1f2937" : "#f59e0b",
-        floor: h.floor ?? null,
-        focusLat: (h.startY + h.endY) / 2,
-        focusLng: (h.startX + h.endX) / 2,
-      });
-    }
     for (const d of doors) {
-      // Doors created via the POI tool have empty connects; those we
-      // brand as "unattached" so users know to wire them. Widening
-      // the tuple type to string[] because Firestore doesn't enforce
-      // the tuple-of-2 constraint on real data.
       const emergency = d.emergencyExit === true;
       const connects = (d.connects as unknown as string[] | undefined);
       const orphan = !connects || connects.length === 0;
       out.push({
-        id: d.id,
-        kind: emergency ? "exit" : "door",
+        id: d.id, kind: emergency ? "exit" : "door",
         title: emergency ? `Emergency exit ${d.id.slice(0, 6)}` : `Door ${d.id.slice(0, 6)}`,
-        subtitle: [
-          d.floor != null ? `Floor ${d.floor}` : null,
-          orphan ? "unattached" : null,
-        ].filter(Boolean).join(" · "),
+        subtitle: [d.floor != null ? `Floor ${d.floor}` : null, orphan ? "unattached" : null].filter(Boolean).join(" · "),
         color: emergency ? "#dc2626" : "#4b5563",
-        floor: d.floor ?? null,
-        focusLat: d.position?.lat ?? null,
-        focusLng: d.position?.lng ?? null,
+        floor: d.floor ?? null, focusLat: d.position?.lat ?? null, focusLng: d.position?.lng ?? null,
       });
     }
     for (const s of stairs) {
       out.push({
-        id: s.id,
-        kind: "stair",
+        id: s.id, kind: "stair",
         title: `Stairs ${s.id.slice(0, 6)}`,
         subtitle: s.floors && s.floors.length > 0 ? `Floors ${s.floors.join(", ")}` : "no floors set",
         color: "#b45309",
-        floor: s.floors?.[0] ?? null,
-        focusLat: s.position?.lat ?? null,
-        focusLng: s.position?.lng ?? null,
+        floor: s.floors?.[0] ?? null, focusLat: s.position?.lat ?? null, focusLng: s.position?.lng ?? null,
       });
     }
     for (const e of elevators) {
       out.push({
-        id: e.id,
-        kind: "elevator",
+        id: e.id, kind: "elevator",
         title: e.name ?? `Elevator ${e.id.slice(0, 6)}`,
         subtitle: e.floors && e.floors.length > 0 ? `Floors ${e.floors.join(", ")}` : "no floors set",
         color: "#1d4ed8",
-        floor: e.floors?.[0] ?? null,
-        focusLat: e.position?.lat ?? null,
-        focusLng: e.position?.lng ?? null,
+        floor: e.floors?.[0] ?? null, focusLat: e.position?.lat ?? null, focusLng: e.position?.lng ?? null,
       });
     }
     // Free-form POIs — one row per campus_pois entry. Falls back to a
@@ -454,7 +481,7 @@ function PoiList({
       });
     }
     return out;
-  }, [corridorRooms, hallways, doors, stairs, elevators, pois]);
+  }, [doors, stairs, elevators, pois]);
 
   const q = query.trim().toLowerCase();
   const filtered = items.filter((it) => {
@@ -462,27 +489,15 @@ function PoiList({
     if (!q) return true;
     return it.title.toLowerCase().includes(q) || it.subtitle.toLowerCase().includes(q);
   });
+  const counts = useMemo(() => { const c: Record<string, number> = { all: items.length }; for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1; return c; }, [items]);
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: items.length };
-    for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1;
-    return c;
-  }, [items]);
-
-  // Chips grouped: structural elements first, then point-of-interest services.
   const allChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
     { id: "all",             label: "All",       Icon: Layers },
-    // ── Structural (drawn) ──────────────────────────
-    { id: "corridor",        label: "Corridors", Icon: LayoutGrid },
-    { id: "hallway",         label: "Paths",     Icon: RouteIcon },
-    { id: "wall",            label: "Walls",     Icon: StretchHorizontal },
     { id: "stair",           label: "Stairs",    Icon: StepForward },
     { id: "elevator",        label: "Elevators", Icon: MoveVertical },
-    // ── Access points ───────────────────────────────
     { id: "door",            label: "Doors",     Icon: DoorClosed },
     { id: "entrance",        label: "Entrances", Icon: LogIn },
     { id: "exit",            label: "Exits",     Icon: DoorOpen },
-    // ── Services / POIs ─────────────────────────────
     { id: "info",            label: "Info",      Icon: Info },
     { id: "reception",       label: "Reception", Icon: Phone },
     { id: "restroom_m",      label: "WC · M",    Icon: Accessibility },
@@ -501,83 +516,35 @@ function PoiList({
   const chips = allChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
 
   if (items.length === 0) {
-    return <EmptyState message="No POIs yet." hint="Draw hallways, walls, or click-place doors, stairs, elevators and entrances." />;
+    return <EmptyState message="No POIs yet." hint="Click-place doors, stairs, elevators, and entrances with the POI tools." />;
   }
 
   const onRowClick = (it: UnifiedPoi) => {
-    if (it.kind === "hallway" || it.kind === "wall") {
-      onSelect({ kind: "hallway", id: it.id });
-    } else if (it.kind === "corridor") {
-      // Corridors are stored as rooms — open the room property panel.
-      onSelect({ kind: "room", id: it.id });
-      if (it.focusLat != null && it.focusLng != null) {
-        try {
-          window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
-            detail: { lat: it.focusLat, lng: it.focusLng, kind: "room", id: it.id },
-          }));
-        } catch { /* SSR / old browser */ }
-      }
-    } else {
-      // Point POIs — select through LeftSidebarSelection so
-      // PropertyPanel opens the right editor.
-      const selKind: LeftSidebarSelection["kind"] =
-        it.kind === "door" || it.kind === "exit" || it.kind === "entrance" ? "door" :
-        it.kind === "stair" ? "stair" :
-        it.kind === "elevator" ? "elevator" :
-        "poi";
-      onSelect({ kind: selKind, id: it.id });
-      if (it.focusLat != null && it.focusLng != null) {
-        try {
-          window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
-            detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id },
-          }));
-        } catch { /* SSR / old browser */ }
-      }
+    const selKind: LeftSidebarSelection["kind"] =
+      it.kind === "door" || it.kind === "exit" || it.kind === "entrance" ? "door" :
+      it.kind === "stair" ? "stair" :
+      it.kind === "elevator" ? "elevator" :
+      "poi";
+    onSelect({ kind: selKind, id: it.id });
+    if (it.focusLat != null && it.focusLng != null) {
+      try {
+        window.dispatchEvent(new CustomEvent("ksyk:focus-point", {
+          detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id },
+        }));
+      } catch { /* SSR / old browser */ }
     }
   };
 
   return (
     <div>
-      {/* v3.31.3 — Nav-graph management: nodes are per-browser
-       *  localStorage (`ksyk_nav_graph_v1`), not DB. If the user
-       *  built up nav nodes and wants to start over, this is the
-       *  fastest path. */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Nav graph (per-browser)
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            if (!confirm("Clear ALL nav nodes + edges from this browser? (They're only stored locally, not in the database.)")) return;
-            try {
-              window.localStorage.removeItem("ksyk_nav_graph_v1");
-              window.dispatchEvent(new CustomEvent("ksyk:nav-graph-change"));
-            } catch { /* quota / private mode */ }
-          }}
-          className="text-[10px] font-semibold px-2 py-0.5 rounded border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
-        >
-          Clear all
-        </button>
-      </div>
-
-      {/* Kind filter chips — same visual language as the search dropdown. */}
       <div className="flex gap-1 overflow-x-auto px-2 py-1.5 border-b border-border">
         {chips.map((c) => {
           const active = kindFilter === c.id;
           const Icon = c.Icon;
           return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setKindFilter(c.id)}
-              className={cn(
-                "shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full transition-colors flex items-center gap-1",
-                active
-                  ? "bg-blue-600 text-white"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70",
-              )}
-            >
+            <button key={c.id} type="button" onClick={() => setKindFilter(c.id)}
+              className={cn("shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full transition-colors flex items-center gap-1",
+                active ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
               <Icon className="h-3 w-3" />
               {c.label}
               <span className="text-[9px] opacity-70 tabular-nums">{counts[c.id] ?? 0}</span>
@@ -585,27 +552,12 @@ function PoiList({
           );
         })}
       </div>
-
       <ul className="p-1.5 space-y-0.5">
         {filtered.map((it) => {
-          const isActive =
-            it.kind === "hallway" || it.kind === "wall"
-              ? selection?.kind === "hallway" && selection.id === it.id
-              : it.kind === "corridor"
-              ? selection?.kind === "room" && selection.id === it.id
-              : selection?.id === it.id &&
-                selection?.kind !== "building" &&
-                selection?.kind !== "room" &&
-                selection?.kind !== "hallway";
+          const isActive = selection?.id === it.id && selection?.kind !== "building" && selection?.kind !== "room" && selection?.kind !== "hallway";
           return (
             <li key={`${it.kind}:${it.id}`}>
-              <Row
-                active={isActive}
-                onClick={() => onRowClick(it)}
-                leading={<Swatch color={it.color} />}
-                title={it.title}
-                subtitle={it.subtitle}
-              />
+              <Row active={isActive} onClick={() => onRowClick(it)} leading={<Swatch color={it.color} />} title={it.title} subtitle={it.subtitle} />
             </li>
           );
         })}
