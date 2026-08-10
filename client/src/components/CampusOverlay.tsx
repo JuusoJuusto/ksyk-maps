@@ -1697,6 +1697,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "FeatureCollection" as const,
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
+      .filter((r) => r.type !== "hallway") // corridors rendered separately
       .filter((r) => {
         if (activeFloor === null) return true;
         return (r.floor ?? 1) <= activeFloor;
@@ -1767,10 +1768,17 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-antialias": true,
     },
   });
-  // Room outlines removed by request — see MazeMap-style comment above.
-  // Keeping the layer id in LAYERS.roomsOutline for backwards-compat with
-  // the visibility toggles; installer just skips it now.
-  void LAYERS.roomsOutline;
+  addLayerIfMissing(map, {
+    id: LAYERS.roomsOutline,
+    source: SOURCES.rooms,
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": ["get", "color"],
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 2, 22, 3],
+      "line-opacity": 0.85,
+    },
+  });
 
   // v3.26.3 — hover halo ring around the room the cursor is on. Only
   // renders when feature-state.hover is true; invisible otherwise so
@@ -2089,7 +2097,7 @@ function installPOIs(
       "circle-stroke-width": 2,
       "circle-opacity": 1,
     },
-    minzoom: 16,
+    minzoom: 14,
   });
   addLayerIfMissing(map, {
     id: LAYERS.poisIcon,
@@ -2110,7 +2118,7 @@ function installPOIs(
       "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
       "text-translate-anchor": "viewport",
     },
-    minzoom: 16,
+    minzoom: 14,
   });
   // v3.30.1 — pin TAIL. A small ▼ glyph rendered at the actual
   // coordinate points down to the ground so the whole thing reads

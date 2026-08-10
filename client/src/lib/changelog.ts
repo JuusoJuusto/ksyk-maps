@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.35.0";
+export const APP_VERSION = "3.36.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.36.0",
+    date: "August 2026",
+    title: "Corridors in Structure tab, room outlines, POIs visible, rectangle creates rooms, ortho rectangle auto-close",
+    latest: true,
+    highlights: [
+      "Clicking a corridor in the builder now opens the Structure tab (not Rooms). Corridor type is stored in GeoJSON feature properties so the click handler can distinguish corridors from rooms.",
+      "Room outlines are back on the public map — thin colored borders matching the room fill.",
+      "POI markers (stairs, elevators, doors, info, etc.) now appear from zoom 14 instead of 16.",
+      "Rectangle tool (X) now creates a room when drawn inside a building footprint. Outside a building it still creates a building. Makes rectangular rooms trivial: one drag.",
+      "Ortho 3-point auto-close: pressing Enter with exactly 3 axis-aligned points in room/corridor mode auto-adds the 4th corner for a perfect rectangle.",
+      "Wall colors in builder now correctly apply on first load in dark mode (darkMode is now a dep of the hallways layer effect).",
+      "Corridors excluded from 3D room extrusions — they were rendering as raised slabs inside 3D buildings.",
+    ],
+    highlightsFi: [
+      "Käytäväalueen klikkaus avaa nyt Structure-välilehden, ei Rooms-välilehteä.",
+      "Huoneiden ääriviivat palautettu julkiselle kartalle.",
+      "POI-merkit näkyvät zoomitasolta 14 asti.",
+      "Suorakulmio-työkalu luo huoneen rakennuksen sisällä tai rakennuksen ulkona.",
+      "Ortho-tila sulkee kolmipistemäisen suorakulmion automaattisesti Enter-näppäimellä.",
+    ],
+  },
   {
     version: "3.35.0",
     date: "August 2026",
     title: "Ortho axis-aligned, corridor separation, POIs tab, wall dark-mode fix, auth fix",
     titleFi: "Ortho suorakulmaiseksi, käytävät erillään, POI-välilehti, seinävärikorjaus, auth-korjaus",
-    latest: true,
     highlights: [
       "Ortho tool is now truly axis-aligned (horizontal/vertical) — click two points and every subsequent click locks to either the H or V axis from the previous point. Ghost preview matches the committed result.",
       "Corridors (type=hallway) are now separated from rooms in the public map renderer. They render as translucent walkable areas, not as colored room fills, and clicking them no longer opens a room info sheet.",
