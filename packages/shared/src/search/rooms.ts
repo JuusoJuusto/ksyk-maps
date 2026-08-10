@@ -96,17 +96,22 @@ export function buildRoomSearchIndex(
     const nameParts = [room.name, room.nameEn, room.nameFi, room.displayName]
       .filter((s): s is string => !!s && s.length > 0);
     const uniqueNames = Array.from(new Set(nameParts.map((n) => n.trim()))).filter(Boolean);
-    const primaryTitle =
+    const primaryName =
       uniqueNames.length > 0
         ? uniqueNames.join(" ")
-        : (room.roomNumber || "(unnamed room)");
+        : null;
+    // Show "101 — Physics Lab" so searching the number highlights it in
+    // the title, not buried in the subtitle. Pure-number rooms still just
+    // show the number without the dash.
+    const primaryTitle = primaryName
+      ? (room.roomNumber ? `${room.roomNumber} — ${primaryName}` : primaryName)
+      : (room.roomNumber || "(unnamed room)");
     idx.add({
       id: `room:${room.id}`,
       kind: "room",
       title: primaryTitle,
       subtitle: [
         building?.name ?? null,
-        room.roomNumber || null,
         room.floor !== undefined ? `Floor ${room.floor}` : null,
         room.type ?? null,
       ].filter(Boolean).join(" — "),

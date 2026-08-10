@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.43.0 — fix builder auth gate, localStorage fallback
-when /api/auth/user returns 401 (cross-origin Vercel session issue).
+Bump reason: v3.44.0 — line tool v2 (select/delete/undo/persist),
+search room number in title, builder Ctrl+Z keyboard shortcut.
 
-Timestamp: 1786740900
-Build: FORCE_REBUILD_v3.43.0_AUTH_GATE_FIX
+Timestamp: 1786742000
+Build: FORCE_REBUILD_v3.44.0_LINE_TOOL_V2_SEARCH_NUMBER

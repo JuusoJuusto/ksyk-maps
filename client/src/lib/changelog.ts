@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.43.0";
+export const APP_VERSION = "3.44.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.44.0",
+    date: "August 2026",
+    title: "Line tool v2, search shows room number, builder polish",
+    latest: true,
+    highlights: [
+      "Line tool (L) fully reworked: construction lines now persist through page refreshes (sessionStorage). Click a line in Select mode to select it (rose halo + banner); Del removes just that line. Ctrl+Z while the line tool is active undoes the last saved line. The coach chip now shows point count and how many lines are saved. Proper pink badge in the toolbar. Shortcuts overlay updated.",
+      "Search: room number now appears in the result title alongside the name — e.g. '101 — Physics Lab' instead of just 'Physics Lab'. Searching the number highlights it directly in the title. Subtitle is cleaner (no duplicate number).",
+      "Ctrl+Z / Ctrl+Shift+Z now work as keyboard shortcuts in the builder without needing to click the toolbar buttons — undo/redo DB mutations or the last construction line depending on context.",
+      "Builder keyboard cheat sheet updated with line tool, Ctrl+Z line undo, Ctrl+Shift+Z redo, and Ctrl+L clear-all shortcuts.",
+    ],
+  },
   {
     version: "3.43.0",
     date: "August 2026",
     title: "Fix: builder auth gate — localStorage fallback when server session unavailable",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: the builder was inaccessible after the v3.42.0 security change. The server-side /api/auth/user check returns 401 on Vercel cross-origin deployments where the session cookie isn't forwarded. Auth gate now tries the server first; if the server returns 401 or is unreachable, it falls back to the localStorage token that the admin login flow always sets. A 200 response with a non-admin role still denies access.",
     ],

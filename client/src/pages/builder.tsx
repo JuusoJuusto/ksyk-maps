@@ -58,6 +58,7 @@ import {
   Printer,
   Flag,
   Layers as LayersIcon,
+  PenLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -374,8 +375,17 @@ function BuilderWorkspace() {
   // same point (ortho v8 consistency fix).
   const finalPosRef = useRef<{ lat: number; lng: number } | null>(null);
   // Temporary construction lines — session-only reference geometry drawn
-  // with the Line tool (L). Not saved to DB, cleared on refresh.
-  const [tempLines, setTempLines] = useState<Array<Array<{ lng: number; lat: number }>>>([]);
+  // with the Line tool (L). Persisted in sessionStorage so they survive
+  // within a browser session (page refresh), but cleared on tab close.
+  const [tempLines, setTempLines] = useState<Array<Array<{ lng: number; lat: number }>>>(() => {
+    try {
+      const saved = sessionStorage.getItem("ksyk-builder-temp-lines");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  // Index of the currently-selected construction line (select tool click).
+  // Null when nothing is selected. Delete/Backspace removes it.
+  const [selectedTempLineIdx, setSelectedTempLineIdx] = useState<number | null>(null);
   // Distance constraint — user-typed segment length in metres.
   // Non-null overrides where the next waypoint lands (along the cursor
   // direction from the last waypoint). Cleared on waypoint placement.
@@ -1010,6 +1020,15 @@ function BuilderWorkspace() {
           return { kind, id: hit.properties.id, isCorridor };
         };
         const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
+        // Construction line hit — select the clicked line (for deletion).
+        const tempLineLayers = ["builder-temp-lines-line"].filter((id) => map.getLayer(id));
+        const tempLineHit = tempLineLayers.length
+          ? map.queryRenderedFeatures(e.point, { layers: tempLineLayers })[0]
+          : null;
+        if (tempLineHit && typeof tempLineHit.properties?.id === "number") {
+          setSelectedTempLineIdx(tempLineHit.properties.id as number);
+          return;
+        }
         // Shift-click ADDs the hit to the multi-selection set (Figma
         // convention). No-shift click becomes the primary selection
         // and clears the extras.
@@ -1046,6 +1065,7 @@ function BuilderWorkspace() {
         } else if (!shiftHeld) {
           setSelection(null);
           clearMultiSelection();
+          setSelectedTempLineIdx(null);
         }
         return;
       }
@@ -1261,7 +1281,43 @@ function BuilderWorkspace() {
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
+        // Selected construction line → remove just that line.
+        const selIdx = selectedTempLineIdxRef.current;
+        if (selIdx !== null) {
+          setTempLines((prev) => prev.filter((_, i) => i !== selIdx));
+          setSelectedTempLineIdx(null);
+          return;
+        }
         onDeleteSelected();
+        return;
+      }
+      // Ctrl+Z — undo last construction line when line tool is active or
+      // a temp line is visible, before falling through to history undo.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "z" || e.key === "Z")) {
+        const lines = tempLinesRef.current;
+        if (lines.length > 0 && (activeTool === "line" || activeTool === "select")) {
+          e.preventDefault();
+          setTempLines((prev) => prev.slice(0, -1));
+          setSelectedTempLineIdx(null);
+          toast({ title: "Construction line undone" });
+          return;
+        }
+        // Fall through — the toolbar Undo button handles history.undo()
+        // but there's no keyboard binding for it here; add one now so
+        // Ctrl+Z works without clicking the toolbar.
+        e.preventDefault();
+        void (async () => {
+          const label = await history.undo();
+          if (label) toast({ title: "Undone", description: label });
+        })();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        void (async () => {
+          const label = await history.redo();
+          if (label) toast({ title: "Redone", description: label });
+        })();
         return;
       }
       // CAD-style arrow-key nudge — when a polygon is selected and no
@@ -1303,7 +1359,11 @@ function BuilderWorkspace() {
       // Ctrl+L: clear all construction lines
       if ((e.ctrlKey || e.metaKey) && (e.key === "l" || e.key === "L")) {
         e.preventDefault();
-        if (tempLines.length > 0) { setTempLines([]); toast({ title: "Construction lines cleared" }); }
+        if (tempLines.length > 0) {
+          setTempLines([]);
+          setSelectedTempLineIdx(null);
+          toast({ title: "Construction lines cleared" });
+        }
         return;
       }
       if (e.key === "v" || e.key === "V") setActiveTool("select");
@@ -1325,7 +1385,7 @@ function BuilderWorkspace() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTool, waypoints, selectedId]);
+  }, [activeTool, waypoints, selectedId, history]);
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const createBuilding = useMutation({
@@ -1623,7 +1683,8 @@ function BuilderWorkspace() {
     if (activeTool === "line" && waypoints.length >= 2) {
       setTempLines((prev) => [...prev, waypoints.map((w) => ({ lng: w.lng, lat: w.lat }))]);
       setWaypoints([]);
-      toast({ title: "Construction line added", description: "Ctrl+Z to undo · L to draw more · Esc to cancel line" });
+      // Tool stays active so the user can immediately draw another line.
+      toast({ title: "Construction line saved", description: "Click to draw more · Ctrl+Z to undo · Click line in Select to delete" });
       return;
     }
     if (activeTool === "hallway" && waypoints.length >= 2) {
@@ -2300,38 +2361,54 @@ function BuilderWorkspace() {
   }, [routePreview, navGraph.graph]);
 
   // ── Construction lines layer ─────────────────────────────────────
-  // Renders temp lines drawn with the Line tool (L) as thin pink dashed
-  // segments. Session-only — not saved to DB, clears on page refresh.
+  // Renders temp lines drawn with the Line tool (L) as pink dashed
+  // segments. Selected line (click in Select mode) renders brighter and
+  // thicker. Session-only — not saved to DB.
   useEffect(() => {
     if (!mapReady) return;
     const map = handleRef.current?.map;
     if (!map) return;
     const SRC = "builder-temp-lines";
     const LAYER = "builder-temp-lines-line";
+    const LAYER_SEL = "builder-temp-lines-selected";
     const fc = {
       type: "FeatureCollection" as const,
       features: tempLines.map((pts, i) => ({
         type: "Feature" as const,
         geometry: { type: "LineString" as const, coordinates: pts.map((p) => [p.lng, p.lat]) },
-        properties: { id: i },
+        properties: { id: i, selected: i === selectedTempLineIdx },
       })),
     };
     const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
-    if (src) { src.setData(fc as any); }
-    else {
+    if (src) {
+      src.setData(fc as any);
+    } else {
       map.addSource(SRC, { type: "geojson", data: fc as any });
+      // Base line — all construction lines.
       map.addLayer({
         id: LAYER, source: SRC, type: "line",
-        layout: { "line-cap": "round" },
+        layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#ec4899",
-          "line-width": 1.2,
-          "line-opacity": 0.85,
-          "line-dasharray": [6, 4],
+          "line-color": ["case", ["boolean", ["get", "selected"], false], "#f43f5e", "#ec4899"],
+          "line-width": ["case", ["boolean", ["get", "selected"], false], 2.5, 1.5],
+          "line-opacity": ["case", ["boolean", ["get", "selected"], false], 1, 0.8],
+          "line-dasharray": [6, 3],
         },
       });
+      // Selection halo — wider translucent ring on the selected line so
+      // it's obvious which one is selected even on a busy map.
+      map.addLayer({
+        id: LAYER_SEL, source: SRC, type: "line",
+        layout: { "line-cap": "round", "line-join": "round" },
+        filter: ["boolean", ["get", "selected"], false],
+        paint: {
+          "line-color": "#f43f5e",
+          "line-width": 8,
+          "line-opacity": 0.2,
+        },
+      }, LAYER); // insert BELOW the base line so the halo is behind it
     }
-  }, [mapReady, tempLines]);
+  }, [mapReady, tempLines, selectedTempLineIdx]);
 
   // Route preview layer sync — paints the computed path as a blue
   // line on top of the nav edges. Cleared automatically when the
@@ -2471,6 +2548,20 @@ function BuilderWorkspace() {
     requestAnimationFrame(tick);
     return () => { running = false; };
   }, []);
+
+  // Persist construction lines to sessionStorage so they survive page
+  // refreshes within the same browser session.
+  useEffect(() => {
+    try { sessionStorage.setItem("ksyk-builder-temp-lines", JSON.stringify(tempLines)); }
+    catch { /* quota exceeded — non-fatal */ }
+  }, [tempLines]);
+
+  // A ref so the keyboard handler (closed over activeTool) can read
+  // the latest tempLines without re-registering the listener.
+  const tempLinesRef = useRef<Array<Array<{ lng: number; lat: number }>>>([]);
+  tempLinesRef.current = tempLines;
+  const selectedTempLineIdxRef = useRef<number | null>(null);
+  selectedTempLineIdxRef.current = selectedTempLineIdx;
 
   // ── Import applier — replaces the campus with a MapPackage ─────
   const applyImport = useCallback(async (pkg: MapPackage) => {
@@ -2777,12 +2868,26 @@ function BuilderWorkspace() {
             </div>
           )}
 
+          {/* Selected construction line banner — Del to remove */}
+          {selectedTempLineIdx !== null && activeTool === "select" && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-semibold shadow-md pointer-events-none">
+              <PenLine className="h-3.5 w-3.5" />
+              Construction line selected — Del to delete · click elsewhere to deselect
+            </div>
+          )}
+
           {/* In-flight coach — MazeMap-style pill chip that surfaces
            *  the current tool, live progress, and the cancel hint.
            *  Everything a user needs to know while drawing lives here
            *  so they never have to hunt the StatusBar. */}
           {activeTool !== "select" && activeTool !== "pan" && (() => {
             const meta = coachMetaFor(activeTool, waypoints.length, measureDistanceMeters);
+            // For the line tool, append saved line count so the user knows
+            // how many reference lines are on the canvas.
+            if (activeTool === "line" && tempLines.length > 0) {
+              (meta as typeof meta & { text: string }).text +=
+                ` · ${tempLines.length} saved line${tempLines.length === 1 ? "" : "s"}`;
+            }
             const ToolIcon = meta.Icon;
             return (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-2xl shadow-lg overflow-hidden pointer-events-none flex items-stretch text-[13px] font-medium text-foreground">
@@ -3174,6 +3279,7 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
         { keys: ["H"], label: "Path (multi-vertex hallway)" },
         { keys: ["W"], label: "Wall" },
         { keys: ["M"], label: "Measure" },
+        { keys: ["L"], label: "Construction line (session-only)" },
         { keys: ["S"], label: "Stairs POI" },
         { keys: ["E"], label: "Elevator POI" },
         { keys: ["D"], label: "Door POI" },
@@ -3184,9 +3290,12 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
     {
       title: "Drawing",
       rows: [
-        { keys: ["Enter"], label: "Finish current shape" },
+        { keys: ["Enter"], label: "Finish current shape / save line" },
         { keys: ["Esc"], label: "Cancel current shape" },
-        { keys: ["Del"], label: "Delete selected feature" },
+        { keys: ["Del"], label: "Delete selected feature or line" },
+        { keys: ["⌘", "+", "Z"], label: "Undo last construction line (or mutation)" },
+        { keys: ["⌘", "+", "⇧", "+", "Z"], label: "Redo" },
+        { keys: ["⌘", "+", "L"], label: "Clear all construction lines" },
       ],
     },
     {
@@ -3411,6 +3520,7 @@ function coachMetaFor(
     case "poi-defibrillator": return { Icon: Zap,           name: "AED",        text: "Click to place defibrillator (AED)", badgeBg: "bg-rose-600" };
     case "poi-printer":       return { Icon: Printer,       name: "Printer",    text: "Click to place printer",             badgeBg: "bg-gray-600" };
     case "poi-meeting":       return { Icon: Flag,          name: "Meeting",    text: "Click to place meeting point",       badgeBg: "bg-emerald-600" };
+    case "line":              return { Icon: PenLine,       name: "Line",       text: n === 0 ? "Click to start · Enter to finish · Ctrl+Z to undo" : `${n} point${n === 1 ? "" : "s"} — Enter to save · click to add more`, badgeBg: "bg-pink-600" };
     case "node":              return { Icon: CircleIcon,    name: "Nav node",   text: "Click to drop a navigation node",    badgeBg: "bg-blue-600" };
     case "connect":           return { Icon: ZapIcon,       name: "Connect",    text: "Click a node, then another to link", badgeBg: "bg-blue-600" };
     default:                  return { Icon: MousePointer2, name: "Tool",       text: "Click on the map",                   badgeBg: "bg-blue-600" };
