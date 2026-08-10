@@ -378,7 +378,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  mobile without scrolling. */}
       {floorList.length > 1 && (
         <div
-          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-white dark:bg-gray-900 shadow-md"
+          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg shadow-black/10"
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
@@ -435,10 +435,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             onClick={toggle3D}
             title={is3D ? "2D flat" : "3D view"}
             className={cn(
-              "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
+              "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
               is3D
-                ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
-                : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+                ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
+                : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
             )}
           >
             <span className="text-[11px] font-bold tabular-nums">
@@ -451,14 +451,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             aria-label="Reset view to campus defaults"
             onClick={recenter}
             title="Reset view — recenter, zoom, rotate to defaults"
-            className="w-11 h-11 rounded-2xl border border-border bg-card text-foreground shadow-sm flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+            className="w-11 h-11 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
           >
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
         </div>
 
         {/* Zoom in / out — attached pair, one rounded chip. */}
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md shadow-black/10">
           <button
             type="button"
             onClick={() => {
@@ -494,10 +494,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           aria-pressed={showNav}
           title="Directions"
           className={cn(
-            "w-11 h-11 rounded-2xl border shadow-sm flex items-center justify-center transition-colors active:scale-[0.97]",
+            "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
             showNav
-              ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/25"
-              : "bg-card border-border text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+              ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
+              : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
           )}
         >
           <Navigation2 className="h-[19px] w-[19px]" strokeWidth={2.25} />

@@ -65,7 +65,7 @@ const ROUTE_STEPS_SOURCE_ID = "nav-route-steps";
 const ROUTE_STEPS_LAYER_ID = "nav-route-steps-layer";
 
 export default function NavigationPanel({ map, onClose, searchActive = false }: NavigationPanelProps) {
-  // Measure header height so the panel sits right under it on mobile.
+  // Measure header height so the desktop panel sits right under it.
   const [headerBottom, setHeaderBottom] = useState<number>(120);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -87,6 +87,20 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       ro?.disconnect();
     };
   }, []);
+
+  // Track whether we're in mobile layout so we switch to a bottom sheet.
+  const [isSmall, setIsSmall] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false,
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onResize = () => setIsSmall(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Mobile bottom-sheet snap: "peek" shows from/to + summary, "full" reveals turn-by-turn.
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   // Prefers /api/map-package/published when the admin has published;
   // falls back to live tables otherwise. Same shape either way.
@@ -221,6 +235,12 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   // starts at step 0. Keeping the previous idx would leave the user
   // pointing at a step that no longer exists.
   useEffect(() => { setActiveStepIdx(0); }, [from?.kind, to?.kind, (from as { room?: { id: string } })?.room?.id, (to as { room?: { id: string } })?.room?.id]);
+
+  // Auto-expand the mobile sheet when a route is computed so users
+  // immediately see the turn-by-turn list without having to tap the handle.
+  useEffect(() => {
+    if (route && isSmall) setMobileExpanded(true);
+  }, [!!route, isSmall]);
 
   // Remaining distance/time from the active step to the end — helps
   // users understand "how much more" as they walk. Sum of
@@ -463,27 +483,25 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   return (
     <div
       className={cn(
-        // Top-anchored on both mobile + desktop, right under the header,
-        // so it never covers the bottom-right control rail. Mobile:
-        // stretches side-to-side; sm+: floating card. v3.26.1 — desktop
-        // width bumped from 24rem → 28rem, and lg+ pushes to 32rem so
-        // the turn-by-turn list has room to breathe and long room
-        // names/labels don't wrap awkwardly.
-        "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
-        "left-2 right-2 sm:left-3 sm:right-auto sm:w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)]",
+        "fixed z-40 bg-card overflow-hidden flex flex-col",
+        // Mobile: bottom sheet — only covers bottom portion, map stays usable above.
+        isSmall
+          ? "left-0 right-0 rounded-t-[28px] shadow-[0_-4px_32px_rgba(15,23,42,0.22)] border-t border-border"
+          // Desktop: top-left floating card (unchanged).
+          : "left-2 right-2 sm:left-3 sm:right-auto sm:rounded-2xl sm:border sm:border-border sm:shadow-xl sm:w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)]",
       )}
-      style={{
-        // When the search dropdown is up we duck the nav panel below
-        // the map bottom-left corner so the two never fight for the
-        // same screen real estate.
+      style={isSmall ? {
+        // Mobile: anchored to bottom of screen.
+        bottom: 0,
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Peek = ~52dvh (map is visible above), Expanded = 88dvh.
+        maxHeight: mobileExpanded ? "88dvh" : "52dvh",
+        transition: "max-height 320ms cubic-bezier(0.32, 0.72, 0, 1)",
+      } : {
+        // Desktop: below the header, retract to bottom when search is up.
         top: searchActive ? undefined : headerBottom,
         bottom: searchActive ? "calc(1rem + env(safe-area-inset-bottom, 0px))" : undefined,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // v3.26.6 — taller max height on desktop so the turn-by-turn
-        // list has real breathing room. Was 70dvh; now 85dvh (mobile
-        // stays comfortable because it's still gated by the same
-        // "distance to viewport bottom" calc). Mobile search-active
-        // stays 12rem so it doesn't cover the search dropdown.
         maxHeight: searchActive
           ? "12rem"
           : `min(85dvh, calc(100dvh - ${headerBottom}px - 4rem))`,
@@ -491,9 +509,35 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       role="dialog"
       aria-label="Navigation directions"
     >
+      {/* Mobile grab handle — tap to expand / collapse */}
+      {isSmall && (
+        <button
+          type="button"
+          onClick={() => setMobileExpanded((v) => !v)}
+          className="flex justify-center pt-3 pb-1 w-full touch-none select-none"
+          aria-label={mobileExpanded ? "Collapse directions" : "Expand directions"}
+        >
+          <span className="h-[5px] w-10 rounded-full bg-black/15 dark:bg-white/20" />
+        </button>
+      )}
+
       <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border bg-blue-50/50 dark:bg-blue-950/30">
         <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <p className="text-[13px] font-semibold text-foreground flex-1">Directions</p>
+        <p className="text-[13px] font-semibold text-foreground flex-1">
+          {isSmall ? "Directions" : "Directions"}
+        </p>
+        {isSmall && (
+          <button
+            type="button"
+            onClick={() => setMobileExpanded((v) => !v)}
+            className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label={mobileExpanded ? "Collapse" : "Expand"}
+          >
+            {mobileExpanded
+              ? <ChevronsDown className="h-4 w-4" />
+              : <ChevronsUp className="h-4 w-4" />}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}

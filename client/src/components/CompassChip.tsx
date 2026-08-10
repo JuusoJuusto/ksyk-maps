@@ -79,7 +79,7 @@ export default function CompassChip({ map }: CompassChipProps) {
       aria-label={`Rotation ${Math.round(bearing)}° · pitch ${Math.round(pitch)}° — tap to reset`}
       title="Reset rotation + tilt"
       className={cn(
-        "w-11 h-11 rounded-2xl border border-border bg-card shadow-sm relative",
+        "w-11 h-11 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md shadow-black/10 relative",
         "flex items-center justify-center transition-colors active:scale-[0.97]",
         "hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
       )}
