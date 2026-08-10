@@ -187,9 +187,9 @@ export const floors = pgTable("floors", {
 // Hallways table  
 export const hallways = pgTable("hallways", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  buildingId: varchar("building_id").references(() => buildings.id).notNull(),
+  buildingId: varchar("building_id").references(() => buildings.id),
   floorId: varchar("floor_id").references(() => floors.id),
-  name: varchar("name").notNull(),
+  name: varchar("name"),
   nameEn: varchar("name_en"),
   nameFi: varchar("name_fi"),
   description: text("description"),

@@ -130,7 +130,9 @@ async function migrateFloors() {
 async function migrateRooms() {
   const rows = await all("rooms");
   console.log(`rooms: ${rows.length} documents`);
+  let skipped = 0;
   for (const r of rows) {
+    if (!r.buildingId) { skipped++; continue; }
     await db
       .insert(rooms)
       .values({
@@ -159,6 +161,7 @@ async function migrateRooms() {
       } as any)
       .onConflictDoNothing();
   }
+  if (skipped) console.log(`  (skipped ${skipped} rooms with no buildingId)`);
 }
 
 async function migrateHallways() {
@@ -171,14 +174,16 @@ async function migrateHallways() {
         id: r.id,
         buildingId: r.buildingId ?? null,
         name: r.name ?? null,
-        floor: r.floor ?? 1,
         surface: r.surface ?? null,
-        width: r.width ?? null,
-        coordinates: r.coordinates ?? null,
-        connectedRooms: r.connectedRooms ?? [],
+        startX: r.startX != null ? Math.round(r.startX) : null,
+        startY: r.startY != null ? Math.round(r.startY) : null,
+        endX: r.endX != null ? Math.round(r.endX) : null,
+        endY: r.endY != null ? Math.round(r.endY) : null,
+        points: r.points ?? null,
+        width: r.width ?? 2,
+        colorCode: r.fillColor ?? r.colorCode ?? "#9CA3AF",
         isActive: r.isActive ?? true,
-        fillColor: r.fillColor ?? null,
-        fillOpacity: r.fillOpacity ?? null,
+        isPublic: r.isPublic ?? true,
         createdAt: toDate(r.createdAt) ?? new Date(),
         updatedAt: toDate(r.updatedAt) ?? new Date(),
       } as any)
