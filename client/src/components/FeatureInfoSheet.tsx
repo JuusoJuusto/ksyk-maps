@@ -12,6 +12,7 @@ import {
   BookOpen, Dumbbell, ShoppingCart, Trees, Warehouse, Coffee,
   ChevronRight,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Building, Room, Hallway } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ interface FeatureInfoSheetProps {
 }
 
 export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: FeatureInfoSheetProps) {
+  const { i18n } = useTranslation();
   const title = featureTitle(feature);
   const subtitle = featureSubtitle(feature);
   const color = featureColor(feature);
@@ -127,7 +129,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       ) : (
         <div
           className="relative shrink-0 px-4 pt-4 pb-5"
-          style={{ background: `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)` }}
+          style={{ background: `linear-gradient(135deg, ${color}28 0%, ${color}10 60%, transparent 100%)` }}
         >
           <button
             type="button"
@@ -137,10 +139,10 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3.5">
             <span
               className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
-              style={{ background: color + "22", color }}
+              style={{ background: color + "20", color, border: `1.5px solid ${color}30` }}
             >
               <KindIcon feature={feature} size={22} />
             </span>
@@ -166,12 +168,12 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       )}
 
       {/* ── Scrollable body ──────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-0.5">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
         <MetadataRows feature={feature} />
       </div>
 
       {/* ── Action buttons ───────────────────────────────────────── */}
-      <div className="shrink-0 px-4 pb-4 pt-3 space-y-2 border-t border-black/5 dark:border-white/8">
+      <div className="shrink-0 px-4 pb-4 pt-3 space-y-2 border-t border-black/8 dark:border-white/10">
         {/* Schedule button (rooms only, when scheduleUrl set) */}
         {feature.kind === "room" && (() => {
           const sched = feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null };
@@ -195,7 +197,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           className="w-full h-[46px] rounded-2xl font-semibold bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-sm shadow-blue-600/30 flex items-center justify-center gap-2 text-[14px] transition-all"
         >
           <Navigation2 className="h-4 w-4 shrink-0" />
-          Directions here
+          {i18n.language === "fi" ? "Reittiohjeet" : "Get directions"}
         </button>
       </div>
     </div>

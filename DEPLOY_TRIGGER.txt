@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.49.0 — floor switcher solid bg, announcement redesign,
-hamburger spacing, inner wall own category, vertex drag deep fix.
+Bump reason: v3.50.0 — branded map loader, bilingual directions button,
+vivid info sheet gradient, clean search results (no debug score).
 
-Timestamp: 1786743600
-Build: FORCE_REBUILD_v3.49.0_FLOORBG_ANNOUNCE_HAMBURGR_INNERWALL_DRAGFIX
+Timestamp: 1786744200
+Build: FORCE_REBUILD_v3.50.0_LOADER_DIRECTIONS_INFOSHEET_SEARCH

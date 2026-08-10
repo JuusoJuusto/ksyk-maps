@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.49.0";
+export const APP_VERSION = "3.50.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.50.0",
+    date: "August 2026",
+    title: "UI polish: branded map loader, bilingual directions, cleaner search results",
+    latest: true,
+    highlights: [
+      "Map loading screen redesigned: KSYK-branded animated spinner instead of plain text, matches the app's blue palette.",
+      "Feature info sheet: directions button now shows in Finnish ('Reittiohjeet') or English based on selected language.",
+      "Feature info sheet: no-photo header gradient is more vivid and the icon tile has a subtle accent border.",
+      "Search results: removed raw relevance score number that was cluttering each result row.",
+    ],
+  },
   {
     version: "3.49.0",
     date: "August 2026",
     title: "Premium UI: floor selector, announcement popup, hamburger menu, inner wall category",
-    latest: true,
+    latest: false,
     highlights: [
       "Floor selector now has a solid white background (was semi-transparent, glitchy over maps).",
       "Announcement popup completely redesigned: premium gradient header carrying priority color, layered white body card, proper mobile safe-area bottom padding, no more bottom glitch.",
