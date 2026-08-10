@@ -1,7 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.52.0 — frosted glass header + mobile menu, cleaner nav
-panel header, full Apple Maps aesthetic across all floating UI.
+Bump reason: v3.53.0 — classroom clicking fix, announcement desktop, hamburger cleanup
 
-Timestamp: 1786745800
-Build: FORCE_REBUILD_v3.52.0_HEADER_GLASS_NAVCLEAN_APPLEMAPS
+Timestamp: 1786749600
+Build: FORCE_REBUILD_v3.53.0_CLASSROOM_FIX_MAPLIBRE_EXPRESSIONS

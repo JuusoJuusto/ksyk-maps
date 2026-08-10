@@ -220,20 +220,16 @@ export default function AnnouncementBanner() {
         <DialogContent
           className={cn(
             "p-0 gap-0 border-0 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45)]",
-            // Mobile: full-width bottom sheet
+            // Mobile: full-width bottom sheet (overrides shadcn's default centering)
             "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0 rounded-t-[28px]",
             "max-h-[88dvh] w-full max-w-full",
-            // Desktop: centered floating card
-            "sm:static sm:left-auto sm:right-auto sm:bottom-auto sm:top-auto",
-            "sm:translate-x-0 sm:translate-y-0",
+            // Desktop: restore shadcn's default centered-fixed positioning with custom width
+            "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
             "sm:max-w-[min(92vw,28rem)] sm:w-full sm:max-h-[85dvh]",
             "sm:rounded-3xl",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
           )}
-          style={{
-            paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          }}
         >
           {/* Priority accent gradient header */}
           <div
@@ -295,10 +291,10 @@ export default function AnnouncementBanner() {
 
           {/* White body lifts over gradient via negative margin + border-radius */}
           <div
-            className="flex-1 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl -mt-6 overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl -mt-6 overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5 pb-4">
               <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
                 {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
                   if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
