@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.48.0 — inner wall fix, floor-aware selection, classroom
-click 3D fix, handle flashing fix.
+Bump reason: v3.49.0 — floor switcher solid bg, announcement redesign,
+hamburger spacing, inner wall own category, vertex drag deep fix.
 
-Timestamp: 1786742900
-Build: FORCE_REBUILD_v3.48.0_INNERWALL_FLOORCLICK_3DCLICK_HANDLES
+Timestamp: 1786743600
+Build: FORCE_REBUILD_v3.49.0_FLOORBG_ANNOUNCE_HAMBURGR_INNERWALL_DRAGFIX

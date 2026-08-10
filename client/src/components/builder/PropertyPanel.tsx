@@ -78,8 +78,14 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
   const [tab, setTab] = useState<TabId>("props");
   const title = useMemo(() => {
     if (entity.kind === "corridor") return "Corridor";
+    if (entity.kind === "hallway") {
+      const sf = (entity.data as Hallway).surface;
+      if (sf === "inner-wall") return "Inner Wall";
+      if (sf === "wall") return "Exterior Wall";
+      return "Path / Hallway";
+    }
     return entity.kind[0].toUpperCase() + entity.kind.slice(1);
-  }, [entity.kind]);
+  }, [entity.kind, entity.kind === "hallway" ? (entity.data as Hallway).surface : null]);
   // v3.28.1 — point POI kinds (door/stair/elevator/poi) don't have
   // polygon-style, transform, or per-feature metadata knobs yet.
   const isPointPoi = entity.kind === "door" || entity.kind === "stair" ||
@@ -170,7 +176,11 @@ function KindDot({ entity }: { entity: SelectedEntity }) {
     case "building":  color = entity.data.colorCode ?? "#2563eb"; break;
     case "room":      color = entity.data.colorCode ?? "#059669"; break;
     case "corridor":  color = entity.data.colorCode ?? "#94a3b8"; break;
-    case "hallway":   color = "#f59e0b"; break;
+    case "hallway": {
+      const sf = (entity.data as Hallway).surface;
+      color = sf === "inner-wall" ? "#64748b" : sf === "wall" ? "#1f2937" : "#f59e0b";
+      break;
+    }
     case "door":      color = entity.data.isEntrance ? "#16a34a" : entity.data.isExit ? "#dc2626" : "#374151"; break;
     case "stair":     color = "#f59e0b"; break;
     case "elevator":  color = "#2563eb"; break;
@@ -187,7 +197,11 @@ function titleFor(entity: SelectedEntity): string {
   if (entity.kind === "corridor") {
     return entity.data.name || entity.data.roomNumber || "Unnamed corridor";
   }
-  if (entity.kind === "hallway") return `Hallway ${entity.data.id.slice(0, 8)}`;
+  if (entity.kind === "hallway") {
+    const sf = (entity.data as Hallway).surface;
+    const prefix = sf === "inner-wall" ? "Inner wall" : sf === "wall" ? "Ext. wall" : "Hallway";
+    return `${prefix} ${entity.data.id.slice(0, 8)}`;
+  }
   if (entity.kind === "door") return entity.data.isEntrance ? "Entrance" : entity.data.isExit ? "Exit" : "Door";
   if (entity.kind === "stair") return "Stairs";
   if (entity.kind === "elevator") return "Elevator";

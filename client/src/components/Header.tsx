@@ -409,61 +409,82 @@ export default function Header({
             {!isInAdminPanel ? (
               <>
                 {/* ── Quick access — flat colored rows ────────────── */}
-                <section className="space-y-2">
+                <section className="space-y-3">
                   {/* Row: Map settings — KSYK blue */}
                   {onOpenSettings && (
                     <button
                       onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
                       className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-colors active:scale-[0.98]",
+                        "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl text-left transition-all active:scale-[0.98]",
                         darkMode
                           ? "bg-blue-950/40 hover:bg-blue-900/50 border border-blue-900/40 text-blue-100"
                           : "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900",
                       )}
                     >
-                      <Settings className={cn(
-                        "h-5 w-5 shrink-0",
-                        darkMode ? "text-blue-300" : "text-blue-600",
-                      )} strokeWidth={2} />
-                      <span className="text-[15px] font-semibold flex-1">
-                        {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
-                      </span>
+                      <div className={cn(
+                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                        darkMode ? "bg-blue-900/60" : "bg-blue-100",
+                      )}>
+                        <Settings className={cn("h-5 w-5", darkMode ? "text-blue-300" : "text-blue-600")} strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[15px] font-semibold leading-tight">
+                          {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
+                        </div>
+                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-blue-300/70" : "text-blue-700/60")}>
+                          {currentLang === 'fi' ? 'Näkymä, kerros, 3D' : 'View, floor, 3D'}
+                        </div>
+                      </div>
                     </button>
                   )}
 
                   {/* Row: Lunch — KSYK orange */}
                   <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
+                      "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl transition-all active:scale-[0.98] cursor-pointer",
                       darkMode
                         ? "bg-orange-950/40 hover:bg-orange-900/50 border border-orange-900/40 text-orange-100"
                         : "bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900",
                     )}>
-                      <UtensilsCrossed className={cn(
-                        "h-5 w-5 shrink-0",
-                        darkMode ? "text-orange-300" : "text-orange-600",
-                      )} strokeWidth={2} />
-                      <span className="text-[15px] font-semibold flex-1">
-                        {t('quickActions.lunch')}
-                      </span>
+                      <div className={cn(
+                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                        darkMode ? "bg-orange-900/60" : "bg-orange-100",
+                      )}>
+                        <UtensilsCrossed className={cn("h-5 w-5", darkMode ? "text-orange-300" : "text-orange-600")} strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[15px] font-semibold leading-tight">
+                          {t('quickActions.lunch')}
+                        </div>
+                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-orange-300/70" : "text-orange-700/60")}>
+                          {currentLang === 'fi' ? 'Tänään ja koko viikko' : 'Today & this week'}
+                        </div>
+                      </div>
                     </div>
                   </Link>
 
                   {/* Row: Transport — KSYK green */}
                   <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
                     <div className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
+                      "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl transition-all active:scale-[0.98] cursor-pointer",
                       darkMode
                         ? "bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-900/40 text-emerald-100"
                         : "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900",
                     )}>
-                      <Bus className={cn(
-                        "h-5 w-5 shrink-0",
-                        darkMode ? "text-emerald-300" : "text-emerald-600",
-                      )} strokeWidth={2} />
-                      <span className="text-[15px] font-semibold flex-1">
-                        {t('quickActions.transport')}
-                      </span>
+                      <div className={cn(
+                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                        darkMode ? "bg-emerald-900/60" : "bg-emerald-100",
+                      )}>
+                        <Bus className={cn("h-5 w-5", darkMode ? "text-emerald-300" : "text-emerald-600")} strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[15px] font-semibold leading-tight">
+                          {t('quickActions.transport')}
+                        </div>
+                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-emerald-300/70" : "text-emerald-700/60")}>
+                          {currentLang === 'fi' ? 'HSL aikataulut & linjat' : 'HSL schedules & routes'}
+                        </div>
+                      </div>
                     </div>
                   </Link>
                 </section>

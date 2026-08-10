@@ -18,7 +18,7 @@
  * MapLibre's canvas so it stays perfectly aligned during pan / rotate /
  * pitch, unlike a DOM overlay.
  */
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Map as MaplibreMap, MapMouseEvent } from "maplibre-gl";
 import type { Building, Room, LatLng } from "@ksyk/shared";
@@ -54,7 +54,7 @@ const LAYER_DIMS_LABELS = "selection-dimensions-labels";
  *  stay in-frame at typical builder zoom. */
 const ROTATOR_OFFSET_METERS = 6;
 
-export default function SelectionHandles({ map, selection }: SelectionHandlesProps) {
+function SelectionHandlesInner({ map, selection }: SelectionHandlesProps) {
   const qc = useQueryClient();
 
   // Live copy of the polygon during a drag so we can update the
@@ -79,6 +79,11 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       qc.invalidateQueries({ queryKey: [selection.kind === "building" ? "/api/buildings" : "/api/rooms"] });
     },
   });
+  // Mirror patchEntity into a ref so the stable drag effect (which has
+  // patchEntity removed from its deps) always calls the latest mutate
+  // without re-registering its event listeners on every render.
+  const patchEntityRef = useRef(patchEntity);
+  patchEntityRef.current = patchEntity;
 
   // Refresh the source data on the map from either the drag-live copy
   // or the entity's canonical points.
@@ -374,7 +379,7 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
         const endAngle = pts[0] ? angleDeg(c, pts[0]) : 0;
         body.rotationDeg = ((selection.entity.rotationDeg ?? 0) + (endAngle - startAngle) + 360) % 360;
       }
-      patchEntity.mutate(body);
+      patchEntityRef.current.mutate(body);
     };
 
     const onUp = () => {
@@ -411,10 +416,19 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       map.dragPan.enable();
       map.touchZoomRotate.enable();
     };
-  }, [map, selection, patchEntity, refreshSources]);
+  // patchEntity intentionally excluded — patchEntityRef.current is used
+  // inside commitDrag so the stable closure always calls the latest mutate.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, selection, refreshSources]);
 
   return null;
 }
+
+// Wrap with memo so re-renders from the parent (builder) don't cause
+// SelectionHandles to re-render when map + selection props are stable.
+// This is the root fix for vertex handle flashing: the drag-effect deps
+// are now truly stable and won't re-register on every mousemove.
+export default memo(SelectionHandlesInner);
 
 // ── Geometry helpers ─────────────────────────────────────────────
 
