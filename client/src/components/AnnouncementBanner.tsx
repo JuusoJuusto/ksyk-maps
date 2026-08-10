@@ -225,7 +225,8 @@ export default function AnnouncementBanner() {
             "max-h-[88dvh] w-full max-w-full",
             // Desktop: restore shadcn's default centered-fixed positioning with custom width
             "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:max-w-[min(92vw,28rem)] sm:w-full sm:max-h-[85dvh]",
+            "sm:max-w-[min(90vw,34rem)] sm:w-full sm:max-h-[85dvh]",
+            "[&>button:first-of-type]:hidden",
             "sm:rounded-3xl",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
@@ -324,52 +325,36 @@ export default function AnnouncementBanner() {
               </div>
             </div>
 
-            {/* Footer */}
-            <div
-              className={cn(
-                "shrink-0 flex items-center justify-between gap-3 px-5 sm:px-6 py-3.5 border-t",
-                darkMode ? "border-gray-800/60" : "border-gray-100",
-              )}
-              style={{ paddingBottom: "max(0.875rem, env(safe-area-inset-bottom, 0.875rem))" }}
-            >
-              <div className="flex items-center gap-1.5">
-                {activeAnnouncements.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
-                      className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                      aria-label="Previous"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className={cn("text-[11px] font-semibold tabular-nums px-1", darkMode ? "text-gray-500" : "text-gray-400")}>
-                      {currentIndex + 1} / {activeAnnouncements.length}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
-                      className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                      aria-label="Next"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDialogOpen(false)}
+            {/* Footer — pagination only (no close button; header X handles closing) */}
+            {activeAnnouncements.length > 1 && (
+              <div
                 className={cn(
-                  "h-10 px-6 rounded-2xl text-[14px] font-semibold transition-all active:scale-[0.97]",
-                  darkMode
-                    ? "bg-gray-800 hover:bg-gray-700 text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-900",
+                  "shrink-0 flex items-center justify-center gap-1 px-5 sm:px-6 py-3 border-t",
+                  darkMode ? "border-gray-800/60" : "border-gray-100",
                 )}
+                style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
               >
-                {i18n.language === "fi" ? "Sulje" : "Close"}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
+                  className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className={cn("text-[11px] font-semibold tabular-nums px-2", darkMode ? "text-gray-500" : "text-gray-400")}>
+                  {currentIndex + 1} / {activeAnnouncements.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
+                  className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  aria-label="Next"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

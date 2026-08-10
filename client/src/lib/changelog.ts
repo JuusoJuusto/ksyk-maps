@@ -10,14 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.53.0";
+export const APP_VERSION = "3.54.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.54.0",
+    date: "August 2026",
+    title: "Cursor fix, room hover glow, wall/corridor labels, announcement cleanup",
+    latest: true,
+    highlights: [
+      "Map cursor now behaves like MazeMap — default arrow, pointer on room/building hover, grabbing only while mouse button held. Uses CSS class override to avoid fighting MapLibre's built-in cursor handling.",
+      "Room and building hover now lights up the entire area uniformly — added a white fill overlay layer on top that fades in on hover, creating a premium consistent glow effect.",
+      "Interior walls and corridors now correctly labeled in the info sheet — walls show 'Interior Wall', corridors show 'Corridor', neither gets a Directions button.",
+      "Room info sheet header: empty space replaced by a bold solid gradient using the room's own color. White body card lifts over the gradient with a rounded corner and shadow.",
+      "Announcement popup: removed duplicate close buttons — only the header X remains. Footer now shows pagination only. Desktop dialog widened from 28rem to 34rem.",
+    ],
+  },
   {
     version: "3.53.0",
     date: "August 2026",
     title: "Critical fix: classroom clicking, announcements on desktop, hamburger cleanup",
-    latest: true,
+    latest: false,
     highlights: [
       "Fixed classroom clicking on mobile and desktop — MapLibre expression errors (zoom inside case) were silently breaking room fill opacity, making rooms invisible and non-interactive. All four affected expressions restructured to valid form.",
       "Announcement popup now shows correctly on desktop/laptop — the sm:static override was removing fixed positioning; replaced with proper sm:left-[50%] sm:top-[50%] centered-fixed layout.",

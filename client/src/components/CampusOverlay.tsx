@@ -338,11 +338,24 @@ export default function CampusOverlay({
       map.setFeatureState(lastHover, { hover: false });
       lastHover = null;
     };
+    // MazeMap-style cursor — use CSS classes on the canvas container so
+    // we can override MapLibre's built-in "grab" cursor without fighting
+    // inline styles. CSS in index.css maps these classes to cursors.
+    const cc = map.getCanvasContainer();
+    const setCursor = (c: "default" | "pointer" | "drag") => {
+      cc.classList.remove("ksyk-cursor-hover", "ksyk-cursor-drag");
+      if (c === "pointer") cc.classList.add("ksyk-cursor-hover");
+      if (c === "drag")    cc.classList.add("ksyk-cursor-drag");
+    };
+    const onMouseDown = () => { if (!cc.classList.contains("ksyk-cursor-hover")) setCursor("drag"); };
+    const onMouseUp   = () => { cc.classList.remove("ksyk-cursor-drag"); };
+    map.getCanvas().addEventListener("mousedown", onMouseDown);
+    document.addEventListener("mouseup", onMouseUp);
     const onMove = (e: import("maplibre-gl").MapMouseEvent) => {
       const layerIds = hoverableLayers.filter((id) => map.getLayer(id));
       if (layerIds.length === 0) return;
       const feats = map.queryRenderedFeatures(e.point, { layers: layerIds });
-      map.getCanvas().style.cursor = feats.length > 0 ? "pointer" : "";
+      setCursor(feats.length > 0 ? "pointer" : "default");
       // Rooms take priority over buildings for hover state — a hover
       // inside a room polygon should highlight the room, not its
       // parent building.
@@ -360,7 +373,7 @@ export default function CampusOverlay({
       map.setFeatureState(lastHover, { hover: true });
     };
     const onLeave = () => {
-      map.getCanvas().style.cursor = "";
+      setCursor("default");
       clearHover();
     };
     map.on("mousemove", onMove);
@@ -409,6 +422,9 @@ export default function CampusOverlay({
       map.off("mousemove", onPoiMove);
       map.off("mouseout", onPoiLeave);
       map.off("moveend", onMoveEnd);
+      map.getCanvas().removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("mouseup", onMouseUp);
+      cc.classList.remove("ksyk-cursor-hover", "ksyk-cursor-drag");
       poiPopup.remove();
       // Explicitly detach the load/styledata one-offs so a stale
       // closure from a previous effect run can't fire after this
@@ -730,6 +746,20 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       ],
     },
   });
+  // Uniform white hover overlay on buildings — same pattern as rooms.
+  addLayerIfMissing(map, {
+    id: "campus-buildings-hover-overlay",
+    source: SOURCES.buildings,
+    type: "fill",
+    paint: {
+      "fill-color": "#ffffff",
+      "fill-opacity": [
+        "case", ["boolean", ["feature-state", "hover"], false], 0.18, 0,
+      ],
+      "fill-antialias": true,
+    },
+  });
+
   addLayerIfMissing(map, {
     id: LAYERS.buildingsLabel,
     source: SOURCES.buildings,
@@ -1759,6 +1789,22 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 2, 22, 3],
       // Only show when metadata.style.showOutline is explicitly true.
       "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.85, 0],
+    },
+  });
+
+  // Premium uniform hover glow — flat white overlay layer that sits
+  // above the base fill. When hover=true the whole room brightens
+  // uniformly (no edge artifacts from opacity-only approaches).
+  addLayerIfMissing(map, {
+    id: "campus-rooms-hover-overlay",
+    source: SOURCES.rooms,
+    type: "fill",
+    paint: {
+      "fill-color": "#ffffff",
+      "fill-opacity": [
+        "case", ["boolean", ["feature-state", "hover"], false], 0.28, 0,
+      ],
+      "fill-antialias": true,
     },
   });
 
