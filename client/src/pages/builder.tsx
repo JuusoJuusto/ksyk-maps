@@ -730,9 +730,9 @@ function BuilderWorkspace() {
           "fill-color": ["get", "color"],
           "fill-opacity": [
             "case",
-            ["boolean", ["get", "selected"], false], 0.55,
-            ["boolean", ["get", "onFloor"], true], 0.32,
-            0.08, // off-floor ghost
+            ["boolean", ["get", "selected"], false], 0.65,
+            ["boolean", ["get", "onFloor"], true], 0.50,
+            0.10, // off-floor ghost
           ],
         },
       });
@@ -1026,18 +1026,30 @@ function BuilderWorkspace() {
         let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // Ortho v4 — axis-aligned (horizontal/vertical) snap from the
-        // previous point. |dLng| vs |dLat| picks which axis to lock.
-        // Kicks in from the very second click so walls are always
-        // strictly horizontal or vertical.
+        // Ortho v5 — bearing-aware axis snap. Projects the cursor delta
+        // onto the map's current "up" axis (along bearing) and "right"
+        // axis (perpendicular), then snaps to the dominant one. Works
+        // correctly at any map rotation — no longer limited to geographic N/S.
         if (orthoOn && wps.length >= 1) {
           const prev = wps[wps.length - 1];
-          const dLng = p.lng - prev.lng;
-          const dLat = p.lat - prev.lat;
-          if (Math.abs(dLng) >= Math.abs(dLat)) {
-            p = new maplibregl.LngLat(p.lng, prev.lat); // horizontal
+          const bearing = map.getBearing();
+          const θ = (bearing * Math.PI) / 180;
+          const mPerLat = 111320;
+          const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
+          const dx = (p.lng - prev.lng) * mPerLng;
+          const dy = (p.lat - prev.lat) * mPerLat;
+          const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
+          const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
+          if (Math.abs(tRight) >= Math.abs(tUp)) {
+            p = new maplibregl.LngLat(
+              prev.lng + (tRight * Math.cos(θ)) / mPerLng,
+              prev.lat - (tRight * Math.sin(θ)) / mPerLat,
+            );
           } else {
-            p = new maplibregl.LngLat(prev.lng, p.lat); // vertical
+            p = new maplibregl.LngLat(
+              prev.lng + (tUp * Math.sin(θ)) / mPerLng,
+              prev.lat + (tUp * Math.cos(θ)) / mPerLat,
+            );
           }
         }
         // First segment (waypoint 0 → 1) is intentionally FREE so
@@ -1324,13 +1336,16 @@ function BuilderWorkspace() {
       buildingId: string;
       floor: number;
       points: Array<{ lng: number; lat: number }>;
+      type?: string;
+      colorCode?: string;
     }) => {
       const res = await apiRequest("POST", "/api/rooms", {
         roomNumber: payload.roomNumber,
         name: payload.roomNumber,
         buildingId: payload.buildingId,
         floor: payload.floor,
-        colorCode: "#059669",
+        colorCode: payload.colorCode ?? "#059669",
+        ...(payload.type ? { type: payload.type } : {}),
         points: payload.points,
       });
       return res.json();
@@ -1342,11 +1357,18 @@ function BuilderWorkspace() {
       const id = created && typeof (created as { id?: string }).id === "string"
         ? (created as { id: string }).id
         : null;
+      const isCorridor = variables.type === "hallway";
       if (id) {
         setSelection({ kind: "room", id });
-        setSidebarTab("rooms");
+        setSidebarTab(isCorridor ? "pois" : "rooms");
+        toast({
+          title: isCorridor ? "Corridor created" : "Room created",
+          description: isCorridor
+            ? `"${variables.roomNumber}" added — find it in the Structure tab.`
+            : `"${variables.roomNumber}" added.`,
+        });
         history.record(makeCreateInverse({
-          label: `New room "${variables.roomNumber}"`,
+          label: isCorridor ? `New corridor "${variables.roomNumber}"` : `New room "${variables.roomNumber}"`,
           currentId: id,
           resource: "rooms",
           payload: {
@@ -1354,7 +1376,8 @@ function BuilderWorkspace() {
             name: variables.roomNumber,
             buildingId: variables.buildingId,
             floor: variables.floor,
-            colorCode: "#059669",
+            colorCode: variables.colorCode ?? "#059669",
+            ...(variables.type ? { type: variables.type } : {}),
             points: variables.points,
           },
           invalidate: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
@@ -1611,8 +1634,8 @@ function BuilderWorkspace() {
       // without placing the last point manually.
       if (orthoEnabled && pts.length === 3) {
         const [A, B, C] = pts;
-        const abHoriz = Math.abs(B.lng - A.lng) >= Math.abs(B.lat - A.lat);
-        const D = abHoriz ? { lng: A.lng, lat: C.lat } : { lng: C.lng, lat: A.lat };
+        // Universal rectangle completion: works at any bearing/rotation.
+        const D = { lng: A.lng + C.lng - B.lng, lat: A.lat + C.lat - B.lat };
         pts = [A, B, C, D];
       }
       // Rooms MUST belong to a building.
@@ -1823,15 +1846,22 @@ function BuilderWorkspace() {
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // Ortho v4 — axis-aligned preview. Mirrors the click handler:
-    // lock to horizontal if |dLng| >= |dLat|, else vertical.
+    // Ortho v5 — bearing-aware preview. Mirrors the click handler.
     if (orthoEnabled && waypoints.length >= 1) {
-      const dLng = endLng - last.lng;
-      const dLat = endLat - last.lat;
-      if (Math.abs(dLng) >= Math.abs(dLat)) {
-        endLat = last.lat; // horizontal
+      const bearing = map.getBearing();
+      const θ = (bearing * Math.PI) / 180;
+      const mPerLat = 111320;
+      const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      const dx = (endLng - last.lng) * mPerLng;
+      const dy = (endLat - last.lat) * mPerLat;
+      const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
+      const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
+      if (Math.abs(tRight) >= Math.abs(tUp)) {
+        endLng = last.lng + (tRight * Math.cos(θ)) / mPerLng;
+        endLat = last.lat - (tRight * Math.sin(θ)) / mPerLat;
       } else {
-        endLng = last.lng; // vertical
+        endLng = last.lng + (tUp * Math.sin(θ)) / mPerLng;
+        endLat = last.lat + (tUp * Math.cos(θ)) / mPerLat;
       }
     }
     const data = {

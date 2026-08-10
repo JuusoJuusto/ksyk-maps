@@ -1,9 +1,9 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.36.0 — corridors in Structure tab, room outlines restored,
-POI minzoom 16→14, rectangle tool creates rooms inside buildings,
-ortho 3-point rectangle auto-close, wall color dark-mode timing fix,
-corridors excluded from 3D extrusions.
+Bump reason: v3.37.0 — bearing-aware ortho (follows map rotation),
+ortho auto-close universal D=A+C-B formula, corridor type+colorCode
+now saved to DB, corridor fill visible on public map, room fill
+opacity 0.32→0.50 in builder.
 
-Timestamp: 1786650000
-Build: FORCE_REBUILD_v3.36.0_CORRIDOR_STRUCTURE_ROOM_OUTLINES_POIS_RECT_ROOM_ORTHO
+Timestamp: 1786736400
+Build: FORCE_REBUILD_v3.37.0_BEARING_ORTHO_CORRIDOR_TYPE_FIX_ROOM_FILL

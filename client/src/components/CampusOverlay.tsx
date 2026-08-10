@@ -1603,7 +1603,8 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
           [r.points![0].lng, r.points![0].lat],
         ]],
       },
-      properties: { id: r.id, floor: r.floor ?? 0 },
+      // Use the corridor's stored colorCode (or a visible slate default).
+      properties: { id: r.id, floor: r.floor ?? 0, color: r.colorCode ?? "#94a3b8" },
     })),
   };
   upsertGeoJSONSource(map, "campus-corridors", data);
@@ -1612,8 +1613,8 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
     source: "campus-corridors",
     type: "fill",
     paint: {
-      "fill-color": "#e2e8f0",
-      "fill-opacity": 0.55,
+      "fill-color": ["get", "color"],
+      "fill-opacity": 0.45,
     },
   });
   addLayerIfMissing(map, {
@@ -1622,9 +1623,9 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
     type: "line",
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": "#94a3b8",
-      "line-width": 1,
-      "line-opacity": 0.7,
+      "line-color": ["get", "color"],
+      "line-width": 1.5,
+      "line-opacity": 0.85,
     },
   });
 }
