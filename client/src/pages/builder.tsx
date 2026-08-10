@@ -59,6 +59,7 @@ import {
   Flag,
   Layers as LayersIcon,
   PenLine,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -95,7 +96,10 @@ type BuilderTool =
   | "node" | "connect"
   // v3.40.0 — construction line tool. Click to trace reference lines
   // (temporary, session-only, not saved to DB) used for alignment.
-  | "line";
+  | "line"
+  // v3.45.0 — interior wall: thinner, lighter than the exterior "wall"
+  // type. Both produce a Hallway row; `surface` field discriminates.
+  | "wall-inner";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -157,7 +161,8 @@ function snapPointToNearestWall(
 
   let best: { lat: number; lng: number; d2: number } | null = null;
   for (const h of hallways) {
-    if ((h.surface ?? "").toLowerCase() !== "wall") continue;
+    const sf = (h.surface ?? "").toLowerCase();
+    if (sf !== "wall" && sf !== "inner-wall") continue;
     // Segment endpoints in metres relative to the click.
     const ax = (h.startX - click.lng) * mPerDegLng;
     const ay = (h.startY - click.lat) * mPerDegLat;
@@ -296,6 +301,10 @@ function BuilderWorkspace() {
   const [guidesEnabled, setGuidesEnabled] = useState(true);
   const guidesEnabledRef = useRef(true);
   guidesEnabledRef.current = guidesEnabled;
+  // Mirrors snapEnabled into a ref so the stable mousemove handler can
+  // read the latest value without being re-registered.
+  const snapEnabledRef = useRef(true);
+  snapEnabledRef.current = snapEnabled;
   // Refs so the click-handler useEffect (deps: [activeTool, mapReady])
   // can read the LATEST waypoints and orthoEnabled without being
   // re-registered on every state change (stale-closure fix).
@@ -364,7 +373,7 @@ function BuilderWorkspace() {
   // threshold of an existing polygon vertex, we render a crosshair
   // indicator and next click snaps to the vertex instead of the raw
   // cursor lng/lat.
-  const snapTargetRef = useRef<{ lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" } | null>(null);
+  const snapTargetRef = useRef<{ lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" | "close" } | null>(null);
   // Guide snap: horizontal/vertical alignment with any campus vertex.
   // Updated by the ghost preview effect on every mousemove so the click
   // handler and the preview always use the same snapped position.
@@ -501,7 +510,7 @@ function BuilderWorkspace() {
         ];
       } else if (activeTool === "measure" && coords.length >= 2) {
         lineCoords = coords;
-      } else if ((activeTool === "hallway" || activeTool === "wall") && coords.length >= 2) {
+      } else if ((activeTool === "hallway" || activeTool === "wall" || activeTool === "wall-inner") && coords.length >= 2) {
         lineCoords = coords;
       } else if (coords.length >= 3) {
         polyCoords = [...coords, coords[0]];
@@ -833,13 +842,17 @@ function BuilderWorkspace() {
         const coords: number[][] = (Array.isArray(pts) && pts.length >= 2)
           ? pts.map((p) => [p.lng, p.lat])
           : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
+        const surface = (hw as { surface?: string | null }).surface ?? "concrete";
         return {
           type: "Feature" as const,
           geometry: { type: "LineString" as const, coordinates: coords },
           properties: {
             id: hw.id,
             selected: selection?.kind === "hallway" && selection.id === hw.id,
-            isWall: (hw as { surface?: string | null }).surface === "wall",
+            surface,
+            // Legacy bool kept for the dark-mode effect which hasn't been
+            // rewritten yet — surface expression replaces it for new paint.
+            isWall: surface === "wall" || surface === "inner-wall",
           },
         };
       }),
@@ -849,6 +862,7 @@ function BuilderWorkspace() {
     else {
       map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
       const wallColor = darkMode ? "#94a3b8" : "#374151";
+      const innerWallColor = darkMode ? "#64748b" : "#64748b";
       map.addLayer({
         id: hallLineId, source: hallSrcId, type: "line",
         layout: { "line-cap": "round", "line-join": "round" },
@@ -856,21 +870,28 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  wallColor,
-                                                     "#f59e0b",  // amber walkable
+            ["==", ["get", "surface"], "wall"], wallColor,
+            ["==", ["get", "surface"], "inner-wall"], innerWallColor,
+            "#f59e0b",  // amber walkable
           ],
           "line-width": [
             "case",
-            ["boolean", ["get", "isWall"], false],
-            // Walls: chunky dark segments so they clearly read as
-            // obstacles, not paths.
+            ["boolean", ["get", "selected"], false],
+            ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 16],
+            // Exterior walls: thick dark barrier segments.
+            ["==", ["get", "surface"], "wall"],
             ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 12],
+            // Interior walls: thinner, clearly lighter-weight.
+            ["==", ["get", "surface"], "inner-wall"],
+            ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 5],
+            // Walkable paths.
             ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
           ],
           "line-opacity": [
             "case",
-            ["boolean", ["get", "isWall"], false], 0.95,
-                                                    0.8,
+            ["==", ["get", "surface"], "wall"], 0.95,
+            ["==", ["get", "surface"], "inner-wall"], 0.85,
+            0.8,
           ],
         },
       });
@@ -886,10 +907,12 @@ function BuilderWorkspace() {
     const map = handleRef.current?.map;
     if (!map) return;
     const wallColor = darkMode ? "#94a3b8" : "#374151";
+    const innerWallColor = "#64748b";
     const expr = [
       "case",
       ["boolean", ["get", "selected"], false], "#dc2626",
-      ["boolean", ["get", "isWall"], false], wallColor,
+      ["==", ["get", "surface"], "wall"], wallColor,
+      ["==", ["get", "surface"], "inner-wall"], innerWallColor,
       "#f59e0b",
     ];
     try { map.setPaintProperty("builder-hallways-line", "line-color", expr); } catch { /* layer not yet added */ }
@@ -1646,7 +1669,8 @@ function BuilderWorkspace() {
       qc.invalidateQueries({ queryKey: ["/api/hallways"] });
       setSelection(null);
       if (snapshot) {
-        const label = (snapshot as { surface?: string }).surface === "wall" ? "wall" : "hallway";
+        const sf = (snapshot as { surface?: string }).surface;
+        const label = sf === "wall" ? "wall" : sf === "inner-wall" ? "inner wall" : "hallway";
         history.record(makeDeleteInverse({
           label: `Delete ${label}`,
           snapshot,
@@ -1697,6 +1721,13 @@ function BuilderWorkspace() {
       createHallway.mutate({
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
         surface: "wall",
+      });
+      return;
+    }
+    if (activeTool === "wall-inner" && waypoints.length >= 2) {
+      createHallway.mutate({
+        points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
+        surface: "inner-wall",
       });
       return;
     }
@@ -1853,14 +1884,14 @@ function BuilderWorkspace() {
     const isDrawTool =
       activeTool === "building" || activeTool === "room" ||
       activeTool === "corridor" ||
-      activeTool === "hallway"  || activeTool === "wall" ||
+      activeTool === "hallway"  || activeTool === "wall" || activeTool === "wall-inner" ||
       activeTool === "rectangle" || activeTool === "measure" ||
       activeTool === "line";
 
     // Assemble every snap candidate for the current campus. Rebuilt
     // whenever the source data changes; a Ref keeps it stable across
     // mousemoves.
-    type SnapCandidate = { lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" };
+    type SnapCandidate = { lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" | "close" };
     const candidates: SnapCandidate[] = [];
     for (const b of buildings) {
       if (!b.points) continue;
@@ -1890,10 +1921,10 @@ function BuilderWorkspace() {
     if (!isDrawTool) { clearIndicator(); return; }
 
     const onMove = (e: MapMouseEvent) => {
-      // v3.26.0 — also expose the raw cursor lat/lng so the placement
-      // ghost effect below can draw a preview segment from the last
-      // waypoint to the cursor.
+      // Always update cursorLngLat — ghost preview needs it even when snap off.
       setCursorLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+      // Snap toggle: if snap is off, clear any existing indicator and bail.
+      if (!snapEnabledRef.current) { clearIndicator(); return; }
       // Convert cursor to screen pixel space for accurate distance.
       const cursorPx = e.point;
       let best: { c: SnapCandidate; d2: number } | null = null;
@@ -1904,6 +1935,17 @@ function BuilderWorkspace() {
         const d2 = dx * dx + dy * dy;
         if (d2 <= SNAP_PX * SNAP_PX && (!best || d2 < best.d2)) best = { c, d2 };
       }
+      // Close-polygon: first waypoint becomes a snap candidate when 3+ placed.
+      const wps = waypointsRef.current;
+      if (wps.length >= 3) {
+        const fp = wps[0];
+        const p = map.project([fp.lng, fp.lat]);
+        const dx = p.x - cursorPx.x;
+        const dy = p.y - cursorPx.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= SNAP_PX * SNAP_PX && (!best || d2 < best.d2))
+          best = { c: { lat: fp.lat, lng: fp.lng, kind: "close" }, d2 };
+      }
       if (!best) { clearIndicator(); return; }
       snapTargetRef.current = { lat: best.c.lat, lng: best.c.lng, kind: best.c.kind };
       const pxOnScreen = map.project([best.c.lng, best.c.lat]);
@@ -1911,6 +1953,7 @@ function BuilderWorkspace() {
         x: pxOnScreen.x, y: pxOnScreen.y,
         kind: best.c.kind === "endpoint" ? "Endpoint"
             : best.c.kind === "midpoint" ? "Midpoint"
+            : best.c.kind === "close"    ? "Close"
             :                              "Vertex",
       });
       // Update the on-map indicator so it rides pan/zoom until the
@@ -1934,7 +1977,7 @@ function BuilderWorkspace() {
           paint: {
             "circle-radius": 12,
             "circle-color": "transparent",
-            "circle-stroke-color": "#f97316",
+            "circle-stroke-color": ["case", ["==", ["get", "kind"], "close"], "#22c55e", "#f97316"],
             "circle-stroke-width": 2,
             "circle-opacity": 0.9,
           },
@@ -1945,7 +1988,7 @@ function BuilderWorkspace() {
           type: "circle",
           paint: {
             "circle-radius": 4,
-            "circle-color": "#f97316",
+            "circle-color": ["case", ["==", ["get", "kind"], "close"], "#22c55e", "#f97316"],
             "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 1.5,
           },
@@ -1986,7 +2029,8 @@ function BuilderWorkspace() {
       setLiveSegmentM(null);
     };
 
-    const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
+    const isSegmentTool = activeTool === "wall" || activeTool === "wall-inner"
+      || activeTool === "hallway"
       || activeTool === "building" || activeTool === "room" || activeTool === "corridor"
       || activeTool === "measure" || activeTool === "line";
 
@@ -1998,15 +2042,58 @@ function BuilderWorkspace() {
       return;
     }
 
-    const GUIDE_PX = 10;
+    const GUIDE_PX = 14;
 
-    // All anchor points for guide snap + visual guides: placed waypoints
-    // (except the last, which is the ghost origin) + every building and
-    // room polygon vertex.
-    const anchorPoints: Array<{ lng: number; lat: number }> = [];
-    for (let i = 0; i < waypoints.length - 1; i++) anchorPoints.push(waypoints[i]);
-    for (const b of buildings) { if (b.points) for (const p of b.points) anchorPoints.push(p); }
-    for (const r of (roomsQ.data ?? [])) { if (r.points) for (const p of r.points) anchorPoints.push(p); }
+    // ── Wall-direction guide edges ─────────────────────────────────────
+    // Collect all building/room polygon edges + hallway segments as
+    // screen-space [ax,ay]->[bx,by] pairs. Guides snap to the infinite
+    // extension of these edges (not the segment itself), so they align to
+    // the actual geometry rather than the map's screen H/V axes.
+    type WallEdge = { ax: number; ay: number; bx: number; by: number };
+    const wallEdges: WallEdge[] = [];
+    for (const b of buildings) {
+      if (!b.points || b.points.length < 2) continue;
+      for (let i = 0; i < b.points.length; i++) {
+        const p1 = b.points[i];
+        const p2 = b.points[(i + 1) % b.points.length];
+        const s1 = map.project([p1.lng, p1.lat]);
+        const s2 = map.project([p2.lng, p2.lat]);
+        wallEdges.push({ ax: s1.x, ay: s1.y, bx: s2.x, by: s2.y });
+      }
+    }
+    for (const r of (roomsQ.data ?? [])) {
+      if (!r.points || r.points.length < 2) continue;
+      for (let i = 0; i < r.points.length; i++) {
+        const p1 = r.points[i];
+        const p2 = r.points[(i + 1) % r.points.length];
+        const s1 = map.project([p1.lng, p1.lat]);
+        const s2 = map.project([p2.lng, p2.lat]);
+        wallEdges.push({ ax: s1.x, ay: s1.y, bx: s2.x, by: s2.y });
+      }
+    }
+    for (const hw of (hallwaysQ.data ?? [])) {
+      if (hw.points && hw.points.length >= 2) {
+        for (let i = 0; i < hw.points.length - 1; i++) {
+          const p1 = hw.points[i];
+          const p2 = hw.points[i + 1];
+          const s1 = map.project([p1.lng, p1.lat]);
+          const s2 = map.project([p2.lng, p2.lat]);
+          wallEdges.push({ ax: s1.x, ay: s1.y, bx: s2.x, by: s2.y });
+        }
+      } else {
+        const s1 = map.project([hw.startX, hw.startY]);
+        const s2 = map.project([hw.endX, hw.endY]);
+        wallEdges.push({ ax: s1.x, ay: s1.y, bx: s2.x, by: s2.y });
+      }
+    }
+    // Also add edges from already-placed waypoints in the current stroke.
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const p1 = waypoints[i];
+      const p2 = waypoints[i + 1];
+      const s1 = map.project([p1.lng, p1.lat]);
+      const s2 = map.project([p2.lng, p2.lat]);
+      wallEdges.push({ ax: s1.x, ay: s1.y, bx: s2.x, by: s2.y });
+    }
 
     // Base position: vertex snap (highest priority) > raw cursor.
     // Vertex snap is suppressed once ortho kicks in from the 2nd edge.
@@ -2015,24 +2102,30 @@ function BuilderWorkspace() {
     let endLng = useSnap ? snap.lng : cursorLngLat.lng;
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
-    // Guide snap: if the raw cursor is within GUIDE_PX of any anchor's
-    // screen X or Y, lock to that guide line. Applied before ortho so
-    // ortho can project the snapped position. Also writes guideSnapRef
-    // so the click handler commits the same snapped position on click.
-    if (!useSnap && guidesEnabled) {
+    // Wall-direction guide snap: project cursor onto the infinite
+    // extension of the closest wall edge. If within GUIDE_PX, snap the
+    // endpoint to that projection. Priority: vertex snap > wall-direction
+    // guide snap > raw cursor. Gate on guidesEnabled AND snapEnabled.
+    if (!useSnap && guidesEnabled && snapEnabledRef.current) {
       const rawScreen = map.project([cursorLngLat.lng, cursorLngLat.lat]);
-      let bestH: { y: number; dist: number } | null = null;
-      let bestV: { x: number; dist: number } | null = null;
-      for (const ap of anchorPoints) {
-        const s = map.project([ap.lng, ap.lat]);
-        const dh = Math.abs(rawScreen.y - s.y);
-        if (dh < GUIDE_PX && (!bestH || dh < bestH.dist)) bestH = { y: s.y, dist: dh };
-        const dv = Math.abs(rawScreen.x - s.x);
-        if (dv < GUIDE_PX && (!bestV || dv < bestV.dist)) bestV = { x: s.x, dist: dv };
+      type GuideProjCandidate = { projX: number; projY: number; dist: number; dirX: number; dirY: number };
+      let bestGuide: GuideProjCandidate | null = null;
+      for (const edge of wallEdges) {
+        const dx = edge.bx - edge.ax;
+        const dy = edge.by - edge.ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 < 4) continue; // degenerate / zero-length edge
+        const t = ((rawScreen.x - edge.ax) * dx + (rawScreen.y - edge.ay) * dy) / len2;
+        const projX = edge.ax + t * dx;
+        const projY = edge.ay + t * dy;
+        const dist = Math.sqrt((rawScreen.x - projX) ** 2 + (rawScreen.y - projY) ** 2);
+        if (dist < GUIDE_PX && (!bestGuide || dist < bestGuide.dist)) {
+          const len = Math.sqrt(len2);
+          bestGuide = { projX, projY, dist, dirX: dx / len, dirY: dy / len };
+        }
       }
-      if (bestH || bestV) {
-        const curScreen = map.project([endLng, endLat]);
-        const snapped = map.unproject([bestV ? bestV.x : curScreen.x, bestH ? bestH.y : curScreen.y]);
+      if (bestGuide) {
+        const snapped = map.unproject([bestGuide.projX, bestGuide.projY]);
         endLng = snapped.lng;
         endLat = snapped.lat;
         guideSnapRef.current = { lng: endLng, lat: endLat };
@@ -2099,40 +2192,46 @@ function BuilderWorkspace() {
       setLiveSegmentM(Math.sqrt(dx * dx + dy * dy));
     }
 
-    // Smart guide visual lines — orange dashed lines through every
-    // anchor that screen-aligns with the final (snapped/ortho) endpoint.
-    // Deduped by pixel bucket so overlapping vertices don't stack guides.
-    // Only rendered when guidesEnabled is on.
+    // Wall-direction guide visual lines — orange dashed lines extended
+    // along each wall edge whose infinite projection passes near the
+    // resolved endpoint. Deduped by 5° angle bucket so parallel edges
+    // don't stack multiple identical guide lines.
     const cursorScreen = map.project([endLng, endLat]);
     type GeoFeature = { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { guide: number } };
     const guideFeatures: GeoFeature[] = [];
     if (guidesEnabled) {
-      const usedH = new Set<number>();
-      const usedV = new Set<number>();
-      for (const ap of anchorPoints) {
-        const wpScreen = map.project([ap.lng, ap.lat]);
-        if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
-          const bucket = Math.round(wpScreen.y / 2);
-          if (!usedH.has(bucket)) {
-            usedH.add(bucket);
-            const left  = map.unproject([wpScreen.x - 800, wpScreen.y]);
-            const right = map.unproject([wpScreen.x + 800, wpScreen.y]);
-            guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
-          }
-        }
-        if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
-          const bucket = Math.round(wpScreen.x / 2);
-          if (!usedV.has(bucket)) {
-            usedV.add(bucket);
-            const top    = map.unproject([wpScreen.x, wpScreen.y - 800]);
-            const bottom = map.unproject([wpScreen.x, wpScreen.y + 800]);
-            guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
-          }
-        }
+      const usedAngles = new Set<number>();
+      const EXTEND_PX = 2400;
+      for (const edge of wallEdges) {
+        const dx = edge.bx - edge.ax;
+        const dy = edge.by - edge.ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 < 4) continue;
+        const len = Math.sqrt(len2);
+        const dirX = dx / len;
+        const dirY = dy / len;
+        // Project the resolved endpoint onto this edge's infinite extension.
+        const t = ((cursorScreen.x - edge.ax) * dx + (cursorScreen.y - edge.ay) * dy) / len2;
+        const projX = edge.ax + t * dx;
+        const projY = edge.ay + t * dy;
+        const dist = Math.sqrt((cursorScreen.x - projX) ** 2 + (cursorScreen.y - projY) ** 2);
+        if (dist >= GUIDE_PX) continue;
+        // Normalize angle to 0–180° (undirected) and bucket by 5°.
+        const angleDeg = ((Math.atan2(dirY, dirX) * 180) / Math.PI + 180) % 180;
+        const bucket = Math.round(angleDeg / 5);
+        if (usedAngles.has(bucket)) continue;
+        usedAngles.add(bucket);
+        const p1 = map.unproject([projX - dirX * EXTEND_PX, projY - dirY * EXTEND_PX]);
+        const p2 = map.unproject([projX + dirX * EXTEND_PX, projY + dirY * EXTEND_PX]);
+        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] }, properties: { guide: 1 } });
       }
     }
 
-    const ghostColor = activeTool === "corridor" ? "#64748b" : activeTool === "line" ? "#ec4899" : "#3b82f6";
+    const ghostColor = activeTool === "corridor" ? "#64748b"
+      : activeTool === "line" ? "#ec4899"
+      : activeTool === "wall" ? "#374151"
+      : activeTool === "wall-inner" ? "#64748b"
+      : "#3b82f6";
     const data = {
       type: "FeatureCollection" as const,
       features: [
@@ -2165,7 +2264,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, guidesEnabled, distanceInput, buildings, roomsQ.data]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, guidesEnabled, snapEnabled, distanceInput, buildings, roomsQ.data, hallwaysQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -2204,7 +2303,9 @@ function BuilderWorkspace() {
       }
       case "hallway": {
         const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
-        const label = h?.surface === "wall" ? "wall" : "hallway";
+        const label = h?.surface === "wall" ? "wall"
+          : h?.surface === "inner-wall" ? "inner wall"
+          : "hallway";
         if (!confirm(`Delete this ${label}?`)) return;
         deleteHallway.mutate(selection.id);
         return;
@@ -2925,7 +3026,8 @@ function BuilderWorkspace() {
           {(() => {
             const isDrawTool = activeTool === "building" || activeTool === "room" ||
               activeTool === "corridor" || activeTool === "hallway" ||
-              activeTool === "wall" || activeTool === "measure" || activeTool === "line";
+              activeTool === "wall" || activeTool === "wall-inner" ||
+              activeTool === "measure" || activeTool === "line";
             if (!isDrawTool || waypoints.length === 0) return null;
             const mDisplay = liveSegmentM !== null
               ? (liveSegmentM < 10 ? liveSegmentM.toFixed(2) : liveSegmentM.toFixed(1))
@@ -3277,7 +3379,8 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
         { keys: ["U"], label: "Rectangle building" },
         { keys: ["R"], label: "Room polygon" },
         { keys: ["H"], label: "Path (multi-vertex hallway)" },
-        { keys: ["W"], label: "Wall" },
+        { keys: ["W"], label: "Wall (exterior)" },
+        { keys: ["—"], label: "Inner wall (toolbar button)" },
         { keys: ["M"], label: "Measure" },
         { keys: ["L"], label: "Construction line (session-only)" },
         { keys: ["S"], label: "Stairs POI" },
@@ -3495,7 +3598,8 @@ function coachMetaFor(
     case "room":           return { Icon: DoorOpen,          name: "Room",      text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-emerald-600" };
     case "corridor":       return { Icon: RouteIcon,         name: "Corridor",  text: `Trace corridor corners — Enter to close (${n}/3+ needed)`, badgeBg: "bg-slate-500" };
     case "hallway":        return { Icon: RouteIcon,         name: "Path",      text: `Click each corner — Enter to finish (${n} points, min 2)`, badgeBg: "bg-amber-600" };
-    case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,    badgeBg: "bg-gray-800" };
+    case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,          badgeBg: "bg-gray-800" };
+    case "wall-inner":     return { Icon: Minus,             name: "Inner wall", text: `Click interior wall endpoints — Enter to finish (${n})`,   badgeBg: "bg-slate-500" };
     case "measure":        return {
       Icon: Ruler, name: "Measure",
       text: n < 2 ? `Click points — line total shows here (${n})` : `Distance: ${distLabel} · Esc to clear`,
@@ -3568,8 +3672,9 @@ const SHAPE_TOOLS: ToolDef[] = [
   { id: "room",      Icon: DoorOpen,          label: "Room",      hotkey: "R" },
   { id: "corridor",  Icon: RouteIcon,         label: "Corridor",  hotkey: "C" },
   { id: "hallway",   Icon: RouteIcon,         label: "Path",      hotkey: "H" },
-  { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
-  { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },
+  { id: "wall",       Icon: StretchHorizontal, label: "Wall",       hotkey: "W" },
+  { id: "wall-inner", Icon: Minus,             label: "Inner wall", hotkey: "" },
+  { id: "measure",    Icon: Ruler,             label: "Measure",    hotkey: "M" },
 ];
 
 /** Nav-graph tools — nodes + edges. Users route by dropping nodes on

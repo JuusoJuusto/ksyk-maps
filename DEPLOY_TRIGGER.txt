@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.44.0 — line tool v2 (select/delete/undo/persist),
-search room number in title, builder Ctrl+Z keyboard shortcut.
+Bump reason: v3.46.0 — smart wall-direction guides, snap toggle fix,
+close-polygon snap, wall-edge guide sources including hallways.
 
-Timestamp: 1786742000
-Build: FORCE_REBUILD_v3.44.0_LINE_TOOL_V2_SEARCH_NUMBER
+Timestamp: 1786742700
+Build: FORCE_REBUILD_v3.46.0_SMART_GUIDES_SNAP_FIX
