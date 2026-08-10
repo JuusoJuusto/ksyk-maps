@@ -291,11 +291,10 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* White body lifts over gradient — use relative+top so the flex
-              height calculation is unaffected (negative margin confuses Safari) */}
+          {/* White body lifts over gradient via negative top margin */}
           <div
-            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-            style={{ position: "relative", top: "-1.5rem", marginBottom: "-1.5rem" }}
+            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl overflow-hidden"
+            style={{ marginTop: "-1.5rem" }}
           >
             {/* Scrollable content — h-0 + flex-1 is the most reliable cross-browser
                 approach for a scrollable flex child; min-h-0 alone fails in Safari */}

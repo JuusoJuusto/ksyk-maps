@@ -1098,8 +1098,8 @@ async function createStorage(): Promise<IStorage> {
     console.log('ℹ️ USE_FIREBASE not set to true, using mock storage');
   }
   
-  // Check if we should use PostgreSQL
-  if (process.env.DATABASE_URL) {
+  // Check if we should use PostgreSQL (DATABASE_URL or POSTGRES_URL from Vercel Supabase integration)
+  if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
     try {
       const { DatabaseStorage } = await import('./postgresStorage.js');
       console.log('✅ Using PostgreSQL storage');

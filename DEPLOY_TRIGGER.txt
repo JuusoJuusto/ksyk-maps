@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-11
 
-Bump reason: v3.56.0 — Supabase RLS, announcement scroll fix, POSTGRES_URL support
+Bump reason: v3.57.0 — Firebase fully removed, Supabase-only, announcement UI fix
 
-Timestamp: 1786843200
-Build: FORCE_REBUILD_v3.56.0_SUPABASE_RLS_ANNOUNCEMENT_SCROLL
+Timestamp: 1786843800
+Build: FORCE_REBUILD_v3.57.0_FIREBASE_REMOVED_SUPABASE_ONLY

@@ -11,8 +11,10 @@
  */
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { eq, desc } from "drizzle-orm";
 import { storage } from "./storage";
-import { db } from "./firebaseStorage";
+import { db } from "./db.js";
+import { mapVersions, mapPackages } from "@shared/schema";
 import { isAuthenticated } from "./simpleAuth";
 import { rateLimiters } from "./rateLimiter";
 import {
@@ -300,11 +302,8 @@ export function registerMapRoutes(app: Express) {
       const publishedAt = new Date().toISOString();
       const publishedBy = (req as unknown as { user?: { id?: string } }).user?.id ?? null;
 
-      // Compute the next version number by counting existing versions.
-      // Firestore counts are cheap for small collections; this can be
-      // swapped for a counter doc if the version list grows past ~500.
-      const versionsSnap = await db.collection("mapVersions").get();
-      const versionNumber = versionsSnap.size + 1;
+      const allVersions = await db.select({ id: mapVersions.id }).from(mapVersions);
+      const versionNumber = allVersions.length + 1;
       const versionId = `v${versionNumber}-${Date.now()}`;
 
       const pkg: MapPackage = {
@@ -322,22 +321,25 @@ export function registerMapRoutes(app: Express) {
         buildings, floors, rooms, hallways, doors, stairs, elevators,
       };
 
-      await db.collection("mapVersions").doc(versionId).set({
+      await db.insert(mapVersions).values({
         id: versionId,
         packageId: "current",
         version: versionNumber,
-        savedAt: publishedAt,
+        savedAt: new Date(publishedAt),
         savedBy: publishedBy,
         published: true,
         message: body.message ?? null,
         payloadKey: versionId,
         payload: pkg,
       });
-      // Move the "published" pointer atomically.
-      await db.collection("mapPackages").doc("published").set({
+      await db.insert(mapPackages).values({
+        id: "published",
         pointer: versionId,
-        publishedAt,
+        publishedAt: new Date(publishedAt),
         publishedBy,
+      }).onConflictDoUpdate({
+        target: mapPackages.id,
+        set: { pointer: versionId, publishedAt: new Date(publishedAt), publishedBy },
       });
       res.json({ ...pkg, versionId, version: versionNumber });
     } catch (err) {
@@ -350,14 +352,13 @@ export function registerMapRoutes(app: Express) {
   // tables (via GET /api/map-package) if nothing has been published yet.
   app.get("/api/map-package/published", async (_req: Request, res: Response) => {
     try {
-      const pointerDoc = await db.collection("mapPackages").doc("published").get();
-      if (!pointerDoc.exists) return res.json(null);
-      const pointer = pointerDoc.data()?.pointer as string | undefined;
+      const pointerRows = await db.select().from(mapPackages).where(eq(mapPackages.id, "published")).limit(1);
+      if (!pointerRows.length) return res.json(null);
+      const pointer = pointerRows[0].pointer;
       if (!pointer) return res.json(null);
-      const versionDoc = await db.collection("mapVersions").doc(pointer).get();
-      if (!versionDoc.exists) return res.json(null);
-      const data = versionDoc.data() as { payload?: MapPackage } | undefined;
-      res.json(data?.payload ?? null);
+      const versionRows = await db.select().from(mapVersions).where(eq(mapVersions.id, pointer)).limit(1);
+      if (!versionRows.length) return res.json(null);
+      res.json(versionRows[0].payload ?? null);
     } catch (err) {
       console.error("published read failed:", err);
       res.set("X-Read-Soft-Fail", "1").json(null);
@@ -366,21 +367,16 @@ export function registerMapRoutes(app: Express) {
 
   app.get("/api/map-package/versions", isAuthenticated, async (_req: Request, res: Response) => {
     try {
-      const snap = await db.collection("mapVersions").orderBy("version", "desc").limit(50).get();
-      const items = snap.docs.map((d) => {
-        const data = d.data();
-        // Strip the heavy `payload` field — versions list is metadata only.
-        return {
-          id: data.id ?? d.id,
-          packageId: data.packageId ?? "current",
-          version: data.version ?? 0,
-          savedAt: data.savedAt ?? null,
-          savedBy: data.savedBy ?? null,
-          published: data.published ?? false,
-          message: data.message ?? null,
-          payloadKey: data.payloadKey ?? d.id,
-        };
-      });
+      const items = await db.select({
+        id: mapVersions.id,
+        packageId: mapVersions.packageId,
+        version: mapVersions.version,
+        savedAt: mapVersions.savedAt,
+        savedBy: mapVersions.savedBy,
+        published: mapVersions.published,
+        message: mapVersions.message,
+        payloadKey: mapVersions.payloadKey,
+      }).from(mapVersions).orderBy(desc(mapVersions.version)).limit(50);
       res.json(items);
     } catch (err) {
       console.error("versions list failed:", err);
@@ -395,12 +391,17 @@ export function registerMapRoutes(app: Express) {
     try {
       const id = String(req.params.id);
       if (!ID_PATTERN.test(id)) return res.status(400).json({ message: "invalid version id" });
-      const versionDoc = await db.collection("mapVersions").doc(id).get();
-      if (!versionDoc.exists) return res.status(404).json({ message: "version not found" });
-      await db.collection("mapPackages").doc("published").set({
+      const versionRows = await db.select({ id: mapVersions.id }).from(mapVersions).where(eq(mapVersions.id, id)).limit(1);
+      if (!versionRows.length) return res.status(404).json({ message: "version not found" });
+      const publishedBy = (req as unknown as { user?: { id?: string } }).user?.id ?? null;
+      await db.insert(mapPackages).values({
+        id: "published",
         pointer: id,
-        publishedAt: new Date().toISOString(),
-        publishedBy: (req as unknown as { user?: { id?: string } }).user?.id ?? null,
+        publishedAt: new Date(),
+        publishedBy,
+      }).onConflictDoUpdate({
+        target: mapPackages.id,
+        set: { pointer: id, publishedAt: new Date(), publishedBy },
       });
       res.json({ ok: true, pointer: id });
     } catch (err) {

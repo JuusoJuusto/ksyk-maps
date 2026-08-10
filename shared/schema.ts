@@ -516,6 +516,26 @@ export const userSessions = pgTable("user_sessions", {
   lastActivity: timestamp("last_activity").defaultNow(),
 });
 
+// Map package versioning tables (replaces Firebase mapPackages/mapVersions collections)
+export const mapVersions = pgTable("map_versions", {
+  id: varchar("id").primaryKey(),
+  packageId: varchar("package_id").default("current"),
+  version: integer("version").notNull(),
+  savedAt: timestamp("saved_at").defaultNow(),
+  savedBy: varchar("saved_by"),
+  published: boolean("published").default(false),
+  message: text("message"),
+  payloadKey: varchar("payload_key"),
+  payload: jsonb("payload"),
+});
+
+export const mapPackages = pgTable("map_packages", {
+  id: varchar("id").primaryKey(),
+  pointer: varchar("pointer"),
+  publishedAt: timestamp("published_at"),
+  publishedBy: varchar("published_by"),
+});
+
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),

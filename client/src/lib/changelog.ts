@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.56.0";
+export const APP_VERSION = "3.57.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.57.0",
+    date: "August 2026",
+    title: "Firebase fully removed, Supabase-only, announcement border fix",
+    latest: true,
+    highlights: [
+      "Firebase completely removed — map package versioning (publish/restore/history) now uses Supabase Postgres tables (map_versions, map_packages). No more Firestore dependency anywhere.",
+      "Server picks up Supabase when USE_FIREBASE is not set and POSTGRES_URL (Vercel integration) is present — no manual DATABASE_URL needed.",
+      "Announcement dialog: removed drop-shadow 'white border' on the content card, and fixed the bottom pagination controls being clipped on some devices by switching to a negative-top-margin overlap instead of the relative+top+negative-marginBottom trick.",
+    ],
+  },
   {
     version: "3.56.0",
     date: "August 2026",
     title: "Supabase live, RLS security, announcement scroll fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Database fully migrated to Supabase — all 44 public tables now have Row Level Security enabled. Direct postgres connections (our server) bypass RLS; the Supabase REST API is locked down.",
       "Announcement popup on mobile: slide-up animation now uses fill-mode:both so there is zero flash before the animation starts.",
