@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.45.0 — interior wall type, corridor nav nodes panel,
-HallwayProps surface dropdown, builder CAD polish.
+Bump reason: v3.46.0 — smart wall-direction guides, snap toggle fix,
+close-polygon snap, wall-edge guide sources including hallways.
 
-Timestamp: 1786742600
-Build: FORCE_REBUILD_v3.45.0_INNER_WALL_CORRIDOR_NAVNODES
+Timestamp: 1786742700
+Build: FORCE_REBUILD_v3.46.0_SMART_GUIDES_SNAP_FIX
