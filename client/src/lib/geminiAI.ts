@@ -12,7 +12,7 @@
 import { GoogleGenerativeAI, GenerativeModel, ChatSession } from "@google/generative-ai";
 
 // Initialize Gemini AI
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBXzinZ-dcfF_n5WqBHzl88UqwnxLYF8tw";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Model configurations for different use cases

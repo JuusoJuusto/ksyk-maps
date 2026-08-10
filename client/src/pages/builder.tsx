@@ -101,22 +101,26 @@ type BuilderTool =
 type FeatureBuilding = SharedBuilding;
 
 // ─── Auth gate ────────────────────────────────────────────────────────────
+// v3.41.0 security fix: verify session server-side via /api/auth/user so a
+// localStorage spoof doesn't bypass the builder gate. The server checks the
+// session cookie and returns the real role.
 function useAdminAuth() {
   const [state, setState] = useState<"checking" | "allowed" | "denied">("checking");
   useEffect(() => {
-    const loggedIn = localStorage.getItem("ksyk_admin_logged_in") === "true";
-    const userRaw = localStorage.getItem("ksyk_admin_user");
-    if (!loggedIn || !userRaw) {
-      setState("denied");
-      return;
-    }
-    try {
-      const u = JSON.parse(userRaw);
-      if (["admin", "owner", "editor"].includes(u?.role)) setState("allowed");
-      else setState("denied");
-    } catch {
-      setState("denied");
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/user", { credentials: "include" });
+        if (cancelled) return;
+        if (!res.ok) { setState("denied"); return; }
+        const u = await res.json();
+        if (["admin", "owner", "editor"].includes(u?.role)) setState("allowed");
+        else setState("denied");
+      } catch {
+        if (!cancelled) setState("denied");
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
   return state;
 }
@@ -357,9 +361,24 @@ function BuilderWorkspace() {
   // Updated by the ghost preview effect on every mousemove so the click
   // handler and the preview always use the same snapped position.
   const guideSnapRef = useRef<{ lat: number; lng: number } | null>(null);
+  // finalPosRef — stores the exact post-ortho/snap position computed on
+  // every mousemove by the ghost preview effect. The click handler reads
+  // this instead of re-computing so preview and click always land at the
+  // same point (ortho v8 consistency fix).
+  const finalPosRef = useRef<{ lat: number; lng: number } | null>(null);
   // Temporary construction lines — session-only reference geometry drawn
   // with the Line tool (L). Not saved to DB, cleared on refresh.
   const [tempLines, setTempLines] = useState<Array<Array<{ lng: number; lat: number }>>>([]);
+  // Distance constraint — user-typed segment length in metres.
+  // Non-null overrides where the next waypoint lands (along the cursor
+  // direction from the last waypoint). Cleared on waypoint placement.
+  const [distanceInput, setDistanceInput] = useState("");
+  const distanceInputRef = useRef("");
+  distanceInputRef.current = distanceInput;
+  // Divide field — user types N to split the last segment into N equal parts.
+  const [divideInput, setDivideInput] = useState("");
+  // Live segment length shown in the constraint panel (updated by ghost preview).
+  const [liveSegmentM, setLiveSegmentM] = useState<number | null>(null);
   const [snapLabel, setSnapLabel] = useState<{ x: number; y: number; kind: string } | null>(null);
   const [fps, setFps] = useState<number | null>(null);
 
@@ -1030,47 +1049,50 @@ function BuilderWorkspace() {
         activeTool === "rectangle" || activeTool === "measure" ||
         activeTool === "line"
       ) {
-        const snap = snapTargetRef.current;
         const wps = waypointsRef.current;
-        const orthoOn = orthoEnabledRef.current;
-        // Priority: vertex snap > guide snap > raw cursor.
-        // Vertex snap is suppressed once ortho is active from the 2nd
-        // edge (the projected point is never a vertex anyway).
-        const useSnap = snap && !(orthoOn && wps.length >= 2);
-        const guideSnap = guideSnapRef.current;
-        let p = useSnap
-          ? new maplibregl.LngLat(snap.lng, snap.lat)
-          : guideSnap
-          ? new maplibregl.LngLat(guideSnap.lng, guideSnap.lat)
-          : e.lngLat;
-        // Ortho v7 — pure edge-direction, no map-bearing fallback.
-        // First edge (wps.length === 1) is completely free so the user
-        // sets the building's angle by clicking any two points.
-        // From the second click onward every corner is exactly 90°.
-        if (orthoOn && wps.length >= 2) {
-          const prev = wps[wps.length - 1];
-          const mPerLat = 111320;
-          const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
-          const prevPrev = wps[wps.length - 2];
-          const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
-          const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
-          const θ = Math.atan2(edgeDx, edgeDy);
-          const dx = (p.lng - prev.lng) * mPerLng;
-          const dy = (p.lat - prev.lat) * mPerLat;
-          const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
-          const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
-          if (Math.abs(tRight) >= Math.abs(tUp)) {
-            p = new maplibregl.LngLat(
-              prev.lng + (tRight * Math.cos(θ)) / mPerLng,
-              prev.lat - (tRight * Math.sin(θ)) / mPerLat,
-            );
-          } else {
-            p = new maplibregl.LngLat(
-              prev.lng + (tUp * Math.sin(θ)) / mPerLng,
-              prev.lat + (tUp * Math.cos(θ)) / mPerLat,
-            );
+        // Use finalPosRef (set by ghost preview on every mousemove) so the
+        // click always commits exactly what the preview showed — ortho v8
+        // consistency. Falls back to snap/raw click if cursor didn't move.
+        const final = finalPosRef.current;
+        let p: maplibregl.LngLat;
+        if (final) {
+          p = new maplibregl.LngLat(final.lng, final.lat);
+        } else {
+          const snap = snapTargetRef.current;
+          const orthoOn = orthoEnabledRef.current;
+          const useSnap = snap && !(orthoOn && wps.length >= 2);
+          const guideSnap = guideSnapRef.current;
+          p = useSnap
+            ? new maplibregl.LngLat(snap.lng, snap.lat)
+            : guideSnap
+            ? new maplibregl.LngLat(guideSnap.lng, guideSnap.lat)
+            : e.lngLat;
+          if (orthoOn && wps.length >= 2) {
+            const prev = wps[wps.length - 1];
+            const mPerLat = 111320;
+            const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
+            const prevPrev = wps[wps.length - 2];
+            const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
+            const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
+            const θ = Math.atan2(edgeDx, edgeDy);
+            const dx = (p.lng - prev.lng) * mPerLng;
+            const dy = (p.lat - prev.lat) * mPerLat;
+            const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
+            const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
+            if (Math.abs(tRight) >= Math.abs(tUp)) {
+              p = new maplibregl.LngLat(
+                prev.lng + (tRight * Math.cos(θ)) / mPerLng,
+                prev.lat - (tRight * Math.sin(θ)) / mPerLat,
+              );
+            } else {
+              p = new maplibregl.LngLat(
+                prev.lng + (tUp * Math.sin(θ)) / mPerLng,
+                prev.lat + (tUp * Math.cos(θ)) / mPerLat,
+              );
+            }
           }
         }
+        setDistanceInput(""); // clear distance constraint after placing waypoint
         setWaypoints((prev) => [...prev, p]);
         return;
       }
@@ -1892,6 +1914,8 @@ function BuilderWorkspace() {
     const clear = () => {
       const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
       if (src) src.setData({ type: "FeatureCollection", features: [] } as never);
+      finalPosRef.current = null;
+      setLiveSegmentM(null);
     };
 
     const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
@@ -1900,6 +1924,8 @@ function BuilderWorkspace() {
 
     if (!isSegmentTool || waypoints.length === 0 || !cursorLngLat) {
       guideSnapRef.current = null;
+      finalPosRef.current = null;
+      setLiveSegmentM(null);
       clear();
       return;
     }
@@ -1975,6 +2001,36 @@ function BuilderWorkspace() {
       }
     }
 
+    // Distance constraint: if the user has typed a length, project the
+    // endpoint to be exactly that many metres from the last waypoint in
+    // the current direction (applied after ortho so both work together).
+    const constraintM = parseFloat(distanceInputRef.current);
+    if (!isNaN(constraintM) && constraintM > 0) {
+      const mPerLatC = 111320;
+      const mPerLngC = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      const dx = (endLng - last.lng) * mPerLngC;
+      const dy = (endLat - last.lat) * mPerLatC;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0) {
+        const scale = constraintM / dist;
+        endLng = last.lng + (dx * scale) / mPerLngC;
+        endLat = last.lat + (dy * scale) / mPerLatC;
+      }
+    }
+
+    // Publish the final resolved position so the click handler can read
+    // it directly (ortho v8 — preview and click always match).
+    finalPosRef.current = { lng: endLng, lat: endLat };
+
+    // Live segment length for the constraint panel display.
+    {
+      const mPL = 111320;
+      const mPLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      const dx = (endLng - last.lng) * mPLng;
+      const dy = (endLat - last.lat) * mPL;
+      setLiveSegmentM(Math.sqrt(dx * dx + dy * dy));
+    }
+
     // Smart guide visual lines — orange dashed lines through every
     // anchor that screen-aligns with the final (snapped/ortho) endpoint.
     // Deduped by pixel bucket so overlapping vertices don't stack guides.
@@ -2041,7 +2097,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, guidesEnabled, buildings, roomsQ.data]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, guidesEnabled, distanceInput, buildings, roomsQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -2746,6 +2802,79 @@ function BuilderWorkspace() {
                       {cursor.lat.toFixed(6)}, {cursor.lng.toFixed(6)}
                     </span>
                   </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* CAD constraint panel — appears while drawing so users can
+           *  enter exact segment lengths and divide segments. Floats at
+           *  the bottom-centre of the canvas so it doesn't block the map. */}
+          {(() => {
+            const isDrawTool = activeTool === "building" || activeTool === "room" ||
+              activeTool === "corridor" || activeTool === "hallway" ||
+              activeTool === "wall" || activeTool === "measure" || activeTool === "line";
+            if (!isDrawTool || waypoints.length === 0) return null;
+            const mDisplay = liveSegmentM !== null
+              ? (liveSegmentM < 10 ? liveSegmentM.toFixed(2) : liveSegmentM.toFixed(1))
+              : null;
+            return (
+              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card/95 border border-border shadow-md backdrop-blur-md text-xs">
+                {/* Length input */}
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">L</span>
+                <input
+                  type="number"
+                  placeholder={mDisplay ?? "auto"}
+                  value={distanceInput}
+                  onChange={(e) => setDistanceInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setDistanceInput(""); }}
+                  min={0.01}
+                  step={0.1}
+                  className="w-20 h-7 px-2 rounded-lg border border-border bg-background text-xs font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+                <span className="text-[10px] text-muted-foreground">m</span>
+
+                {/* Divide */}
+                {waypoints.length >= 2 && (
+                  <>
+                    <div className="h-4 w-px bg-border" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">÷</span>
+                    <input
+                      type="number"
+                      placeholder="N"
+                      value={divideInput}
+                      onChange={(e) => setDivideInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const n = parseInt(divideInput, 10);
+                          if (n >= 2 && waypoints.length >= 2) {
+                            const a = waypoints[waypoints.length - 2];
+                            const b = waypoints[waypoints.length - 1];
+                            const intermediates: maplibregl.LngLat[] = [];
+                            for (let i = 1; i < n; i++) {
+                              const t = i / n;
+                              intermediates.push(new maplibregl.LngLat(
+                                a.lng + t * (b.lng - a.lng),
+                                a.lat + t * (b.lat - a.lat),
+                              ));
+                            }
+                            setWaypoints((prev) => [
+                              ...prev.slice(0, prev.length - 1),
+                              ...intermediates,
+                              prev[prev.length - 1],
+                            ]);
+                            setDivideInput("");
+                            toast({ title: `Divided into ${n} parts`, description: `${n - 1} intermediate points added` });
+                          }
+                        }
+                        if (e.key === "Escape") setDivideInput("");
+                      }}
+                      min={2}
+                      max={20}
+                      className="w-12 h-7 px-2 rounded-lg border border-border bg-background text-xs font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    />
+                    <span className="text-[10px] text-muted-foreground">parts ↵</span>
+                  </>
                 )}
               </div>
             );

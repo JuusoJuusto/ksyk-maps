@@ -1,8 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.41.0 — line-tool toolbar button, guides toggle,
-CAD transform tab (numeric position/size/rotation editing),
-room outline off-by-default, mobile room tap fix (14px bbox).
+Bump reason: v3.42.0 — ortho v8 finalPosRef consistency, segment
+length input + divide panel, security hardening (server-side auth
+gate, Wilma API protected, hardcoded key removed).
 
-Timestamp: 1786740100
-Build: FORCE_REBUILD_v3.41.0_TOOLBAR_CAD_TRANSFORM_MOBILE_TAPS
+Timestamp: 1786740200
+Build: FORCE_REBUILD_v3.42.0_ORTHO_V8_CAD_INPUT_SECURITY
