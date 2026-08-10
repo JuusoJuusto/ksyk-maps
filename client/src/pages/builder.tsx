@@ -101,22 +101,26 @@ type BuilderTool =
 type FeatureBuilding = SharedBuilding;
 
 // ─── Auth gate ────────────────────────────────────────────────────────────
+// v3.41.0 security fix: verify session server-side via /api/auth/user so a
+// localStorage spoof doesn't bypass the builder gate. The server checks the
+// session cookie and returns the real role.
 function useAdminAuth() {
   const [state, setState] = useState<"checking" | "allowed" | "denied">("checking");
   useEffect(() => {
-    const loggedIn = localStorage.getItem("ksyk_admin_logged_in") === "true";
-    const userRaw = localStorage.getItem("ksyk_admin_user");
-    if (!loggedIn || !userRaw) {
-      setState("denied");
-      return;
-    }
-    try {
-      const u = JSON.parse(userRaw);
-      if (["admin", "owner", "editor"].includes(u?.role)) setState("allowed");
-      else setState("denied");
-    } catch {
-      setState("denied");
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/user", { credentials: "include" });
+        if (cancelled) return;
+        if (!res.ok) { setState("denied"); return; }
+        const u = await res.json();
+        if (["admin", "owner", "editor"].includes(u?.role)) setState("allowed");
+        else setState("denied");
+      } catch {
+        if (!cancelled) setState("denied");
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
   return state;
 }

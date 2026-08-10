@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.41.0";
+export const APP_VERSION = "3.42.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.42.0",
+    date: "August 2026",
+    title: "Ortho v8 consistency, segment length input, divide tool, security hardening",
+    latest: true,
+    highlights: [
+      "Ortho v8: finalPosRef — the ghost preview and the click handler now use the exact same computed position, so the placed waypoint always lands where the preview shows. No more ortho drift.",
+      "Segment length input: while drawing, a floating panel shows the current segment length and lets you type an exact length in metres. The preview snaps to that length in the cursor's direction.",
+      "Divide tool: type N in the ÷ field and press Enter to split the last segment into N equal parts (inserts N−1 intermediate waypoints).",
+      "Security: builder auth gate now verified server-side (prevents localStorage spoofing). Unauthenticated /api/wilma/users, /api/wilma/user-settings, and /api/wilma/users/:id/send-password-reset endpoints now require login. Duplicate unauthenticated /api/test-email route removed. Hardcoded Gemini API key fallback removed from client bundle.",
+    ],
+  },
   {
     version: "3.41.0",
     date: "August 2026",
     title: "Line tool in toolbar, guides toggle, CAD transform, room outline toggle, mobile tap fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Line tool button in top toolbar (PenLine icon) — click to activate construction-line mode without reaching for the keyboard.",
       "Smart guides toggle in toolbar (Crosshair icon) — one click to disable the orange alignment lines and guide snap when they get in the way.",

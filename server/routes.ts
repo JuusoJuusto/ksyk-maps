@@ -765,48 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Test email endpoint (for debugging)
-  app.post('/api/test-email', async (req, res) => {
-    try {
-      console.log('\n🧪 ========== TEST EMAIL ENDPOINT ==========');
-      console.log('Environment variables check:');
-      console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
-      console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
-      console.log('  EMAIL_USER:', process.env.EMAIL_USER);
-      console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
-      
-      const testEmail = req.body.email || 'JuusoJuusto112@gmail.com';
-      const testName = req.body.name || 'Test User';
-      const testPassword = 'TestPass123!';
-      
-      console.log(`\nSending test email to: ${testEmail}`);
-      
-      const result = await sendPasswordSetupEmail(testEmail, testName, testPassword);
-      
-      console.log('\nTest email result:', result);
-      console.log('==========================================\n');
-      
-      res.json({
-        success: result.success,
-        mode: result.mode,
-        message: result.success ? 'Email sent successfully!' : 'Email failed to send',
-        details: result,
-        envVars: {
-          EMAIL_HOST: process.env.EMAIL_HOST,
-          EMAIL_PORT: process.env.EMAIL_PORT,
-          EMAIL_USER: process.env.EMAIL_USER,
-          EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
-        }
-      });
-    } catch (error: any) {
-      console.error('Test email error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        stack: error.stack
-      });
-    }
-  });
+  // (duplicate unauthenticated /api/test-email removed — see protected version below)
 
   // Development login bypass (for testing only) - REMOVED FOR SECURITY
 
@@ -1601,7 +1560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Wilma User routes
-  app.get('/api/wilma/users', async (req, res) => {
+  app.get('/api/wilma/users', isAuthenticated, async (req, res) => {
     try {
       console.log('🔵 GET /api/wilma/users called');
       const role = req.query.role as string | undefined;
@@ -1618,7 +1577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Wilma User by ID route (MUST BE BEFORE :id routes to avoid conflicts)
-  app.get('/api/wilma/users/:id', async (req, res) => {
+  app.get('/api/wilma/users/:id', isAuthenticated, async (req, res) => {
     try {
       console.log('🔍 GET /api/wilma/users/:id called with ID:', req.params.id);
       const wilmaUser = await storage.getWilmaUser(req.params.id);
@@ -1815,7 +1774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User settings endpoint
-  app.post('/api/wilma/user-settings', async (req, res) => {
+  app.post('/api/wilma/user-settings', isAuthenticated, async (req, res) => {
     try {
       const { userId, settings } = req.body;
       
@@ -1839,7 +1798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Password reset email endpoint
-  app.post('/api/wilma/users/:id/send-password-reset', async (req, res) => {
+  app.post('/api/wilma/users/:id/send-password-reset', isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -3770,19 +3729,19 @@ https://ksykmaps.vercel.app
     }
   });
 
-  // Test email endpoint
-  app.post('/api/test-email', async (req, res) => {
+  // Test email endpoint (admin-only)
+  app.post('/api/test-email-simple', isAuthenticated, async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ message: "Email address required" });
       }
-      
+
       console.log('📧 Sending test email to:', email);
-      
+
       const { sendPasswordSetupEmail } = await import('./emailService.js');
-      
+
       const emailBody = `
 This is a test email from KSYK Maps!
 
@@ -3797,9 +3756,9 @@ Test Details:
 KSYK Maps Support Team
 https://ksykmaps.vercel.app
       `.trim();
-      
+
       await sendPasswordSetupEmail(email, 'KSYK Maps - Test Email', emailBody);
-      
+
       res.json({ success: true, message: 'Test email sent successfully!' });
     } catch (error) {
       console.error("Error sending test email:", error);
