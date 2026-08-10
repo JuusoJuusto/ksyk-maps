@@ -1685,15 +1685,39 @@ function BuilderWorkspace() {
         points: pts,
         ...(isCorridor ? { type: "hallway", colorCode: "#94a3b8" } : {}),
       });
-      // Auto-place a nav node at the centroid of every new corridor so
-      // the routing graph is immediately connected to the walkable area.
+      // Auto-place spine nav nodes along the corridor's long axis so the
+      // routing graph runs through the entire walkable area, not just the
+      // centroid. Nodes are spaced ~4 m apart (2–10 total) and connected
+      // by edges so Dijkstra can route through bends.
       if (isCorridor) {
-        navGraph.addNode({
-          lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
-          lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
-          floor,
-          kind: "junction",
-        });
+        const mPerLat = 111320;
+        const mPerLng = 111320 * Math.cos((centroid.lat * Math.PI) / 180);
+        // Find the two polygon vertices that are farthest apart — these
+        // define the long axis (the "spine") of the corridor.
+        let fA = pts[0], fB = pts[1], maxDist = 0;
+        for (let i = 0; i < pts.length; i++) {
+          for (let j = i + 1; j < pts.length; j++) {
+            const dx = (pts[j].lng - pts[i].lng) * mPerLng;
+            const dy = (pts[j].lat - pts[i].lat) * mPerLat;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d > maxDist) { maxDist = d; fA = pts[i]; fB = pts[j]; }
+          }
+        }
+        const nodeCount = Math.max(2, Math.min(10, Math.round(maxDist / 4)));
+        const spineNodes: Array<{ id: string }> = [];
+        for (let k = 0; k < nodeCount; k++) {
+          const t = nodeCount === 1 ? 0.5 : k / (nodeCount - 1);
+          const node = navGraph.addNode({
+            lat: fA.lat + t * (fB.lat - fA.lat),
+            lng: fA.lng + t * (fB.lng - fA.lng),
+            floor,
+            kind: "junction",
+          });
+          spineNodes.push(node);
+        }
+        for (let k = 0; k < spineNodes.length - 1; k++) {
+          navGraph.addEdge(spineNodes[k].id, spineNodes[k + 1].id);
+        }
       }
       return;
     }
@@ -1893,29 +1917,47 @@ function BuilderWorkspace() {
     }
 
     // ── Smart guides — PowerPoint-style alignment hints ──────────────
-    // For each placed waypoint (except the ghost origin), check if the
-    // snapped endpoint is screen-aligned (within GUIDE_PX pixels on the
-    // X or Y axis). If so, extend a thin dashed guide line through that
-    // waypoint to show the alignment. Features tagged { guide: 1 } so
-    // the layer can paint them in a distinct color/weight.
+    // Check the snapped endpoint for screen-alignment (within GUIDE_PX
+    // pixels on X or Y) against ALL meaningful map points: previously
+    // placed waypoints AND every building + room polygon vertex. Guides
+    // are deduplicated by pixel-row/column bucket so overlapping vertices
+    // don't stack duplicate lines. Features tagged { guide: 1 } so the
+    // layer paints them in orange at a distinct weight.
     const GUIDE_PX = 10;
     const cursorScreen = map.project([endLng, endLat]);
     type GeoFeature = { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { guide: number } };
     const guideFeatures: GeoFeature[] = [];
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const wp = waypoints[i];
-      const wpScreen = map.project([wp.lng, wp.lat]);
+
+    const anchorPoints: Array<{ lng: number; lat: number }> = [];
+    for (let i = 0; i < waypoints.length - 1; i++) anchorPoints.push(waypoints[i]);
+    for (const b of buildings) {
+      if (b.points) for (const p of b.points) anchorPoints.push(p);
+    }
+    for (const r of (roomsQ.data ?? [])) {
+      if (r.points) for (const p of r.points) anchorPoints.push(p);
+    }
+
+    const usedH = new Set<number>();
+    const usedV = new Set<number>();
+    for (const ap of anchorPoints) {
+      const wpScreen = map.project([ap.lng, ap.lat]);
       if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
-        // Same screen row → horizontal guide through this waypoint
-        const left  = map.unproject([wpScreen.x - 600, wpScreen.y]);
-        const right = map.unproject([wpScreen.x + 600, wpScreen.y]);
-        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+        const bucket = Math.round(wpScreen.y / 2);
+        if (!usedH.has(bucket)) {
+          usedH.add(bucket);
+          const left  = map.unproject([wpScreen.x - 800, wpScreen.y]);
+          const right = map.unproject([wpScreen.x + 800, wpScreen.y]);
+          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+        }
       }
       if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
-        // Same screen column → vertical guide through this waypoint
-        const top    = map.unproject([wpScreen.x, wpScreen.y - 600]);
-        const bottom = map.unproject([wpScreen.x, wpScreen.y + 600]);
-        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+        const bucket = Math.round(wpScreen.x / 2);
+        if (!usedV.has(bucket)) {
+          usedV.add(bucket);
+          const top    = map.unproject([wpScreen.x, wpScreen.y - 800]);
+          const bottom = map.unproject([wpScreen.x, wpScreen.y + 800]);
+          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+        }
       }
     }
 
@@ -1951,7 +1993,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, buildings, roomsQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */

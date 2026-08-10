@@ -1,8 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.38.0 — edge-direction ortho (90° corners off any angle),
-smart alignment guides (PowerPoint-style orange dashed lines), corridor
-property panel (own kind in PropertyPanel), auto nav node at corridor centroid.
+Bump reason: v3.39.0 — smart guides on all vertices (buildings + rooms, deduped),
+corridor spine nav nodes (long-axis, ~4 m spacing, edges wired), nav nodes in
+Structure tab (per-node delete + clear-all).
 
-Timestamp: 1786740000
-Build: FORCE_REBUILD_v3.38.0_EDGE_ORTHO_GUIDES_CORRIDOR_PANEL_NAV_NODE
+Timestamp: 1786740001
+Build: FORCE_REBUILD_v3.39.0_SMART_GUIDES_ALL_VERTS_SPINE_NAV_NODES_STRUCTURE_TAB

@@ -23,11 +23,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, Door, Stair, Elevator, MapLayer, MapVersion } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag, LayoutGrid } from "lucide-react";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag, LayoutGrid, Navigation, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
+import { useNavGraph } from "@/lib/navGraph";
 
 export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "poi-list" | "history" | "settings";
 
@@ -304,6 +305,8 @@ type PoiKind =
   // Room with type="hallway". Lives in Structure tab (not Rooms).
   | "corridor"
   | "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator"
+  // Nav graph nodes (local-first, stored in localStorage)
+  | "navnode"
   // Free-form kinds — placed via the generic POI tools and stored in
   // /api/pois with a `kind` string discriminator.
   | "info" | "reception" | "parking" | "bike"
@@ -321,11 +324,12 @@ interface UnifiedPoi {
   focusLng: number | null;
 }
 
-// ── Structure tab: corridors + hallway lines + walls ─────────────────
+// ── Structure tab: corridors + hallway lines + walls + nav nodes ──────
 function StructureList({
   query, selection, onSelect,
 }: { query: string; selection: LeftSidebarSelection | null; onSelect: (s: LeftSidebarSelection) => void }) {
   const [kindFilter, setKindFilter] = useState<"all" | PoiKind>("all");
+  const { graph, removeNode, clear: clearNavGraph } = useNavGraph();
 
   const { data: allRooms = [] } = useQuery<Room[]>({
     queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms"),
@@ -346,7 +350,7 @@ function StructureList({
         id: r.id, kind: "corridor",
         title: r.roomNumber ? `Corridor ${r.roomNumber}` : `Corridor ${r.id.slice(0, 6)}`,
         subtitle: [r.name, r.floor != null ? `Floor ${r.floor}` : null].filter(Boolean).join(" · "),
-        color: "#64748b", floor: r.floor ?? null, focusLat: centLat, focusLng: centLng,
+        color: r.colorCode ?? "#64748b", floor: r.floor ?? null, focusLat: centLat, focusLng: centLng,
       });
     }
     for (const h of hallways) {
@@ -359,8 +363,18 @@ function StructureList({
         floor: h.floor ?? null, focusLat: (h.startY + h.endY) / 2, focusLng: (h.startX + h.endX) / 2,
       });
     }
+    // Nav graph nodes (localStorage-persisted)
+    for (const n of graph.nodes) {
+      const kindLabel = n.kind === "junction" ? "Junction" : n.kind === "stairs" ? "Stairs node" : n.kind === "elevator" ? "Elevator node" : n.kind === "entrance" ? "Entrance node" : n.kind === "room" ? "Room node" : "Nav node";
+      out.push({
+        id: n.id, kind: "navnode",
+        title: n.label || `${kindLabel} ${n.id.slice(2, 8)}`,
+        subtitle: `Floor ${n.floor} · ${n.lat.toFixed(5)}, ${n.lng.toFixed(5)}`,
+        color: "#7c3aed", floor: n.floor, focusLat: n.lat, focusLng: n.lng,
+      });
+    }
     return out;
-  }, [corridorRooms, hallways]);
+  }, [corridorRooms, hallways, graph.nodes]);
 
   const q = query.trim().toLowerCase();
   const filtered = items.filter((it) => {
@@ -368,12 +382,17 @@ function StructureList({
     if (!q) return true;
     return it.title.toLowerCase().includes(q) || it.subtitle.toLowerCase().includes(q);
   });
-  const counts = useMemo(() => { const c: Record<string, number> = { all: items.length }; for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1; return c; }, [items]);
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: items.length };
+    for (const it of items) c[it.kind] = (c[it.kind] ?? 0) + 1;
+    return c;
+  }, [items]);
   const allStructureChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
     { id: "all" as const, label: "All", Icon: Layers },
     { id: "corridor" as const, label: "Corridors", Icon: LayoutGrid },
     { id: "hallway" as const, label: "Paths", Icon: RouteIcon },
     { id: "wall" as const, label: "Walls", Icon: StretchHorizontal },
+    { id: "navnode" as const, label: "Nav nodes", Icon: Navigation },
   ];
   const chips = allStructureChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
 
@@ -382,15 +401,19 @@ function StructureList({
       onSelect({ kind: "hallway", id: it.id });
     } else if (it.kind === "corridor") {
       onSelect({ kind: "room", id: it.id });
-      if (it.focusLat != null && it.focusLng != null) {
-        try { window.dispatchEvent(new CustomEvent("ksyk:focus-point", { detail: { lat: it.focusLat, lng: it.focusLng, kind: "room", id: it.id } })); } catch { /* SSR */ }
-      }
+    }
+    if (it.focusLat != null && it.focusLng != null) {
+      try { window.dispatchEvent(new CustomEvent("ksyk:focus-point", { detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id } })); } catch { /* SSR */ }
     }
   };
+
+  const nodeCount = graph.nodes.length;
+  const edgeCount = graph.edges.length;
 
   if (items.length === 0) return <EmptyState message="No structure elements yet." hint="Draw corridors, hallways, or walls with the Structure tools." />;
   return (
     <div>
+      {/* Filter chips */}
       <div className="flex gap-1 overflow-x-auto px-2 py-1.5 border-b border-border">
         {chips.map((c) => { const active = kindFilter === c.id; const Icon = c.Icon; return (
           <button key={c.id} type="button" onClick={() => setKindFilter(c.id)}
@@ -399,10 +422,44 @@ function StructureList({
           </button>
         ); })}
       </div>
+
+      {/* Nav graph summary + clear button */}
+      {(kindFilter === "all" || kindFilter === "navnode") && nodeCount > 0 && (
+        <div className="flex items-center justify-between px-3 py-1.5 bg-violet-50 dark:bg-violet-950/30 border-b border-violet-200 dark:border-violet-800">
+          <span className="text-[11px] text-violet-700 dark:text-violet-300 font-medium">
+            {nodeCount} node{nodeCount !== 1 ? "s" : ""} · {edgeCount} edge{edgeCount !== 1 ? "s" : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => { if (confirm("Clear ALL nav nodes and edges?")) clearNavGraph(); }}
+            className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {/* Row list */}
       <ul className="p-1.5 space-y-0.5">
         {filtered.map((it) => {
           const isActive = it.kind === "hallway" || it.kind === "wall" ? selection?.kind === "hallway" && selection.id === it.id : selection?.kind === "room" && selection.id === it.id;
-          return <li key={`${it.kind}:${it.id}`}><Row active={isActive} onClick={() => onRowClick(it)} leading={<Swatch color={it.color} />} title={it.title} subtitle={it.subtitle} /></li>;
+          return (
+            <li key={`${it.kind}:${it.id}`} className="flex items-center gap-1">
+              <div className="flex-1 min-w-0">
+                <Row active={isActive} onClick={() => onRowClick(it)} leading={<Swatch color={it.color} />} title={it.title} subtitle={it.subtitle} />
+              </div>
+              {it.kind === "navnode" && (
+                <button
+                  type="button"
+                  title="Remove this nav node"
+                  onClick={(e) => { e.stopPropagation(); removeNode(it.id); }}
+                  className="shrink-0 h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </li>
+          );
         })}
       </ul>
     </div>

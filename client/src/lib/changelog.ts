@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.38.0";
+export const APP_VERSION = "3.39.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.39.0",
+    date: "August 2026",
+    title: "Smart guides on all vertices, corridor spine nav nodes, nav nodes in Structure tab",
+    latest: true,
+    highlights: [
+      "Smart guides now snap to every building and room polygon vertex on the map — not just previous waypoints. Horizontal and vertical guide lines appear whenever the cursor aligns within 10 px of any existing corner, deduped by pixel bucket so overlapping vertices don't stack guides.",
+      "Corridor nav nodes: instead of a single centroid node, the corridor tool now places a full spine of nodes along the corridor's long axis (~4 m apart, 2–10 nodes), all connected by edges. Routing paths can now run the full length of every corridor.",
+      "Nav nodes are now visible in the Structure tab of the builder sidebar — each node shows its kind, floor, and coordinates. Click a node to fly the map to it; use the trash icon to delete it or the 'Clear all' button to wipe the entire graph.",
+    ],
+  },
   {
     version: "3.38.0",
     date: "August 2026",
     title: "Edge-direction ortho, smart guides, corridor property panel, auto nav nodes",
-    latest: true,
+    latest: false,
     highlights: [
       "Ortho now follows the previous edge direction, not just map bearing. After placing two points, every subsequent click snaps to either parallel or perpendicular to the last edge — so any non-axis-aligned building still produces perfect 90° corners.",
       "Smart guides: while drawing, thin orange dashed lines appear when the cursor aligns with any previous waypoint's screen X or Y position — PowerPoint-style alignment hints.",
