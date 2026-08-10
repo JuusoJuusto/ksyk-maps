@@ -293,7 +293,9 @@ export default function CampusOverlay({
         [e.point.x - px, e.point.y - px],
         [e.point.x + px, e.point.y + px],
       ];
-      const roomLayers = [LAYERS.roomsFill].filter((id) => map.getLayer(id));
+      // Include the 3D extrude layer so clicks work in 3D mode where
+      // campus-rooms-fill is hidden (visibility:none → no rendered features).
+      const roomLayers = [LAYERS.roomsFill, LAYERS.rooms3D].filter((id) => map.getLayer(id));
       const bldgLayers = [LAYERS.buildingsFill].filter((id) => map.getLayer(id));
       const hallLayers = [LAYERS.hallwaysLine].filter((id) => map.getLayer(id));
       const layerRow = (kind: "building" | "room" | "hallway") =>

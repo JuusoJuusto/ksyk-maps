@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.47.0";
+export const APP_VERSION = "3.48.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.48.0",
+    date: "August 2026",
+    title: "Inner wall fix, floor-aware selection, classroom click 3D fix, handle flashing fix",
+    latest: true,
+    highlights: [
+      "Inner wall tool fixed: clicks now properly add waypoints (the wall-inner tool was missing from the draw-tool list). Inner walls no longer switch to the POIs tab after creation — they stay in Structure.",
+      "Builder floor-aware selection: when multiple rooms are stacked at the same position on different floors, clicking now selects the room on the active floor instead of the topmost-rendered one.",
+      "Classroom click in 3D mode fixed: the public map click handler now queries both the 2D fill layer and the 3D extrude layer so rooms are always clickable regardless of 3D/2D mode.",
+      "Selection handle flashing fixed: SelectionHandles' selection prop is now memoized so handle layers no longer flash/rebuild on every mousemove when a polygon is selected.",
+    ],
+  },
   {
     version: "3.47.0",
     date: "August 2026",
     title: "Room info panel redesign, classroom click fix, corridor nav nodes fix, drag editing fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Room info panel (FeatureInfoSheet) fully redesigned: MazeMap + Apple-style premium bottom sheet with per-type icons (lab, gym, cafeteria, office…), floor badge, category chips, cleaner icon-tile metadata rows, and a taller gradient hero.",
       "Classrooms now always clickable on desktop and mobile: corridor polygons overlapping classrooms no longer intercept the click. All room-layer hits are iterated; corridors (type=hallway) are skipped so the actual classroom shows its info panel.",
