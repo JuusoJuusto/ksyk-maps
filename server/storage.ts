@@ -18,7 +18,7 @@ import {
   type InsertAnnouncement,
   type AppSettings,
   type InsertAppSettings,
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 // Load environment variables
 dotenv.config();

@@ -1,6 +1,6 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema.js";
 
 // Accept DATABASE_URL (custom) or POSTGRES_URL (Vercel ↔ Supabase integration).
 // POSTGRES_PRISMA_URL adds pgbouncer params that don't cause issues but prefer

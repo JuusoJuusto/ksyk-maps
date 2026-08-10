@@ -14,7 +14,7 @@ import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import { storage } from "./storage";
 import { db } from "./db.js";
-import { mapVersions, mapPackages } from "@shared/schema";
+import { mapVersions, mapPackages } from "../shared/schema.js";
 import { isAuthenticated } from "./simpleAuth";
 import { rateLimiters } from "./rateLimiter";
 import {
@@ -26,11 +26,11 @@ import {
   PROFILE_FAST,
   annotateRoute,
   type RoutingProfile,
-} from "@ksyk/routing";
+} from "../packages/routing/src/index.js";
 import type {
   Building, Room, Hallway, Door, Stair, Elevator, Floor, MapDefaults, MapPackage,
-} from "@ksyk/shared";
-import { schema as sharedSchema } from "@ksyk/shared";
+} from "../packages/shared/src/index.js";
+import { schema as sharedSchema } from "../packages/shared/src/index.js";
 
 // ── Input schemas ─────────────────────────────────────────────────
 // Every mutation endpoint validates its body against one of these.

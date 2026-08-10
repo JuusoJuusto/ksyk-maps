@@ -28,7 +28,7 @@ import {
   announcements,
   users,
   appSettings,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import * as fs from "fs";
 import * as path from "path";
 

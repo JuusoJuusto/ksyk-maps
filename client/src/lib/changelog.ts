@@ -10,14 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.57.0";
+export const APP_VERSION = "3.58.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.58.0",
+    date: "August 2026",
+    title: "Fix @shared path alias — Supabase now connects in production",
+    latest: true,
+    highlights: [
+      "Fixed ERR_MODULE_NOT_FOUND: @shared/schema is a TypeScript path alias that dev resolves but Vercel's Lambda runtime cannot. Replaced with relative paths (../shared/schema.js) in all server files. Supabase now connects correctly and buildings/rooms/announcements load from Postgres.",
+    ],
+  },
   {
     version: "3.57.0",
     date: "August 2026",
     title: "Firebase fully removed, Supabase-only, announcement border fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Firebase completely removed — map package versioning (publish/restore/history) now uses Supabase Postgres tables (map_versions, map_packages). No more Firestore dependency anywhere.",
       "Server picks up Supabase when USE_FIREBASE is not set and POSTGRES_URL (Vercel integration) is present — no manual DATABASE_URL needed.",

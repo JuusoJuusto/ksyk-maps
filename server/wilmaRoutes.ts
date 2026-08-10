@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "./storage";
-import { insertWilmaUserSchema } from "@shared/schema";
+import { insertWilmaUserSchema } from "../shared/schema.js";
 import { sendPasswordSetupEmail, generateTempPassword } from "./emailService";
 
 export function registerWilmaRoutes(app: Express) {

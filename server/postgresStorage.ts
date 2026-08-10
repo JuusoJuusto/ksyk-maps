@@ -29,7 +29,7 @@ import {
   type InsertAnnouncement,
   type AppSettings,
   type InsertAppSettings,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
 import type { IStorage } from "./storage";

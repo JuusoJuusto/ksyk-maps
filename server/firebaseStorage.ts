@@ -29,7 +29,7 @@ import type {
   InsertAnnouncement,
   AppSettings,
   InsertAppSettings,
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 // Initialize Firebase Admin (server-side)
 let firebaseInitialized = false;
