@@ -521,11 +521,9 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
         </button>
       )}
 
-      <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border bg-blue-50/50 dark:bg-blue-950/30">
+      <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border">
         <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <p className="text-[13px] font-semibold text-foreground flex-1">
-          {isSmall ? "Directions" : "Directions"}
-        </p>
+        <p className="text-[14px] font-bold text-foreground flex-1">Directions</p>
         {isSmall && (
           <button
             type="button"

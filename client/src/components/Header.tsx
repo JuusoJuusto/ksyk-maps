@@ -157,7 +157,7 @@ export default function Header({
        *  overflow-hidden clips the inner search-row border-t against
        *  the rounded corners. */}
       <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
-        <header className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
+        <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-white/80 dark:border-gray-700/60 shadow-md shadow-black/[0.06] rounded-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           {/* v3.27.5 — taller header on desktop. 14→16→20 across
            *  mobile/sm/lg so the nav reads as a proper top bar on
@@ -368,9 +368,7 @@ export default function Header({
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        // Uses the same bg-card + border-border + shadow-sm vocab as
-        // the top bar Header so the sheet reads as an extension of it.
-        className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
+        className="overflow-hidden rounded-2xl border border-white/80 dark:border-gray-700/60 bg-white/96 dark:bg-gray-900/96 backdrop-blur-xl shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
         style={{
           maxHeight: "min(85dvh, calc(100dvh - 6rem))",
           paddingBottom: "env(safe-area-inset-bottom)",

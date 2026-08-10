@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.51.0";
+export const APP_VERSION = "3.52.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.52.0",
+    date: "August 2026",
+    title: "Frosted glass header + mobile menu — full Apple Maps aesthetic",
+    latest: true,
+    highlights: [
+      "Header (top navigation chip) now uses frosted glass: bg-white/95 backdrop-blur-md, matching the map controls updated in v3.51.0. The whole floating card feels light and premium on top of the map.",
+      "Mobile hamburger drawer also updated to frosted glass backdrop-blur-xl — consistent with the header.",
+      "Navigation panel: removed the heavy blue-tinted header strip, made the 'Directions' label slightly larger. Cleaner and more MazeMap-like.",
+    ],
+  },
   {
     version: "3.51.0",
     date: "August 2026",
     title: "Navigation mobile fix, glassmorphism controls — Apple Maps / MazeMap style",
-    latest: true,
+    latest: false,
     highlights: [
       "Navigation panel on mobile is now a bottom sheet (Apple Maps / Google Maps style): no longer covers the full screen — the map stays visible above. Peek mode (~52dvh) shows from/to + route summary; tap the grab handle or chevron to expand to full turn-by-turn.",
       "A route being found auto-expands the mobile sheet so turn-by-turn is immediately visible.",

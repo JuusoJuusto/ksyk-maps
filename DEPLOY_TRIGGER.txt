@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.51.0 — nav mobile bottom sheet, glassmorphism controls,
-Apple Maps / MazeMap style polish.
+Bump reason: v3.52.0 — frosted glass header + mobile menu, cleaner nav
+panel header, full Apple Maps aesthetic across all floating UI.
 
-Timestamp: 1786745000
-Build: FORCE_REBUILD_v3.51.0_NAVBOTTOMSHEET_GLASSMORPHISM_APPLELIKE
+Timestamp: 1786745800
+Build: FORCE_REBUILD_v3.52.0_HEADER_GLASS_NAVCLEAN_APPLEMAPS
