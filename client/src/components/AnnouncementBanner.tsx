@@ -291,12 +291,17 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* White body lifts over gradient via negative margin + border-radius */}
+          {/* White body lifts over gradient — use relative+top so the flex
+              height calculation is unaffected (negative margin confuses Safari) */}
           <div
-            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl -mt-6 overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            style={{ position: "relative", top: "-1.5rem", marginBottom: "-1.5rem" }}
           >
-            {/* Scrollable content */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5 pb-4">
+            {/* Scrollable content — h-0 + flex-1 is the most reliable cross-browser
+                approach for a scrollable flex child; min-h-0 alone fails in Safari */}
+            <div className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5"
+              style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
+            >
               <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
                 {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
                   if (line.trim().startsWith("•") || line.trim().startsWith("-")) {

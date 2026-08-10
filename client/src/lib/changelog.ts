@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.55.0";
+export const APP_VERSION = "3.56.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.56.0",
+    date: "August 2026",
+    title: "Supabase live, RLS security, announcement scroll fix",
+    latest: true,
+    highlights: [
+      "Database fully migrated to Supabase — all 44 public tables now have Row Level Security enabled. Direct postgres connections (our server) bypass RLS; the Supabase REST API is locked down.",
+      "Announcement popup on mobile: slide-up animation now uses fill-mode:both so there is zero flash before the animation starts.",
+      "Long announcements now scroll correctly — replaced the -mt-6 negative-margin hack (which confused Safari's flex height calculation) with a relative+top approach that doesn't affect flex sizing.",
+      "Database layer now accepts POSTGRES_URL from Vercel's Supabase integration as well as a custom DATABASE_URL.",
+    ],
+  },
   {
     version: "3.55.0",
     date: "August 2026",
     title: "Supabase migration prep, announcement slide animation, close button fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Database layer switched from Neon-specific driver to postgres-js — compatible with Supabase, Railway, or any standard Postgres host without config changes.",
       "Announcement popup now slides up from the bottom on mobile instead of zooming from the center — matches native bottom-sheet behaviour.",

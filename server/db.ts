@@ -2,15 +2,21 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@shared/schema";
 
-if (!process.env.DATABASE_URL) {
+// Accept DATABASE_URL (custom) or POSTGRES_URL (Vercel ↔ Supabase integration).
+// POSTGRES_PRISMA_URL adds pgbouncer params that don't cause issues but prefer
+// the cleaner POSTGRES_URL when available.
+const url =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_PRISMA_URL;
+
+if (!url) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "No database URL found. Set DATABASE_URL or connect a Supabase integration in Vercel.",
   );
 }
 
-// postgres-js works with any PostgreSQL backend (Supabase, Neon direct,
-// Railway, etc.).  Use { prepare: false } when connecting via Supabase's
-// Transaction-mode pooler (port 6543) — it doesn't support prepared
-// statements.  For direct connections it's fine either way.
-const client = postgres(process.env.DATABASE_URL, { prepare: false, max: 3 });
+// { prepare: false } required for Supabase's Transaction-mode pooler (port 6543).
+// Safe to use with any connection; Neon direct connections also work.
+const client = postgres(url, { prepare: false, max: 3 });
 export const db = drizzle(client, { schema });
