@@ -358,9 +358,6 @@ export default function SearchResultsDropdown({
                     </div>
                   )}
                 </div>
-                <div className={cn("text-[10px] uppercase tracking-wider tabular-nums", darkMode ? "text-gray-500" : "text-gray-400")}>
-                  {(hit.score * 100).toFixed(0)}
-                </div>
               </li>
             );
           })}
