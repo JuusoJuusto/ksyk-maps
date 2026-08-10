@@ -230,6 +230,7 @@ export default function AnnouncementBanner() {
             "sm:rounded-3xl",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
+            "ksyk-bottom-sheet",
           )}
         >
           {/* Priority accent gradient header */}

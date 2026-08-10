@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.54.0";
+export const APP_VERSION = "3.55.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.55.0",
+    date: "August 2026",
+    title: "Supabase migration prep, announcement slide animation, close button fix",
+    latest: true,
+    highlights: [
+      "Database layer switched from Neon-specific driver to postgres-js — compatible with Supabase, Railway, or any standard Postgres host without config changes.",
+      "Announcement popup now slides up from the bottom on mobile instead of zooming from the center — matches native bottom-sheet behaviour.",
+      "FeatureInfoSheet close button now has z-10 so it is never hidden behind the drag-handle layer.",
+    ],
+  },
   {
     version: "3.54.0",
     date: "August 2026",
     title: "Cursor fix, room hover glow, wall/corridor labels, announcement cleanup",
-    latest: true,
+    latest: false,
     highlights: [
       "Map cursor now behaves like MazeMap — default arrow, pointer on room/building hover, grabbing only while mouse button held. Uses CSS class override to avoid fighting MapLibre's built-in cursor handling.",
       "Room and building hover now lights up the entire area uniformly — added a white fill overlay layer on top that fades in on hover, creating a premium consistent glow effect.",

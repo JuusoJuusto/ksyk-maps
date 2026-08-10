@@ -155,7 +155,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-3.5 right-3.5 h-8 w-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+            className="absolute top-3.5 right-3.5 z-10 h-8 w-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

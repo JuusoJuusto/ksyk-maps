@@ -1591,3 +1591,26 @@ body {
     animation: none !important;
   }
 }
+
+/* ── Announcement + FeatureInfoSheet bottom-sheet animation ─────────────────
+ * Radix Dialog's default animate-in uses zoom-in-95 + slide-in-from-top which
+ * looks wrong for a bottom sheet on mobile. Override with a clean slide-up.
+ * The sm: media query restores normal fade/zoom for the desktop centered card.
+ * ──────────────────────────────────────────────────────────────────────────── */
+@keyframes ksyk-slide-up {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+@keyframes ksyk-slide-down {
+  from { transform: translateY(0);    opacity: 1;   }
+  to   { transform: translateY(100%); opacity: 0;   }
+}
+
+@media (max-width: 639px) {
+  .ksyk-bottom-sheet[data-state="open"] {
+    animation: ksyk-slide-up 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  .ksyk-bottom-sheet[data-state="closed"] {
+    animation: ksyk-slide-down 220ms ease-in !important;
+  }
+}
