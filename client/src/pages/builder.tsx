@@ -91,7 +91,10 @@ type BuilderTool =
   // v3.24: navigation graph tools. `node` drops a nav node at cursor
   // (localStorage-backed for now; server sync lands with the routing
   // API). `connect` links two clicked nodes with an edge.
-  | "node" | "connect";
+  | "node" | "connect"
+  // v3.40.0 — construction line tool. Click to trace reference lines
+  // (temporary, session-only, not saved to DB) used for alignment.
+  | "line";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -345,6 +348,13 @@ function BuilderWorkspace() {
   // indicator and next click snaps to the vertex instead of the raw
   // cursor lng/lat.
   const snapTargetRef = useRef<{ lat: number; lng: number; kind: "vertex" | "endpoint" | "midpoint" } | null>(null);
+  // Guide snap: horizontal/vertical alignment with any campus vertex.
+  // Updated by the ghost preview effect on every mousemove so the click
+  // handler and the preview always use the same snapped position.
+  const guideSnapRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Temporary construction lines — session-only reference geometry drawn
+  // with the Line tool (L). Not saved to DB, cleared on refresh.
+  const [tempLines, setTempLines] = useState<Array<Array<{ lng: number; lat: number }>>>([]);
   const [snapLabel, setSnapLabel] = useState<{ x: number; y: number; kind: string } | null>(null);
   const [fps, setFps] = useState<number | null>(null);
 
@@ -1008,43 +1018,34 @@ function BuilderWorkspace() {
         activeTool === "building" || activeTool === "room" ||
         activeTool === "corridor" ||
         activeTool === "hallway" || activeTool === "wall" ||
-        activeTool === "rectangle" || activeTool === "measure"
+        activeTool === "rectangle" || activeTool === "measure" ||
+        activeTool === "line"
       ) {
-        // Snap to nearest vertex/endpoint/midpoint when the indicator
-        // is on. Falls back to the raw cursor position otherwise.
-        // Ortho overrides snap for edges after the first: projecting a
-        // vertex onto the perpendicular line gives a non-vertex point
-        // anyway, so snap would just add noise. Use the raw cursor as
-        // the projection base when ortho is engaged; snap still applies
-        // for the first free segment (waypoints.length < 2).
         const snap = snapTargetRef.current;
         const wps = waypointsRef.current;
         const orthoOn = orthoEnabledRef.current;
-        // Ortho overrides snap from the second point onward — the
-        // projected point is never a vertex, so snap adds noise.
-        const useSnap = snap && !(orthoOn && wps.length >= 1);
+        // Priority: vertex snap > guide snap > raw cursor.
+        // Vertex snap is suppressed once ortho is active from the 2nd
+        // edge (the projected point is never a vertex anyway).
+        const useSnap = snap && !(orthoOn && wps.length >= 2);
+        const guideSnap = guideSnapRef.current;
         let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
+          : guideSnap
+          ? new maplibregl.LngLat(guideSnap.lng, guideSnap.lat)
           : e.lngLat;
-        // Ortho v6 — edge-direction aware. First segment (wps.length===1)
-        // uses the map bearing so the initial direction is always
-        // screen-aligned. From the second click onward, snaps to the
-        // direction of the PREVIOUS edge (or perpendicular to it) so
-        // every corner is automatically 90°, regardless of initial angle.
-        if (orthoOn && wps.length >= 1) {
+        // Ortho v7 — pure edge-direction, no map-bearing fallback.
+        // First edge (wps.length === 1) is completely free so the user
+        // sets the building's angle by clicking any two points.
+        // From the second click onward every corner is exactly 90°.
+        if (orthoOn && wps.length >= 2) {
           const prev = wps[wps.length - 1];
           const mPerLat = 111320;
           const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
-          let θ: number;
-          if (wps.length >= 2) {
-            // Use previous edge direction as the reference axis.
-            const prevPrev = wps[wps.length - 2];
-            const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
-            const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
-            θ = Math.atan2(edgeDx, edgeDy); // radians, already in "atan2(x,y)=bearing" form
-          } else {
-            θ = (map.getBearing() * Math.PI) / 180;
-          }
+          const prevPrev = wps[wps.length - 2];
+          const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
+          const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
+          const θ = Math.atan2(edgeDx, edgeDy);
           const dx = (p.lng - prev.lng) * mPerLng;
           const dy = (p.lat - prev.lat) * mPerLat;
           const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
@@ -1061,9 +1062,6 @@ function BuilderWorkspace() {
             );
           }
         }
-        // First segment (waypoint 0 → 1) is intentionally FREE so
-        // users can start a wall at any angle. Ortho only kicks in
-        // from the second click onward.
         setWaypoints((prev) => [...prev, p]);
         return;
       }
@@ -1264,12 +1262,19 @@ function BuilderWorkspace() {
         }
         return;
       }
+      // Ctrl+L: clear all construction lines
+      if ((e.ctrlKey || e.metaKey) && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        if (tempLines.length > 0) { setTempLines([]); toast({ title: "Construction lines cleared" }); }
+        return;
+      }
       if (e.key === "v" || e.key === "V") setActiveTool("select");
       else if (e.key === "b" || e.key === "B") { setActiveTool("building"); setWaypoints([]); }
       else if (e.key === "r" || e.key === "R") { setActiveTool("room"); setWaypoints([]); }
       else if (e.key === "c" || e.key === "C") { setActiveTool("corridor"); setWaypoints([]); }
       else if (e.key === "h" || e.key === "H") { setActiveTool("hallway"); setWaypoints([]); }
       else if (e.key === "w" || e.key === "W") { setActiveTool("wall"); setWaypoints([]); }
+      else if (e.key === "l" || e.key === "L") { setActiveTool("line"); setWaypoints([]); }
       else if (e.key === "m" || e.key === "M") { setActiveTool("measure"); setWaypoints([]); }
       else if (e.key === "u" || e.key === "U") { setActiveTool("rectangle"); setWaypoints([]); }
       else if (e.key === "s" || e.key === "S") { setActiveTool("poi-stairs"); setWaypoints([]); }
@@ -1576,6 +1581,13 @@ function BuilderWorkspace() {
   }, [mapReady]);
 
   const finalize = useCallback(() => {
+    // Construction line: save to temp state (session-only, not DB).
+    if (activeTool === "line" && waypoints.length >= 2) {
+      setTempLines((prev) => [...prev, waypoints.map((w) => ({ lng: w.lng, lat: w.lat }))]);
+      setWaypoints([]);
+      toast({ title: "Construction line added", description: "Ctrl+Z to undo · L to draw more · Esc to cancel line" });
+      return;
+    }
     if (activeTool === "hallway" && waypoints.length >= 2) {
       createHallway.mutate({
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
@@ -1685,19 +1697,43 @@ function BuilderWorkspace() {
         points: pts,
         ...(isCorridor ? { type: "hallway", colorCode: "#94a3b8" } : {}),
       });
-      // Auto-place a nav node at the centroid of every new corridor so
-      // the routing graph is immediately connected to the walkable area.
+      // Auto-place spine nav nodes along the corridor's long axis so the
+      // routing graph runs through the entire walkable area, not just the
+      // centroid. Nodes are spaced ~4 m apart (2–10 total) and connected
+      // by edges so Dijkstra can route through bends.
       if (isCorridor) {
-        navGraph.addNode({
-          lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
-          lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
-          floor,
-          kind: "junction",
-        });
+        const mPerLat = 111320;
+        const mPerLng = 111320 * Math.cos((centroid.lat * Math.PI) / 180);
+        // Find the two polygon vertices that are farthest apart — these
+        // define the long axis (the "spine") of the corridor.
+        let fA = pts[0], fB = pts[1], maxDist = 0;
+        for (let i = 0; i < pts.length; i++) {
+          for (let j = i + 1; j < pts.length; j++) {
+            const dx = (pts[j].lng - pts[i].lng) * mPerLng;
+            const dy = (pts[j].lat - pts[i].lat) * mPerLat;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d > maxDist) { maxDist = d; fA = pts[i]; fB = pts[j]; }
+          }
+        }
+        const nodeCount = Math.max(2, Math.min(10, Math.round(maxDist / 4)));
+        const spineNodes: Array<{ id: string }> = [];
+        for (let k = 0; k < nodeCount; k++) {
+          const t = nodeCount === 1 ? 0.5 : k / (nodeCount - 1);
+          const node = navGraph.addNode({
+            lat: fA.lat + t * (fB.lat - fA.lat),
+            lng: fA.lng + t * (fB.lng - fA.lng),
+            floor,
+            kind: "junction",
+          });
+          spineNodes.push(node);
+        }
+        for (let k = 0; k < spineNodes.length - 1; k++) {
+          navGraph.addEdge(spineNodes[k].id, spineNodes[k + 1].id);
+        }
       }
       return;
     }
-  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor, navGraph]);
+  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor, navGraph, setTempLines]);
 
   // ── Snap-to-vertex ───────────────────────────────────────────────
   // On mousemove while a DRAW tool is active, scan every building /
@@ -1719,7 +1755,8 @@ function BuilderWorkspace() {
       activeTool === "building" || activeTool === "room" ||
       activeTool === "corridor" ||
       activeTool === "hallway"  || activeTool === "wall" ||
-      activeTool === "rectangle" || activeTool === "measure";
+      activeTool === "rectangle" || activeTool === "measure" ||
+      activeTool === "line";
 
     // Assemble every snap candidate for the current campus. Rebuilt
     // whenever the source data changes; a Ref keeps it stable across
@@ -1830,11 +1867,11 @@ function BuilderWorkspace() {
     };
   }, [mapReady, activeTool, buildings, roomsQ.data, hallwaysQ.data]);
 
-  // ── Ghost preview segment ────────────────────────────────────────
-  // While drawing a wall/hallway/building/room, render a dashed line
-  // from the last placed waypoint to the current cursor so users see
-  // exactly where the next segment will land before clicking.
-  // MazeMap/CAD standard — massive quality-of-life win for placement.
+  // ── Ghost preview segment + smart guides + guide snap ────────────
+  // Renders a dashed preview segment from the last waypoint to the
+  // cursor, with orange guide lines when the cursor aligns with any
+  // existing vertex. Also drives guide snap (guideSnapRef) so the click
+  // handler places the point at exactly the snapped position.
   useEffect(() => {
     if (!mapReady) return;
     const h = handleRef.current;
@@ -1849,36 +1886,73 @@ function BuilderWorkspace() {
     };
 
     const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
-      || activeTool === "building" || activeTool === "room" || activeTool === "corridor" || activeTool === "measure";
+      || activeTool === "building" || activeTool === "room" || activeTool === "corridor"
+      || activeTool === "measure" || activeTool === "line";
 
     if (!isSegmentTool || waypoints.length === 0 || !cursorLngLat) {
+      guideSnapRef.current = null;
       clear();
       return;
     }
 
-    // Pending endpoint: raw cursor when ortho is active (same logic as
-    // the click handler — snap-to-vertex + ortho-projection conflict,
-    // ortho wins). Snap is used for the first free segment and when
-    // ortho is off.
+    const GUIDE_PX = 10;
+
+    // All anchor points for guide snap + visual guides: placed waypoints
+    // (except the last, which is the ghost origin) + every building and
+    // room polygon vertex.
+    const anchorPoints: Array<{ lng: number; lat: number }> = [];
+    for (let i = 0; i < waypoints.length - 1; i++) anchorPoints.push(waypoints[i]);
+    for (const b of buildings) { if (b.points) for (const p of b.points) anchorPoints.push(p); }
+    for (const r of (roomsQ.data ?? [])) { if (r.points) for (const p of r.points) anchorPoints.push(p); }
+
+    // Base position: vertex snap (highest priority) > raw cursor.
+    // Vertex snap is suppressed once ortho kicks in from the 2nd edge.
     const snap = snapTargetRef.current;
-    const useSnap = snap && !(orthoEnabled && waypoints.length >= 1);
+    const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
     let endLng = useSnap ? snap.lng : cursorLngLat.lng;
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
+    // Guide snap: if the raw cursor is within GUIDE_PX of any anchor's
+    // screen X or Y, lock to that guide line. Applied before ortho so
+    // ortho can project the snapped position. Also writes guideSnapRef
+    // so the click handler commits the same snapped position on click.
+    if (!useSnap) {
+      const rawScreen = map.project([cursorLngLat.lng, cursorLngLat.lat]);
+      let bestH: { y: number; dist: number } | null = null;
+      let bestV: { x: number; dist: number } | null = null;
+      for (const ap of anchorPoints) {
+        const s = map.project([ap.lng, ap.lat]);
+        const dh = Math.abs(rawScreen.y - s.y);
+        if (dh < GUIDE_PX && (!bestH || dh < bestH.dist)) bestH = { y: s.y, dist: dh };
+        const dv = Math.abs(rawScreen.x - s.x);
+        if (dv < GUIDE_PX && (!bestV || dv < bestV.dist)) bestV = { x: s.x, dist: dv };
+      }
+      if (bestH || bestV) {
+        const curScreen = map.project([endLng, endLat]);
+        const snapped = map.unproject([bestV ? bestV.x : curScreen.x, bestH ? bestH.y : curScreen.y]);
+        endLng = snapped.lng;
+        endLat = snapped.lat;
+        guideSnapRef.current = { lng: endLng, lat: endLat };
+      } else {
+        guideSnapRef.current = null;
+      }
+    } else {
+      guideSnapRef.current = null;
+    }
+
     const last = waypoints[waypoints.length - 1];
-    // Ortho v6 — edge-direction aware preview. Mirrors the click handler.
-    if (orthoEnabled && waypoints.length >= 1) {
+
+    // Ortho v7 — pure edge-direction, NO map-bearing fallback.
+    // First edge (waypoints.length === 1) is completely free — user
+    // clicks any two points to establish the building's angle. Every
+    // subsequent corner is forced exactly 90° from the previous edge.
+    if (orthoEnabled && waypoints.length >= 2) {
       const mPerLat = 111320;
       const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
-      let θ: number;
-      if (waypoints.length >= 2) {
-        const prevPrev = waypoints[waypoints.length - 2];
-        const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
-        const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
-        θ = Math.atan2(edgeDx, edgeDy);
-      } else {
-        θ = (map.getBearing() * Math.PI) / 180;
-      }
+      const prevPrev = waypoints[waypoints.length - 2];
+      const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
+      const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
+      const θ = Math.atan2(edgeDx, edgeDy);
       const dx = (endLng - last.lng) * mPerLng;
       const dy = (endLat - last.lat) * mPerLat;
       const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
@@ -1892,34 +1966,37 @@ function BuilderWorkspace() {
       }
     }
 
-    // ── Smart guides — PowerPoint-style alignment hints ──────────────
-    // For each placed waypoint (except the ghost origin), check if the
-    // snapped endpoint is screen-aligned (within GUIDE_PX pixels on the
-    // X or Y axis). If so, extend a thin dashed guide line through that
-    // waypoint to show the alignment. Features tagged { guide: 1 } so
-    // the layer can paint them in a distinct color/weight.
-    const GUIDE_PX = 10;
+    // Smart guide visual lines — orange dashed lines through every
+    // anchor that screen-aligns with the final (snapped/ortho) endpoint.
+    // Deduped by pixel bucket so overlapping vertices don't stack guides.
     const cursorScreen = map.project([endLng, endLat]);
     type GeoFeature = { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { guide: number } };
     const guideFeatures: GeoFeature[] = [];
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const wp = waypoints[i];
-      const wpScreen = map.project([wp.lng, wp.lat]);
+    const usedH = new Set<number>();
+    const usedV = new Set<number>();
+    for (const ap of anchorPoints) {
+      const wpScreen = map.project([ap.lng, ap.lat]);
       if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
-        // Same screen row → horizontal guide through this waypoint
-        const left  = map.unproject([wpScreen.x - 600, wpScreen.y]);
-        const right = map.unproject([wpScreen.x + 600, wpScreen.y]);
-        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+        const bucket = Math.round(wpScreen.y / 2);
+        if (!usedH.has(bucket)) {
+          usedH.add(bucket);
+          const left  = map.unproject([wpScreen.x - 800, wpScreen.y]);
+          const right = map.unproject([wpScreen.x + 800, wpScreen.y]);
+          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+        }
       }
       if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
-        // Same screen column → vertical guide through this waypoint
-        const top    = map.unproject([wpScreen.x, wpScreen.y - 600]);
-        const bottom = map.unproject([wpScreen.x, wpScreen.y + 600]);
-        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+        const bucket = Math.round(wpScreen.x / 2);
+        if (!usedV.has(bucket)) {
+          usedV.add(bucket);
+          const top    = map.unproject([wpScreen.x, wpScreen.y - 800]);
+          const bottom = map.unproject([wpScreen.x, wpScreen.y + 800]);
+          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+        }
       }
     }
 
-    const ghostColor = activeTool === "corridor" ? "#64748b" : "#3b82f6";
+    const ghostColor = activeTool === "corridor" ? "#64748b" : activeTool === "line" ? "#ec4899" : "#3b82f6";
     const data = {
       type: "FeatureCollection" as const,
       features: [
@@ -1934,6 +2011,8 @@ function BuilderWorkspace() {
     const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
     if (src) {
       src.setData(data as never);
+      // Refresh ghost color when tool changes (expression baked at addLayer).
+      try { map.setPaintProperty(LAYER, "line-color", ["case", ["==", ["get", "guide"], 1], "#f97316", ghostColor]); } catch { /* not yet ready */ }
     } else {
       map.addSource(SRC, { type: "geojson", data: data as never });
       map.addLayer({
@@ -1941,7 +2020,6 @@ function BuilderWorkspace() {
         source: SRC,
         type: "line",
         paint: {
-          // Guide lines: thin orange; ghost preview: tool-colored dashed
           "line-color": ["case", ["==", ["get", "guide"], 1], "#f97316", ghostColor],
           "line-width": ["case", ["==", ["get", "guide"], 1], 1.2, 2.5],
           "line-opacity": ["case", ["==", ["get", "guide"], 1], 0.75, 0.75],
@@ -1951,7 +2029,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, buildings, roomsQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -2145,6 +2223,40 @@ function BuilderWorkspace() {
     while (cur) { path.unshift(cur); cur = prev.get(cur) ?? null; }
     return path.length > 1 ? path : null;
   }, [routePreview, navGraph.graph]);
+
+  // ── Construction lines layer ─────────────────────────────────────
+  // Renders temp lines drawn with the Line tool (L) as thin pink dashed
+  // segments. Session-only — not saved to DB, clears on page refresh.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = handleRef.current?.map;
+    if (!map) return;
+    const SRC = "builder-temp-lines";
+    const LAYER = "builder-temp-lines-line";
+    const fc = {
+      type: "FeatureCollection" as const,
+      features: tempLines.map((pts, i) => ({
+        type: "Feature" as const,
+        geometry: { type: "LineString" as const, coordinates: pts.map((p) => [p.lng, p.lat]) },
+        properties: { id: i },
+      })),
+    };
+    const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+    if (src) { src.setData(fc as any); }
+    else {
+      map.addSource(SRC, { type: "geojson", data: fc as any });
+      map.addLayer({
+        id: LAYER, source: SRC, type: "line",
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": "#ec4899",
+          "line-width": 1.2,
+          "line-opacity": 0.85,
+          "line-dasharray": [6, 4],
+        },
+      });
+    }
+  }, [mapReady, tempLines]);
 
   // Route preview layer sync — paints the computed path as a blue
   // line on top of the nav edges. Cleared automatically when the

@@ -1,8 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.38.0 — edge-direction ortho (90° corners off any angle),
-smart alignment guides (PowerPoint-style orange dashed lines), corridor
-property panel (own kind in PropertyPanel), auto nav node at corridor centroid.
+Bump reason: v3.40.0 — snap-to-guides (cursor locks to guide lines on click),
+ortho v7 (pure edge-direction, no map-bearing fallback, first edge free),
+construction line tool (L key, Ctrl+L to clear).
 
-Timestamp: 1786740000
-Build: FORCE_REBUILD_v3.38.0_EDGE_ORTHO_GUIDES_CORRIDOR_PANEL_NAV_NODE
+Timestamp: 1786740002
+Build: FORCE_REBUILD_v3.40.0_SNAP_GUIDES_ORTHO_V7_LINE_TOOL
