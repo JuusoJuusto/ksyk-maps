@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.46.0 — smart wall-direction guides, snap toggle fix,
-close-polygon snap, wall-edge guide sources including hallways.
+Bump reason: v3.47.0 — room info panel redesign, classroom click fix,
+corridor nav nodes fix, vertex drag editing fix.
 
-Timestamp: 1786742700
-Build: FORCE_REBUILD_v3.46.0_SMART_GUIDES_SNAP_FIX
+Timestamp: 1786742800
+Build: FORCE_REBUILD_v3.47.0_INFOPANEL_CLASSROOMS_NAVNODES_DRAG

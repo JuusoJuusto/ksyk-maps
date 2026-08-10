@@ -299,9 +299,14 @@ export default function CampusOverlay({
       const layerRow = (kind: "building" | "room" | "hallway") =>
         layers.find((l) => l.id === (kind === "building" ? "buildings" : kind === "room" ? "rooms" : "hallways"));
 
-      const roomHit = roomLayers.length ? map.queryRenderedFeatures(bbox, { layers: roomLayers })[0] : undefined;
-      if (roomHit && typeof roomHit.properties?.id === "string" && !layerRow("room")?.locked) {
-        clickHandlerRef.current?.("room", roomHit.properties.id);
+      // v3.47.0 — iterate all room hits and skip corridors (type="hallway")
+      // so classrooms under a corridor polygon are always reachable by click.
+      const roomHits = roomLayers.length ? map.queryRenderedFeatures(bbox, { layers: roomLayers }) : [];
+      const roomHit = roomHits.find(
+        (f) => typeof f.properties?.id === "string" && f.properties?.type !== "hallway",
+      );
+      if (roomHit && !layerRow("room")?.locked) {
+        clickHandlerRef.current?.("room", roomHit.properties!.id as string);
         return;
       }
       const bldgHit = bldgLayers.length ? map.queryRenderedFeatures(bbox, { layers: bldgLayers })[0] : undefined;

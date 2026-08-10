@@ -201,7 +201,7 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       m.addLayer({
         id: LAYER_VERTS, source: SRC_VERTS, type: "circle",
         paint: {
-          "circle-radius": 7,
+          "circle-radius": 9,
           "circle-color": "#ffffff",
           "circle-stroke-color": "#2563eb",
           "circle-stroke-width": 2.5,
@@ -262,17 +262,29 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       | { kind: "rotator"; startAngleDeg: number; startPoints: LatLng[] }
       | DragTranslate = null;
 
+    // Hit-test radius in px — used as a bbox around e.point so that a
+    // click slightly off-center still activates the handle.
+    const HIT_PX = 10;
+
     const onDown = (e: MapMouseEvent) => {
       // Rank hits: handles > outline (polygon body). Handles first so a
       // click precisely on a vertex still drags the vertex, not the whole
       // polygon.
-      const handleFeats = map.queryRenderedFeatures(e.point, {
-        layers: [LAYER_VERTS, LAYER_ROTATOR].filter((id) => map.getLayer(id)),
-      });
+      // Use a small bbox rather than a single point to give a few pixels
+      // of forgiveness around the handle circle.
+      const bbox: [import("maplibre-gl").PointLike, import("maplibre-gl").PointLike] = [
+        [e.point.x - HIT_PX, e.point.y - HIT_PX],
+        [e.point.x + HIT_PX, e.point.y + HIT_PX],
+      ];
+      const activeHandleLayers = [LAYER_VERTS, LAYER_ROTATOR].filter((id) => map.getLayer(id));
+      const handleFeats = activeHandleLayers.length
+        ? map.queryRenderedFeatures(bbox, { layers: activeHandleLayers })
+        : [];
       const hit = handleFeats[0];
       if (hit) {
         e.preventDefault();
         map.dragPan.disable();
+        map.touchZoomRotate.disable();
         if (hit.layer.id === LAYER_VERTS) {
           const idx = Number(hit.properties?.idx ?? -1);
           if (idx < 0) return;
@@ -289,14 +301,16 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       // No handle → check for a hit on the selection's translate-hit
       // fill (an invisible fill covering the whole selected polygon).
       // Drag-to-move translates the whole shape.
-      const bodyFeats = map.queryRenderedFeatures(e.point, {
-        layers: [LAYER_TRANSLATE_HIT].filter((id) => map.getLayer(id)),
-      });
+      const activeFillLayers = [LAYER_TRANSLATE_HIT].filter((id) => map.getLayer(id));
+      const bodyFeats = activeFillLayers.length
+        ? map.queryRenderedFeatures(e.point, { layers: activeFillLayers })
+        : [];
       if (bodyFeats.length === 0) return;
       const pts = localPointsRef.current ?? [];
       if (pts.length < 3) return;
       e.preventDefault();
       map.dragPan.disable();
+      map.touchZoomRotate.disable();
       dragging = {
         kind: "translate",
         startLat: e.lngLat.lat,
@@ -347,16 +361,11 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       refreshSources(map);
     };
 
-    const onUp = () => {
-      if (!dragging) return;
-      const wasRotator = dragging.kind === "rotator";
-      dragging = null;
+    const commitDrag = (wasRotator: boolean) => {
       map.dragPan.enable();
+      map.touchZoomRotate.enable();
       const pts = localPointsRef.current;
       if (!pts) return;
-      // Persist. For rotation we also bump rotationDeg by the delta so
-      // downstream consumers know the frame changed. Vertex + translate
-      // both just persist the new point set.
       const body: Partial<Building & Room> = { points: pts };
       if (wasRotator && selection.entity.rotationDeg !== undefined) {
         const start = selection.entity.points ?? [];
@@ -368,15 +377,39 @@ export default function SelectionHandles({ map, selection }: SelectionHandlesPro
       patchEntity.mutate(body);
     };
 
+    const onUp = () => {
+      if (!dragging) return;
+      const wasRotator = dragging.kind === "rotator";
+      dragging = null;
+      commitDrag(wasRotator);
+    };
+
+    // Window-level mouseup catches drag-release when the cursor leaves
+    // the map canvas mid-drag (e.g. user drags fast to the sidebar).
+    // Without this, `dragPan` can stay disabled permanently.
+    const onWindowUp = () => {
+      if (!dragging) return;
+      const wasRotator = dragging.kind === "rotator";
+      dragging = null;
+      commitDrag(wasRotator);
+    };
+
     map.on("mousedown", onDown);
     map.on("mousemove", onMove);
     map.on("mouseup", onUp);
-    // Also handle touch — MapLibre synthesizes mousedown from touches
-    // but drag needs the equivalent.
+    window.addEventListener("mouseup", onWindowUp);
+    window.addEventListener("touchend", onWindowUp);
+
     return () => {
       map.off("mousedown", onDown);
       map.off("mousemove", onMove);
       map.off("mouseup", onUp);
+      window.removeEventListener("mouseup", onWindowUp);
+      window.removeEventListener("touchend", onWindowUp);
+      // Ensure dragPan is always re-enabled on cleanup, even if a drag
+      // was interrupted by React unmounting the component.
+      map.dragPan.enable();
+      map.touchZoomRotate.enable();
     };
   }, [map, selection, patchEntity, refreshSources]);
 

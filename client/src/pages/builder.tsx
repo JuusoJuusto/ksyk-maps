@@ -1025,6 +1025,15 @@ function BuilderWorkspace() {
 
     const onClick = (e: MapMouseEvent) => {
       if (activeTool === "select") {
+        // Vertex/rotator handles are separate MapLibre layers rendered on top
+        // of the selected polygon. A click that lands on a handle should NOT
+        // deselect or re-select — it was part of a drag (or a mis-click on the
+        // handle). Guard first so the drag-end click is harmlessly swallowed.
+        const handleHitLayers = ["selection-vertices", "selection-rotator"].filter((id) => map.getLayer(id));
+        if (handleHitLayers.length > 0) {
+          const handleHit = map.queryRenderedFeatures(e.point, { layers: handleHitLayers });
+          if (handleHit.length > 0) return;
+        }
         // Rank hits by kind — rooms + hallways sit inside buildings, so
         // the smallest thing under the cursor wins. Order = priority.
         const roomLayers = ["builder-rooms-fill"].filter((id) => map.getLayer(id));
@@ -1831,11 +1840,14 @@ function BuilderWorkspace() {
       // routing graph runs through the entire walkable area, not just the
       // centroid. Nodes are spaced ~4 m apart (2–10 total) and connected
       // by edges so Dijkstra can route through bends.
+      // v3.47.0 — nodes are placed through the polygon CENTROID (laterally
+      // centered inside the corridor), NOT corner-to-corner. This keeps
+      // every node away from the polygon boundary so the routing graph
+      // stays in the middle of walkable space.
       if (isCorridor) {
         const mPerLat = 111320;
         const mPerLng = 111320 * Math.cos((centroid.lat * Math.PI) / 180);
-        // Find the two polygon vertices that are farthest apart — these
-        // define the long axis (the "spine") of the corridor.
+        // Find long-axis direction: two farthest vertices give the spine angle.
         let fA = pts[0], fB = pts[1], maxDist = 0;
         for (let i = 0; i < pts.length; i++) {
           for (let j = i + 1; j < pts.length; j++) {
@@ -1845,13 +1857,38 @@ function BuilderWorkspace() {
             if (d > maxDist) { maxDist = d; fA = pts[i]; fB = pts[j]; }
           }
         }
-        const nodeCount = Math.max(2, Math.min(10, Math.round(maxDist / 4)));
+        if (maxDist < 0.5) return; // degenerate corridor
+        // Unit direction vector in metre space.
+        const axisDx = (fB.lng - fA.lng) * mPerLng;
+        const axisDy = (fB.lat - fA.lat) * mPerLat;
+        const axisLen = Math.sqrt(axisDx * axisDx + axisDy * axisDy);
+        const ux = axisDx / axisLen;
+        const uy = axisDy / axisLen;
+        // Project every vertex onto the spine axis (relative to centroid)
+        // to find how far the corridor extends in each direction.
+        let minT = Infinity, maxT = -Infinity;
+        for (const p of pts) {
+          const px = (p.lng - centroid.lng) * mPerLng;
+          const py = (p.lat - centroid.lat) * mPerLat;
+          const t = px * ux + py * uy;
+          if (t < minT) minT = t;
+          if (t > maxT) maxT = t;
+        }
+        const span = maxT - minT;
+        // Inset 12% (min 0.5 m, max 1.5 m) so nodes stay inside the polygon.
+        const inset = Math.min(1.5, Math.max(0.5, span * 0.12));
+        const extMin = minT + inset;
+        const extMax = maxT - inset;
+        const nodeCount = Math.max(2, Math.min(10, Math.round(span / 4)));
         const spineNodes: Array<{ id: string }> = [];
         for (let k = 0; k < nodeCount; k++) {
-          const t = nodeCount === 1 ? 0.5 : k / (nodeCount - 1);
+          const s = nodeCount === 1 ? 0.5 : k / (nodeCount - 1);
+          const spineT = extMin + s * (extMax - extMin);
+          // Node lies on the line through the centroid parallel to the long
+          // axis — NEVER at a polygon corner.
           const node = navGraph.addNode({
-            lat: fA.lat + t * (fB.lat - fA.lat),
-            lng: fA.lng + t * (fB.lng - fA.lng),
+            lat: centroid.lat + (spineT * uy) / mPerLat,
+            lng: centroid.lng + (spineT * ux) / mPerLng,
             floor,
             kind: "junction",
           });
