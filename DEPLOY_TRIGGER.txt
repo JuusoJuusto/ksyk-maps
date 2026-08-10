@@ -1,8 +1,9 @@
-FORCE VERCEL REBUILD - 2026-08-09
+FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.35.0 — Ortho axis-aligned, corridor/room separation,
-dark-mode wall colors, POIs sidebar tab, auth fix for owner/editor roles,
-KSYKMAPS-CODEBASE.md rename.
+Bump reason: v3.36.0 — corridors in Structure tab, room outlines restored,
+POI minzoom 16→14, rectangle tool creates rooms inside buildings,
+ortho 3-point rectangle auto-close, wall color dark-mode timing fix,
+corridors excluded from 3D extrusions.
 
-Timestamp: 1786600000
-Build: FORCE_REBUILD_v3.35.0_ORTHO_AXIS_CORRIDORS_POIS_TAB_DARK_MODE_WALLS
+Timestamp: 1786650000
+Build: FORCE_REBUILD_v3.36.0_CORRIDOR_STRUCTURE_ROOM_OUTLINES_POIS_RECT_ROOM_ORTHO

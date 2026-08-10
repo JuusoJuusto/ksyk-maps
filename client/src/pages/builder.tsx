@@ -710,11 +710,12 @@ function BuilderWorkspace() {
             },
             properties: {
               id: r.id,
-              color: r.colorCode ?? "#059669",
+              color: r.colorCode ?? (r.type === "hallway" ? "#64748b" : "#059669"),
               label: [r.roomNumber, r.name].filter(Boolean).join(" "),
               selected: isSelected,
               onFloor,
               floor: r.floor ?? 1,
+              type: r.type ?? null, // needed for corridor detection in click handler
             },
           };
         }),
@@ -792,6 +793,7 @@ function BuilderWorkspace() {
     if (hallsSrc) hallsSrc.setData(hallsFC as any);
     else {
       map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
+      const wallColor = darkMode ? "#94a3b8" : "#374151";
       map.addLayer({
         id: hallLineId, source: hallSrcId, type: "line",
         layout: { "line-cap": "round", "line-join": "round" },
@@ -799,7 +801,7 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  "#374151",  // dark gray wall (updated per dark-mode)
+            ["boolean", ["get", "isWall"], false],  wallColor,
                                                      "#f59e0b",  // amber walkable
           ],
           "line-width": [
@@ -818,7 +820,7 @@ function BuilderWorkspace() {
         },
       });
     }
-  }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor]);
+  }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor, darkMode]);
 
   // ── Dark-mode wall color ────────────────────────────────────────
   // Wall color must flip with the basemap: dark on light Voyager,
@@ -950,7 +952,7 @@ function BuilderWorkspace() {
         const roomLayers = ["builder-rooms-fill"].filter((id) => map.getLayer(id));
         const hallLayers = ["builder-hallways-line"].filter((id) => map.getLayer(id));
         const bldgLayers = ["builder-buildings-fill"].filter((id) => map.getLayer(id));
-        const tryQuery = (layers: string[]): { kind: LeftSidebarSelection["kind"]; id: string } | null => {
+        const tryQuery = (layers: string[]): { kind: LeftSidebarSelection["kind"]; id: string; isCorridor: boolean } | null => {
           if (layers.length === 0) return null;
           const feats = map.queryRenderedFeatures(e.point, { layers });
           const hit = feats[0];
@@ -958,7 +960,9 @@ function BuilderWorkspace() {
           const kind: LeftSidebarSelection["kind"] =
             layers[0].includes("rooms") ? "room" :
             layers[0].includes("hallways") ? "hallway" : "building";
-          return { kind, id: hit.properties.id };
+          // Corridors are rooms with type="hallway" — they belong in Structure tab
+          const isCorridor = kind === "room" && hit.properties?.type === "hallway";
+          return { kind, id: hit.properties.id, isCorridor };
         };
         const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
         // Shift-click ADDs the hit to the multi-selection set (Figma
@@ -988,7 +992,11 @@ function BuilderWorkspace() {
           } else {
             clearMultiSelection();
             setSelection({ kind: pick.kind, id: pick.id });
-            setSidebarTab(pick.kind === "building" ? "buildings" : pick.kind === "room" ? "rooms" : "pois");
+            // Corridors (rooms with type="hallway") belong in Structure tab, not Rooms
+            const tab = pick.kind === "building" ? "buildings"
+              : (pick.kind === "room" && !pick.isCorridor) ? "rooms"
+              : "pois";
+            setSidebarTab(tab);
           }
         } else if (!shiftHeld) {
           setSelection(null);
@@ -1139,7 +1147,10 @@ function BuilderWorkspace() {
       const originalEvent = e.originalEvent as MouseEvent;
       const target: NonNullable<typeof contextMenu>["target"] =
         nodeHit && typeof nodeHit.properties?.id === "string" ? { kind: "node", id: nodeHit.properties.id }
-        : roomHit && typeof roomHit.properties?.id === "string" ? { kind: "room", id: roomHit.properties.id }
+        : roomHit && typeof roomHit.properties?.id === "string"
+          // Corridors (type="hallway") are rooms in storage but conceptually
+          // different — still use kind:"room" so PropertyPanel opens correctly.
+          ? { kind: "room", id: roomHit.properties.id }
         : bldgHit && typeof bldgHit.properties?.id === "string" ? { kind: "building", id: bldgHit.properties.id }
         : { kind: "empty" };
       setContextMenu({ x: originalEvent.clientX, y: originalEvent.clientY, target });
@@ -1547,22 +1558,36 @@ function BuilderWorkspace() {
       return;
     }
     // Rectangle: 2 diagonal corners → axis-aligned 4-corner polygon.
+    // If the centroid is inside a building, creates a ROOM; otherwise
+    // a BUILDING. This makes the rectangle tool usable for both.
     if (activeTool === "rectangle" && waypoints.length >= 2) {
       const [a, b] = waypoints;
       const minLng = Math.min(a.lng, b.lng);
       const maxLng = Math.max(a.lng, b.lng);
       const minLat = Math.min(a.lat, b.lat);
       const maxLat = Math.max(a.lat, b.lat);
-      const nextLetter = String.fromCharCode(65 + buildings.length);
-      createBuilding.mutate({
-        name: nextLetter,
-        points: [
-          { lng: minLng, lat: minLat },
-          { lng: maxLng, lat: minLat },
-          { lng: maxLng, lat: maxLat },
-          { lng: minLng, lat: maxLat },
-        ],
-      });
+      const rectPoints = [
+        { lng: minLng, lat: minLat },
+        { lng: maxLng, lat: minLat },
+        { lng: maxLng, lat: maxLat },
+        { lng: minLng, lat: maxLat },
+      ];
+      const centroid = { lng: (minLng + maxLng) / 2, lat: (minLat + maxLat) / 2 };
+      const containing = buildings.find((bld) =>
+        bld.points && bld.points.length >= 3 && pointInPolygon(centroid, bld.points),
+      );
+      if (containing) {
+        const roomCount = (roomsQ.data ?? []).filter((r) => r.buildingId === containing.id && r.type !== "hallway").length;
+        createRoom.mutate({
+          roomNumber: `${containing.name}${roomCount + 1}`,
+          buildingId: containing.id,
+          floor: cameraState.activeFloor ?? 1,
+          points: rectPoints,
+        });
+      } else {
+        const nextLetter = String.fromCharCode(65 + buildings.length);
+        createBuilding.mutate({ name: nextLetter, points: rectPoints });
+      }
       return;
     }
     // Measure: emit total distance, but keep waypoints so the user can
@@ -1580,7 +1605,16 @@ function BuilderWorkspace() {
       return;
     }
     if ((activeTool === "room" || activeTool === "corridor") && waypoints.length >= 3) {
-      const pts = waypoints.map((w) => ({ lng: w.lng, lat: w.lat }));
+      let pts = waypoints.map((w) => ({ lng: w.lng, lat: w.lat }));
+      // Ortho auto-close: with exactly 3 axis-aligned points, pressing
+      // Enter adds the 4th corner so users get a perfect rectangle
+      // without placing the last point manually.
+      if (orthoEnabled && pts.length === 3) {
+        const [A, B, C] = pts;
+        const abHoriz = Math.abs(B.lng - A.lng) >= Math.abs(B.lat - A.lat);
+        const D = abHoriz ? { lng: A.lng, lat: C.lat } : { lng: C.lng, lat: A.lat };
+        pts = [A, B, C, D];
+      }
       // Rooms MUST belong to a building.
       const centroid = {
         lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
@@ -1620,7 +1654,7 @@ function BuilderWorkspace() {
       });
       return;
     }
-  }, [activeTool, waypoints, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor]);
+  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor]);
 
   // ── Snap-to-vertex ───────────────────────────────────────────────
   // On mousemove while a DRAW tool is active, scan every building /
