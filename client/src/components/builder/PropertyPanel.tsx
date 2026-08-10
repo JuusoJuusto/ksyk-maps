@@ -13,7 +13,7 @@
  * tab exposes `metadata` as a JSON editor for anything that doesn't
  * fit the typed schema.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -855,7 +855,8 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
     entity.kind !== "hallway"
       ? (entity.data.metadata as { style?: Record<string, unknown> } | null | undefined)?.style
       : undefined;
-  const initialShowOutline = (metaStyle?.showOutline as boolean | undefined) ?? true;
+  // Rooms default to no outline (cleaner MazeMap look); buildings + corridors default to showing one.
+  const initialShowOutline = (metaStyle?.showOutline as boolean | undefined) ?? (entity.kind === "room" ? false : true);
   const initialFillOpacity = Math.round(((metaStyle?.fillOpacity as number | undefined) ?? (entity.kind === "corridor" ? 0.45 : 0.6)) * 100);
   const initialShowLabel = (metaStyle?.showLabel as boolean | undefined) ?? true;
   // 3D height knobs — buildings and rooms both accept a per-instance
@@ -1128,9 +1129,6 @@ function TransformTab({ entity }: { entity: SelectedEntity }) {
       || entity.kind === "elevator" || entity.kind === "poi") {
     return <p className="text-xs text-muted-foreground p-4">Point POIs move by dragging on the map. Coordinates shown in the Properties tab.</p>;
   }
-  // Building / Room store polygon corners — we surface the centroid +
-  // rotation only, since editing individual corners belongs to the
-  // canvas transform gizmo. Hallway shows start/end points.
   if (entity.kind === "hallway") {
     return (
       <div className="space-y-2 text-xs text-muted-foreground">
@@ -1146,24 +1144,163 @@ function TransformTab({ entity }: { entity: SelectedEntity }) {
       </div>
     );
   }
+  return <PolygonTransformForm entity={entity} />;
+}
 
-  const poly = entity.data.points;
+function PolygonTransformForm({ entity }: { entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }> }) {
+  const qc = useQueryClient();
+  const pts = (entity.data.points ?? []) as Array<{ lat: number; lng: number }>;
+  const mPerLat = 111320;
+
+  const centroid = useMemo(() => {
+    if (!pts.length) return { lat: 0, lng: 0 };
+    return {
+      lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
+      lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
+    };
+  }, [pts]);
+
+  const mPerLng = useMemo(() => 111320 * Math.cos((centroid.lat * Math.PI) / 180), [centroid.lat]);
+
+  const { widthM, heightM } = useMemo(() => {
+    if (pts.length < 2) return { widthM: 0, heightM: 0 };
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of pts) {
+      const x = (p.lng - centroid.lng) * mPerLng;
+      const y = (p.lat - centroid.lat) * mPerLat;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    return {
+      widthM: Math.round((maxX - minX) * 100) / 100,
+      heightM: Math.round((maxY - minY) * 100) / 100,
+    };
+  }, [pts, centroid, mPerLng]);
+
+  const initRot = Math.round(((entity.data as { rotationDeg?: number | null }).rotationDeg ?? 0) * 10) / 10;
+
+  const [cLat, setCLat] = useState(() => Math.round(centroid.lat * 1e6) / 1e6);
+  const [cLng, setCLng] = useState(() => Math.round(centroid.lng * 1e6) / 1e6);
+  const [width, setWidth] = useState(() => widthM);
+  const [height, setHeight] = useState(() => heightM);
+  const [rotation, setRotation] = useState(() => initRot);
+
+  // Reset when entity switches.
+  const entityId = entity.data.id;
+  useEffect(() => {
+    setCLat(Math.round(centroid.lat * 1e6) / 1e6);
+    setCLng(Math.round(centroid.lng * 1e6) / 1e6);
+    setWidth(widthM);
+    setHeight(heightM);
+    setRotation(initRot);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId]);
+
+  const patch = useMutation({
+    mutationFn: async () => {
+      const dLat = cLat - centroid.lat;
+      const dLng = cLng - centroid.lng;
+      const scaleX = widthM > 0.01 ? width / widthM : 1;
+      const scaleY = heightM > 0.01 ? height / heightM : 1;
+      const rotDelta = ((rotation - initRot) * Math.PI) / 180;
+      const cosR = Math.cos(rotDelta);
+      const sinR = Math.sin(rotDelta);
+
+      const newPoints = pts.map((p) => {
+        let x = (p.lng - centroid.lng) * mPerLng * scaleX;
+        let y = (p.lat - centroid.lat) * mPerLat * scaleY;
+        const rx = x * cosR - y * sinR;
+        const ry = x * sinR + y * cosR;
+        return {
+          lng: centroid.lng + rx / mPerLng + dLng,
+          lat: centroid.lat + ry / mPerLat + dLat,
+        };
+      });
+
+      const path = entity.kind === "building"
+        ? `/api/buildings/${entity.data.id}`
+        : `/api/rooms/${entity.data.id}`;
+      const body: Record<string, unknown> = { points: newPoints };
+      if (entity.kind === "building") body.rotationDeg = rotation;
+      const res = await apiRequest("PATCH", path, body);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [entity.kind === "building" ? "/api/buildings" : "/api/rooms"] });
+    },
+  });
+
+  const dirty =
+    Math.abs(cLat - Math.round(centroid.lat * 1e6) / 1e6) > 1e-7 ||
+    Math.abs(cLng - Math.round(centroid.lng * 1e6) / 1e6) > 1e-7 ||
+    Math.abs(width - widthM) > 0.005 ||
+    Math.abs(height - heightM) > 0.005 ||
+    (entity.kind === "building" && Math.abs(rotation - initRot) > 0.01);
+
+  if (!pts.length) {
+    return <p className="text-xs text-muted-foreground">No polygon yet — draw the shape on the map first.</p>;
+  }
+
   return (
-    <div className="space-y-2 text-xs text-muted-foreground">
-      <div className="rounded-lg border border-border p-2 bg-muted/40">
-        <p className="text-[10px] font-semibold uppercase tracking-wider">Vertices</p>
-        <p className="font-mono">{poly?.length ?? 0}</p>
+    <div className="space-y-3">
+      {/* Position */}
+      <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/30">
+        <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">Center position</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(["Lat", "Lng"] as const).map((ax) => (
+            <div key={ax} className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{ax}</label>
+              <input
+                type="number"
+                value={ax === "Lat" ? cLat : cLng}
+                step={0.000001}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) ax === "Lat" ? setCLat(v) : setCLng(v);
+                }}
+                className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Dimensions */}
+      <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/30">
+        <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+          Dimensions <span className="normal-case font-normal">(metres)</span>
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Width E–W</label>
+            <input type="number" value={width} step={0.1} min={0.1}
+              onChange={(e) => { const v = parseFloat(e.target.value); if (v > 0) setWidth(v); }}
+              className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Height N–S</label>
+            <input type="number" value={height} step={0.1} min={0.1}
+              onChange={(e) => { const v = parseFloat(e.target.value); if (v > 0) setHeight(v); }}
+              className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+          </div>
+        </div>
+      </div>
+
+      {/* Rotation — buildings only */}
       {entity.kind === "building" && (
-        <div className="rounded-lg border border-border p-2 bg-muted/40">
-          <p className="text-[10px] font-semibold uppercase tracking-wider">Rotation</p>
-          <p className="font-mono">{(entity.data.rotationDeg ?? 0).toFixed(1)}°</p>
+        <div className="space-y-1">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Rotation (°)</label>
+          <input type="number" value={rotation} step={0.5} min={-180} max={180}
+            onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setRotation(v); }}
+            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
         </div>
       )}
-      <p className="pt-2">
-        Use the canvas rotate/move handles to edit position + rotation.
-        Direct-input transforms land in M1.1.
+
+      <p className="text-[10px] text-muted-foreground">
+        {pts.length} vertices · {widthM.toFixed(2)} × {heightM.toFixed(2)} m current
       </p>
+
+      <DirtySaveButton isDirty={dirty} isPending={patch.isPending} onSave={() => patch.mutate()} />
     </div>
   );
 }

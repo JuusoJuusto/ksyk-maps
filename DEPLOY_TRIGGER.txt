@@ -1,8 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.40.0 — snap-to-guides (cursor locks to guide lines on click),
-ortho v7 (pure edge-direction, no map-bearing fallback, first edge free),
-construction line tool (L key, Ctrl+L to clear).
+Bump reason: v3.41.0 — line-tool toolbar button, guides toggle,
+CAD transform tab (numeric position/size/rotation editing),
+room outline off-by-default, mobile room tap fix (14px bbox).
 
-Timestamp: 1786740002
-Build: FORCE_REBUILD_v3.40.0_SNAP_GUIDES_ORTHO_V7_LINE_TOOL
+Timestamp: 1786740100
+Build: FORCE_REBUILD_v3.41.0_TOOLBAR_CAD_TRANSFORM_MOBILE_TAPS
