@@ -165,7 +165,9 @@ export default function CampusOverlay({
       // Generic POI pillars + door/entrance markers in 3D.
       installPoiPillars(map, pois, doors, activeFloor ?? null, hiddenPoiKinds);
       installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null, hiddenPoiKinds);
-      installSky(map);
+      // Sky layer disabled — current MapLibre version doesn't support type:"sky"
+      // and logs a "missing required property source" error.
+      // installSky(map);
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -422,7 +424,9 @@ export default function CampusOverlay({
   useEffect(() => {
     if (!map) return;
     const wallColor = darkMode ? "#94a3b8" : "#374151";
-    try { map.setPaintProperty("campus-walls-line", "line-color", wallColor); } catch { /* layer may not exist yet */ }
+    if (map.getLayer("campus-walls-line")) {
+      map.setPaintProperty("campus-walls-line", "line-color", wallColor);
+    }
   }, [map, darkMode]);
 
   return null;
@@ -683,15 +687,15 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // Buildings stay VERY faint at close zoom so the room fills sitting
       // on top of them read as the "real content." Otherwise the tinted
       // building rectangle competes with the small rooms drawn inside.
+      // MapLibre constraint: ["zoom"] must be the direct input of a top-level
+      // interpolate/step — it cannot appear anywhere inside a "case". Fix:
+      // zoom interpolate at top level, case expressions inside each stop output.
       "fill-opacity": [
-        "case",
-        // Hovered building — quick MazeMap-style highlight so the user
-        // sees exactly which building their cursor is on.
-        ["boolean", ["feature-state", "hover"], false],
-        0.25,
-        ["!=", ["get", "fillOpacity"], null],
-        ["get", "fillOpacity"],
-        ["interpolate", ["linear"], ["zoom"], 14, 0.05, 16, 0.09, 17, 0.06, 20, 0.02],
+        "interpolate", ["linear"], ["zoom"],
+        14, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.05]],
+        16, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.09]],
+        17, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.06]],
+        20, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.02]],
       ],
       "fill-outline-color": ["get", "color"],
       "fill-antialias": true,
@@ -709,11 +713,12 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // exactly which building the cursor is on even when the
       // building color is subtle. Combined with the pre-existing
       // fill-opacity bump, hover feels responsive and MazeMap-adjacent.
+      // Zoom at top level (MapLibre constraint — zoom can't be inside case).
       "line-width": [
-        "case",
-        ["boolean", ["feature-state", "hover"], false],
-        ["interpolate", ["linear"], ["zoom"], 14, 3, 17, 5, 20, 7],
-        ["interpolate", ["linear"], ["zoom"], 14, 1.5, 17, 2.5, 20, 3.5],
+        "interpolate", ["linear"], ["zoom"],
+        14, ["case", ["boolean", ["feature-state", "hover"], false], 3, 1.5],
+        17, ["case", ["boolean", ["feature-state", "hover"], false], 5, 2.5],
+        20, ["case", ["boolean", ["feature-state", "hover"], false], 7, 3.5],
       ],
       // Per-feature outline toggle — false collapses the line to zero
       // opacity without hiding the layer for every building.
@@ -1511,32 +1516,6 @@ function installTowers(
   });
 }
 
-/** Install the sky layer — MazeMap-style atmospheric horizon when the
- *  map is pitched. MapLibre skips rendering the sky when pitch=0 so we
- *  don't need to conditionally add/remove it; the layer visibility
- *  toggle keeps it out of the flat 2D paint order. */
-function installSky(map: MaplibreMap) {
-  if (map.getLayer(LAYERS.sky)) return;
-  try {
-    map.addLayer({
-      id: LAYERS.sky,
-      type: "sky",
-      layout: { visibility: "none" },
-      paint: {
-        // MapLibre 5 supports the atmosphere sky type — soft blue
-        // gradient toward the horizon with a warm sun halo.
-        "sky-type": "atmosphere",
-        "sky-atmosphere-sun": [0, 0],
-        "sky-atmosphere-sun-intensity": 8,
-        "sky-atmosphere-color": "#b6cffb",
-        "sky-atmosphere-halo-color": "#fff4dc",
-        "sky-horizon-blend": 0.6,
-      } as unknown as import("maplibre-gl").SkyPaintProps,
-    } as unknown as import("maplibre-gl").AddLayerObject);
-  } catch {
-    // Sky layer unsupported (older style spec) — skip silently.
-  }
-}
 
 /**
  * v3.26.5 — MazeMap-style default color per room type. Applied only
@@ -1758,19 +1737,14 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       // see the interior detail as soon as buildings themselves become
       // legible. Per-feature override lets the user pin an exact opacity
       // from the Style tab.
+      // MapLibre constraint: zoom at top level, case inside stop outputs.
+      // Hover → 0.95 solid, fillOpacity override → data value, else zoom ramp.
       "fill-opacity": [
-        "case",
-        // Hovered rooms saturate to a near-solid fill for MazeMap-style
-        // "you're pointing at THIS room" feedback.
-        ["boolean", ["feature-state", "hover"], false],
-        0.95,
-        ["!=", ["get", "fillOpacity"], null],
-        ["get", "fillOpacity"],
-        // v3.27.3 — bumped base opacity from 0.35→0.7→0.85 to
-        // 0.6→0.85→0.92 so rooms READ at typical zooms instead of
-        // being ghostly at zoom 15-17. The building shell stays at
-        // 0.24 opacity so rooms sitting on top don't get muddied.
-        ["interpolate", ["linear"], ["zoom"], 15, 0.6, 17, 0.85, 19, 0.92, 22, 0.95],
+        "interpolate", ["linear"], ["zoom"],
+        15, ["case", ["boolean", ["feature-state", "hover"], false], 0.95, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.6]],
+        17, ["case", ["boolean", ["feature-state", "hover"], false], 0.95, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.85]],
+        19, ["case", ["boolean", ["feature-state", "hover"], false], 0.95, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.92]],
+        22, ["case", ["boolean", ["feature-state", "hover"], false], 0.95, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.95]],
       ],
       "fill-antialias": true,
     },
@@ -1799,11 +1773,12 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
       "line-color": "#2563eb",
+      // Zoom at top level (MapLibre constraint). Hover → scaled width, else 0.
       "line-width": [
-        "case",
-        ["boolean", ["feature-state", "hover"], false],
-        ["interpolate", ["linear"], ["zoom"], 15, 2, 18, 3.5, 22, 5],
-        0,
+        "interpolate", ["linear"], ["zoom"],
+        15, ["case", ["boolean", ["feature-state", "hover"], false], 2, 0],
+        18, ["case", ["boolean", ["feature-state", "hover"], false], 3.5, 0],
+        22, ["case", ["boolean", ["feature-state", "hover"], false], 5, 0],
       ],
       "line-opacity": [
         "case",

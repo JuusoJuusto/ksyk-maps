@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.52.0";
+export const APP_VERSION = "3.53.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.53.0",
+    date: "August 2026",
+    title: "Critical fix: classroom clicking, announcements on desktop, hamburger cleanup",
+    latest: true,
+    highlights: [
+      "Fixed classroom clicking on mobile and desktop — MapLibre expression errors (zoom inside case) were silently breaking room fill opacity, making rooms invisible and non-interactive. All four affected expressions restructured to valid form.",
+      "Announcement popup now shows correctly on desktop/laptop — the sm:static override was removing fixed positioning; replaced with proper sm:left-[50%] sm:top-[50%] centered-fixed layout.",
+      "Hamburger menu changed back to solid white (no backdrop-blur) — cleaner and more premium.",
+      "Fixed MapLibre console errors: campus-sky layer removed (unsupported in this MapLibre version), campus-walls-line setPaintProperty guarded with map.getLayer() check.",
+    ],
+  },
   {
     version: "3.52.0",
     date: "August 2026",
     title: "Frosted glass header + mobile menu — full Apple Maps aesthetic",
-    latest: true,
+    latest: false,
     highlights: [
       "Header (top navigation chip) now uses frosted glass: bg-white/95 backdrop-blur-md, matching the map controls updated in v3.51.0. The whole floating card feels light and premium on top of the map.",
       "Mobile hamburger drawer also updated to frosted glass backdrop-blur-xl — consistent with the header.",

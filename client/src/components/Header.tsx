@@ -368,7 +368,7 @@ export default function Header({
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className="overflow-hidden rounded-2xl border border-white/80 dark:border-gray-700/60 bg-white/96 dark:bg-gray-900/96 backdrop-blur-xl shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
+        className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
         style={{
           maxHeight: "min(85dvh, calc(100dvh - 6rem))",
           paddingBottom: "env(safe-area-inset-bottom)",
