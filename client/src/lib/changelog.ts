@@ -10,14 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.40.0";
+export const APP_VERSION = "3.41.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.41.0",
+    date: "August 2026",
+    title: "Line tool in toolbar, guides toggle, CAD transform, room outline toggle, mobile tap fix",
+    latest: true,
+    highlights: [
+      "Line tool button in top toolbar (PenLine icon) — click to activate construction-line mode without reaching for the keyboard.",
+      "Smart guides toggle in toolbar (Crosshair icon) — one click to disable the orange alignment lines and guide snap when they get in the way.",
+      "CAD-style Transform tab: edit polygon position (lat/lng centroid), width, height (in metres), and rotation (buildings) with numeric inputs — click Save to apply the transform to all vertices.",
+      "Room outlines disabled by default — new rooms start clean without an outline; enable per-room in the Style tab. Selected rooms still show their blue selection ring.",
+      "Mobile room taps: hit-test radius widened from 6 px to 14 px so a finger tap reliably hits small rooms on touch screens.",
+    ],
+  },
   {
     version: "3.40.0",
     date: "August 2026",
     title: "Snap-to-guides, ortho v7 (pure edge-direction), construction line tool",
-    latest: true,
+    latest: false,
     highlights: [
       "Guides now snap: when the cursor is within 10 px of any guide line (horizontal or vertical alignment with any building/room vertex or previous waypoint), the cursor locks to that guide. The click commits the snapped position — preview and click are always consistent.",
       "Ortho v7: the map-bearing fallback for the first edge is completely removed. First edge is always free (you click two points to set the building's angle). Every subsequent click is exactly 90° from the previous edge — pure edge-direction math, no map rotation involved.",

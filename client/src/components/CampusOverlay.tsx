@@ -284,12 +284,11 @@ export default function CampusOverlay({
 
     const onClick = (e: import("maplibre-gl").MapMouseEvent) => {
       // v3.27.4 — widened hit-test. Point-precise queries missed tiny
-      // rooms on touch devices where the finger cursor is imprecise;
-      // now we search a 6px-radius bbox around the cursor so pointing
-      // "roughly at" a room selects it. Rooms are tested BEFORE
-      // buildings so a tap that overlaps a room inside a building
-      // resolves to the room, not the shell.
-      const px = 6;
+      // rooms on touch devices where the finger cursor is imprecise.
+      // v3.41.0 — bumped from 6px → 14px so mobile touch (finger pad
+      // ≈ 44 px target) reliably hits rooms without accidentally
+      // stealing clicks on desktop (still accurate at 14px radius).
+      const px = 14;
       const bbox: [import("maplibre-gl").PointLike, import("maplibre-gl").PointLike] = [
         [e.point.x - px, e.point.y - px],
         [e.point.x + px, e.point.y + px],
@@ -1668,7 +1667,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
               label: [r.roomNumber, displayName].filter(Boolean).join(" "),
               color: r.colorCode ?? colorForRoomType(r.type) ?? "#059669",
               floor: r.floor ?? 0,
-              showOutline: style.showOutline !== false,
+              showOutline: style.showOutline === true,
               fillOpacity: typeof style.fillOpacity === "number" ? style.fillOpacity : null,
               showLabel: style.showLabel !== false,
             };
@@ -1777,7 +1776,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     paint: {
       "line-color": ["get", "color"],
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 2, 22, 3],
-      "line-opacity": 0.85,
+      // Only show when metadata.style.showOutline is explicitly true.
+      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.85, 0],
     },
   });
 

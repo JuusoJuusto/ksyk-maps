@@ -279,6 +279,11 @@ function BuilderWorkspace() {
   // clicks snap to horizontal/vertical from the previous vertex.
   // Off → free-form clicks (current behaviour).
   const [orthoEnabled, setOrthoEnabled] = useState(false);
+  // Smart guides — orange alignment lines + guide snap. Off = guides
+  // hidden and guide snap disabled (raw cursor or vertex snap only).
+  const [guidesEnabled, setGuidesEnabled] = useState(true);
+  const guidesEnabledRef = useRef(true);
+  guidesEnabledRef.current = guidesEnabled;
   // Refs so the click-handler useEffect (deps: [activeTool, mapReady])
   // can read the LATEST waypoints and orthoEnabled without being
   // re-registered on every state change (stale-closure fix).
@@ -726,6 +731,7 @@ function BuilderWorkspace() {
               onFloor,
               floor: r.floor ?? 1,
               type: r.type ?? null, // needed for corridor detection in click handler
+              showOutline: ((r.metadata as { style?: { showOutline?: boolean } } | null)?.style?.showOutline) === true,
             },
           };
         }),
@@ -753,9 +759,12 @@ function BuilderWorkspace() {
           "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2],
           "line-opacity": [
             "case",
+            // Selected rooms always show their outline for selection feedback.
             ["boolean", ["get", "selected"], false], 1,
-            ["boolean", ["get", "onFloor"], true], 0.9,
-            0.2,
+            // Non-selected: only when showOutline is on.
+            ["boolean", ["get", "showOutline"], false],
+            ["case", ["boolean", ["get", "onFloor"], true], 0.9, 0.2],
+            0,
           ],
         },
       });
@@ -1916,7 +1925,7 @@ function BuilderWorkspace() {
     // screen X or Y, lock to that guide line. Applied before ortho so
     // ortho can project the snapped position. Also writes guideSnapRef
     // so the click handler commits the same snapped position on click.
-    if (!useSnap) {
+    if (!useSnap && guidesEnabled) {
       const rawScreen = map.project([cursorLngLat.lng, cursorLngLat.lat]);
       let bestH: { y: number; dist: number } | null = null;
       let bestV: { x: number; dist: number } | null = null;
@@ -1969,29 +1978,32 @@ function BuilderWorkspace() {
     // Smart guide visual lines — orange dashed lines through every
     // anchor that screen-aligns with the final (snapped/ortho) endpoint.
     // Deduped by pixel bucket so overlapping vertices don't stack guides.
+    // Only rendered when guidesEnabled is on.
     const cursorScreen = map.project([endLng, endLat]);
     type GeoFeature = { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { guide: number } };
     const guideFeatures: GeoFeature[] = [];
-    const usedH = new Set<number>();
-    const usedV = new Set<number>();
-    for (const ap of anchorPoints) {
-      const wpScreen = map.project([ap.lng, ap.lat]);
-      if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
-        const bucket = Math.round(wpScreen.y / 2);
-        if (!usedH.has(bucket)) {
-          usedH.add(bucket);
-          const left  = map.unproject([wpScreen.x - 800, wpScreen.y]);
-          const right = map.unproject([wpScreen.x + 800, wpScreen.y]);
-          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+    if (guidesEnabled) {
+      const usedH = new Set<number>();
+      const usedV = new Set<number>();
+      for (const ap of anchorPoints) {
+        const wpScreen = map.project([ap.lng, ap.lat]);
+        if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
+          const bucket = Math.round(wpScreen.y / 2);
+          if (!usedH.has(bucket)) {
+            usedH.add(bucket);
+            const left  = map.unproject([wpScreen.x - 800, wpScreen.y]);
+            const right = map.unproject([wpScreen.x + 800, wpScreen.y]);
+            guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+          }
         }
-      }
-      if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
-        const bucket = Math.round(wpScreen.x / 2);
-        if (!usedV.has(bucket)) {
-          usedV.add(bucket);
-          const top    = map.unproject([wpScreen.x, wpScreen.y - 800]);
-          const bottom = map.unproject([wpScreen.x, wpScreen.y + 800]);
-          guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+        if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
+          const bucket = Math.round(wpScreen.x / 2);
+          if (!usedV.has(bucket)) {
+            usedV.add(bucket);
+            const top    = map.unproject([wpScreen.x, wpScreen.y - 800]);
+            const bottom = map.unproject([wpScreen.x, wpScreen.y + 800]);
+            guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+          }
         }
       }
     }
@@ -2029,7 +2041,7 @@ function BuilderWorkspace() {
     }
 
     return () => { clear(); };
-  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, buildings, roomsQ.data]);
+  }, [mapReady, activeTool, waypoints, cursorLngLat, orthoEnabled, guidesEnabled, buildings, roomsQ.data]);
 
   /** Live distance (metres) along the current waypoint chain. Used by
    *  the Measure tool coach. Haversine over each segment. */
@@ -2515,6 +2527,10 @@ function BuilderWorkspace() {
           onToggleSnap={() => setSnapEnabled((s) => !s)}
           orthoEnabled={orthoEnabled}
           onToggleOrtho={() => setOrthoEnabled((o) => !o)}
+          lineToolActive={activeTool === "line"}
+          onLineTool={() => { setActiveTool("line"); setWaypoints([]); }}
+          guidesEnabled={guidesEnabled}
+          onToggleGuides={() => setGuidesEnabled((g) => !g)}
           onZoomIn={() => handleRef.current?.map.zoomIn()}
           onZoomOut={() => handleRef.current?.map.zoomOut()}
           onRotateCW={() => handleRef.current?.map.rotateTo(handleRef.current.map.getBearing() + 30)}

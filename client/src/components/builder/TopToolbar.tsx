@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
   RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check, Image as ImageIcon,
-  RectangleHorizontal,
+  RectangleHorizontal, PenLine, Crosshair,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -35,6 +35,10 @@ export interface TopToolbarProps {
    *  still compile. */
   orthoEnabled?: boolean;
   onToggleOrtho?: () => void;
+  lineToolActive?: boolean;
+  onLineTool?: () => void;
+  guidesEnabled?: boolean;
+  onToggleGuides?: () => void;
 
   onBack?: () => void;
   onSave: () => void;
@@ -138,6 +142,24 @@ export default function TopToolbar(p: TopToolbarProps) {
           label={p.orthoEnabled ? "Ortho on (90° snap)" : "Ortho off"}
         >
           <RectangleHorizontal className="h-4 w-4" />
+        </IconButton>
+      )}
+      {p.onLineTool && (
+        <IconButton
+          onClick={p.onLineTool}
+          pressed={!!p.lineToolActive}
+          label={p.lineToolActive ? "Line tool active (L)" : "Construction line (L)"}
+        >
+          <PenLine className="h-4 w-4" />
+        </IconButton>
+      )}
+      {p.onToggleGuides !== undefined && (
+        <IconButton
+          onClick={p.onToggleGuides!}
+          pressed={!!p.guidesEnabled}
+          label={p.guidesEnabled ? "Smart guides on" : "Smart guides off"}
+        >
+          <Crosshair className="h-4 w-4" />
         </IconButton>
       )}
 
