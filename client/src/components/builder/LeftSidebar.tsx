@@ -304,7 +304,7 @@ type PoiKind =
   // Structural polygon — drawn with the Corridor tool, stored as a
   // Room with type="hallway". Lives in Structure tab (not Rooms).
   | "corridor"
-  | "hallway" | "wall" | "door" | "entrance" | "exit" | "stair" | "elevator"
+  | "hallway" | "wall" | "inner-wall" | "door" | "entrance" | "exit" | "stair" | "elevator"
   // Nav graph nodes (local-first, stored in localStorage)
   | "navnode"
   // Free-form kinds — placed via the generic POI tools and stored in
@@ -355,11 +355,13 @@ function StructureList({
     }
     for (const h of hallways) {
       const isWall = h.surface === "wall";
+      const isInnerWall = h.surface === "inner-wall";
+      const kind: PoiKind = isWall ? "wall" : isInnerWall ? "inner-wall" : "hallway";
       out.push({
-        id: h.id, kind: isWall ? "wall" : "hallway",
-        title: isWall ? `Wall ${h.id.slice(0, 6)}` : `Hallway ${h.id.slice(0, 6)}`,
-        subtitle: [h.width != null ? `${h.width} m` : null, !isWall && h.surface ? h.surface : null, h.floor != null ? `Floor ${h.floor}` : null].filter(Boolean).join(" · "),
-        color: isWall ? "#1f2937" : "#f59e0b",
+        id: h.id, kind,
+        title: isWall ? `Wall ${h.id.slice(0, 6)}` : isInnerWall ? `Inner wall ${h.id.slice(0, 6)}` : `Hallway ${h.id.slice(0, 6)}`,
+        subtitle: [h.width != null ? `${h.width} m` : null, !isWall && !isInnerWall && h.surface ? h.surface : null, h.floor != null ? `Floor ${h.floor}` : null].filter(Boolean).join(" · "),
+        color: isWall ? "#1f2937" : isInnerWall ? "#64748b" : "#f59e0b",
         floor: h.floor ?? null, focusLat: (h.startY + h.endY) / 2, focusLng: (h.startX + h.endX) / 2,
       });
     }
@@ -388,16 +390,17 @@ function StructureList({
     return c;
   }, [items]);
   const allStructureChips: Array<{ id: "all" | PoiKind; label: string; Icon: typeof RouteIcon }> = [
-    { id: "all" as const, label: "All", Icon: Layers },
-    { id: "corridor" as const, label: "Corridors", Icon: LayoutGrid },
-    { id: "hallway" as const, label: "Paths", Icon: RouteIcon },
-    { id: "wall" as const, label: "Walls", Icon: StretchHorizontal },
-    { id: "navnode" as const, label: "Nav nodes", Icon: Navigation },
+    { id: "all" as const,        label: "All",        Icon: Layers },
+    { id: "corridor" as const,   label: "Corridors",  Icon: LayoutGrid },
+    { id: "hallway" as const,    label: "Paths",      Icon: RouteIcon },
+    { id: "wall" as const,       label: "Ext. walls", Icon: StretchHorizontal },
+    { id: "inner-wall" as const, label: "Int. walls", Icon: StretchHorizontal },
+    { id: "navnode" as const,    label: "Nav nodes",  Icon: Navigation },
   ];
   const chips = allStructureChips.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0);
 
   const onRowClick = (it: UnifiedPoi) => {
-    if (it.kind === "hallway" || it.kind === "wall") {
+    if (it.kind === "hallway" || it.kind === "wall" || it.kind === "inner-wall") {
       onSelect({ kind: "hallway", id: it.id });
     } else if (it.kind === "corridor") {
       onSelect({ kind: "room", id: it.id });
@@ -442,7 +445,7 @@ function StructureList({
       {/* Row list */}
       <ul className="p-1.5 space-y-0.5">
         {filtered.map((it) => {
-          const isActive = it.kind === "hallway" || it.kind === "wall" ? selection?.kind === "hallway" && selection.id === it.id : selection?.kind === "room" && selection.id === it.id;
+          const isActive = (it.kind === "hallway" || it.kind === "wall" || it.kind === "inner-wall") ? selection?.kind === "hallway" && selection.id === it.id : selection?.kind === "room" && selection.id === it.id;
           return (
             <li key={`${it.kind}:${it.id}`} className="flex items-center gap-1">
               <div className="flex-1 min-w-0">

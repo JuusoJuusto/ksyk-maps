@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.44.0";
+export const APP_VERSION = "3.45.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.45.0",
+    date: "August 2026",
+    title: "Interior wall type, corridor nav nodes, builder CAD improvements",
+    latest: true,
+    highlights: [
+      "New wall type: Interior Wall (inner-wall) — thinner, lighter line, rendered distinct from exterior walls. Inner wall button added to the tool palette after the Wall button. Surface dropdown in Properties now includes all wall + walkable surface options.",
+      "Corridor PropertyPanel massively improved: shows all nearby nav nodes (within bounding box) with kind, floor, and coordinates; 'Add nav node at centroid' button drops a junction node at the corridor's center; accessibility toggle + description field now editable inline.",
+      "HallwayProps upgraded: surface dropdown now groups wall types (Exterior wall, Interior wall) and walkable surfaces; direction/accessibility fields show for all types; more visual distinction between wall and path elements in the Structure tab.",
+      "LeftSidebar Structure tab: inner-wall entries get their own distinct color and label; snap-to-wall also hits inner-wall segments.",
+    ],
+  },
   {
     version: "3.44.0",
     date: "August 2026",
     title: "Line tool v2, search shows room number, builder polish",
-    latest: true,
+    latest: false,
     highlights: [
       "Line tool (L) fully reworked: construction lines now persist through page refreshes (sessionStorage). Click a line in Select mode to select it (rose halo + banner); Del removes just that line. Ctrl+Z while the line tool is active undoes the last saved line. The coach chip now shows point count and how many lines are saved. Proper pink badge in the toolbar. Shortcuts overlay updated.",
       "Search: room number now appears in the result title alongside the name — e.g. '101 — Physics Lab' instead of just 'Physics Lab'. Searching the number highlights it directly in the title. Subtitle is cleaner (no duplicate number).",

@@ -203,7 +203,7 @@ export interface Hallway extends Timestamped {
    *  special value "wall" reuses this table to store non-traversable
    *  wall segments; the router treats them as obstacles and the
    *  renderer draws them as thick dark lines instead of amber lanes. */
-  surface?: "concrete" | "carpet" | "tile" | "gravel" | "asphalt" | "wall" | null;
+  surface?: "concrete" | "carpet" | "tile" | "gravel" | "asphalt" | "wall" | "inner-wall" | null;
   /** Allowed traversal direction. Undirected by default. */
   directions?: "both" | "start_to_end" | "end_to_start" | null;
   accessible?: boolean | null;

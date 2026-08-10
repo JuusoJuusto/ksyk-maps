@@ -18,9 +18,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette } from "lucide-react";
+import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation, Plus } from "lucide-react";
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
+import { useNavGraph } from "@/lib/navGraph";
 
 /** Selection dispatched to the panel. Union so the panel can render
  *  a different form per entity kind. v3.28.1 — added point-POI kinds
@@ -697,12 +698,56 @@ function CorridorProps({ room }: { room: Room }) {
   const [name, setName] = useState(room.name ?? "");
   const [label, setLabel] = useState(room.roomNumber ?? "");
   const [floor, setFloor] = useState<number>(room.floor ?? 1);
+  const [description, setDescription] = useState(room.description ?? "");
   const initialMeta = (room.metadata as Record<string, unknown> | null | undefined) ?? {};
   const initialStyle = (initialMeta.style as Record<string, unknown> | undefined) ?? {};
   const [widthM, setWidthM] = useState<number>((initialStyle.widthMeters as number | undefined) ?? 2);
   const [fillOpacityPct, setFillOpacityPct] = useState(
     Math.round(((initialStyle.fillOpacity as number | undefined) ?? 0.45) * 100),
   );
+  const [accessible, setAccessible] = useState<boolean>(
+    (initialStyle.accessible as boolean | undefined) ?? true,
+  );
+
+  const { graph, addNode } = useNavGraph();
+
+  // Nearby nav nodes — any node within the corridor's bounding box
+  // (slightly expanded by ~15 m so "near the entrance" nodes also show).
+  const nearbyNodes = useMemo(() => {
+    const pts = room.points ?? [];
+    if (pts.length < 3) return [];
+    const lats = pts.map((p) => p.lat);
+    const lngs = pts.map((p) => p.lng);
+    const PAD = 0.00015; // ~15 m
+    const minLat = Math.min(...lats) - PAD;
+    const maxLat = Math.max(...lats) + PAD;
+    const minLng = Math.min(...lngs) - PAD;
+    const maxLng = Math.max(...lngs) + PAD;
+    return graph.nodes.filter(
+      (n) => n.lat >= minLat && n.lat <= maxLat && n.lng >= minLng && n.lng <= maxLng,
+    );
+  }, [room.points, graph.nodes]);
+
+  // Centroid for "add nav node" button.
+  const centroid = useMemo(() => {
+    const pts = room.points ?? [];
+    if (!pts.length) return null;
+    return {
+      lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
+      lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
+    };
+  }, [room.points]);
+
+  // Count edges touching each nearby node.
+  const edgeCountById = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const n of nearbyNodes) m.set(n.id, 0);
+    for (const e of graph.edges) {
+      if (m.has(e.fromNodeId)) m.set(e.fromNodeId, (m.get(e.fromNodeId) ?? 0) + 1);
+      if (m.has(e.toNodeId)) m.set(e.toNodeId, (m.get(e.toNodeId) ?? 0) + 1);
+    }
+    return m;
+  }, [nearbyNodes, graph.edges]);
 
   const patch = useMutation({
     mutationFn: async (body: Partial<Room>) => {
@@ -716,8 +761,10 @@ function CorridorProps({ room }: { room: Room }) {
     name !== (room.name ?? "") ||
     label !== (room.roomNumber ?? "") ||
     floor !== (room.floor ?? 1) ||
+    description !== (room.description ?? "") ||
     widthM !== ((initialStyle.widthMeters as number | undefined) ?? 2) ||
-    fillOpacityPct !== Math.round(((initialStyle.fillOpacity as number | undefined) ?? 0.45) * 100);
+    fillOpacityPct !== Math.round(((initialStyle.fillOpacity as number | undefined) ?? 0.45) * 100) ||
+    accessible !== ((initialStyle.accessible as boolean | undefined) ?? true);
 
   return (
     <div className="space-y-3">
@@ -726,9 +773,10 @@ function CorridorProps({ room }: { room: Room }) {
           Corridor — walkable area
         </p>
         <p className="text-[11px] text-muted-foreground">
-          Stored as a filled polygon. Appears in the Structure tab, not Rooms.
+          Filled polygon in the Structure tab. Nav nodes drive routing.
         </p>
       </div>
+
       <div className="grid grid-cols-2 gap-2">
         <TextField label="Label / ID" value={label} onChange={setLabel} placeholder="Corridor A" />
         <TextField label="Name" value={name} onChange={setName} placeholder="Main corridor" />
@@ -737,31 +785,114 @@ function CorridorProps({ room }: { room: Room }) {
         <NumberField label="Floor" value={floor} onChange={setFloor} min={-5} max={30} />
         <NumberField label="Width (m)" value={widthM} onChange={setWidthM} min={0.5} max={20} step={0.5} />
       </div>
+
       <div className="space-y-1">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Fill opacity ({fillOpacityPct}%)
         </label>
         <input
-          type="range"
-          min={10} max={90} step={5}
+          type="range" min={10} max={90} step={5}
           value={fillOpacityPct}
           onChange={(e) => setFillOpacityPct(Number(e.target.value))}
           className="w-full accent-slate-600"
         />
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+        <input
+          type="checkbox"
+          checked={accessible}
+          onChange={(e) => setAccessible(e.target.checked)}
+          className="h-4 w-4 accent-emerald-600"
+        />
+        Wheelchair accessible
+      </label>
+
+      <div className="space-y-1">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          placeholder="e.g. Main east-west corridor, floor 1"
+          className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+        />
+      </div>
+
       <DirtySaveButton
         isDirty={dirty}
         isPending={patch.isPending}
         onSave={() => {
-          const nextStyle = { ...initialStyle, widthMeters: widthM, fillOpacity: fillOpacityPct / 100 };
+          const nextStyle = {
+            ...initialStyle,
+            widthMeters: widthM,
+            fillOpacity: fillOpacityPct / 100,
+            accessible,
+          };
           patch.mutate({
             roomNumber: label || undefined,
             name: name || null,
             floor,
+            description: description.trim() || null,
             metadata: { ...initialMeta, style: nextStyle } as never,
           } as never);
         }}
       />
+
+      {/* Nav nodes section */}
+      <div className="pt-2 mt-1 border-t border-border">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+            <Navigation className="h-3 w-3" />
+            Nav nodes nearby ({nearbyNodes.length})
+          </p>
+          {centroid && (
+            <button
+              type="button"
+              onClick={() => {
+                addNode({ lat: centroid.lat, lng: centroid.lng, floor: floor, kind: "junction" });
+              }}
+              className="flex items-center gap-1 text-[11px] font-semibold text-violet-700 dark:text-violet-300 hover:underline"
+              title="Drop a junction nav node at this corridor's centroid"
+            >
+              <Plus className="h-3 w-3" />
+              Add at centroid
+            </button>
+          )}
+        </div>
+        {nearbyNodes.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">
+            No nav nodes within ~15 m of this corridor. Use the Nav node tool or click "Add at centroid" above.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {nearbyNodes.map((n) => {
+              const edges = edgeCountById.get(n.id) ?? 0;
+              const kindLabel = n.kind === "junction" ? "Junction"
+                : n.kind === "stairs" ? "Stairs"
+                : n.kind === "elevator" ? "Elevator"
+                : n.kind === "entrance" ? "Entrance"
+                : n.kind === "room" ? "Room"
+                : "Node";
+              return (
+                <li
+                  key={n.id}
+                  className="rounded-lg bg-violet-50 dark:bg-violet-950/30 px-2.5 py-1.5 text-xs"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0" />
+                    <span className="font-semibold text-violet-800 dark:text-violet-200">{n.label || kindLabel}</span>
+                    <span className="text-muted-foreground ml-auto tabular-nums">{edges} edge{edges !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="text-muted-foreground mt-0.5 pl-3.5">
+                    Floor {n.floor} · {n.lat.toFixed(5)}, {n.lng.toFixed(5)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -769,9 +900,12 @@ function CorridorProps({ room }: { room: Room }) {
 function HallwayProps({ hallway }: { hallway: Hallway }) {
   const qc = useQueryClient();
   const [width, setWidth] = useState(hallway.width ?? 2);
-  const [surface, setSurface] = useState(hallway.surface ?? "concrete");
+  const initialSurface = (hallway.surface ?? "concrete") as string;
+  const [surface, setSurface] = useState(initialSurface);
   const [directions, setDirections] = useState(hallway.directions ?? "both");
   const [accessible, setAccessible] = useState(hallway.accessible ?? true);
+
+  const isBarrier = surface === "wall" || surface === "inner-wall";
 
   const patch = useMutation({
     mutationFn: async (body: Partial<Hallway>) => {
@@ -783,50 +917,86 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
 
   const dirty =
     width !== (hallway.width ?? 2) ||
-    surface !== (hallway.surface ?? "concrete") ||
+    surface !== initialSurface ||
     directions !== (hallway.directions ?? "both") ||
     accessible !== (hallway.accessible ?? true);
 
   return (
     <div className="space-y-3">
-      <NumberField label="Width (m)" value={width} onChange={setWidth} min={0.5} max={20} step={0.1} />
+      {/* Kind badge */}
+      <div className={cn(
+        "rounded-lg px-3 py-2 text-[11px] font-semibold",
+        isBarrier
+          ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200",
+      )}>
+        {surface === "wall" ? "Exterior wall — structural barrier" :
+         surface === "inner-wall" ? "Interior wall — partition / divider" :
+         "Path — walkable hallway segment"}
+      </div>
+
       <div>
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Surface</label>
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Surface / type</label>
         <select
           value={surface}
-          onChange={(e) => setSurface(e.target.value as NonNullable<Hallway["surface"]>)}
+          onChange={(e) => setSurface(e.target.value)}
           className="mt-1 w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
         >
-          {(["concrete", "carpet", "tile", "gravel", "asphalt"] as const).map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
+          <optgroup label="Wall types">
+            <option value="wall">Exterior wall (thick, dark)</option>
+            <option value="inner-wall">Interior wall (thin, lighter)</option>
+          </optgroup>
+          <optgroup label="Walkable surfaces">
+            <option value="concrete">Concrete</option>
+            <option value="carpet">Carpet</option>
+            <option value="tile">Tile</option>
+            <option value="gravel">Gravel</option>
+            <option value="asphalt">Asphalt</option>
+          </optgroup>
         </select>
       </div>
-      <div>
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Traversal</label>
-        <select
-          value={directions}
-          onChange={(e) => setDirections(e.target.value as NonNullable<Hallway["directions"]>)}
-          className="mt-1 w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-        >
-          <option value="both">Both directions</option>
-          <option value="start_to_end">Start → End</option>
-          <option value="end_to_start">End → Start</option>
-        </select>
+
+      {/* Width only makes sense for walkable paths; walls use render-time width */}
+      {!isBarrier && (
+        <NumberField label="Width (m)" value={width} onChange={setWidth} min={0.5} max={20} step={0.1} />
+      )}
+
+      {/* Traversal + accessibility only apply to walkable paths */}
+      {!isBarrier && (
+        <>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Traversal direction</label>
+            <select
+              value={directions}
+              onChange={(e) => setDirections(e.target.value as NonNullable<Hallway["directions"]>)}
+              className="mt-1 w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            >
+              <option value="both">Both directions</option>
+              <option value="start_to_end">Start → End only</option>
+              <option value="end_to_start">End → Start only</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={accessible}
+              onChange={(e) => setAccessible(e.target.checked)}
+              className="h-4 w-4 rounded accent-emerald-600"
+            />
+            Wheelchair accessible
+          </label>
+        </>
+      )}
+
+      <div className="pt-1 border-t border-border text-[11px] text-muted-foreground space-y-0.5">
+        <p>ID: <span className="font-mono">{hallway.id.slice(0, 12)}…</span></p>
+        <p>Points: {((hallway as unknown as { points?: unknown[] }).points ?? []).length || "2 (legacy)"}</p>
       </div>
-      <label className="flex items-center gap-2 text-sm text-foreground">
-        <input
-          type="checkbox"
-          checked={accessible}
-          onChange={(e) => setAccessible(e.target.checked)}
-          className="h-4 w-4 rounded"
-        />
-        Accessible
-      </label>
+
       <DirtySaveButton
         isDirty={dirty}
         isPending={patch.isPending}
-        onSave={() => patch.mutate({ width, surface, directions, accessible })}
+        onSave={() => patch.mutate({ width, surface: surface as Hallway["surface"], directions, accessible })}
       />
     </div>
   );

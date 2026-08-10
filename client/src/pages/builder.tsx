@@ -59,6 +59,7 @@ import {
   Flag,
   Layers as LayersIcon,
   PenLine,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -95,7 +96,10 @@ type BuilderTool =
   | "node" | "connect"
   // v3.40.0 — construction line tool. Click to trace reference lines
   // (temporary, session-only, not saved to DB) used for alignment.
-  | "line";
+  | "line"
+  // v3.45.0 — interior wall: thinner, lighter than the exterior "wall"
+  // type. Both produce a Hallway row; `surface` field discriminates.
+  | "wall-inner";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -157,7 +161,8 @@ function snapPointToNearestWall(
 
   let best: { lat: number; lng: number; d2: number } | null = null;
   for (const h of hallways) {
-    if ((h.surface ?? "").toLowerCase() !== "wall") continue;
+    const sf = (h.surface ?? "").toLowerCase();
+    if (sf !== "wall" && sf !== "inner-wall") continue;
     // Segment endpoints in metres relative to the click.
     const ax = (h.startX - click.lng) * mPerDegLng;
     const ay = (h.startY - click.lat) * mPerDegLat;
@@ -501,7 +506,7 @@ function BuilderWorkspace() {
         ];
       } else if (activeTool === "measure" && coords.length >= 2) {
         lineCoords = coords;
-      } else if ((activeTool === "hallway" || activeTool === "wall") && coords.length >= 2) {
+      } else if ((activeTool === "hallway" || activeTool === "wall" || activeTool === "wall-inner") && coords.length >= 2) {
         lineCoords = coords;
       } else if (coords.length >= 3) {
         polyCoords = [...coords, coords[0]];
@@ -833,13 +838,17 @@ function BuilderWorkspace() {
         const coords: number[][] = (Array.isArray(pts) && pts.length >= 2)
           ? pts.map((p) => [p.lng, p.lat])
           : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
+        const surface = (hw as { surface?: string | null }).surface ?? "concrete";
         return {
           type: "Feature" as const,
           geometry: { type: "LineString" as const, coordinates: coords },
           properties: {
             id: hw.id,
             selected: selection?.kind === "hallway" && selection.id === hw.id,
-            isWall: (hw as { surface?: string | null }).surface === "wall",
+            surface,
+            // Legacy bool kept for the dark-mode effect which hasn't been
+            // rewritten yet — surface expression replaces it for new paint.
+            isWall: surface === "wall" || surface === "inner-wall",
           },
         };
       }),
@@ -849,6 +858,7 @@ function BuilderWorkspace() {
     else {
       map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
       const wallColor = darkMode ? "#94a3b8" : "#374151";
+      const innerWallColor = darkMode ? "#64748b" : "#64748b";
       map.addLayer({
         id: hallLineId, source: hallSrcId, type: "line",
         layout: { "line-cap": "round", "line-join": "round" },
@@ -856,21 +866,28 @@ function BuilderWorkspace() {
           "line-color": [
             "case",
             ["boolean", ["get", "selected"], false], "#dc2626",
-            ["boolean", ["get", "isWall"], false],  wallColor,
-                                                     "#f59e0b",  // amber walkable
+            ["==", ["get", "surface"], "wall"], wallColor,
+            ["==", ["get", "surface"], "inner-wall"], innerWallColor,
+            "#f59e0b",  // amber walkable
           ],
           "line-width": [
             "case",
-            ["boolean", ["get", "isWall"], false],
-            // Walls: chunky dark segments so they clearly read as
-            // obstacles, not paths.
+            ["boolean", ["get", "selected"], false],
+            ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 16],
+            // Exterior walls: thick dark barrier segments.
+            ["==", ["get", "surface"], "wall"],
             ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 12],
+            // Interior walls: thinner, clearly lighter-weight.
+            ["==", ["get", "surface"], "inner-wall"],
+            ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 5],
+            // Walkable paths.
             ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
           ],
           "line-opacity": [
             "case",
-            ["boolean", ["get", "isWall"], false], 0.95,
-                                                    0.8,
+            ["==", ["get", "surface"], "wall"], 0.95,
+            ["==", ["get", "surface"], "inner-wall"], 0.85,
+            0.8,
           ],
         },
       });
@@ -886,10 +903,12 @@ function BuilderWorkspace() {
     const map = handleRef.current?.map;
     if (!map) return;
     const wallColor = darkMode ? "#94a3b8" : "#374151";
+    const innerWallColor = "#64748b";
     const expr = [
       "case",
       ["boolean", ["get", "selected"], false], "#dc2626",
-      ["boolean", ["get", "isWall"], false], wallColor,
+      ["==", ["get", "surface"], "wall"], wallColor,
+      ["==", ["get", "surface"], "inner-wall"], innerWallColor,
       "#f59e0b",
     ];
     try { map.setPaintProperty("builder-hallways-line", "line-color", expr); } catch { /* layer not yet added */ }
@@ -1646,7 +1665,8 @@ function BuilderWorkspace() {
       qc.invalidateQueries({ queryKey: ["/api/hallways"] });
       setSelection(null);
       if (snapshot) {
-        const label = (snapshot as { surface?: string }).surface === "wall" ? "wall" : "hallway";
+        const sf = (snapshot as { surface?: string }).surface;
+        const label = sf === "wall" ? "wall" : sf === "inner-wall" ? "inner wall" : "hallway";
         history.record(makeDeleteInverse({
           label: `Delete ${label}`,
           snapshot,
@@ -1697,6 +1717,13 @@ function BuilderWorkspace() {
       createHallway.mutate({
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
         surface: "wall",
+      });
+      return;
+    }
+    if (activeTool === "wall-inner" && waypoints.length >= 2) {
+      createHallway.mutate({
+        points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
+        surface: "inner-wall",
       });
       return;
     }
@@ -1986,7 +2013,8 @@ function BuilderWorkspace() {
       setLiveSegmentM(null);
     };
 
-    const isSegmentTool = activeTool === "wall" || activeTool === "hallway"
+    const isSegmentTool = activeTool === "wall" || activeTool === "wall-inner"
+      || activeTool === "hallway"
       || activeTool === "building" || activeTool === "room" || activeTool === "corridor"
       || activeTool === "measure" || activeTool === "line";
 
@@ -2132,7 +2160,11 @@ function BuilderWorkspace() {
       }
     }
 
-    const ghostColor = activeTool === "corridor" ? "#64748b" : activeTool === "line" ? "#ec4899" : "#3b82f6";
+    const ghostColor = activeTool === "corridor" ? "#64748b"
+      : activeTool === "line" ? "#ec4899"
+      : activeTool === "wall" ? "#374151"
+      : activeTool === "wall-inner" ? "#64748b"
+      : "#3b82f6";
     const data = {
       type: "FeatureCollection" as const,
       features: [
@@ -2204,7 +2236,9 @@ function BuilderWorkspace() {
       }
       case "hallway": {
         const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
-        const label = h?.surface === "wall" ? "wall" : "hallway";
+        const label = h?.surface === "wall" ? "wall"
+          : h?.surface === "inner-wall" ? "inner wall"
+          : "hallway";
         if (!confirm(`Delete this ${label}?`)) return;
         deleteHallway.mutate(selection.id);
         return;
@@ -2925,7 +2959,8 @@ function BuilderWorkspace() {
           {(() => {
             const isDrawTool = activeTool === "building" || activeTool === "room" ||
               activeTool === "corridor" || activeTool === "hallway" ||
-              activeTool === "wall" || activeTool === "measure" || activeTool === "line";
+              activeTool === "wall" || activeTool === "wall-inner" ||
+              activeTool === "measure" || activeTool === "line";
             if (!isDrawTool || waypoints.length === 0) return null;
             const mDisplay = liveSegmentM !== null
               ? (liveSegmentM < 10 ? liveSegmentM.toFixed(2) : liveSegmentM.toFixed(1))
@@ -3277,7 +3312,8 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
         { keys: ["U"], label: "Rectangle building" },
         { keys: ["R"], label: "Room polygon" },
         { keys: ["H"], label: "Path (multi-vertex hallway)" },
-        { keys: ["W"], label: "Wall" },
+        { keys: ["W"], label: "Wall (exterior)" },
+        { keys: ["—"], label: "Inner wall (toolbar button)" },
         { keys: ["M"], label: "Measure" },
         { keys: ["L"], label: "Construction line (session-only)" },
         { keys: ["S"], label: "Stairs POI" },
@@ -3495,7 +3531,8 @@ function coachMetaFor(
     case "room":           return { Icon: DoorOpen,          name: "Room",      text: `Click corners — Enter to finish (${n}/3+ needed)`, badgeBg: "bg-emerald-600" };
     case "corridor":       return { Icon: RouteIcon,         name: "Corridor",  text: `Trace corridor corners — Enter to close (${n}/3+ needed)`, badgeBg: "bg-slate-500" };
     case "hallway":        return { Icon: RouteIcon,         name: "Path",      text: `Click each corner — Enter to finish (${n} points, min 2)`, badgeBg: "bg-amber-600" };
-    case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,    badgeBg: "bg-gray-800" };
+    case "wall":           return { Icon: StretchHorizontal, name: "Wall",      text: `Click wall endpoints — Enter to finish (${n})`,          badgeBg: "bg-gray-800" };
+    case "wall-inner":     return { Icon: Minus,             name: "Inner wall", text: `Click interior wall endpoints — Enter to finish (${n})`,   badgeBg: "bg-slate-500" };
     case "measure":        return {
       Icon: Ruler, name: "Measure",
       text: n < 2 ? `Click points — line total shows here (${n})` : `Distance: ${distLabel} · Esc to clear`,
@@ -3568,8 +3605,9 @@ const SHAPE_TOOLS: ToolDef[] = [
   { id: "room",      Icon: DoorOpen,          label: "Room",      hotkey: "R" },
   { id: "corridor",  Icon: RouteIcon,         label: "Corridor",  hotkey: "C" },
   { id: "hallway",   Icon: RouteIcon,         label: "Path",      hotkey: "H" },
-  { id: "wall",      Icon: StretchHorizontal, label: "Wall",      hotkey: "W" },
-  { id: "measure",   Icon: Ruler,             label: "Measure",   hotkey: "M" },
+  { id: "wall",       Icon: StretchHorizontal, label: "Wall",       hotkey: "W" },
+  { id: "wall-inner", Icon: Minus,             label: "Inner wall", hotkey: "" },
+  { id: "measure",    Icon: Ruler,             label: "Measure",    hotkey: "M" },
 ];
 
 /** Nav-graph tools — nodes + edges. Users route by dropping nodes on
