@@ -1,9 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.37.0 — bearing-aware ortho (follows map rotation),
-ortho auto-close universal D=A+C-B formula, corridor type+colorCode
-now saved to DB, corridor fill visible on public map, room fill
-opacity 0.32→0.50 in builder.
+Bump reason: v3.38.0 — edge-direction ortho (90° corners off any angle),
+smart alignment guides (PowerPoint-style orange dashed lines), corridor
+property panel (own kind in PropertyPanel), auto nav node at corridor centroid.
 
-Timestamp: 1786736400
-Build: FORCE_REBUILD_v3.37.0_BEARING_ORTHO_CORRIDOR_TYPE_FIX_ROOM_FILL
+Timestamp: 1786740000
+Build: FORCE_REBUILD_v3.38.0_EDGE_ORTHO_GUIDES_CORRIDOR_PANEL_NAV_NODE

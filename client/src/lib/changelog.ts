@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.37.0";
+export const APP_VERSION = "3.38.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.38.0",
+    date: "August 2026",
+    title: "Edge-direction ortho, smart guides, corridor property panel, auto nav nodes",
+    latest: true,
+    highlights: [
+      "Ortho now follows the previous edge direction, not just map bearing. After placing two points, every subsequent click snaps to either parallel or perpendicular to the last edge — so any non-axis-aligned building still produces perfect 90° corners.",
+      "Smart guides: while drawing, thin orange dashed lines appear when the cursor aligns with any previous waypoint's screen X or Y position — PowerPoint-style alignment hints.",
+      "Corridors now have their own property panel (Properties + Style + Transform + Custom tabs, separate from rooms). Selecting a corridor opens the 'Corridor' panel showing label, name, floor, width, and fill opacity.",
+      "Creating a corridor auto-places a nav node at its centroid so routing paths connect through it immediately.",
+    ],
+  },
   {
     version: "3.37.0",
     date: "August 2026",
     title: "Bearing-aware ortho, corridor type fix, corridor fills visible, room fill opacity boost",
-    latest: true,
     highlights: [
       "Ortho tool is now bearing-aware: axes follow the map's current rotation instead of geographic north. Rotating the map and drawing a room now produces edges aligned with the rotated view.",
       "Ortho auto-close uses the universal rectangle formula D = A + C − B, which works correctly at any bearing (the old formula only worked on north-up maps).",

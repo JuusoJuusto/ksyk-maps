@@ -25,11 +25,11 @@ import { pickColor } from "@/lib/colorEyedropper";
 /** Selection dispatched to the panel. Union so the panel can render
  *  a different form per entity kind. v3.28.1 — added point-POI kinds
  *  so doors/stairs/elevators/generic POIs are editable in the
- *  builder. Data is loose `Record<string, unknown>` for those since
- *  we don't have first-class typed shared types for them yet. */
+ *  builder. v3.38.0 — "corridor" is its own kind (Room with type=hallway). */
 export type SelectedEntity =
   | { kind: "building"; data: Building }
   | { kind: "room"; data: Room }
+  | { kind: "corridor"; data: Room }
   | { kind: "hallway"; data: Hallway }
   | { kind: "door"; data: PointPoi & { isEntrance?: boolean; isExit?: boolean } }
   | { kind: "stair"; data: PointPoi }
@@ -75,12 +75,12 @@ type TabId = typeof TABS[number]["id"];
 
 export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPanelProps) {
   const [tab, setTab] = useState<TabId>("props");
-  const title = useMemo(() => entity.kind[0].toUpperCase() + entity.kind.slice(1), [entity.kind]);
+  const title = useMemo(() => {
+    if (entity.kind === "corridor") return "Corridor";
+    return entity.kind[0].toUpperCase() + entity.kind.slice(1);
+  }, [entity.kind]);
   // v3.28.1 — point POI kinds (door/stair/elevator/poi) don't have
   // polygon-style, transform, or per-feature metadata knobs yet.
-  // Style/Transform/Custom tabs would render blank forms or crash for
-  // those, so we only surface the Properties tab. Building/room/
-  // hallway still get all four.
   const isPointPoi = entity.kind === "door" || entity.kind === "stair" ||
                      entity.kind === "elevator" || entity.kind === "poi";
   const visibleTabs = isPointPoi
@@ -164,17 +164,16 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
 // ── Helpers ────────────────────────────────────────────────────────
 
 function KindDot({ entity }: { entity: SelectedEntity }) {
-  // v3.28.1 — point-POI kinds get distinct colours matching the map
-  // chips (green entrance, grey door, amber stair, blue elevator).
   let color: string;
   switch (entity.kind) {
-    case "building": color = entity.data.colorCode ?? "#2563eb"; break;
-    case "room":     color = entity.data.colorCode ?? "#059669"; break;
-    case "hallway":  color = "#f59e0b"; break;
-    case "door":     color = entity.data.isEntrance ? "#16a34a" : entity.data.isExit ? "#dc2626" : "#374151"; break;
-    case "stair":    color = "#f59e0b"; break;
-    case "elevator": color = "#2563eb"; break;
-    case "poi":      color = "#8b5cf6"; break;
+    case "building":  color = entity.data.colorCode ?? "#2563eb"; break;
+    case "room":      color = entity.data.colorCode ?? "#059669"; break;
+    case "corridor":  color = entity.data.colorCode ?? "#94a3b8"; break;
+    case "hallway":   color = "#f59e0b"; break;
+    case "door":      color = entity.data.isEntrance ? "#16a34a" : entity.data.isExit ? "#dc2626" : "#374151"; break;
+    case "stair":     color = "#f59e0b"; break;
+    case "elevator":  color = "#2563eb"; break;
+    case "poi":       color = "#8b5cf6"; break;
   }
   return <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ background: color }} />;
 }
@@ -183,6 +182,9 @@ function titleFor(entity: SelectedEntity): string {
   if (entity.kind === "building") return entity.data.name ?? "(unnamed building)";
   if (entity.kind === "room") {
     return [entity.data.roomNumber, entity.data.name].filter(Boolean).join(" · ") || "(unnamed room)";
+  }
+  if (entity.kind === "corridor") {
+    return entity.data.name || entity.data.roomNumber || "Unnamed corridor";
   }
   if (entity.kind === "hallway") return `Hallway ${entity.data.id.slice(0, 8)}`;
   if (entity.kind === "door") return entity.data.isEntrance ? "Entrance" : entity.data.isExit ? "Exit" : "Door";
@@ -269,6 +271,7 @@ function DirtySaveButton({
 function PropsTab({ entity }: { entity: SelectedEntity }) {
   if (entity.kind === "building") return <BuildingProps building={entity.data} />;
   if (entity.kind === "room") return <RoomProps room={entity.data} />;
+  if (entity.kind === "corridor") return <CorridorProps room={entity.data} />;
   if (entity.kind === "hallway") return <HallwayProps hallway={entity.data} />;
   // v3.28.1 — point POI forms. All four share the same core (floor +
   // position + delete); doors additionally have isEntrance/isExit
@@ -689,6 +692,80 @@ function RoomProps({ room }: { room: Room }) {
   );
 }
 
+function CorridorProps({ room }: { room: Room }) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(room.name ?? "");
+  const [label, setLabel] = useState(room.roomNumber ?? "");
+  const [floor, setFloor] = useState<number>(room.floor ?? 1);
+  const initialMeta = (room.metadata as Record<string, unknown> | null | undefined) ?? {};
+  const initialStyle = (initialMeta.style as Record<string, unknown> | undefined) ?? {};
+  const [widthM, setWidthM] = useState<number>((initialStyle.widthMeters as number | undefined) ?? 2);
+  const [fillOpacityPct, setFillOpacityPct] = useState(
+    Math.round(((initialStyle.fillOpacity as number | undefined) ?? 0.45) * 100),
+  );
+
+  const patch = useMutation({
+    mutationFn: async (body: Partial<Room>) => {
+      const res = await apiRequest("PATCH", `/api/rooms/${room.id}`, body);
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+  });
+
+  const dirty =
+    name !== (room.name ?? "") ||
+    label !== (room.roomNumber ?? "") ||
+    floor !== (room.floor ?? 1) ||
+    widthM !== ((initialStyle.widthMeters as number | undefined) ?? 2) ||
+    fillOpacityPct !== Math.round(((initialStyle.fillOpacity as number | undefined) ?? 0.45) * 100);
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 px-3 py-2">
+        <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-slate-500 dark:text-slate-400 mb-0.5">
+          Corridor — walkable area
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          Stored as a filled polygon. Appears in the Structure tab, not Rooms.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <TextField label="Label / ID" value={label} onChange={setLabel} placeholder="Corridor A" />
+        <TextField label="Name" value={name} onChange={setName} placeholder="Main corridor" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberField label="Floor" value={floor} onChange={setFloor} min={-5} max={30} />
+        <NumberField label="Width (m)" value={widthM} onChange={setWidthM} min={0.5} max={20} step={0.5} />
+      </div>
+      <div className="space-y-1">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Fill opacity ({fillOpacityPct}%)
+        </label>
+        <input
+          type="range"
+          min={10} max={90} step={5}
+          value={fillOpacityPct}
+          onChange={(e) => setFillOpacityPct(Number(e.target.value))}
+          className="w-full accent-slate-600"
+        />
+      </div>
+      <DirtySaveButton
+        isDirty={dirty}
+        isPending={patch.isPending}
+        onSave={() => {
+          const nextStyle = { ...initialStyle, widthMeters: widthM, fillOpacity: fillOpacityPct / 100 };
+          patch.mutate({
+            roomNumber: label || undefined,
+            name: name || null,
+            floor,
+            metadata: { ...initialMeta, style: nextStyle } as never,
+          } as never);
+        }}
+      />
+    </div>
+  );
+}
+
 function HallwayProps({ hallway }: { hallway: Hallway }) {
   const qc = useQueryClient();
   const [width, setWidth] = useState(hallway.width ?? 2);
@@ -769,6 +846,7 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
   const currentColor =
     entity.kind === "building" ? (entity.data.colorCode ?? "#2563eb") :
     entity.kind === "room"     ? (entity.data.colorCode ?? "#059669") :
+    entity.kind === "corridor" ? (entity.data.colorCode ?? "#94a3b8") :
                                  "#f59e0b";
   // Style knobs live in `metadata.style` so we don't need a DB
   // migration per option. Renderers respect them by reading properties
@@ -778,7 +856,7 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
       ? (entity.data.metadata as { style?: Record<string, unknown> } | null | undefined)?.style
       : undefined;
   const initialShowOutline = (metaStyle?.showOutline as boolean | undefined) ?? true;
-  const initialFillOpacity = Math.round(((metaStyle?.fillOpacity as number | undefined) ?? 0.6) * 100);
+  const initialFillOpacity = Math.round(((metaStyle?.fillOpacity as number | undefined) ?? (entity.kind === "corridor" ? 0.45 : 0.6)) * 100);
   const initialShowLabel = (metaStyle?.showLabel as boolean | undefined) ?? true;
   // 3D height knobs — buildings and rooms both accept a per-instance
   // override. Values are in metres. 0 (or unset) falls back to the
@@ -803,7 +881,7 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
     mutationFn: async () => {
       const path =
         entity.kind === "building" ? `/api/buildings/${entity.data.id}` :
-        entity.kind === "room"     ? `/api/rooms/${entity.data.id}` :
+        entity.kind === "room" || entity.kind === "corridor" ? `/api/rooms/${entity.data.id}` :
                                      `/api/hallways/${entity.data.id}`;
       const body: Record<string, unknown> = { colorCode: color };
       if (entity.kind !== "hallway") {
@@ -817,8 +895,6 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
             showOutline,
             fillOpacity: fillOpacityPct / 100,
             showLabel,
-            // 3D height knobs — persist as numbers. 0 collapses to
-            // "no override" in the renderer.
             ...(entity.kind === "building" ? {
               heightPerFloor: heightPerFloor || undefined,
               totalHeight: totalHeight || undefined,
@@ -834,7 +910,10 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [entity.kind === "building" ? "/api/buildings" : entity.kind === "room" ? "/api/rooms" : "/api/hallways"] });
+      const qk = entity.kind === "building" ? "/api/buildings"
+        : (entity.kind === "room" || entity.kind === "corridor") ? "/api/rooms"
+        : "/api/hallways";
+      qc.invalidateQueries({ queryKey: [qk] });
     },
   });
 
@@ -1114,13 +1193,16 @@ function CustomTab({ entity }: { entity: SelectedEntity }) {
       }
       const path =
         entity.kind === "building" ? `/api/buildings/${entity.data.id}` :
-        entity.kind === "room"     ? `/api/rooms/${entity.data.id}` :
+        (entity.kind === "room" || entity.kind === "corridor") ? `/api/rooms/${entity.data.id}` :
                                      `/api/hallways/${entity.data.id}`;
       const res = await apiRequest("PATCH", path, { metadata: parsed });
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [entity.kind === "building" ? "/api/buildings" : entity.kind === "room" ? "/api/rooms" : "/api/hallways"] });
+      const qk = entity.kind === "building" ? "/api/buildings"
+        : (entity.kind === "room" || entity.kind === "corridor") ? "/api/rooms"
+        : "/api/hallways";
+      qc.invalidateQueries({ queryKey: [qk] });
       setError(null);
     },
     onError: (e) => setError(e instanceof Error ? e.message : String(e)),
