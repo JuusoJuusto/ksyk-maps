@@ -1,6 +1,6 @@
 # KSYK Maps — Complete Codebase Documentation
 
-> **Current version:** 3.34.0 · **Date:** August 2026  
+> **Current version:** 3.37.0 · **Date:** August 2026  
 > This document covers every layer of the stack: client, server, shared packages, data model, API contract, and open TODOs.
 
 ---
@@ -847,14 +847,14 @@ Session expiry is disabled (`sessionTimeoutMiddleware` is a no-op). Sessions per
 - [x] Building polygon tool (B)
 - [x] Rectangle shortcut (two-click building)
 - [x] Room polygon tool (R)
-- [x] Corridor polygon tool (C) — stored as `type="hallway"` room
+- [x] Corridor polygon tool (C) — stored as `type="hallway"` room; type+colorCode now correctly persisted to Firestore (v3.37.0); creates toast + opens Structure tab on success
 - [x] Hallway path tool (H) — multi-vertex LineString
 - [x] Wall path tool (W) — hallway with `surface="wall"`
 - [x] Measure tool (M) — haversine distance between two clicks
 - [x] Select tool (V) — click to select, shift-click multi-select
 - [x] Snap to vertex / midpoint / endpoint
 - [x] Grid overlay
-- [x] Ortho constraint (perpendicular to previous edge) — FIXED v3.34.0
+- [x] Ortho constraint — bearing-aware axis snap (follows map rotation, v3.37.0); universal rectangle auto-close D=A+C-B (v3.37.0)
 - [x] Ghost preview line (cursor → last waypoint)
 - [x] Point POI tools (doors, stairs, elevators, info, parking, etc.)
 - [x] Door auto-snap to nearest wall ≤ 3m
@@ -947,15 +947,11 @@ Session expiry is disabled (`sessionTimeoutMiddleware` is a no-op). Sessions per
 
 ### High priority (bugs / correctness)
 
-- [ ] **Auth restriction on hallway/room routes**: `POST /api/hallways` and `POST /api/rooms` in `routes.ts` have `role === 'admin'` guards, but the builder allows `owner` and `editor` roles too. Owner/editor users get a `403` when trying to draw hallways. **Fix:** Change the guard to `["admin","owner","editor"].includes(user.role)`.
-
 - [ ] **Door `connects` wiring**: Doors created via the POI tool are placed on the map but `connects: []` (empty) — they don't link any room to any hallway. The router can't traverse them. **Fix needed:** After placing a door, automatically or manually wire it to the nearest room + hallway (or provide a "connect door" editor in PropertyPanel).
 
 - [ ] **Nav-graph server sync**: The navigation graph (`useNavGraph`) lives entirely in `localStorage`. It doesn't persist to the server and disappears on a new device or after clearing storage. **Fix:** Add `GET/POST /api/nav-graph` endpoints (stubs exist in mapRoutes but aren't wired up) and sync on every add/remove.
 
-- [ ] **Corridor polygon rendering in public map**: Corridors (`type="hallway"` rooms) are drawn in the builder but don't have a dedicated color/style in `CampusOverlay` — they render identically to regular rooms. **Fix:** In `installRooms()`, apply a different fill color for `type === "hallway"` so corridors look like walkable areas, not enclosed rooms.
-
-- [ ] **Existing hallways identified as rooms in DB**: Some corridors drawn in older versions may be stored without `type: "hallway"`. They show in the Rooms tab and are invisible in the Structure tab. **Fix:** Write a one-time Firestore migration script that sets `type = "hallway"` on any room with `colorCode === "#94a3b8"` and no room number, or give admin a "reclassify" button.
+- [ ] **Existing corridors without type in DB**: Corridors drawn in v3.36.0 and earlier may be stored without `type: "hallway"` (the createRoom mutationFn was silently dropping the type field before v3.37.0). These show in the Rooms tab and are invisible in the Structure tab. **Fix:** Write a one-time Firestore migration script that sets `type = "hallway"` on any room whose `colorCode` is `"#94a3b8"`, or give admin a "reclassify" button in the PropertyPanel.
 
 ### Medium priority (missing features)
 

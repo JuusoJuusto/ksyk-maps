@@ -10,14 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.36.0";
+export const APP_VERSION = "3.37.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.37.0",
+    date: "August 2026",
+    title: "Bearing-aware ortho, corridor type fix, corridor fills visible, room fill opacity boost",
+    latest: true,
+    highlights: [
+      "Ortho tool is now bearing-aware: axes follow the map's current rotation instead of geographic north. Rotating the map and drawing a room now produces edges aligned with the rotated view.",
+      "Ortho auto-close uses the universal rectangle formula D = A + C − B, which works correctly at any bearing (the old formula only worked on north-up maps).",
+      "Corridor tool now correctly saves type='hallway' and the corridor's color code to the database. Previously the type was silently dropped, causing newly created corridors to appear in the Rooms list instead of Structure.",
+      "Creating a corridor now shows a 'Corridor created' toast and opens the Structure tab automatically.",
+      "Corridor fills are visible on the public map — they now use each corridor's stored color (#94a3b8 default) at 0.45 opacity instead of the near-white #e2e8f0 that was invisible on the light basemap.",
+      "Room fill opacity in the builder raised from 0.32 → 0.50 so rooms are clearly visible without being selected.",
+    ],
+    highlightsFi: [
+      "Ortho-työkalu seuraa nyt kartan kiertokulmaa, ei maantieteellistä pohjoista.",
+      "Käytävätyökalu tallentaa nyt oikean tyyppi- ja värikoodin tietokantaan.",
+      "Käytävien täyttöväri näkyy julkisella kartalla — ei enää lähes valkoinen.",
+      "Huoneen täytevärin läpinäkyvyys nostettu builderissa.",
+    ],
+  },
   {
     version: "3.36.0",
     date: "August 2026",
     title: "Corridors in Structure tab, room outlines, POIs visible, rectangle creates rooms, ortho rectangle auto-close",
-    latest: true,
     highlights: [
       "Clicking a corridor in the builder now opens the Structure tab (not Rooms). Corridor type is stored in GeoJSON feature properties so the click handler can distinguish corridors from rooms.",
       "Room outlines are back on the public map — thin colored borders matching the room fill.",
