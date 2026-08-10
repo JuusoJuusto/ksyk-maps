@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.46.0";
+export const APP_VERSION = "3.47.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.47.0",
+    date: "August 2026",
+    title: "Room info panel redesign, classroom click fix, corridor nav nodes fix, drag editing fix",
+    latest: true,
+    highlights: [
+      "Room info panel (FeatureInfoSheet) fully redesigned: MazeMap + Apple-style premium bottom sheet with per-type icons (lab, gym, cafeteria, office…), floor badge, category chips, cleaner icon-tile metadata rows, and a taller gradient hero.",
+      "Classrooms now always clickable on desktop and mobile: corridor polygons overlapping classrooms no longer intercept the click. All room-layer hits are iterated; corridors (type=hallway) are skipped so the actual classroom shows its info panel.",
+      "Corridor nav nodes placed through the corridor centroid, inset from the polygon boundary. No longer placed at polygon corners — routing graph stays inside walkable space.",
+      "Vertex drag editing fixed: window-level mouseup catches drag-end outside map canvas; builder click handler no longer deselects after drag-on-handle; dragPan + touchZoomRotate always re-enabled on cleanup; vertex circles 9px with 10px hit-box tolerance.",
+    ],
+  },
   {
     version: "3.46.0",
     date: "August 2026",
     title: "Smart wall-direction guides, snap toggle fix, close-polygon snap",
-    latest: true,
+    latest: false,
     highlights: [
       "Smart guides v2: guide lines now align to the actual directions of nearby building walls, room edges, and hallway segments — not the screen horizontal/vertical axes. Guides snap the cursor onto the infinite extension of any nearby wall edge, making it easy to draw walls flush and co-linear with existing geometry.",
       "Snap toggle fix: the magnet icon on the toolbar now actually disables vertex snapping (was display-only before). When snap is off, no indicator, no vertex lock — cursor is fully free.",

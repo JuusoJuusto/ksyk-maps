@@ -1,18 +1,17 @@
 /**
  * FeatureInfoSheet — click-to-inspect panel for a room / building /
- * hallway on the public map.
+ * hallway on the public map. Premium MazeMap + Apple-style design.
  *
- * Fed by CampusOverlay's `onFeatureClick`. Renders the entity's most
- * useful metadata and a "Get directions here" action that dispatches
- * `ksyk:route-to` — NavigationPanel listens for that event, opens
- * itself if closed, and pre-fills the To field.
- *
- * Mobile: bottom sheet, safe-area padded.
- * Desktop (sm+): floating card on the right side, sitting above the
- * bottom-right control rail but below the header.
+ * Mobile: swipeable bottom sheet with three snap points.
+ * Desktop (sm+): floating card anchored to bottom, centered or right-aligned.
  */
 import { useState, useRef } from "react";
-import { X, MapPin, Compass, Users, User, Layers as LayersIcon, Info, Navigation2, Clock, Phone, Mail, ExternalLink } from "lucide-react";
+import {
+  X, MapPin, Compass, Users, User, Layers as LayersIcon, Info,
+  Navigation2, Clock, Phone, Mail, ExternalLink, Building2, DoorOpen,
+  BookOpen, Dumbbell, ShoppingCart, Trees, Warehouse, Coffee,
+  ChevronRight,
+} from "lucide-react";
 import type { Building, Room, Hallway } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +23,6 @@ export type ClickedFeature =
 interface FeatureInfoSheetProps {
   feature: ClickedFeature;
   onClose: () => void;
-  /** Called when the user hits "Directions here". Parent decides how
-   *  to hand off to the NavigationPanel — usually just opens it and
-   *  pre-fills the To field. */
   onRouteTo: (feature: ClickedFeature) => void;
 }
 
@@ -34,19 +30,12 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const title = featureTitle(feature);
   const subtitle = featureSubtitle(feature);
   const color = featureColor(feature);
+  const photoUrl = featurePhotoUrl(feature);
 
-  // v3.27.5 — mobile drag-to-resize state. Three snap points:
-  //   • "peek"  — small, just title + a couple rows (35dvh)
-  //   • "half"  — default height (60dvh)
-  //   • "full"  — nearly full-screen (85dvh)
-  // The drag handle at the top lets the user swipe between them
-  // without dismissing the sheet. Desktop always uses "full".
   const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
   const dragStartYRef = useRef<number | null>(null);
   const dragStartSnapRef = useRef<typeof mobileSnap>("half");
-  const cycleSnap = () => {
-    setMobileSnap((s) => (s === "peek" ? "half" : s === "half" ? "full" : "peek"));
-  };
+
   const onHandlePointerDown = (e: React.PointerEvent) => {
     dragStartYRef.current = e.clientY;
     dragStartSnapRef.current = mobileSnap;
@@ -56,169 +45,146 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
     const startY = dragStartYRef.current;
     if (startY === null) return;
     const dy = e.clientY - startY;
-    // Drag up (dy < 0) → bigger; drag down (dy > 0) → smaller.
-    if (Math.abs(dy) < 40) return;
-    if (dy < 0) {
-      setMobileSnap(dragStartSnapRef.current === "peek" ? "half" : "full");
-    } else {
-      setMobileSnap(dragStartSnapRef.current === "full" ? "half" : "peek");
-    }
+    if (Math.abs(dy) < 36) return;
+    setMobileSnap(dy < 0
+      ? (dragStartSnapRef.current === "peek" ? "half" : "full")
+      : (dragStartSnapRef.current === "full" ? "half" : "peek"));
     dragStartYRef.current = null;
   };
-  const onHandlePointerUp = () => {
-    dragStartYRef.current = null;
-  };
-  const mobileMaxHeight =
-    mobileSnap === "peek" ? "35dvh" :
-    mobileSnap === "half" ? "60dvh" :
-                            "85dvh";
+  const onHandlePointerUp = () => { dragStartYRef.current = null; };
+  const cycleSnap = () =>
+    setMobileSnap((s) => s === "peek" ? "half" : s === "half" ? "full" : "peek");
+
+  const mobileMaxH =
+    mobileSnap === "peek" ? "38dvh" :
+    mobileSnap === "half" ? "62dvh" : "88dvh";
 
   return (
     <div
       role="dialog"
       aria-label={`${feature.kind} info`}
       className={cn(
-        "fixed z-40 rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col",
-        // v3.30.1 — MazeMap-style bottom sheet on BOTH mobile AND
-        // desktop. Slides up from the bottom of the screen; wider on
-        // desktop but still anchored to the bottom edge so the map
-        // stays the primary focus above it. Left/right offsets keep
-        // it inset from the viewport edges on desktop; full-width
-        // on mobile.
-        "left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-[min(92vw,32rem)] lg:w-[min(92vw,36rem)]",
-        "bottom-2 sm:bottom-4",
+        "fixed z-40 bg-white dark:bg-gray-950 overflow-hidden flex flex-col",
+        // Mobile: bottom sheet with handle + snap
+        "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.18)]",
+        // Desktop: floating card, bottom-centered
+        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-4",
+        "sm:w-[min(92vw,26rem)] sm:rounded-3xl sm:shadow-2xl",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // v3.27.5 — dynamic mobile max-height based on the current
-        // drag-snap point (peek / half / full). Desktop unchanged
-        // — always uses the 48rem cap.
-        maxHeight: `min(48rem, ${mobileMaxHeight}, calc(100dvh - 7rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))`,
-        transition: "max-height 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+        maxHeight: `min(52rem, ${mobileMaxH}, calc(100dvh - 5rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))`,
+        transition: "max-height 260ms cubic-bezier(0.32, 0.72, 0, 1)",
       }}
     >
-      {/* v3.27.5 — big mobile drag handle. Tap cycles peek → half →
-       *  full → peek. Drag up/down snaps to the next size. Desktop
-       *  hidden — no need for the resize affordance on a floating
-       *  card. The touch-none prevents the browser from scrolling
-       *  the map while the user is dragging the sheet. */}
+      {/* Mobile drag handle — tap cycles snap points */}
       <div
-        className="sm:hidden flex justify-center py-2 cursor-grab active:cursor-grabbing touch-none select-none"
+        className="sm:hidden flex flex-col items-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
         onPointerDown={onHandlePointerDown}
         onPointerMove={onHandlePointerMove}
         onPointerUp={onHandlePointerUp}
         onClick={cycleSnap}
         role="button"
-        aria-label={`Resize (currently ${mobileSnap})`}
-        title="Drag to resize"
+        aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
       >
-        <span className="h-1.5 w-12 rounded-full bg-slate-400 dark:bg-slate-500" />
+        <span className="h-[5px] w-10 rounded-full bg-black/15 dark:bg-white/20" />
       </div>
 
-      {/* v3.27.2 — Photo band OR gradient hero, depending on whether
-       *  the entity has a photo in its metadata. Photo overrides
-       *  gradient; falls back to the coloured hero on room/building
-       *  types that have no image. Photo is `metadata.photoUrl` (any
-       *  string HTTPS URL — we don't self-host yet).
-       *  Close button floats top-right over both. */}
-      {(() => {
-        const photoUrl = featurePhotoUrl(feature);
-        if (photoUrl) {
-          return (
-            <div className="relative h-28 sm:h-40 md:h-44 bg-slate-100 dark:bg-slate-800 overflow-hidden">
-              <img
-                src={photoUrl}
-                alt={title}
-                loading="lazy"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Bad URL / 404 — fall back to gradient by hiding img.
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-              {/* Gradient scrim so the kind label + close button read
-                * over any photo. */}
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    `linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%)`,
-                }}
-              />
-              <button
-                type="button"
-                onClick={onClose}
-                className="absolute top-2 right-2 h-7 w-7 rounded-lg flex items-center justify-center text-white bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <div className="absolute top-2 left-3 text-[10px] font-bold tracking-[0.22em] uppercase text-white/95 drop-shadow">
-                {featureKindLabel(feature)}
-              </div>
-            </div>
-          );
-        }
-        return (
+      {/* ── Hero / header ────────────────────────────────────────── */}
+      {photoUrl ? (
+        <div className="relative shrink-0 h-40 sm:h-44 overflow-hidden bg-slate-100 dark:bg-slate-800">
+          <img
+            src={photoUrl}
+            alt={title}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
           <div
-            className="relative h-14 flex items-end"
-            style={{
-              background: `linear-gradient(135deg, ${color} 0%, ${color}dd 50%, ${color}88 100%)`,
-            }}
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,0) 55%,rgba(0,0,0,.65) 100%)" }}
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center text-white bg-black/40 hover:bg-black/60 backdrop-blur-md transition-all shadow"
+            aria-label="Close"
           >
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute top-2 right-2 h-7 w-7 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-black/20 transition-colors"
-              aria-label="Close"
+            <X className="h-4 w-4" />
+          </button>
+          <div className="absolute bottom-3 left-4 right-12">
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase mb-1.5"
+              style={{ background: color + "dd", color: "#fff" }}
             >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="px-4 py-2 text-[10px] font-bold tracking-[0.22em] uppercase text-white/90">
+              <KindIcon feature={feature} size={10} />
               {featureKindLabel(feature)}
+            </span>
+            <h2 className="text-[17px] font-bold text-white leading-tight drop-shadow-md line-clamp-2">{title}</h2>
+            {subtitle && <p className="text-[11px] text-white/80 mt-0.5 drop-shadow">{subtitle}</p>}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="relative shrink-0 px-4 pt-4 pb-5"
+          style={{ background: `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)` }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/8 dark:hover:bg-white/10 transition-all"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <span
+              className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
+              style={{ background: color + "22", color }}
+            >
+              <KindIcon feature={feature} size={22} />
+            </span>
+            <div className="flex-1 min-w-0 pt-0.5">
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <span
+                  className="text-[9px] font-bold tracking-[0.18em] uppercase px-2 py-0.5 rounded-full"
+                  style={{ background: color + "20", color }}
+                >
+                  {featureKindLabel(feature)}
+                </span>
+                {feature.kind === "room" && typeof feature.entity.floor === "number" && (
+                  <span className="text-[9px] font-bold tracking-[0.15em] uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                    Floor {feature.entity.floor}
+                  </span>
+                )}
+              </div>
+              <h2 className="text-[17px] font-bold text-foreground leading-tight">{title}</h2>
+              {subtitle && <p className="text-[12px] text-muted-foreground mt-0.5 leading-snug">{subtitle}</p>}
             </div>
           </div>
-        );
-      })()}
-
-      <header className="flex items-start gap-3 px-4 pt-3 pb-3 border-b border-border">
-        <span
-          className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-          style={{ background: color + "22", color }}
-        >
-          <KindIcon feature={feature} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-foreground leading-tight truncate">{title}</p>
-          {subtitle && (
-            <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">{subtitle}</p>
-          )}
         </div>
-      </header>
+      )}
 
-      <div className="px-4 py-3 overflow-y-auto flex-1 space-y-3 text-[13px]">
+      {/* ── Scrollable body ──────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-0.5">
         <MetadataRows feature={feature} />
       </div>
 
-      <div className="px-3 pb-3 pt-2 border-t border-border space-y-2">
-        {/* v3.31.1 — Schedule link (Wilma / external) shown as a
-         *  prominent secondary button when set on the room. Custom
-         *  label from scheduleLabel; default "Open schedule." */}
-        {(() => {
-          if (feature.kind !== "room") return null;
-          const sched = (feature.entity as unknown as {
-            scheduleUrl?: string | null; scheduleLabel?: string | null;
-          });
-          if (!sched.scheduleUrl || !sched.scheduleUrl.trim()) return null;
+      {/* ── Action buttons ───────────────────────────────────────── */}
+      <div className="shrink-0 px-4 pb-4 pt-3 space-y-2 border-t border-black/5 dark:border-white/8">
+        {/* Schedule button (rooms only, when scheduleUrl set) */}
+        {feature.kind === "room" && (() => {
+          const sched = feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null };
+          if (!sched.scheduleUrl?.trim()) return null;
           const label = sched.scheduleLabel?.trim() || "Open schedule";
           return (
             <a
               href={sched.scheduleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full h-11 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm transition-all"
+              className="w-full h-[46px] rounded-2xl font-semibold bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white shadow-sm shadow-emerald-500/30 flex items-center justify-center gap-2 text-[14px] transition-all"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className="h-4 w-4 shrink-0" />
               {label}
             </a>
           );
@@ -226,9 +192,9 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <button
           type="button"
           onClick={() => onRouteTo(feature)}
-          className="w-full h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm transition-all"
+          className="w-full h-[46px] rounded-2xl font-semibold bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-sm shadow-blue-600/30 flex items-center justify-center gap-2 text-[14px] transition-all"
         >
-          <Navigation2 className="h-4 w-4" />
+          <Navigation2 className="h-4 w-4 shrink-0" />
           Directions here
         </button>
       </div>
@@ -236,12 +202,13 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   );
 }
 
-// ── Helpers ────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────
 
 function featureTitle(f: ClickedFeature): string {
   if (f.kind === "building") return f.entity.name || "(unnamed building)";
   if (f.kind === "room") {
-    return [f.entity.roomNumber, f.entity.name].filter(Boolean).join(" · ") || "(unnamed room)";
+    const parts = [f.entity.roomNumber, f.entity.name].filter(Boolean);
+    return parts.join(" · ") || "(unnamed room)";
   }
   return `Hallway ${f.entity.id.slice(0, 8)}`;
 }
@@ -254,52 +221,46 @@ function featureSubtitle(f: ClickedFeature): string | null {
     ].filter(Boolean).join(" · ") || null;
   }
   if (f.kind === "room") {
-    return [
-      f.entity.type,
-      typeof f.entity.floor === "number" ? `Floor ${f.entity.floor}` : null,
-    ].filter(Boolean).join(" · ") || null;
+    const parts: string[] = [];
+    if (f.entity.department) parts.push(f.entity.department);
+    if (f.entity.type && f.entity.type !== "other") parts.push(capitalise(f.entity.type.replace(/_/g, " ")));
+    return parts.join(" · ") || null;
   }
   return f.entity.surface ?? null;
 }
 
 function featureKindLabel(f: ClickedFeature): string {
   if (f.kind === "building") return "Building";
-  if (f.kind === "room") return f.entity.type ?? "Room";
+  if (f.kind === "room") return capitalise(f.entity.type?.replace(/_/g, " ") ?? "Room");
   return "Hallway";
 }
 
 function featureColor(f: ClickedFeature): string {
   if (f.kind === "building") return f.entity.colorCode ?? "#2563eb";
-  if (f.kind === "room") return f.entity.colorCode ?? "#059669";
+  if (f.kind === "room") {
+    const t = f.entity.type;
+    if (f.entity.colorCode) return f.entity.colorCode;
+    if (t === "classroom" || t === "lab") return "#2563eb";
+    if (t === "gym") return "#16a34a";
+    if (t === "cafeteria" || t === "library") return "#7c3aed";
+    if (t === "bathroom" || t === "locker_room") return "#64748b";
+    if (t === "stairs" || t === "elevator") return "#0891b2";
+    if (t === "hallway") return "#94a3b8";
+    return "#059669";
+  }
   return "#f59e0b";
 }
 
-/**
- * v3.27.2 — Pull the photo URL out of the entity's data.
- * v3.29.0 — Top-level `photoUrl` (first-class column) tried first;
- * legacy metadata keys as fallback so rooms authored before the
- * column existed still show a photo.
- */
 function featurePhotoUrl(f: ClickedFeature): string | null {
   if (f.kind === "hallway") return null;
   const top = f.entity as unknown as { photoUrl?: unknown; imageUrl?: unknown };
   const md = (f.entity.metadata ?? {}) as Record<string, unknown>;
-  const candidates: unknown[] = [
-    top.photoUrl, top.imageUrl,
-    md.photoUrl, md.imageUrl, md.image, md.photo,
-  ];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.length > 0 && (c.startsWith("http") || c.startsWith("data:"))) {
-      return c;
-    }
+  for (const c of [top.photoUrl, top.imageUrl, md.photoUrl, md.imageUrl, md.image, md.photo]) {
+    if (typeof c === "string" && c.length > 0 && (c.startsWith("http") || c.startsWith("data:"))) return c;
   }
   return null;
 }
 
-/**
- * v3.27.2 — Optional Hours / Phone / Email / Website rows.
- * v3.29.0 — Top-level `hours` column checked first; metadata fallback.
- */
 function featureContact(f: ClickedFeature): { hours?: string; phone?: string; email?: string; website?: string } {
   if (f.kind === "hallway") return {};
   const top = f.entity as unknown as { hours?: unknown };
@@ -314,10 +275,28 @@ function featureContact(f: ClickedFeature): { hours?: string; phone?: string; em
   };
 }
 
-function KindIcon({ feature }: { feature: ClickedFeature }) {
-  if (feature.kind === "building") return <MapPin className="h-4 w-4" />;
-  if (feature.kind === "hallway") return <Compass className="h-4 w-4" />;
-  return <Info className="h-4 w-4" />;
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function KindIcon({ feature, size = 16 }: { feature: ClickedFeature; size?: number }) {
+  const cls = `shrink-0`;
+  const style = { width: size, height: size };
+  if (feature.kind === "building") return <Building2 className={cls} style={style} />;
+  if (feature.kind === "hallway") return <Compass className={cls} style={style} />;
+  const t = (feature.entity as Room).type;
+  if (t === "classroom" || t === "lab") return <BookOpen className={cls} style={style} />;
+  if (t === "gym") return <Dumbbell className={cls} style={style} />;
+  if (t === "cafeteria") return <Coffee className={cls} style={style} />;
+  if (t === "library") return <BookOpen className={cls} style={style} />;
+  if (t === "bathroom" || t === "locker_room") return <DoorOpen className={cls} style={style} />;
+  if (t === "storage" || t === "mechanical") return <Warehouse className={cls} style={style} />;
+  if (t === "entrance" || t === "exit") return <DoorOpen className={cls} style={style} />;
+  if (t === "outdoor") return <Trees className={cls} style={style} />;
+  if (t === "elevator" || t === "stairs") return <LayersIcon className={cls} style={style} />;
+  if (t === "auditorium") return <Users className={cls} style={style} />;
+  if (t === "office") return <User className={cls} style={style} />;
+  return <Info className={cls} style={style} />;
 }
 
 function MetadataRows({ feature }: { feature: ClickedFeature }) {
@@ -326,14 +305,14 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     const b = feature.entity;
     return (
       <>
-        {b.description && <Row label="About">{b.description}</Row>}
-        {b.address && <Row label="Address" icon={MapPin}>{b.address}</Row>}
+        {b.description && <InfoRow label="About">{b.description}</InfoRow>}
+        {b.address && <InfoRow label="Address" icon={MapPin}>{b.address}</InfoRow>}
         {typeof b.floors === "number" && (
-          <Row label="Floors" icon={LayersIcon}>
+          <InfoRow label="Floors" icon={LayersIcon}>
             {(b.floorMin ?? 1) === 1 && (b.floorMax ?? b.floors) === b.floors
               ? `${b.floors}`
-              : `${b.floorMin ?? 1} → ${b.floorMax ?? b.floors}`}
-          </Row>
+              : `${b.floorMin ?? 1} – ${b.floorMax ?? b.floors}`}
+          </InfoRow>
         )}
         <ContactRows contact={contact} />
       </>
@@ -343,21 +322,17 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     const r = feature.entity;
     return (
       <>
-        {r.description && <Row label="About">{r.description}</Row>}
-        {r.department && <Row label="Department">{r.department}</Row>}
-        {r.teacher && <Row label="Teacher" icon={User}>{r.teacher}</Row>}
+        {r.description && <InfoRow label="About">{r.description}</InfoRow>}
+        {r.teacher && <InfoRow label="Teacher" icon={User}>{r.teacher}</InfoRow>}
         {typeof r.capacity === "number" && r.capacity > 0 && (
-          <Row label="Capacity" icon={Users}>{r.capacity}</Row>
-        )}
-        {typeof r.floor === "number" && (
-          <Row label="Floor" icon={LayersIcon}>{r.floor}</Row>
+          <InfoRow label="Capacity" icon={Users}>{r.capacity} people</InfoRow>
         )}
         {r.tags && r.tags.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Tags</p>
-            <div className="flex flex-wrap gap-1">
+          <div className="py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Tags</p>
+            <div className="flex flex-wrap gap-1.5">
               {r.tags.map((t) => (
-                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-foreground">
+                <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
                   {t}
                 </span>
               ))}
@@ -371,75 +346,77 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
   const h = feature.entity;
   return (
     <>
-      {h.width != null && <Row label="Width">{h.width} m</Row>}
-      {h.surface && <Row label="Surface">{h.surface}</Row>}
-      {h.floor != null && <Row label="Floor" icon={LayersIcon}>{h.floor}</Row>}
+      {h.width != null && <InfoRow label="Width">{h.width} m</InfoRow>}
+      {h.surface && <InfoRow label="Surface">{capitalise(h.surface)}</InfoRow>}
+      {h.floor != null && <InfoRow label="Floor" icon={LayersIcon}>{h.floor}</InfoRow>}
       {h.accessible != null && (
-        <Row label="Accessible">{h.accessible ? "Yes" : "No"}</Row>
+        <InfoRow label="Accessible">{h.accessible ? "Yes" : "No"}</InfoRow>
       )}
     </>
   );
 }
 
-function Row({
-  label, icon: Icon, children,
+function InfoRow({
+  label,
+  icon: Icon,
+  children,
 }: {
   label: string;
   icon?: typeof MapPin;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      {Icon && <Icon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />}
+    <div className="flex items-start gap-3 py-2.5 border-b border-black/5 dark:border-white/6 last:border-0">
+      {Icon && (
+        <span className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+          <Icon className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+        </span>
+      )}
+      {!Icon && <span className="w-0" />}
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p className="text-[13px] text-foreground break-words">{children}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">{label}</p>
+        <p className="text-[13px] text-foreground leading-snug break-words">{children}</p>
       </div>
     </div>
   );
 }
 
-/** v3.27.2 — hours / phone / email / website rows from the entity's
- *  free-form metadata. Rendered as clickable tel:/mailto:/https:
- *  links for the contact fields, so tapping "Call" or "Email" opens
- *  the OS handler. */
 function ContactRows({ contact }: { contact: { hours?: string; phone?: string; email?: string; website?: string } }) {
   const { hours, phone, email, website } = contact;
   if (!hours && !phone && !email && !website) return null;
   return (
     <>
       {hours && (
-        <Row label="Hours" icon={Clock}>
+        <InfoRow label="Hours" icon={Clock}>
           <span className="whitespace-pre-line">{hours}</span>
-        </Row>
+        </InfoRow>
       )}
       {phone && (
-        <Row label="Phone" icon={Phone}>
-          <a href={`tel:${phone.replace(/\s+/g, "")}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+        <InfoRow label="Phone" icon={Phone}>
+          <a href={`tel:${phone.replace(/\s+/g, "")}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             {phone}
           </a>
-        </Row>
+        </InfoRow>
       )}
       {email && (
-        <Row label="Email" icon={Mail}>
-          <a href={`mailto:${email}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+        <InfoRow label="Email" icon={Mail}>
+          <a href={`mailto:${email}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             {email}
           </a>
-        </Row>
+        </InfoRow>
       )}
       {website && (
-        <Row label="Website" icon={ExternalLink}>
+        <InfoRow label="Website" icon={ExternalLink}>
           <a
             href={website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+            className="text-blue-600 dark:text-blue-400 hover:underline break-all font-medium flex items-center gap-1"
           >
             {website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+            <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
           </a>
-        </Row>
+        </InfoRow>
       )}
     </>
   );
