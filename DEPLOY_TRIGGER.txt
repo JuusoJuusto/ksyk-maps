@@ -1,8 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.42.0 — ortho v8 finalPosRef consistency, segment
-length input + divide panel, security hardening (server-side auth
-gate, Wilma API protected, hardcoded key removed).
+Bump reason: v3.43.0 — fix builder auth gate, localStorage fallback
+when /api/auth/user returns 401 (cross-origin Vercel session issue).
 
-Timestamp: 1786740200
-Build: FORCE_REBUILD_v3.42.0_ORTHO_V8_CAD_INPUT_SECURITY
+Timestamp: 1786740900
+Build: FORCE_REBUILD_v3.43.0_AUTH_GATE_FIX
