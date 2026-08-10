@@ -1026,16 +1026,25 @@ function BuilderWorkspace() {
         let p = useSnap
           ? new maplibregl.LngLat(snap.lng, snap.lat)
           : e.lngLat;
-        // Ortho v5 — bearing-aware axis snap. Projects the cursor delta
-        // onto the map's current "up" axis (along bearing) and "right"
-        // axis (perpendicular), then snaps to the dominant one. Works
-        // correctly at any map rotation — no longer limited to geographic N/S.
+        // Ortho v6 — edge-direction aware. First segment (wps.length===1)
+        // uses the map bearing so the initial direction is always
+        // screen-aligned. From the second click onward, snaps to the
+        // direction of the PREVIOUS edge (or perpendicular to it) so
+        // every corner is automatically 90°, regardless of initial angle.
         if (orthoOn && wps.length >= 1) {
           const prev = wps[wps.length - 1];
-          const bearing = map.getBearing();
-          const θ = (bearing * Math.PI) / 180;
           const mPerLat = 111320;
           const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
+          let θ: number;
+          if (wps.length >= 2) {
+            // Use previous edge direction as the reference axis.
+            const prevPrev = wps[wps.length - 2];
+            const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
+            const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
+            θ = Math.atan2(edgeDx, edgeDy); // radians, already in "atan2(x,y)=bearing" form
+          } else {
+            θ = (map.getBearing() * Math.PI) / 180;
+          }
           const dx = (p.lng - prev.lng) * mPerLng;
           const dy = (p.lat - prev.lat) * mPerLat;
           const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
@@ -1668,16 +1677,27 @@ function BuilderWorkspace() {
       const roomNumber = isCorridor
         ? `${nearest.name}-C${(roomsQ.data ?? []).filter((r) => r.type === "hallway" && r.buildingId === nearest.id).length + 1}`
         : `${nearest.name}${roomCount + 1}`;
+      const floor = cameraState.activeFloor ?? 1;
       createRoom.mutate({
         roomNumber,
         buildingId: nearest.id,
-        floor: cameraState.activeFloor ?? 1,
+        floor,
         points: pts,
         ...(isCorridor ? { type: "hallway", colorCode: "#94a3b8" } : {}),
       });
+      // Auto-place a nav node at the centroid of every new corridor so
+      // the routing graph is immediately connected to the walkable area.
+      if (isCorridor) {
+        navGraph.addNode({
+          lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
+          lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
+          floor,
+          kind: "junction",
+        });
+      }
       return;
     }
-  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor]);
+  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor, navGraph]);
 
   // ── Snap-to-vertex ───────────────────────────────────────────────
   // On mousemove while a DRAW tool is active, scan every building /
@@ -1846,12 +1866,19 @@ function BuilderWorkspace() {
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
     const last = waypoints[waypoints.length - 1];
-    // Ortho v5 — bearing-aware preview. Mirrors the click handler.
+    // Ortho v6 — edge-direction aware preview. Mirrors the click handler.
     if (orthoEnabled && waypoints.length >= 1) {
-      const bearing = map.getBearing();
-      const θ = (bearing * Math.PI) / 180;
       const mPerLat = 111320;
       const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      let θ: number;
+      if (waypoints.length >= 2) {
+        const prevPrev = waypoints[waypoints.length - 2];
+        const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
+        const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
+        θ = Math.atan2(edgeDx, edgeDy);
+      } else {
+        θ = (map.getBearing() * Math.PI) / 180;
+      }
       const dx = (endLng - last.lng) * mPerLng;
       const dy = (endLat - last.lat) * mPerLat;
       const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
@@ -1864,25 +1891,49 @@ function BuilderWorkspace() {
         endLat = last.lat + (tUp * Math.cos(θ)) / mPerLat;
       }
     }
+
+    // ── Smart guides — PowerPoint-style alignment hints ──────────────
+    // For each placed waypoint (except the ghost origin), check if the
+    // snapped endpoint is screen-aligned (within GUIDE_PX pixels on the
+    // X or Y axis). If so, extend a thin dashed guide line through that
+    // waypoint to show the alignment. Features tagged { guide: 1 } so
+    // the layer can paint them in a distinct color/weight.
+    const GUIDE_PX = 10;
+    const cursorScreen = map.project([endLng, endLat]);
+    type GeoFeature = { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { guide: number } };
+    const guideFeatures: GeoFeature[] = [];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const wp = waypoints[i];
+      const wpScreen = map.project([wp.lng, wp.lat]);
+      if (Math.abs(cursorScreen.y - wpScreen.y) < GUIDE_PX) {
+        // Same screen row → horizontal guide through this waypoint
+        const left  = map.unproject([wpScreen.x - 600, wpScreen.y]);
+        const right = map.unproject([wpScreen.x + 600, wpScreen.y]);
+        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[left.lng, left.lat], [right.lng, right.lat]] }, properties: { guide: 1 } });
+      }
+      if (Math.abs(cursorScreen.x - wpScreen.x) < GUIDE_PX) {
+        // Same screen column → vertical guide through this waypoint
+        const top    = map.unproject([wpScreen.x, wpScreen.y - 600]);
+        const bottom = map.unproject([wpScreen.x, wpScreen.y + 600]);
+        guideFeatures.push({ type: "Feature", geometry: { type: "LineString", coordinates: [[top.lng, top.lat], [bottom.lng, bottom.lat]] }, properties: { guide: 1 } });
+      }
+    }
+
+    const ghostColor = activeTool === "corridor" ? "#64748b" : "#3b82f6";
     const data = {
       type: "FeatureCollection" as const,
-      features: [{
-        type: "Feature" as const,
-        geometry: {
-          type: "LineString" as const,
-          coordinates: [[last.lng, last.lat], [endLng, endLat]],
+      features: [
+        {
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: [[last.lng, last.lat], [endLng, endLat]] },
+          properties: { guide: 0 },
         },
-        properties: {},
-      }],
+        ...guideFeatures,
+      ],
     };
     const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
-    // Corridor ghost is slate-gray so it reads differently from rooms (blue).
-    const ghostColor = activeTool === "corridor" ? "#64748b" : "#3b82f6";
     if (src) {
       src.setData(data as never);
-      // Layer persists across tool switches; update paint so the
-      // corridor vs room color distinction actually takes effect.
-      try { map.setPaintProperty(LAYER, "line-color", ghostColor); } catch { /* not yet added */ }
     } else {
       map.addSource(SRC, { type: "geojson", data: data as never });
       map.addLayer({
@@ -1890,10 +1941,11 @@ function BuilderWorkspace() {
         source: SRC,
         type: "line",
         paint: {
-          "line-color": ghostColor,
-          "line-width": 2.5,
-          "line-opacity": 0.75,
-          "line-dasharray": [2, 2],
+          // Guide lines: thin orange; ghost preview: tool-colored dashed
+          "line-color": ["case", ["==", ["get", "guide"], 1], "#f97316", ghostColor],
+          "line-width": ["case", ["==", ["get", "guide"], 1], 1.2, 2.5],
+          "line-opacity": ["case", ["==", ["get", "guide"], 1], 0.75, 0.75],
+          "line-dasharray": [4, 3],
         },
       });
     }
@@ -2598,7 +2650,9 @@ function BuilderWorkspace() {
               if (b) entity = { kind: "building", data: b };
             } else if (selection.kind === "room") {
               const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
-              if (r) entity = { kind: "room", data: r };
+              if (r) entity = r.type === "hallway"
+                ? { kind: "corridor" as never, data: r }
+                : { kind: "room", data: r };
             } else if (selection.kind === "hallway") {
               const h = (hallwaysQ.data ?? []).find((x) => x.id === selection.id);
               if (h) entity = { kind: "hallway", data: h };
