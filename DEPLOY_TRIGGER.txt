@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.50.0 — branded map loader, bilingual directions button,
-vivid info sheet gradient, clean search results (no debug score).
+Bump reason: v3.51.0 — nav mobile bottom sheet, glassmorphism controls,
+Apple Maps / MazeMap style polish.
 
-Timestamp: 1786744200
-Build: FORCE_REBUILD_v3.50.0_LOADER_DIRECTIONS_INFOSHEET_SEARCH
+Timestamp: 1786745000
+Build: FORCE_REBUILD_v3.51.0_NAVBOTTOMSHEET_GLASSMORPHISM_APPLELIKE

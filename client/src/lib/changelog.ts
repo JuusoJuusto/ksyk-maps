@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.50.0";
+export const APP_VERSION = "3.51.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.51.0",
+    date: "August 2026",
+    title: "Navigation mobile fix, glassmorphism controls — Apple Maps / MazeMap style",
+    latest: true,
+    highlights: [
+      "Navigation panel on mobile is now a bottom sheet (Apple Maps / Google Maps style): no longer covers the full screen — the map stays visible above. Peek mode (~52dvh) shows from/to + route summary; tap the grab handle or chevron to expand to full turn-by-turn.",
+      "A route being found auto-expands the mobile sheet so turn-by-turn is immediately visible.",
+      "Map control buttons (zoom, 3D, directions, compass, floor selector) now use frosted glass: semi-transparent white + backdrop-blur, matching Apple Maps and MazeMap aesthetics.",
+    ],
+  },
   {
     version: "3.50.0",
     date: "August 2026",
     title: "UI polish: branded map loader, bilingual directions, cleaner search results",
-    latest: true,
+    latest: false,
     highlights: [
       "Map loading screen redesigned: KSYK-branded animated spinner instead of plain text, matches the app's blue palette.",
       "Feature info sheet: directions button now shows in Finnish ('Reittiohjeet') or English based on selected language.",
