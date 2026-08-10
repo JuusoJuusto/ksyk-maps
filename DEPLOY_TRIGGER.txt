@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.47.0 — room info panel redesign, classroom click fix,
-corridor nav nodes fix, vertex drag editing fix.
+Bump reason: v3.48.0 — inner wall fix, floor-aware selection, classroom
+click 3D fix, handle flashing fix.
 
-Timestamp: 1786742800
-Build: FORCE_REBUILD_v3.47.0_INFOPANEL_CLASSROOMS_NAVNODES_DRAG
+Timestamp: 1786742900
+Build: FORCE_REBUILD_v3.48.0_INNERWALL_FLOORCLICK_3DCLICK_HANDLES

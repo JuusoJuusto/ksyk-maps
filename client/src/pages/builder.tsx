@@ -367,6 +367,11 @@ function BuilderWorkspace() {
     bearingDeg: 0,
     activeFloor: 1 as number | null,
   });
+  // Mirrors activeFloor into a ref so the click handler (stable closure
+  // with deps [activeTool, mapReady]) reads the latest floor without being
+  // re-registered on every floor switch.
+  const activeFloorRef = useRef<number | null>(1);
+  activeFloorRef.current = cameraState.activeFloor;
   const [cursor, setCursor] = useState<{ lat: number; lng: number } | null>(null);
   // Snap-to-vertex — MazeMap/AutoCAD-style visual feedback while a
   // draw tool is active. When the cursor is within a screen-pixel
@@ -446,6 +451,26 @@ function BuilderWorkspace() {
     stairs: stairsQ.data ?? [],
     elevators: elevatorsQ.data ?? [],
   }), [buildings, roomsQ.data, hallwaysQ.data, floorsQ.data, doorsQ.data, stairsQ.data, elevatorsQ.data]);
+
+  // Stable SelectionHandles prop — memoized on selection id+kind so the
+  // wrapper object identity doesn't change on every render and cause
+  // SelectionHandles' useEffect to re-run (cleanup+setup) on every
+  // mousemove, which produced the vertex-handle flashing bug.
+  const selectionHandlesInput = useMemo(() => {
+    if (!mapReady || !selection) return null;
+    const m = handleRef.current?.map ?? null;
+    if (!m) return null;
+    if (selection.kind === "building") {
+      const b = buildings.find((x) => x.id === selection.id);
+      return b ? { map: m, sel: { kind: "building" as const, entity: b } } : null;
+    }
+    if (selection.kind === "room") {
+      const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
+      return r ? { map: m, sel: { kind: "room" as const, entity: r } } : null;
+    }
+    return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, selection?.kind, selection?.id, buildings, roomsQ.data]);
 
   // ── Autosave (M11) — every 30s writes a MapPackage snapshot to
   //    localStorage + optionally to /api/map-package/draft. ──────────
@@ -1042,7 +1067,14 @@ function BuilderWorkspace() {
         const tryQuery = (layers: string[]): { kind: LeftSidebarSelection["kind"]; id: string; isCorridor: boolean } | null => {
           if (layers.length === 0) return null;
           const feats = map.queryRenderedFeatures(e.point, { layers });
-          const hit = feats[0];
+          // When querying rooms, prefer the one on the active floor so
+          // stacked same-spot rooms on different floors don't block each other.
+          const isRoomLayer = layers[0].includes("rooms");
+          const curFloor = activeFloorRef.current;
+          const floorFeats = isRoomLayer && curFloor !== null
+            ? feats.filter((f) => f.properties?.floor === curFloor)
+            : feats;
+          const hit = (floorFeats.length > 0 ? floorFeats : feats)[0];
           if (!hit || typeof hit.properties?.id !== "string") return null;
           const kind: LeftSidebarSelection["kind"] =
             layers[0].includes("rooms") ? "room" :
@@ -1104,7 +1136,7 @@ function BuilderWorkspace() {
       if (
         activeTool === "building" || activeTool === "room" ||
         activeTool === "corridor" ||
-        activeTool === "hallway" || activeTool === "wall" ||
+        activeTool === "hallway" || activeTool === "wall" || activeTool === "wall-inner" ||
         activeTool === "rectangle" || activeTool === "measure" ||
         activeTool === "line"
       ) {
@@ -1551,14 +1583,16 @@ function BuilderWorkspace() {
       });
       try { return await res.json(); } catch { return null; }
     },
-    onSuccess: (created) => {
+    onSuccess: (created, variables) => {
       qc.invalidateQueries({ queryKey: ["/api/hallways"] });
       setWaypoints([]);
       setActiveTool("select");
       const c = created as { id?: string } | null | undefined;
       if (c?.id) {
         setSelection({ kind: "hallway", id: c.id });
-        setSidebarTab("pois");
+        // Inner walls live in the Structure tab; regular hallways/walls
+        // navigate to pois so the user can set walkability.
+        if (variables.surface !== "inner-wall") setSidebarTab("pois");
       }
     },
   });
@@ -3133,20 +3167,15 @@ function BuilderWorkspace() {
 
           {/* Selection handles — vertex drag + rotation for the picked
            *  polygon entity. Headless (returns null), renders inside the
-           *  MapLibre canvas so it stays aligned during pan/rotate. */}
-          {(() => {
-            if (!mapReady || !selection) return null;
-            const map = handleRef.current?.map ?? null;
-            if (!map) return null;
-            if (selection.kind === "building") {
-              const b = buildings.find((x) => x.id === selection.id);
-              if (b) return <SelectionHandles map={map} selection={{ kind: "building", entity: b }} />;
-            } else if (selection.kind === "room") {
-              const r = (roomsQ.data ?? []).find((x) => x.id === selection.id);
-              if (r) return <SelectionHandles map={map} selection={{ kind: "room", entity: r }} />;
-            }
-            return null;
-          })()}
+           *  MapLibre canvas so it stays aligned during pan/rotate.
+           *  Uses memoized selectionHandlesInput so handle layers don't
+           *  flash on every mousemove (stale-object-reference bug fix). */}
+          {selectionHandlesInput && (
+            <SelectionHandles
+              map={selectionHandlesInput.map}
+              selection={selectionHandlesInput.sel}
+            />
+          )}
 
           {/* Property panel — full tabbed editor. Building selection is
            *  wired via the canvas click handler; room/hallway selection
