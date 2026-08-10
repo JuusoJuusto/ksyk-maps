@@ -1,8 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-10
 
-Bump reason: v3.39.0 — smart guides on all vertices (buildings + rooms, deduped),
-corridor spine nav nodes (long-axis, ~4 m spacing, edges wired), nav nodes in
-Structure tab (per-node delete + clear-all).
+Bump reason: v3.40.0 — snap-to-guides (cursor locks to guide lines on click),
+ortho v7 (pure edge-direction, no map-bearing fallback, first edge free),
+construction line tool (L key, Ctrl+L to clear).
 
-Timestamp: 1786740001
-Build: FORCE_REBUILD_v3.39.0_SMART_GUIDES_ALL_VERTS_SPINE_NAV_NODES_STRUCTURE_TAB
+Timestamp: 1786740002
+Build: FORCE_REBUILD_v3.40.0_SNAP_GUIDES_ORTHO_V7_LINE_TOOL

@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.39.0";
+export const APP_VERSION = "3.40.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.40.0",
+    date: "August 2026",
+    title: "Snap-to-guides, ortho v7 (pure edge-direction), construction line tool",
+    latest: true,
+    highlights: [
+      "Guides now snap: when the cursor is within 10 px of any guide line (horizontal or vertical alignment with any building/room vertex or previous waypoint), the cursor locks to that guide. The click commits the snapped position — preview and click are always consistent.",
+      "Ortho v7: the map-bearing fallback for the first edge is completely removed. First edge is always free (you click two points to set the building's angle). Every subsequent click is exactly 90° from the previous edge — pure edge-direction math, no map rotation involved.",
+      "New Line tool (hotkey L): draw temporary construction reference lines that stay on the map but are never saved. Use them to align walls, check angles, or project building edges. Enter finalizes a line, Esc cancels. Ctrl+L clears all construction lines.",
+    ],
+  },
   {
     version: "3.39.0",
     date: "August 2026",
     title: "Smart guides on all vertices, corridor spine nav nodes, nav nodes in Structure tab",
-    latest: true,
+    latest: false,
     highlights: [
       "Smart guides now snap to every building and room polygon vertex on the map — not just previous waypoints. Horizontal and vertical guide lines appear whenever the cursor aligns within 10 px of any existing corner, deduped by pixel bucket so overlapping vertices don't stack guides.",
       "Corridor nav nodes: instead of a single centroid node, the corridor tool now places a full spine of nodes along the corridor's long axis (~4 m apart, 2–10 nodes), all connected by edges. Routing paths can now run the full length of every corridor.",
