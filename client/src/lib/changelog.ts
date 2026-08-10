@@ -10,14 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.48.0";
+export const APP_VERSION = "3.49.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.49.0",
+    date: "August 2026",
+    title: "Premium UI: floor selector, announcement popup, hamburger menu, inner wall category",
+    latest: true,
+    highlights: [
+      "Floor selector now has a solid white background (was semi-transparent, glitchy over maps).",
+      "Announcement popup completely redesigned: premium gradient header carrying priority color, layered white body card, proper mobile safe-area bottom padding, no more bottom glitch.",
+      "Hamburger menu quick-access buttons (Map settings, Lunch, HSL) now taller with icon tiles and subtitles — much more spacious and premium.",
+      "Inner walls and exterior walls now show as their own labeled categories in the property panel (\"Inner Wall\" / \"Exterior Wall\") instead of being labeled as hallways.",
+      "Builder vertex drag completely fixed: patchEntity mutation is now accessed via a stable ref, so drag-handler events are never re-registered on render and dragging is smooth.",
+    ],
+  },
   {
     version: "3.48.0",
     date: "August 2026",
     title: "Inner wall fix, floor-aware selection, classroom click 3D fix, handle flashing fix",
-    latest: true,
+    latest: false,
     highlights: [
       "Inner wall tool fixed: clicks now properly add waypoints (the wall-inner tool was missing from the draw-tool list). Inner walls no longer switch to the POIs tab after creation — they stay in Structure.",
       "Builder floor-aware selection: when multiple rooms are stacked at the same position on different floors, clicking now selects the room on the active floor instead of the topmost-rendered one.",

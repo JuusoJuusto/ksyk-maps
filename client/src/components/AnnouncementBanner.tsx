@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -157,145 +155,136 @@ export default function AnnouncementBanner() {
             <div className="flex items-center gap-1 flex-shrink-0">
               {activeAnnouncements.length > 1 && (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsPaused(!isPaused);
                     }}
-                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors hidden sm:inline-flex"
+                    className="h-7 w-7 p-0 rounded text-white hover:bg-white/20 transition-colors hidden sm:inline-flex items-center justify-center"
                     title={isPaused ? "Resume" : "Pause"}
                     aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
                   >
                     {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  </button>
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       prevAnnouncement();
                     }}
-                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-white/20 transition-colors"
                     aria-label="Previous announcement"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
-                  </Button>
+                  </button>
                   <div
-                    // Hidden below 360px so the 5 controls don't crush the
-                    // announcement title. Screen readers get the "N of M"
-                    // via the aria-live region + the current text
-                    // ("1/5") — no aria-label to avoid double-announcing.
                     className="hidden min-[360px]:block px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded"
                     aria-live="polite"
                     aria-atomic="true"
                   >
                     {currentIndex + 1}/{activeAnnouncements.length}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       nextAnnouncement();
                     }}
-                    className="h-7 w-7 p-0 text-white hover:bg-white/20 transition-colors"
+                    className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-white/20 transition-colors"
                     aria-label="Next announcement"
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
+                  </button>
                 </>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsVisible(false);
                 }}
-                className="h-7 w-7 p-0 text-white hover:bg-black/30 transition-colors"
+                className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-black/30 transition-colors"
                 aria-label="Dismiss announcement"
               >
                 <X className="h-3.5 w-3.5" />
-              </Button>
+              </button>
             </div>
           </div>
         </div>
         </div>
       </div>
 
-      {/* Announcement Detail Dialog — clean and white to match the
-       *  rest of the app. Priority is signalled by a small colored icon
-       *  tile + a thin top accent bar; the header itself stays white. */}
+      {/* Announcement Detail Dialog — premium Apple/MazeMap card style. */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className={cn(
-            // v3.28.0 — cleaner dialog. Slightly wider on desktop
-            // (max-w-lg → max-w-xl) so long announcements don't
-            // wrap awkwardly; taller max-height cap so bullet lists
-            // don't scroll cramped; rounded-3xl for a softer edge.
-            "max-w-xl w-[calc(100vw-1.5rem)] p-0 gap-0 overflow-hidden rounded-3xl border-0 shadow-2xl",
-            "max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh]",
+            "p-0 gap-0 border-0 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45)]",
+            // Mobile: full-width bottom sheet
+            "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0 rounded-t-[28px]",
+            "max-h-[88dvh] w-full max-w-full",
+            // Desktop: centered floating card
+            "sm:static sm:left-auto sm:right-auto sm:bottom-auto sm:top-auto",
+            "sm:translate-x-0 sm:translate-y-0",
+            "sm:max-w-[min(92vw,28rem)] sm:w-full sm:max-h-[85dvh]",
+            "sm:rounded-3xl",
+            "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
           )}
+          style={{
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          }}
         >
-          {/* Thin top accent bar — carries the priority color without
-           *  taking over the whole header. */}
-          <div className={cn("h-1.5 w-full", priorityBg)} />
+          {/* Priority accent gradient header */}
+          <div
+            className={cn("shrink-0 rounded-t-[28px] sm:rounded-t-3xl relative overflow-hidden", priorityBg)}
+            style={{ paddingBottom: "2.5rem" }}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setIsDialogOpen(false)}
+              className="absolute top-3.5 right-3.5 h-8 w-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
 
-          {/* v3.28.1 — much cleaner header. Icon tile removed (it was
-           *  redundant with the top accent bar which already conveys
-           *  priority). Priority chip + relative time now sit above
-           *  the title in a single tidy row. Big title has room to
-           *  breathe without a fighting icon tile beside it. */}
-          <div className="px-5 sm:px-7 pt-6 pb-4">
-            <div className="flex items-center gap-2 flex-wrap mb-3">
-              <span className={cn(
-                "text-[10px] font-bold tracking-[0.2em] uppercase px-2 py-0.5 rounded-full",
-                currentAnnouncement.priority === "urgent"
-                  ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
-                  : currentAnnouncement.priority === "high"
-                  ? "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300"
-                  : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-              )}>
-                {i18n.language === "fi"
-                  ? currentAnnouncement.priority === "urgent"
-                    ? "Kiireellinen"
-                    : currentAnnouncement.priority === "high"
-                    ? "Korkea prioriteetti"
-                    : "Tiedote"
-                  : currentAnnouncement.priority === "urgent"
-                  ? "Urgent"
-                  : currentAnnouncement.priority === "high"
-                  ? "High priority"
-                  : "Announcement"}
-              </span>
-              <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-500">
-                <Clock className="h-3 w-3" />
-                {(() => {
-                  try {
-                    const timestamp = currentAnnouncement.createdAt;
-                    let date: Date;
-                    if (!timestamp) return "Recently";
-                    if (typeof timestamp === "object" && timestamp._seconds) {
-                      date = new Date(timestamp._seconds * 1000);
-                    } else {
-                      date = new Date(timestamp);
-                    }
-                    if (isNaN(date.getTime())) return "Recently";
-                    return formatDistanceToNow(date, { addSuffix: true });
-                  } catch {
-                    return "Recently";
-                  }
-                })()}
-              </span>
+            {/* Mobile grab handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <span className="h-[5px] w-10 rounded-full bg-white/30" />
             </div>
-            <div className="min-w-0">
-              <DialogTitle className={cn(
-                "text-2xl sm:text-3xl font-bold tracking-tight leading-tight",
-                darkMode ? "text-white" : "text-gray-900",
-              )}>
+
+            <div className="px-5 sm:px-6 pt-3 sm:pt-5 pb-1">
+              {/* Priority chip + time */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full bg-white/20 text-white">
+                  {getPriorityIcon(currentAnnouncement.priority)}
+                  {i18n.language === "fi"
+                    ? currentAnnouncement.priority === "urgent" ? "Kiireellinen"
+                    : currentAnnouncement.priority === "high" ? "Tärkeä"
+                    : "Tiedote"
+                    : currentAnnouncement.priority === "urgent" ? "Urgent"
+                    : currentAnnouncement.priority === "high" ? "Important"
+                    : "Announcement"}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] text-white/70">
+                  <Clock className="h-3 w-3" />
+                  {(() => {
+                    try {
+                      const ts = currentAnnouncement.createdAt;
+                      if (!ts) return i18n.language === "fi" ? "Äskettäin" : "Recently";
+                      const d = typeof ts === "object" && (ts as { _seconds?: number })._seconds
+                        ? new Date((ts as { _seconds: number })._seconds * 1000)
+                        : new Date(ts);
+                      if (isNaN(d.getTime())) return i18n.language === "fi" ? "Äskettäin" : "Recently";
+                      return formatDistanceToNow(d, { addSuffix: true });
+                    } catch { return i18n.language === "fi" ? "Äskettäin" : "Recently"; }
+                  })()}
+                </span>
+              </div>
+
+              <DialogTitle className="text-[22px] sm:text-[26px] font-bold text-white leading-tight tracking-tight line-clamp-3">
                 {getLocalizedTitle(currentAnnouncement)}
               </DialogTitle>
               <DialogDescription className="sr-only">
@@ -304,97 +293,87 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* v3.28.1 — divider dropped, cleaner. Body just flows from
-           *  the header with the same horizontal padding. */}
-
-          {/* Body — scrollable prose */}
-          <div className="px-5 sm:px-7 py-5 sm:py-6 overflow-y-auto flex-1" style={{ maxHeight: "min(65dvh, 38rem)" }}>
-            <div className={cn(
-              "text-[15px] leading-relaxed",
-              darkMode ? "text-gray-300" : "text-gray-700",
-            )}>
-              {getLocalizedContent(currentAnnouncement).split("\n").map((line, index) => {
-                if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
-                  return (
-                    <div key={index} className="flex items-start mb-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold mr-2 mt-1">•</span>
-                      <span>{line.trim().replace(/^[•-]\s*/, "")}</span>
-                    </div>
-                  );
-                }
-                if (line.trim().endsWith(":") && line.trim().length < 60 && !line.includes("http")) {
-                  return (
-                    <div key={index} className={cn(
-                      "font-semibold mt-4 mb-2",
-                      darkMode ? "text-white" : "text-gray-900",
-                    )}>
-                      {line.trim()}
-                    </div>
-                  );
-                }
-                if (line.trim().startsWith("---") || line.trim().startsWith("━━━")) {
-                  return <hr key={index} className="my-4 border-gray-200 dark:border-gray-800" />;
-                }
-                if (line.trim() === "") {
-                  return <div key={index} className="mb-2" />;
-                }
-                return (
-                  <div key={index} className="mb-2">
-                    {line}
-                  </div>
-                );
-              })}
+          {/* White body lifts over gradient via negative margin + border-radius */}
+          <div
+            className="flex-1 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl -mt-6 overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+          >
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5 pb-4">
+              <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
+                {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
+                  if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
+                    return (
+                      <div key={idx} className="flex items-start mb-2.5">
+                        <span
+                          className={cn("font-bold mr-2.5 mt-0.5 shrink-0", priorityBg.replace(/\s+hover:[^\s]+/g, ""), "bg-clip-text")}
+                          style={{ color: currentAnnouncement.priority === "urgent" ? "#dc2626" : currentAnnouncement.priority === "high" ? "#ea580c" : "#2563eb" }}
+                        >•</span>
+                        <span>{line.trim().replace(/^[•-]\s*/, "")}</span>
+                      </div>
+                    );
+                  }
+                  if (line.trim().endsWith(":") && line.trim().length < 60 && !line.includes("http")) {
+                    return (
+                      <div key={idx} className={cn("font-bold mt-5 mb-2 text-[13px] tracking-[0.06em] uppercase", darkMode ? "text-gray-200" : "text-gray-900")}>
+                        {line.trim()}
+                      </div>
+                    );
+                  }
+                  if (line.trim().startsWith("---") || line.trim().startsWith("━━━")) {
+                    return <hr key={idx} className="my-4 border-gray-100 dark:border-gray-800" />;
+                  }
+                  if (line.trim() === "") return <div key={idx} className="h-3" />;
+                  return <p key={idx} className="mb-2">{line}</p>;
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Footer — v3.28.0 cleaner. Removed the loud KSYK Maps
-           *  wordmark; if there are multiple announcements, footer
-           *  shows an "N of M" counter with prev/next chevrons so
-           *  users can page through without closing. Close button
-           *  toned down to a subtle outline (Cancel-style) since a
-           *  dialog with only one action shouldn't scream at the
-           *  reader. */}
-          <div className={cn(
-            "flex items-center justify-between gap-3 px-5 sm:px-7 py-3 border-t",
-            darkMode ? "border-gray-800 bg-gray-950" : "border-gray-100 bg-gray-50/60",
-          )}>
-            <div className="flex items-center gap-2">
-              {activeAnnouncements.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
-                    className="h-8 w-8 p-0 rounded-lg"
-                    aria-label="Previous announcement"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className={cn(
-                    "text-[11px] font-semibold tabular-nums",
-                    darkMode ? "text-gray-400" : "text-gray-500",
-                  )}>
-                    {currentIndex + 1} / {activeAnnouncements.length}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
-                    className="h-8 w-8 p-0 rounded-lg"
-                    aria-label="Next announcement"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </>
+            {/* Footer */}
+            <div
+              className={cn(
+                "shrink-0 flex items-center justify-between gap-3 px-5 sm:px-6 py-3.5 border-t",
+                darkMode ? "border-gray-800/60" : "border-gray-100",
               )}
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              className="h-9 px-5 rounded-lg font-semibold"
+              style={{ paddingBottom: "max(0.875rem, env(safe-area-inset-bottom, 0.875rem))" }}
             >
-              {i18n.language === "fi" ? "Sulje" : "Close"}
-            </Button>
+              <div className="flex items-center gap-1.5">
+                {activeAnnouncements.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
+                      className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                      aria-label="Previous"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className={cn("text-[11px] font-semibold tabular-nums px-1", darkMode ? "text-gray-500" : "text-gray-400")}>
+                      {currentIndex + 1} / {activeAnnouncements.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
+                      className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                      aria-label="Next"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(false)}
+                className={cn(
+                  "h-10 px-6 rounded-2xl text-[14px] font-semibold transition-all active:scale-[0.97]",
+                  darkMode
+                    ? "bg-gray-800 hover:bg-gray-700 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-900",
+                )}
+              >
+                {i18n.language === "fi" ? "Sulje" : "Close"}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

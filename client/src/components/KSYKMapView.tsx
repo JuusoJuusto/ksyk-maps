@@ -373,7 +373,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  mobile without scrolling. */}
       {floorList.length > 1 && (
         <div
-          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-card/95 shadow-md backdrop-blur-md"
+          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-border bg-white dark:bg-gray-900 shadow-md"
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
