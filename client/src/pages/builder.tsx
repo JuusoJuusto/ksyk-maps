@@ -321,6 +321,8 @@ function BuilderWorkspace() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // ⌘Z / ⌘⇧Z history for building/room/hallway mutations.
   const history = useUndoStack();
+  // Active tab in the PropertyPanel — drives whether translate-drag is enabled.
+  const [propPanelTab, setPropPanelTab] = useState<string>("props");
   // Local-first navigation graph. Nodes + edges live in localStorage
   // until the server-side /api/nav-nodes API lands.
   const navGraph = useNavGraph();
@@ -786,7 +788,10 @@ function BuilderWorkspace() {
       features: rooms
         .filter((r) => r.points && r.points.length >= 3)
         .map((r) => {
-          const onFloor = activeFloor === null || r.floor === activeFloor;
+          const meta = r.metadata as { floorIds?: number[] } | null | undefined;
+          const floorIds = Array.isArray(meta?.floorIds) ? meta!.floorIds as number[] : null;
+          const onFloor = activeFloor === null ||
+            (floorIds ? floorIds.includes(activeFloor) : r.floor === activeFloor);
           const isSelected = selectedRoomIds.has(r.id);
           return {
             type: "Feature" as const,
@@ -887,11 +892,16 @@ function BuilderWorkspace() {
       }),
     };
     const hallsSrc = map.getSource(hallSrcId) as maplibregl.GeoJSONSource | undefined;
-    if (hallsSrc) hallsSrc.setData(hallsFC as any);
-    else {
+    if (hallsSrc) {
+      hallsSrc.setData(hallsFC as any);
+      // Keep walls on top after every data update.
+      try { map.moveLayer(hallLineId); } catch { /* ignore */ }
+    } else {
       map.addSource(hallSrcId, { type: "geojson", data: hallsFC as any });
       const wallColor = darkMode ? "#94a3b8" : "#374151";
       const innerWallColor = darkMode ? "#64748b" : "#64748b";
+      // Walls are always rendered on top. moveLayer() is called below
+      // after addLayer() to ensure the wall line sits above rooms/corridors.
       map.addLayer({
         id: hallLineId, source: hallSrcId, type: "line",
         layout: { "line-cap": "round", "line-join": "round" },
@@ -926,6 +936,8 @@ function BuilderWorkspace() {
           ],
         },
       });
+      // Move wall layer to the very top so it always renders above rooms/corridors.
+      try { map.moveLayer(hallLineId); } catch { /* ignore */ }
     }
   }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor, darkMode]);
 
@@ -1157,35 +1169,37 @@ function BuilderWorkspace() {
         } else {
           const snap = snapTargetRef.current;
           const orthoOn = orthoEnabledRef.current;
-          const useSnap = snap && !(orthoOn && wps.length >= 2);
+          const useSnap = snap && !(orthoOn && wps.length >= 1);
           const guideSnap = guideSnapRef.current;
           p = useSnap
             ? new maplibregl.LngLat(snap.lng, snap.lat)
             : guideSnap
             ? new maplibregl.LngLat(guideSnap.lng, guideSnap.lat)
             : e.lngLat;
-          if (orthoOn && wps.length >= 2) {
+          if (orthoOn && wps.length >= 1) {
             const prev = wps[wps.length - 1];
             const mPerLat = 111320;
             const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
-            const prevPrev = wps[wps.length - 2];
-            const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
-            const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
-            const θ = Math.atan2(edgeDx, edgeDy);
             const dx = (p.lng - prev.lng) * mPerLng;
             const dy = (p.lat - prev.lat) * mPerLat;
-            const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
-            const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
-            if (Math.abs(tRight) >= Math.abs(tUp)) {
-              p = new maplibregl.LngLat(
-                prev.lng + (tRight * Math.cos(θ)) / mPerLng,
-                prev.lat - (tRight * Math.sin(θ)) / mPerLat,
-              );
+            if (wps.length === 1) {
+              // First edge: axis-align to H or V.
+              p = Math.abs(dx) >= Math.abs(dy)
+                ? new maplibregl.LngLat(p.lng, prev.lat)
+                : new maplibregl.LngLat(prev.lng, p.lat);
             } else {
-              p = new maplibregl.LngLat(
-                prev.lng + (tUp * Math.sin(θ)) / mPerLng,
-                prev.lat + (tUp * Math.cos(θ)) / mPerLat,
-              );
+              const prevPrev = wps[wps.length - 2];
+              const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
+              const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
+              const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
+              if (edgeLen > 0.001) {
+                const ex = edgeDx / edgeLen, ey = edgeDy / edgeLen;
+                const tFwd  =  dx * ex + dy * ey;
+                const tPerp = -dx * ey + dy * ex;
+                p = Math.abs(tFwd) >= Math.abs(tPerp)
+                  ? new maplibregl.LngLat(prev.lng + (tFwd * ex) / mPerLng, prev.lat + (tFwd * ey) / mPerLat)
+                  : new maplibregl.LngLat(prev.lng + (tPerp * (-ey)) / mPerLng, prev.lat + (tPerp * ex) / mPerLat);
+              }
             }
           }
         }
@@ -2174,9 +2188,9 @@ function BuilderWorkspace() {
     }
 
     // Base position: vertex snap (highest priority) > raw cursor.
-    // Vertex snap is suppressed once ortho kicks in from the 2nd edge.
+    // Vertex snap is suppressed once ortho kicks in from the 1st waypoint.
     const snap = snapTargetRef.current;
-    const useSnap = snap && !(orthoEnabled && waypoints.length >= 2);
+    const useSnap = snap && !(orthoEnabled && waypoints.length >= 1);
     let endLng = useSnap ? snap.lng : cursorLngLat.lng;
     let endLat = useSnap ? snap.lat : cursorLngLat.lat;
 
@@ -2216,27 +2230,40 @@ function BuilderWorkspace() {
 
     const last = waypoints[waypoints.length - 1];
 
-    // Ortho v7 — pure edge-direction, NO map-bearing fallback.
-    // First edge (waypoints.length === 1) is completely free — user
-    // clicks any two points to establish the building's angle. Every
-    // subsequent corner is forced exactly 90° from the previous edge.
-    if (orthoEnabled && waypoints.length >= 2) {
+    // Ortho v8 — axis-aligned first edge + perpendicular-to-previous for
+    // subsequent edges. Normalised edge vectors eliminate atan2 issues.
+    if (orthoEnabled && waypoints.length >= 1) {
       const mPerLat = 111320;
       const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
-      const prevPrev = waypoints[waypoints.length - 2];
-      const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
-      const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
-      const θ = Math.atan2(edgeDx, edgeDy);
       const dx = (endLng - last.lng) * mPerLng;
       const dy = (endLat - last.lat) * mPerLat;
-      const tUp    =  dx * Math.sin(θ) + dy * Math.cos(θ);
-      const tRight =  dx * Math.cos(θ) - dy * Math.sin(θ);
-      if (Math.abs(tRight) >= Math.abs(tUp)) {
-        endLng = last.lng + (tRight * Math.cos(θ)) / mPerLng;
-        endLat = last.lat - (tRight * Math.sin(θ)) / mPerLat;
-      } else {
-        endLng = last.lng + (tUp * Math.sin(θ)) / mPerLng;
-        endLat = last.lat + (tUp * Math.cos(θ)) / mPerLat;
+      if (waypoints.length === 1) {
+        // First edge: snap to H or V (nearest of the two axis directions).
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          endLat = last.lat;           // horizontal
+        } else {
+          endLng = last.lng;           // vertical
+        }
+      } else if (waypoints.length >= 2) {
+        // Subsequent edges: perpendicular to previous edge using normalised
+        // edge vector — avoids atan2 numerical issues.
+        const prevPrev = waypoints[waypoints.length - 2];
+        const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
+        const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
+        const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
+        if (edgeLen > 0.001) {
+          const ex = edgeDx / edgeLen;   // unit east component
+          const ey = edgeDy / edgeLen;   // unit north component
+          const tFwd  =  dx * ex + dy * ey;      // along-edge projection
+          const tPerp = -dx * ey + dy * ex;      // perpendicular (CCW 90°)
+          if (Math.abs(tFwd) >= Math.abs(tPerp)) {
+            endLng = last.lng + (tFwd * ex) / mPerLng;
+            endLat = last.lat + (tFwd * ey) / mPerLat;
+          } else {
+            endLng = last.lng + (tPerp * (-ey)) / mPerLng;
+            endLat = last.lat + (tPerp * ex) / mPerLat;
+          }
+        }
       }
     }
 
@@ -3181,6 +3208,7 @@ function BuilderWorkspace() {
             <SelectionHandles
               map={selectionHandlesInput.map}
               selection={selectionHandlesInput.sel}
+              translateEnabled={propPanelTab === "transform"}
             />
           )}
 
@@ -3220,6 +3248,8 @@ function BuilderWorkspace() {
                 entity={entity}
                 onDelete={onDeleteSelected}
                 onClose={() => setSelection(null)}
+                onTabChange={setPropPanelTab}
+                onHistoryRecord={history.record}
               />
             );
           })()}

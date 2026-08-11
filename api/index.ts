@@ -14,7 +14,7 @@ function _adminSecret(): string {
 }
 
 function generateAdminToken(userId: string, role: string): string {
-  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 86_400_000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 604_800_000 })).toString('base64url');
   const sig = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }

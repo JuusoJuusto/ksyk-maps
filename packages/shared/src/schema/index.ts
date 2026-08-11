@@ -25,7 +25,7 @@ export const BBoxSchema = z.object({
 });
 
 export const RoomTypeSchema = z.enum([
-  "classroom", "lab", "office", "auditorium", "gym", "storage",
+  "classroom", "lab", "office", "lobby", "auditorium", "gym", "storage",
   "bathroom", "locker_room", "elevator", "stairs", "mechanical",
   "cafeteria", "library", "entrance", "exit", "outdoor", "emergency",
   "other",
