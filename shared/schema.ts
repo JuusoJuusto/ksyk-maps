@@ -77,7 +77,12 @@ export const buildings = pgTable("buildings", {
   address: varchar("address"),
   postalCode: varchar("postal_code"),
   city: varchar("city").default("Helsinki"),
-  coordinates: jsonb("coordinates"), // { lat: 60.1699, lng: 24.9384 }
+  coordinates: jsonb("coordinates"),
+  points: jsonb("points"),
+  rotationDeg: numeric("rotation_deg"),
+  defaultFloor: integer("default_floor"),
+  campus: varchar("campus"),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -119,6 +124,16 @@ export const rooms = pgTable("rooms", {
   virtualTourUrl: varchar("virtual_tour_url"), // 360Â° tour link
   bookingRules: text("booking_rules"), // Special rules or requirements
   requiresApproval: boolean("requires_approval").default(false),
+  description: text("description"),
+  points: jsonb("points"),
+  rotationDeg: numeric("rotation_deg"),
+  department: varchar("department"),
+  teacher: varchar("teacher"),
+  scheduleUrl: varchar("schedule_url"),
+  scheduleLabel: varchar("schedule_label"),
+  photoUrl: varchar("photo_url"),
+  coordinates: jsonb("coordinates"),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -209,6 +224,10 @@ export const hallways = pgTable("hallways", {
   accessibilityInfo: text("accessibility_info"),
   isPublic: boolean("is_public").default(true),
   isActive: boolean("is_active").default(true),
+  surface: varchar("surface"),
+  floor: integer("floor"),
+  directions: varchar("directions"),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
