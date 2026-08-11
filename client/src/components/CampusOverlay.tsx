@@ -1932,33 +1932,29 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
  *
  *  Order of poiKind here dictates render priority — later ones sit on
  *  top when two POIs overlap. */
-/** MazeMap-style POI glyphs. Kept in a single font (Noto Sans) so we
- *  don't have to load an icon atlas. Uses cleaner geometric symbols
- *  that read as pictographs at 12–20 px. */
+/** MazeMap-style POI glyphs. Uses widely-supported Unicode emoji so
+ *  icons are immediately recognisable at any zoom level. */
 const POI_ICON: Record<string, string> = {
-  stairs:        "⇕",   // up + down arrows
-  elevator:      "⇳",   // vertical double-arrow (elevator car)
-  door:          "◫",   // door + wall
-  entrance:      "▶",   // "in" pointer
-  exit:          "◄",   // "out" pointer
-  bathroom:      "♁",   // toilet-adjacent
+  stairs:        "🪜",   // staircase
+  elevator:      "🛗",   // elevator cab
+  door:          "🚪",   // door
+  entrance:      "⊙",   // bullseye entry point
+  exit:          "↪",   // exit arrow
+  bathroom:      "🚻",   // restroom (unisex)
   info:          "ⓘ",
   reception:     "☎",
   parking:       "Ⓟ",
-  bike:          "🚲",  // universal
-  restroom_m:    "♂",
-  restroom_f:    "♀",
-  restroom_a:    "♿",  // accessible
-  // v3.15 additions — MazeMap-style POIs. Emoji fallbacks so the icons
-  // render even in the default `Noto Sans Regular` font.
+  bike:          "🚲",
+  restroom_m:    "🚹",   // men
+  restroom_f:    "🚺",   // women
+  restroom_a:    "♿",   // accessible
   cafe:          "☕",
   vending:       "🍫",
   water:         "💧",
-  first_aid:     "＋",
+  first_aid:     "✚",   // medical cross
   defibrillator: "⚡",
   printer:       "🖨",
   meeting_point: "⚑",
-  // v3.29.0 — unisex/generic restroom to match the new builder tool.
   restroom:      "🚻",
 };
 

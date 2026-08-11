@@ -783,25 +783,26 @@ function BuilderWorkspace() {
     const roomsOutlineId = "builder-rooms-outline";
     const roomsLabelId = "builder-rooms-labels";
     const rooms = roomsQ.data ?? [];
-    // MazeMap-style per-floor filtering — rooms not on the current
-    // floor render as a very faded "ghost" so the user sees which
-    // floor they're editing without losing spatial context. Selected
-    // room always renders full opacity even off-floor.
+    // Same floor filtering as the normal public map (CampusOverlay):
+    // only rooms on the active floor are shown. When no floor is active
+    // (null), all rooms are shown. Selected rooms are always visible
+    // regardless of floor for selection feedback.
     const activeFloor = cameraState.activeFloor;
     const roomsFC = {
       type: "FeatureCollection" as const,
       features: rooms
         .filter((r) => r.points && r.points.length >= 3)
+        .filter((r) => {
+          if (activeFloor === null) return true;
+          if (selectedRoomIds.has(r.id)) return true; // always show selected
+          type BldMeta = { floorIds?: number[]; floorShapes?: Array<{ floor: number; coordinates: [number, number][] }> };
+          const meta = r.metadata as BldMeta | null | undefined;
+          const hasShapeForActive = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
+          return r.floor == null || r.floor === activeFloor || hasShapeForActive;
+        })
         .map((r) => {
           type BldMeta = { floorIds?: number[]; floorShapes?: Array<{ floor: number; coordinates: [number, number][] }> };
           const meta = r.metadata as BldMeta | null | undefined;
-          const floorIds = Array.isArray(meta?.floorIds) ? meta!.floorIds as number[] : null;
-          const floorShapeFloors = Array.isArray(meta?.floorShapes) ? meta!.floorShapes!.map((fs) => fs.floor) : null;
-          const allFloors = floorIds ?? floorShapeFloors;
-          const hasShapeForActive = activeFloor != null && meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
-          const onFloor = activeFloor === null ||
-            (allFloors ? (allFloors.includes(activeFloor) || r.floor === activeFloor) : r.floor === activeFloor) ||
-            hasShapeForActive;
           const floorShape = activeFloor != null ? meta?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
           const builderPts: [number, number][] = floorShape?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
           const isSelected = selectedRoomIds.has(r.id);
@@ -816,9 +817,8 @@ function BuilderWorkspace() {
               color: r.colorCode ?? (r.type === "hallway" ? "#64748b" : "#059669"),
               label: [r.roomNumber, r.name].filter(Boolean).join(" "),
               selected: isSelected,
-              onFloor,
               floor: r.floor ?? 1,
-              type: r.type ?? null, // needed for corridor detection in click handler
+              type: r.type ?? null,
               showOutline: ((r.metadata as { style?: { showOutline?: boolean } } | null)?.style?.showOutline) === true,
             },
           };
@@ -832,12 +832,7 @@ function BuilderWorkspace() {
         id: roomsFillId, source: roomsSrcId, type: "fill",
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": [
-            "case",
-            ["boolean", ["get", "selected"], false], 0.65,
-            ["boolean", ["get", "onFloor"], true], 0.50,
-            0.10, // off-floor ghost
-          ],
+          "fill-opacity": ["case", ["boolean", ["get", "selected"], false], 0.65, 0.50],
         },
       });
       map.addLayer({
@@ -847,11 +842,8 @@ function BuilderWorkspace() {
           "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2],
           "line-opacity": [
             "case",
-            // Selected rooms always show their outline for selection feedback.
             ["boolean", ["get", "selected"], false], 1,
-            // Non-selected: only when showOutline is on.
-            ["boolean", ["get", "showOutline"], false],
-            ["case", ["boolean", ["get", "onFloor"], true], 0.9, 0.2],
+            ["boolean", ["get", "showOutline"], false], 0.9,
             0,
           ],
         },
@@ -863,7 +855,7 @@ function BuilderWorkspace() {
           "text-color": "#0f172a",
           "text-halo-color": "#ffffff",
           "text-halo-width": 1.2,
-          "text-opacity": ["case", ["boolean", ["get", "onFloor"], true], 1, 0.35],
+          "text-opacity": 1,
         },
         minzoom: 17,
       });

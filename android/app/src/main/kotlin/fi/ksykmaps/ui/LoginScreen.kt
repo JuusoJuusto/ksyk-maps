@@ -74,9 +74,11 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 val obj = result.jsonObject
                 val ok = parseSuccess(obj["success"])
                 if (ok) {
+                    val token = (obj["adminToken"] as? JsonPrimitive)?.contentOrNull
                     Api.sessionEmail = email.trim()
+                    Api.adminToken = token
                     Session.user = obj["user"]?.jsonObject
-                    Session.saveToDataStore(ctx, email.trim())
+                    Session.saveToDataStore(ctx, email.trim(), token)
                     onLoggedIn()
                 } else {
                     status = obj["message"]?.let {
