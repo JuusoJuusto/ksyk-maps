@@ -115,7 +115,11 @@ function useAdminAuth() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/auth/user", { credentials: "include" });
+        const token = localStorage.getItem('ksyk_admin_token');
+        const res = await fetch("/api/auth/user", {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!cancelled && res.ok) {
           const u = await res.json();
           setState(["admin", "owner", "editor"].includes(u?.role) ? "allowed" : "denied");

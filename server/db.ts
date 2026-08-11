@@ -2,13 +2,15 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "../shared/schema.js";
 
-// Accept DATABASE_URL (custom) or POSTGRES_URL (Vercel ↔ Supabase integration).
-// POSTGRES_PRISMA_URL adds pgbouncer params that don't cause issues but prefer
-// the cleaner POSTGRES_URL when available.
+// Accept DATABASE_URL (custom) or Vercel ↔ Supabase integration variables.
+// In Vercel, POSTGRES_PRISMA_URL is the Transaction Mode Pooler (port 6543) —
+// the correct choice for serverless. POSTGRES_URL is Session Mode (port 5432)
+// which opens persistent connections that serverless functions can't reuse.
 const url =
   process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||  // Transaction Mode Pooler — best for serverless
   process.env.POSTGRES_URL ||
-  process.env.POSTGRES_PRISMA_URL;
+  process.env.POSTGRES_URL_NON_POOLING;
 
 if (!url) {
   throw new Error(
