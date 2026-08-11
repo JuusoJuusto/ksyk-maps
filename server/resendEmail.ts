@@ -6,7 +6,6 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
   console.log('\n📧 ========== SENDING EMAIL WITH RESEND ==========');
   console.log('To:', email);
   console.log('Name:', firstName);
-  console.log('Password:', tempPassword);
   console.log('Resend API Key:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
   console.log('================================================\n');
 

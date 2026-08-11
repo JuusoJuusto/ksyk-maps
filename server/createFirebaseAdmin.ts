@@ -50,7 +50,6 @@ async function createAdminUser() {
     console.log('✅ Admin user created successfully!');
     console.log('UID:', userRecord.uid);
     console.log('Email:', userRecord.email);
-    console.log('Password:', password);
     console.log('\nYou can now login at: https://ksykmaps.vercel.app/admin-login');
     
   } catch (error) {

@@ -6,16 +6,16 @@ import { storage } from "./storage";
 export async function setupAuth(app: Express) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    console.warn(
-      "⚠️  SESSION_SECRET env var is not set — using insecure default. " +
-      "Set SESSION_SECRET to a long random string in production."
-    );
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error("SESSION_SECRET env var must be set in production");
+    }
+    console.warn("⚠️  SESSION_SECRET not set — using insecure default (dev only)");
   }
 
   // Setup session middleware
   app.use(
     session({
-      secret: secret || 'ksyk-map-secret-key-change-in-production',
+      secret: secret || 'ksyk-map-dev-only-secret-not-for-production',
       resave: false,
       saveUninitialized: false,
       cookie: {

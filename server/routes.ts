@@ -1376,23 +1376,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`\n📧 ========== EMAIL INVITATION ==========`);
         console.log(`Target: ${email}`);
         console.log(`Name: ${firstName} ${lastName}`);
-        console.log(`Password: ${finalPassword}`);
-        
+
         try {
           const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
-          
+
           console.log(`\n📧 EMAIL RESULT:`);
           console.log(`   Success: ${emailResult.success}`);
           console.log(`   Mode: ${emailResult.mode}`);
-          
+
           if (emailResult.success) {
             console.log(`✅ EMAIL SENT to ${email}`);
           } else {
-            console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
+            console.log(`⚠️ EMAIL NOT SENT`);
           }
         } catch (error: any) {
           console.error('❌ EMAIL ERROR:', error.message);
-          console.log(`📝 Password: ${finalPassword}`);
         }
         
         console.log(`==========================================\n`);

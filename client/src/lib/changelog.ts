@@ -10,14 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.67.0";
+export const APP_VERSION = "3.68.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.68.0",
+    date: "August 2026",
+    title: "Security hardening — remove password logs, fix session secret",
+    latest: true,
+    highlights: [
+      "Removed plaintext password from server logs (routes.ts, resendEmail.ts, createFirebaseAdmin.ts)",
+      "SESSION_SECRET now throws in production if not set — no hardcoded fallback",
+    ],
+  },
   {
     version: "3.66.0",
     date: "August 2026",
     title: "Fix MapLibre getLayer crash + Firebase export script",
-    latest: true,
+    latest: false,
   },
   {
     version: "3.64.0",
