@@ -10,14 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.70.0";
+export const APP_VERSION = "3.71.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.71.0",
+    date: "August 2026",
+    title: "Builder save errors now visible — toast on failed writes",
+    latest: true,
+    highlights: [
+      "All builder mutations (buildings, rooms, corridors, hallways, POIs, style, transform) now show a toast notification on failure",
+      "Previously, a 401 or 500 from the server would silently do nothing — you had no idea if Save failed",
+    ],
+  },
   {
     version: "3.70.0",
     date: "August 2026",
     title: "Fix admin writes — JWT auth replaces broken session auth",
-    latest: true,
     highlights: [
       "Replaced express-session (MemoryStore) with JWT httpOnly cookies — sessions now survive across Vercel serverless instances",
       "Root cause: Vercel is stateless — MemoryStore sessions died between lambda invocations, making every write appear as unauthenticated",

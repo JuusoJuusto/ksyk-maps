@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation, Plus } from "lucide-react";
@@ -308,6 +309,7 @@ function PointPoiProps({
   resource: "doors" | "stairs" | "elevators" | "pois";
 }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [floor, setFloor] = useState<number>((poi.floor as number | null) ?? 1);
   const [isEntrance, setIsEntrance] = useState<boolean>(!!poi.isEntrance);
   const [isExit, setIsExit] = useState<boolean>(!!poi.isExit);
@@ -327,6 +329,11 @@ function PointPoiProps({
       try { return await res.json(); } catch { return null; }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [`/api/${resource}`] }),
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save changes. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -434,6 +441,7 @@ function PointPoiProps({
 
 function BuildingProps({ building }: { building: Building }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [name, setName] = useState(building.name);
   const [nameEn, setNameEn] = useState(building.nameEn ?? "");
   const [nameFi, setNameFi] = useState(building.nameFi ?? "");
@@ -450,6 +458,11 @@ function BuildingProps({ building }: { building: Building }) {
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/buildings"] }),
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save building. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -508,6 +521,7 @@ function BuildingProps({ building }: { building: Building }) {
 
 function RoomProps({ room }: { room: Room }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [roomNumber, setRoomNumber] = useState(room.roomNumber);
   const [name, setName] = useState(room.name ?? "");
   // v3.28.0 — English + Finnish name fields alongside the base name.
@@ -554,6 +568,11 @@ function RoomProps({ room }: { room: Room }) {
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save room. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -709,6 +728,7 @@ function RoomProps({ room }: { room: Room }) {
 
 function CorridorProps({ room }: { room: Room }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [name, setName] = useState(room.name ?? "");
   const [label, setLabel] = useState(room.roomNumber ?? "");
   const [floor, setFloor] = useState<number>(room.floor ?? 1);
@@ -769,6 +789,11 @@ function CorridorProps({ room }: { room: Room }) {
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save corridor. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -913,6 +938,7 @@ function CorridorProps({ room }: { room: Room }) {
 
 function HallwayProps({ hallway }: { hallway: Hallway }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [width, setWidth] = useState(hallway.width ?? 2);
   const initialSurface = (hallway.surface ?? "concrete") as string;
   const [surface, setSurface] = useState(initialSurface);
@@ -927,6 +953,11 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/hallways"] }),
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save hallway. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -1020,6 +1051,7 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
 
 function StyleTab({ entity }: { entity: SelectedEntity }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   // v3.28.1 — point-POI kinds have no per-feature style knobs yet; if
   // one somehow reaches this tab (should be blocked by the tab
   // visibility filter), render a placeholder instead of crashing.
@@ -1100,6 +1132,11 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
         : "/api/hallways";
       qc.invalidateQueries({ queryKey: [qk] });
     },
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save style. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
@@ -1333,6 +1370,7 @@ function TransformTab({ entity }: { entity: SelectedEntity }) {
 
 function PolygonTransformForm({ entity }: { entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }> }) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const pts = (entity.data.points ?? []) as Array<{ lat: number; lng: number }>;
   const mPerLat = 111320;
 
@@ -1412,6 +1450,11 @@ function PolygonTransformForm({ entity }: { entity: Exclude<SelectedEntity, { ki
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [entity.kind === "building" ? "/api/buildings" : "/api/rooms"] });
     },
+    onError: (err: any) => toast({
+      title: "Save failed",
+      description: err?.message ?? "Could not save transform. Are you logged in?",
+      variant: "destructive",
+    }),
   });
 
   const dirty =
